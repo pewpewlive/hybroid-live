@@ -1,0 +1,498 @@
+# The Livecode syntax
+
+## Comments
+
+Comments in Livecode are like in any other C-style language.
+
+`//` indicates a single-line comment.
+
+```rs
+// I am a single-line comment!
+Print("Hello, World!")
+```
+
+`/*` and `*/` indicate a multi-line comment.
+
+```rs
+/*
+ I am a multi-line comment!
+ Cool, right?
+*/
+Print("Hello, World!")
+```
+
+## Semicolons
+
+Just like in Lua, semicolons are treated as a whitespace character.
+
+## Environments
+
+Environments are an important aspect of PPL and Livecode. Not specifying the environment will result in a transpile-time error.
+
+The environment definition must be the first statement in the file.
+
+```rs
+@Environment(Level)
+
+// The rest of the code
+```
+
+The following environments are available:
+
+- `Level` - for working with levels
+  - When choosing the this environment, you get to use a subset of the Lua standard libraries: `table`, `string`, `fmath` (PPL-specific counterpart to `math`)
+- `Mesh` - for working with meshes
+  - When choosing the this environment, all of the standard libraries that are enabled globally in PPL are available (exceptions being `coroutine`, `io`, `os`, etc.)
+- `Sound` - for working with sounds
+  - Same as `Mesh`
+- `Shared` - for creating constant files referenced in multiple environments
+  - When choosing the this environment, `math` is disabled to work with `Level`, libraries open to `Level` are available
+- `LuaGeneric` - or cothistandard Lua (for use in console applications, etc.)
+  - When choosing the `LuaGeneric` environment, some features of the language would be disabled: `spawnable`s, `tick`, `spawn`, fixedpoint support, PPL libraries. All standard Lua libraries are available.
+  - When choosing the `LuaGeneric` environment, some features of the language would be disabled: `spawnable`s, `tick`, `spawn`, fixedpoint support, PPL libraries. All standard Lua libraries are available.
+
+## Declaration of variables
+
+```rs
+// Local variables
+let name = "Alpha"
+
+// Global (public) variables
+pub number_of_life = 42
+
+// Reassignment
+name = "blade"
+```
+
+## Entities and spawning syntax
+
+Entities are transpile-time classes. They are designed to provide OOP-like feel when working with entities.
+
+### Defining an `entity`
+
+```rs
+entity Quadro {
+  define {
+    mesh_id2,
+    speed,
+    other
+  }
+
+  Spawn(x, y, speed) {
+    self.speed = speed
+    self.mesh_id2 = PewPew.NewEntity(x, y)
+    PewPew.EntitySetMesh(self, "file_path", 0)
+    PewPew.EntitySetMesh(self.mesh_id2, "file_path", 1)
+    Fmath.Random_Int(0,6)
+    return self
+  }
+
+  trait Update() {
+    let x, y = Origin.pewpew.entity_get_position(self)
+    x = x + 10fx * self.speed
+    Origin.pewpew.entity_set_position(self, x, y)
+  }
+
+  trait WeaponCollision(index, wtype) {
+  }
+
+  trait PlayerCollision(index, ship_id) {
+  }
+
+  trait WallCollision(wall_x, wall_y) {
+  }
+
+  fn DamageOtherEntity(entity, x, y) {
+    self.DamageOtherEntity()
+    //quadro_damage_other_entity(id(from self), entity, x, y)
+    entity.damage(1)
+    //mothership_damage(entity, self, 1)
+  }
+}
+```
+
+```lua
+QuadroStates = {}
+
+local function quadro_update(id)
+  local x, y = pewpew.entity_get_position(id)
+  x = x + 10fx * QuadroState[id].speed
+  pewpew.entity_set_position(id, x, y)
+end
+
+local function quadro_weapon_collision(id, index, wtype)
+  -- does stuff
+end
+
+local function quadro_player_collision(id, index, ship_id)
+  -- does stuff
+end
+
+local function quadro_wall_collision(id, wall_x, wall_y)
+  -- does stuff
+end
+
+functionction quadro_damage_other_entity(id, ea
+  mothership_follow_other_entity.(entity, id)
+  a:Entity = EntityState
+end
+
+function Quadro.new(x, y, speed)
+  local id = pewpew.new_customizable_entity(x, y)
+  QuadroState[id] = {}
+  
+  pewpew.entity_set_update_callback(id, quadro_update)
+  pewpew.customizable_entity_set_weapon_collision_callback(id, quadro_weapon_collision)
+  pewpew.customizable_entity_set_player_collision_callback(id, quadro_player_collision)
+  pewpew.customizable_entity_configure_wall_collision(id, quadro_wall_collision)
+
+  QuadroState[id].speed = speed
+  QuadroState[id].mesh_id2 = pewpew.new_customizable_entity(x, y)
+  pewpew.customizable_entity_set_mesh(id, "file_path", 0)
+  pewpew.customizable_entity_set_mesh(QuadroState[id].mesh_id2, "file_path", 1)
+
+  return id
+end
+
+```
+
+### Creating a `spawnable`
+
+```rs
+let id = spawn Quadro with {x: 100fx, y: 100fx, speed: 10fx}
+
+local id = Quadro.new(100fx, 100fx, 10fx)
+
+// Invoking a Destroy trait
+Destroy id
+```
+
+## Lua interop & importing
+
+Original `pewpew`, `fmath`, `math`, `table` functions are available under `Origin` namespace.
+
+Importing Lua libraries works as expected, just with omission of `/dynamic`.
+
+```rs
+use "mesh_helper.lc" as mesh_helper_livecode
+```
+
+You can write lua code with a special `@Lua` directive:
+
+```rs
+let number = 0
+
+@Lua("number = number + 1")
+
+Print(number) // -> 1
+```
+
+However, this is discouraged, as the transpiler can lose important context, such as variable declarations.
+
+## Loops
+
+### Tick loops
+
+In PPL, for updating every tick, `pewpew.add_update_callback` is used. Livecode wraps it in a `tick` statement.
+
+```rs
+tick {
+  Print("I am printed every tick!")
+}
+```
+
+It is possible to create a `tick` statement with a time variable.
+
+```rs
+tick with time {
+  Print(time .. " has elapsed")
+}
+```
+
+### While loops
+
+In Livecode and PPL while loops are discouraged. However, you can still use them if you want or need to.
+
+```rs
+while true {
+  Print("Running infinitely and as fast as possible!")
+}
+```
+
+### Repeat loops
+
+Repeat loops are simple for loops.
+
+```rs
+repeat 10 {
+  Print("Livecode is awesome!")
+}
+```
+
+It is possible to create a `repeat` loop with an iteration variable.
+
+```rs
+repeat 10 with index {
+  Print("This is " .. index .. "th iteration!") // -> This is 1th iteration!
+}
+```
+
+### For loops
+
+For loops are designed for advanced iterations.
+
+```rs
+let fruits = ["banana", "kiwi", "apple", "pear", "cherry"]
+
+for fruit in fruits {
+  Print(fruit)
+}
+```
+
+It is possible to also get an index.
+
+```rs
+let fruits = ["banana", "kiwi", "apple", "pear", "cherry"]
+
+for index, item in fruits {
+  Print(index)
+}
+```
+
+## Lists
+
+In Lua, these structures are called "tables". These structures hold multiple data associated with a numeric index.
+
+```rs
+let fruits = ["banana", "kiwi", "apple", "pear", "cherry"]
+
+Print(fruits[2]) // -> kiwi
+```
+
+To get the length of the list or , use `#` prefix.
+
+```rs
+let fruits = ["banana", "kiwi", "apple", "pear", "cherry"]
+
+repeat #fruits with i {
+  Print(fruits[i])
+}
+```
+
+### Adding elements to the list
+
+Using `add` keyword.
+
+```rs
+let fruits = ["banana", "kiwi", "apple", "pear", "cherry"]
+
+add "watermelon" to fruits
+
+Print(@ListToStr(fruits)) // -> ["banana", "kiwi", "apple", "pear", "cherry", "watermelon"]
+```
+
+### Finding the index of the item
+
+Using `find` keyword. Only the first match is returned.
+
+```rs
+let fruits = ["banana", "kiwi", "apple", "pear", "cherry"]
+
+Print(find "apple" in fruits) // -> 3
+```
+
+### Removing an element from the list
+
+Using `remove` keyword.
+
+```rs
+let fruits = ["banana", "kiwi", "apple", "pear", "cherry"]
+
+remove 4 from fruits
+
+Print(@ListToStr(fruits)) // -> ["banana", "kiwi", "apple", "cherry"]
+```
+
+## Maps
+
+In Lua, these structures are also called _tables_. These structures hold multiple data entries associated with a string index.
+
+```rs
+let inventory = {
+  bananas: 2,
+  apples: 5,
+  kiwis: 10,
+  pears: 0,
+  cherries: 12
+}
+
+Print(fruits["apples"]) // -> 5
+
+// or
+
+Print(fruits.apples) // -> 5
+```
+
+### Adding elements to the map
+
+Using `add` keyword.
+
+```rs
+let inventory = {
+  bananas: 2,
+  apples: 5,
+  kiwis: 10,
+  pears: 0,
+  cherries: 12
+}
+
+add 10 as "watermelon" to inventory
+
+Print(@MapToStr(fruits))
+
+/*
+-> {
+  bananas: 2,
+  apples: 5,
+  kiwis: 10,
+  pears: 0,
+  cherries: 12,
+  watermelons: 10
+}
+*/
+```
+
+### Finding the key of the item
+
+Using `find` keyword. Only the first match is returned.
+
+```rs
+let inventory = {
+  bananas: 2,
+  apples: 5,
+  kiwis: 10,
+  pears: 0,
+  cherries: 12
+}
+
+Print(find 10 in fruits) // -> "kiwis"
+```
+
+### Removing an element from the list
+
+Using `remove` keyword.
+
+```rs
+let inventory = {
+  bananas: 2,
+  apples: 5,
+  kiwis: 10,
+  pears: 0,
+  cherries: 12
+}
+
+remove "cherries" from fruits
+
+Print(@MapToStr(fruits))
+
+/*
+-> {
+  bananas: 2,
+  apples: 5,
+  kiwis: 10,
+  pears: 0
+}
+*/
+```
+
+## Functions
+
+Declaring a function works with the `fn` keyword. Functions are local by default.
+
+```rs
+fn Greet(name) {
+  Print("Hello" .. name .. "!")
+}
+
+Greet("John") // -> Hello, John!
+```
+
+Functions can be annonymous, too! Useful for callbacks.
+
+```rs
+let Greet = fn (name) {
+  Print("Hello" .. name .. "!")
+}
+
+Greet("John") // -> Hello, John!
+```
+
+## Conditional statements
+
+### If statement
+
+```rs
+let a = 10
+if a == 10 {
+  Print("It's 10!")
+} else if a == 20 {
+  Print("It's 20!")
+} else {
+  Print("It's a different number!")
+}
+```
+
+If statements can also be used as expressions.
+
+```rs
+let a = 10
+let check = if a == 10 {
+  return "It's 10!"
+} else if a == 20 {
+  return "It's 20!"
+} else {
+  return "It's a different number!"
+}
+
+Print(check)
+```
+
+### Match statement
+
+```rs
+let a = 10
+let check = match a {
+  10 => "It's 10!"
+  20 => "It's 20!"
+  _ => "It's a different number!"
+}
+
+match a {
+  1 => // if a is 1 or 10 then execute
+  10 => {
+    //execute
+  }
+  20 => {
+    a = 24
+    return
+  }
+  _ => {
+    a = nil
+  }
+}
+
+Print(check)
+```
+
+## Enums
+
+Enums are maps.
+
+```rs
+enum SandwichType {
+  Blt,
+  Panini,
+  GrilledCheese,
+  Ham
+}
+```
