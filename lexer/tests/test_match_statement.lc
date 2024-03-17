@@ -1,0 +1,17 @@
+@Environment(Generic)
+
+let a = "something"
+
+match a {
+  "abc" => {
+    Print("Hmm")
+  }
+  "something" => {
+    Print("Something!")
+  }
+  _ => {
+    Print("Other!?")
+  }
+}
+
+// Testing match cases

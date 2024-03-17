@@ -1,0 +1,48 @@
+@Environment(Level)
+
+use "mesh_helpers.lc" as mesh_helper
+
+/*
+MnstuipHs iso el d wep08uqwr089yuetoihjsdofisn.//34234sd&/*Ja
+*/
+
+/
+
+let white = 0xfffffff
+
+"cock and balls"
+"string//with/slashes/and*stars*and+plus"
+"/* xd */"
+Print("Hello, " .. "world!")
+
+let test2 = 10f + 23f
+let radian = 1.4r
+let degreeeeeeeeee = 360d
+let af = 100
+let af = 100po
+let af = 100xo
+
+entity Quadro {
+  damage: 0
+  shaky: false
+  speed: 50.5f
+
+  Spawn() 
+}
+
+tick with t {
+  t += 1
+  spawn A with {x: 100f, y: 100f}
+
+  let a = match t {
+    10 => "a"
+    20 => "b"
+    _ => "c"
+  }
+
+  Print(a)
+}
+
+// Lollllll //
+// yes
+10f

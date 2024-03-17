@@ -49,7 +49,6 @@ The following environments are available:
   - When choosing the this environment, `math` is disabled to work with `Level`, libraries open to `Level` are available
 - `LuaGeneric` - or cothistandard Lua (for use in console applications, etc.)
   - When choosing the `LuaGeneric` environment, some features of the language would be disabled: `spawnable`s, `tick`, `spawn`, fixedpoint support, PPL libraries. All standard Lua libraries are available.
-  - When choosing the `LuaGeneric` environment, some features of the language would be disabled: `spawnable`s, `tick`, `spawn`, fixedpoint support, PPL libraries. All standard Lua libraries are available.
 
 ## Declaration of variables
 
@@ -66,7 +65,7 @@ name = "blade"
 
 ## Entities and spawning syntax
 
-Entities are transpile-time classes. They are designed to provide OOP-like feel when working with entities.
+Entities are transpile-time classes. They are designed to provide OOP-like feel when working with entities. This feature is disallowed in `Generic` environments. Use `struct` keyword there instead.
 
 ### Defining an `entity`
 
@@ -140,7 +139,7 @@ end
 function Quadro.new(x, y, speed)
   local id = pewpew.new_customizable_entity(x, y)
   QuadroState[id] = {}
-  
+
   pewpew.entity_set_update_callback(id, quadro_update)
   pewpew.customizable_entity_set_weapon_collision_callback(id, quadro_weapon_collision)
   pewpew.customizable_entity_set_player_collision_callback(id, quadro_player_collision)
@@ -156,7 +155,7 @@ end
 
 ```
 
-### Creating a `spawnable`
+### Creating an entity
 
 ```rs
 let id = spawn Quadro with {x: 100fx, y: 100fx, speed: 10fx}
@@ -188,6 +187,52 @@ Print(number) // -> 1
 ```
 
 However, this is discouraged, as the transpiler can lose important context, such as variable declarations.
+
+## Number Literals
+
+In PPL, you use number literals with `fx` at the end of the number. But thankfully, Livecode makes working with numbers easier, by giving several options.
+
+### Fixedpoint Literal
+
+Use `fx` to explicitly state you want to use fixedpoint numbers. This feature is disallowed in `Generic`, `Mesh` and `Sound` environments.
+
+```rs
+let speed = 100.2048fx
+```
+
+### Decimal Literal
+
+If that's not what you want, Livecode gives the option to use generic decimal literals by writing a float and adding `f` at the end
+
+```rs
+let a = 100.5f
+let b = 3.14f
+```
+
+Behind the scenes, the transpiler will convert these numbers to their equivalent value based on the environment settings:
+
+- On `Level` and `Shared` it will convert these numbers to their fixedpoint counterparts (`100.5f` will become `100.2048fx`)
+- On `Mesh`, `Sound` and `Generic` it will stay as a decimal float, just without the 'f'
+
+### Angle Literal
+
+Livecode also adds special literal support for angles.
+
+```rs
+let degrees = 180d
+let pi = 3.14r
+```
+
+When using angle literals, the transpiler will automatically convert their values:
+
+- The `d` literal allows you to write angles in degrees. They are automatically converted to radians and directly placed in the final Lua code.
+- The `r` literal is functionally the same as a decimal `f` literal, keeping its value without the `r`. It is useful to denote when arguments are angles or just numbers.
+
+### Other Literals
+
+- `0x` is a hexadecimal literal. Example: `0xff`
+- `0o` is an octal literal. Example: `0o07`
+- `0b` is a binary literal. Example: `0b01`
 
 ## Loops
 
@@ -427,12 +472,29 @@ let Greet = fn (name) {
 Greet("John") // -> Hello, John!
 ```
 
+## Directives
+
+Directives are special functions that are evaluated in the transpiler. They work similarly to _macros_.
+
+```rs
+dir @Hello(name) => "Hello ".. name .. "!"
+
+print(@Hello("John")) // -> Hello, John!
+```
+
+The generated code looks something like this:
+
+```lua
+print("Hello " .. "John" .. "!")
+```
+
 ## Conditional statements
 
 ### If statement
 
 ```rs
 let a = 10
+
 if a == 10 {
   Print("It's 10!")
 } else if a == 20 {
@@ -446,6 +508,7 @@ If statements can also be used as expressions.
 
 ```rs
 let a = 10
+
 let check = if a == 10 {
   return "It's 10!"
 } else if a == 20 {
@@ -486,7 +549,7 @@ Print(check)
 
 ## Enums
 
-Enums are maps.
+Enums are converted to tables if compiling to Lua.
 
 ```rs
 enum SandwichType {
@@ -494,5 +557,29 @@ enum SandwichType {
   Panini,
   GrilledCheese,
   Ham
+}
+```
+
+## Structures
+
+Structures are classes that do not have inheritance. Using structures in any environment except `Generic` will result in a warning.
+
+```rs
+struct Rectangle {
+  length: 0
+  height: 0
+
+  fn Init(length, height) {
+    self.length = length
+    self.height = height
+  }
+
+  fn Area() {
+    return self.length * self.height
+  }
+
+  fn Perimeter() {
+    return (self.length + self.height) * 2
+  }
 }
 ```
