@@ -1,8 +1,8 @@
-# The Livecode syntax
+# The Hybroid syntax
 
 ## Comments
 
-Comments in Livecode are like in any other C-style language.
+Comments in Hybroid are like in any other C-style language.
 
 `//` indicates a single-line comment.
 
@@ -27,7 +27,7 @@ Just like in Lua, semicolons are treated as a whitespace character.
 
 ## Environments
 
-Environments are an important aspect of PPL and Livecode. Not specifying the environment will result in a transpile-time error.
+Environments are an important aspect of PPL and Hybroid. Not specifying the environment will result in a transpile-time error.
 
 The environment definition must be the first statement in the file.
 
@@ -173,7 +173,7 @@ Original `pewpew`, `fmath`, `math`, `table` functions are available under `Origi
 Importing Lua libraries works as expected, just with omission of `/dynamic`.
 
 ```rs
-use "mesh_helper.lc" as mesh_helper_livecode
+use "mesh_helper.lc" as mesh_helper_hybroid
 ```
 
 You can write lua code with a special `@Lua` directive:
@@ -190,7 +190,7 @@ However, this is discouraged, as the transpiler can lose important context, such
 
 ## Number Literals
 
-In PPL, you use number literals with `fx` at the end of the number. But thankfully, Livecode makes working with numbers easier, by giving several options.
+In PPL, you use number literals with `fx` at the end of the number. But thankfully, Hybroid makes working with numbers easier, by giving several options.
 
 ### Fixedpoint Literal
 
@@ -202,7 +202,7 @@ let speed = 100.2048fx
 
 ### Decimal Literal
 
-If that's not what you want, Livecode gives the option to use generic decimal literals by writing a float and adding `f` at the end
+If that's not what you want, Hybroid gives the option to use generic decimal literals by writing a float and adding `f` at the end
 
 ```rs
 let a = 100.5f
@@ -216,7 +216,7 @@ Behind the scenes, the transpiler will convert these numbers to their equivalent
 
 ### Angle Literal
 
-Livecode also adds special literal support for angles.
+Hybroid also adds special literal support for angles.
 
 ```rs
 let degrees = 180d
@@ -238,7 +238,7 @@ When using angle literals, the transpiler will automatically convert their value
 
 ### Tick loops
 
-In PPL, for updating every tick, `pewpew.add_update_callback` is used. Livecode wraps it in a `tick` statement.
+In PPL, for updating every tick, `pewpew.add_update_callback` is used. Hybroid wraps it in a `tick` statement.
 
 ```rs
 tick {
@@ -256,7 +256,7 @@ tick with time {
 
 ### While loops
 
-In Livecode and PPL while loops are discouraged. However, you can still use them if you want or need to.
+In Hybroid and PPL while loops are discouraged. However, you can still use them if you want or need to.
 
 ```rs
 while true {
@@ -270,7 +270,7 @@ Repeat loops are simple for loops.
 
 ```rs
 repeat 10 {
-  Print("Livecode is awesome!")
+  Print("Hybroid is awesome!")
 }
 ```
 
@@ -423,7 +423,7 @@ let inventory = {
 Print(find 10 in fruits) // -> "kiwis"
 ```
 
-### Removing an element from the list
+### Removing an element from the map
 
 Using `remove` keyword.
 

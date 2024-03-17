@@ -1,4 +1,4 @@
-# Livecode
+# Hybroid
 
 A programming language tailored for PewPew Live level development.
 
@@ -6,11 +6,11 @@ While it is primarily designed for making PPL levels, it supports generic Lua en
 
 ## Syntax
 
-The preliminary syntax for Livecode can be found [here](spec/syntax.md).
+The preliminary syntax for Hybroid can be found [here](spec/syntax.md).
 
 ## Syntax highlighting
 
-An experimental VS Code extension is available [here](https://github.com/pewpewlive/livecode-vscode).
+An experimental VS Code extension is available [here](https://github.com/pewpewlive/hybroid-vscode).
 
 ## Goals
 
