@@ -173,7 +173,7 @@ Original `pewpew`, `fmath`, `math`, `table` functions are available under `Origi
 Importing Lua libraries works as expected, just with omission of `/dynamic`.
 
 ```rs
-use "mesh_helper.lc" as mesh_helper_hybroid
+use "mesh_helper.hyb" as mesh_helper_hybroid
 ```
 
 You can write lua code with a special `@Lua` directive:

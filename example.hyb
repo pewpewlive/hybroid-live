@@ -1,19 +1,7 @@
 @Environment(Level)
 
-use "mesh_helpers.lc" as mesh_helper
+use "mesh_helpers.hyb" as mesh_helper
 
-/*
-MnstuipHs iso el d wep08uqwr089yuetoihjsdofisn.//34234sd&/*Ja
-*/
-
-/
-
-let white = 0xfffffff
-
-"cock and balls"
-"string//with/slashes/and*stars*and+plus"
-"/* xd */"
-Print("Hello, " .. "world!")
 
 let test2 = 10f + 23f
 let radian = 1.4r
@@ -46,3 +34,4 @@ tick with t {
 // Lollllll //
 // yes
 10f
+"
