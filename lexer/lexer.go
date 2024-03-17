@@ -85,17 +85,21 @@ const (
 	Eof // END OF FILE
 )
 
+type Token struct {
+	Type    TokenType
+	Lexeme  string
+	Literal string
+	Line    int
+}
+
 func (t TokenType) ToString() string {
 	return [...]string{
 		"LeftParen", "RightParen", "LeftBrace", "RightBrace", "LeftBracket", "RightBracket", "Comma", "Colon", "At", "Dot", "Concat", "Minus", "MinusEqual", "Plus", "PlusEqual ", "Slash", "SlashEqual", "Star", "StarEqual ", "Caret", "CaretEqual", "Bang", "BangEqual", "Equal", "EqualEqual", "FatArrow", "Greater", "GreaterEqual", "Less", "LessEqual", "Identifier", "String", "Number", "FixedPoint", "Degree", "Radian", "And", "Or", "True", "False", "Self", "Fn", "Tick", "Repeat", "For", "While", "If", "Else", "Nil", "Return", "Break", "Continue", "Let", "Pub", "In", "As", "To", "With", "Enum", "Use", "Spawn", "Trait", "Entity", "Find", "Remove", "Match", "Eof",
 	}[t]
 }
 
-type Token struct {
-	Type    TokenType
-	Lexeme  string
-	Literal string
-	Line    int
+func (t Token) ToString() string {
+	return fmt.Sprintf("Token {type: %v, lex: %v, lit: %v, line: %v}", t.Type.ToString(), t.Lexeme, t.Literal, t.Line)
 }
 
 var tokens []Token
@@ -237,11 +241,7 @@ func HandleNumber() {
 			Advance()
 		}
 
-		if current-start == 10 {
-			AddToken(Number, string(source[start:current]))
-		} else {
-			LexerError(fmt.Sprintf("Invalid Hex Number: %v", string(source[start:current])))
-		}
+		AddToken(Number, string(source[start:current]))
 
 		return
 	}
@@ -443,10 +443,11 @@ func ScanToken() {
 
 func Tokenize(src []byte) []Token {
 	source = src
-	line = 1
+	line, start, current = 1, 0, 0
 	passed = true
+	tokens = make([]Token, 0)
 
-	for { // 10+10
+	for {
 		if IsAtEnd() {
 			break
 		}

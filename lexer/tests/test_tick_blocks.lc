@@ -1,4 +1,4 @@
-@Environment(Level) 
+@Environment(Level)
 
 tick {}
 
