@@ -15,10 +15,11 @@ func readFile(fileName string, t *testing.T) []byte {
 }
 
 func TestBasic(t *testing.T) {
-	tokens := Tokenize(readFile("./tests/test_basic.lc", t))
-	// if err != nil {
-	// 	t.Errorf("Test failed tokenizing: %s\n", err.Error())
-	// }
+	lexer := New(readFile("./tests/test_basic.hyb", t))
+	lexer.Tokenize()
+	for _, err := range lexer.Errors {
+		t.Errorf("Test failed tokenizing: %v\n", err)
+	}
 
 	tokenMatch := []Token{
 		{At, "@", "", 1},
@@ -29,7 +30,7 @@ func TestBasic(t *testing.T) {
 		{Eof, "", "", 3},
 	}
 
-	for i, token := range tokens {
+	for i, token := range lexer.Tokens {
 		if token != tokenMatch[i] {
 			t.Errorf("Test case failed: expected %v, got %v", tokenMatch[i].ToString(), token.ToString())
 			t.FailNow()
@@ -38,10 +39,12 @@ func TestBasic(t *testing.T) {
 }
 
 func TestTickBlocks(t *testing.T) {
-	tokens := Tokenize(readFile("./tests/test_tick_blocks.lc", t))
-	// if err != nil {
-	// 	t.Errorf("Test failed tokenizing: %s\n", err.Error())
-	// }
+	lexer := New(readFile("./tests/test_tick_blocks.hyb", t))
+
+	lexer.Tokenize()
+	for _, err := range lexer.Errors {
+		t.Errorf("Test failed tokenizing: %v\n", err)
+	}
 
 	tokenMatch := []Token{
 		{At, "@", "", 1},
@@ -60,7 +63,7 @@ func TestTickBlocks(t *testing.T) {
 		{Eof, "", "", 7},
 	}
 
-	for i, token := range tokens {
+	for i, token := range lexer.Tokens {
 		if token != tokenMatch[i] {
 			t.Errorf("Test case failed: expected %v, got %v", tokenMatch[i].ToString(), token.ToString())
 			t.FailNow()
@@ -69,10 +72,11 @@ func TestTickBlocks(t *testing.T) {
 }
 
 func TestMatchStatement(t *testing.T) {
-	tokens := Tokenize(readFile("./tests/test_match_statement.lc", t))
-	// if err != nil {
-	// 	t.Errorf("Test failed tokenizing: %s\n", err.Error())
-	// }
+	lexer := New(readFile("./tests/test_match_statement.hyb", t))
+	lexer.Tokenize()
+	for _, err := range lexer.Errors {
+		t.Errorf("Test failed tokenizing: %v\n", err)
+	}
 
 	tokenMatch := []Token{
 		{At, "@", "", 1},
@@ -115,7 +119,7 @@ func TestMatchStatement(t *testing.T) {
 		{Eof, "", "", 17},
 	}
 
-	for i, token := range tokens {
+	for i, token := range lexer.Tokens {
 		if token != tokenMatch[i] {
 			t.Errorf("Test case failed: expected %v, got %v", tokenMatch[i].ToString(), token.ToString())
 			t.FailNow()
@@ -124,10 +128,11 @@ func TestMatchStatement(t *testing.T) {
 }
 
 func TestNumberLiterals(t *testing.T) {
-	tokens := Tokenize(readFile("./tests/test_number_literals.lc", t))
-	// if err != nil {
-	// 	t.Errorf("Test failed tokenizing: %s\n", err.Error())
-	// }
+	lexer := New(readFile("./tests/test_number_literals.hyb", t))
+	lexer.Tokenize()
+	for _, err := range lexer.Errors {
+		t.Errorf("Test failed tokenizing: %v\n", err)
+	}
 
 	tokenMatch := []Token{
 		{Let, "let", "", 1},
@@ -181,7 +186,7 @@ func TestNumberLiterals(t *testing.T) {
 		{Eof, "", "", 14},
 	}
 
-	for i, token := range tokens {
+	for i, token := range lexer.Tokens {
 		if token != tokenMatch[i] {
 			t.Errorf("Test case failed: expected %v, got %v", tokenMatch[i].ToString(), token.ToString())
 			t.FailNow()
@@ -190,10 +195,11 @@ func TestNumberLiterals(t *testing.T) {
 }
 
 func TestStringLiterals(t *testing.T) {
-	tokens := Tokenize(readFile("./tests/test_string_literals.lc", t))
-	// if err != nil {
-	// 	t.Errorf("Test failed tokenizing: %s\n", err.Error())
-	// }
+	lexer := New(readFile("./tests/test_string_literals.hyb", t))
+	lexer.Tokenize()
+	for _, err := range lexer.Errors {
+		t.Errorf("Test failed tokenizing: %v\n", err)
+	}
 
 	tokenMatch := []Token{
 		{String, "\"string literals!!!!!\"", "string literals!!!!!", 1},
@@ -201,10 +207,11 @@ func TestStringLiterals(t *testing.T) {
 		{String, "\"/* yes and */\"", "/* yes and */", 3},
 		{String, "\"// something trait\"", "// something trait", 4},
 		{String, "\"+ ^ * in to match - == != 10 ==\"", "+ ^ * in to match - == != 10 ==", 5},
-		{Eof, "", "", 7},
+		{String, "\"\\\\\\\"\\\"\\\"\\\"\"", "\\\\\\\"\\\"\\\"\\\"", 6},
+		{Eof, "", "", 8},
 	}
 
-	for i, token := range tokens {
+	for i, token := range lexer.Tokens {
 		if token != tokenMatch[i] {
 			t.Errorf("Test case failed: expected %v, got %v", tokenMatch[i].ToString(), token.ToString())
 			t.FailNow()

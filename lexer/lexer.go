@@ -5,461 +5,353 @@ import (
 	"strconv"
 )
 
-type TokenType int
-
-const (
-	// Single character tokens
-	LeftParen    TokenType = iota // (
-	RightParen                    // )
-	LeftBrace                     // {
-	RightBrace                    // }
-	LeftBracket                   // [
-	RightBracket                  // ]
-	Comma                         // ,
-	Colon                         // :
-	At                            // @
-
-	// One or two character tokens
-	Dot          // .
-	Concat       // ..
-	Minus        // -
-	MinusEqual   // -=
-	Plus         // +
-	PlusEqual    // +=
-	Slash        // /
-	SlashEqual   // /=
-	Star         // *
-	StarEqual    // *=
-	Caret        // ^
-	CaretEqual   // ^=
-	Bang         // !
-	BangEqual    // !=
-	Equal        // =
-	EqualEqual   // ==
-	FatArrow     // =>
-	Greater      // >
-	GreaterEqual // >=
-	Less         // <
-	LessEqual    // <=
-
-	// Literals
-	Identifier
-	String
-	Number
-	FixedPoint
-	Degree
-	Radian
-
-	// Keywords
-	And
-	Or
-	True
-	False
-	Self
-	Fn
-	Tick
-	Repeat
-	For
-	While
-	If
-	Else
-	Nil
-	Return
-	Break
-	Continue
-	Let
-	Pub
-	In
-	As
-	To
-	With
-	Enum
-	Use
-	Spawn
-	Trait
-	Entity
-	Find
-	Remove
-	Match
-
-	Eof // END OF FILE
-)
-
-type Token struct {
-	Type    TokenType
-	Lexeme  string
-	Literal string
-	Line    int
+type LexerError struct {
+	TokenType TokenType
+	Line      int
+	Column    int
+	Message   string
 }
 
-func (t TokenType) ToString() string {
-	return [...]string{
-		"LeftParen", "RightParen", "LeftBrace", "RightBrace", "LeftBracket", "RightBracket", "Comma", "Colon", "At", "Dot", "Concat", "Minus", "MinusEqual", "Plus", "PlusEqual ", "Slash", "SlashEqual", "Star", "StarEqual ", "Caret", "CaretEqual", "Bang", "BangEqual", "Equal", "EqualEqual", "FatArrow", "Greater", "GreaterEqual", "Less", "LessEqual", "Identifier", "String", "Number", "FixedPoint", "Degree", "Radian", "And", "Or", "True", "False", "Self", "Fn", "Tick", "Repeat", "For", "While", "If", "Else", "Nil", "Return", "Break", "Continue", "Let", "Pub", "In", "As", "To", "With", "Enum", "Use", "Spawn", "Trait", "Entity", "Find", "Remove", "Match", "Eof",
-	}[t]
+func New(src []byte) Lexer {
+	return Lexer{source: src}
 }
 
-func (t Token) ToString() string {
-	return fmt.Sprintf("Token {type: %v, lex: %v, lit: %v, line: %v}", t.Type.ToString(), t.Lexeme, t.Literal, t.Line)
+func (l *Lexer) ChangeSrc(newSrc []byte) {
+	l.source = newSrc
 }
 
-var tokens []Token
-var start, current, line int
-var source []byte
-
-var passed bool
-
-// patrons := map[int]string{
-// 	0: "Terrence",
-// 	1: "Evelyn",
-// }
-
-var keywords = map[string]TokenType{
-	"and":      And,
-	"or":       Or,
-	"true":     True,
-	"false":    False,
-	"self":     Self,
-	"fn":       Fn,
-	"tick":     Tick,
-	"repeat":   Repeat,
-	"for":      For,
-	"while":    While,
-	"if":       If,
-	"else":     Else,
-	"nil":      Nil,
-	"return":   Return,
-	"break":    Break,
-	"continue": Continue,
-	"let":      Let,
-	"pub":      Pub,
-	"in":       In,
-	"as":       As,
-	"to":       To,
-	"with":     With,
-	"enum":     Enum,
-	"use":      Use,
-	"spawn":    Spawn,
-	"trait":    Trait,
-	"entity":   Entity,
-	"find":     Find,
-	"remove":   Remove,
-	"match":    Match,
+func (l *Lexer) lexerError(message string) {
+	l.Errors = append(l.Errors, LexerError{Eof, l.line, l.column, message})
 }
 
-func Advance() byte {
-	t := source[current]
-	current++
+type Lexer struct {
+	Tokens                       []Token
+	start, current, line, column int
+	source                       []byte
+	Errors                       []LexerError
+}
+
+func (l *Lexer) advance() byte {
+	t := l.source[l.current]
+	l.current++
+	l.column++
 	return t
 }
 
-func IsAtEnd() bool {
-	return current >= len(source)
+func (l *Lexer) isAtEnd() bool {
+	return l.current >= len(l.source)
 }
 
-func IsAtEndNext() bool {
-	return current+1 >= len(source)
+func (l *Lexer) isAtEndNext() bool {
+	return l.current+1 >= len(l.source)
 }
 
-func AddToken(token TokenType, literal string) {
-	text := string(source)[start:current]
-	tokens = append(tokens, Token{token, text, literal, line})
+func (l *Lexer) addToken(token TokenType, literal string) {
+	text := string(l.source)[l.start:l.current]
+	l.Tokens = append(l.Tokens, Token{token, text, literal, l.line})
 }
 
-func MatchChar(expected byte) bool {
-	if IsAtEnd() {
+func (l *Lexer) matchChar(expected byte) bool {
+	if l.isAtEnd() {
 		return false
 	}
-	if source[current] != expected {
+	if l.source[l.current] != expected {
 		return false
 	}
 
-	current++
+	l.current++
+	l.column++
 	return true
 }
 
-func Peek() byte {
-	if IsAtEnd() {
+func (l *Lexer) peek() byte {
+	if l.isAtEnd() {
 		return '\f'
 	}
 
-	return source[current]
+	return l.source[l.current]
 }
 
-func PeekNext() byte {
-	if IsAtEndNext() {
+func (l *Lexer) peekNext() byte {
+	if l.isAtEndNext() {
 		return '0'
 	}
 
-	return source[current+1]
+	return l.source[l.current+1]
 }
 
-func IsDigit(c byte) bool {
+func isDigit(c byte) bool {
 	return c >= '0' && c <= '9'
 }
 
-func IsHexDigit(c byte) bool {
+func isHexDigit(c byte) bool {
 	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
 }
 
-func IsAlpha(c byte) bool {
+func isAlphabetical(c byte) bool {
 	return (c >= 'a' && c <= 'z') ||
 		(c >= 'A' && c <= 'Z') ||
 		c == '_'
 }
 
-func IsAlphaNumeric(c byte) bool {
-	return IsAlpha(c) || IsDigit(c)
+func isAlphanumeric(c byte) bool {
+	return isAlphabetical(c) || isDigit(c)
 }
 
-func HandleString() {
-	for Peek() != '"' && !IsAtEnd() {
-		if Peek() == '\n' {
-			line++
-			LexerError("Multiline strings are not allowed.")
+func (l *Lexer) handleString() {
+	for l.peek() != '"' && !l.isAtEnd() {
+		if l.peek() == '\\' && l.peekNext() == '"' {
+			l.advance()
+		}
+		if l.peek() == '\n' {
+			l.line++
+			l.column = 0
+			l.lexerError("multiline strings are not allowed")
 		}
 
-		Advance()
+		l.advance()
 	}
 
-	if IsAtEnd() {
-		LexerError("Unterminated string.")
+	if l.isAtEnd() {
+		l.lexerError("unterminated string")
 		return
 	}
 
-	Advance()
+	l.advance()
 
-	value := string(source)[start+1 : current-1]
-	AddToken(String, value)
+	value := string(l.source)[l.start+1 : l.current-1]
+	l.addToken(String, value)
 }
 
-func HandleNumber() {
-	if Peek() == 'x' {
-		Advance()
-		Advance()
+func (l *Lexer) handleNumber() {
+	if l.peek() == 'x' {
+		l.advance()
+		l.advance()
 
-		for IsHexDigit(Peek()) {
-			Advance()
+		for isHexDigit(l.peek()) {
+			l.advance()
 		}
 
-		AddToken(Number, string(source[start:current]))
+		l.addToken(Number, string(l.source[l.start:l.current]))
 
 		return
 	}
 
-	for IsDigit(Peek()) {
-		Advance()
+	for isDigit(l.peek()) {
+		l.advance()
 	}
 
-	if Peek() == '.' && IsDigit(PeekNext()) {
-		Advance()
+	if l.peek() == '.' && isDigit(l.peekNext()) {
+		l.advance()
 
-		for IsDigit(Peek()) {
-			Advance()
+		for isDigit(l.peek()) {
+			l.advance()
 		}
 	}
 
-	// parse a number to see if its a valid number
+	// Parse a number to see if its a valid number
 
-	strNum := string(source[start:current])
-	if !TryParseNum(strNum) {
-		LexerError(fmt.Sprintf("Invalid number: `%s`", strNum))
+	strNum := string(l.source[l.start:l.current])
+	if !tryParseNum(strNum) {
+		l.lexerError(fmt.Sprintf("invalid number `%s`", strNum))
 		return
 	}
-	// evaluate if its postfix: fx, r, d
+	// Evaluate if it is a postfix: `fx`, `r`, `d`
 
 	var postfix string
-	postfixStart := current
+	postfixStart := l.current
 
-	for IsAlpha(Peek()) {
-		Advance()
+	for isAlphabetical(l.peek()) {
+		l.advance()
 	}
 
-	postfix = string(source[postfixStart:current])
+	postfix = string(l.source[postfixStart:l.current])
 	switch postfix {
 
 	case "f":
-		AddToken(Number, strNum)
+		l.addToken(Number, strNum)
 	case "fx":
-		AddToken(FixedPoint, strNum)
+		l.addToken(FixedPoint, strNum)
 	case "r":
-		AddToken(Radian, strNum)
+		l.addToken(Radian, strNum)
 	case "d":
-		AddToken(Degree, strNum)
+		l.addToken(Degree, strNum)
 	case "":
-		AddToken(Number, strNum)
+		l.addToken(Number, strNum)
 	default:
-		LexerError(fmt.Sprintf("Invalid postfix: `%s`", postfix))
+		l.lexerError(fmt.Sprintf("invalid postfix `%s`", postfix))
 	}
 }
 
-func TryParseNum(strNum string) bool { //bytes: num
+func tryParseNum(strNum string) bool { //bytes: num
 	_, ok := strconv.ParseFloat(strNum, 64)
 
 	return ok == nil
 }
 
-func HandleIdentifier() {
-	for IsAlphaNumeric(Peek()) {
-		Advance()
+func (l *Lexer) handleIdentifier() {
+	for isAlphanumeric(l.peek()) {
+		l.advance()
 	}
 
-	text := string(source)[start:current]
+	text := string(l.source)[l.start:l.current]
 
-	val, ok := keywords[text]
+	val, ok := KeywordToToken(text)
 	if ok {
-		AddToken(val, "")
+		l.addToken(val, "")
 		return
 	}
 
-	AddToken(Identifier, "")
+	l.addToken(Identifier, "")
 }
 
-func ScanToken() {
-	c := Advance()
+func (l *Lexer) scanToken() {
+	c := l.advance()
 
 	switch c {
 
 	case '{':
-		AddToken(LeftBrace, "") // the literal is emplty because "{" is not a value
+		l.addToken(LeftBrace, "") // the literal is empty because `{` is not a value
 	case '}':
-		AddToken(RightBrace, "")
+		l.addToken(RightBrace, "")
 	case '(':
-		AddToken(LeftParen, "")
+		l.addToken(LeftParen, "")
 	case ')':
-		AddToken(RightParen, "")
+		l.addToken(RightParen, "")
 	case '[':
-		AddToken(LeftBracket, "")
+		l.addToken(LeftBracket, "")
 	case ']':
-		AddToken(LeftBracket, "")
+		l.addToken(LeftBracket, "")
 	case ',':
-		AddToken(Comma, "")
+		l.addToken(Comma, "")
 	case ':':
-		AddToken(Colon, "")
+		l.addToken(Colon, "")
 	case '@':
-		AddToken(At, "")
+		l.addToken(At, "")
 	case '.':
-		if MatchChar('.') {
-			AddToken(Concat, "")
+		if l.matchChar('.') {
+			l.addToken(Concat, "")
 		} else {
-			AddToken(Dot, "")
+			l.addToken(Dot, "")
 		}
 	case '+':
-		if MatchChar('=') {
-			AddToken(PlusEqual, "")
+		if l.matchChar('=') {
+			l.addToken(PlusEqual, "")
 		} else {
-			AddToken(Plus, "")
+			l.addToken(Plus, "")
 		}
 	case '-':
-		if MatchChar('=') {
-			AddToken(MinusEqual, "")
+		if l.matchChar('=') {
+			l.addToken(MinusEqual, "")
 		} else {
-			AddToken(Minus, "")
+			l.addToken(Minus, "")
 		}
 	case '^':
-		if MatchChar('=') {
-			AddToken(CaretEqual, "")
+		if l.matchChar('=') {
+			l.addToken(CaretEqual, "")
 		} else {
-			AddToken(Caret, "")
+			l.addToken(Caret, "")
 		}
 	case '*':
-		if MatchChar('=') {
-			AddToken(StarEqual, "")
+		if l.matchChar('=') {
+			l.addToken(StarEqual, "")
 		} else {
-			AddToken(Star, "")
+			l.addToken(Star, "")
 		}
 	case '=':
-		if MatchChar('=') {
-			AddToken(EqualEqual, "")
-		} else if MatchChar('>') {
-			AddToken(FatArrow, "")
+		if l.matchChar('=') {
+			l.addToken(EqualEqual, "")
+		} else if l.matchChar('>') {
+			l.addToken(FatArrow, "")
 		} else {
-			AddToken(Equal, "")
+			l.addToken(Equal, "")
 		}
 	case '!':
-		if MatchChar('=') {
-			AddToken(BangEqual, "")
+		if l.matchChar('=') {
+			l.addToken(BangEqual, "")
 		} else {
-			AddToken(Bang, "")
+			l.addToken(Bang, "")
 		}
 	case '<':
-		if MatchChar('=') {
-			AddToken(LessEqual, "")
+		if l.matchChar('=') {
+			l.addToken(LessEqual, "")
 		} else {
-			AddToken(Less, "")
+			l.addToken(Less, "")
 		}
 	case '>':
-		if MatchChar('=') {
-			AddToken(GreaterEqual, "")
+		if l.matchChar('=') {
+			l.addToken(GreaterEqual, "")
 		} else {
-			AddToken(Greater, "")
+			l.addToken(Greater, "")
 		}
 
 	case '/':
-		if MatchChar('/') {
-			for Peek() != '\n' && !IsAtEnd() {
-				Advance()
+		if l.matchChar('/') {
+			for l.peek() != '\n' && !l.isAtEnd() {
+				l.advance()
 			}
-		} else if MatchChar('*') {
-			// Handle multiLINE comment
-			for (Peek() != '*' || PeekNext() != '/') && !IsAtEnd() {
-				if Peek() == '\n' {
-					line++
+		} else if l.matchChar('*') {
+			// Handle multiline comments
+			for (l.peek() != '*' || l.peekNext() != '/') && !l.isAtEnd() {
+				if l.peek() == '\n' {
+					l.line++
+					l.column = 0
 				}
 
-				Advance()
+				l.advance()
 			}
 
-			Advance()
-			Advance()
+			l.advance()
+			l.advance()
 		} else {
-			if MatchChar('=') {
-				AddToken(SlashEqual, "")
+			if l.matchChar('=') {
+				l.addToken(SlashEqual, "")
 			} else {
-				AddToken(Slash, "")
+				l.addToken(Slash, "")
 			}
 		}
 
+	// Whitespace characters
 	case ' ':
+	case ';':
 	case '\r':
 	case '\t':
 		break
 
+	// Increment line count when hitting new line
 	case '\n':
-		line++
+		l.line++
+		l.column = 0
 
 	case '"':
-		HandleString()
+		l.handleString()
 
 	default:
-		if IsDigit(c) {
-			HandleNumber()
-		} else if IsAlpha(c) {
-			HandleIdentifier()
+		if isDigit(c) {
+			l.handleNumber()
+		} else if isAlphabetical(c) {
+			l.handleIdentifier()
 		} else {
-			LexerError(fmt.Sprintf("Unexpected character: `%c`", c))
+			l.lexerError(fmt.Sprintf("unexpected character `%c`", c))
 		}
 	}
 }
 
-func Tokenize(src []byte) []Token {
-	source = src
-	line, start, current = 1, 0, 0
-	passed = true
-	tokens = make([]Token, 0)
+func (l *Lexer) Tokenize() {
+	l.line, l.start, l.current, l.column = 1, 0, 0, 0
+	l.Tokens = make([]Token, 0)
+	l.Errors = make([]LexerError, 0)
 
 	for {
-		if IsAtEnd() {
+		if l.isAtEnd() {
 			break
 		}
-		start = current
-		ScanToken()
+		l.start = l.current
+		l.scanToken()
 	}
 
-	tokens = append(tokens, Token{Eof, "", "", line}) // END OF FILE
-	return tokens
-}
-
-func LexerError(message string) {
-	passed = false
-	fmt.Printf("[Lexer Error] In file: %s  Line: %v  [ %s ]\n", "file.lc", line, message)
+	l.Tokens = append(l.Tokens, Token{Eof, "", "", l.line}) // Append an EOF (End of File) token
+	for _, lexerError := range l.Errors {
+		fmt.Printf("Error: %v, at line: %v, column: %v", lexerError.Message, lexerError.Line, lexerError.Column)
+	}
 }

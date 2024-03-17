@@ -1,0 +1,7 @@
+@Environment(Level)
+
+tick with t {
+    t += 1
+}
+
+let a = 3245fx
