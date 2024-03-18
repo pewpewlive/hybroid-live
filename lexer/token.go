@@ -88,15 +88,22 @@ func (t TokenType) ToString() string {
 	}[t]
 }
 
+type TokenLocation struct {
+	LineStart int
+	ColStart  int
+	LineEnd   int
+	ColEnd    int
+}
+
 type Token struct {
-	Type    TokenType
-	Lexeme  string
-	Literal string
-	Line    int
+	Type     TokenType
+	Lexeme   string
+	Literal  string
+	Location TokenLocation
 }
 
 func (t Token) ToString() string {
-	return fmt.Sprintf("Token {type: %v, lex: %v, lit: %v, line: %v}", t.Type.ToString(), t.Lexeme, t.Literal, t.Line)
+	return fmt.Sprintf("Token (%v), Lex: '%v', Lit: '%v', Ln: %v, Col: %v", t.Type.ToString(), t.Lexeme, t.Literal, t.Location.LineStart, t.Location.ColStart)
 }
 
 func KeywordToToken(keyword string) (TokenType, bool) {

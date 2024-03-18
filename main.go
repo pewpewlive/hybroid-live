@@ -16,7 +16,7 @@ func main() {
 
 	l := lexer.New(file)
 	tokens := l.Tokenize()
-	
+
 	p := parser.New()
 	p.ParseTokens(tokens)
 	if len(p.Errors) != 0 {

@@ -48,7 +48,7 @@ func (l *Lexer) isAtEndNext() bool {
 
 func (l *Lexer) addToken(token TokenType, literal string) {
 	text := string(l.source)[l.start:l.current]
-	l.Tokens = append(l.Tokens, Token{token, text, literal, l.line})
+	l.Tokens = append(l.Tokens, Token{token, text, literal, l.line, l.column})
 }
 
 func (l *Lexer) matchChar(expected byte) bool {
@@ -350,7 +350,7 @@ func (l *Lexer) Tokenize() []Token {
 		l.scanToken()
 	}
 
-	l.Tokens = append(l.Tokens, Token{Eof, "", "", l.line}) // Append an EOF (End of File) token
+	l.Tokens = append(l.Tokens, Token{Eof, "", "", l.line, l.column}) // Append an EOF (End of File) token
 	for _, lexerError := range l.Errors {
 		fmt.Printf("Error: %v, at line: %v, column: %v\n", lexerError.Message, lexerError.Line, lexerError.Column)
 	}

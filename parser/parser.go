@@ -21,15 +21,17 @@ const (
 type PrimitiveValueType int
 
 const (
-	FixedPoint PrimitiveValueType = iota
-	Radian
-	Degree
-	Number
+	Number PrimitiveValueType = iota + 1
 	String
 	Bool
-	Nil
+	FixedPoint
+	Radian
+	Degree
 	List
 	Map
+	Nil
+
+	Undefined
 )
 
 type Node struct {
@@ -39,9 +41,9 @@ type Node struct {
 	// EntityType
 	// StructType
 	ValueType   PrimitiveValueType
-	Operator    lexer.Token
 	Left, Right *Node
 	Expression  *Node
+	Token       lexer.Token
 }
 
 type Program struct {
@@ -201,31 +203,43 @@ func (p *Parser) statement() *Node {
 
 // }
 
-func (p *Parser) validateOperands(left *Node, right *Node){
-	if left == nil {
-		p.error(p.peek(), "cannot perform arithmetic on nil value")
-	} else if right == nil {
-		p.error(p.peek(), "cannot perform arithmetic on nil value")
+func (p *Parser) validateOperands(left *Node, right *Node) bool {
+	if left.ValueType == 0 {
+		p.error(left.Token, "cannot perform arithmetic on nil value")
+		return false
+	} else if right.ValueType == 0 {
+		p.error(right.Token, "cannot perform arithmetic on nil value")
+		return false
+	} else if left.ValueType == Undefined {
+		p.error(left.Token, "cannot perform arithmetic on undefined value")
+		return false
+	} else if right.ValueType == Undefined {
+		p.error(right.Token, "cannot perform arithmetic on undefined value")
+		return false
 	} else {
 		if (left.ValueType == List || left.ValueType == Map || left.ValueType == String) ||
 			(right.ValueType == List || right.ValueType == Map || right.ValueType == String) {
 
-			p.error(p.peek(), "cannot perform arithmetic on extraenous value")
+			p.error(left.Token, "cannot perform arithmetic on extraenous value")
+			return false
 		} else if left.ValueType != right.ValueType {
-			p.error(p.peek(), "left operand and right operand don't have the same type")
+			p.error(left.Token, "left operand and right operand don't have the same type")
+			return false
 		}
 	}
+
+	return true
 }
 
 func (p *Parser) variableDeclaration() *Node {
 	ident, err1 := p.consume(lexer.Identifier, "expected identifier in variable declaration")
 	if err1 != nil {
-		return nil
+		return &Node{Token: p.peek(-1)}
 	}
 
 	_, err2 := p.consume(lexer.Equal, "expected equal token following identifier in variable declaration")
 	if err2 != nil {
-		return nil
+		return &Node{Token: p.peek(-1)}
 	}
 
 	return &Node{
@@ -256,7 +270,7 @@ func (p *Parser) equality() *Node {
 	if p.match(lexer.BangEqual, lexer.EqualEqual) {
 		operator := p.peek(-1)
 		right := p.comparison()
-		expr = &Node{NodeType: BinaryExpr, Left: expr, Operator: operator, Right: right}
+		expr = &Node{NodeType: BinaryExpr, Left: expr, Token: operator, Right: right}
 	}
 
 	return expr
@@ -268,7 +282,7 @@ func (p *Parser) comparison() *Node {
 	if p.match(lexer.Greater, lexer.GreaterEqual, lexer.Less, lexer.LessEqual) {
 		operator := p.peek(-1)
 		right := p.term()
-		expr = &Node{NodeType: BinaryExpr, Left: expr, Operator: operator, Right: right}
+		expr = &Node{NodeType: BinaryExpr, Left: expr, Token: operator, Right: right}
 	}
 
 	return expr
@@ -280,8 +294,11 @@ func (p *Parser) term() *Node { // 1 - 10, 1 + 10
 	if p.match(lexer.Plus, lexer.Minus) {
 		operator := p.peek(-1)
 		right := p.term()
-		p.validateOperands(expr,right)
-		expr = &Node{NodeType: BinaryExpr, Left: expr, Operator: operator, Right: right}
+		if p.validateOperands(expr, right) {
+			expr = &Node{NodeType: BinaryExpr, Left: expr, Token: operator, Right: right, ValueType: expr.ValueType}
+		} else {
+			expr = &Node{NodeType: BinaryExpr, Left: expr, Token: operator, Right: right, ValueType: Undefined}
+		}
 	}
 
 	return expr
@@ -293,8 +310,11 @@ func (p *Parser) factor() *Node {
 	if p.match(lexer.Star, lexer.Slash) {
 		operator := p.peek(-1)
 		right := p.factor()
-		p.validateOperands(expr,right)
-		expr = &Node{NodeType: BinaryExpr, Left: expr, Operator: operator, Right: right}
+		if p.validateOperands(expr, right) {
+			expr = &Node{NodeType: BinaryExpr, Left: expr, Token: operator, Right: right, ValueType: expr.ValueType}
+		} else {
+			expr = &Node{NodeType: BinaryExpr, Left: expr, Token: operator, Right: right, ValueType: Undefined}
+		}
 	}
 
 	return expr
@@ -304,7 +324,7 @@ func (p *Parser) unary() *Node {
 	if p.match(lexer.Bang, lexer.Minus) {
 		operator := p.peek(-1)
 		right := p.unary()
-		return &Node{NodeType: UnaryExpr, Operator: operator, Right: right}
+		return &Node{NodeType: UnaryExpr, Token: operator, Right: right}
 	}
 
 	return p.primary()
@@ -312,19 +332,19 @@ func (p *Parser) unary() *Node {
 
 func (p *Parser) primary() *Node {
 	if p.match(lexer.False) {
-		return &Node{NodeType: LiteralExpr, Value: "false", ValueType: Bool}
+		return &Node{NodeType: LiteralExpr, Value: "false", ValueType: Bool, Token: p.peek(-1)}
 	}
 	if p.match(lexer.True) {
-		return &Node{NodeType: LiteralExpr, Value: "true", ValueType: Bool}
+		return &Node{NodeType: LiteralExpr, Value: "true", ValueType: Bool, Token: p.peek(-1)}
 	}
 	if p.match(lexer.Nil) {
-		return &Node{NodeType: LiteralExpr, Value: "nil", ValueType: Nil}
+		return &Node{NodeType: LiteralExpr, Value: "nil", ValueType: Nil, Token: p.peek(-1)}
 	}
 
 	if p.match(lexer.Number, lexer.FixedPoint, lexer.Degree, lexer.Radian, lexer.String) {
-		literalType := p.peek(-1)
+		literal := p.peek(-1)
 		var valueType PrimitiveValueType
-		switch literalType.Type {
+		switch literal.Type {
 		case lexer.Number:
 			valueType = Number
 		case lexer.FixedPoint:
@@ -336,48 +356,46 @@ func (p *Parser) primary() *Node {
 		case lexer.String:
 			valueType = String
 		}
-		return &Node{NodeType: LiteralExpr, Value: p.peek(-1).Literal, ValueType: valueType}
+		return &Node{NodeType: LiteralExpr, Value: literal.Literal, ValueType: valueType, Token: literal}
 	}
 
 	if p.match(lexer.Identifier) {
-		return &Node{NodeType: LiteralExpr, Identifier: p.peek(-1).Lexeme}
+		token := p.peek(-1)
+		return &Node{NodeType: LiteralExpr, Identifier: token.Lexeme, Token: token}
 	}
 
 	if p.match(lexer.LeftParen) {
+		token := p.peek(-1)
 		expr := p.expression()
 		p.consume(lexer.RightParen, "expected ')' after expression")
-		return &Node{NodeType: GroupingExpr, Expression: expr}
+		return &Node{NodeType: GroupingExpr, Expression: expr, Token: token, ValueType: expr.ValueType}
 	}
 
 	if p.match(lexer.LeftBracket) {
+		token := p.peek(-1)
 		list := make([]Node, 0)
-		/*
-			bool foundEnd bool
-			for i := current; i < len(token); i++ {
-
-			}
-			fo
-		*/
 		for !p.check(lexer.RightBracket) {
 			exprInList := p.expression()
-			if p.peek(1).Type == lexer.RightBracket {
+
+			if p.peek().Type == lexer.RightBracket {
+				list = append(list, *exprInList)
 				break
 			}
-			_, err := p.consume(lexer.Comma, "expected ',' after value")
+
+			_, err := p.consume(lexer.Comma, "expected ',' or ']' after value")
 			if err != nil {
-				return nil
+				return &Node{Token: p.peek(-1)}
 			}
-			
 
 			list = append(list, *exprInList)
 		}
 		p.advance()
-		return &Node{NodeType: LiteralExpr, ValueType: List, Value: list}
+		return &Node{NodeType: LiteralExpr, ValueType: List, Value: list, Token: token}
 	}
 
 	p.advance()
 	p.error(p.peek(-1), "expected expression")
-	return nil
+	return &Node{Token: p.peek(-1)}
 }
 
 func (p *Parser) ParseTokens(tokens []lexer.Token) Program {

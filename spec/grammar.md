@@ -1,51 +1,50 @@
+# Hybroid grammar (LaTeX)
+
+A _program_ is made up of _statements_. _Statements_ are: variable declarations, function definitions, if statements, directive and use statements.
+
+_Expressions_ are made up of several sub-expression types. There are: binary, literal, unary, group and identifier expressions. Each have different use cases.
+
+There are terms and factors. A _term_ can either be an addition, or subtraction operation. A _factor_ can either be a multiplication or division operation.
+
 $$
 \begin{align}
-
-    [term] &\to <+> or <-> \\ 
-
-    [factor] &\to <*> or </> \\
-    \\
-
-    [stmt] &\to 
-        \begin{cases}
-            \text{var declaration}\\
-            \text{functions} \\
-            \text{if} \\
-            \text{else} \\
-            \text{directive} \\
-            \text{use}
-        \end{cases}\\
-
-    [prog] &\to 
+    [prog] &\to
         \begin{cases}
             [stmt] \\
             ...
         \end{cases} \\
-    
-    \\
-
-    [expr] &\to 
+    [stmt] &\to
         \begin{cases}
-            [binExpr] \\
+            \text{let}\\
+            \text{pub}\\
+            \text{fn} \\
+            \text{if} \\
+            \text{else} \\
+            \text{dir} \\
+            \text{use}
+        \end{cases}\\
+    [expr] &\to
+        \begin{cases}
+            [bin] \\
             [lit] \\
             [unary] \\
             [group] \\
-            [ident] 
+            [ident]
         \end{cases} \\
-
-    [unary] &\to <operand>[expr] \\
-    [group]^* &\to 
+    [unary] &\to \; <operand>[expr] \\
+    [group]^* &\to
         \begin{cases}
-            [Expr] 
+            [expr] \\
+            ...
         \end{cases} \\
-
-    [binExpr] &\to 
+    [term] &\to \; <+> or <-> \\
+    [factor] &\to \; <*> or </> \\
+    [bin] &\to
         \begin{cases}
             [expr] <term> [expr] \\
             [expr] <factor> [expr] \\
         \end{cases} \\
-
     \\
-
     &\small{\text{*group are used for higher precedence}}
 \end{align}
+$$

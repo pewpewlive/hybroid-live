@@ -14,6 +14,7 @@ func readFile(fileName string, t *testing.T) []byte {
 	return file
 }
 
+// TODO: Fix tests to work with columns
 func TestBasic(t *testing.T) {
 	lexer := New(readFile("./tests/test_basic.hyb", t))
 	lexer.Tokenize()
