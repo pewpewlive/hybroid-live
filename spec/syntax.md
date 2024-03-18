@@ -582,4 +582,6 @@ struct Rectangle {
     return (self.length + self.height) * 2
   }
 }
+
+let rect = Rectangle.Init()
 ```

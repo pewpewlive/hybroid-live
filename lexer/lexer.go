@@ -221,7 +221,7 @@ func (l *Lexer) scanToken() {
 	case '[':
 		l.addToken(LeftBracket, "")
 	case ']':
-		l.addToken(LeftBracket, "")
+		l.addToken(RightBracket, "")
 	case ',':
 		l.addToken(Comma, "")
 	case ':':
@@ -352,7 +352,7 @@ func (l *Lexer) Tokenize() []Token {
 
 	l.Tokens = append(l.Tokens, Token{Eof, "", "", l.line}) // Append an EOF (End of File) token
 	for _, lexerError := range l.Errors {
-		fmt.Printf("Error: %v, at line: %v, column: %v", lexerError.Message, lexerError.Line, lexerError.Column)
+		fmt.Printf("Error: %v, at line: %v, column: %v\n", lexerError.Message, lexerError.Line, lexerError.Column)
 	}
 
 	return l.Tokens

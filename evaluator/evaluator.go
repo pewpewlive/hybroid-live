@@ -32,6 +32,7 @@ type LuaGenerator struct {
 	file   FileCache
 	lexer  lexer.Lexer
 	parser parser.Parser
+	generator any //could be lua gen, go gen, etc
 }
 
 func New(fc FileCache) LuaGenerator {
@@ -39,6 +40,7 @@ func New(fc FileCache) LuaGenerator {
 		fc,
 		lexer.New([]byte(fc.DstPath)),
 		parser.New(),
+		nil,
 	}
 }
 

@@ -12,6 +12,8 @@ $$
             \text{functions} \\
             \text{if} \\
             \text{else} \\
+            \text{directive} \\
+            \text{use}
         \end{cases}\\
 
     [prog] &\to 

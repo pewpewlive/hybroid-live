@@ -16,15 +16,12 @@ func main() {
 
 	l := lexer.New(file)
 	tokens := l.Tokenize()
-	// for _, token := range tokens {
-	// 	fmt.Printf("Token { type: %v, lex: %v, lit: %v, line: %v }\n", token.Type.ToString(), token.Lexeme, token.Literal, token.Line)
-	// }
-
+	
 	p := parser.New()
 	p.ParseTokens(tokens)
 	if len(p.Errors) != 0 {
-		for err := range p.Errors {
-			fmt.Println(err)
+		for _, err := range p.Errors {
+			fmt.Println(err.Msg())
 		}
 	}
 	// actual compilation
