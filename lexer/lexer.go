@@ -337,7 +337,7 @@ func (l *Lexer) scanToken() {
 	}
 }
 
-func (l *Lexer) Tokenize() {
+func (l *Lexer) Tokenize() []Token {
 	l.line, l.start, l.current, l.column = 1, 0, 0, 0
 	l.Tokens = make([]Token, 0)
 	l.Errors = make([]LexerError, 0)
@@ -354,4 +354,6 @@ func (l *Lexer) Tokenize() {
 	for _, lexerError := range l.Errors {
 		fmt.Printf("Error: %v, at line: %v, column: %v", lexerError.Message, lexerError.Line, lexerError.Column)
 	}
+
+	return l.Tokens
 }

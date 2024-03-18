@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"hybroid/lexer"
+	"hybroid/parser"
 	"os"
 )
 
@@ -14,11 +15,18 @@ func main() {
 	}
 
 	l := lexer.New(file)
-	l.Tokenize()
+	tokens := l.Tokenize()
 	// for _, token := range tokens {
 	// 	fmt.Printf("Token { type: %v, lex: %v, lit: %v, line: %v }\n", token.Type.ToString(), token.Lexeme, token.Literal, token.Line)
 	// }
 
+	p := parser.New()
+	p.ParseTokens(tokens)
+	if len(p.Errors) != 0 {
+		for err := range p.Errors {
+			fmt.Println(err)
+		}
+	}
 	// actual compilation
 	//var evaluators []evaluator.Evaluator
 

@@ -1,3 +1,4 @@
-@Environment(Level)
+//@Environment(Level)
 
-let num = 0s
+//a = 1 + 2 * 1 - 2 / 23
+let num = 1 + 24 * (10 - 10) + 543
