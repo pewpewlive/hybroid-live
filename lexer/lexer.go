@@ -7,8 +7,7 @@ import (
 
 type LexerError struct {
 	TokenType TokenType
-	Line      int
-	Column    int
+	Location  TokenLocation
 	Message   string
 }
 
@@ -21,20 +20,21 @@ func (l *Lexer) ChangeSrc(newSrc []byte) {
 }
 
 func (l *Lexer) lexerError(message string) {
-	l.Errors = append(l.Errors, LexerError{Eof, l.line, l.column, message})
+	l.Errors = append(l.Errors, LexerError{Eof, TokenLocation{LineStart: l.line, LineEnd: l.line, ColStart: l.columnStart, ColEnd: l.columnCurrent}, message})
 }
 
 type Lexer struct {
-	Tokens                       []Token
-	start, current, line, column int
-	source                       []byte
-	Errors                       []LexerError
+	Tokens []Token
+	source []byte
+	Errors []LexerError
+
+	start, current, line, columnStart, columnCurrent int
 }
 
 func (l *Lexer) advance() byte {
 	t := l.source[l.current]
 	l.current++
-	l.column++
+	l.columnCurrent++
 	return t
 }
 
@@ -48,7 +48,7 @@ func (l *Lexer) isAtEndNext() bool {
 
 func (l *Lexer) addToken(token TokenType, literal string) {
 	text := string(l.source)[l.start:l.current]
-	l.Tokens = append(l.Tokens, Token{token, text, literal, l.line, l.column})
+	l.Tokens = append(l.Tokens, Token{token, text, literal, TokenLocation{LineStart: l.line, LineEnd: l.line, ColStart: l.columnStart + 1, ColEnd: l.columnCurrent + 1}})
 }
 
 func (l *Lexer) matchChar(expected byte) bool {
@@ -60,7 +60,7 @@ func (l *Lexer) matchChar(expected byte) bool {
 	}
 
 	l.current++
-	l.column++
+	l.columnCurrent++
 	return true
 }
 
@@ -105,7 +105,8 @@ func (l *Lexer) handleString() {
 		}
 		if l.peek() == '\n' {
 			l.line++
-			l.column = 0
+			l.columnStart = 0
+			l.columnCurrent = 0
 			l.lexerError("multiline strings are not allowed")
 		}
 
@@ -295,7 +296,8 @@ func (l *Lexer) scanToken() {
 			for (l.peek() != '*' || l.peekNext() != '/') && !l.isAtEnd() {
 				if l.peek() == '\n' {
 					l.line++
-					l.column = 0
+					l.columnStart = 0
+					l.columnCurrent = 0
 				}
 
 				l.advance()
@@ -321,7 +323,8 @@ func (l *Lexer) scanToken() {
 	// Increment line count when hitting new line
 	case '\n':
 		l.line++
-		l.column = 0
+		l.columnStart = 0
+		l.columnCurrent = 0
 
 	case '"':
 		l.handleString()
@@ -338,7 +341,7 @@ func (l *Lexer) scanToken() {
 }
 
 func (l *Lexer) Tokenize() []Token {
-	l.line, l.start, l.current, l.column = 1, 0, 0, 0
+	l.line, l.start, l.current, l.columnStart, l.columnCurrent = 1, 0, 0, 0, 0
 	l.Tokens = make([]Token, 0)
 	l.Errors = make([]LexerError, 0)
 
@@ -347,12 +350,13 @@ func (l *Lexer) Tokenize() []Token {
 			break
 		}
 		l.start = l.current
+		l.columnStart = l.columnCurrent
 		l.scanToken()
 	}
 
-	l.Tokens = append(l.Tokens, Token{Eof, "", "", l.line, l.column}) // Append an EOF (End of File) token
+	l.Tokens = append(l.Tokens, Token{Eof, "", "", TokenLocation{LineStart: l.line, LineEnd: l.line, ColStart: l.columnCurrent + 1, ColEnd: l.columnCurrent + 1}}) // Append an EOF (End of File) token
 	for _, lexerError := range l.Errors {
-		fmt.Printf("Error: %v, at line: %v, column: %v\n", lexerError.Message, lexerError.Line, lexerError.Column)
+		fmt.Printf("Error: %v, at line: %v, column: %v\n", lexerError.Message, lexerError.Location.LineStart, lexerError.Location.ColStart)
 	}
 
 	return l.Tokens
