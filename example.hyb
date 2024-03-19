@@ -1,5 +1,8 @@
 @Environment(Level)
+// xd
+let a = !false
+let b = a = true
 
-let a = [1, 2, 3, 4]
-pub b = 2 + (a - 9)
-const c = 90d 
+/*
+qwr
+*/

@@ -22,6 +22,7 @@ func (gen *Generator) error(token lexer.Token, message string) {
 type Generator struct {
 	Errors []GenError
 	Src    string
+	ctx    Context
 }
 
 type Value struct {
@@ -56,6 +57,13 @@ type Scope struct {
 // 	}
 // 	return true
 // }
+
+type Context int
+
+const (
+	None Context = iota
+	Expression
+)
 
 func (s *Scope) GetVariable(name string) Value {
 	scope := s.Resolve(name)
@@ -104,6 +112,7 @@ func (gen *Generator) Program(program parser.Program, environment *Scope) Value 
 
 	for _, node := range program.Body {
 		lastEvaluated = gen.Generate(node, environment)
+		gen.Src += lastEvaluated.Val
 	}
 
 	return lastEvaluated
@@ -119,14 +128,16 @@ func (gen *Generator) variableDeclaration(declaration parser.Node, scope *Scope)
 	}
 
 	isLocal := declaration.Token.Type == lexer.Let
-
+	src := ""
 	if isLocal {
-		gen.Src += fmt.Sprintf("local %s = %s\n", declaration.Identifier, value.Val)
+		src += fmt.Sprintf("local %s = %s\n", declaration.Identifier, value.Val)
 	} else {
-		gen.Src += fmt.Sprintf("%s = %s\n", declaration.Identifier, value.Val)
+		src += fmt.Sprintf("%s = %s\n", declaration.Identifier, value.Val)
 	}
 
-	return scope.DeclareVariable(declaration.Identifier, value)
+	scope.DeclareVariable(declaration.Identifier, value)
+
+	return Value{Type: parser.Nil, Val: src}
 }
 
 func (gen *Generator) binaryExpr(node parser.Node, scope *Scope) Value {
@@ -138,6 +149,18 @@ func (gen *Generator) binaryExpr(node parser.Node, scope *Scope) Value {
 }
 
 func (gen *Generator) literalExpr(node parser.Node) Value {
+	if node.ValueType == parser.String {
+		src := "\"" + fmt.Sprintf("%v", node.Value) + "\""
+		return Value{node.ValueType, src}
+	}
+	if node.ValueType == parser.FixedPoint {
+		src := fmt.Sprintf("%v", node.Value) + "fx"
+		return Value{node.ValueType, src}
+	}
+	if node.ValueType == parser.FixedPoint {
+		src := fmt.Sprintf("%v", node.Value) + "fx"
+		return Value{node.ValueType, src}
+	}
 	src := fmt.Sprintf("%v", node.Value)
 
 	return Value{node.ValueType, src}
@@ -173,6 +196,27 @@ func (gen *Generator) listExpr(node parser.Node, scope *Scope) Value {
 	return Value{parser.List, src}
 }
 
+func (gen *Generator) assignmentExpr(node parser.Node, scope *Scope) Value {
+	if node.Expression.NodeType != parser.Identifier {
+		// error
+	}
+
+	//scope.AssignVariable(node.Expression.Identifier) // for const check
+
+	src := node.Expression.Identifier
+	value := gen.Generate(*node.Right, scope)
+	src += fmt.Sprintf(" = %v", value.Val)
+
+	return Value{value.Type, src}
+}
+
+func (gen *Generator) unaryExpr(node parser.Node, scope *Scope) Value {
+	value := gen.Generate(*node.Right, scope)
+	src := fmt.Sprintf("%s%s", node.Token.Lexeme, value.Val)
+
+	return Value{Type: value.Type, Val: src}
+}
+
 func (gen *Generator) Generate(node parser.Node, environment *Scope) Value {
 	scope := environment
 	switch node.NodeType {
@@ -190,6 +234,10 @@ func (gen *Generator) Generate(node parser.Node, environment *Scope) Value {
 		return gen.groupingExpr(node, scope)
 	case parser.ListExpr:
 		return gen.listExpr(node, scope)
+	case parser.AssignmentExpr:
+		return gen.assignmentExpr(node, scope)
+	case parser.UnaryExpr:
+		return gen.unaryExpr(node, scope)
 	}
 
 	return Value{}

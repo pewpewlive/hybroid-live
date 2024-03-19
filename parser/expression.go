@@ -11,27 +11,27 @@ func (p *Parser) assignment() *Node {
 
 	if p.match(lexer.Equal) {
 		value := p.assignment()
-		expr = &Node{NodeType: AssignmentExpr, Expression: expr, Value: *value, Token: p.peek(-1)}
+		expr = &Node{NodeType: AssignmentExpr, Expression: expr, Right: value, Token: p.peek(-1)}
 	} else if p.match(lexer.PlusEqual) {
 		value := p.term()
 		binExpr := createBinExpr(expr, p.peek(-1), lexer.Plus, "+", &Node{NodeType: GroupingExpr, Expression: value})
-		expr = &Node{NodeType: AssignmentExpr, Expression: expr, Value: *binExpr, Token: p.peek(-1)}
+		expr = &Node{NodeType: AssignmentExpr, Expression: expr, Right: binExpr, Token: p.peek(-1)}
 	} else if p.match(lexer.MinusEqual) {
 		value := p.term()
 		binExpr := createBinExpr(expr, p.peek(-1), lexer.Minus, "-", &Node{NodeType: GroupingExpr, Expression: value})
-		expr = &Node{NodeType: AssignmentExpr, Expression: expr, Value: *binExpr, Token: p.peek(-1)}
+		expr = &Node{NodeType: AssignmentExpr, Expression: expr, Right: binExpr, Token: p.peek(-1)}
 	} else if p.match(lexer.SlashEqual) {
 		value := p.term()
 		binExpr := createBinExpr(expr, p.peek(-1), lexer.Slash, "/", &Node{NodeType: GroupingExpr, Expression: value})
-		expr = &Node{NodeType: AssignmentExpr, Expression: expr, Value: *binExpr, Token: p.peek(-1)}
+		expr = &Node{NodeType: AssignmentExpr, Expression: expr, Right: binExpr, Token: p.peek(-1)}
 	} else if p.match(lexer.StarEqual) {
 		value := p.term()
 		binExpr := createBinExpr(expr, p.peek(-1), lexer.Star, "*", &Node{NodeType: GroupingExpr, Expression: value})
-		expr = &Node{NodeType: AssignmentExpr, Expression: expr, Value: *binExpr, Token: p.peek(-1)}
+		expr = &Node{NodeType: AssignmentExpr, Expression: expr, Right: binExpr, Token: p.peek(-1)}
 	} else if p.match(lexer.CaretEqual) {
 		value := p.term()
 		binExpr := createBinExpr(expr, p.peek(-1), lexer.Caret, "^", &Node{NodeType: GroupingExpr, Expression: value})
-		expr = &Node{NodeType: AssignmentExpr, Expression: expr, Value: *binExpr, Token: p.peek(-1)}
+		expr = &Node{NodeType: AssignmentExpr, Expression: expr, Right: binExpr, Token: p.peek(-1)}
 	}
 
 	return expr
