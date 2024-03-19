@@ -46,8 +46,10 @@ const (
 	FixedPoint
 	Degree
 	Radian
+	Fixed
 
 	// Keywords
+	Add
 	And
 	Or
 	True
@@ -66,6 +68,7 @@ const (
 	Continue
 	Let
 	Pub
+	Const
 	In
 	As
 	To
@@ -78,13 +81,14 @@ const (
 	Find
 	Remove
 	Match
+	From
 
 	Eof // EOF (End of File)
 )
 
 func (t TokenType) ToString() string {
 	return [...]string{
-		"LeftParen", "RightParen", "LeftBrace", "RightBrace", "LeftBracket", "RightBracket", "Comma", "Colon", "At", "Dot", "Concat", "Minus", "MinusEqual", "Plus", "PlusEqual ", "Slash", "SlashEqual", "Star", "StarEqual ", "Caret", "CaretEqual", "Bang", "BangEqual", "Equal", "EqualEqual", "FatArrow", "Greater", "GreaterEqual", "Less", "LessEqual", "Identifier", "String", "Number", "FixedPoint", "Degree", "Radian", "And", "Or", "True", "False", "Self", "Fn", "Tick", "Repeat", "For", "While", "If", "Else", "Nil", "Return", "Break", "Continue", "Let", "Pub", "In", "As", "To", "With", "Enum", "Use", "Spawn", "Trait", "Entity", "Find", "Remove", "Match", "Eof",
+		"LeftParen", "RightParen", "LeftBrace", "RightBrace", "LeftBracket", "RightBracket", "Comma", "Colon", "At", "Dot", "Concat", "Minus", "MinusEqual", "Plus", "PlusEqual", "Slash", "SlashEqual", "Star", "StarEqual", "Caret", "CaretEqual", "Bang", "BangEqual", "Equal", "EqualEqual", "FatArrow", "Greater", "GreaterEqual", "Less", "LessEqual", "Identifier", "String", "Number", "FixedPoint", "Degree", "Radian", "Fixed", "Add", "And", "Or", "True", "False", "Self", "Fn", "Tick", "Repeat", "For", "While", "If", "Else", "Nil", "Return", "Break", "Continue", "Let", "Pub", "Const", "In", "As", "To", "With", "Enum", "Use", "Spawn", "Trait", "Entity", "Find", "Remove", "Match", "From", "Eof",
 	}[t]
 }
 
@@ -103,11 +107,12 @@ type Token struct {
 }
 
 func (t Token) ToString() string {
-	return fmt.Sprintf("Token (%v), Lex: '%v', Lit: '%v', Ln: %v, Col: %v", t.Type.ToString(), t.Lexeme, t.Literal, t.Location.LineStart, t.Location.ColStart)
+	return fmt.Sprintf("Token (%v), Lex: '%v', Lit: '%v', Ln: %v, ColStart: %v, ColEnd: %v", t.Type.ToString(), t.Lexeme, t.Literal, t.Location.LineStart, t.Location.ColStart, t.Location.ColEnd)
 }
 
 func KeywordToToken(keyword string) (TokenType, bool) {
 	token, ok := map[string]TokenType{
+		"add":      Add,
 		"and":      And,
 		"or":       Or,
 		"true":     True,
@@ -126,6 +131,7 @@ func KeywordToToken(keyword string) (TokenType, bool) {
 		"continue": Continue,
 		"let":      Let,
 		"pub":      Pub,
+		"const":    Const,
 		"in":       In,
 		"as":       As,
 		"to":       To,
@@ -138,6 +144,7 @@ func KeywordToToken(keyword string) (TokenType, bool) {
 		"find":     Find,
 		"remove":   Remove,
 		"match":    Match,
+		"from":     From,
 	}[keyword]
 
 	return token, ok

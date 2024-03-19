@@ -63,6 +63,12 @@ pub number_of_life = 42
 name = "blade"
 ```
 
+## Declaration of constants
+
+```rs
+const PI = 3.14f
+```
+
 ## Entities and spawning syntax
 
 Entities are transpile-time classes. They are designed to provide OOP-like feel when working with entities. This feature is disallowed in `Generic` environments. Use `struct` keyword there instead.

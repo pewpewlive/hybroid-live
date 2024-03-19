@@ -1,11 +1,5 @@
 @Environment(Level)
 
 let a = [1, 2, 3, 4]
-
-let b = 1fx - (2d - (2r - 4fx))
-
-let c = [4,3] - "looool"
-
-let d = 1d - 8d
-    
-//let a = 1 + 2 * 1 - 2 / 23
+pub b = 2 + (a - 9)
+const c = 90d 

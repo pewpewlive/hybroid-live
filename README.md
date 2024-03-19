@@ -16,7 +16,7 @@ An experimental VS Code extension is available [here](https://github.com/pewpewl
 
 - [ ] Full spec
 
-- [ ] Working lexer
+- [x] Working lexer
 
 - [ ] Working parser
 

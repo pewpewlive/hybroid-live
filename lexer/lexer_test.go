@@ -57,7 +57,7 @@ func TestBasic(t *testing.T) {
 	for i, token := range lexer.Tokens {
 		if testChecks[i].Check(token) {
 			t.Errorf("Test case failed: expected %v, got %v", testChecks[i].ToString(), token.ToString())
-			printTokens(&lexer)
+			printTokens(lexer)
 			t.FailNow()
 		}
 	}
@@ -91,7 +91,7 @@ func TestTickBlocks(t *testing.T) {
 	for i, token := range lexer.Tokens {
 		if testChecks[i].Check(token) {
 			t.Errorf("Test case failed: expected %v, got %v", testChecks[i].ToString(), token.ToString())
-			printTokens(&lexer)
+			printTokens(lexer)
 			t.FailNow()
 		}
 	}
@@ -149,7 +149,7 @@ func TestMatchStatement(t *testing.T) {
 	for i, token := range lexer.Tokens {
 		if testChecks[i].Check(token) {
 			t.Errorf("Test case failed: expected %v, got %v", testChecks[i].ToString(), token.ToString())
-			printTokens(&lexer)
+			printTokens(lexer)
 			t.FailNow()
 		}
 	}
@@ -167,7 +167,7 @@ func TestNumberLiterals(t *testing.T) {
 		{Let, "let", "", 1, 1, 4},
 		{Identifier, "a", "", 1, 5, 6},
 		{Equal, "=", "", 1, 7, 8},
-		{Number, "100.5f", "100.5", 1, 9, 15},
+		{Fixed, "100.5f", "100.5", 1, 9, 15},
 		{Let, "let", "", 2, 1, 4},
 		{Identifier, "b", "", 2, 5, 6},
 		{Equal, "=", "", 2, 7, 8},
@@ -199,7 +199,7 @@ func TestNumberLiterals(t *testing.T) {
 		{Let, "let", "", 9, 1, 4},
 		{Identifier, "i", "", 9, 5, 6},
 		{Equal, "=", "", 9, 7, 8},
-		{Number, "42f", "42", 9, 9, 12},
+		{Fixed, "42f", "42", 9, 9, 12},
 		{Let, "let", "", 10, 1, 4},
 		{Identifier, "j", "", 10, 5, 6},
 		{Equal, "=", "", 10, 7, 8},
@@ -218,7 +218,7 @@ func TestNumberLiterals(t *testing.T) {
 	for i, token := range lexer.Tokens {
 		if testChecks[i].Check(token) {
 			t.Errorf("Test case failed: expected %v, got %v", testChecks[i].ToString(), token.ToString())
-			printTokens(&lexer)
+			printTokens(lexer)
 			t.FailNow()
 		}
 	}
@@ -245,7 +245,7 @@ func TestStringLiterals(t *testing.T) {
 	for i, token := range lexer.Tokens {
 		if testChecks[i].Check(token) {
 			t.Errorf("Test case failed: expected %v, got %v", testChecks[i].ToString(), token.ToString())
-			printTokens(&lexer)
+			printTokens(lexer)
 			t.FailNow()
 		}
 	}

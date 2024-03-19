@@ -5,41 +5,13 @@ import (
 	"hybroid/lexer"
 	"hybroid/parser"
 	"os"
-	"strings"
 )
-
-type FileCache struct {
-	SrcPath string
-	DstPath string
-}
-
-func NewFileCache(lcSrcPath string) FileCache {
-	luaSrcPath := lcSrcPath
-	luaSrcPath = strings.Replace(luaSrcPath, "hybsrc", "luasrc", 1)
-	return FileCache{
-		lcSrcPath,
-		luaSrcPath,
-	}
-}
-
-func (fc *FileCache) SrcIsValid() bool {
-	_, err := os.ReadFile(fc.SrcPath)
-
-	return err == nil
-}
-
-type LuaGenerator struct {
-	file   FileCache
-	lexer  lexer.Lexer
-	parser parser.Parser
-	generator any //could be lua gen, go gen, etc
-}
 
 func New(fc FileCache) LuaGenerator {
 	return LuaGenerator{
 		fc,
 		lexer.New([]byte(fc.DstPath)),
-		parser.New(),
+		parser.Parser{},
 		nil,
 	}
 }
@@ -58,6 +30,5 @@ func (e *LuaGenerator) Action() {
 		}
 		return
 	}
-
 	e.parser.ParseTokens(e.lexer.Tokens)
 }

@@ -1,0 +1,69 @@
+package parser
+
+import (
+	"hybroid/lexer"
+)
+
+type ParserError struct {
+	Token   lexer.Token
+	Message string
+}
+
+func (p *Parser) error(token lexer.Token, err string) {
+	p.Errors = append(p.Errors, ParserError{token, err})
+}
+
+func createBinExpr(left *Node, operator lexer.Token, tokenType lexer.TokenType, lexeme string, right *Node) *Node {
+	return &Node{
+		NodeType: BinaryExpr,
+		Left:     left,
+		Token:    lexer.Token{Type: tokenType, Lexeme: lexeme, Literal: "", Location: operator.Location},
+		Right:    right,
+	}
+}
+
+func (p *Parser) isAtEnd() bool {
+	return p.peek().Type == lexer.Eof
+}
+
+func (p *Parser) advance() lexer.Token {
+	t := p.tokens[p.current]
+	p.current++
+	return t
+}
+
+func (p *Parser) peek(offset ...int) lexer.Token {
+	if offset == nil {
+		return p.tokens[p.current]
+	} else {
+		return p.tokens[p.current+offset[0]]
+	}
+}
+
+func (p *Parser) check(tokenType lexer.TokenType) bool {
+	if p.isAtEnd() {
+		return false
+	}
+
+	return p.peek().Type == tokenType
+}
+
+func (p *Parser) match(types ...lexer.TokenType) bool {
+	for _, tokenType := range types {
+		if p.check(tokenType) {
+			p.advance()
+			return true
+		}
+	}
+
+	return false
+}
+
+func (p *Parser) consume(tokenType lexer.TokenType, message string) (lexer.Token, bool) {
+	if p.check(tokenType) {
+		return p.advance(), true
+	}
+
+	p.error(p.tokens[p.current], message)
+	return lexer.Token{}, false // error
+}
