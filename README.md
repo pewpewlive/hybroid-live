@@ -22,7 +22,7 @@ An experimental VS Code extension is available [here](https://github.com/pewpewl
 
 - [ ] Working AST walker
 
-- [ ] Simple Lua codegen
+- [x] Basic Lua codegen
 
 - [ ] Advanced codegen
 

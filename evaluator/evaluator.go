@@ -2,7 +2,7 @@ package evaluator
 
 import (
 	"fmt"
-	"hybroid/generators"
+	//"hybroid/generators"
 	"hybroid/generators/lua"
 	"hybroid/lexer"
 	"hybroid/parser"
@@ -20,10 +20,10 @@ type Evaluator struct {
 	parser  parser.Parser
 	SrcPath string
 	DstPath string
-	gen     generators.Generator
+	gen     lua.Generator
 }
 
-func New(src string, dst string, gen generators.Generator) Evaluator {
+func New(src string, dst string, gen lua.Generator) Evaluator {
 	file, _ := os.ReadFile(src)
 	return Evaluator{
 		*lexer.New(file),
@@ -69,4 +69,5 @@ func (e *Evaluator) Action() {
 			fmt.Printf("Error: %v\n", err)
 		}
 	}
+	os.WriteFile(e.DstPath, []byte(e.gen.Src), 0677)
 }

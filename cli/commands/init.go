@@ -2,19 +2,27 @@ package commands
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/pelletier/go-toml/v2"
+	"github.com/urfave/cli/v2"
 )
 
-type HybroidConfig struct {
-	ProjectName string
+type PackageConfig struct {
+	PackageName    string
+	PackageVersion string
 }
 
-func Initialize() error {
-	var file HybroidConfig
-	s, _ := os.ReadFile("config.toml")	
-	toml.Unmarshal([]byte(s), &file)
-	fmt.Printf("%v", file)
-  return nil
+type HybroidConfig struct {
+	ProjectName     string
+	EntryPoint      string
+	OutputDirectory string
+	Target          string // PPL or else throw an error
+	Packages        []PackageConfig
+}
+
+func Initialize(ctx *cli.Context) error {
+	file := HybroidConfig{"Hybroid Test", "example.hyb", "./out", "PPL", []PackageConfig{{"some-package", "0.1.1"}}}
+	output, _ := toml.Marshal(file)
+	fmt.Printf("%s", output)
+	return nil
 }

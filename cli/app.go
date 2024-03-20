@@ -18,7 +18,7 @@ var app = &cli.App{
 			Usage:       "Builds a Hybroid project",
 			Description: "This will take the current project in the location the command was ran, and will transpile the project into its destination folder, based on the config file",
 			Action: func(ctx *cli.Context) error {
-				return commands.Build()
+				return commands.Build(ctx)
 			},
 		},
 		{
@@ -27,15 +27,23 @@ var app = &cli.App{
 			Usage:       "Starts a watcher proccess",
 			Description: "The Hybroid watcher will keep track of the project files and will automatically build them when they are updated, to remove the need for running the transpiler every time",
 			Action: func(ctx *cli.Context) error {
-				return commands.Watch()
+				return commands.Watch(ctx)
 			},
 		},
 		{
 			Name:    "init",
 			Aliases: []string{"i"},
-			Usage:   "Initialize a new Hybroid project",
+			Usage:   "Initializes a new Hybroid project",
 			Action: func(ctx *cli.Context) error {
-				return commands.Initialize()
+				return commands.Initialize(ctx)
+			},
+		},
+		{
+			Name:    "add",
+			Aliases: []string{"a"},
+			Usage:   "Installs packages from the Hybroid Package Repository",
+			Action: func(ctx *cli.Context) error {
+				return commands.Add(ctx)
 			},
 		},
 	},

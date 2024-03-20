@@ -5,6 +5,7 @@ import (
 	"hybroid/lexer"
 	"hybroid/parser"
 	"math"
+	"strconv"
 )
 
 type GenError struct {
@@ -23,7 +24,6 @@ func (gen *Generator) error(token lexer.Token, message string) {
 type Generator struct {
 	Errors []GenError
 	Src    string
-	ctx    Context
 }
 
 type Value struct {
@@ -39,6 +39,7 @@ type Global struct {
 type Scope struct {
 	Global    *Global
 	Parent    *Scope
+	Count     int
 	Variables map[string]Value
 }
 
@@ -59,14 +60,7 @@ type Scope struct {
 // 	return true
 // }
 
-type Context int
-
-const (
-	None Context = iota
-	Expression
-)
-
-func (gen *Generator) GetErrors() []GenError {
+func (gen Generator) GetErrors() []GenError {
 	return gen.Errors
 }
 
@@ -131,7 +125,7 @@ func (gen *Generator) Generate(program parser.Program, environment *Scope) Value
 func (gen *Generator) variableDeclaration(declaration parser.Node, scope *Scope) Value {
 	var value Value
 
-	if declaration.Expression == nil {
+	if declaration.Expression == nil && declaration.Value == nil {
 		gen.error(declaration.Token, "expected expression after declaration")
 	} else {
 		value = gen.GenerateNode(*declaration.Expression, scope)
@@ -168,7 +162,7 @@ func (gen *Generator) literalExpr(node parser.Node) Value {
 	case parser.String:
 		src = "\"" + fmt.Sprintf("%v", node.Value) + "\""
 	case parser.Fixed:
-		src = fixedToFx(node.Value.(float64)) + "fx"
+		src = fixedToFx(node.Value.(string)) + "fx"
 	case parser.FixedPoint:
 		src = fmt.Sprintf("%vfx", node.Value)
 	default:
@@ -178,7 +172,8 @@ func (gen *Generator) literalExpr(node parser.Node) Value {
 	return Value{node.ValueType, src}
 }
 
-func fixedToFx(float float64) string {
+func fixedToFx(floatstr string) string {
+	float, _ := strconv.ParseFloat(floatstr, 64)
 	abs_float := math.Abs(float)
 	integer := math.Floor(abs_float)
 	if integer > (2 << 51) {
@@ -194,11 +189,11 @@ func fixedToFx(float float64) string {
 	frac := math.Floor((abs_float - integer) * 4096)
 	frac_str := ""
 	if frac != 0 {
-		frac_str = "." + fmt.Sprintf("%d", frac)
+		frac_str = "." + fmt.Sprintf("%v", frac)
 	}
 
 	// sign + int + frac_str + "fx"
-	return fmt.Sprintf("%s%d%s", sign, integer, frac_str)
+	return fmt.Sprintf("%s%v%s", sign, integer, frac_str)
 }
 
 func (gen *Generator) identifierExpr(node parser.Node, scope *Scope) Value {
@@ -231,6 +226,50 @@ func (gen *Generator) listExpr(node parser.Node, scope *Scope) Value {
 	return Value{parser.List, src}
 }
 
+func (gen *Generator) functionDeclarationStmt(node parser.Node, scope *Scope) Value {
+	fnScope := Scope{Global: scope.Global, Parent: scope, Count: scope.Count + 1, Variables: map[string]Value{}}
+	returnValType := parser.Nil
+	scope.
+		DeclareVariable(node.Identifier, Value{})
+
+	var tabs string
+	for i := 0; i < fnScope.Count; i++ {
+		tabs += "\t"
+	}
+
+	var fnTabs string
+	for i := 0; i < scope.Count; i++ {
+		fnTabs += "\t"
+	}
+
+	if node.IsLocal {
+		gen.Src += fnTabs + "local "
+	}
+
+	gen.Src += "function " + node.Identifier + "("
+	params := node.Value.([]lexer.Token)
+	for i, param := range params {
+		gen.Src += param.Lexeme
+		fnScope.DeclareVariable(param.Lexeme, Value{})
+		if i != len(params)-1 {
+			gen.Src += ", "
+		}
+	}
+	gen.Src += ")\n"
+
+	body := node.Program.Body
+
+	for _, stmt := range body {
+		value := gen.GenerateNode(stmt, &fnScope)
+		returnValType = value.Type
+		gen.Src += tabs + value.Val + "\n"
+	}
+
+	gen.Src += fnTabs + "end\n"
+
+	return Value{returnValType, ""}
+}
+
 func (gen *Generator) assignmentExpr(node parser.Node, scope *Scope) Value {
 	if node.Expression.NodeType != parser.Identifier {
 		gen.error(node.Expression.Token, "expected an identifier to assign to")
@@ -253,12 +292,9 @@ func (gen *Generator) unaryExpr(node parser.Node, scope *Scope) Value {
 	return Value{Type: value.Type, Val: src}
 }
 
-func (gen *Generator) functionDeclarationStmt(node parser.Node, scope *Scope) Value {
-	return Value{}
-}
-
 func (gen *Generator) GenerateNode(node parser.Node, environment *Scope) Value {
 	scope := environment
+
 	switch node.NodeType {
 	case parser.LiteralExpr:
 		return gen.literalExpr(node)

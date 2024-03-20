@@ -1,0 +1,11 @@
+@Environment(Level)
+
+let a = 5
+let b = [1, 2, 3, 4, 5]
+
+fn hello(c, d) {
+  let i = c + d
+  fn hi(c, d) {
+    let b = c + d
+  }
+}

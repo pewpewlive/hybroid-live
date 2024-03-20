@@ -28,7 +28,9 @@ func (p *Parser) isAtEnd() bool {
 
 func (p *Parser) advance() lexer.Token {
 	t := p.tokens[p.current]
-	p.current++
+	if p.current < len(p.tokens) {
+		p.current++
+	}
 	return t
 }
 
@@ -36,6 +38,9 @@ func (p *Parser) peek(offset ...int) lexer.Token {
 	if offset == nil {
 		return p.tokens[p.current]
 	} else {
+		if p.current+offset[0] == len(p.tokens)-1 {
+			return p.tokens[p.current]
+		}
 		return p.tokens[p.current+offset[0]]
 	}
 }
@@ -59,11 +64,18 @@ func (p *Parser) match(types ...lexer.TokenType) bool {
 	return false
 }
 
-func (p *Parser) consume(tokenType lexer.TokenType, message string) (lexer.Token, bool) {
-	if p.check(tokenType) {
-		return p.advance(), true
+func (p *Parser) consume(message string, types ...lexer.TokenType) (lexer.Token, bool) {
+	for _, tokenType := range types {
+		if p.isAtEnd() {
+			token := p.peek()
+			p.error(token, message)
+			return token, false // error
+		}
+		if p.check(tokenType) {
+			return p.advance(), true
+		}
 	}
-
-	p.error(p.tokens[p.current], message)
-	return lexer.Token{}, false // error
+	token := p.advance()
+	p.error(token, message)
+	return token, false // error
 }

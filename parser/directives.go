@@ -42,20 +42,20 @@ func (p *Parser) directiveCall() *Node {
 		// Token:      ident,
 	}
 
-	ident, identOk := p.consume(lexer.Identifier, "expected identifier in directive call")
+	ident, identOk := p.consume("expected identifier in directive call", lexer.Identifier)
 	if !identOk {
 		return &directiveNode
 	}
 	directiveNode.Identifier = ident.Lexeme
 	directiveNode.Token = ident
 
-	if _, ok := p.consume(lexer.LeftParen, "expected '(' after directive call"); !ok {
+	if _, ok := p.consume("expected '(' after directive call", lexer.LeftParen); !ok {
 		return &directiveNode
 	}
 
 	directiveNode.Expression = p.expression()
 
-	if _, ok := p.consume(lexer.RightParen, "expected ')' after directive call"); !ok {
+	if _, ok := p.consume("expected ')' after directive call", lexer.RightParen); !ok {
 		return &directiveNode
 	}
 

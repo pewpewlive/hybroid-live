@@ -2,6 +2,6 @@ package commands
 
 import "github.com/urfave/cli/v2"
 
-func Watch(ctx *cli.Context) error {
+func Add(ctx *cli.Context) error {
 	return nil
 }

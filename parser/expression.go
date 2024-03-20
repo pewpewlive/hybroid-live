@@ -39,7 +39,7 @@ func (p *Parser) assignment() *Node {
 
 func (p *Parser) list() *Node {
 	if !p.match(lexer.LeftBracket) {
-		return p.equality()
+		return p.parseMap()
 	}
 
 	token := p.peek(-1)
@@ -47,20 +47,58 @@ func (p *Parser) list() *Node {
 	for !p.check(lexer.RightBracket) {
 		exprInList := p.expression()
 
-		if p.peek().Type == lexer.RightBracket {
-			list = append(list, *exprInList)
+		token, _ := p.consume("expected ',' or ']' after expression", lexer.Comma, lexer.RightBracket)
+
+		list = append(list, *exprInList)
+		if token.Type == lexer.RightBracket || token.Type == lexer.Eof {
 			break
 		}
+	}
 
-		if _, ok := p.consume(lexer.Comma, "expected ',' or ']' after value"); !ok {
+	return &Node{NodeType: ListExpr, ValueType: List, Value: list, Token: token}
+}
+
+func (p *Parser) parseMap() *Node {
+	if !p.match(lexer.LeftBrace) {
+		return p.equality()
+	}
+
+	token := p.peek(-1)
+	parsedMap := make(map[string]Node, 0)
+	for !p.check(lexer.RightBrace) {
+		key := p.primary()
+
+		var newKey string
+		switch key.ValueType {
+		case Ident:
+			newKey = key.Identifier
+		case String:
+			newKey = key.Token.Literal
+		default:
+			p.error(key.Token, "expected either string or an identifier in map initialization")
 			return &Node{Token: p.peek(-1)}
 		}
 
-		list = append(list, *exprInList)
+		if _, ok := p.consume("expected ':' after map key", lexer.Colon); !ok {
+			return &Node{Token: p.peek(-1)}
+		}
+
+		expr := p.expression()
+
+		if p.peek().Type == lexer.RightBrace {
+			parsedMap[newKey] = *expr
+			break
+		}
+
+		if _, ok := p.consume("expected ',' or '}' after expression", lexer.Comma); !ok {
+			return &Node{Token: p.peek(-1)}
+		}
+
+		parsedMap[newKey] = *expr
 	}
 	p.advance()
 
-	return &Node{NodeType: ListExpr, ValueType: List, Value: list, Token: token}
+	return &Node{NodeType: MapExpr, ValueType: Map, Value: parsedMap, Token: token}
 }
 
 func (p *Parser) equality() *Node {
@@ -122,19 +160,19 @@ func (p *Parser) unary() *Node {
 }
 
 func (p *Parser) arguments() []Node {
-	if _, ok := p.consume(lexer.LeftParen, "expected opening paren after an identifier"); !ok {
+	if _, ok := p.consume("expected opening paren after an identifier", lexer.LeftParen); !ok {
 		return nil
 	}
 
 	var args []Node
-	if p.match(lexer.RightParen) { 
-		args = make([]Node, 0) 
-	} else { 
+	if p.match(lexer.RightParen) {
+		args = make([]Node, 0)
+	} else {
 		args = append(args, *p.assignment())
 		for p.match(lexer.Comma) {
 			args = append(args, *p.assignment())
 		}
-		p.consume(lexer.RightParen, "expected closing paren after arguments")
+		p.consume("expected closing paren after arguments", lexer.RightParen)
 	}
 
 	return args
@@ -151,12 +189,14 @@ func (p *Parser) primary() *Node {
 		return &Node{NodeType: LiteralExpr, Value: "nil", ValueType: Nil, Token: p.peek(-1)}
 	}
 
-	if p.match(lexer.Number, lexer.FixedPoint, lexer.Degree, lexer.Radian, lexer.String) {
+	if p.match(lexer.Number, lexer.Fixed, lexer.FixedPoint, lexer.Degree, lexer.Radian, lexer.String) {
 		literal := p.peek(-1)
 		var valueType PrimitiveValueType
 		switch literal.Type {
 		case lexer.Number:
 			valueType = Number
+		case lexer.Fixed:
+			valueType = Fixed
 		case lexer.FixedPoint:
 			valueType = FixedPoint
 		case lexer.Degree:
@@ -177,10 +217,10 @@ func (p *Parser) primary() *Node {
 	if p.match(lexer.LeftParen) {
 		token := p.peek(-1)
 		expr := p.expression()
-		p.consume(lexer.RightParen, "expected ')' after expression")
+		p.consume("expected ')' after expression", lexer.RightParen)
 		return &Node{NodeType: GroupingExpr, Expression: expr, Token: token, ValueType: expr.ValueType}
 	}
-
+	p.advance()
 	p.error(p.peek(), "expected expression")
 	return &Node{Token: p.peek()}
 }

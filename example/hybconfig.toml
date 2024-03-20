@@ -1,0 +1,4 @@
+ProjectName = "example"
+EntryPoint = "/example.hyb"
+OutputDirectory = "/example"
+Target = "ppl"
