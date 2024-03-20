@@ -65,12 +65,12 @@ func (p *Parser) match(types ...lexer.TokenType) bool {
 }
 
 func (p *Parser) consume(message string, types ...lexer.TokenType) (lexer.Token, bool) {
+	if p.isAtEnd() {
+		token := p.peek()
+		p.error(token, message)
+		return token, false // error
+	}
 	for _, tokenType := range types {
-		if p.isAtEnd() {
-			token := p.peek()
-			p.error(token, message)
-			return token, false // error
-		}
 		if p.check(tokenType) {
 			return p.advance(), true
 		}
