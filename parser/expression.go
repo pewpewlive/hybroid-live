@@ -121,6 +121,25 @@ func (p *Parser) unary() *Node {
 	return p.primary()
 }
 
+func (p *Parser) arguments() []Node {
+	if _, ok := p.consume(lexer.LeftParen, "expected opening paren after an identifier"); !ok {
+		return nil
+	}
+
+	var args []Node
+	if p.match(lexer.RightParen) { 
+		args = make([]Node, 0) 
+	} else { 
+		args = append(args, *p.assignment())
+		for p.match(lexer.Comma) {
+			args = append(args, *p.assignment())
+		}
+		p.consume(lexer.RightParen, "expected closing paren after arguments")
+	}
+
+	return args
+}
+
 func (p *Parser) primary() *Node {
 	if p.match(lexer.False) {
 		return &Node{NodeType: LiteralExpr, Value: "false", ValueType: Bool, Token: p.peek(-1)}
@@ -162,7 +181,6 @@ func (p *Parser) primary() *Node {
 		return &Node{NodeType: GroupingExpr, Expression: expr, Token: token, ValueType: expr.ValueType}
 	}
 
-	p.advance()
-	p.error(p.peek(-1), "expected expression")
-	return &Node{Token: p.peek(-1)}
+	p.error(p.peek(), "expected expression")
+	return &Node{Token: p.peek()}
 }

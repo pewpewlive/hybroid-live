@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hybroid/lexer"
 	"hybroid/parser"
+	"math"
 )
 
 type GenError struct {
@@ -65,30 +66,39 @@ const (
 	Expression
 )
 
+func (gen *Generator) GetErrors() []GenError {
+	return gen.Errors
+}
+
 func (s *Scope) GetVariable(name string) Value {
+
 	scope := s.Resolve(name)
 
 	return scope.Variables[name]
 }
 
-func (s *Scope) AssignVariable(name string, value Value) Value {
+func (s *Scope) AssignVariable(name string, value Value) (Value, bool) {
 	scope := s.Resolve(name)
 
 	// TODO: check if the value is a constant
+	if scope == nil {
+		return Value{}, false
+	}
 
 	scope.Variables[name] = value
 
-	return value
+	return value, true
 }
 
-func (s *Scope) DeclareVariable(name string, value Value) Value {
-	//if _, found := s.variables[name]; found {
-	// error: variable with this name already exists
-	//}
+func (s *Scope) DeclareVariable(name string, value Value) (Value, bool) {
+	scope := s.Resolve(name)
 
-	s.Variables[name] = value
-
-	return value
+	if scope == nil {
+		s.Variables[name] = value
+		return value, true
+	} else {
+		return Value{}, false
+	}
 }
 
 func (s *Scope) Resolve(name string) *Scope {
@@ -96,9 +106,9 @@ func (s *Scope) Resolve(name string) *Scope {
 		return s
 	}
 
-	//if s.parent == nil {
-	// error: variable does not exist
-	//}
+	if s.Parent == nil {
+		return nil
+	}
 
 	return s.Parent.Resolve(name)
 }
@@ -107,12 +117,12 @@ func (g *Global) GetForeignType(str string) Value {
 	return g.foreignTypes[str]
 }
 
-func (gen *Generator) Program(program parser.Program, environment *Scope) Value {
+func (gen *Generator) Generate(program parser.Program, environment *Scope) Value {
 	var lastEvaluated Value
 
 	for _, node := range program.Body {
-		lastEvaluated = gen.Generate(node, environment)
-		gen.Src += lastEvaluated.Val
+		lastEvaluated = gen.GenerateNode(node, environment)
+		gen.Src += lastEvaluated.Val + "\n"
 	}
 
 	return lastEvaluated
@@ -124,46 +134,71 @@ func (gen *Generator) variableDeclaration(declaration parser.Node, scope *Scope)
 	if declaration.Expression == nil {
 		gen.error(declaration.Token, "expected expression after declaration")
 	} else {
-		value = gen.Generate(*declaration.Expression, scope)
+		value = gen.GenerateNode(*declaration.Expression, scope)
 	}
 
 	isLocal := declaration.Token.Type == lexer.Let
 	src := ""
 	if isLocal {
-		src += fmt.Sprintf("local %s = %s\n", declaration.Identifier, value.Val)
+		src += fmt.Sprintf("local %s = %s", declaration.Identifier, value.Val)
 	} else {
-		src += fmt.Sprintf("%s = %s\n", declaration.Identifier, value.Val)
+		src += fmt.Sprintf("%s = %s", declaration.Identifier, value.Val)
 	}
 
-	scope.DeclareVariable(declaration.Identifier, value)
+	if _, success := scope.DeclareVariable(declaration.Identifier, value); !success {
+		gen.error(lexer.Token{Lexeme: declaration.Identifier, Location: declaration.Token.Location},
+			"cannot declare a value in the same scope twice")
+	}
 
 	return Value{Type: parser.Nil, Val: src}
 }
 
 func (gen *Generator) binaryExpr(node parser.Node, scope *Scope) Value {
-	src := gen.Generate(*node.Left, scope).Val
+	src := gen.GenerateNode(*node.Left, scope).Val
 	src += fmt.Sprintf(" %s ", node.Token.Lexeme)
-	src += gen.Generate(*node.Right, scope).Val
+	src += gen.GenerateNode(*node.Right, scope).Val
 
 	return Value{parser.Nil, src}
 }
 
 func (gen *Generator) literalExpr(node parser.Node) Value {
-	if node.ValueType == parser.String {
-		src := "\"" + fmt.Sprintf("%v", node.Value) + "\""
-		return Value{node.ValueType, src}
+	var src string
+
+	switch node.ValueType {
+	case parser.String:
+		src = "\"" + fmt.Sprintf("%v", node.Value) + "\""
+	case parser.Fixed:
+		src = fixedToFx(node.Value.(float64)) + "fx"
+	case parser.FixedPoint:
+		src = fmt.Sprintf("%vfx", node.Value)
+	default:
+		src = fmt.Sprintf("%v", node.Value)
 	}
-	if node.ValueType == parser.FixedPoint {
-		src := fmt.Sprintf("%v", node.Value) + "fx"
-		return Value{node.ValueType, src}
-	}
-	if node.ValueType == parser.FixedPoint {
-		src := fmt.Sprintf("%v", node.Value) + "fx"
-		return Value{node.ValueType, src}
-	}
-	src := fmt.Sprintf("%v", node.Value)
 
 	return Value{node.ValueType, src}
+}
+
+func fixedToFx(float float64) string {
+	abs_float := math.Abs(float)
+	integer := math.Floor(abs_float)
+	if integer > (2 << 51) {
+		integer = (2 << 51)
+	}
+	var sign string
+	if float < 0 {
+		sign = "-"
+	} else {
+		sign = ""
+	}
+
+	frac := math.Floor((abs_float - integer) * 4096)
+	frac_str := ""
+	if frac != 0 {
+		frac_str = "." + fmt.Sprintf("%d", frac)
+	}
+
+	// sign + int + frac_str + "fx"
+	return fmt.Sprintf("%s%d%s", sign, integer, frac_str)
 }
 
 func (gen *Generator) identifierExpr(node parser.Node, scope *Scope) Value {
@@ -173,7 +208,7 @@ func (gen *Generator) identifierExpr(node parser.Node, scope *Scope) Value {
 
 func (gen *Generator) groupingExpr(node parser.Node, scope *Scope) Value {
 	src := "("
-	value := gen.Generate(*node.Expression, scope)
+	value := gen.GenerateNode(*node.Expression, scope)
 	src += value.Val
 	src += ")"
 
@@ -185,7 +220,7 @@ func (gen *Generator) listExpr(node parser.Node, scope *Scope) Value {
 
 	src := "{"
 	for i, expr := range nodes {
-		src += gen.Generate(expr, scope).Val
+		src += gen.GenerateNode(expr, scope).Val
 
 		if i != len(nodes)-1 {
 			src += ", "
@@ -198,32 +233,37 @@ func (gen *Generator) listExpr(node parser.Node, scope *Scope) Value {
 
 func (gen *Generator) assignmentExpr(node parser.Node, scope *Scope) Value {
 	if node.Expression.NodeType != parser.Identifier {
-		// error
+		gen.error(node.Expression.Token, "expected an identifier to assign to")
 	}
 
-	//scope.AssignVariable(node.Expression.Identifier) // for const check
-
 	src := node.Expression.Identifier
-	value := gen.Generate(*node.Right, scope)
+	value := gen.GenerateNode(*node.Right, scope)
+	if _, success := scope.AssignVariable(node.Expression.Identifier, value); !success { // for checking variable's existence and const checking
+		gen.error(node.Expression.Token, "cannot assign a value to an undeclared variable")
+	}
 	src += fmt.Sprintf(" = %v", value.Val)
 
 	return Value{value.Type, src}
 }
 
 func (gen *Generator) unaryExpr(node parser.Node, scope *Scope) Value {
-	value := gen.Generate(*node.Right, scope)
+	value := gen.GenerateNode(*node.Right, scope)
 	src := fmt.Sprintf("%s%s", node.Token.Lexeme, value.Val)
 
 	return Value{Type: value.Type, Val: src}
 }
 
-func (gen *Generator) Generate(node parser.Node, environment *Scope) Value {
+func (gen *Generator) functionDeclarationStmt(node parser.Node, scope *Scope) Value {
+	return Value{}
+}
+
+func (gen *Generator) GenerateNode(node parser.Node, environment *Scope) Value {
 	scope := environment
 	switch node.NodeType {
 	case parser.LiteralExpr:
 		return gen.literalExpr(node)
 	case parser.Prog:
-		return gen.Program(*node.Program, scope)
+		return gen.Generate(*node.Program, scope)
 	case parser.VariableDeclarationStmt:
 		return gen.variableDeclaration(node, scope)
 	case parser.BinaryExpr:
@@ -238,6 +278,8 @@ func (gen *Generator) Generate(node parser.Node, environment *Scope) Value {
 		return gen.assignmentExpr(node, scope)
 	case parser.UnaryExpr:
 		return gen.unaryExpr(node, scope)
+	case parser.FunctionDeclarationStmt:
+		return gen.functionDeclarationStmt(node, scope)
 	}
 
 	return Value{}

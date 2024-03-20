@@ -1,8 +1,4 @@
 @Environment(Level)
 // xd
-let a = !false
-let b = a = true
 
-/*
-qwr
-*/
+b = 23.5f

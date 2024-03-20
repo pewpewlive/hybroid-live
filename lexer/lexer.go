@@ -16,6 +16,10 @@ func New(src []byte) *Lexer {
 	return &Lexer{make([]Token, 0), src, make([]LexerError, 0), 0, 0, 1, 0, 0}
 }
 
+func (l *Lexer) ChangeSrc(newSrc []byte) {
+	l.source = newSrc
+}
+
 func (l *Lexer) handleString() {
 	for l.peek() != '"' && !l.isAtEnd() {
 		if l.peek() == '\\' && l.peekNext() == '"' {

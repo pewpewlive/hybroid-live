@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"hybroid/lexer"
 )
 
@@ -8,7 +9,7 @@ type NodeType int
 
 const (
 	VariableDeclarationStmt NodeType = iota
-	FuncDeclarationStmt              // TODO: Implement this
+	FunctionDeclarationStmt
 
 	DirectiveStmt
 
@@ -34,6 +35,7 @@ const (
 	String
 	Bool
 	FixedPoint
+	Fixed
 	Radian
 	Degree
 	List
@@ -74,7 +76,16 @@ func New(tokens []lexer.Token) *Parser {
 }
 
 func (p *Parser) statement() *Node {
-	switch p.peek().Type {
+	token := p.peek().Type;
+	next := p.peek(1).Type;
+	
+	if token == lexer.Pub && next == lexer.Fn {
+		p.advance()
+	}
+
+	fmt.Print("wha")
+
+	switch token {
 	case lexer.Let, lexer.Pub, lexer.Const:
 		p.advance()
 		return p.variableDeclaration()
@@ -87,9 +98,55 @@ func (p *Parser) statement() *Node {
 	case lexer.Remove:
 		p.advance()
 		return p.removeFromStmt()
+	case lexer.Fn:
+		p.advance()
+		return p.functionDeclarationStmt()
+	}
+	return p.expression()
+}
+
+func (p *Parser) functionDeclarationStmt() *Node {
+	fnDec := Node{
+		NodeType: FunctionDeclarationStmt,
+		Token: p.peek(-1),
 	}
 
-	return p.expression()
+	fnDec.IsLocal = p.peek(-2).Type != lexer.Pub
+	
+	ident, ok := p.consume(lexer.Identifier, "expected a function name")
+	if !ok {
+		return &fnDec
+	}
+
+	fnDec.Identifier = ident.Lexeme
+
+	args := p.arguments()
+	var params []lexer.Token
+
+	for _, arg := range args {
+		if arg.NodeType == Identifier {
+			params = append(params, arg.Token)
+			continue
+		}
+		p.error(arg.Token, "expected identifier in function declaration")
+	}
+
+	fnDec.Value = params
+
+
+	prog := Program{}
+	if _, success := p.consume(lexer.LeftBrace, "expected body of the function"); success {
+		for !p.match(lexer.RightBrace) {
+			statement := p.statement()
+			if statement != nil {
+				prog.Body = append(prog.Body, *statement)
+			}
+		}
+	}// we might not be handling the case where there is no closing brace
+
+	fnDec.Program = &prog
+
+	return &fnDec
 }
 
 func (p *Parser) addToStmt() *Node {
@@ -100,7 +157,7 @@ func (p *Parser) addToStmt() *Node {
 
 	add.Expression = p.expression()
 
-	if _, ok := p.consume(lexer.To, "expected keyword 'to' after expression in an add statement"); !ok {
+	if _, ok := p.consume(lexer.To, "expected keyword 'to' after expression in an 'add' statement"); !ok {
 		return &add
 	}
 
@@ -119,7 +176,7 @@ func (p *Parser) removeFromStmt() *Node {
 
 	remove.Expression = p.expression()
 
-	if _, ok := p.consume(lexer.From, "expected keyword 'from' after expression in a remove statement"); !ok {
+	if _, ok := p.consume(lexer.From, "expected keyword 'from' after expression in a 'remove' statement"); !ok {
 		return &remove
 	}
 
@@ -133,7 +190,7 @@ func (p *Parser) removeFromStmt() *Node {
 func (p *Parser) variableDeclaration() *Node {
 	variable := Node{
 		NodeType: VariableDeclarationStmt,
-		Token:    p.peek(-1),
+		Token:    p.peek(-1),//let or pub, important
 	}
 
 	ident, identOk := p.consume(lexer.Identifier, "expected identifier in variable declaration")
@@ -148,6 +205,10 @@ func (p *Parser) variableDeclaration() *Node {
 	variable.Expression = p.expression()
 
 	return &variable
+}
+
+func (p *Parser) UpdateTokens(tokens []lexer.Token) {
+	p.tokens = tokens
 }
 
 func (p *Parser) ParseTokens() Program {

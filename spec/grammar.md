@@ -10,8 +10,8 @@ $$
 \begin{align}
     [prog] &\to
         \begin{cases}
-            [stmt] \\
-            ...
+            \text{fn} \\
+            \text{env}
         \end{cases} \\
     [stmt] &\to
         \begin{cases}
@@ -21,28 +21,30 @@ $$
             \text{if} \\
             \text{else} \\
             \text{dir} \\
-            \text{use}
+            \text{use} \\
+            \text{fn}
         \end{cases}\\
     [expr] &\to
         \begin{cases}
-            [bin] \\
-            [lit] \\
-            [unary] \\
-            [group] \\
-            [ident]
+            [\text{bin}] \\
+            [\text{lit}] \\
+            [\text{unary}] \\
+            [\text{group}] \\
+            [\text{ident}] \\
+            \text{anon fn}
         \end{cases} \\
     [unary] &\to \; <operand>[expr] \\
     [group]^* &\to
         \begin{cases}
-            [expr] \\
+            [\text{expr}] \\
             ...
         \end{cases} \\
     [term] &\to \; <+> or <-> \\
     [factor] &\to \; <*> or </> \\
     [bin] &\to
         \begin{cases}
-            [expr] <term> [expr] \\
-            [expr] <factor> [expr] \\
+            [\text{expr}] <term> [\text{expr}] \\
+            [\text{expr}] <factor> [\text{expr}] \\
         \end{cases} \\
     \\
     &\small{\text{*group are used for higher precedence}}
