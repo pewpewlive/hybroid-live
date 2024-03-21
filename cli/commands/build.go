@@ -27,16 +27,28 @@ func Build(ctx *cli.Context) error {
 	config := HybroidConfig{}
 	toml.Unmarshal(configFile, &config)
 
-	var eval evaluator.Evaluator
 	if config.Target == "ppl" {
-		eval = evaluator.New(cwd+"/example", cwd+config.OutputDirectory, lua.Generator{})
-		eval.SrcPath += config.EntryPoint
-		eval.DstPath += strings.Replace(config.EntryPoint, ".hyb", ".lua", -1)
+		//bar := progressbar.Default(-1, fmt.Sprintf("Concurrently building %s for target '%s'", config.ProjectName, config.Target))
+
+		// TODO: Make this nicer
+		ok := make(chan bool)
+		go func(okay chan bool) {
+			// buf := make([]byte, 22)
+			// fmt.Println(runtime.Stack(buf, false))
+			// fmt.Printf("%s", buf)
+
+			eval := evaluator.New(cwd+"/example"+config.EntryPoint, cwd+config.OutputDirectory+strings.Replace(config.EntryPoint, ".hyb", ".lua", -1), lua.Generator{})
+			eval.Action()
+			//bar.Add(1)
+			okay <- true
+		}(ok)
+		if !<-ok {
+			return fmt.Errorf("oopsies, evaluating failed")
+		}
+		//bar.Finish()
 	} else {
 		return fmt.Errorf("Other targets are not implemented yet. Only 'ppl' is allowed.")
 	}
-
-	eval.Action()
 
 	return nil
 }

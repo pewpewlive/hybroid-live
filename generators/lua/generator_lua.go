@@ -14,9 +14,9 @@ type GenError struct {
 	Message string
 }
 
-func (ge *GenError) generatorError() string {
-	return fmt.Sprintf("Error: %v, at line: %v (%v)", ge.Message, ge.Token.Location.LineStart, ge.Token.ToString())
-}
+// func (ge *GenError) generatorError() string {
+// 	return fmt.Sprintf("Error: %v, at line: %v (%v)", ge.Message, ge.Token.Location.LineStart, ge.Token.ToString())
+// }
 
 func (gen *Generator) error(token lexer.Token, message string) {
 	gen.Errors = append(gen.Errors, GenError{token, message})
@@ -96,14 +96,12 @@ func (s *Scope) AssignVariable(name string, value Value) (Value, bool) {
 }
 
 func (s *Scope) DeclareVariable(name string, value Value) (Value, bool) {
-	scope := s.Resolve(name)
-
-	if scope == nil {
-		s.Variables[name] = value
-		return value, true
-	} else {
+	if _, found := s.Variables[name]; found {
 		return Value{}, false
 	}
+
+	s.Variables[name] = value
+	return value, true
 }
 
 func (s *Scope) Resolve(name string) *Scope {
@@ -136,18 +134,25 @@ func (gen *Generator) Generate(program parser.Program, environment *Scope) Value
 func (gen *Generator) variableDeclaration(declaration parser.Node, scope *Scope) Value {
 	var value Value
 
-	if declaration.Expression == nil && declaration.Value == nil {
-		gen.error(declaration.Token, "expected expression after declaration")
+	if declaration.Value2 == nil {
+		gen.error(declaration.Token, "expected expression(s) after declaration")
 	} else {
-		value = gen.GenerateNode(*declaration.Expression, scope)
+		for _, expr := range declaration.Value2.([]parser.Node) {
+			value = gen.GenerateNode(expr, scope)
+		}
 	}
 
 	isLocal := declaration.Token.Type == lexer.Let
 	src := strings.Builder{}
-	if isLocal {
-		src.WriteString(fmt.Sprintf("local %s = %s", declaration.Identifier, value.Val))
-	} else {
-		src.WriteString(fmt.Sprintf("%s = %s", declaration.Identifier, value.Val))
+	for _, ident := range declaration.Value.([]parser.Node) {
+		if isLocal {
+			src.WriteString(fmt.Sprintf("local %s = %s", ident.Identifier, value.Val))
+		} else {
+			if scope.Parent != nil {
+				gen.error(declaration.Token, "cannot declare a global variable inside a local block")
+			}
+			src.WriteString(fmt.Sprintf("%s = %s", ident.Identifier, value.Val))
+		}
 	}
 
 	if _, success := scope.DeclareVariable(declaration.Identifier, value); !success {
@@ -261,6 +266,12 @@ func (gen *Generator) functionDeclarationStmt(node parser.Node, scope *Scope) Va
 
 	if node.IsLocal {
 		gen.append(fnTabs, "local ")
+	} else {
+		gen.append(fnTabs)
+	}
+
+	if scope.Parent != nil && !node.IsLocal {
+		gen.error(node.Token, "cannot declare a global function inside a local block")
 	}
 
 	gen.append("function ", node.Identifier, "(")
@@ -285,6 +296,24 @@ func (gen *Generator) functionDeclarationStmt(node parser.Node, scope *Scope) Va
 	gen.append(fnTabs + "end\n")
 
 	return Value{returnValType, ""}
+}
+
+func (gen *Generator) callExpr(node parser.Node, scope *Scope) Value {
+	src := strings.Builder{}
+	fn := gen.GenerateNode(*node.Expression, scope)
+	args := node.Value.([]parser.Node)
+
+	src.WriteString(fn.Val)
+	src.WriteString("(")
+	for i, arg := range args {
+		src.WriteString(gen.GenerateNode(arg, scope).Val)
+		if i != len(args)-1 {
+			src.WriteString(", ")
+		}
+	}
+	src.WriteString(")")
+
+	return Value{parser.Bool, src.String()}
 }
 
 func (gen *Generator) assignmentExpr(node parser.Node, scope *Scope) Value {
@@ -334,6 +363,8 @@ func (gen *Generator) GenerateNode(node parser.Node, environment *Scope) Value {
 		return gen.unaryExpr(node, scope)
 	case parser.FunctionDeclarationStmt:
 		return gen.functionDeclarationStmt(node, scope)
+	case parser.CallExpr:
+		return gen.callExpr(node, scope)
 	}
 
 	return Value{}

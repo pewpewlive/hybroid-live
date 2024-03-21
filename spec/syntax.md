@@ -108,10 +108,7 @@ entity Quadro {
   }
 
   fn DamageOtherEntity(entity, x, y) {
-    self.DamageOtherEntity()
-    //quadro_damage_other_entity(id(from self), entity, x, y)
     entity.damage(1)
-    //mothership_damage(entity, self, 1)
   }
 }
 ```
@@ -137,9 +134,8 @@ local function quadro_wall_collision(id, wall_x, wall_y)
   -- does stuff
 end
 
-functionction quadro_damage_other_entity(id, ea
-  mothership_follow_other_entity.(entity, id)
-  a:Entity = EntityState
+function quadro_damage_other_entity(id, entity)
+  (Type of entity)[id].damage(1)
 end
 
 function Quadro.new(x, y, speed)
@@ -483,7 +479,9 @@ Greet("John") // -> Hello, John!
 Directives are special functions that are evaluated in the transpiler. They work similarly to _macros_.
 
 ```rs
-dir @Hello(name) => "Hello ".. name .. "!"
+dir @Hello(name) { 
+  "Hello ".. name .. "!" 
+}
 
 print(@Hello("John")) // -> Hello, John!
 ```
@@ -529,13 +527,6 @@ Print(check)
 ### Match statement
 
 ```rs
-let a = 10
-let check = match a {
-  10 => "It's 10!"
-  20 => "It's 20!"
-  _ => "It's a different number!"
-}
-
 match a {
   1 => // if a is 1 or 10 then execute
   10 => {
@@ -545,9 +536,16 @@ match a {
     a = 24
     return
   }
-  _ => {
+  _ => { // else
     a = nil
   }
+}
+
+let a = 10
+let check = match a {
+  10 => "It's 10!"
+  20 => "It's 20!"
+  _ => "It's a different number!"
 }
 
 Print(check)

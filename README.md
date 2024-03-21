@@ -2,7 +2,11 @@
 
 A programming language tailored for PewPew Live level development.
 
-While it is primarily designed for making PPL levels, it supports generic Lua environment and other environments in the future.
+While it is primarily designed for making PPL levels, it also supports generic Lua environment and will support other environments in the future.
+
+## Notice
+
+As Hybroid is still in alpha, the language features may have breaking changes when updating. This notice will be removed once the language goes into a stable state.
 
 ## Syntax
 

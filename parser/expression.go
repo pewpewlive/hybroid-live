@@ -156,7 +156,33 @@ func (p *Parser) unary() *Node {
 		return &Node{NodeType: UnaryExpr, Token: operator, Right: right}
 	}
 
-	return p.primary()
+	return p.memberCall() //p.memberCall()
+}
+
+func (p *Parser) memberCall() *Node { // for maps
+	expr := p.member()
+
+	if p.check(lexer.LeftParen) {
+		return p.call(expr)
+	}
+
+	return expr
+}
+
+func (p *Parser) call(caller *Node) *Node {
+	call_expr := Node{
+		NodeType:   CallExpr,
+		Identifier: caller.Token.Lexeme,
+		Expression: caller,
+		Value:      p.arguments(),
+		Token:      caller.Token,
+	}
+
+	if p.check(lexer.LeftParen) { // name()()
+		call_expr = *p.call(&call_expr)
+	}
+
+	return &call_expr
 }
 
 func (p *Parser) arguments() []Node {
@@ -176,6 +202,34 @@ func (p *Parser) arguments() []Node {
 	}
 
 	return args
+}
+
+func (p *Parser) member() *Node {
+	expr := p.primary()
+
+	for p.match(lexer.Dot, lexer.LeftBracket) {
+		operator := p.peek(-1) // . or [
+		var prop Node
+
+		prop = *p.primary()
+		if operator.Type == lexer.Dot && prop.NodeType != Identifier {
+			p.error(prop.Token, "expected identifier after '.'")
+		}
+		if operator.Type == lexer.LeftBracket {
+			if prop.NodeType != NodeType(String) {
+				p.error(prop.Token, "expected string after '['")
+			}
+			p.consume("expected closing bracket", lexer.RightBracket)
+		}
+
+		expr = &Node{
+			NodeType:   MemberExpr,
+			Expression: expr,
+			Value:      prop,
+		}
+	}
+
+	return expr
 }
 
 func (p *Parser) primary() *Node {

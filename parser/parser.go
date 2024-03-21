@@ -24,6 +24,8 @@ const (
 	GroupingExpr
 	ListExpr
 	MapExpr
+	CallExpr
+	MemberExpr
 
 	Identifier
 )
@@ -54,6 +56,7 @@ type Node struct {
 	Identifier  string
 	Program     *Program
 	Value       any
+	Value2      any
 	ValueType   PrimitiveValueType
 	Left, Right *Node
 	Expression  *Node
@@ -191,16 +194,39 @@ func (p *Parser) variableDeclaration() *Node {
 		Token:    p.peek(-1), //let or pub, important
 	}
 
-	ident, identOk := p.consume("expected identifier in variable declaration", lexer.Identifier)
-	if !identOk {
-		return &Node{Token: p.peek(-1)}
+	ident, _ := p.consume("expected identifier in variable declaration", lexer.Identifier)
+	idents := []string{ident.Lexeme}
+	for p.match(lexer.Comma) {
+		ident, identOk := p.consume("expected identifier in variable declaration", lexer.Identifier)
+		if !identOk {
+			return &Node{Token: p.peek(-1)}
+		}
+
+		idents = append(idents, ident.Lexeme)
 	}
-	variable.Identifier = ident.Lexeme
+
+	variable.Value = idents
 
 	if _, ok := p.consume("expected '=' after identifier in variable declaration", lexer.Equal); !ok {
 		return &Node{Token: p.peek(-1)}
+	} // let a, b = name()
+
+	expr := p.expression()
+	exprs := []Node{}
+	for i := 1; i < len(idents); i++ {
+		expr := *p.expression()
+		if expr.NodeType == CallExpr {
+			exprs = append(exprs, expr)
+			if p.peek(1) != lexer.Comma {
+				break // x, y = fn(), fn()
+			}
+		} else {
+			exprs = append(exprs, expr)
+		}
+
+		p.consume("need comatos, lexer.Comma")
 	}
-	variable.Expression = p.expression()
+	variable.Value2 = &exprs
 
 	return &variable
 }

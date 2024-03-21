@@ -9,6 +9,8 @@ import (
 	"hybroid/lexer"
 	"hybroid/parser"
 	"os"
+
+	"github.com/mitchellh/colorstring"
 )
 
 func (e *Evaluator) HasValidSrc() bool {
@@ -45,23 +47,23 @@ func (e *Evaluator) Action() {
 	e.lexer.ChangeSrc(lcsrc)
 	e.lexer.Tokenize()
 	if len(e.lexer.Errors) != 0 {
-		fmt.Println("Failed tokenizing:")
+		fmt.Println("[red]Failed tokenizing:")
 		for _, err := range e.lexer.Errors {
-			fmt.Printf("Error: %v\n", err)
+			colorstring.Printf("[red]Error: %v\n", err)
 		}
 		return
 	}
 
-	fmt.Printf("Tokenizing time: %v seconds\n\n", time.Since(start).Seconds())
+	fmt.Printf("Tokenizing time: %v seconds\n", time.Since(start).Seconds())
 
 	fmt.Printf("Parsing %v tokens\n", len(e.lexer.Tokens))
 
 	e.parser.UpdateTokens(e.lexer.Tokens)
 	prog := e.parser.ParseTokens()
 	if len(e.parser.Errors) != 0 {
-		fmt.Println("Failed parsing:")
-		for _, err := range e.lexer.Errors {
-			fmt.Printf("Error: %v\n", err)
+		colorstring.Println("[red]Failed parsing:")
+		for _, err := range e.parser.Errors {
+			colorstring.Printf("[red]Error: %+v\n", err)
 		}
 		return
 	}
@@ -81,10 +83,10 @@ func (e *Evaluator) Action() {
 	//e.gen.Src.Grow(len(lcsrc)) // for some reason this doesnt work
 	global.Scope.Global = &global
 	e.gen.Generate(prog, &global.Scope)
-	if len(e.parser.Errors) != 0 {
-		fmt.Println("Failed generating:")
+	if len(e.gen.Errors) != 0 {
+		colorstring.Println("[red]Failed generating:")
 		for _, err := range e.gen.GetErrors() {
-			fmt.Printf("Error: %v\n", err)
+			colorstring.Printf("[red]Error: %+v\n", err)
 		}
 	}
 	fmt.Printf("Build time: %v seconds\n", time.Since(start).Seconds())
