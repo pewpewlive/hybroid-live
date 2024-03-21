@@ -1,12 +1,6 @@
-a = 0
-a = a + (1)
-local function sub(x, y)
-	a = 0
+
+local h = 50
+local function test()
 end
 
-local function shit(b, v, o)
-	sub(b, v)
-end
-
-shit(12, 23 + 25, -(sub(1, 2)))
-a = a + (2)
+local b,o = 1 + 4, test()

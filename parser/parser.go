@@ -7,13 +7,14 @@ import (
 type NodeType int
 
 const (
-	VariableDeclarationStmt NodeType = iota
+	VariableDeclarationStmt NodeType = iota + 1
 	FunctionDeclarationStmt
 
 	DirectiveStmt
 
 	AddStmt
 	RemoveStmt
+	ReturnStmt
 
 	Prog
 
@@ -69,13 +70,14 @@ type Program struct {
 }
 
 type Parser struct {
+	program Program
 	current int
 	tokens  []lexer.Token
 	Errors  []ParserError
 }
 
 func New(tokens []lexer.Token) *Parser {
-	return &Parser{0, tokens, make([]ParserError, 0)}
+	return &Parser{Program{},0, tokens, make([]ParserError, 0)}
 }
 
 func (p *Parser) statement() *Node {
@@ -103,8 +105,39 @@ func (p *Parser) statement() *Node {
 	case lexer.Fn:
 		p.advance()
 		return p.functionDeclarationStmt()
+	case lexer.Return:
+		p.advance()
+		return p.returnStmt()
 	}
-	return p.expression()
+	expr := p.expression()
+	if expr.NodeType == 0 {
+		p.error(p.peek(), "expected expression")
+	}
+	return expr
+}
+
+func (p *Parser) returnStmt() *Node {
+	returnStmt := Node{
+		NodeType: ReturnStmt,
+		Token: p.peek(-1),
+	}
+	args := []Node{}
+	expr := p.assignment()
+	if expr.NodeType == 0 {
+		p.error(p.peek(), "expected expression")
+	}
+	args = append(args, *expr)
+	for p.match(lexer.Comma) {
+		expr = p.assignment()
+		if expr.NodeType == 0 {
+			p.error(p.peek(), "expected expression")
+		}
+		args = append(args, *expr)
+	}
+
+	returnStmt.Value = args
+
+	return &returnStmt
 }
 
 func (p *Parser) functionDeclarationStmt() *Node {
@@ -157,6 +190,9 @@ func (p *Parser) addToStmt() *Node {
 	}
 
 	add.Expression = p.expression()
+	if add.NodeType == 0 {
+		p.error(p.peek(), "expected expression")
+	}
 
 	if _, ok := p.consume("expected keyword 'to' after expression in an 'add' statement", lexer.To); !ok {
 		return &add
@@ -176,6 +212,9 @@ func (p *Parser) removeFromStmt() *Node {
 	}
 
 	remove.Expression = p.expression()
+	if remove.NodeType == 0 {
+		p.error(p.peek(), "expected expression")
+	}
 
 	if _, ok := p.consume("expected keyword 'from' after expression in a 'remove' statement", lexer.From); !ok {
 		return &remove
@@ -210,23 +249,21 @@ func (p *Parser) variableDeclaration() *Node {
 	if _, ok := p.consume("expected '=' after identifier in variable declaration", lexer.Equal); !ok {
 		return &Node{Token: p.peek(-1)}
 	} // let a, b = name()
-
+	
 	expr := p.expression()
-	exprs := []Node{}
-	for i := 1; i < len(idents); i++ {
-		expr := *p.expression()
-		if expr.NodeType == CallExpr {
-			exprs = append(exprs, expr)
-			if p.peek(1) != lexer.Comma {
-				break // x, y = fn(), fn()
-			}
-		} else {
-			exprs = append(exprs, expr)
-		}
-
-		p.consume("need comatos, lexer.Comma")
+	if expr.NodeType == 0 {
+		p.error(p.peek(), "expected expression")
 	}
-	variable.Value2 = &exprs
+	
+	exprs := []Node{*expr}
+	for p.match(lexer.Comma) {
+		expr = p.expression()
+		if expr.NodeType == 0 {
+			p.error(p.peek(), "expected expression")
+		}
+		exprs = append(exprs, *expr)
+	}
+	variable.Value2 = exprs
 
 	return &variable
 }
@@ -236,20 +273,19 @@ func (p *Parser) UpdateTokens(tokens []lexer.Token) {
 }
 
 func (p *Parser) ParseTokens() Program {
-	program := Program{}
-
 	// Expect environment directive call as node
 	statement := p.statement()
 	if !p.verifyEnvironmentDirective(statement) {
-		return program
+		return p.program
 	}
+	p.program.Body = append(p.program.Body, *statement)
 
 	for !p.isAtEnd() {
 		statement := p.statement()
 		if statement != nil {
-			program.Body = append(program.Body, *statement)
+			p.program.Body = append(p.program.Body, *statement)
 		}
 	}
 
-	return program
+	return p.program
 }

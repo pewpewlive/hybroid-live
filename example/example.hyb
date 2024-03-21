@@ -1,26 +1,15 @@
 @Environment(Level)
 
+let h = 50
 
-pub h,b,c = 10,5,3
+fn test() {
+
+}
+
+let b, o = 1+4,test()
 
 //let x, y, z = 1, math.something(), 2
 
 //let x, y = pewpew.entity_get_location()
-
-pub a = 0
-
-a += 1
-
-fn sub(x, y) {
-  a = 0
-}
-
-fn shit(b, v, o) {
-  sub(b, v)
-}
-
-shit(12, 23 + 25, -(sub(1, 2)))
-
-a += 2
 
 //x, y = func()

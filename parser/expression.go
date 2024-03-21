@@ -1,6 +1,9 @@
 package parser
 
-import "hybroid/lexer"
+import (
+	"hybroid/lexer"
+	"strings"
+)
 
 func (p *Parser) expression() *Node {
 	return p.assignment()
@@ -46,6 +49,9 @@ func (p *Parser) list() *Node {
 	list := make([]Node, 0)
 	for !p.check(lexer.RightBracket) {
 		exprInList := p.expression()
+		if exprInList.NodeType == 0 {
+			p.error(p.peek(), "expected expression")
+		}
 
 		token, _ := p.consume("expected ',' or ']' after expression", lexer.Comma, lexer.RightBracket)
 
@@ -84,6 +90,9 @@ func (p *Parser) parseMap() *Node {
 		}
 
 		expr := p.expression()
+		if expr.NodeType == 0 {
+			p.error(p.peek(), "expected expression")
+		}
 
 		if p.peek().Type == lexer.RightBrace {
 			parsedMap[newKey] = *expr
@@ -246,16 +255,32 @@ func (p *Parser) primary() *Node {
 	if p.match(lexer.Number, lexer.Fixed, lexer.FixedPoint, lexer.Degree, lexer.Radian, lexer.String) {
 		literal := p.peek(-1)
 		var valueType PrimitiveValueType
+		allowFX := p.program.Body[0].Expression.Identifier == "Level" || p.program.Body[0].Expression.Identifier == "Shared"
 		switch literal.Type {
 		case lexer.Number:
+			if allowFX && strings.ContainsRune(literal.Lexeme,'.') {
+				p.error(literal, "cannot have a float in a level or shared environment")
+			}
 			valueType = Number
 		case lexer.Fixed:
+			if !allowFX {
+				p.error(literal, "cannot have a fixed in a mesh, sound or luageneric environment")
+			}
 			valueType = Fixed
 		case lexer.FixedPoint:
+			if !allowFX {
+				p.error(literal, "cannot have a fixedpoint in a mesh, sound or luageneric environment")
+			}
 			valueType = FixedPoint
 		case lexer.Degree:
+			if !allowFX {
+				p.error(literal, "cannot have a degree, sound or luageneric environment")
+			}
 			valueType = Degree
 		case lexer.Radian:
+			if !allowFX {
+				p.error(literal, "cannot have a radian in a mesh, sound or luageneric environment")
+			}
 			valueType = Radian
 		case lexer.String:
 			valueType = String
@@ -271,10 +296,12 @@ func (p *Parser) primary() *Node {
 	if p.match(lexer.LeftParen) {
 		token := p.peek(-1)
 		expr := p.expression()
+		if expr.NodeType == 0 {
+			p.error(p.peek(), "expected expression")
+		}
 		p.consume("expected ')' after expression", lexer.RightParen)
 		return &Node{NodeType: GroupingExpr, Expression: expr, Token: token, ValueType: expr.ValueType}
 	}
 	p.advance()
-	p.error(p.peek(), "expected expression")
 	return &Node{Token: p.peek()}
 }

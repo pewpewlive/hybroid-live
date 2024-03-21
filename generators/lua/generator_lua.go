@@ -132,33 +132,45 @@ func (gen *Generator) Generate(program parser.Program, environment *Scope) Value
 }
 
 func (gen *Generator) variableDeclaration(declaration parser.Node, scope *Scope) Value {
-	var value Value
+	var values []Value
 
 	if declaration.Value2 == nil {
 		gen.error(declaration.Token, "expected expression(s) after declaration")
 	} else {
-		for _, expr := range declaration.Value2.([]parser.Node) {
-			value = gen.GenerateNode(expr, scope)
+		exprs := declaration.Value2.([]parser.Node)
+		for _, expr := range exprs {
+			values = append(values,gen.GenerateNode(expr, scope))
 		}
 	}
 
 	isLocal := declaration.Token.Type == lexer.Let
 	src := strings.Builder{}
-	for _, ident := range declaration.Value.([]parser.Node) {
-		if isLocal {
-			src.WriteString(fmt.Sprintf("local %s = %s", ident.Identifier, value.Val))
-		} else {
-			if scope.Parent != nil {
-				gen.error(declaration.Token, "cannot declare a global variable inside a local block")
-			}
-			src.WriteString(fmt.Sprintf("%s = %s", ident.Identifier, value.Val))
+	src2 := strings.Builder{}
+	idents := declaration.Value.([]string)
+	if isLocal {
+		src.WriteString("local ")
+	}else {
+		if scope.Parent != nil {
+			gen.error(declaration.Token, "cannot declare a global variable inside a local block")
+		}
+	}
+	for i, ident := range idents {
+		if i == len(idents)-1 {
+			src.WriteString(fmt.Sprintf("%s = ", ident))
+			src2.WriteString(values[i].Val)
+		}else {
+			src.WriteString(fmt.Sprintf("%s,", ident))
+			src2.WriteString(fmt.Sprintf("%s, ", values[i].Val))
+		}
+		if _, success := scope.DeclareVariable(ident, values[i]); !success {
+			gen.error(lexer.Token{Lexeme: declaration.Identifier, Location: declaration.Token.Location},
+				"cannot declare a value in the same scope twice")
 		}
 	}
 
-	if _, success := scope.DeclareVariable(declaration.Identifier, value); !success {
-		gen.error(lexer.Token{Lexeme: declaration.Identifier, Location: declaration.Token.Location},
-			"cannot declare a value in the same scope twice")
-	}
+	//TODO: Handle function call expressions and too many/too few expressions
+
+	src.WriteString(src2.String())
 
 	return Value{Type: parser.Nil, Val: src.String()}
 }
@@ -251,8 +263,7 @@ func (gen *Generator) listExpr(node parser.Node, scope *Scope) Value {
 func (gen *Generator) functionDeclarationStmt(node parser.Node, scope *Scope) Value {
 	fnScope := Scope{Global: scope.Global, Parent: scope, Count: scope.Count + 1, Variables: map[string]Value{}}
 	returnValType := parser.Nil
-	scope.
-		DeclareVariable(node.Identifier, Value{})
+	scope.DeclareVariable(node.Identifier, Value{})
 
 	var tabs string
 	for i := 0; i < fnScope.Count; i++ {
