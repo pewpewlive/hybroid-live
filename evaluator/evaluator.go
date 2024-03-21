@@ -2,6 +2,8 @@ package evaluator
 
 import (
 	"fmt"
+	"time"
+
 	//"hybroid/generators"
 	"hybroid/generators/lua"
 	"hybroid/lexer"
@@ -36,6 +38,10 @@ func New(src string, dst string, gen lua.Generator) Evaluator {
 
 func (e *Evaluator) Action() {
 	lcsrc, _ := os.ReadFile(e.SrcPath)
+
+	fmt.Printf("Tokenizing %v characters\n", len(lcsrc))
+	start := time.Now()
+
 	e.lexer.ChangeSrc(lcsrc)
 	e.lexer.Tokenize()
 	if len(e.lexer.Errors) != 0 {
@@ -45,6 +51,11 @@ func (e *Evaluator) Action() {
 		}
 		return
 	}
+
+	fmt.Printf("Tokenizing time: %v seconds\n\n", time.Since(start).Seconds())
+
+	fmt.Printf("Parsing %v tokens\n", len(e.lexer.Tokens))
+
 	e.parser.UpdateTokens(e.lexer.Tokens)
 	prog := e.parser.ParseTokens()
 	if len(e.parser.Errors) != 0 {
@@ -54,6 +65,11 @@ func (e *Evaluator) Action() {
 		}
 		return
 	}
+
+	fmt.Printf("Parsing time: %v seconds\n\n", time.Since(start).Seconds())
+
+	fmt.Println("Generating the lua code...")
+
 	global := lua.Global{
 		Scope: lua.Scope{
 			Global:    nil,
@@ -61,6 +77,8 @@ func (e *Evaluator) Action() {
 			Variables: make(map[string]lua.Value),
 		},
 	}
+
+	//e.gen.Src.Grow(len(lcsrc)) // for some reason this doesnt work
 	global.Scope.Global = &global
 	e.gen.Generate(prog, &global.Scope)
 	if len(e.parser.Errors) != 0 {
@@ -69,5 +87,7 @@ func (e *Evaluator) Action() {
 			fmt.Printf("Error: %v\n", err)
 		}
 	}
-	os.WriteFile(e.DstPath, []byte(e.gen.Src), 0677)
+	fmt.Printf("Build time: %v seconds\n", time.Since(start).Seconds())
+
+	os.WriteFile(e.DstPath, []byte(e.gen.GetSrc()), 0677)
 }
