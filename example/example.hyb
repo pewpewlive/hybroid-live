@@ -1,5 +1,7 @@
 @Environment(Level)
 
+let list = [1,2,4]
+
 let mapthing = {
     "thing": 0fx,
     thing2: 1,
@@ -12,18 +14,23 @@ let mapthing = {
     }
 }
 
-fn test(){
+//repeat 10 {
     
+//}
+
+fn test(){
+    if true {
+        return 8, 1fx + (9r+120d)
+    }
 }
 
-mapthing[ident]
-mapthing["thing"]()
-mapthing.thing["sex"], mapthing.thing2 = test()
+//tick {
+    
+//}
+
+update()
+
+mapthing["thing"]() // it thinks that it is an assignment wtf
 
 mapthing.thing *= 4
 
-//let x, y, z = 1, math.something(), 2
-
-//let x, y = pewpew.entity_get_location()
-
-//x, y = func()

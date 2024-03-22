@@ -80,7 +80,7 @@ func (e *Evaluator) Action() {
 		},
 	}
 
-	//e.gen.Src.Grow(len(lcsrc)) // for some reason this doesnt work
+	e.gen.Src.Grow(len(lcsrc)) // for some reason this doesnt work
 	global.Scope.Global = &global
 	e.gen.Generate(prog, &global.Scope)
 	if len(e.gen.Errors) != 0 {

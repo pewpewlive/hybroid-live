@@ -13,19 +13,19 @@ import (
 
 func Build(ctx *cli.Context) error {
 	cwd, err := os.Getwd()
-
 	if err != nil {
-		return fmt.Errorf("Error getting current working directory: %v", err)
+		return fmt.Errorf("failed getting current working directory: %v", err)
 	}
 
-	configFile, err := os.ReadFile(cwd + "/example/hybconfig.toml")
-
+	configFile, err := os.ReadFile(cwd + "/hybconfig.toml")
 	if err != nil {
-		return fmt.Errorf("Error reading Hybroid config file: %v", err)
+		return fmt.Errorf("failed reading Hybroid config file: %v", err)
 	}
 
 	config := HybroidConfig{}
-	toml.Unmarshal(configFile, &config)
+	if err := toml.Unmarshal(configFile, &config); err != nil {
+		return fmt.Errorf("failed parsing Hybroid config file: %v", err)
+	}
 
 	if config.Target == "ppl" {
 		//bar := progressbar.Default(-1, fmt.Sprintf("Concurrently building %s for target '%s'", config.ProjectName, config.Target))
@@ -37,17 +37,17 @@ func Build(ctx *cli.Context) error {
 			// fmt.Println(runtime.Stack(buf, false))
 			// fmt.Printf("%s", buf)
 
-			eval := evaluator.New(cwd+"/example"+config.EntryPoint, cwd+config.OutputDirectory+strings.Replace(config.EntryPoint, ".hyb", ".lua", -1), lua.Generator{})
+			eval := evaluator.New(cwd+config.EntryPoint, cwd+config.OutputDirectory+strings.Replace(config.EntryPoint, ".hyb", ".lua", -1), lua.Generator{})
 			eval.Action()
 			//bar.Add(1)
 			okay <- true
 		}(ok)
 		if !<-ok {
-			return fmt.Errorf("oopsies, evaluating failed")
+			return fmt.Errorf("failed evaluation")
 		}
 		//bar.Finish()
 	} else {
-		return fmt.Errorf("Other targets are not implemented yet. Only 'ppl' is allowed.")
+		panic("other targets apart from 'ppl' are not implemented")
 	}
 
 	return nil

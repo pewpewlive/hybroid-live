@@ -5,7 +5,7 @@ import (
 	"hybroid/cli/commands"
 	"os"
 
-	cli "github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v2"
 )
 
 var app = &cli.App{
@@ -51,7 +51,7 @@ var app = &cli.App{
 
 func RunApp() {
 	if err := app.Run(os.Args); err != nil {
-		fmt.Println(err)
+		fmt.Printf("Error: %v", err)
 		return
 	}
 }

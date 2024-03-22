@@ -1,5 +1,7 @@
 
+local list = {1, 2, 4}
 local mapthing = {
+	thing = 0fx,
 	thing2 = 1,
 	sex = {
 		sex = {
@@ -7,12 +9,15 @@ local mapthing = {
 				LMAO = "xd"
 			}}
 		}
-	},
-	thing = 0fx
+	}
 }
 local function test()
+	if true then
+		return 8, 1fx + (9 + 120)
+	end
+	
 end
 
+update()
 mapthing["thing"]()
-mapthing.thing["sex"], mapthing.thing2 = test()
 mapthing.thing = mapthing.thing * (4)

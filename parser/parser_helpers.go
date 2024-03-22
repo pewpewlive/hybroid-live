@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"hybroid/ast"
 	"hybroid/lexer"
 )
 
@@ -13,12 +14,13 @@ func (p *Parser) error(token lexer.Token, err string) {
 	p.Errors = append(p.Errors, ParserError{token, err})
 }
 
-func createBinExpr(left *Node, operator lexer.Token, tokenType lexer.TokenType, lexeme string, right *Node) *Node {
-	return &Node{
-		NodeType: BinaryExpr,
-		Left:     left,
-		Token:    lexer.Token{Type: tokenType, Lexeme: lexeme, Literal: "", Location: operator.Location},
-		Right:    right,
+func (p *Parser) createBinExpr(left ast.Node, operator lexer.Token, tokenType lexer.TokenType, lexeme string, right ast.Node) ast.Node {
+	valueType := p.determineValueType(left, right)
+	return ast.BinaryExpr{
+		Left:      left,
+		Operator:  lexer.Token{Type: tokenType, Lexeme: lexeme, Literal: "", Location: operator.Location},
+		Right:     right,
+		ValueType: valueType,
 	}
 }
 
