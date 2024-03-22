@@ -16,8 +16,9 @@ func Build(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed getting current working directory: %v", err)
 	}
+	cwd += "/"
 
-	configFile, err := os.ReadFile(cwd + "/hybconfig.toml")
+	configFile, err := os.ReadFile(cwd + "hybconfig.toml")
 	if err != nil {
 		return fmt.Errorf("failed reading Hybroid config file: %v", err)
 	}
@@ -27,28 +28,21 @@ func Build(ctx *cli.Context) error {
 		return fmt.Errorf("failed parsing Hybroid config file: %v", err)
 	}
 
-	if config.Target == "ppl" {
-		//bar := progressbar.Default(-1, fmt.Sprintf("Concurrently building %s for target '%s'", config.ProjectName, config.Target))
-
-		// TODO: Make this nicer
-		ok := make(chan bool)
-		go func(okay chan bool) {
-			// buf := make([]byte, 22)
-			// fmt.Println(runtime.Stack(buf, false))
-			// fmt.Printf("%s", buf)
-
-			eval := evaluator.New(cwd+config.EntryPoint, cwd+config.OutputDirectory+strings.Replace(config.EntryPoint, ".hyb", ".lua", -1), lua.Generator{})
-			eval.Action()
-			//bar.Add(1)
-			okay <- true
-		}(ok)
-		if !<-ok {
-			return fmt.Errorf("failed evaluation")
-		}
-		//bar.Finish()
-	} else {
+	if config.Project.Target != "ppl" {
 		panic("other targets apart from 'ppl' are not implemented")
 	}
+
+	ok := make(chan bool)
+	go func(okay chan bool) {
+		eval := evaluator.New(cwd+config.Level.EntryPoint, cwd+config.Project.OutputDirectory+"/"+strings.Replace(config.Level.EntryPoint, ".hyb", ".lua", -1), lua.Generator{})
+		eval.Action()
+		//bar.Add(1)
+		okay <- true
+	}(ok)
+	if !<-ok {
+		return fmt.Errorf("failed evaluation")
+	}
+	//bar.Finish()
 
 	return nil
 }

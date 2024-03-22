@@ -20,7 +20,7 @@ let mapthing = {
 
 fn test(){
     if true {
-        return 8, 1fx + (9r+120d)
+        return 8, 1fx + (9r)
     }
 }
 
@@ -28,7 +28,7 @@ fn test(){
     
 //}
 
-update()
+updathe()
 
 mapthing["thing"]() 
 

@@ -13,7 +13,7 @@ local mapthing = {
 }
 local function test()
 	if true then
-		return 8, 1fx + (9 + 120)
+		return 8, 1fx + (9fx + 6.1159fx)
 	end
 	
 end

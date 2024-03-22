@@ -31,10 +31,15 @@ var app = &cli.App{
 			},
 		},
 		{
-			Name:    "init",
-			Aliases: []string{"i"},
-			Usage:   "Initializes a new Hybroid project",
+			Name:      "init",
+			Aliases:   []string{"i"},
+			Usage:     "Initializes a new Hybroid project",
+			Args:      true,
+			ArgsUsage: "<level name> <target> <output directory>",
 			Action: func(ctx *cli.Context) error {
+				if ctx.NArg() != 3 {
+					return fmt.Errorf("invalid amount of arguments (needed: 3, given: %v)", ctx.Args().Len())
+				}
 				return commands.Initialize(ctx)
 			},
 		},
