@@ -30,7 +30,7 @@ fn test(){
 
 update()
 
-mapthing["thing"]() // it thinks that it is an assignment wtf
+mapthing["thing"]() 
 
 mapthing.thing *= 4
 

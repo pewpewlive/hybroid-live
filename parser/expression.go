@@ -45,9 +45,9 @@ func (p *Parser) parseMap() ast.Node {
 		key := p.primary()
 
 		var newKey string
-		switch key.(type) {
+		switch key := key.(type) {
 		case ast.IdentifierExpr:
-			newKey = key.(ast.IdentifierExpr).Name
+			newKey = key.Name
 		case ast.LiteralExpr:
 			if key.GetValueType() != ast.String {
 				p.error(key.GetToken(), "expected a string in map initialization")

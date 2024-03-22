@@ -170,35 +170,35 @@ func fixedToFx(floatstr string) string {
 func (gen *Generator) GenerateNode(node ast.Node, environment *Scope) Value {
 	scope := environment
 
-	switch node.GetType() {
-	case ast.VariableDeclarationStatement:
-		return gen.variableDeclarationStmt(node.(ast.VariableDeclarationStmt), scope)
-	case ast.IfStatement:
-		return gen.ifStmt(node.(ast.IfStmt), scope)
-	case ast.AssignmentStatement:
-		return gen.assignmentStmt(node.(ast.AssignmentStmt), scope)
-	case ast.FunctionDeclarationStatement:
-		return gen.functionDeclarationStmt(node.(ast.FunctionDeclarationStmt), scope)
-	case ast.ReturnStatement:
-		return gen.returnStmt(node.(ast.ReturnStmt), scope)
-	case ast.LiteralExpression:
-		return gen.literalExpr(node.(ast.LiteralExpr))
-	case ast.BinaryExpression:
-		return gen.binaryExpr(node.(ast.BinaryExpr), scope)
-	case ast.Identifier:
-		return gen.identifierExpr(node.(ast.IdentifierExpr), scope)
-	case ast.GroupingExpression:
-		return gen.groupingExpr(node.(ast.GroupExpr), scope)
-	case ast.ListExpression:
-		return gen.listExpr(node.(ast.ListExpr), scope)
-	case ast.UnaryExpression:
-		return gen.unaryExpr(node.(ast.UnaryExpr), scope)
-	case ast.CallExpression:
-		return gen.callExpr(node.(ast.CallExpr), scope)
-	case ast.MapExpression:
-		return gen.mapExpr(node.(ast.MapExpr), scope)
-	case ast.MemberExpression:
-		return gen.memberExpr(node.(ast.MemberExpr), scope)
+	switch newNode := node.(type) {
+	case ast.VariableDeclarationStmt:
+		return gen.variableDeclarationStmt(newNode, scope)
+	case ast.IfStmt:
+		return gen.ifStmt(newNode, scope)
+	case ast.AssignmentStmt:
+		return gen.assignmentStmt(newNode, scope)
+	case ast.FunctionDeclarationStmt:
+		return gen.functionDeclarationStmt(newNode, scope)
+	case ast.ReturnStmt:
+		return gen.returnStmt(newNode, scope)
+	case ast.LiteralExpr:
+		return gen.literalExpr(newNode)
+	case ast.BinaryExpr:
+		return gen.binaryExpr(newNode, scope)
+	case ast.IdentifierExpr:
+		return gen.identifierExpr(newNode, scope)
+	case ast.GroupExpr:
+		return gen.groupingExpr(newNode, scope)
+	case ast.ListExpr:
+		return gen.listExpr(newNode, scope)
+	case ast.UnaryExpr:
+		return gen.unaryExpr(newNode, scope)
+	case ast.CallExpr:
+		return gen.callExpr(newNode, scope)
+	case ast.MapExpr:
+		return gen.mapExpr(newNode, scope)
+	case ast.MemberExpr:
+		return gen.memberExpr(newNode, scope)
 	}
 
 	return Value{}
