@@ -11,6 +11,7 @@ const (
 	FunctionDeclarationStmt
 
 	DirectiveStmt
+	AssignmentStmt
 
 	AddStmt
 	RemoveStmt
@@ -18,7 +19,6 @@ const (
 
 	Prog
 
-	AssignmentExpr
 	LiteralExpr
 	UnaryExpr
 	BinaryExpr
@@ -108,6 +108,8 @@ func (p *Parser) statement() *Node {
 	case lexer.Return:
 		p.advance()
 		return p.returnStmt()
+	case lexer.Identifier:// a
+		return p.assignment()
 	}
 	expr := p.expression()
 	if expr.NodeType == 0 {
@@ -116,19 +118,70 @@ func (p *Parser) statement() *Node {
 	return expr
 }
 
+func (p *Parser) assignment() *Node {
+	expr := p.expression()
+
+	idents := []Node{*expr}
+	
+	for p.match(lexer.Comma) {
+		identExpr := p.expression() 
+
+		idents = append(idents, *identExpr)
+	}
+
+	if p.match(lexer.Equal) {
+		values := []Node{*p.expression()}
+		for p.match(lexer.Comma) {
+			expr2 := p.expression() 
+	
+			values = append(values, *expr2)
+		}
+		expr = &Node{NodeType: AssignmentStmt, Value: idents, Value2: values, Token: p.peek(-1)} 
+	} else if p.match(lexer.PlusEqual, lexer.MinusEqual, lexer.SlashEqual, lexer.StarEqual, lexer.CaretEqual) {
+		assignOp := p.peek(-1)
+		op := p.getOp(assignOp.Type)
+		if len(idents) > 1 {
+			p.error(assignOp, "cannot assign to multiple variables with this operator")
+		}
+		expr2 := p.term()
+		binExpr := createBinExpr(expr, op, op.Type, op.Lexeme, &Node{NodeType: GroupingExpr, Expression: expr2})
+		expr = &Node{NodeType: AssignmentStmt, Value: idents, Value2: *binExpr, Token: assignOp}
+	} 
+
+	return expr
+}
+
+func (p *Parser) getOp(opEqual lexer.TokenType) lexer.Token {
+	switch opEqual {
+	case lexer.PlusEqual:
+		return lexer.Token{Type: lexer.Plus, Lexeme: "+"}
+	case lexer.MinusEqual:
+		return lexer.Token{Type: lexer.Minus, Lexeme: "-"}
+	case lexer.SlashEqual:
+		return lexer.Token{Type: lexer.Slash, Lexeme: "/"}
+	case lexer.StarEqual:
+		return lexer.Token{Type: lexer.Star, Lexeme: "*"}	
+	case lexer.CaretEqual:
+		return lexer.Token{Type: lexer.Caret, Lexeme: "^"}
+	default: //no
+		return lexer.Token{}
+	}
+}
+
 func (p *Parser) returnStmt() *Node {
 	returnStmt := Node{
 		NodeType: ReturnStmt,
 		Token: p.peek(-1),
 	}
-	args := []Node{}
-	expr := p.assignment()
-	if expr.NodeType == 0 {
-		p.error(p.peek(), "expected expression")
+
+	if p.peek().Type == lexer.RightBrace {
+		return &returnStmt
 	}
+	args := []Node{}
+	expr := p.expression()
 	args = append(args, *expr)
 	for p.match(lexer.Comma) {
-		expr = p.assignment()
+		expr = p.expression()
 		if expr.NodeType == 0 {
 			p.error(p.peek(), "expected expression")
 		}

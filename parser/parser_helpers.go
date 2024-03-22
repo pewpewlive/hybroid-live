@@ -38,7 +38,7 @@ func (p *Parser) peek(offset ...int) lexer.Token {
 	if offset == nil {
 		return p.tokens[p.current]
 	} else {
-		if p.current+offset[0] == len(p.tokens)-1 {
+		if p.current+offset[0] >= len(p.tokens)-1 {
 			return p.tokens[p.current]
 		}
 		return p.tokens[p.current+offset[0]]

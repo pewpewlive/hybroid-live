@@ -1,12 +1,26 @@
 @Environment(Level)
 
-let h = 50
-
-fn test() {
-
+let mapthing = {
+    "thing": 0fx,
+    thing2: 1,
+    sex: {
+        sex: {
+            xd: [1, 2, {
+                LMAO: "xd"
+            }]
+        }
+    }
 }
 
-let b, o = 1+4,test()
+fn test(){
+    
+}
+
+mapthing[ident]
+mapthing["thing"]()
+mapthing.thing["sex"], mapthing.thing2 = test()
+
+mapthing.thing *= 4
 
 //let x, y, z = 1, math.something(), 2
 

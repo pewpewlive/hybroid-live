@@ -25,9 +25,11 @@ func (gen *Generator) error(token lexer.Token, message string) {
 type Generator struct {
 	Errors []GenError
 	Src    strings.Builder
+	TabsCount int
 }
 
-type Value struct {
+type Value struct {//properties for maps, structs, entities
+	//properties *[]Value
 	Type parser.PrimitiveValueType
 	Val  string
 }
@@ -131,50 +133,6 @@ func (gen *Generator) Generate(program parser.Program, environment *Scope) Value
 	return lastEvaluated
 }
 
-func (gen *Generator) variableDeclaration(declaration parser.Node, scope *Scope) Value {
-	var values []Value
-
-	if declaration.Value2 == nil {
-		gen.error(declaration.Token, "expected expression(s) after declaration")
-	} else {
-		exprs := declaration.Value2.([]parser.Node)
-		for _, expr := range exprs {
-			values = append(values,gen.GenerateNode(expr, scope))
-		}
-	}
-
-	isLocal := declaration.Token.Type == lexer.Let
-	src := strings.Builder{}
-	src2 := strings.Builder{}
-	idents := declaration.Value.([]string)
-	if isLocal {
-		src.WriteString("local ")
-	}else {
-		if scope.Parent != nil {
-			gen.error(declaration.Token, "cannot declare a global variable inside a local block")
-		}
-	}
-	for i, ident := range idents {
-		if i == len(idents)-1 {
-			src.WriteString(fmt.Sprintf("%s = ", ident))
-			src2.WriteString(values[i].Val)
-		}else {
-			src.WriteString(fmt.Sprintf("%s,", ident))
-			src2.WriteString(fmt.Sprintf("%s, ", values[i].Val))
-		}
-		if _, success := scope.DeclareVariable(ident, values[i]); !success {
-			gen.error(lexer.Token{Lexeme: declaration.Identifier, Location: declaration.Token.Location},
-				"cannot declare a value in the same scope twice")
-		}
-	}
-
-	//TODO: Handle function call expressions and too many/too few expressions
-
-	src.WriteString(src2.String())
-
-	return Value{Type: parser.Nil, Val: src.String()}
-}
-
 func (gen *Generator) binaryExpr(node parser.Node, scope *Scope) Value {
 	src := strings.Builder{}
 	src.WriteString(gen.GenerateNode(*node.Left, scope).Val)
@@ -260,55 +218,6 @@ func (gen *Generator) listExpr(node parser.Node, scope *Scope) Value {
 	return Value{parser.List, src.String()}
 }
 
-func (gen *Generator) functionDeclarationStmt(node parser.Node, scope *Scope) Value {
-	fnScope := Scope{Global: scope.Global, Parent: scope, Count: scope.Count + 1, Variables: map[string]Value{}}
-	returnValType := parser.Nil
-	scope.DeclareVariable(node.Identifier, Value{})
-
-	var tabs string
-	for i := 0; i < fnScope.Count; i++ {
-		tabs += "\t"
-	}
-
-	var fnTabs string
-	for i := 0; i < scope.Count; i++ {
-		fnTabs += "\t"
-	}
-
-	if node.IsLocal {
-		gen.append(fnTabs, "local ")
-	} else {
-		gen.append(fnTabs)
-	}
-
-	if scope.Parent != nil && !node.IsLocal {
-		gen.error(node.Token, "cannot declare a global function inside a local block")
-	}
-
-	gen.append("function ", node.Identifier, "(")
-	params := node.Value.([]lexer.Token)
-	for i, param := range params {
-		gen.append(param.Lexeme)
-		fnScope.DeclareVariable(param.Lexeme, Value{})
-		if i != len(params)-1 {
-			gen.append(", ")
-		}
-	}
-	gen.append(")\n")
-
-	body := node.Program.Body
-
-	for _, stmt := range body {
-		value := gen.GenerateNode(stmt, &fnScope)
-		returnValType = value.Type
-		gen.append(tabs, value.Val, "\n")
-	}
-
-	gen.append(fnTabs + "end\n")
-
-	return Value{returnValType, ""}
-}
-
 func (gen *Generator) callExpr(node parser.Node, scope *Scope) Value {
 	src := strings.Builder{}
 	fn := gen.GenerateNode(*node.Expression, scope)
@@ -324,23 +233,46 @@ func (gen *Generator) callExpr(node parser.Node, scope *Scope) Value {
 	}
 	src.WriteString(")")
 
+	//fnReturn := scope.GetVariable(node.Identifier)
+
 	return Value{parser.Bool, src.String()}
 }
 
-func (gen *Generator) assignmentExpr(node parser.Node, scope *Scope) Value {
-	if node.Expression.NodeType != parser.Identifier {
-		gen.error(node.Expression.Token, "expected an identifier to assign to")
-	}
-
+func (gen *Generator) mapExpr(node parser.Node, scope *Scope) Value {
 	src := strings.Builder{}
-	src.WriteString(node.Expression.Identifier)
-	value := gen.GenerateNode(*node.Right, scope)
-	if _, success := scope.AssignVariable(node.Expression.Identifier, value); !success { // for checking variable's existence and const checking
-		gen.error(node.Expression.Token, "cannot assign a value to an undeclared variable")
-	}
-	src.WriteString(fmt.Sprintf(" = %v", value.Val))
 
-	return Value{value.Type, src.String()}
+	var tabs string
+	for i := 0; i < scope.Count + gen.TabsCount; i++ {
+		tabs += "\t"
+	}
+
+	var mapTabs string
+	for i := 0; i < scope.Count + 1 + gen.TabsCount; i++ {
+		mapTabs += "\t"
+	}
+
+	gen.TabsCount += 1
+
+	src.WriteString("{\n")
+	kv := node.Value.(map[string]parser.Node)
+	index := 0
+	for k, v := range kv {
+		val := gen.GenerateNode(v, scope)
+
+		if index != len(kv)-1 {
+			src.WriteString(fmt.Sprintf("%s%s = %v,\n", mapTabs, k, val.Val))		
+		}else {
+			src.WriteString(fmt.Sprintf("%s%s = %v\n", mapTabs, k, val.Val))		
+		}
+		index++
+	}
+
+	src.WriteString(tabs)
+	src.WriteString("}")
+
+	gen.TabsCount -= 1
+
+	return Value{parser.Map, src.String()}
 }
 
 func (gen *Generator) unaryExpr(node parser.Node, scope *Scope) Value {
@@ -348,6 +280,26 @@ func (gen *Generator) unaryExpr(node parser.Node, scope *Scope) Value {
 	src := fmt.Sprintf("%s%s", node.Token.Lexeme, value.Val)
 
 	return Value{Type: value.Type, Val: src}
+}
+
+func (gen *Generator) memberExpr(node parser.Node, scope *Scope) Value {
+	src := strings.Builder{}
+
+	expr := gen.GenerateNode(*node.Expression, scope)
+	prop := gen.GenerateNode(node.Value.(parser.Node), scope)
+
+	src.WriteString(expr.Val)
+	
+	if prop.Type == parser.String {
+		src.WriteString("[")
+		src.WriteString(prop.Val)
+		src.WriteString("]")
+	} else {
+		src.WriteString(".")
+		src.WriteString(prop.Val)
+	}
+
+	return Value{prop.Type, src.String()}
 }
 
 func (gen *Generator) GenerateNode(node parser.Node, environment *Scope) Value {
@@ -359,7 +311,7 @@ func (gen *Generator) GenerateNode(node parser.Node, environment *Scope) Value {
 	case parser.Prog:
 		return gen.Generate(*node.Program, scope)
 	case parser.VariableDeclarationStmt:
-		return gen.variableDeclaration(node, scope)
+		return gen.variableDeclarationStmt(node, scope)
 	case parser.BinaryExpr:
 		return gen.binaryExpr(node, scope)
 	case parser.Identifier:
@@ -368,14 +320,20 @@ func (gen *Generator) GenerateNode(node parser.Node, environment *Scope) Value {
 		return gen.groupingExpr(node, scope)
 	case parser.ListExpr:
 		return gen.listExpr(node, scope)
-	case parser.AssignmentExpr:
-		return gen.assignmentExpr(node, scope)
+	case parser.AssignmentStmt:
+		return gen.assignmentStmt(node, scope)
 	case parser.UnaryExpr:
 		return gen.unaryExpr(node, scope)
 	case parser.FunctionDeclarationStmt:
 		return gen.functionDeclarationStmt(node, scope)
 	case parser.CallExpr:
 		return gen.callExpr(node, scope)
+	case parser.ReturnStmt:
+		return gen.returnStmt(node, scope)
+	case parser.MapExpr:
+		return gen.mapExpr(node, scope)
+	case parser.MemberExpr:
+		return gen.memberExpr(node, scope)
 	}
 
 	return Value{}

@@ -6,38 +6,7 @@ import (
 )
 
 func (p *Parser) expression() *Node {
-	return p.assignment()
-}
-
-func (p *Parser) assignment() *Node {
-	expr := p.list()
-
-	if p.match(lexer.Equal) {
-		value := p.assignment()
-		expr = &Node{NodeType: AssignmentExpr, Expression: expr, Right: value, Token: p.peek(-1)}
-	} else if p.match(lexer.PlusEqual) {
-		value := p.term()
-		binExpr := createBinExpr(expr, p.peek(-1), lexer.Plus, "+", &Node{NodeType: GroupingExpr, Expression: value})
-		expr = &Node{NodeType: AssignmentExpr, Expression: expr, Right: binExpr, Token: p.peek(-1)}
-	} else if p.match(lexer.MinusEqual) {
-		value := p.term()
-		binExpr := createBinExpr(expr, p.peek(-1), lexer.Minus, "-", &Node{NodeType: GroupingExpr, Expression: value})
-		expr = &Node{NodeType: AssignmentExpr, Expression: expr, Right: binExpr, Token: p.peek(-1)}
-	} else if p.match(lexer.SlashEqual) {
-		value := p.term()
-		binExpr := createBinExpr(expr, p.peek(-1), lexer.Slash, "/", &Node{NodeType: GroupingExpr, Expression: value})
-		expr = &Node{NodeType: AssignmentExpr, Expression: expr, Right: binExpr, Token: p.peek(-1)}
-	} else if p.match(lexer.StarEqual) {
-		value := p.term()
-		binExpr := createBinExpr(expr, p.peek(-1), lexer.Star, "*", &Node{NodeType: GroupingExpr, Expression: value})
-		expr = &Node{NodeType: AssignmentExpr, Expression: expr, Right: binExpr, Token: p.peek(-1)}
-	} else if p.match(lexer.CaretEqual) {
-		value := p.term()
-		binExpr := createBinExpr(expr, p.peek(-1), lexer.Caret, "^", &Node{NodeType: GroupingExpr, Expression: value})
-		expr = &Node{NodeType: AssignmentExpr, Expression: expr, Right: binExpr, Token: p.peek(-1)}
-	}
-
-	return expr
+	return p.list()
 }
 
 func (p *Parser) list() *Node {
@@ -218,14 +187,13 @@ func (p *Parser) member() *Node {
 
 	for p.match(lexer.Dot, lexer.LeftBracket) {
 		operator := p.peek(-1) // . or [
-		var prop Node
 
-		prop = *p.primary()
+		prop := *p.primary()
 		if operator.Type == lexer.Dot && prop.NodeType != Identifier {
 			p.error(prop.Token, "expected identifier after '.'")
 		}
 		if operator.Type == lexer.LeftBracket {
-			if prop.NodeType != NodeType(String) {
+			if prop.ValueType != String {
 				p.error(prop.Token, "expected string after '['")
 			}
 			p.consume("expected closing bracket", lexer.RightBracket)
