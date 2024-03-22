@@ -22,14 +22,13 @@ func (gen *Generator) literalExpr(node ast.LiteralExpr) Value {
 
 	switch node.ValueType {
 	case ast.String:
-		src.WriteString("\"")
-		src.WriteString(fmt.Sprintf("%v", node.Value))
-		src.WriteString("\"")
+		src.WriteString(fmt.Sprintf("\"%v\"", node.Value))
 	case ast.Fixed:
-		src.WriteString(fixedToFx(node.Value))
-		src.WriteString("fx")
-	case ast.FixedPoint:
+		src.WriteString(fmt.Sprintf("%vfx", fixedToFx(node.Value)))
+	case ast.FixedPoint, ast.Radian:
 		src.WriteString(fmt.Sprintf("%vfx", node.Value))
+	case ast.Degree:
+		src.WriteString(fmt.Sprintf("%vfx", degToRad(node.Value)))
 	default:
 		src.WriteString(fmt.Sprintf("%v", node.Value))
 	}

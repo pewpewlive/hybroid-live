@@ -167,6 +167,12 @@ func fixedToFx(floatstr string) string {
 	return fmt.Sprintf("%s%v%s", sign, integer, frac_str)
 }
 
+func degToRad(floatstr string) string {
+	float, _ := strconv.ParseFloat(floatstr, 64)
+	radians := float * math.Pi / 180
+	return fixedToFx(fmt.Sprintf("%v", radians))
+}
+
 func (gen *Generator) GenerateNode(node ast.Node, environment *Scope) Value {
 	scope := environment
 
