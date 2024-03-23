@@ -38,7 +38,8 @@ func printTokens(lexer *Lexer) {
 }
 
 func TestBasic(t *testing.T) {
-	lexer := New(readFile("./tests/test_basic.hyb", t))
+	lexer := New()
+	lexer.AssignSource(readFile("./tests/test_basic.hyb", t))
 
 	lexer.Tokenize()
 	for _, err := range lexer.Errors {
@@ -64,7 +65,8 @@ func TestBasic(t *testing.T) {
 }
 
 func TestTickBlocks(t *testing.T) {
-	lexer := New(readFile("./tests/test_tick_blocks.hyb", t))
+	lexer := New()
+	lexer.AssignSource(readFile("./tests/test_tick_blocks.hyb", t))
 
 	lexer.Tokenize()
 	for _, err := range lexer.Errors {
@@ -98,7 +100,8 @@ func TestTickBlocks(t *testing.T) {
 }
 
 func TestMatchStatement(t *testing.T) {
-	lexer := New(readFile("./tests/test_match_statement.hyb", t))
+	lexer := New()
+	lexer.AssignSource(readFile("./tests/test_match_statement.hyb", t))
 
 	lexer.Tokenize()
 	for _, err := range lexer.Errors {
@@ -156,7 +159,8 @@ func TestMatchStatement(t *testing.T) {
 }
 
 func TestNumberLiterals(t *testing.T) {
-	lexer := New(readFile("./tests/test_number_literals.hyb", t))
+	lexer := New()
+	lexer.AssignSource(readFile("./tests/test_number_literals.hyb", t))
 
 	lexer.Tokenize()
 	for _, err := range lexer.Errors {
@@ -225,7 +229,8 @@ func TestNumberLiterals(t *testing.T) {
 }
 
 func TestStringLiterals(t *testing.T) {
-	lexer := New(readFile("./tests/test_string_literals.hyb", t))
+	lexer := New()
+	lexer.AssignSource(readFile("./tests/test_string_literals.hyb", t))
 
 	lexer.Tokenize()
 	for _, err := range lexer.Errors {

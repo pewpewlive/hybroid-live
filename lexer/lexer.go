@@ -12,12 +12,12 @@ type Lexer struct {
 	start, current, line, columnStart, columnCurrent int
 }
 
-func New(src []byte) *Lexer {
-	return &Lexer{make([]Token, 0), src, make([]LexerError, 0), 0, 0, 1, 0, 0}
+func New() *Lexer {
+	return &Lexer{make([]Token, 0), make([]byte, 0), make([]LexerError, 0), 0, 0, 1, 0, 0}
 }
 
-func (l *Lexer) ChangeSrc(newSrc []byte) {
-	l.source = newSrc
+func (l *Lexer) AssignSource(src []byte) {
+	l.source = src
 }
 
 func (l *Lexer) handleString() {
@@ -128,7 +128,7 @@ func (l *Lexer) scanToken() {
 	switch c {
 
 	case '{':
-		l.addToken(LeftBrace, "") // the literal is empty because `{` is not a value
+		l.addToken(LeftBrace, "")
 	case '}':
 		l.addToken(RightBrace, "")
 	case '(':
@@ -200,6 +200,12 @@ func (l *Lexer) scanToken() {
 			l.addToken(GreaterEqual, "")
 		} else {
 			l.addToken(Greater, "")
+		}
+	case '%':
+		if l.matchChar('=') {
+			l.addToken(ModuloEqual, "")
+		} else {
+			l.addToken(Modulo, "")
 		}
 
 	case '/':

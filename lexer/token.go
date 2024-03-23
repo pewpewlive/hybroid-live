@@ -38,6 +38,8 @@ const (
 	GreaterEqual // >=
 	Less         // <
 	LessEqual    // <=
+	Modulo       // %
+	ModuloEqual  // %=
 
 	// Literals
 	Identifier

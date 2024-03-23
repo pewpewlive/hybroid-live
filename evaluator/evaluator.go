@@ -20,52 +20,56 @@ func (e *Evaluator) HasValidSrc() bool {
 }
 
 type Evaluator struct {
-	lexer   lexer.Lexer
-	parser  parser.Parser
+	lexer   *lexer.Lexer
+	parser  *parser.Parser
 	SrcPath string
 	DstPath string
 	gen     lua.Generator
 }
 
-func New(src string, dst string, gen lua.Generator) Evaluator {
-	file, _ := os.ReadFile(src)
+func New(gen lua.Generator) Evaluator {
 	return Evaluator{
-		*lexer.New(file),
-		parser.Parser{},
-		src,
-		dst,
-		gen,
+		lexer:  lexer.New(),
+		parser: parser.New(),
+		gen:    gen,
 	}
 }
 
-func (e *Evaluator) Action() {
-	lcsrc, _ := os.ReadFile(e.SrcPath)
+func (e *Evaluator) AssignFile(src string, dst string) {
+	e.SrcPath, e.DstPath = src, dst
+}
 
-	fmt.Printf("Tokenizing %v characters\n", len(lcsrc))
+func (e *Evaluator) Action() error {
+	sourceFile, err := os.ReadFile(e.SrcPath)
+	if err != nil {
+		return fmt.Errorf("failed to read source file: %v", err)
+	}
+
+	fmt.Printf("Tokenizing %v characters\n", len(sourceFile))
 	start := time.Now()
 
-	e.lexer.ChangeSrc(lcsrc)
+	e.lexer.AssignSource(sourceFile)
 	e.lexer.Tokenize()
 	if len(e.lexer.Errors) != 0 {
 		fmt.Println("[red]Failed tokenizing:")
 		for _, err := range e.lexer.Errors {
 			colorstring.Printf("[red]Error: %v\n", err)
 		}
-		return
+		return fmt.Errorf("failed to tokenize source file")
 	}
 
 	fmt.Printf("Tokenizing time: %v seconds\n", time.Since(start).Seconds())
 
 	fmt.Printf("Parsing %v tokens\n", len(e.lexer.Tokens))
 
-	e.parser.UpdateTokens(e.lexer.Tokens)
+	e.parser.AssignTokens(e.lexer.Tokens)
 	prog := e.parser.ParseTokens()
 	if len(e.parser.Errors) != 0 {
 		colorstring.Println("[red]Failed parsing:")
 		for _, err := range e.parser.Errors {
 			colorstring.Printf("[red]Error: %+v\n", err)
 		}
-		return
+		return fmt.Errorf("failed to parse source file")
 	}
 
 	fmt.Printf("Parsing time: %v seconds\n\n", time.Since(start).Seconds())
@@ -80,7 +84,7 @@ func (e *Evaluator) Action() {
 		},
 	}
 
-	e.gen.Src.Grow(len(lcsrc)) // for some reason this doesnt work
+	e.gen.Src.Grow(len(sourceFile))
 	global.Scope.Global = &global
 	e.gen.Generate(prog, &global.Scope)
 	if len(e.gen.Errors) != 0 {
@@ -91,5 +95,10 @@ func (e *Evaluator) Action() {
 	}
 	fmt.Printf("Build time: %v seconds\n", time.Since(start).Seconds())
 
-	os.WriteFile(e.DstPath, []byte(e.gen.GetSrc()), 0677)
+	err = os.WriteFile(e.DstPath, []byte(e.gen.GetSrc()), 0644)
+	if err != nil {
+		return fmt.Errorf("failed to write transpiled file to destination: %v", err)
+	}
+
+	return nil
 }

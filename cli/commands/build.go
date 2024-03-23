@@ -12,7 +12,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func Build(ctx *cli.Context) error {
+func Build(ctx *cli.Context, files ...FileInformation) error {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("failed getting current working directory: %v", err)
@@ -39,7 +39,9 @@ func Build(ctx *cli.Context) error {
 		entryPoint := config.Level.EntryPoint
 
 		if outputDir != "" {
-			os.Mkdir(cwd+outputDir, 0644)
+			if outputDirErr := os.Mkdir(cwd+outputDir, 0644); outputDirErr != nil {
+				err <- fmt.Errorf("failed to create an output directory: %v", outputDirErr)
+			}
 		}
 
 		manifestConfig := config.Level
@@ -51,9 +53,20 @@ func Build(ctx *cli.Context) error {
 		}
 		os.WriteFile(cwd+outputDir+"/manifest.json", manifest, 0644)
 
-		eval := evaluator.New(cwd+entryPoint, cwd+outputDir+"/"+strings.Replace(entryPoint, ".hyb", ".lua", -1), lua.Generator{})
-		eval.Action()
-		err <- nil
+		eval := evaluator.New(lua.Generator{})
+		var evalErr error = nil
+		if len(files) == 0 {
+			eval.AssignFile(cwd+entryPoint, cwd+outputDir+"/"+strings.Replace(entryPoint, ".hyb", ".lua", -1))
+			evalErr = eval.Action()
+		} else {
+			for _, file := range files {
+				sourceFilePath := file.Path()
+				outputFilePath := file.NewPath(outputDir, ".lua")
+				eval.AssignFile(cwd+sourceFilePath, cwd+outputFilePath)
+				evalErr = eval.Action()
+			}
+		}
+		err <- evalErr
 	}(evalError)
 	if err = <-evalError; err != nil {
 		return fmt.Errorf("failed evaluation: %v", err)
