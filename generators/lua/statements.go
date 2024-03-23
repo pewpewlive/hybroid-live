@@ -92,7 +92,9 @@ func (gen *Generator) assignmentStmt(assginStmt ast.AssignmentStmt, scope *Scope
 func (gen *Generator) functionDeclarationStmt(node ast.FunctionDeclarationStmt, scope *Scope) Value {
 	fnScope := Scope{Global: scope.Global, Parent: scope, Count: scope.Count + 1, Variables: map[string]Value{}}
 	var returnValType ast.PrimitiveValueType
-	scope.DeclareVariable(node.Name.Lexeme, Value{})
+	if _, success := scope.DeclareVariable(node.Name.Lexeme, Value{}); !success {
+		gen.error(node.Name, "cannot redeclare a function")
+	}
 
 	fnTabs := gen.getTabs()
 

@@ -1,9 +1,13 @@
 @Environment(Level)
 
-repeat with i from 10 by 2 to 100 {
+repeat with i from 9.5 by 2f to 100 {
+}
+
+repeat 100 from 10 by 3 {
+}
+
+fn fun(){
 
 }
 
-tick with t {
-
-}
+let a = fun()
