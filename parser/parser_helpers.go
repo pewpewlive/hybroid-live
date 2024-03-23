@@ -12,7 +12,23 @@ type ParserError struct {
 
 // Appends an error to the ParserErrors
 func (p *Parser) error(token lexer.Token, err string) {
-	p.Errors = append(p.Errors, ParserError{token, err})
+	errMsg := ParserError{token, err}
+	p.Errors = append(p.Errors, errMsg)
+	panic(errMsg)
+}
+
+func (p *Parser) synchronize() {
+	p.advance()
+	for !p.isAtEnd() {
+		switch p.peek().Type {
+		case lexer.For, lexer.Fn, lexer.If, lexer.Repeat, lexer.Tick,
+			lexer.Return, lexer.Let, lexer.While, lexer.Pub, lexer.Const,
+			lexer.Break, lexer.Continue, lexer.Add, lexer.Remove:
+			return
+		}
+
+		p.advance()
+	}
 }
 
 // Creates a BinaryExpr

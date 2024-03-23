@@ -7,14 +7,10 @@ import (
 )
 
 func (p *Parser) expression() ast.Node {
-	return p.list()
+	return p.directive()
 }
 
 func (p *Parser) list() ast.Node {
-	if !p.match(lexer.LeftBracket) {
-		return p.parseMap()
-	}
-
 	token := p.peek(-1)
 	list := make([]ast.Node, 0)
 	for !p.check(lexer.RightBracket) {
@@ -35,10 +31,6 @@ func (p *Parser) list() ast.Node {
 }
 
 func (p *Parser) parseMap() ast.Node {
-	if !p.match(lexer.LeftBrace) {
-		return p.directive()
-	}
-
 	token := p.peek(-1)
 	parsedMap := make(map[string]ast.Property, 0)
 	for !p.check(lexer.RightBrace) {
@@ -72,7 +64,7 @@ func (p *Parser) parseMap() ast.Node {
 			break
 		}
 
-		if _, ok := p.consume("expected ',' or '}' after expression", lexer.Comma); !ok {
+		if _, ok := p.consume("expected ',' or '}' after expression", lexer.Comma, lexer.RightBrace); !ok {
 			return ast.Unknown{Token: p.peek(-1)}
 		}
 
@@ -271,6 +263,7 @@ func (p *Parser) primary() ast.Node {
 		var valueType ast.PrimitiveValueType
 		ident := p.program[0].(ast.DirectiveExpr).Expr.(ast.IdentifierExpr)
 		allowFX := ident.Name == "Level" || ident.Name == "Shared"
+
 		switch literal.Type {
 		case lexer.Number:
 			if allowFX && strings.ContainsRune(literal.Lexeme, '.') {
@@ -303,6 +296,14 @@ func (p *Parser) primary() ast.Node {
 		return ast.LiteralExpr{Value: literal.Literal, ValueType: valueType, Token: literal}
 	}
 
+	if p.match(lexer.LeftBrace) {
+		return p.parseMap()
+	}
+
+	if p.match(lexer.LeftBracket) {
+		return p.list()
+	}
+
 	if p.match(lexer.Identifier) {
 		token := p.peek(-1)
 		return ast.IdentifierExpr{Name: token.Lexeme, Token: token, ValueType: ast.Ident}
@@ -317,6 +318,7 @@ func (p *Parser) primary() ast.Node {
 		p.consume("expected ')' after expression", lexer.RightParen)
 		return ast.GroupExpr{Expr: expr, Token: token, ValueType: expr.GetValueType()}
 	}
-	p.advance()
+
+	p.error(p.peek(), "expected expression")
 	return ast.Unknown{}
 }

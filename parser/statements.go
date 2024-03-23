@@ -6,6 +6,18 @@ import (
 )
 
 func (p *Parser) statement() ast.Node {
+	defer func() {
+		if err := recover(); err != nil {
+			// If the error is a parseError, synchronize to
+			// the next statement. If not, propagate the panic.
+			if _, ok := err.(ParserError); ok {
+				//p. = true
+				p.synchronize()
+			} else {
+				panic(err)
+			}
+		}
+	}()
 	token := p.peek().Type
 	next := p.peek(1).Type
 
@@ -49,12 +61,15 @@ func (p *Parser) statement() ast.Node {
 	return expr
 }
 
-func (p *Parser) ifStmt() ast.Node { //
-	ifStm := ast.IfStmt{}
+func (p *Parser) ifStmt() ast.Node {
+	ifStm := ast.IfStmt{
+		Token: p.peek(-1),
+	}
+
 	expr := p.expression()
 
 	body := make([]ast.Node, 0)
-	if _, success := p.consume("expected body of the function", lexer.LeftBrace); success {
+	if _, success := p.consume("expected body of the if statement", lexer.LeftBrace); success {
 		for !p.match(lexer.RightBrace) {
 			if p.peek().Type == lexer.Eof {
 				p.error(p.peek(), "expected body closure")

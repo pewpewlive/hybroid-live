@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	//"hybroid/generators"
@@ -12,12 +13,6 @@ import (
 
 	"github.com/mitchellh/colorstring"
 )
-
-func (e *Evaluator) HasValidSrc() bool {
-	_, ok := os.ReadFile(e.SrcPath)
-
-	return ok == nil
-}
 
 type Evaluator struct {
 	lexer   *lexer.Lexer
@@ -65,9 +60,10 @@ func (e *Evaluator) Action() error {
 	e.parser.AssignTokens(e.lexer.Tokens)
 	prog := e.parser.ParseTokens()
 	if len(e.parser.Errors) != 0 {
-		colorstring.Println("[red]Failed parsing:")
+		colorstring.Println("[red]Syntax error found:")
 		for _, err := range e.parser.Errors {
-			colorstring.Printf("[red]Error: %+v\n", err)
+			e.writeSyntaxError(string(sourceFile), err)
+			//colorstring.Printf("[red]Error: %+v\n", err)
 		}
 		return fmt.Errorf("failed to parse source file")
 	}
@@ -101,4 +97,20 @@ func (e *Evaluator) Action() error {
 	}
 
 	return nil
+}
+
+func (e *Evaluator) writeSyntaxError(source string, err parser.ParserError) {
+	token := err.Token
+
+	sourceLines := strings.Split(source, "\n")
+	line := sourceLines[token.Location.LineStart-1]
+
+	fmt.Printf("line: %v in file yes\n", token.Location.LineStart)
+	fmt.Println(line)
+	if token.Location.ColStart-6 < 0 {
+		fmt.Printf("%s^%s\n", strings.Repeat(" ", token.Location.ColStart-1), strings.Repeat("-", 5))
+	} else {
+		fmt.Printf("%s%s^\n", strings.Repeat(" ", token.Location.ColStart-6), strings.Repeat("-", 5))
+	}
+	fmt.Println("message: " + err.Message + "\n")
 }
