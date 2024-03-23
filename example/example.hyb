@@ -1,36 +1,17 @@
 @Environment(Level)
 
-let list = [1,2,4]
-
-let mapthing = {
-    "thing": 0fx,
-    thing2: 1,
-    sex: {
-        sex: {
-            xd: [1, 2, {
-                LMAO: "xd"
-            }]
-        }
-    }
+fn func() {
+    
 }
+
+let a = func()
+
+let b = a + 1
 
 //repeat 10 {
     
 //}
 
-fn test(){
-    if true {
-        return 8, 1fx + (9r)
-    }
-}
-
 //tick {
     
 //}
-
-updathe()
-
-mapthing["thing"]() 
-
-mapthing.thing *= 4
-

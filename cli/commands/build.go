@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
 	"hybroid/evaluator"
 	"hybroid/generators/lua"
@@ -32,17 +33,31 @@ func Build(ctx *cli.Context) error {
 		panic("other targets apart from 'ppl' are not implemented")
 	}
 
-	ok := make(chan bool)
-	go func(okay chan bool) {
-		eval := evaluator.New(cwd+config.Level.EntryPoint, cwd+config.Project.OutputDirectory+"/"+strings.Replace(config.Level.EntryPoint, ".hyb", ".lua", -1), lua.Generator{})
+	evalError := make(chan error)
+	go func(err chan error) {
+		outputDir := config.Project.OutputDirectory
+		entryPoint := config.Level.EntryPoint
+
+		if outputDir != "" {
+			os.Mkdir(cwd+outputDir, 0644)
+		}
+
+		manifestConfig := config.Level
+		manifestConfig.EntryPoint = "level.lua"
+		manifestConfig.IsCasual = !config.Level.IsCasual
+		manifest, manifestErr := json.MarshalIndent(manifestConfig, "", "  ")
+		if manifestErr != nil {
+			err <- fmt.Errorf("failed creating level manifest file: %v", manifestErr)
+		}
+		os.WriteFile(cwd+outputDir+"/manifest.json", manifest, 0644)
+
+		eval := evaluator.New(cwd+entryPoint, cwd+outputDir+"/"+strings.Replace(entryPoint, ".hyb", ".lua", -1), lua.Generator{})
 		eval.Action()
-		//bar.Add(1)
-		okay <- true
-	}(ok)
-	if !<-ok {
-		return fmt.Errorf("failed evaluation")
+		err <- nil
+	}(evalError)
+	if err = <-evalError; err != nil {
+		return fmt.Errorf("failed evaluation: %v", err)
 	}
-	//bar.Finish()
 
 	return nil
 }

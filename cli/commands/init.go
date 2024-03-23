@@ -9,12 +9,12 @@ import (
 )
 
 type LevelManifest struct {
-	Name              string         `toml:"name"`
-	Description       string         `toml:"description"`
-	Information       string         `toml:"information"`
-	EntryPoint        string         `toml:"entry_point"`
-	IsCasual          bool           `toml:"casual"`
-	MedalRequirements map[string]int `toml:"medal_requirements"`
+	Name              string         `toml:"name" json:"name"`
+	Descriptions      []string       `toml:"descriptions" json:"descriptions"`
+	Information       string         `toml:"information" json:"information"`
+	EntryPoint        string         `toml:"entry_point" json:"entry_point"`
+	IsCasual          bool           `toml:"casual" json:"has_score_leaderboard"`
+	MedalRequirements map[string]int `toml:"medal_requirements" json:"rank_thresholds_1p,omitempty"`
 }
 
 type ProjectConfig struct {
@@ -29,7 +29,7 @@ type HybroidConfig struct {
 }
 
 func Initialize(ctx *cli.Context) error {
-	config := HybroidConfig{LevelManifest{Name: ctx.Args().Get(0), Description: "Change me!", Information: "Change me!", EntryPoint: "level.hyb", IsCasual: true}, ProjectConfig{Target: ctx.Args().Get(1), OutputDirectory: ctx.Args().Get(2)}}
+	config := HybroidConfig{LevelManifest{Name: ctx.Args().Get(0), Descriptions: []string{"Change me!"}, Information: "Change me!", EntryPoint: "level.hyb", IsCasual: true}, ProjectConfig{Target: ctx.Args().Get(1), OutputDirectory: ctx.Args().Get(2)}}
 
 	output, err := toml.Marshal(config)
 	if err != nil {
