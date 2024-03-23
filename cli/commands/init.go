@@ -18,6 +18,7 @@ type LevelManifest struct {
 }
 
 type ProjectConfig struct {
+	Name            string `toml:"name"`   // should be kebab-case
 	Target          string `toml:"target"` // ppl or else throw an error
 	OutputDirectory string `toml:"output_directory"`
 }
@@ -29,7 +30,7 @@ type HybroidConfig struct {
 }
 
 func Initialize(ctx *cli.Context) error {
-	config := HybroidConfig{LevelManifest{Name: ctx.Args().Get(0), Descriptions: []string{"Change me!"}, Information: "Change me!", EntryPoint: "level.hyb", IsCasual: true}, ProjectConfig{Target: ctx.Args().Get(1), OutputDirectory: ctx.Args().Get(2)}}
+	config := HybroidConfig{LevelManifest{Name: ctx.Args().Get(0), Descriptions: []string{"Change me!"}, Information: "Change me!", EntryPoint: "level.hyb", IsCasual: true}, ProjectConfig{Name: ctx.Args().Get(0), Target: ctx.Args().Get(1), OutputDirectory: ctx.Args().Get(2)}}
 
 	output, err := toml.Marshal(config)
 	if err != nil {

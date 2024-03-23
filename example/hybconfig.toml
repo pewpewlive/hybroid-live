@@ -7,5 +7,6 @@ casual = false
 medal_requirements = { bronze = 100, silver = 200, gold = 400 }
 
 [project]
+name = "example-level"
 output_directory = "build"
 target = "ppl"
