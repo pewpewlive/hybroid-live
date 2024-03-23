@@ -1,36 +1,9 @@
 @Environment(Level)
 
-let integer = @Len(test2nd)
+repeat with i from 10 by 2 to 100 {
 
-pub fn func(a, b) {
-  if c == d and (c and d) {
-    return c
-  }
-
-  if true {
-    return d
-  }
-
-  return "other"
 }
 
-let something2 = {
-  test: 100,
-  test2: 200,
-  complex: [100, 200, {
-    i: 1,
-    "j": 2,
-    k: {
-      weird: 400 + 200
-    }
-  }],
-  list: [1, 2, 3, 4, 5]
+tick with t {
+
 }
-
-//repeat 10 {
-    
-//}
-
-//tick {
-    
-//}

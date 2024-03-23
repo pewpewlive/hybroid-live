@@ -10,6 +10,7 @@ const (
 
 	AssignmentStatement
 	RepeatStatement
+	TickStatement
 	IfStatement
 
 	AddStatement

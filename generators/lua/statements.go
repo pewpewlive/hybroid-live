@@ -11,15 +11,10 @@ func (gen *Generator) ifStmt(node ast.IfStmt, scope *Scope) Value {
 	ifScope := Scope{Global: scope.Global, Parent: scope, Count: scope.Count + 1, Variables: map[string]Value{}}
 	var returnValType ast.PrimitiveValueType
 
-	var tabs string
-	for i := 0; i < ifScope.Count; i++ {
-		tabs += "\t"
-	}
+	ifTabs := gen.getTabs()
 
-	var ifTabs string
-	for i := 0; i < scope.Count; i++ {
-		ifTabs += "\t"
-	}
+	gen.TabsCount += 1
+	tabs := gen.getTabs()
 
 	gen.Src.Append(ifTabs, "if ")
 
@@ -37,6 +32,8 @@ func (gen *Generator) ifStmt(node ast.IfStmt, scope *Scope) Value {
 	}
 
 	gen.Src.Append(ifTabs, "end\n")
+
+	gen.TabsCount -= 1
 
 	return Value{Type: returnValType, Token: node.Token, Val: ""}
 }
@@ -78,7 +75,7 @@ func (gen *Generator) assignmentStmt(assginStmt ast.AssignmentStmt, scope *Scope
 		}
 		if assginStmt.Identifiers[i].GetType() != ast.MemberExpression {
 			if _, success := scope.AssignVariable(genIdents[i].Val, value); !success {
-				gen.error(assginStmt.Token, "cannot assign a value to an undeclared variable")
+				gen.error(genIdents[i].Token, "cannot assign a value to an undeclared variable")
 			}
 		}
 	}
@@ -97,15 +94,10 @@ func (gen *Generator) functionDeclarationStmt(node ast.FunctionDeclarationStmt, 
 	var returnValType ast.PrimitiveValueType
 	scope.DeclareVariable(node.Name.Lexeme, Value{})
 
-	var tabs string
-	for i := 0; i < fnScope.Count; i++ {
-		tabs += "\t"
-	}
+	fnTabs := gen.getTabs()
 
-	var fnTabs string
-	for i := 0; i < scope.Count; i++ {
-		fnTabs += "\t"
-	}
+	gen.TabsCount += 1
+	tabs := gen.getTabs()
 
 	if node.IsLocal {
 		gen.Src.Append(fnTabs, "local ")
@@ -137,6 +129,8 @@ func (gen *Generator) functionDeclarationStmt(node ast.FunctionDeclarationStmt, 
 
 	gen.Src.Append(fnTabs + "end\n")
 
+	gen.TabsCount -= 1
+
 	fnScope.AssignVariable(node.Name.Lexeme, Value{Type: returnValType, Val: ""})
 	return Value{Type: returnValType, Token: node.GetToken(), Val: ""}
 }
@@ -155,6 +149,69 @@ func (gen *Generator) returnStmt(node ast.ReturnStmt, scope *Scope) Value {
 
 	// TODO: Make it not undefined
 	return Value{Type: ast.Undefined, Token: node.Token, Val: src.String()}
+}
+
+func (gen *Generator) repeatStmt(node ast.RepeatStmt, scope *Scope) Value {
+	repeatScope := Scope{Global: scope.Global, Parent: scope, Count: scope.Count + 1, Variables: map[string]Value{}}
+
+	repeatTabs := gen.getTabs()
+
+	gen.TabsCount += 1
+	tabs := gen.getTabs()
+
+	end := gen.GenerateNode(node.Iterator, scope)
+	start := gen.GenerateNode(node.Start, scope)
+	skip := gen.GenerateNode(node.Skip, scope)
+	if node.Variable.GetValueType() != 0 {
+		repeatScope.DeclareVariable(node.Variable.Name, Value{Token: node.Variable.Token, Type: ast.Number, Val: start.Val})
+		variable := gen.GenerateNode(node.Variable, &repeatScope)
+		gen.Src.Append(repeatTabs, "for ", variable.Val, " = ", start.Val, ", ", end.Val, ", ", skip.Val, " do\n")
+	} else {
+		gen.Src.Append(repeatTabs, "for i = ", start.Val, ", ", end.Val, ", ", skip.Val, " do\n")
+	}
+
+	body := node.Body
+	for _, stmt := range body {
+		value := gen.GenerateNode(stmt, &repeatScope)
+		gen.Src.Append(tabs, value.Val, "\n")
+	}
+
+	gen.Src.Append(repeatTabs, "end\n")
+
+	gen.TabsCount -= 1
+
+	return Value{Token: node.Token, Val: ""}
+}
+
+func (gen *Generator) tickStmt(node ast.TickStmt, scope *Scope) Value {
+	tickScope := Scope{Global: scope.Global, Parent: scope, Count: scope.Count + 1, Variables: map[string]Value{}}
+
+	repeatTabs := gen.getTabs()
+
+	gen.TabsCount += 1
+	tabs := gen.getTabs()
+
+	if node.Variable.GetValueType() != 0 {
+		tickScope.DeclareVariable(node.Variable.Name, Value{Token: node.Variable.Token, Type: ast.Number, Val: "0"})
+		variable := gen.GenerateNode(node.Variable, &tickScope)
+		gen.Src.Append(repeatTabs, "local ", variable.Val, " = 0\n")
+		gen.Src.Append(repeatTabs, "pewpew.add_update_callback(function()\n")
+		gen.Src.Append(tabs, variable.Val, " = ", variable.Val, " + 1\n")
+	} else {
+		gen.Src.Append(repeatTabs, "pewpew.add_update_callback(function()\n")
+	}
+
+	body := node.Body
+	for _, stmt := range body {
+		value := gen.GenerateNode(stmt, &tickScope)
+		gen.Src.Append(tabs, value.Val, "\n")
+	}
+
+	gen.Src.Append(repeatTabs, "end)\n")
+
+	gen.TabsCount -= 1
+
+	return Value{Token: node.Token, Val: ""}
 }
 
 func GetValue(values []Value, index int) Value {

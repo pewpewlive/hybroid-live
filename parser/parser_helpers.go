@@ -10,10 +10,12 @@ type ParserError struct {
 	Message string
 }
 
+// Appends an error to the ParserErrors
 func (p *Parser) error(token lexer.Token, err string) {
 	p.Errors = append(p.Errors, ParserError{token, err})
 }
 
+// Creates a BinaryExpr
 func (p *Parser) createBinExpr(left ast.Node, operator lexer.Token, tokenType lexer.TokenType, lexeme string, right ast.Node) ast.Node {
 	valueType := p.determineValueType(left, right)
 	return ast.BinaryExpr{
@@ -24,10 +26,12 @@ func (p *Parser) createBinExpr(left ast.Node, operator lexer.Token, tokenType le
 	}
 }
 
+// Checks if the current position the parser is at is the End Of File
 func (p *Parser) isAtEnd() bool {
 	return p.peek().Type == lexer.Eof
 }
 
+// Advances by one into the next token and returns the previous tokne before advancing
 func (p *Parser) advance() lexer.Token {
 	t := p.tokens[p.current]
 	if p.current < len(p.tokens)-1 {
@@ -36,6 +40,7 @@ func (p *Parser) advance() lexer.Token {
 	return t
 }
 
+// Peeks into the current token or peeks at the token that is offet from the current position by the given offset
 func (p *Parser) peek(offset ...int) lexer.Token {
 	if offset == nil {
 		return p.tokens[p.current]
@@ -47,6 +52,7 @@ func (p *Parser) peek(offset ...int) lexer.Token {
 	}
 }
 
+// Checks if the current type is the specified token type. Returns false if it's the End Of File
 func (p *Parser) check(tokenType lexer.TokenType) bool {
 	if p.isAtEnd() {
 		return false
@@ -55,6 +61,7 @@ func (p *Parser) check(tokenType lexer.TokenType) bool {
 	return p.peek().Type == tokenType
 }
 
+// Matches the given list of tokens and advances if they match.
 func (p *Parser) match(types ...lexer.TokenType) bool {
 	for _, tokenType := range types {
 		if p.check(tokenType) {
@@ -66,6 +73,7 @@ func (p *Parser) match(types ...lexer.TokenType) bool {
 	return false
 }
 
+// Consumes a list of tokens, advancing if they match and returns true. Consume also advances if none of the tokens were able to match, and returns false
 func (p *Parser) consume(message string, types ...lexer.TokenType) (lexer.Token, bool) {
 	if p.isAtEnd() {
 		token := p.peek()
@@ -82,6 +90,7 @@ func (p *Parser) consume(message string, types ...lexer.TokenType) (lexer.Token,
 	return token, false // error
 }
 
-func isFx(valueType ast.PrimitiveValueType) bool {
+// Checks if the value type is expected to be a fixedpoint
+func IsFx(valueType ast.PrimitiveValueType) bool {
 	return valueType == ast.FixedPoint || valueType == ast.Fixed || valueType == ast.Radian || valueType == ast.Degree
 }

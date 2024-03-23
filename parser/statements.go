@@ -30,11 +30,17 @@ func (p *Parser) statement() ast.Node {
 	case lexer.Return:
 		p.advance()
 		return p.returnStmt()
-	case lexer.Identifier: // a
+	case lexer.Identifier:
 		return p.assignmentStmt()
 	case lexer.If:
 		p.advance()
 		return p.ifStmt()
+	case lexer.Repeat:
+		p.advance()
+		return p.repeatStmt()
+	case lexer.Tick:
+		p.advance()
+		return p.tickStmt()
 	}
 	expr := p.expression()
 	if expr.GetType() == 0 {
@@ -207,6 +213,83 @@ func (p *Parser) removeFromStmt() ast.Node {
 	}
 
 	return remove
+}
+
+func (p *Parser) repeatStmt() ast.Node {
+	repeatStmt := ast.RepeatStmt{
+		Token: p.peek(-1),
+	}
+
+	repeatStmt.Skip = ast.LiteralExpr{Value: "1", ValueType: ast.Number, Token: repeatStmt.Token}
+	repeatStmt.Start = ast.LiteralExpr{Value: "1", ValueType: ast.Number, Token: repeatStmt.Token}
+
+	for i := 0; i < 4; i++ {
+		if p.match(lexer.With) {
+			identExpr := p.expression()
+			if identExpr.GetType() != ast.Identifier {
+				p.error(identExpr.GetToken(), "expected identifier expression after keyword 'with'")
+				return repeatStmt
+			}
+			repeatStmt.Variable = identExpr.(ast.IdentifierExpr)
+		} else if p.match(lexer.To) {
+			repeatStmt.Iterator = p.expression()
+		} else if p.match(lexer.By) {
+			repeatStmt.Skip = p.expression()
+		} else if p.match(lexer.From) {
+			repeatStmt.Start = p.expression()
+		}
+	}
+
+	body := make([]ast.Node, 0)
+	if _, success := p.consume("expected body of the repeat statement", lexer.LeftBrace); success {
+		for !p.match(lexer.RightBrace) {
+			if p.peek().Type == lexer.Eof {
+				p.error(p.peek(), "expected body closure")
+				break
+			}
+			statement := p.statement()
+			if statement != nil {
+				body = append(body, statement)
+			}
+		}
+	}
+
+	repeatStmt.Body = body
+
+	return repeatStmt
+}
+
+func (p *Parser) tickStmt() ast.Node {
+	tickStmt := ast.TickStmt{
+		Token: p.peek(-1),
+	}
+
+	if p.match(lexer.With) {
+		identExpr := p.expression()
+		if identExpr.GetType() != ast.Identifier {
+			p.error(identExpr.GetToken(), "expected identifier expression after keyword 'with'")
+			return tickStmt
+		}
+		tickStmt.Variable = identExpr.(ast.IdentifierExpr)
+	}
+
+	body := make([]ast.Node, 0)
+	if _, success := p.consume("expected body of the tick statement", lexer.LeftBrace); success {
+		for !p.match(lexer.RightBrace) {
+			if p.peek().Type == lexer.Eof {
+				p.error(p.peek(), "expected body closure")
+				break
+			}
+			statement := p.statement()
+			if statement != nil {
+				body = append(body, statement)
+			}
+		}
+	}
+
+	tickStmt.Body = body
+
+	return tickStmt
 }
 
 func (p *Parser) variableDeclarationStmt() ast.Node {

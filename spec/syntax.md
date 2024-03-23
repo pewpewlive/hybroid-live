@@ -2,6 +2,8 @@
 
 ## Comments
 
+- [x] Completed
+
 Comments in Hybroid are like in any other C-style language.
 
 `//` indicates a single-line comment.
@@ -26,6 +28,8 @@ Print("Hello, World!")
 Just like in Lua, semicolons are treated as a whitespace character.
 
 ## Environments
+
+- [x] Completed
 
 Environments are an important aspect of PPL and Hybroid. Not specifying the environment will result in a transpile-time error.
 
@@ -52,6 +56,8 @@ The following environments are available:
 
 ## Declaration of variables
 
+- [x] Completed
+
 ```rs
 // Local variables
 let name = "Alpha"
@@ -65,11 +71,15 @@ name = "blade"
 
 ## Declaration of constants
 
+- [] Completed
+
 ```rs
 const PI = 3.14f
 ```
 
 ## Entities and spawning syntax
+
+- [] Completed
 
 Entities are transpile-time classes. They are designed to provide OOP-like feel when working with entities. This feature is disallowed in `Generic` environments. Use `struct` keyword there instead.
 
@@ -170,6 +180,8 @@ Destroy id
 
 ## Lua interop & importing
 
+- [] Completed
+
 Original `pewpew`, `fmath`, `math`, `table` functions are available under `Origin` namespace.
 
 Importing Lua libraries works as expected, just with omission of `/dynamic`.
@@ -191,6 +203,8 @@ Print(number) // -> 1
 However, this is discouraged, as the transpiler can lose important context, such as variable declarations.
 
 ## Number Literals
+
+- [] Completed
 
 In PPL, you use number literals with `fx` at the end of the number. But thankfully, Hybroid makes working with numbers easier, by giving several options.
 
@@ -237,6 +251,8 @@ When using angle literals, the transpiler will automatically convert their value
 - `0b` is a binary literal. Example: `0b01`
 
 ## Loops
+
+- [] Completed
 
 ### Tick loops
 
@@ -308,6 +324,8 @@ for index, item in fruits {
 
 ## Lists
 
+- [] Completed
+
 In Lua, these structures are called "tables". These structures hold multiple data associated with a numeric index.
 
 ```rs
@@ -361,6 +379,8 @@ Print(@ListToStr(fruits)) // -> ["banana", "kiwi", "apple", "cherry"]
 ```
 
 ## Maps
+
+- [] Completed
 
 In Lua, these structures are also called _tables_. These structures hold multiple data entries associated with a string index.
 
@@ -454,6 +474,8 @@ Print(@MapToStr(fruits))
 
 ## Functions
 
+- [] Completed
+
 Declaring a function works with the `fn` keyword. Functions are local by default.
 
 ```rs
@@ -476,11 +498,13 @@ Greet("John") // -> Hello, John!
 
 ## Directives
 
+- [] Completed
+
 Directives are special functions that are evaluated in the transpiler. They work similarly to _macros_.
 
 ```rs
-dir @Hello(name) { 
-  "Hello ".. name .. "!" 
+dir @Hello(name) {
+  "Hello ".. name .. "!"
 }
 
 print(@Hello("John")) // -> Hello, John!
@@ -493,6 +517,8 @@ print("Hello " .. "John" .. "!")
 ```
 
 ## Conditional statements
+
+- [] Completed
 
 ### If statement
 
@@ -553,6 +579,8 @@ Print(check)
 
 ## Enums
 
+- [] Completed
+
 Enums are converted to tables if compiling to Lua.
 
 ```rs
@@ -565,6 +593,8 @@ enum SandwichType {
 ```
 
 ## Structures
+
+- [] Completed
 
 Structures are classes that do not have inheritance. Using structures in any environment except `Generic` will result in a warning.
 

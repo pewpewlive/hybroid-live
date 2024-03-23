@@ -79,12 +79,14 @@ func (is IfStmt) GetValueType() PrimitiveValueType {
 type MatchStmt struct {
 	ExprToMatch Node
 	Match       PrimitiveValueType
-	Cases       [][]Node // EXPRESSIONS
-	Bodies      []Node   // STATEMENTS
+	Cases       [][]Node
+	Bodies      []Node
 }
 
 type RepeatStmt struct {
 	Iterator Node
+	Skip     Node
+	Start    Node
 	Variable IdentifierExpr
 	Body     []Node
 	Token    lexer.Token
@@ -99,6 +101,24 @@ func (rs RepeatStmt) GetToken() lexer.Token {
 }
 
 func (rs RepeatStmt) GetValueType() PrimitiveValueType {
+	return Undefined
+}
+
+type TickStmt struct {
+	Variable IdentifierExpr
+	Body     []Node
+	Token    lexer.Token
+}
+
+func (ts TickStmt) GetType() NodeType {
+	return TickStatement
+}
+
+func (ts TickStmt) GetToken() lexer.Token {
+	return ts.Token
+}
+
+func (ts TickStmt) GetValueType() PrimitiveValueType {
 	return Undefined
 }
 

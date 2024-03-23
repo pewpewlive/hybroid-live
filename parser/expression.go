@@ -131,7 +131,7 @@ func (p *Parser) determineValueType(left ast.Node, right ast.Node) ast.Primitive
 	if left.GetValueType() == right.GetValueType() {
 		return left.GetValueType()
 	}
-	if isFx(left.GetValueType()) && isFx(right.GetValueType()) {
+	if IsFx(left.GetValueType()) && IsFx(right.GetValueType()) {
 		return ast.FixedPoint
 	}
 

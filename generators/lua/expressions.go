@@ -4,8 +4,20 @@ import (
 	"fmt"
 	"hybroid/ast"
 	"hybroid/lexer"
+	"hybroid/parser"
 	"strings"
 )
+
+func (gen *Generator) determineValueType(left Value, right Value) ast.PrimitiveValueType {
+	if left.Type == right.Type {
+		return left.Type
+	}
+	if parser.IsFx(left.Type) && parser.IsFx(right.Type) {
+		return ast.FixedPoint
+	}
+
+	return ast.Undefined
+}
 
 func (gen *Generator) binaryExpr(node ast.BinaryExpr, scope *Scope) Value {
 	src := StringBuilder{}
@@ -18,7 +30,7 @@ func (gen *Generator) binaryExpr(node ast.BinaryExpr, scope *Scope) Value {
 
 	src.Append(left.Val, fmt.Sprintf(" %s ", op.Lexeme), right.Val)
 
-	return Value{Type: node.ValueType, Token: op, Val: src.String()}
+	return Value{Type: gen.determineValueType(left, right), Token: op, Val: src.String()}
 }
 
 func (gen *Generator) literalExpr(node ast.LiteralExpr) Value {
@@ -47,8 +59,7 @@ func (gen *Generator) identifierExpr(node ast.IdentifierExpr, scope *Scope) Valu
 		newValue := sc.GetVariable(node.Name)
 		value.Type = newValue.Type
 	} else {
-
-		//error
+		gen.error(node.Token, "undeclared identifier in the current scope")
 	}
 	return value
 }
@@ -104,17 +115,10 @@ func (gen *Generator) callExpr(node ast.CallExpr, scope *Scope) Value {
 func (gen *Generator) mapExpr(node ast.MapExpr, scope *Scope) Value {
 	src := StringBuilder{}
 
-	var tabs string
-	for i := 0; i < scope.Count+gen.TabsCount; i++ {
-		tabs += "\t"
-	}
-
-	var mapTabs string
-	for i := 0; i < scope.Count+1+gen.TabsCount; i++ {
-		mapTabs += "\t"
-	}
+	mapTabs := gen.getTabs()
 
 	gen.TabsCount += 1
+	tabs := gen.getTabs()
 
 	src.WriteString("{\n")
 	index := 0
@@ -163,16 +167,40 @@ func (gen *Generator) memberExpr(node ast.MemberExpr, scope *Scope) Value {
 func (gen *Generator) directiveExpr(node ast.DirectiveExpr, scope *Scope) Value {
 	src := StringBuilder{}
 
-	variable := gen.GenerateNode(node.Expr, scope)
-
 	if node.Identifier != "Environment" {
+		variable := gen.GenerateNode(node.Expr, scope)
 		switch node.Identifier {
 		case "Len":
+			node.ValueType = ast.Number
 			if variable.Type != ast.Map && variable.Type != ast.List && variable.Type != ast.String {
-				gen.error(variable.Token, "invalid expression in @Len directive")
+				gen.error(variable.Token, "invalid expression in '@Len' directive")
 			}
-		} //fill all cases
+		case "MapToStr":
+			node.ValueType = ast.String
+			if variable.Type != ast.Map {
+				gen.error(variable.Token, "expected a map in '@MapToStr' directive")
+			}
+		case "ListToStr":
+			node.ValueType = ast.List
+			if variable.Type != ast.List {
+				gen.error(variable.Token, "expected a list in '@ListToStr' directive")
+			}
+		default:
+			// TODO: Implement custom directives
+
+			gen.error(node.Token, "unknown directive")
+			return Value{Type: node.ValueType, Val: src.String()}
+		}
 		src.Append(node.Identifier, "(", variable.Val, ")")
+	} else {
+		ident, ok := node.Expr.(ast.IdentifierExpr)
+		if !ok {
+			gen.error(node.Expr.GetToken(), "expected an identifier in '@Environment' directive")
+		} else {
+			if ident.Name != "Level" && ident.Name != "Mesh" && ident.Name != "Sound" && ident.Name != "Shared" && ident.Name != "LuaGeneric" {
+				gen.error(node.Expr.GetToken(), "invalid identifier in '@Environment' directive")
+			}
+		}
 	}
 
 	return Value{Type: node.ValueType, Val: src.String()}

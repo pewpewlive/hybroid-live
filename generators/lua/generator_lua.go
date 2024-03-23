@@ -57,35 +57,44 @@ type Scope struct {
 	Variables map[string]Value
 }
 
+func (gen *Generator) getTabs() string {
+	tabs := StringBuilder{}
+	for i := 0; i < gen.TabsCount; i++ {
+		tabs.Append("\t")
+	}
+
+	return tabs.String()
+}
+
 func (gen *Generator) validateArithmeticOperands(left Value, right Value, expr ast.BinaryExpr) bool {
 	//fmt.Printf("Validating operands: %v (%v) and %v (%v)\n", left.Val, left.Type, right.Val, right.Type)
 	switch left.Type {
 	case ast.Nil:
-		gen.error(expr.GetToken(), "cannot perform arithmetic on nil value")
+		gen.error(expr.Left.GetToken(), "cannot perform arithmetic on nil value")
 		return false
 	case ast.Undefined:
-		gen.error(expr.GetToken(), "cannot perform arithmetic on undefined value")
+		gen.error(expr.Left.GetToken(), "cannot perform arithmetic on undefined value")
 		return false
 	}
 
 	switch right.Type {
 	case ast.Nil:
-		gen.error(expr.GetToken(), "cannot perform arithmetic on nil value")
+		gen.error(expr.Right.GetToken(), "cannot perform arithmetic on nil value")
 		return false
 	case ast.Undefined:
-		gen.error(expr.GetToken(), "cannot perform arithmetic on undefined value")
+		gen.error(expr.Right.GetToken(), "cannot perform arithmetic on undefined value")
 		return false
 	}
 
 	switch left.Type {
 	case ast.List, ast.Map, ast.String, ast.Bool, ast.Entity, ast.Struct:
-		gen.error(expr.GetToken(), "cannot perform arithmetic on a non-number value")
+		gen.error(expr.Left.GetToken(), "cannot perform arithmetic on a non-number value")
 		return false
 	}
 
 	switch right.Type {
 	case ast.List, ast.Map, ast.String, ast.Bool, ast.Entity, ast.Struct:
-		gen.error(expr.GetToken(), "cannot perform arithmetic on a non-number value")
+		gen.error(expr.Right.GetToken(), "cannot perform arithmetic on a non-number value")
 		return false
 	}
 
@@ -200,6 +209,10 @@ func (gen *Generator) GenerateNode(node ast.Node, environment *Scope) Value {
 		return gen.functionDeclarationStmt(newNode, scope)
 	case ast.ReturnStmt:
 		return gen.returnStmt(newNode, scope)
+	case ast.RepeatStmt:
+		return gen.repeatStmt(newNode, scope)
+	case ast.TickStmt:
+		return gen.tickStmt(newNode, scope)
 	case ast.LiteralExpr:
 		return gen.literalExpr(newNode)
 	case ast.BinaryExpr:
