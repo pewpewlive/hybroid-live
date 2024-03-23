@@ -22,9 +22,19 @@ func (gen *Generator) error(token lexer.Token, message string) {
 	gen.Errors = append(gen.Errors, GenError{token, message})
 }
 
+type StringBuilder struct {
+	strings.Builder
+}
+
+func (sb *StringBuilder) Append(chunks ...string) {
+	for _, chunk := range chunks {
+		sb.WriteString(chunk)
+	}
+}
+
 type Generator struct {
 	Errors    []GenError
-	Src       strings.Builder
+	Src       StringBuilder
 	TabsCount int
 }
 
@@ -47,29 +57,38 @@ type Scope struct {
 	Variables map[string]Value
 }
 
-func (gen *Generator) validateOperands(left Value, right Value) bool {
-	fmt.Printf("Validating operands: %v (%v) and %v (%v)\n", left.Val, left.Type, right.Val, right.Type)
-	if left.Type == ast.Nil {
-		gen.error(left.Token, "cannot perform arithmetic on nil value")
+func (gen *Generator) validateArithmeticOperands(left Value, right Value, expr ast.BinaryExpr) bool {
+	//fmt.Printf("Validating operands: %v (%v) and %v (%v)\n", left.Val, left.Type, right.Val, right.Type)
+	switch left.Type {
+	case ast.Nil:
+		gen.error(expr.GetToken(), "cannot perform arithmetic on nil value")
 		return false
-	} else if right.Type == ast.Nil {
-		gen.error(right.Token, "cannot perform arithmetic on nil value")
+	case ast.Undefined:
+		gen.error(expr.GetToken(), "cannot perform arithmetic on undefined value")
 		return false
-	} else if left.Type == ast.Undefined {
-		gen.error(left.Token, "cannot perform arithmetic on undefined value")
-		return false
-	} else if right.Type == ast.Undefined {
-		gen.error(right.Token, "cannot perform arithmetic on undefined value")
-		return false
-	} else {
-		if left.Type == ast.List || left.Type == ast.Map || left.Type == ast.String || left.Type == ast.Bool || left.Type == ast.Entity || left.Type == ast.Struct {
-			gen.error(left.Token, "cannot perform arithmetic on a non-number value")
-			return false
-		} else if right.Type == ast.List || right.Type == ast.Map || right.Type == ast.String || right.Type == ast.Bool || right.Type == ast.Entity || right.Type == ast.Struct {
-			gen.error(right.Token, "cannot perform arithmetic on a non-number value")
-			return false
-		}
 	}
+
+	switch right.Type {
+	case ast.Nil:
+		gen.error(expr.GetToken(), "cannot perform arithmetic on nil value")
+		return false
+	case ast.Undefined:
+		gen.error(expr.GetToken(), "cannot perform arithmetic on undefined value")
+		return false
+	}
+
+	switch left.Type {
+	case ast.List, ast.Map, ast.String, ast.Bool, ast.Entity, ast.Struct:
+		gen.error(expr.GetToken(), "cannot perform arithmetic on a non-number value")
+		return false
+	}
+
+	switch right.Type {
+	case ast.List, ast.Map, ast.String, ast.Bool, ast.Entity, ast.Struct:
+		gen.error(expr.GetToken(), "cannot perform arithmetic on a non-number value")
+		return false
+	}
+
 	return true
 }
 
@@ -79,12 +98,6 @@ func (gen Generator) GetErrors() []GenError {
 
 func (gen *Generator) GetSrc() string {
 	return gen.Src.String()
-}
-
-func (gen *Generator) append(strings ...string) {
-	for _, str := range strings {
-		gen.Src.WriteString(str)
-	}
 }
 
 func (s *Scope) GetVariable(name string) Value {
@@ -137,7 +150,7 @@ func (gen *Generator) Generate(program []ast.Node, environment *Scope) Value {
 
 	for _, node := range program {
 		lastEvaluated = gen.GenerateNode(node, environment)
-		gen.append(lastEvaluated.Val, "\n")
+		gen.Src.Append(lastEvaluated.Val, "\n")
 	}
 
 	return lastEvaluated
@@ -205,6 +218,8 @@ func (gen *Generator) GenerateNode(node ast.Node, environment *Scope) Value {
 		return gen.mapExpr(newNode, scope)
 	case ast.MemberExpr:
 		return gen.memberExpr(newNode, scope)
+	case ast.DirectiveExpr:
+		return gen.directiveExpr(newNode, scope)
 	}
 
 	return Value{}

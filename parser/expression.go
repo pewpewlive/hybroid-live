@@ -36,7 +36,7 @@ func (p *Parser) list() ast.Node {
 
 func (p *Parser) parseMap() ast.Node {
 	if !p.match(lexer.LeftBrace) {
-		return p.equality()
+		return p.directive()
 	}
 
 	token := p.peek(-1)
@@ -83,6 +83,26 @@ func (p *Parser) parseMap() ast.Node {
 	return ast.MapExpr{ValueType: ast.Map, Map: parsedMap, Token: token}
 }
 
+func (p *Parser) directive() ast.Node {
+	if !p.match(lexer.At) {
+		return p.multiComparison()
+	}
+
+	return p.directiveCall()
+}
+
+func (p *Parser) multiComparison() ast.Node {
+	expr := p.equality()
+
+	if p.match(lexer.And, lexer.Or) {
+		operator := p.peek(-1)
+		right := p.equality()
+		expr = ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: ast.Bool}
+	}
+
+	return expr
+}
+
 func (p *Parser) equality() ast.Node {
 	expr := p.comparison()
 
@@ -107,15 +127,11 @@ func (p *Parser) comparison() ast.Node {
 	return expr
 }
 
-func isFX(valueType ast.PrimitiveValueType) bool {
-	return valueType == ast.FixedPoint || valueType == ast.Fixed || valueType == ast.Radian || valueType == ast.Degree
-}
-
 func (p *Parser) determineValueType(left ast.Node, right ast.Node) ast.PrimitiveValueType {
 	if left.GetValueType() == right.GetValueType() {
 		return left.GetValueType()
 	}
-	if isFX(left.GetValueType()) && isFX(right.GetValueType()) {
+	if isFx(left.GetValueType()) && isFx(right.GetValueType()) {
 		return ast.FixedPoint
 	}
 
@@ -137,7 +153,7 @@ func (p *Parser) term() ast.Node {
 func (p *Parser) factor() ast.Node {
 	expr := p.unary()
 
-	if p.match(lexer.Star, lexer.Slash) {
+	if p.match(lexer.Star, lexer.Slash, lexer.Caret, lexer.Modulo) {
 		operator := p.peek(-1)
 		right := p.factor()
 
@@ -154,10 +170,10 @@ func (p *Parser) unary() ast.Node {
 		return ast.UnaryExpr{Operator: operator, Value: right}
 	}
 
-	return p.memberCall() //p.memberCall()
+	return p.memberCall()
 }
 
-func (p *Parser) memberCall() ast.Node { // for maps
+func (p *Parser) memberCall() ast.Node {
 	expr := p.member()
 
 	if p.check(lexer.LeftParen) {
@@ -181,7 +197,7 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 		Token:      caller.GetToken(),
 	}
 
-	if p.check(lexer.LeftParen) { // name()()
+	if p.check(lexer.LeftParen) {
 		expr := p.call(call_expr)
 		if expr.GetType() == ast.CallExpression {
 			call_expr = expr.(ast.CallExpr)
@@ -214,7 +230,7 @@ func (p *Parser) member() ast.Node {
 	expr := p.primary()
 
 	for p.match(lexer.Dot, lexer.LeftBracket) {
-		operator := p.peek(-1) // . or [
+		operator := p.peek(-1)
 
 		prop := p.primary()
 		if operator.Type == lexer.Dot && prop.GetType() != ast.Identifier {
@@ -253,7 +269,7 @@ func (p *Parser) primary() ast.Node {
 	if p.match(lexer.Number, lexer.Fixed, lexer.FixedPoint, lexer.Degree, lexer.Radian, lexer.String) {
 		literal := p.peek(-1)
 		var valueType ast.PrimitiveValueType
-		ident := p.program[0].(ast.DirectiveStmt).Expr.(ast.IdentifierExpr)
+		ident := p.program[0].(ast.DirectiveExpr).Expr.(ast.IdentifierExpr)
 		allowFX := ident.Name == "Level" || ident.Name == "Shared"
 		switch literal.Type {
 		case lexer.Number:

@@ -8,7 +8,6 @@ const (
 	VariableDeclarationStatement NodeType = iota + 1
 	FunctionDeclarationStatement
 
-	DirectiveStatement
 	AssignmentStatement
 	RepeatStatement
 	IfStatement
@@ -19,6 +18,7 @@ const (
 
 	Progr
 
+	DirectiveExpression
 	LiteralExpression
 	UnaryExpression
 	BinaryExpression

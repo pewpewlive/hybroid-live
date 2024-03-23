@@ -170,6 +170,25 @@ func (n IdentifierExpr) GetValueType() PrimitiveValueType {
 	return n.ValueType
 }
 
+type DirectiveExpr struct {
+	Identifier string
+	Expr       Node
+	Token      lexer.Token
+	ValueType  PrimitiveValueType
+}
+
+func (de DirectiveExpr) GetType() NodeType {
+	return DirectiveExpression
+}
+
+func (de DirectiveExpr) GetToken() lexer.Token {
+	return de.Token
+}
+
+func (de DirectiveExpr) GetValueType() PrimitiveValueType {
+	return Undefined
+}
+
 type Unknown struct {
 	Token lexer.Token
 }

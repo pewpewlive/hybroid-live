@@ -3,22 +3,26 @@ package lua
 import (
 	"fmt"
 	"hybroid/ast"
+	"hybroid/lexer"
 	"strings"
 )
 
 func (gen *Generator) binaryExpr(node ast.BinaryExpr, scope *Scope) Value {
-	src := strings.Builder{}
+	src := StringBuilder{}
 	left, right := gen.GenerateNode(node.Left, scope), gen.GenerateNode(node.Right, scope)
-	gen.validateOperands(left, right)
-	src.WriteString(left.Val)
-	src.WriteString(fmt.Sprintf(" %s ", node.Operator.Lexeme))
-	src.WriteString(right.Val)
+	op := node.Operator
+	switch op.Type {
+	case lexer.Plus, lexer.Minus, lexer.Caret, lexer.Star, lexer.Slash, lexer.Modulo:
+		gen.validateArithmeticOperands(left, right, node)
+	}
 
-	return Value{Type: node.ValueType, Token: node.Operator, Val: src.String()}
+	src.Append(left.Val, fmt.Sprintf(" %s ", op.Lexeme), right.Val)
+
+	return Value{Type: node.ValueType, Token: op, Val: src.String()}
 }
 
 func (gen *Generator) literalExpr(node ast.LiteralExpr) Value {
-	src := strings.Builder{}
+	src := StringBuilder{}
 
 	switch node.ValueType {
 	case ast.String:
@@ -76,13 +80,14 @@ func (gen *Generator) listExpr(node ast.ListExpr, scope *Scope) Value {
 }
 
 func (gen *Generator) callExpr(node ast.CallExpr, scope *Scope) Value {
-	src := strings.Builder{}
+	src := StringBuilder{}
 	fn := gen.GenerateNode(node.Caller, scope)
 
-	scope.Resolve(fn.Val)
+	if scope.Resolve(fn.Val) == nil { //make sure in the future member calls are also taken into account
+		gen.error(node.Token, "undeclared function")
+	}
 
-	src.WriteString(fn.Val)
-	src.WriteString("(")
+	src.Append(fn.Val, "(")
 	for i, arg := range node.Args {
 		src.WriteString(gen.GenerateNode(arg, scope).Val)
 		if i != len(node.Args)-1 {
@@ -93,11 +98,11 @@ func (gen *Generator) callExpr(node ast.CallExpr, scope *Scope) Value {
 
 	//fnReturn := scope.GetVariable(node.Identifier)
 
-	return Value{Type: ast.Bool, Token: node.Token, Val: src.String()}
+	return Value{Token: node.Token, Val: src.String()}
 }
 
 func (gen *Generator) mapExpr(node ast.MapExpr, scope *Scope) Value {
-	src := strings.Builder{}
+	src := StringBuilder{}
 
 	var tabs string
 	for i := 0; i < scope.Count+gen.TabsCount; i++ {
@@ -124,8 +129,7 @@ func (gen *Generator) mapExpr(node ast.MapExpr, scope *Scope) Value {
 		index++
 	}
 
-	src.WriteString(tabs)
-	src.WriteString("}")
+	src.Append(tabs, "}")
 
 	gen.TabsCount -= 1
 
@@ -140,7 +144,7 @@ func (gen *Generator) unaryExpr(node ast.UnaryExpr, scope *Scope) Value {
 }
 
 func (gen *Generator) memberExpr(node ast.MemberExpr, scope *Scope) Value {
-	src := strings.Builder{}
+	src := StringBuilder{}
 
 	expr := gen.GenerateNode(node.Identifier, scope)
 	prop := gen.GenerateNode(node.Property, scope)
@@ -148,13 +152,28 @@ func (gen *Generator) memberExpr(node ast.MemberExpr, scope *Scope) Value {
 	src.WriteString(expr.Val)
 
 	if prop.Type == ast.String {
-		src.WriteString("[")
-		src.WriteString(prop.Val)
-		src.WriteString("]")
+		src.Append("[", prop.Val, "]")
 	} else {
-		src.WriteString(".")
-		src.WriteString(prop.Val)
+		src.Append(".", prop.Val)
 	}
 
 	return Value{Type: prop.Type, Token: node.Token, Val: src.String()}
+}
+
+func (gen *Generator) directiveExpr(node ast.DirectiveExpr, scope *Scope) Value {
+	src := StringBuilder{}
+
+	variable := gen.GenerateNode(node.Expr, scope)
+
+	if node.Identifier != "Environment" {
+		switch node.Identifier {
+		case "Len":
+			if variable.Type != ast.Map && variable.Type != ast.List && variable.Type != ast.String {
+				gen.error(variable.Token, "invalid expression in @Len directive")
+			}
+		} //fill all cases
+		src.Append(node.Identifier, "(", variable.Val, ")")
+	}
+
+	return Value{Type: node.ValueType, Val: src.String()}
 }

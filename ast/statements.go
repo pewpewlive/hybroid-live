@@ -102,24 +102,6 @@ func (rs RepeatStmt) GetValueType() PrimitiveValueType {
 	return Undefined
 }
 
-type DirectiveStmt struct { // @Hello("John") or @Environment(Level)
-	Identifier string
-	Expr       Node
-	Token      lexer.Token
-}
-
-func (ds DirectiveStmt) GetType() NodeType {
-	return DirectiveStatement
-}
-
-func (ds DirectiveStmt) GetToken() lexer.Token {
-	return ds.Token
-}
-
-func (ds DirectiveStmt) GetValueType() PrimitiveValueType {
-	return Undefined
-}
-
 type ReturnStmt struct {
 	Args  []Node
 	Token lexer.Token

@@ -30,7 +30,7 @@ func (p *Parser) isAtEnd() bool {
 
 func (p *Parser) advance() lexer.Token {
 	t := p.tokens[p.current]
-	if p.current < len(p.tokens) {
+	if p.current < len(p.tokens)-1 {
 		p.current++
 	}
 	return t
@@ -80,4 +80,8 @@ func (p *Parser) consume(message string, types ...lexer.TokenType) (lexer.Token,
 	token := p.advance()
 	p.error(token, message)
 	return token, false // error
+}
+
+func isFx(valueType ast.PrimitiveValueType) bool {
+	return valueType == ast.FixedPoint || valueType == ast.Fixed || valueType == ast.Radian || valueType == ast.Degree
 }

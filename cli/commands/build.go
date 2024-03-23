@@ -39,9 +39,7 @@ func Build(ctx *cli.Context, files ...FileInformation) error {
 		entryPoint := config.Level.EntryPoint
 
 		if outputDir != "" {
-			if outputDirErr := os.Mkdir(cwd+outputDir, 0644); outputDirErr != nil {
-				err <- fmt.Errorf("failed to create an output directory: %v", outputDirErr)
-			}
+			os.Mkdir(cwd+outputDir, 0644)
 		}
 
 		manifestConfig := config.Level
