@@ -6,9 +6,8 @@ import (
 )
 
 type Walker struct {
-	nodes   []ast.Node
-	current int
-	Errors  []ast.Error
+	nodes  []ast.Node
+	Errors []ast.Error
 }
 
 type Global struct {

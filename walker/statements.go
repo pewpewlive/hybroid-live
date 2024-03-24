@@ -28,12 +28,9 @@ func (w *Walker) assignmentStmt(assignStmt ast.AssignmentStmt, scope *Scope) {
 	hasFuncs := false
 
 	wIdents := []Value{}
-	for i, ident := range assignStmt.Identifiers {
+	for _, ident := range assignStmt.Identifiers {
 		ident := w.GetNodeValue(ident, scope)
 		wIdents = append(wIdents, ident)
-		if i == len(assignStmt.Identifiers)-1 {
-		} else {
-		}
 	}
 
 	for i, rightValue := range assignStmt.Values {
