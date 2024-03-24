@@ -61,6 +61,8 @@ func (w *Walker) GetValue(pvt ast.PrimitiveValueType) Value {
 		return VariableVal{}
 	case ast.Undefined:
 		return Unknown{}
+	case 0:
+		return Undefined{}
 	// TODO: handle structs and entities in the future
 	default:
 		return Unknown{}

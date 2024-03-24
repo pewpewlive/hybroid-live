@@ -56,7 +56,7 @@ type FixedVal struct {
 }
 
 func (f FixedVal) GetType() ast.PrimitiveValueType {
-	return ast.Fixed
+	return ast.FixedPoint
 }
 
 type ReturnValue struct {
@@ -103,4 +103,12 @@ type Unknown struct {
 
 func (u Unknown) GetType() ast.PrimitiveValueType {
 	return ast.Undefined
+}
+
+type Undefined struct {
+
+}
+
+func (u Undefined) GetType() ast.PrimitiveValueType {
+	return 0
 }

@@ -12,7 +12,7 @@ func (p *Parser) directiveCall() ast.Node {
 	if !identOk {
 		return directiveNode
 	}
-	directiveNode.Identifier = ident.Lexeme
+	directiveNode.Identifier = ident
 	directiveNode.Token = ident
 
 	if _, ok := p.consume("expected '(' after directive call", lexer.LeftParen); !ok {
@@ -33,7 +33,7 @@ func (p *Parser) verifyEnvironmentDirective(statement ast.Node) bool {
 		p.error(lexer.Token{Type: lexer.Eof, Lexeme: "", Literal: "", Location: lexer.TokenLocation{}}, "the first statement in code has to be an '@Environment' directive")
 		return false
 	} else {
-		if statement.(ast.DirectiveExpr).Identifier != "Environment" {
+		if statement.(ast.DirectiveExpr).Identifier.Lexeme != "Environment" {
 			p.error(statement.GetToken(), "the first statement in code has to be an '@Environment' directive")
 			return false
 		}

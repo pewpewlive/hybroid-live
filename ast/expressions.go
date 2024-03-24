@@ -120,7 +120,7 @@ type Property struct {
 type MapExpr struct {
 	ValueType PrimitiveValueType
 	Token     lexer.Token
-	Map       map[string]Property
+	Map       map[lexer.Token]Property
 }
 
 func (me MapExpr) GetType() NodeType {
@@ -154,8 +154,7 @@ func (n ListExpr) GetValueType() PrimitiveValueType {
 }
 
 type IdentifierExpr struct {
-	Name      string
-	Token     lexer.Token
+	Name      lexer.Token
 	ValueType PrimitiveValueType
 }
 
@@ -164,7 +163,7 @@ func (ie IdentifierExpr) GetType() NodeType {
 }
 
 func (n IdentifierExpr) GetToken() lexer.Token {
-	return n.Token
+	return n.Name
 }
 
 func (n IdentifierExpr) GetValueType() PrimitiveValueType {
@@ -172,7 +171,7 @@ func (n IdentifierExpr) GetValueType() PrimitiveValueType {
 }
 
 type DirectiveExpr struct {
-	Identifier string
+	Identifier lexer.Token
 	Expr       Node
 	Token      lexer.Token
 	ValueType  PrimitiveValueType

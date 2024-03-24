@@ -8,6 +8,9 @@ import (
 )
 
 func (w *Walker) determineValueType(left Value, right Value) ast.PrimitiveValueType {
+	if left.GetType() == 0 || right.GetType() == 0 {
+		return 0
+	}
 	if left.GetType() == right.GetType() {
 		return left.GetType()
 	}
@@ -27,10 +30,10 @@ func (w *Walker) binaryExpr(node ast.BinaryExpr, scope *Scope) Value {
 	}
 	val := w.GetValue(w.determineValueType(left, right))
 
-	if val.GetType() != ast.Undefined {
+	if val.GetType() == ast.Undefined {
+		w.error(node.GetToken(), "invalid binary expression")
 		return val
 	} else {
-		w.error(node.GetToken(), "invalid binary expression")
 		return val
 	}
 }
@@ -55,13 +58,13 @@ func (w *Walker) literalExpr(node ast.LiteralExpr) Value {
 }
 
 func (w *Walker) identifierExpr(node ast.IdentifierExpr, scope *Scope) Value {
-	sc := scope.Resolve(node.Name)
+	sc := scope.Resolve(node.Name.Lexeme)
 
 	if sc != nil {
-		newValue := sc.GetVariable(node.Name)
+		newValue := sc.GetVariable(node.Name.Lexeme)
 		return newValue
 	} else {
-		w.error(node.Token, "undeclared identifier in the current scope")
+		w.error(node.Name, "undeclared identifier in the current scope")
 		return Unknown{}
 	}
 }
@@ -101,15 +104,14 @@ func (w *Walker) callExpr(node ast.CallExpr, scope *Scope) Value {
 }
 
 func (w *Walker) mapExpr(node ast.MapExpr, scope *Scope) Value {
-	mapVal := MapVal{}
+	mapVal := MapVal{Members: map[string]VariableVal{}}
 	for k, v := range node.Map {
 		val := w.GetNodeValue(v.Expr, scope)
 
-		memberVal, ok := val.(VariableVal)
-		if !ok {
-			w.error(v.Expr.GetToken(), "expected a member in map")
-		} else {
-			mapVal.Members[k] = memberVal
+		mapVal.Members[k.Lexeme] = VariableVal{
+			Name: k.Lexeme,
+			Value: val,
+			Node: v.Expr,
 		}
 	}
 	return mapVal
@@ -130,30 +132,40 @@ func (w *Walker) memberExpr(node ast.MemberExpr, scope *Scope) Value {
 
 	variable := sc.GetVariable(identToken.Lexeme)
 	mapp, ok := variable.Value.(MapVal)
+	_, ok2 := variable.Value.(ListVal)
 
-	if !ok {
-		w.error(identToken, fmt.Sprintf("variable %s is not a map", identToken.Lexeme))
+	if !ok && !ok2 {
+		w.error(identToken, fmt.Sprintf("variable %s is not a map nor a list", identToken.Lexeme))
 		return Unknown{}
 	}
 	propToken := node.Property.GetToken()
 
 	val := w.GetNodeValue(node.Property, scope)
-	if node.Bracketed {
+	if ok {
+		if node.Bracketed {
+			switch val.GetType() {
+			case ast.Bool, ast.Entity, ast.Nil, ast.Struct, ast.List, ast.Map, ast.FixedPoint, ast.Number:
+				w.error(propToken, "invalid expression inside brackets")
+				return Unknown{}
+			}
+		}
+		member, _ := findMember(mapp, propToken.Lexeme)
+	
+		return member
+	}else if ok2 {
+		if !node.Bracketed {
+			w.error(propToken, "invalid member expression of a list")
+			return Unknown{}
+		}
 		switch val.GetType() {
 		case ast.Bool, ast.Entity, ast.Nil, ast.Struct, ast.List, ast.Map, ast.FixedPoint:
 			w.error(propToken, "invalid expression inside brackets")
 			return Unknown{}
 		}
+		return Undefined{}
 	}
 
-	member, ok := findMember(mapp, propToken.Lexeme)
-
-	if !ok {
-		w.error(propToken, fmt.Sprintf("variable %s is not a map", propToken.Lexeme))
-		return Unknown{}
-	}
-
-	return member
+	return Unknown{}
 }
 
 func findMember(mapp MapVal, name string) (VariableVal, bool) {
@@ -166,10 +178,10 @@ func findMember(mapp MapVal, name string) (VariableVal, bool) {
 
 func (w *Walker) directiveExpr(node ast.DirectiveExpr, scope *Scope) Value {
 
-	if node.Identifier != "Environment" {
+	if node.Identifier.Lexeme != "Environment" {
 		variable := w.GetNodeValue(node.Expr, scope)
 		variableToken := node.Expr.GetToken()
-		switch node.Identifier {
+		switch node.Identifier.Lexeme {
 		case "Len":
 			node.ValueType = ast.Number
 			if variable.GetType() != ast.Map && variable.GetType() != ast.List && variable.GetType() != ast.String {
@@ -197,7 +209,8 @@ func (w *Walker) directiveExpr(node ast.DirectiveExpr, scope *Scope) Value {
 		if !ok {
 			w.error(node.Expr.GetToken(), "expected an identifier in '@Environment' directive")
 		} else {
-			if ident.Name != "Level" && ident.Name != "Mesh" && ident.Name != "Sound" && ident.Name != "Shared" && ident.Name != "LuaGeneric" {
+			name := ident.Name.Lexeme
+			if name != "Level" && name != "Mesh" && name != "Sound" && name != "Shared" && name != "LuaGeneric" {
 				w.error(node.Expr.GetToken(), "invalid identifier in '@Environment' directive")
 			}
 		}

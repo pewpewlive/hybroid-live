@@ -32,19 +32,19 @@ func (p *Parser) list() ast.Node {
 
 func (p *Parser) parseMap() ast.Node {
 	token := p.peek(-1)
-	parsedMap := make(map[string]ast.Property, 0)
+	parsedMap := make(map[lexer.Token]ast.Property, 0)
 	for !p.check(lexer.RightBrace) {
 		key := p.primary()
 
-		var newKey string
+		var newKey lexer.Token
 		switch key := key.(type) {
 		case ast.IdentifierExpr:
-			newKey = key.Name
+			newKey = key.GetToken()
 		case ast.LiteralExpr:
 			if key.GetValueType() != ast.String {
 				p.error(key.GetToken(), "expected a string in map initialization")
 			}
-			newKey = key.GetToken().Literal
+			newKey = key.GetToken()
 		default:
 			p.error(key.GetToken(), "expected either string or an identifier in map initialization")
 			return ast.Unknown{Token: p.peek(-1)}
@@ -260,7 +260,7 @@ func (p *Parser) primary() ast.Node {
 		literal := p.peek(-1)
 		var valueType ast.PrimitiveValueType
 		ident := p.program[0].(ast.DirectiveExpr).Expr.(ast.IdentifierExpr)
-		allowFX := ident.Name == "Level" || ident.Name == "Shared"
+		allowFX := ident.Name.Lexeme == "Level" || ident.Name.Lexeme == "Shared"
 
 		switch literal.Type {
 		case lexer.Number:
@@ -304,7 +304,7 @@ func (p *Parser) primary() ast.Node {
 
 	if p.match(lexer.Identifier) {
 		token := p.peek(-1)
-		return ast.IdentifierExpr{Name: token.Lexeme, Token: token, ValueType: ast.Ident}
+		return ast.IdentifierExpr{Name: token, ValueType: ast.Ident}
 	}
 
 	if p.match(lexer.LeftParen) {

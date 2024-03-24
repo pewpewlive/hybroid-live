@@ -42,14 +42,12 @@ func (w *Walker) assignmentStmt(assignStmt ast.AssignmentStmt, scope *Scope) {
 			break
 		}
 		if assignStmt.Identifiers[i].GetType() != ast.MemberExpression {
-			ident := w.GetNodeValue(assignStmt.Identifiers[i], scope)
-			if ident.GetType() != ast.Ident {
-				w.error(assignStmt.Identifiers[i].GetToken(), "expected an identifier to assign to")
-			} else {
-				if _, err := scope.AssignVariable(ident.(VariableVal).Name, value); err != nil {
-					err.Token = ident.(VariableVal).Node.GetToken()
+			variable, ok := wIdents[i].(VariableVal)
+			if ok {
+				if _, err := scope.AssignVariable(variable.Name, value); err != nil {
+					err.Token = variable.Node.GetToken()
 					w.addError(*err)
-				}
+				}	
 			}
 		}
 	}
@@ -124,7 +122,7 @@ func (w *Walker) repeatStmt(node ast.RepeatStmt, scope *Scope) {
 	}
 
 	if node.Variable.GetValueType() != 0 {
-		repeatScope.DeclareVariable(VariableVal{Name: node.Variable.Name, Value: w.GetNodeValue(node.Start, scope), Node: node})
+		repeatScope.DeclareVariable(VariableVal{Name: node.Variable.Name.Lexeme, Value: w.GetNodeValue(node.Start, scope), Node: node})
 	}
 
 	body := node.Body
@@ -137,7 +135,7 @@ func (w *Walker) tickStmt(node ast.TickStmt, scope *Scope) {
 	tickScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
 
 	if node.Variable.GetValueType() != 0 {
-		tickScope.DeclareVariable(VariableVal{Name: node.Variable.Name})
+		tickScope.DeclareVariable(VariableVal{Name: node.Variable.Name.Lexeme})
 	}
 
 	for _, nod := range node.Body {
