@@ -16,6 +16,16 @@ type Global struct {
 	foreignTypes map[string]Value
 }
 
+func NewGlobal() Global {
+	return Global{
+		Scope: Scope{
+			Global:    nil,
+			Parent:    nil,
+			Variables: make(map[string]VariableVal),
+		},
+	}
+}
+
 type Scope struct {
 	Global    *Global
 	Parent    *Scope
@@ -28,6 +38,34 @@ func (w *Walker) error(token lexer.Token, msg string) {
 
 func (w *Walker) addError(err ast.Error) {
 	w.Errors = append(w.Errors, err)
+}
+
+func (w *Walker) GetValue(pvt ast.PrimitiveValueType) Value {
+	switch pvt {
+	case ast.Number:
+		return NumberVal{}
+	case ast.FixedPoint:
+		return FixedVal{}
+	case ast.Bool:
+		return BoolVal{}
+	case ast.List:
+		return ListVal{}
+	case ast.Map:
+		return MapVal{}
+	case ast.Func:
+		return CallVal{}
+	case ast.Nil:
+		return NilVal{}
+	case ast.String:
+		return StringVal{}
+	case ast.Ident:
+		return VariableVal{}
+	case ast.Undefined:
+		return Unknown{}
+	// TODO: handle structs and entities in the future
+	default:
+		return Unknown{}
+	}
 }
 
 func (s *Scope) GetVariable(name string) VariableVal {
@@ -126,13 +164,13 @@ func (w *Walker) validateArithmeticOperands(left Value, right Value, expr ast.Bi
 	return true
 }
 
-func (w *Walker) Walk(nodes []ast.Node, scope *Scope) []ast.Node {
+func (w *Walker) Walk(nodes []ast.Node, global *Global) []ast.Node {
 	w.nodes = nodes
 
 	newNodes := make([]ast.Node, len(nodes))
 
 	for _, node := range nodes {
-		w.WalkNode(node, scope)
+		w.WalkNode(node, &global.Scope)
 	}
 
 	return newNodes
@@ -166,7 +204,7 @@ func (w *Walker) WalkNode(node ast.Node, scope *Scope) {
 func (w *Walker) GetNodeValue(node ast.Node, scope *Scope) Value {
 	switch newNode := node.(type) {
 	case ast.LiteralExpr:
-		return w.literalExpr(newNode, scope)
+		return w.literalExpr(newNode)
 	case ast.BinaryExpr:
 		return w.binaryExpr(newNode, scope)
 	case ast.IdentifierExpr:
@@ -187,6 +225,6 @@ func (w *Walker) GetNodeValue(node ast.Node, scope *Scope) Value {
 		return w.directiveExpr(newNode, scope)
 	default:
 		w.error(newNode.GetToken(), "Expected expression")
-		return &NilVal{}
+		return NilVal{}
 	}
 }

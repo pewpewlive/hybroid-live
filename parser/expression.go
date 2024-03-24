@@ -220,26 +220,24 @@ func (p *Parser) arguments() []ast.Node {
 
 func (p *Parser) member() ast.Node {
 	expr := p.primary()
-
+	bracketed := false
 	for p.match(lexer.Dot, lexer.LeftBracket) {
 		operator := p.peek(-1)
 
-		prop := p.primary()
+		prop := p.expression()
 		if operator.Type == lexer.Dot && prop.GetType() != ast.Identifier {
 			p.error(p.peek(-1), "expected identifier after '.'")
+			bracketed = false
 		}
 		if operator.Type == lexer.LeftBracket {
-			if prop.GetType() == ast.LiteralExpression && prop.(ast.LiteralExpr).ValueType != ast.String {
-				p.error(prop.(ast.LiteralExpr).Token, "expected string after '['")
-			} else if prop.GetType() != ast.LiteralExpression {
-				p.error(prop.(ast.LiteralExpr).Token, "expected string after '['")
-			}
 			p.consume("expected closing bracket", lexer.RightBracket)
+			bracketed = true
 		}
 
 		expr = ast.MemberExpr{
 			Identifier: expr,
 			Property:   prop,
+			Bracketed:  bracketed,
 			Token:      expr.GetToken(),
 		}
 	}

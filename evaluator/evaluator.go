@@ -3,6 +3,7 @@ package evaluator
 import (
 	"fmt"
 	"hybroid/ast"
+	"hybroid/walker"
 	"strings"
 	"time"
 
@@ -18,7 +19,7 @@ import (
 type Evaluator struct {
 	lexer   *lexer.Lexer
 	parser  *parser.Parser
-	walker  ast.Walker
+	walker  walker.Walker
 	gen     lua.Generator
 	SrcPath string
 	DstPath string
@@ -76,7 +77,9 @@ func (e *Evaluator) Action() error {
 
 	fmt.Println("Walking through the nodes...")
 
-	e.walker.Walk(prog)
+	global := walker.NewGlobal()
+
+	e.walker.Walk(prog, &global)
 	if len(e.walker.Errors) != 0 {
 		colorstring.Println("[red]Failed walking:")
 		for _, err := range e.walker.Errors {
@@ -90,17 +93,8 @@ func (e *Evaluator) Action() error {
 
 	fmt.Println("Generating the lua code...")
 
-	global := lua.Global{
-		Scope: lua.Scope{
-			Global:    nil,
-			Parent:    nil,
-			Variables: make(map[string]lua.Value),
-		},
-	}
-
 	e.gen.Src.Grow(len(sourceFile))
-	global.Scope.Global = &global
-	e.gen.Generate(prog, &global.Scope)
+	e.gen.Generate(prog)
 	if len(e.gen.Errors) != 0 {
 		colorstring.Println("[red]Failed generating:")
 		for _, err := range e.gen.GetErrors() {

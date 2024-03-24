@@ -2,11 +2,10 @@ package generators
 
 import (
 	"hybroid/ast"
-	"hybroid/generators/lua"
 )
 
 type Generator interface {
-	Generate(program []ast.Node, environment *lua.Scope) lua.Value
+	Generate(program []ast.Node) string
 	GetErrors() []ast.Error
 	GetSrc() []byte
 }

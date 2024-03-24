@@ -18,11 +18,11 @@ type VariableVal struct {
 }
 
 func (v VariableVal) GetType() ast.PrimitiveValueType {
-	return ast.Ident
+	return v.Value.GetType()
 }
 
 type MapVal struct {
-	Properties *[]MemberVal
+	Members map[string]VariableVal
 }
 
 func (m MapVal) GetType() ast.PrimitiveValueType {
@@ -43,6 +43,12 @@ type NumberVal struct {
 
 func (n NumberVal) GetType() ast.PrimitiveValueType {
 	return ast.Number
+}
+
+type DirectiveVal struct{}
+
+func (n DirectiveVal) GetType() ast.PrimitiveValueType {
+	return 0
 }
 
 type FixedVal struct {
@@ -70,14 +76,6 @@ func (f CallVal) GetType() ast.PrimitiveValueType {
 	return 0
 }
 
-type MemberVal struct {
-	Value Value
-}
-
-func (m MemberVal) GetType() ast.PrimitiveValueType {
-	return m.Value.GetType()
-}
-
 type BoolVal struct {
 	Val string
 }
@@ -96,7 +94,7 @@ func (b StringVal) GetType() ast.PrimitiveValueType {
 
 type NilVal struct{}
 
-func (n *NilVal) GetType() ast.PrimitiveValueType {
+func (n NilVal) GetType() ast.PrimitiveValueType {
 	return ast.Nil
 }
 

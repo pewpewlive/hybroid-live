@@ -1,13 +1,3 @@
 @Environment(Level)
 
-repeat 100 from 10 by 2 with i{
-    if i == 10 {
-        
-    }
-}
-
-fn fun(){
-
-}
-
-let a = fun()
+let a = 100

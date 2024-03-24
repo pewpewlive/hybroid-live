@@ -3,23 +3,21 @@ package walker
 import (
 	"hybroid/ast"
 	"hybroid/lexer"
+	"hybroid/parser"
 )
 
 func (w *Walker) ifStmt(node ast.IfStmt, scope *Scope) {
 	ifScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
-	var returnValType ast.PrimitiveValueType
 
-	body := node.Body
-
-	for _, stmt := range body {
-		if stmt.GetType() == ast.ReturnStatement {
-			returnStmt := stmt.(ast.ReturnStmt)
-			for _, arg := range returnStmt.Args {
-				value := w.GetNodeValue(arg, scope)
-			}
-		}
-
-	} // nvm
+	for _, stmt := range node.Body {
+		w.WalkNode(stmt, &ifScope)
+		// if stmt.GetType() == ast.ReturnStatement {
+		// 	returnStmt := stmt.(ast.ReturnStmt)
+		// 	for _, arg := range returnStmt.Args {
+		// 		value := w.GetNodeValue(arg, scope)
+		// 	}
+		// }
+	}
 }
 
 func (w *Walker) assignmentStmt(assignStmt ast.AssignmentStmt, scope *Scope) {
@@ -73,7 +71,7 @@ func (w *Walker) functionDeclarationStmt(node ast.FunctionDeclarationStmt, scope
 	var returnStmts []ReturnValue
 	variable := VariableVal{
 		Name:  node.Name.Lexeme,
-		Value: &CallVal{params: node.Params},
+		Value: CallVal{params: node.Params},
 		Node:  node,
 	}
 	if _, success := scope.DeclareVariable(variable); !success {
@@ -117,15 +115,15 @@ func (w *Walker) repeatStmt(node ast.RepeatStmt, scope *Scope) {
 	start := w.GetNodeValue(node.Start, scope)
 	skip := w.GetNodeValue(node.Skip, scope)
 
-	if end.GetType() != ast.Number && end.GetType() != ast.FixedPoint {
-		//error
+	if !parser.IsFx(end.GetType()) && end.GetType() != ast.Number {
+		w.error(node.Iterator.GetToken(), "invalid value type of iterator")
 	}
 
 	repeatType := end.GetType()
 
-	if (repeatType != start.GetType() || start.GetType() != 0) &&
-		(repeatType != skip.GetType() || skip.GetType() != 0) {
-		// errror
+	if (repeatType != start.GetType() || start.GetType() == 0) &&
+		(repeatType != skip.GetType() || skip.GetType() == 0) {
+		w.error(node.Start.GetToken(), "all value types must be the same")
 	}
 
 	if node.Variable.GetValueType() != 0 {
@@ -154,7 +152,7 @@ func GetValue(values []Value, index int) Value {
 	if index <= len(values)-1 {
 		return values[index]
 	} else {
-		return &NilVal{}
+		return NilVal{}
 	}
 }
 

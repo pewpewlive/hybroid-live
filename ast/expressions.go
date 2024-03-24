@@ -96,6 +96,7 @@ func (n CallExpr) GetValueType() PrimitiveValueType {
 type MemberExpr struct {
 	Identifier Node
 	Property   Node
+	Bracketed  bool
 	Token      lexer.Token
 }
 

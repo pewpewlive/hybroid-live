@@ -4,98 +4,58 @@ import (
 	"fmt"
 	"hybroid/ast"
 	"hybroid/lexer"
-	"strings"
 )
 
 func (gen *Generator) ifStmt(node ast.IfStmt) string {
-	ifScope := Scope{Global: scope.Global, Parent: scope, Count: scope.Count + 1, Variables: map[string]Value{}}
-	var returnValType ast.PrimitiveValueType
-
 	ifTabs := gen.getTabs()
 
 	gen.TabsCount += 1
 	tabs := gen.getTabs()
 
-	gen.Src.Append(ifTabs, "if ")
-
-	expr := gen.GenerateNode(node.BoolExpr, scope)
-	gen.Src.Append(expr.Val, " then\n")
+	gen.Src.Append(ifTabs, "if ", gen.GenerateNode(node.BoolExpr), " then\n")
 
 	body := node.Body
-
 	for _, stmt := range body {
-		value := gen.GenerateNode(stmt, &ifScope)
-		if stmt.GetType() == ast.ReturnStatement {
-			returnValType = value.Type
-		}
-		gen.Src.Append(tabs, value.Val, "\n")
+		gen.Src.Append(tabs, gen.GenerateNode(stmt), "\n")
 	}
 
 	gen.Src.Append(ifTabs, "end\n")
 
 	gen.TabsCount -= 1
 
-	return Value{Type: returnValType, Token: node.Token, Val: ""}
+	return ""
 }
 
-func (gen *Generator) assignmentStmt(assginStmt ast.AssignmentStmt, scope *Scope) Value {
-	//if node.Expression.NodeType != parser.Identifier {
-	//	gen.error(node.Expression.Token, "expected an identifier to assign to")
-	//}
+func (gen *Generator) assignmentStmt(assginStmt ast.AssignmentStmt) string {
+	src := StringBuilder{}
 
-	src := strings.Builder{}
-
-	hasFuncs := false
-
-	genIdents := []Value{}
 	for i, ident := range assginStmt.Identifiers {
-		ident := gen.GenerateNode(ident, scope)
-		genIdents = append(genIdents, ident)
+		ident := gen.GenerateNode(ident)
 		if i == len(assginStmt.Identifiers)-1 {
-			src.WriteString(ident.Val)
+			src.Append(ident)
 		} else {
-			src.WriteString(fmt.Sprintf("%s, ", ident.Val))
+			src.Append(ident, ", ")
 		}
 	}
-	src.WriteString(" = ")
+	src.Append(" = ")
 
 	for i, rightValue := range assginStmt.Values {
-		if rightValue.GetType() == ast.CallExpression {
-			hasFuncs = true
-		}
-		value := gen.GenerateNode(rightValue, scope) // mpathingthing
-		if i > len(genIdents)-1 {
-			src.WriteString(value.Val)
+		value := gen.GenerateNode(rightValue)
+		if i > len(assginStmt.Identifiers)-1 {
+			src.Append(value)
 			break
 		}
 		if i == len(assginStmt.Values)-1 {
-			src.WriteString(value.Val)
+			src.Append(value)
 		} else {
-			src.WriteString(fmt.Sprintf("%s, ", value.Val))
-		}
-		if assginStmt.Identifiers[i].GetType() != ast.MemberExpression {
-			if _, success := scope.AssignVariable(genIdents[i].Val, value); !success {
-				gen.error(genIdents[i].Token, "cannot assign a value to an undeclared variable")
-			}
+			src.Append(value, ", ")
 		}
 	}
 
-	if len(assginStmt.Values) < len(assginStmt.Identifiers) && !hasFuncs {
-		gen.error(assginStmt.Values[len(assginStmt.Values)-1].GetToken(), "not enough values provided in assignment")
-	} else if len(assginStmt.Values) > len(assginStmt.Identifiers) {
-		gen.error(assginStmt.Values[len(assginStmt.Values)-1].GetToken(), "too many values provided in assignment")
-	}
-
-	return Value{Type: ast.Undefined, Token: assginStmt.Token, Val: src.String()}
+	return src.String()
 }
 
-func (gen *Generator) functionDeclarationStmt(node ast.FunctionDeclarationStmt, scope *Scope) Value {
-	fnScope := Scope{Global: scope.Global, Parent: scope, Count: scope.Count + 1, Variables: map[string]Value{}}
-	var returnValType ast.PrimitiveValueType
-	if _, success := scope.DeclareVariable(node.Name.Lexeme, Value{}); !success {
-		gen.error(node.Name, "cannot redeclare a function")
-	}
-
+func (gen *Generator) functionDeclarationStmt(node ast.FunctionDeclarationStmt) string {
 	fnTabs := gen.getTabs()
 
 	gen.TabsCount += 1
@@ -107,14 +67,9 @@ func (gen *Generator) functionDeclarationStmt(node ast.FunctionDeclarationStmt, 
 		gen.Src.Append(fnTabs)
 	}
 
-	if scope.Parent != nil && !node.IsLocal {
-		gen.error(node.GetToken(), "cannot declare a global function inside a local block")
-	}
-
 	gen.Src.Append("function ", node.Name.Lexeme, "(")
 	for i, param := range node.Params {
 		gen.Src.Append(param.Lexeme)
-		fnScope.DeclareVariable(param.Lexeme, Value{})
 		if i != len(node.Params)-1 {
 			gen.Src.Append(", ")
 		}
@@ -122,71 +77,61 @@ func (gen *Generator) functionDeclarationStmt(node ast.FunctionDeclarationStmt, 
 	gen.Src.Append(")\n")
 
 	for _, stmt := range node.Body {
-		value := gen.GenerateNode(stmt, &fnScope)
-		if stmt.GetType() == ast.ReturnStatement {
-			returnValType = value.Type
-		}
-		gen.Src.Append(tabs, value.Val, "\n")
+		gen.Src.Append(tabs, gen.GenerateNode(stmt), "\n")
 	}
 
 	gen.Src.Append(fnTabs + "end\n")
 
 	gen.TabsCount -= 1
 
-	fnScope.AssignVariable(node.Name.Lexeme, Value{Type: returnValType, Val: ""})
-	return Value{Type: returnValType, Token: node.GetToken(), Val: ""}
+	return ""
 }
 
-func (gen *Generator) returnStmt(node ast.ReturnStmt, scope *Scope) Value {
-	src := strings.Builder{}
+func (gen *Generator) returnStmt(node ast.ReturnStmt) string {
+	src := StringBuilder{}
 
-	src.WriteString("return ")
+	src.Append("return ")
 	for i, expr := range node.Args {
-		val := gen.GenerateNode(expr, scope)
-		src.WriteString(val.Val)
+		val := gen.GenerateNode(expr)
+		src.Append(val)
 		if i != len(node.Args)-1 {
-			src.WriteString(", ")
+			src.Append(", ")
 		}
 	}
 
-	// TODO: Make it not undefined
-	return Value{Type: ast.Undefined, Token: node.Token, Val: src.String()}
+	return src.String()
 }
 
-func (gen *Generator) repeatStmt(node ast.RepeatStmt, scope *Scope) Value {
-	repeatScope := Scope{Global: scope.Global, Parent: scope, Count: scope.Count + 1, Variables: map[string]Value{}}
+func (gen *Generator) repeatStmt(node ast.RepeatStmt) string {
 
 	repeatTabs := gen.getTabs()
 
 	gen.TabsCount += 1
 	tabs := gen.getTabs()
 
-	end := gen.GenerateNode(node.Iterator, scope)
-	start := gen.GenerateNode(node.Start, scope)
-	skip := gen.GenerateNode(node.Skip, scope)
+	end := gen.GenerateNode(node.Iterator)
+	start := gen.GenerateNode(node.Start)
+	skip := gen.GenerateNode(node.Skip)
 	if node.Variable.GetValueType() != 0 {
-		repeatScope.DeclareVariable(node.Variable.Name, Value{Token: node.Variable.Token, Type: ast.Number, Val: start.Val})
-		variable := gen.GenerateNode(node.Variable, &repeatScope)
-		gen.Src.Append(repeatTabs, "for ", variable.Val, " = ", start.Val, ", ", end.Val, ", ", skip.Val, " do\n")
+		variable := gen.GenerateNode(node.Variable)
+		gen.Src.Append(repeatTabs, "for ", variable, " = ", start, ", ", end, ", ", skip, " do\n")
 	} else {
-		gen.Src.Append(repeatTabs, "for i = ", start.Val, ", ", end.Val, ", ", skip.Val, " do\n")
+		gen.Src.Append(repeatTabs, "for i = ", start, ", ", end, ", ", skip, " do\n")
 	}
 
-	body := node.Body
-	for _, stmt := range body {
-		value := gen.GenerateNode(stmt, &repeatScope)
-		gen.Src.Append(tabs, value.Val, "\n")
+	for _, stmt := range node.Body {
+		value := gen.GenerateNode(stmt)
+		gen.Src.Append(tabs, value, "\n")
 	}
 
 	gen.Src.Append(repeatTabs, "end\n")
 
 	gen.TabsCount -= 1
 
-	return Value{Token: node.Token, Val: ""}
+	return ""
 }
 
-func (gen *Generator) tickStmt(node ast.TickStmt, scope *Scope) Value {
-	tickScope := Scope{Global: scope.Global, Parent: scope, Count: scope.Count + 1, Variables: map[string]Value{}}
+func (gen *Generator) tickStmt(node ast.TickStmt) string {
 
 	repeatTabs := gen.getTabs()
 
@@ -194,61 +139,38 @@ func (gen *Generator) tickStmt(node ast.TickStmt, scope *Scope) Value {
 	tabs := gen.getTabs()
 
 	if node.Variable.GetValueType() != 0 {
-		tickScope.DeclareVariable(node.Variable.Name, Value{Token: node.Variable.Token, Type: ast.Number, Val: "0"})
-		variable := gen.GenerateNode(node.Variable, &tickScope)
-		gen.Src.Append(repeatTabs, "local ", variable.Val, " = 0\n")
+		variable := gen.GenerateNode(node.Variable)
+		gen.Src.Append(repeatTabs, "local ", variable, " = 0\n")
 		gen.Src.Append(repeatTabs, "pewpew.add_update_callback(function()\n")
-		gen.Src.Append(tabs, variable.Val, " = ", variable.Val, " + 1\n")
+		gen.Src.Append(tabs, variable, " = ", variable, " + 1\n")
 	} else {
 		gen.Src.Append(repeatTabs, "pewpew.add_update_callback(function()\n")
 	}
 
-	body := node.Body
-	for _, stmt := range body {
-		value := gen.GenerateNode(stmt, &tickScope)
-		gen.Src.Append(tabs, value.Val, "\n")
+	for _, stmt := range node.Body {
+		value := gen.GenerateNode(stmt)
+		gen.Src.Append(tabs, value, "\n")
 	}
 
 	gen.Src.Append(repeatTabs, "end)\n")
 
 	gen.TabsCount -= 1
 
-	return Value{Token: node.Token, Val: ""}
+	return ""
 }
 
-func GetValue(values []Value, index int) Value {
-	if index <= len(values)-1 {
-		return values[index]
-	} else {
-		return Value{Type: ast.Nil}
-	}
-}
+func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclarationStmt) string {
+	var values []string
 
-func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclarationStmt, scope *Scope) Value {
-	var values []Value
-
-	hasFuncs := false
-	if len(declaration.Values) != 0 {
-		for _, expr := range declaration.Values {
-			if expr.GetType() == ast.CallExpression {
-				hasFuncs = true
-			}
-			values = append(values, gen.GenerateNode(expr, scope))
-		}
+	for _, expr := range declaration.Values {
+		values = append(values, gen.GenerateNode(expr))
 	}
 
 	isLocal := declaration.Token.Type == lexer.Let
-	src := strings.Builder{}
-	src2 := strings.Builder{}
+	src := StringBuilder{}
+	src2 := StringBuilder{}
 	if isLocal {
 		src.WriteString("local ")
-	} else {
-		if scope.Parent != nil {
-			gen.error(declaration.Token, "cannot declare a global variable inside a local block")
-		}
-		if len(values) == 0 {
-			gen.error(declaration.Token, "cannot declare a global without a value")
-		}
 	}
 	for i, ident := range declaration.Identifiers {
 		if i == len(declaration.Identifiers)-1 && len(values) != 0 {
@@ -259,29 +181,19 @@ func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclaratio
 			src.WriteString(fmt.Sprintf("%s, ", ident))
 		}
 	}
-	for i, ident := range declaration.Identifiers {
-		if i > len(declaration.Identifiers)-1 {
-			src2.WriteString(GetValue(values, i).Val)
+	for i := range declaration.Identifiers {
+		if i == len(declaration.Identifiers)-1 {
+			src2.WriteString(values[i])
 			break
 		}
 		if i == len(declaration.Identifiers)-1 {
-			src2.WriteString(GetValue(values, i).Val)
+			src2.WriteString(values[i])
 		} else {
-			src2.WriteString(fmt.Sprintf("%s, ", GetValue(values, i).Val))
+			src2.WriteString(fmt.Sprintf("%s, ", values[i]))
 		}
-		if _, success := scope.DeclareVariable(ident, GetValue(values, i)); !success {
-			gen.error(lexer.Token{Lexeme: ident, Location: declaration.Token.Location},
-				"cannot declare a value in the same scope twice")
-		}
-	}
-
-	if len(values) > len(declaration.Identifiers) {
-		gen.error(declaration.Token, "too many values provided in declaration")
-	} else if len(values) < len(declaration.Identifiers) && !hasFuncs && !isLocal {
-		gen.error(declaration.Token, "too few values provided in declaration")
 	}
 
 	src.WriteString(src2.String())
 
-	return Value{Type: ast.Nil, Token: declaration.Token, Val: src.String()}
+	return src.String()
 }
