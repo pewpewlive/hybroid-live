@@ -1,8 +1,11 @@
 
 for i = 10, 100, 2 do
+	if i == 10 then
+	end
+	
 end
 
-local xd = {1} + {1}
-if xd == xd then
+local function fun()
 end
 
+local a = fun()

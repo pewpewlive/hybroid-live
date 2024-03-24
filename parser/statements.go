@@ -2,19 +2,20 @@ package parser
 
 import (
 	"hybroid/ast"
+	"hybroid/err"
 	"hybroid/lexer"
 )
 
 func (p *Parser) statement() ast.Node {
 	defer func() {
-		if err := recover(); err != nil {
+		if errMsg := recover(); errMsg != nil {
 			// If the error is a parseError, synchronize to
 			// the next statement. If not, propagate the panic.
-			if _, ok := err.(ParserError); ok {
+			if _, ok := errMsg.(err.Error); ok {
 				//p. = true
 				p.synchronize()
 			} else {
-				panic(err)
+				panic(errMsg)
 			}
 		}
 	}()
@@ -235,6 +236,12 @@ func (p *Parser) repeatStmt() ast.Node {
 		Token: p.peek(-1),
 	}
 
+	gotIterator := false
+	if !p.check(lexer.With) && !p.check(lexer.To) && !p.check(lexer.By) && !p.check(lexer.From) {
+		repeatStmt.Iterator = p.expression()
+		gotIterator = true
+	}
+
 	repeatStmt.Skip = ast.LiteralExpr{Value: "1", ValueType: ast.Number, Token: repeatStmt.Token}
 	repeatStmt.Start = ast.LiteralExpr{Value: "1", ValueType: ast.Number, Token: repeatStmt.Token}
 
@@ -247,12 +254,30 @@ func (p *Parser) repeatStmt() ast.Node {
 			}
 			repeatStmt.Variable = identExpr.(ast.IdentifierExpr)
 		} else if p.match(lexer.To) {
-			repeatStmt.Iterator = p.expression()
+			if gotIterator {
+				p.error(p.peek(-1), "unnecessary redefinition of iterator")
+			} else {
+				repeatStmt.Iterator = p.expression()
+				if repeatStmt.Iterator.GetType() == ast.NA {
+					p.error(repeatStmt.Iterator.GetToken(), "unknown expression after keyword 'to'")
+				}
+			}
 		} else if p.match(lexer.By) {
 			repeatStmt.Skip = p.expression()
+			if repeatStmt.Skip.GetType() == ast.NA {
+				p.error(repeatStmt.Skip.GetToken(), "unknown expression after keyword 'by'")
+			}
 		} else if p.match(lexer.From) {
 			repeatStmt.Start = p.expression()
+			if repeatStmt.Start.GetType() == ast.NA {
+				p.error(repeatStmt.Start.GetToken(), "unknown expression after keyword 'from'")
+			}
 		}
+	}
+
+	if repeatStmt.Iterator == nil {
+		p.error(repeatStmt.Token, "no iterator provided in repeat statement")
+		repeatStmt.Iterator = ast.LiteralExpr{Token: repeatStmt.Token, Value: "1", ValueType: ast.Number}
 	}
 
 	body := make([]ast.Node, 0)

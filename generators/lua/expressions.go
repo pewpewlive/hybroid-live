@@ -122,8 +122,11 @@ func (gen *Generator) mapExpr(node ast.MapExpr, scope *Scope) Value {
 
 	src.WriteString("{\n")
 	index := 0
+	values := []Value{}
 	for k, v := range node.Map {
 		val := gen.GenerateNode(v.Expr, scope)
+
+		values = append(values, val)
 
 		if index != len(node.Map)-1 {
 			src.WriteString(fmt.Sprintf("%s%s = %v,\n", mapTabs, k, val.Val))
@@ -137,7 +140,7 @@ func (gen *Generator) mapExpr(node ast.MapExpr, scope *Scope) Value {
 
 	gen.TabsCount -= 1
 
-	return Value{Type: ast.Map, Token: node.Token, Val: src.String()}
+	return Value{Type: ast.Map, Token: node.Token, Val: src.String(), properties: &values}
 }
 
 func (gen *Generator) unaryExpr(node ast.UnaryExpr, scope *Scope) Value {

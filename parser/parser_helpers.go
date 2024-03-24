@@ -2,17 +2,13 @@ package parser
 
 import (
 	"hybroid/ast"
+	"hybroid/err"
 	"hybroid/lexer"
 )
 
-type ParserError struct {
-	Token   lexer.Token
-	Message string
-}
-
 // Appends an error to the ParserErrors
-func (p *Parser) error(token lexer.Token, err string) {
-	errMsg := ParserError{token, err}
+func (p *Parser) error(token lexer.Token, msg string) {
+	errMsg := err.Error{Token: token, Message: msg}
 	p.Errors = append(p.Errors, errMsg)
 	panic(errMsg)
 }

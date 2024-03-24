@@ -2,10 +2,12 @@ package evaluator
 
 import (
 	"fmt"
+	"hybroid/ast"
 	"strings"
 	"time"
 
 	//"hybroid/generators"
+	"hybroid/err"
 	"hybroid/generators/lua"
 	"hybroid/lexer"
 	"hybroid/parser"
@@ -17,9 +19,10 @@ import (
 type Evaluator struct {
 	lexer   *lexer.Lexer
 	parser  *parser.Parser
+	walker  ast.Walker
+	gen     lua.Generator
 	SrcPath string
 	DstPath string
-	gen     lua.Generator
 }
 
 func New(gen lua.Generator) Evaluator {
@@ -53,7 +56,7 @@ func (e *Evaluator) Action() error {
 		return fmt.Errorf("failed to tokenize source file")
 	}
 
-	fmt.Printf("Tokenizing time: %v seconds\n", time.Since(start).Seconds())
+	fmt.Printf("Tokenizing time: %v seconds\n\n", time.Since(start).Seconds())
 
 	fmt.Printf("Parsing %v tokens\n", len(e.lexer.Tokens))
 
@@ -69,6 +72,19 @@ func (e *Evaluator) Action() error {
 	}
 
 	fmt.Printf("Parsing time: %v seconds\n\n", time.Since(start).Seconds())
+
+	fmt.Println("Walking through the nodes...")
+
+	e.walker.Walk(prog)
+	if len(e.walker.Errors) != 0 {
+		colorstring.Println("[red]Failed walking:")
+		for _, err := range e.walker.Errors {
+			colorstring.Printf("[red]Error: %+v\n", err)
+		}
+		return fmt.Errorf("failed to walk through the nodes")
+	}
+
+	fmt.Printf("Walking time: %v seconds\n\n", time.Since(start).Seconds())
 
 	fmt.Println("Generating the lua code...")
 
@@ -89,7 +105,7 @@ func (e *Evaluator) Action() error {
 			colorstring.Printf("[red]Error: %+v\n", err)
 		}
 	}
-	fmt.Printf("Build time: %v seconds\n", time.Since(start).Seconds())
+	fmt.Printf("Generating time: %v seconds\n", time.Since(start).Seconds())
 
 	err = os.WriteFile(e.DstPath, []byte(e.gen.GetSrc()), 0644)
 	if err != nil {
@@ -99,8 +115,8 @@ func (e *Evaluator) Action() error {
 	return nil
 }
 
-func (e *Evaluator) writeSyntaxError(source string, err parser.ParserError) {
-	token := err.Token
+func (e *Evaluator) writeSyntaxError(source string, errMsg err.Error) {
+	token := errMsg.Token
 
 	sourceLines := strings.Split(source, "\n")
 	line := sourceLines[token.Location.LineStart-1]
@@ -112,5 +128,5 @@ func (e *Evaluator) writeSyntaxError(source string, err parser.ParserError) {
 	} else {
 		fmt.Printf("%s%s^\n", strings.Repeat(" ", token.Location.ColStart-6), strings.Repeat("-", 5))
 	}
-	fmt.Println("message: " + err.Message + "\n")
+	fmt.Println("message: " + errMsg.Message + "\n")
 }
