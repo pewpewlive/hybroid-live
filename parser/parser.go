@@ -3,18 +3,17 @@ package parser
 import (
 	"hybroid/ast"
 	"hybroid/lexer"
-	"hybroid/err"
 )
 
 type Parser struct {
 	program []ast.Node
 	current int
 	tokens  []lexer.Token
-	Errors  []err.Error
+	Errors  []ast.Error
 }
 
 func New() *Parser {
-	return &Parser{make([]ast.Node, 0), 0, make([]lexer.Token, 0), make([]err.Error, 0)}
+	return &Parser{make([]ast.Node, 0), 0, make([]lexer.Token, 0), make([]ast.Error, 0)}
 }
 
 func (p *Parser) AssignTokens(tokens []lexer.Token) {

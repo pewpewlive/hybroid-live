@@ -2,13 +2,12 @@ package parser
 
 import (
 	"hybroid/ast"
-	"hybroid/err"
 	"hybroid/lexer"
 )
 
 // Appends an error to the ParserErrors
 func (p *Parser) error(token lexer.Token, msg string) {
-	errMsg := err.Error{Token: token, Message: msg}
+	errMsg := ast.Error{Token: token, Message: msg}
 	p.Errors = append(p.Errors, errMsg)
 	panic(errMsg)
 }

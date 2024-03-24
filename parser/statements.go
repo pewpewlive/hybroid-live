@@ -2,7 +2,6 @@ package parser
 
 import (
 	"hybroid/ast"
-	"hybroid/err"
 	"hybroid/lexer"
 )
 
@@ -11,7 +10,7 @@ func (p *Parser) statement() ast.Node {
 		if errMsg := recover(); errMsg != nil {
 			// If the error is a parseError, synchronize to
 			// the next statement. If not, propagate the panic.
-			if _, ok := errMsg.(err.Error); ok {
+			if _, ok := errMsg.(ast.Error); ok {
 				//p. = true
 				p.synchronize()
 			} else {

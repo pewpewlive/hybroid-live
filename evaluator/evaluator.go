@@ -7,7 +7,6 @@ import (
 	"time"
 
 	//"hybroid/generators"
-	"hybroid/err"
 	"hybroid/generators/lua"
 	"hybroid/lexer"
 	"hybroid/parser"
@@ -57,6 +56,7 @@ func (e *Evaluator) Action() error {
 	}
 
 	fmt.Printf("Tokenizing time: %v seconds\n\n", time.Since(start).Seconds())
+	start = time.Now()
 
 	fmt.Printf("Parsing %v tokens\n", len(e.lexer.Tokens))
 
@@ -72,6 +72,7 @@ func (e *Evaluator) Action() error {
 	}
 
 	fmt.Printf("Parsing time: %v seconds\n\n", time.Since(start).Seconds())
+	start = time.Now()
 
 	fmt.Println("Walking through the nodes...")
 
@@ -85,6 +86,7 @@ func (e *Evaluator) Action() error {
 	}
 
 	fmt.Printf("Walking time: %v seconds\n\n", time.Since(start).Seconds())
+	start = time.Now()
 
 	fmt.Println("Generating the lua code...")
 
@@ -115,7 +117,7 @@ func (e *Evaluator) Action() error {
 	return nil
 }
 
-func (e *Evaluator) writeSyntaxError(source string, errMsg err.Error) {
+func (e *Evaluator) writeSyntaxError(source string, errMsg ast.Error) {
 	token := errMsg.Token
 
 	sourceLines := strings.Split(source, "\n")

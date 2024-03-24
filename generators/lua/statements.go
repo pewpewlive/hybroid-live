@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func (gen *Generator) ifStmt(node ast.IfStmt, scope *Scope) Value {
+func (gen *Generator) ifStmt(node ast.IfStmt) string {
 	ifScope := Scope{Global: scope.Global, Parent: scope, Count: scope.Count + 1, Variables: map[string]Value{}}
 	var returnValType ast.PrimitiveValueType
 
