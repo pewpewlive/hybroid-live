@@ -7,19 +7,15 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"hybroid/err"
 )
-
-type GenError struct {
-	Token   lexer.Token
-	Message string
-}
 
 // func (ge *GenError) generatorError() string {
 // 	return fmt.Sprintf("Error: %v, at line: %v (%v)", ge.Message, ge.Token.Location.LineStart, ge.Token.ToString())
 // }
 
 func (gen *Generator) error(token lexer.Token, message string) {
-	gen.Errors = append(gen.Errors, GenError{token, message})
+	gen.Errors = append(gen.Errors, err.Error{Token: token, Message: message})
 }
 
 type StringBuilder struct {
@@ -33,7 +29,7 @@ func (sb *StringBuilder) Append(chunks ...string) {
 }
 
 type Generator struct {
-	Errors    []GenError
+	Errors    []err.Error
 	Src       StringBuilder
 	TabsCount int
 }
@@ -101,7 +97,7 @@ func (gen *Generator) validateArithmeticOperands(left Value, right Value, expr a
 	return true
 }
 
-func (gen Generator) GetErrors() []GenError {
+func (gen Generator) GetErrors() []err.Error {
 	return gen.Errors
 }
 

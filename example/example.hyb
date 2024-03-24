@@ -1,9 +1,9 @@
 @Environment(Level)
 
-repeat with i from 9.5 by 2f to 100 {
-}
-
-repeat 100 from 10 by 3 {
+repeat 100 from 10 by 2 with i{
+    if i == 10 {
+        
+    }
 }
 
 fn fun(){

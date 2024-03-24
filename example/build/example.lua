@@ -1,8 +1,8 @@
 
-for i = 9.2048fx, 100fx, 2fx do
-end
-
-for i = 10, 100, 3 do
+for i = 10, 100, 2 do
+	if i == 10 then
+	end
+	
 end
 
 local function fun()

@@ -3,16 +3,12 @@ package parser
 import (
 	"hybroid/ast"
 	"hybroid/lexer"
+	"hybroid/err"
 )
 
-type ParserError struct {
-	Token   lexer.Token
-	Message string
-}
-
 // Appends an error to the ParserErrors
-func (p *Parser) error(token lexer.Token, err string) {
-	p.Errors = append(p.Errors, ParserError{token, err})
+func (p *Parser) error(token lexer.Token, msg string) {
+	p.Errors = append(p.Errors, err.Error{Token: token, Message: msg})
 }
 
 // Creates a BinaryExpr

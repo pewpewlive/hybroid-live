@@ -3,17 +3,18 @@ package parser
 import (
 	"hybroid/ast"
 	"hybroid/lexer"
+	"hybroid/err"
 )
 
 type Parser struct {
 	program []ast.Node
 	current int
 	tokens  []lexer.Token
-	Errors  []ParserError
+	Errors  []err.Error
 }
 
 func New() *Parser {
-	return &Parser{make([]ast.Node, 0), 0, make([]lexer.Token, 0), make([]ParserError, 0)}
+	return &Parser{make([]ast.Node, 0), 0, make([]lexer.Token, 0), make([]err.Error, 0)}
 }
 
 func (p *Parser) AssignTokens(tokens []lexer.Token) {
@@ -40,7 +41,7 @@ func (p *Parser) getOp(opEqual lexer.Token) lexer.Token {
 }
 
 func (p *Parser) ParseTokens() []ast.Node {
-	// Expect environment directive call as node
+	// Expect environment directive call as the first node
 	statement := p.statement()
 	if !p.verifyEnvironmentDirective(statement) {
 		return p.program
