@@ -1,9 +1,5 @@
 @Environment(Level)
 
-let map = [1]
+let map = {a: {b:3}}
 
-//map = 4f
-
-repeat 10 with i {
-    let idk = map["a"].a[1].b.c.p - i
-}
+let p = 1f-map["a"].b

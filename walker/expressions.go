@@ -64,7 +64,7 @@ func (w *Walker) identifierExpr(node ast.IdentifierExpr, scope *Scope) Value {
 		newValue := sc.GetVariable(node.Name.Lexeme)
 		return newValue
 	} else {
-		w.error(node.Name, "unknown identifier")
+		//w.error(node.Name, "unknown identifier")
 		return Unknown{}
 	}
 }
@@ -136,74 +136,65 @@ func (w *Walker) parentExpr(node ast.ParentExpr, scope *Scope) Value {
 		return Unknown{}
 	}
 
-	if _, ok := member.Property.(ast.IdentifierExpr); ok {
-		if variable.GetType() == ast.List {
+	propValType := w.GetNodeValue(member.Identifier, scope).GetType()
+	if member.Bracketed {
+		if propValType == ast.Bool || propValType == ast.Entity || propValType == ast.Map || propValType == ast.Nil || propValType == ast.Struct || propValType == ast.Undefined{
+			w.error(member.Property.GetToken(), fmt.Sprintf("property is a %s, which is not allowed map member expressions",ast.PVTString(propValType)))
+			return Unknown{}
+		}
+	}
+
+	if variable.GetType() == ast.List {
+		if !member.Bracketed {
 			w.error(node.Identifier, "variable is not a map but is treated as one")
 			return Unknown{}
 		}
 		return Undefined{}
-	}
-	if member.Property.GetValueType() == ast.String && variable.GetType() == ast.List {
-		w.error(node.Identifier, "variable is not a map but is treated as one")
-		return Unknown{}
-	}else if member.Property.GetValueType() == ast.Number && variable.GetType() == ast.Map {
-		w.error(node.Identifier, "variable is not a list but is treated as one")
-		return Unknown{}
-	}
-	val := w.GetNodeValue(member.Property,scope)
-	return val	
-}
-
-func (w *Walker) memberExpr(node ast.MemberExpr, scope *Scope) Value {
-	identToken := node.Owner.GetToken()
-	sc := scope.Resolve(identToken.Lexeme)
-
-	if sc == nil {
-		w.error(identToken, "undeclared map")
-		return Unknown{}
-	}
-
-	variable := sc.GetVariable(identToken.Lexeme)
-	mapp, ok := variable.Value.(MapVal)
-	_, ok2 := variable.Value.(ListVal)
-
-	if !ok && !ok2 {
-		_, isMemExpr := node.Owner.(ast.MemberExpr)
-		if isMemExpr {
-			return Undefined{}
-		}
-		w.error(identToken, fmt.Sprintf("variable \"%s\" is not a map nor a list", identToken.Lexeme))
-		return Unknown{}
-	}
-	propToken := node.Property.GetToken()
-
-	if ok {
-		if node.Bracketed {
-			val := w.GetNodeValue(node.Property, scope)
-			switch val.GetType() {
-			case ast.Bool, ast.Entity, ast.Nil, ast.Struct, ast.List, ast.Map, ast.FixedPoint, ast.Number:
-				w.error(propToken, "invalid expression inside brackets")
+	}else if variable.GetType() == ast.Map {
+		var val Value
+		if member.Bracketed {
+			if propValType == ast.Number|| propValType == ast.FixedPoint {
+				w.error(member.Property.GetToken(), fmt.Sprintf("property is a %s, which is not allowed map member expressions",ast.PVTString(propValType)))
 				return Unknown{}
 			}
 		}
-		member, _ := findMember(mapp, propToken.Lexeme)
+
+		val = w.mapMemberExpr(variable.Value.(MapVal), node.Member, scope)
+		return val
+	}else {
+		w.error(node.Identifier, "variable is not a map nor a list")
+		return Unknown{}
+	}	
+}
+
+func (w *Walker) mapMemberExpr(mapp MapVal, node ast.Node, scope *Scope) Value {//used for maps only
+	member, success := node.(ast.MemberExpr)
+
+	if !success {
+		mem, _ := findMember(mapp, node.GetToken().Lexeme)
+		return mem
+	}
+	memExpr, ok := member.Property.(ast.MemberExpr)
+	var mem Value
 	
-		return member
-	}else if ok2 {
-		if !node.Bracketed {
-			w.error(propToken, "invalid member expression of a list")
-			return Unknown{}
+	if ok{
+		if member.Bracketed {
+			mem, _ = findMember(mapp, memExpr.GetToken().Literal)
+		}else {
+			mem, _ = findMember(mapp, memExpr.GetToken().Lexeme)
 		}
-		val := w.GetNodeValue(node.Property, scope)
-		switch val.GetType() {
-		case ast.Bool, ast.Entity, ast.Nil, ast.Struct, ast.List, ast.Map, ast.FixedPoint:
-			w.error(propToken, "invalid expression inside brackets")
-			return Unknown{}
+
+		mapp, isMap := mem.(MapVal)
+
+		if isMap {
+			return w.mapMemberExpr(mapp, memExpr, scope)
+		}else {
+			return mem
 		}
+		
+	}else {
 		return Undefined{}
 	}
-
-	return Unknown{}
 }
 
 func findMember(mapp MapVal, name string) (Value, bool) {

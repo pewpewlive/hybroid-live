@@ -56,6 +56,10 @@ const (
 	Undefined
 )
 
+func PVTString(pvt PrimitiveValueType) string {
+	return [...]string{ "unknown","number", "string", "bool", "fixedpoint", "fixed", "radian", "degree", "list", "map", "nil", "func", "entity", "struct", "identifier", "undefined"}[pvt]
+}
+
 type Node interface {
 	GetType() NodeType
 	GetToken() lexer.Token

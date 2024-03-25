@@ -13,10 +13,11 @@ func (p *Parser) expression() ast.Node {
 func (p *Parser) list() ast.Node {
 	token := p.peek(-1)
 	list := make([]ast.Node, 0)
-	for !p.check(lexer.RightBracket) {
+	for !p.match(lexer.RightBracket) {
 		exprInList := p.expression()
-		if exprInList.GetType() == 0 {
+		if exprInList.GetType() == ast.NA  {
 			p.error(p.peek(), "expected expression")
+			break
 		}
 
 		token, _ := p.consume("expected ',' or ']' after expression", lexer.Comma, lexer.RightBracket)
@@ -169,6 +170,10 @@ func (p *Parser) parent() ast.Node {
 	expr := p.primary()
 
 	if p.check(lexer.Dot) || p.check(lexer.LeftBracket) {
+		if expr.GetType() != ast.Identifier {
+			p.error(p.peek(), "expected an identifier before '.'")
+			return ast.Unknown{Token:p.peek()}
+		}
 		expr2 := p.memberCall(expr)
 		expr := ast.ParentExpr{
 			Identifier: expr.GetToken(),
@@ -234,7 +239,7 @@ func (p *Parser) arguments() []ast.Node {
 }
 
 func (p *Parser) member(owner ast.Node) ast.Node {// var["member"].member
-	var expr ast.Node
+	var expr ast.MemberExpr
 	bracketed := false
 	if p.match(lexer.Dot, lexer.LeftBracket) {
 		operator := p.peek(-1)
@@ -256,11 +261,12 @@ func (p *Parser) member(owner ast.Node) ast.Node {// var["member"].member
 			Owner: owner,
 			Property:   prop,
 			Bracketed:  bracketed,
-			Token:      prop.GetToken(),
+			Identifier:      prop,
 		}
 
 		if p.check(lexer.Dot) || p.check(lexer.LeftBracket) {
-			expr = p.memberCall(expr)
+			expr2 := p.memberCall(expr)
+			expr.Property = expr2
 		}
 	}
 
@@ -339,6 +345,5 @@ func (p *Parser) primary() ast.Node {
 		return ast.GroupExpr{Expr: expr, Token: token, ValueType: expr.GetValueType()}
 	}
 
-	p.error(p.peek(), "expected expression")
-	return ast.Unknown{}
+	return ast.Unknown{Token: p.peek()}
 }

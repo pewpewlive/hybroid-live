@@ -1,6 +1,7 @@
 
-local map = {1}
-for i = 1, 10, 1 do
-	local idk = map["a"].a[1].b.c.p - i
-end
-
+local map = {
+	a = {
+		b = 3
+	}
+}
+local p = 1fx - map["a"].b

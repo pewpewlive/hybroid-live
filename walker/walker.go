@@ -220,8 +220,6 @@ func (w *Walker) GetNodeValue(node ast.Node, scope *Scope) Value {
 		return w.callExpr(newNode, scope)
 	case ast.MapExpr:
 		return w.mapExpr(newNode, scope)
-	case ast.MemberExpr:
-		return w.memberExpr(newNode, scope)
 	case ast.DirectiveExpr:
 		return w.directiveExpr(newNode, scope)
 	case ast.ParentExpr:

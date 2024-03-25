@@ -96,8 +96,8 @@ func (n CallExpr) GetValueType() PrimitiveValueType {
 type MemberExpr struct {
 	Owner Node
 	Property   Node
+	Identifier Node
 	Bracketed  bool
-	Token      lexer.Token
 }
 
 func (me MemberExpr) GetType() NodeType {
@@ -105,7 +105,7 @@ func (me MemberExpr) GetType() NodeType {
 }
 
 func (n MemberExpr) GetToken() lexer.Token {
-	return n.Token
+	return n.Identifier.GetToken()
 }
 
 func (n MemberExpr) GetValueType() PrimitiveValueType {
@@ -155,12 +155,11 @@ func (n ListExpr) GetValueType() PrimitiveValueType {
 
 type ParentExpr struct {
 	Identifier lexer.Token
-	NodeType NodeType
 	Member Node
 }
 
 func (p ParentExpr) GetType() NodeType {
-	return p.NodeType
+	return p.Member.GetType()
 }
 
 func (p ParentExpr) GetToken() lexer.Token {

@@ -108,6 +108,9 @@ func (gen *Generator) parentExpr(node ast.ParentExpr) string {
 func (gen *Generator) memberExpr(node ast.MemberExpr) string {
 	src := StringBuilder{}
 
+	if node.Property.GetType() == ast.MemberExpression {
+		return gen.memberExpr(node.Property.(ast.MemberExpr))
+	}
 	expr := gen.GenerateNode(node.Owner)
 	prop := gen.GenerateNode(node.Property)
 
