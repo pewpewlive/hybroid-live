@@ -174,26 +174,19 @@ func (w *Walker) mapMemberExpr(mapp MapVal, node ast.Node, scope *Scope) Value {
 		mem, _ := findMember(mapp, node.GetToken().Lexeme)
 		return mem
 	}
-	memExpr, ok := member.Property.(ast.MemberExpr)
 	var mem Value
-	
-	if ok{
-		if member.Bracketed {
-			mem, _ = findMember(mapp, memExpr.GetToken().Literal)
-		}else {
-			mem, _ = findMember(mapp, memExpr.GetToken().Lexeme)
-		}
-
-		mapp, isMap := mem.(MapVal)
-
-		if isMap {
-			return w.mapMemberExpr(mapp, memExpr, scope)
-		}else {
-			return mem
-		}
-		
+	if  member.Bracketed {
+		mem, _ = findMember(mapp, member.GetToken().Literal)
 	}else {
-		return Undefined{}
+		mem, _ = findMember(mapp, member.GetToken().Lexeme)
+	}
+
+	mapp, isMap := mem.(MapVal)
+
+	if isMap {
+		return w.mapMemberExpr(mapp, member, scope)
+	}else {
+		return mem
 	}
 }
 
