@@ -339,7 +339,7 @@ To get the length of the list or , use `#` prefix.
 ```rs
 let fruits = ["banana", "kiwi", "apple", "pear", "cherry"]
 
-repeat #fruits with i {
+repeat @Len(fruits) with i {
   Print(fruits[i])
 }
 ```

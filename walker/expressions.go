@@ -5,6 +5,7 @@ import (
 	"hybroid/ast"
 	"hybroid/lexer"
 	"hybroid/parser"
+	"strconv"
 )
 
 func (w *Walker) determineValueType(left Value, right Value) ast.PrimitiveValueType {
@@ -42,15 +43,23 @@ func (w *Walker) literalExpr(node ast.LiteralExpr) Value {
 
 	switch node.ValueType {
 	case ast.String:
-		return StringVal{}
+		return StringVal{
+			node.Value,
+		}
 	case ast.FixedPoint, ast.Radian, ast.Fixed, ast.Degree:
-		return FixedVal{} //but that means that we have to modify the nodes before adding them to the new nodes list
+		return FixedVal{
+			node.Value,
+		} 
 	case ast.Bool:
-		return BoolVal{}
-	case ast.Nil: // map expr was messing up the if stmt
-		return NilVal{} // list and map also
+		return BoolVal{
+			node.Value,
+		}
+	case ast.Nil: 
+		return NilVal{} 
 	case ast.Number:
-		return NumberVal{} // ok
+		return NumberVal{
+			node.Value,
+		} // ok
 	default:
 		return Unknown{}
 	}
@@ -159,7 +168,7 @@ func (w *Walker) parentExpr(node ast.ParentExpr, scope *Scope) Value {
 			}
 		}
 
-		val = w.mapMemberExpr(variable.Value.(MapVal), node.Member, scope)
+		val = w.memberExpr(variable.Value, node.Member, scope)
 		return val
 	}else {
 		w.error(node.Identifier, "variable is not a map nor a list")
@@ -167,35 +176,95 @@ func (w *Walker) parentExpr(node ast.ParentExpr, scope *Scope) Value {
 	}	
 }
 
-func (w *Walker) mapMemberExpr(mapp MapVal, node ast.Node, scope *Scope) Value {//used for maps only
+func (w *Walker) memberExpr(mapp Value, node ast.Node, scope *Scope) Value {//used for maps only
 	member, success := node.(ast.MemberExpr)
 
+	var val Value
+
+	if member.Bracketed && member.GetToken().Type != lexer.Identifier {
+		val = StringVal{member.GetToken().Literal}
+	}else if member.Bracketed && member.GetToken().Type == lexer.Identifier {
+		if mapp.GetType() == ast.Map {
+			val = w.GetNodeValue(member.Identifier, scope)
+			if val.GetType() != ast.String && val.GetType() != 0 {
+				w.error(member.Identifier.GetToken(), "variable is not a string")
+				return Unknown{}
+			}
+		}else if mapp.GetType() == ast.List {
+			val = w.GetNodeValue(member.Identifier, scope)
+			if val.GetType() != ast.Number && val.GetType() != 0 {
+				w.error(member.Identifier.GetToken(), "variable is not a number")
+				return Unknown{}
+			}
+			varia, isVar := val.(VariableVal)
+			if isVar {
+				val = varia.Value
+			}
+		}
+	}else{
+		val = StringVal{member.GetToken().Lexeme}
+	}
+
 	if !success {
-		mem, _ := findMember(mapp, node.GetToken().Lexeme)
+		mem, _ := findMember(mapp, val)
 		return mem
 	}
 	var mem Value
-	if  member.Bracketed {
-		mem, _ = findMember(mapp, member.GetToken().Literal)
+	mem, _ = findMember(mapp, val)
+
+	variable, isVariable := mem.(VariableVal)
+
+	var value Value
+	if isVariable {
+		value = variable.Value
 	}else {
-		mem, _ = findMember(mapp, member.GetToken().Lexeme)
+		value = mem
 	}
 
-	mapp, isMap := mem.(MapVal)
+	next, isMember := member.Property.(ast.MemberExpr)
 
-	if isMap {
-		return w.mapMemberExpr(mapp, member, scope)
+	if isMember {
+		if value.GetType() == ast.Map {
+			return w.memberExpr(value, next, scope)
+		}else if value.GetType() == ast.List {
+			return w.memberExpr(value, next, scope)
+		}else{
+			w.error(member.Identifier.GetToken(), "variable is being treated as a map or list, but isn't one")
+			return Unknown{}
+		}
 	}else {
 		return mem
 	}
 }
 
-func findMember(mapp MapVal, name string) (Value, bool) {
-	mem, found := mapp.Members[name]
-	if found {
-		return mem, true
+func findMember(val Value, detection Value) (Value, bool) {
+	list, isList := val.(ListVal)
+	mapp, isMap := val.(MapVal)
+
+	if isList {
+		if detection.GetType() == ast.Number {
+			parsedNum, ok  := strconv.Atoi(detection.(NumberVal).Val)
+			fmt.Printf("%v\n", ok)
+			if ok != nil {
+				return Unknown{}, false
+			}
+			if parsedNum > len(list.values) {
+				return Unknown{}, false
+			}
+			mem := list.values[parsedNum-1]
+			return mem, true
+		}else if detection.GetType() == 0 {
+			return Undefined{}, true
+		}
+	}else if isMap {
+
+		mem, found := mapp.Members[detection.(StringVal).Val]
+		if found {
+			return mem, true
+		}
+		return Unknown{}, false
 	}
-	return Undefined{}, false
+	return Unknown{}, false
 }
 
 func (w *Walker) directiveExpr(node ast.DirectiveExpr, scope *Scope) Value {

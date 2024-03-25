@@ -1,5 +1,7 @@
 @Environment(Level)
 
-let map = {a: {b:3}}
+let map = {a: {b:5}}
 
-let p = 1f-map["a"].b
+let one = 1
+
+let p = 1-map["a"]["b"]

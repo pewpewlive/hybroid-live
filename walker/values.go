@@ -47,7 +47,7 @@ func (n NumberVal) GetType() ast.PrimitiveValueType {
 
 type DirectiveVal struct{}
 
-func (n DirectiveVal) GetType() ast.PrimitiveValueType {
+func (d DirectiveVal) GetType() ast.PrimitiveValueType {
 	return 0
 }
 

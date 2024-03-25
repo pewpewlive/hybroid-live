@@ -1,7 +1,8 @@
 
 local map = {
 	a = {
-		b = 3
+		b = 5
 	}
 }
-local p = 1fx - map["a"].b
+local one = 1
+local p = 1 - map["a"]["b"]
