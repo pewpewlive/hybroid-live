@@ -1,7 +1,6 @@
 
-local map = {1, 2, 4}
-for i = 1, 3, 1 do
-	local something = map[i]
-	something = something + (1 + 0)
+local map = {1}
+for i = 1, 10, 1 do
+	local idk = map["a"].a[1].b.c.p - i
 end
 

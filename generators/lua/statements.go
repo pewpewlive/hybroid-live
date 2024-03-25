@@ -116,7 +116,7 @@ func (gen *Generator) repeatStmt(node ast.RepeatStmt) string {
 		variable := gen.GenerateNode(node.Variable)
 		gen.Src.Append(repeatTabs, "for ", variable, " = ", start, ", ", end, ", ", skip, " do\n")
 	} else {
-		gen.Src.Append(repeatTabs, "for i = ", start, ", ", end, ", ", skip, " do\n")
+		gen.Src.Append(repeatTabs, "for _ = ", start, ", ", end, ", ", skip, " do\n")
 	}
 
 	for _, stmt := range node.Body {

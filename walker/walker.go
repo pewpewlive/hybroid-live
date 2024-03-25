@@ -224,6 +224,8 @@ func (w *Walker) GetNodeValue(node ast.Node, scope *Scope) Value {
 		return w.memberExpr(newNode, scope)
 	case ast.DirectiveExpr:
 		return w.directiveExpr(newNode, scope)
+	case ast.ParentExpr:
+		return w.parentExpr(newNode, scope)
 	default:
 		w.error(newNode.GetToken(), "Expected expression")
 		return NilVal{}

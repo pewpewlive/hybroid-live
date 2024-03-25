@@ -64,7 +64,7 @@ func (w *Walker) identifierExpr(node ast.IdentifierExpr, scope *Scope) Value {
 		newValue := sc.GetVariable(node.Name.Lexeme)
 		return newValue
 	} else {
-		w.error(node.Name, "undeclared identifier in the current scope")
+		w.error(node.Name, "unknown identifier")
 		return Unknown{}
 	}
 }
@@ -121,8 +121,41 @@ func (w *Walker) unaryExpr(node ast.UnaryExpr, scope *Scope) Value {
 	return w.GetNodeValue(node.Value, scope)
 }
 
+func (w *Walker) parentExpr(node ast.ParentExpr, scope *Scope) Value {
+	sc := scope.Resolve(node.Identifier.Lexeme)
+
+	if sc == nil {
+		w.error(node.Identifier, fmt.Sprintf("undeclared variable \"%s\"", node.Identifier.Lexeme))
+		return Unknown{}
+	}
+
+	variable := sc.GetVariable(node.Identifier.Lexeme)
+	member, ok := node.Member.(ast.MemberExpr)
+	if !ok {
+		w.error(node.Member.GetToken(), "expected member expression")
+		return Unknown{}
+	}
+
+	if _, ok := member.Property.(ast.IdentifierExpr); ok {
+		if variable.GetType() == ast.List {
+			w.error(node.Identifier, "variable is not a map but is treated as one")
+			return Unknown{}
+		}
+		return Undefined{}
+	}
+	if member.Property.GetValueType() == ast.String && variable.GetType() == ast.List {
+		w.error(node.Identifier, "variable is not a map but is treated as one")
+		return Unknown{}
+	}else if member.Property.GetValueType() == ast.Number && variable.GetType() == ast.Map {
+		w.error(node.Identifier, "variable is not a list but is treated as one")
+		return Unknown{}
+	}
+	val := w.GetNodeValue(member.Property,scope)
+	return val	
+}
+
 func (w *Walker) memberExpr(node ast.MemberExpr, scope *Scope) Value {
-	identToken := node.Identifier.GetToken()
+	identToken := node.Owner.GetToken()
 	sc := scope.Resolve(identToken.Lexeme)
 
 	if sc == nil {
@@ -135,14 +168,18 @@ func (w *Walker) memberExpr(node ast.MemberExpr, scope *Scope) Value {
 	_, ok2 := variable.Value.(ListVal)
 
 	if !ok && !ok2 {
-		w.error(identToken, fmt.Sprintf("variable %s is not a map nor a list", identToken.Lexeme))
+		_, isMemExpr := node.Owner.(ast.MemberExpr)
+		if isMemExpr {
+			return Undefined{}
+		}
+		w.error(identToken, fmt.Sprintf("variable \"%s\" is not a map nor a list", identToken.Lexeme))
 		return Unknown{}
 	}
 	propToken := node.Property.GetToken()
 
-	val := w.GetNodeValue(node.Property, scope)
 	if ok {
 		if node.Bracketed {
+			val := w.GetNodeValue(node.Property, scope)
 			switch val.GetType() {
 			case ast.Bool, ast.Entity, ast.Nil, ast.Struct, ast.List, ast.Map, ast.FixedPoint, ast.Number:
 				w.error(propToken, "invalid expression inside brackets")
@@ -157,6 +194,7 @@ func (w *Walker) memberExpr(node ast.MemberExpr, scope *Scope) Value {
 			w.error(propToken, "invalid member expression of a list")
 			return Unknown{}
 		}
+		val := w.GetNodeValue(node.Property, scope)
 		switch val.GetType() {
 		case ast.Bool, ast.Entity, ast.Nil, ast.Struct, ast.List, ast.Map, ast.FixedPoint:
 			w.error(propToken, "invalid expression inside brackets")
@@ -168,12 +206,12 @@ func (w *Walker) memberExpr(node ast.MemberExpr, scope *Scope) Value {
 	return Unknown{}
 }
 
-func findMember(mapp MapVal, name string) (VariableVal, bool) {
+func findMember(mapp MapVal, name string) (Value, bool) {
 	mem, found := mapp.Members[name]
 	if found {
 		return mem, true
 	}
-	return VariableVal{}, false
+	return Undefined{}, false
 }
 
 func (w *Walker) directiveExpr(node ast.DirectiveExpr, scope *Scope) Value {

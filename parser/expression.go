@@ -162,11 +162,26 @@ func (p *Parser) unary() ast.Node {
 		return ast.UnaryExpr{Operator: operator, Value: right}
 	}
 
-	return p.memberCall()
+	return p.parent()
 }
 
-func (p *Parser) memberCall() ast.Node {
-	expr := p.member()
+func (p *Parser) parent() ast.Node {
+	expr := p.primary()
+
+	if p.check(lexer.Dot) || p.check(lexer.LeftBracket) {
+		expr2 := p.memberCall(expr)
+		expr := ast.ParentExpr{
+			Identifier: expr.GetToken(),
+			Member: expr2,
+		}
+		return expr
+	}
+
+	return expr
+}
+
+func (p *Parser) memberCall(owner ast.Node) ast.Node {
+	expr := p.member(owner)
 
 	if p.check(lexer.LeftParen) {
 		return p.call(expr)
@@ -218,27 +233,34 @@ func (p *Parser) arguments() []ast.Node {
 	return args
 }
 
-func (p *Parser) member() ast.Node {
-	expr := p.primary()
+func (p *Parser) member(owner ast.Node) ast.Node {// var["member"].member
+	var expr ast.Node
 	bracketed := false
-	for p.match(lexer.Dot, lexer.LeftBracket) {
+	if p.match(lexer.Dot, lexer.LeftBracket) {
 		operator := p.peek(-1)
 
-		prop := p.expression()
-		if operator.Type == lexer.Dot && prop.GetType() != ast.Identifier {
-			p.error(p.peek(-1), "expected identifier after '.'")
+		var prop ast.Node
+		if operator.Type == lexer.Dot {
+			prop = p.primary()
+			if prop.GetType() != ast.Identifier {
+				p.error(p.peek(-1), "expected identifier after '.'")
+			}
 			bracketed = false
-		}
-		if operator.Type == lexer.LeftBracket {
+		}else if operator.Type == lexer.LeftBracket {
+			prop = p.expression()
 			p.consume("expected closing bracket", lexer.RightBracket)
 			bracketed = true
 		}
 
 		expr = ast.MemberExpr{
-			Identifier: expr,
+			Owner: owner,
 			Property:   prop,
 			Bracketed:  bracketed,
-			Token:      expr.GetToken(),
+			Token:      prop.GetToken(),
+		}
+
+		if p.check(lexer.Dot) || p.check(lexer.LeftBracket) {
+			expr = p.memberCall(expr)
 		}
 	}
 

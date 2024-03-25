@@ -28,6 +28,7 @@ const (
 	MapExpression
 	CallExpression
 	MemberExpression
+	ParentExpression
 
 	Identifier
 

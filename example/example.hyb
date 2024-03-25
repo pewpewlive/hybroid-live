@@ -1,8 +1,9 @@
 @Environment(Level)
 
-let map = [1,2,4]
+let map = [1]
 
-repeat 3 with i {
-    let something = map[i]
-    something += 1 + 0
+//map = 4f
+
+repeat 10 with i {
+    let idk = map["a"].a[1].b.c.p - i
 }

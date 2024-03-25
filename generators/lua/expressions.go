@@ -3,6 +3,7 @@ package lua
 import (
 	"fmt"
 	"hybroid/ast"
+	"hybroid/lexer"
 )
 
 func (gen *Generator) binaryExpr(node ast.BinaryExpr) string {
@@ -76,10 +77,16 @@ func (gen *Generator) mapExpr(node ast.MapExpr) string {
 	for k, v := range node.Map {
 		val := gen.GenerateNode(v.Expr)
 
+		ident := k.Lexeme
+
+		if k.Type == lexer.String {
+			ident = k.Literal
+		}
+
 		if index != len(node.Map)-1 {
-			src.WriteString(fmt.Sprintf("%s%s = %v,\n", tabs, k.Lexeme, val))
+			src.WriteString(fmt.Sprintf("%s%s = %v,\n", tabs, ident, val))
 		} else {
-			src.WriteString(fmt.Sprintf("%s%s = %v\n", tabs, k.Lexeme, val))
+			src.WriteString(fmt.Sprintf("%s%s = %v\n", tabs, ident, val))
 		}
 		index++
 	}
@@ -94,23 +101,22 @@ func (gen *Generator) unaryExpr(node ast.UnaryExpr) string {
 	return fmt.Sprintf("%s%s", node.Operator.Lexeme, gen.GenerateNode(node.Value))
 }
 
+func (gen *Generator) parentExpr(node ast.ParentExpr) string {
+	return gen.GenerateNode(node.Member)
+}
+
 func (gen *Generator) memberExpr(node ast.MemberExpr) string {
 	src := StringBuilder{}
 
-	expr := gen.GenerateNode(node.Identifier)
+	expr := gen.GenerateNode(node.Owner)
 	prop := gen.GenerateNode(node.Property)
 
 	src.WriteString(expr)
-	mem, ok := node.Property.(ast.MemberExpr) 
 
-	if ok {
-		if mem.Bracketed {
-			src.Append("[", prop, "]")
-		} else {
-			src.Append(".", prop)
-		}
-	}else {
+	if node.Bracketed {
 		src.Append("[", prop, "]")
+	} else {
+		src.Append(".", prop)
 	}
 
 
