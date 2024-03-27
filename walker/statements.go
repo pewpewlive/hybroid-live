@@ -200,3 +200,11 @@ func (w *Walker) variableDeclarationStmt(declaration ast.VariableDeclarationStmt
 		w.error(declaration.Token, "too few values provided in declaration")
 	}
 }
+
+func (w *Walker) useStmt(node ast.UseStmt, scope *Scope) {
+	variable := VariableVal{Name: node.Variable.Name.Lexeme, Node: node}
+
+	if _, success := scope.DeclareVariable(variable); !success {
+		w.error(node.Variable.Name, "cannot declare a value in the same scope twice")
+	}
+}
