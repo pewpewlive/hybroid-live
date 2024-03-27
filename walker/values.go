@@ -106,7 +106,6 @@ func (u Unknown) GetType() ast.PrimitiveValueType {
 }
 
 type Undefined struct {
-
 }
 
 func (u Undefined) GetType() ast.PrimitiveValueType {

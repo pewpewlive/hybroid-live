@@ -139,20 +139,6 @@ func (rs ReturnStmt) GetValueType() PrimitiveValueType {
 	return Undefined
 }
 
-/*
-
-Global {
-	GlobalVars [string]Variables
-	LocalVariables [namespace][]Scope
-}
-
-Scope {
-	Parent *Scope
-	Scope[]
-}
-
-*/
-
 type AddStmt struct {
 	Value      Node
 	Identifier string

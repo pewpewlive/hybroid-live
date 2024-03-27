@@ -47,7 +47,7 @@ func (w *Walker) assignmentStmt(assignStmt ast.AssignmentStmt, scope *Scope) {
 				if _, err := scope.AssignVariable(variable.Name, value); err != nil {
 					err.Token = variable.Node.GetToken()
 					w.addError(*err)
-				}	
+				}
 			}
 		}
 	}

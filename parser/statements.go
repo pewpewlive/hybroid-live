@@ -244,11 +244,10 @@ func (p *Parser) repeatStmt() ast.Node {
 	if gotIterator {
 		repeatStmt.Skip = ast.LiteralExpr{Value: "1", ValueType: repeatStmt.Iterator.GetValueType(), Token: repeatStmt.Token}
 		repeatStmt.Start = ast.LiteralExpr{Value: "1", ValueType: repeatStmt.Iterator.GetValueType(), Token: repeatStmt.Token}
-	}else {
+	} else {
 		repeatStmt.Skip = ast.LiteralExpr{Value: "1", ValueType: ast.Number, Token: repeatStmt.Token}
 		repeatStmt.Start = ast.LiteralExpr{Value: "1", ValueType: ast.Number, Token: repeatStmt.Token}
 	}
-
 
 	for i := 0; i < 4; i++ {
 		if p.match(lexer.With) {

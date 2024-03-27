@@ -122,7 +122,6 @@ func (gen *Generator) memberExpr(node ast.MemberExpr) string {
 		src.Append(".", prop)
 	}
 
-
 	return src.String()
 }
 
