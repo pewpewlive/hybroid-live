@@ -104,6 +104,8 @@ func (gen *Generator) GenerateNode(node ast.Node) string {
 		return gen.repeatStmt(newNode)
 	case ast.TickStmt:
 		return gen.tickStmt(newNode)
+	case ast.UseStmt:
+		return gen.useStmt(newNode)
 	case ast.LiteralExpr:
 		return gen.literalExpr(newNode)
 	case ast.BinaryExpr:

@@ -174,3 +174,20 @@ func (rs RemoveStmt) GetType() NodeType {
 func (rs RemoveStmt) GetValueType() PrimitiveValueType {
 	return Undefined
 }
+
+type UseStmt struct {
+	File     lexer.Token
+	Variable IdentifierExpr
+}
+
+func (us UseStmt) GetToken() lexer.Token {
+	return us.File
+}
+
+func (us UseStmt) GetType() NodeType {
+	return UseStatement
+}
+
+func (us UseStmt) GetValueType() PrimitiveValueType {
+	return Undefined
+}

@@ -12,7 +12,7 @@ const (
 	RepeatStatement
 	TickStatement
 	IfStatement
-
+	UseStatement
 	AddStatement
 	RemoveStatement
 	ReturnStatement

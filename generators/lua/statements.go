@@ -197,3 +197,11 @@ func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclaratio
 
 	return src.String()
 }
+
+func (gen *Generator) useStmt(node ast.UseStmt) string {
+	src := StringBuilder{}
+
+	src.Append("local ", node.Variable.Name.Lexeme, " = require(\"/dynamic/", node.File.Literal, "\")")
+
+	return src.String()
+}

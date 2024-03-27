@@ -197,6 +197,7 @@ func (w *Walker) WalkNode(node ast.Node, scope *Scope) {
 		w.callExpr(newNode, scope)
 	case ast.DirectiveExpr:
 		w.directiveExpr(newNode, scope)
+	case ast.UseStmt:
 	default:
 		w.error(newNode.GetToken(), "Expected statement")
 	}

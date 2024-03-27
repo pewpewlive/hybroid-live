@@ -1,4 +1,5 @@
 
+local test = require("/dynamic/import_test.hyb")
 local map = {
 	a = {
 		b = 5

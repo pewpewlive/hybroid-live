@@ -1,0 +1,4 @@
+@Environment(Level)
+
+let life = "Hybroid"
+Print("The meaning of life is " .. life) 

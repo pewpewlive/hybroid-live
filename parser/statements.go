@@ -53,6 +53,9 @@ func (p *Parser) statement() ast.Node {
 	case lexer.Tick:
 		p.advance()
 		return p.tickStmt()
+	case lexer.Use:
+		p.advance()
+		return p.useStmt()
 	}
 	expr := p.expression()
 	if expr.GetType() == 0 {
@@ -375,4 +378,27 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 	variable.Values = exprs
 
 	return variable
+}
+
+func (p *Parser) useStmt() ast.Node {
+	useStmt := ast.UseStmt{}
+
+	filepath := p.expression()
+	if filepath.GetType() == 0 {
+		p.error(p.peek(), "expected filepath")
+	}
+	useStmt.File = filepath.GetToken()
+
+	if _, ok := p.consume("expected keyword 'as' after filepath in a 'use' statement", lexer.As); !ok {
+		return useStmt
+	}
+
+	identExpr := p.expression()
+	if identExpr.GetType() != ast.Identifier {
+		p.error(identExpr.GetToken(), "expected identifier after keyword 'as'")
+		return useStmt
+	}
+	useStmt.Variable = identExpr.(ast.IdentifierExpr)
+
+	return useStmt
 }
