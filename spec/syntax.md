@@ -44,15 +44,15 @@ The environment definition must be the first statement in the file.
 The following environments are available:
 
 - `Level` - for working with levels
-  - When choosing the this environment, you get to use a subset of the Lua standard libraries: `table`, `string`, `fmath` (PPL-specific counterpart to `math`)
+  - When choosing this environment, you get to use a subset of the Lua standard libraries: `table`, `string`, `fmath` (PPL-specific counterpart to `math`)
 - `Mesh` - for working with meshes
-  - When choosing the this environment, all of the standard libraries that are enabled globally in PPL are available (exceptions being `coroutine`, `io`, `os`, etc.)
+  - When choosing this environment, all of the standard libraries that are enabled globally in PPL are available (exceptions being `coroutine`, `io`, `os`, etc.)
 - `Sound` - for working with sounds
   - Same as `Mesh`
 - `Shared` - for creating constant files referenced in multiple environments
-  - When choosing the this environment, `math` is disabled to work with `Level`, libraries open to `Level` are available
-- `LuaGeneric` - or cothistandard Lua (for use in console applications, etc.)
-  - When choosing the `LuaGeneric` environment, some features of the language would be disabled: `spawnable`s, `tick`, `spawn`, fixedpoint support, PPL libraries. All standard Lua libraries are available.
+  - When choosing this environment, `math` is disabled to work with `Level`, libraries open to `Level` are available
+- `LuaGeneric` - for using standard Lua (e.g. console applications, etc.)
+  - When choosing this environment, some features of the language would be disabled: `spawnable`s, `tick`, `spawn`, fixedpoint support, PPL libraries. All standard Lua libraries are available.
 
 ## Declaration of variables
 
@@ -63,7 +63,7 @@ The following environments are available:
 let name = "Alpha"
 
 // Global (public) variables
-pub number_of_life = 42
+pub meaning_of_life = 42
 
 // Reassignment
 name = "blade"
@@ -71,7 +71,7 @@ name = "blade"
 
 ## Declaration of constants
 
-- [] Completed
+- [ ] Completed
 
 ```rs
 const PI = 3.14f
@@ -79,7 +79,7 @@ const PI = 3.14f
 
 ## Entities and spawning syntax
 
-- [] Completed
+- [ ] Completed
 
 Entities are transpile-time classes. They are designed to provide OOP-like feel when working with entities. This feature is disallowed in `Generic` environments. Use `struct` keyword there instead.
 
@@ -87,40 +87,61 @@ Entities are transpile-time classes. They are designed to provide OOP-like feel 
 
 ```rs
 entity Quadro {
-  define {
-    mesh_id2,
-    speed,
-    other
-  }
+  // asdiaosd
+  mesh_id2, speed, thing: 1, 2, 3;
+  // Ahjhasd
+  x: 1; y; z;
+  z number;
+  string w;
+  bool z;
 
   Spawn(x, y, speed) {
-    self.speed = speed
+    self.speed = speed 
     self.mesh_id2 = PewPew.NewEntity(x, y)
-    PewPew.EntitySetMesh(self, "file_path", 0)
-    PewPew.EntitySetMesh(self.mesh_id2, "file_path", 1)
-    Fmath.Random_Int(0,6)
+    PewPew.SetMesh(self, "file_path", 0)
+    PewPew.SetMesh(self.mesh_id2, "file_path", 1)
+    
     return self
   }
 
-  trait Update() {
-    let x, y = Origin.pewpew.entity_get_position(self)
+  Update() {
+    let x, y = PewPew.GetPosition(self)
     x = x + 10fx * self.speed
-    Origin.pewpew.entity_set_position(self, x, y)
+    PewPew.GetPosition(self, x, y)
   }
 
-  trait WeaponCollision(index, wtype) {
+  WeaponCollision(index, wtype) {
   }
 
-  trait PlayerCollision(index, ship_id) {
+  PlayerCollision(index, ship_id) {
   }
 
-  trait WallCollision(wall_x, wall_y) {
+  WallCollision(wall_x, wall_y) {
   }
 
   fn DamageOtherEntity(entity, x, y) {
-    entity.damage(1)
+    entity.damage(self.damage)
   }
 }
+
+fn func(Quadro q, string s) {
+  q.DamageOtherEntity(entity_id, 100fx, 200fx)
+  q.DamageOtherEntity(entity_id, 100fx, 200fx)
+  q.DamageOtherEntity(entity_id, 100fx, 200fx)
+  q.DamageOtherEntity(entity_id, 100fx, 200fx)
+  q.DamageOtherEntity(entity_id, 100fx, 200fx)
+  q.DamageOtherEntity(entity_id, 100fx, 200fx)
+  entity
+}
+
+fn func(fx p, fx a) {
+  return a + p
+
+  return 1
+}
+
+//lua gen
+QuadroStates[entity]
 ```
 
 ```lua
@@ -145,7 +166,7 @@ local function quadro_wall_collision(id, wall_x, wall_y)
 end
 
 function quadro_damage_other_entity(id, entity)
-  (Type of entity)[id].damage(1)
+  QuadroStates[id].damage(1)
 end
 
 function Quadro.new(x, y, speed)
@@ -170,7 +191,7 @@ end
 ### Creating an entity
 
 ```rs
-let id = spawn Quadro with {x: 100fx, y: 100fx, speed: 10fx}
+let id = spawn Quadro(100fx, 100fx, 10fx)
 
 local id = Quadro.new(100fx, 100fx, 10fx)
 
@@ -180,7 +201,7 @@ Destroy id
 
 ## Lua interop & importing
 
-- [] Completed
+- [ ] Completed
 
 Original `pewpew`, `fmath`, `math`, `table` functions are available under `Origin` namespace.
 
@@ -188,6 +209,7 @@ Importing Lua libraries works as expected, just with omission of `/dynamic`.
 
 ```rs
 use "mesh_helper.hyb" as mesh_helper_hybroid
+use "shared.hyb"
 ```
 
 You can write lua code with a special `@Lua` directive:
@@ -204,7 +226,7 @@ However, this is discouraged, as the transpiler can lose important context, such
 
 ## Number Literals
 
-- [] Completed
+- [ ] Completed
 
 In PPL, you use number literals with `fx` at the end of the number. But thankfully, Hybroid makes working with numbers easier, by giving several options.
 
@@ -252,7 +274,7 @@ When using angle literals, the transpiler will automatically convert their value
 
 ## Loops
 
-- [] Completed
+- [ ] Completed
 
 ### Tick loops
 
@@ -324,7 +346,7 @@ for index, item in fruits {
 
 ## Lists
 
-- [] Completed
+- [ ] Completed
 
 In Lua, these structures are called "tables". These structures hold multiple data associated with a numeric index.
 
@@ -380,7 +402,7 @@ Print(@ListToStr(fruits)) // -> ["banana", "kiwi", "apple", "cherry"]
 
 ## Maps
 
-- [] Completed
+- [ ] Completed
 
 In Lua, these structures are also called _tables_. These structures hold multiple data entries associated with a string index.
 
@@ -474,7 +496,7 @@ Print(@MapToStr(fruits))
 
 ## Functions
 
-- [] Completed
+- [ ] Completed
 
 Declaring a function works with the `fn` keyword. Functions are local by default.
 
@@ -498,7 +520,7 @@ Greet("John") // -> Hello, John!
 
 ## Directives
 
-- [] Completed
+- [ ] Completed
 
 Directives are special functions that are evaluated in the transpiler. They work similarly to _macros_.
 
@@ -518,7 +540,7 @@ print("Hello " .. "John" .. "!")
 
 ## Conditional statements
 
-- [] Completed
+- [ ] Completed
 
 ### If statement
 
@@ -579,7 +601,7 @@ Print(check)
 
 ## Enums
 
-- [] Completed
+- [ ] Completed
 
 Enums are converted to tables if compiling to Lua.
 
@@ -594,18 +616,21 @@ enum SandwichType {
 
 ## Structures
 
-- [] Completed
+- [ ] Completed
 
-Structures are classes that do not have inheritance. Using structures in any environment except `Generic` will result in a warning.
+Structures are classes that do not have inheritance.
 
 ```rs
 struct Rectangle {
-  length: 0
-  height: 0
-
-  fn Init(length, height) {
+  mesh_id1 number
+  mesh_id1, mesh_id1, mesh_id1, mesh_id1: 0f, 0f, 0f, 0f, 0f
+  
+  x, y, z, w fixed
+  
+  New(length, height) {
     self.length = length
     self.height = height
+    return self
   }
 
   fn Area() {
@@ -615,7 +640,39 @@ struct Rectangle {
   fn Perimeter() {
     return (self.length + self.height) * 2
   }
+
+  fn Move() {
+    self.x += 5
+  }
 }
 
-let rect = Rectangle.Init()
+let rect = new Rectangle(100, 100)
+
+
+Print(rect.Area())
+```
+
+```lua
+function Rectangle(length, height)
+  local new = {length = 0, height = 0, thing = nil}
+  new.length = length
+  new.height = height
+  return new
+end
+
+function Area(self)
+  return self.length * self.height
+end
+
+function Perimeter(self)
+  return (self.length + self.height) * 2
+end
+
+function Move(self)
+  self.x = self.x + 5
+end
+
+local rect = Rectangle(100, 100)
+
+print(Area(rect))
 ```
