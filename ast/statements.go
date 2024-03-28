@@ -22,6 +22,7 @@ func (as AssignmentStmt) GetValueType() PrimitiveValueType {
 
 type VariableDeclarationStmt struct {
 	Identifiers []string
+	Types 		[]*TypeExpr
 	Values      []Node
 	IsLocal     bool
 	Token       lexer.Token

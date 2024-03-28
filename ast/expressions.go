@@ -38,6 +38,23 @@ func (n UnaryExpr) GetValueType() PrimitiveValueType {
 	return n.ValueType
 }
 
+type TypeExpr struct {
+	WrappedType *TypeExpr
+	Name lexer.Token
+}
+
+func (t TypeExpr) GetType() NodeType {
+	return TypeExpression
+}
+
+func (t TypeExpr) GetToken() lexer.Token {
+	return t.Name
+}
+
+func (t TypeExpr) GetValueType() PrimitiveValueType {
+	return Undefined
+}
+
 type GroupExpr struct {
 	Expr      Node
 	ValueType PrimitiveValueType

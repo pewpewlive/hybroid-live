@@ -2,8 +2,6 @@
 
 use "import_test.hyb" as test
 
-let map = {a: {b:5}}
+let map = {a:1}
 
 let one = 1
-
-let p = 1-map["a"]["b"]

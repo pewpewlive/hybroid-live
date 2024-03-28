@@ -130,65 +130,26 @@ func (w *Walker) unaryExpr(node ast.UnaryExpr, scope *Scope) Value {
 	return w.GetNodeValue(node.Value, scope)
 }
 
-func (w *Walker) parentExpr(node ast.ParentExpr, scope *Scope) Value {
-	sc := scope.Resolve(node.Identifier.Lexeme)
-
-	if sc == nil {
-		w.error(node.Identifier, fmt.Sprintf("undeclared variable \"%s\"", node.Identifier.Lexeme))
-		return Unknown{}
-	}
-
-	variable := sc.GetVariable(node.Identifier.Lexeme)
-	member, ok := node.Member.(ast.MemberExpr)
-	if !ok {
-		w.error(node.Member.GetToken(), "expected member expression")
-		return Unknown{}
-	}
-
-	propValType := w.GetNodeValue(member.Identifier, scope).GetType()
-	if member.Bracketed {
-		if propValType == ast.Bool || propValType == ast.Entity || propValType == ast.Map || propValType == ast.Nil || propValType == ast.Struct || propValType == ast.Undefined {
-			w.error(member.Property.GetToken(), fmt.Sprintf("property is a %s, which is not allowed map member expressions", propValType.ToString()))
-			return Unknown{}
-		}
-	}
-
-	if variable.GetType() == ast.List {
-		if !member.Bracketed {
-			w.error(node.Identifier, "variable is not a map but is treated as one")
-			return Unknown{}
-		}
-		return Undefined{}
-	} else if variable.GetType() == ast.Map {
-		var val Value
-		if member.Bracketed {
-			if propValType == ast.Number || propValType == ast.FixedPoint {
-				w.error(member.Property.GetToken(), fmt.Sprintf("property is a %s, which is not allowed map member expressions", propValType.ToString()))
-				return Unknown{}
-			}
-		}
-
-		val = w.memberExpr(variable.Value, node.Member, scope)
-		return val
-	} else {
-		w.error(node.Identifier, "variable is not a map nor a list")
-		return Unknown{}
-	}
-}
-
 func (w *Walker) memberExpr(mapp Value, node ast.MemberExpr, scope *Scope) Value {
 	if node.Owner == nil {
 		sc := scope.Resolve(node.Identifier.GetToken().Lexeme)
 
+		var mapp Value
 		if sc == nil {
 			w.error(node.Identifier.GetToken(), fmt.Sprintf("undeclared variable \"%s\"", node.Identifier.GetToken().Lexeme))
 			return Unknown{}
+		}else {
+			mapp = sc.GetVariable(node.Identifier.GetToken().Lexeme).Value
 		}
 
 		next, ok := node.Property.(ast.MemberExpr)
 
 		if ok {
-			return w.memberExpr(next, scope)
+			if mapp.GetType() != ast.List && mapp.GetType() != ast.Map {
+				w.error(node.Identifier.GetToken(), "variable is not a list nor a map")
+				return Unknown{}
+			}
+			return w.memberExpr(mapp, next, scope)
 		} else {
 			w.error(node.GetToken(), "expected member expression")
 			return Unknown{}
@@ -256,25 +217,24 @@ func findMember(val Value, detection Value) (Value, bool) {
 	if isList {
 		if detection.GetType() == ast.Number {
 			parsedNum, ok := strconv.Atoi(detection.(NumberVal).Val)
-			fmt.Printf("%v\n", ok)
 			if ok != nil {
 				return Unknown{}, false
 			}
 			if parsedNum > len(list.values) {
-				return Unknown{}, false
+				return Undefined{}, false
 			}
 			mem := list.values[parsedNum-1]
-			return mem, true
+			return mem, false
 		} else if detection.GetType() == 0 {
-			return Undefined{}, true
+			return Undefined{}, false
 		}
 	} else if isMap {
 
 		mem, found := mapp.Members[detection.(StringVal).Val]
 		if found {
-			return mem, true
+			return mem, false
 		}
-		return Unknown{}, false
+		return Undefined{}, false
 	}
 	return Unknown{}, false
 }

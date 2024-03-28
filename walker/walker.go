@@ -165,6 +165,25 @@ func (w *Walker) validateArithmeticOperands(left Value, right Value, expr ast.Bi
 	return true
 }
 
+func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
+	switch str{
+	case "Map":
+		return ast.Map
+	case "List":
+		return ast.List
+	case "Number":
+		return ast.Number
+	case "Bool":
+		return ast.Bool
+	case "Fixedpoint","Radian","Degree":
+		return ast.FixedPoint
+	case "String":
+		return ast.String
+	default:
+		return ast.Undefined
+	}
+}
+
 func (w *Walker) Walk(nodes []ast.Node, global *Global) []ast.Node {
 	w.nodes = nodes
 
@@ -225,7 +244,7 @@ func (w *Walker) GetNodeValue(node ast.Node, scope *Scope) Value {
 	case ast.DirectiveExpr:
 		return w.directiveExpr(newNode, scope)
 	case ast.MemberExpr:
-		return w.memberExpr(newNode, scope)
+		return w.memberExpr(nil, newNode, scope)
 	default:
 		w.error(newNode.GetToken(), "Expected expression")
 		return NilVal{}

@@ -29,6 +29,7 @@ const (
 	CallExpression
 	MemberExpression
 	ParentExpression
+	TypeExpression
 
 	Identifier
 

@@ -220,10 +220,33 @@ func (p *Parser) arguments() []ast.Node {
 }
 
 func (p *Parser) member(owner ast.Node) ast.Node {
-	var expr ast.MemberExpr
-	bracketed := false
-	if p.match(lexer.Dot, lexer.LeftBracket) {
-		operator := p.peek(-1)
+	if owner == nil  {
+		if p.match(lexer.Dot, lexer.LeftBracket) {
+			p.error(p.peek(-1),"cannot start a member expression with . or brackets")
+			return ast.MemberExpr{
+				Identifier: ast.IdentifierExpr{Name: p.peek(-2), ValueType: ast.Undefined},
+			}
+		}
+		expression := p.primary()
+		expr := ast.MemberExpr{
+			Owner:owner,
+			Property: expression,
+			Identifier: expression,
+			Bracketed: false,
+		}
+
+		if p.check(lexer.Dot) || p.check(lexer.LeftBracket) {
+			expr2 := p.memberCall(expr)
+			expr.Property = expr2
+			return expr
+		}else {
+			return expression
+		}
+		
+	}else {
+		var expr ast.MemberExpr
+		bracketed := false
+		operator, _ := p.consume("expected '.' or '[' after member expression",lexer.Dot, lexer.LeftBracket)
 
 		var prop ast.Node
 		if operator.Type == lexer.Dot {
@@ -248,10 +271,10 @@ func (p *Parser) member(owner ast.Node) ast.Node {
 		if p.check(lexer.Dot) || p.check(lexer.LeftBracket) {
 			expr2 := p.memberCall(expr)
 			expr.Property = expr2
-		}
+		}	
+	
+		return expr
 	}
-
-	return expr
 }
 
 func (p *Parser) primary() ast.Node {
@@ -327,4 +350,32 @@ func (p *Parser) primary() ast.Node {
 	}
 
 	return ast.Unknown{Token: p.peek()}
+}
+
+func (p *Parser) Type() ast.Node {
+	expr := p.primary()
+
+	if expr.GetType() == ast.Identifier {
+		typee := ast.TypeExpr{}
+		if p.match(lexer.Less) {
+			expr2 := p.Type()
+			wrappedType, ok := expr2.(ast.TypeExpr)
+			if !ok {
+				p.error(expr2.GetToken(), "expected identifier as type")
+				return ast.Unknown{Token:expr2.GetToken()}
+			}
+			typee.WrappedType = &wrappedType
+			typee.Name = expr.GetToken();
+
+			p.consume("expected '>'", lexer.Greater)
+			return typee
+		}else {
+			typee.Name = expr.GetToken()
+			return typee
+		}
+	}else {
+		p.error(expr.GetToken(), "Expected an identifier for a type")
+		return ast.Unknown{Token:p.peek(-1)}
+	}
+
 }

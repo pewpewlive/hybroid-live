@@ -112,9 +112,13 @@ func (gen *Generator) memberExpr(node ast.MemberExpr) string {
 	if node.Property.GetType() == ast.MemberExpression {
 		return gen.memberExpr(node.Property.(ast.MemberExpr))
 	}
+
 	expr := gen.GenerateNode(node.Owner)
 	prop := gen.GenerateNode(node.Property)
 
+	if expr == "" {
+		return prop
+	}
 	src.WriteString(expr)
 
 	if node.Bracketed {

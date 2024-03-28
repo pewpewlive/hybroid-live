@@ -345,17 +345,39 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 	}
 
 	ident, _ := p.consume("expected identifier in variable declaration", lexer.Identifier)
+	var typee *ast.TypeExpr
+	if p.match(lexer.Colon) {
+		typ := p.Type()
+		conv, ok := typ.(ast.TypeExpr)
+		if !ok {
+			return ast.Unknown{Token: p.peek(-1)}
+		}	
+
+		typee = &conv;
+	}
 	idents := []string{ident.Lexeme}
+	types := []*ast.TypeExpr{typee}
 	for p.match(lexer.Comma) {
 		ident, identOk := p.consume("expected identifier in variable declaration", lexer.Identifier)
 		if !identOk {
 			return ast.Unknown{Token: p.peek(-1)}
 		}
+		typee = nil
+		if p.match(lexer.Colon) {
+			typ := p.Type()
+			conv, ok := typ.(ast.TypeExpr)
+			if !ok {
+				return ast.Unknown{Token: p.peek(-1)}
+			}
+			typee = &conv;
+		}
 
 		idents = append(idents, ident.Lexeme)
+		types = append(types, typee)
 	}
 
 	variable.Identifiers = idents
+	variable.Types = types
 
 	if !p.match(lexer.Equal) {
 		variable.Values = []ast.Node{}

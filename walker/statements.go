@@ -1,6 +1,7 @@
 package walker
 
 import (
+	"fmt"
 	"hybroid/ast"
 	"hybroid/lexer"
 	"hybroid/parser"
@@ -155,11 +156,55 @@ func (w *Walker) variableDeclarationStmt(declaration ast.VariableDeclarationStmt
 	var values []Value
 
 	hasFuncs := false
-	for _, expr := range declaration.Values {
+	for i, expr := range declaration.Values {
 		if expr.GetType() == ast.CallExpression {
 			hasFuncs = true
 		}
-		values = append(values, w.GetNodeValue(expr, scope))
+		exprValue := w.GetNodeValue(expr, scope)
+		if declaration.Types[i] != nil {
+			typee := w.GetTypeFromString(declaration.Types[i].Name.Lexeme)
+			exprValueType := exprValue.GetType()
+			if typee != exprValueType {
+				w.error(expr.GetToken(), fmt.Sprintf("mismatched types: a type '%s' is given, but a value of type '%s' is assigned",typee.ToString(), exprValueType.ToString()))
+			}
+			var valueType ast.PrimitiveValueType
+			value := ""
+			switch val := exprValue.(type) {
+			case MapVal:
+				valueType = val.GetMemberType()
+				value = "map"
+			case ListVal:
+				valueType = val.GetValuesType()
+				value = "list"
+			}
+			if value != "" {
+				if declaration.Types[i].WrappedType == nil {
+					w.error(declaration.Types[i].GetToken(), value+"s require a wrapped type to be given")
+				}else {
+
+					wrappedType := w.GetTypeFromString(declaration.Types[i].WrappedType.Name.Lexeme)
+					if wrappedType == ast.Undefined {
+						w.error(declaration.Types[i].WrappedType.Name, "wrapped type given is undefined")
+					}else if valueType != wrappedType {
+						w.error(expr.GetToken(), value+" contents must the same type as the wrapped type given")
+					}
+				}
+			}
+			
+		}else {
+			var valueType ast.PrimitiveValueType
+			switch val := exprValue.(type) {
+			case MapVal:
+				valueType = val.GetMemberType()
+			case ListVal:
+				valueType = val.GetValuesType()
+			}
+
+			if valueType == ast.Undefined {
+				
+			}
+		}
+		values = append(values, exprValue)
 	}
 
 	isLocal := declaration.Token.Type == lexer.Let
@@ -181,7 +226,7 @@ func (w *Walker) variableDeclarationStmt(declaration ast.VariableDeclarationStmt
 			w.error(declaration.Token, "cannot declare a global constant without a value")
 		}
 	}
-
+	
 	for i, ident := range declaration.Identifiers {
 		variable := VariableVal{
 			Value: GetValue(values, i),

@@ -22,6 +22,7 @@ func (v VariableVal) GetType() ast.PrimitiveValueType {
 }
 
 type MapVal struct {
+	MemberType ast.PrimitiveValueType
 	Members map[string]VariableVal
 }
 
@@ -29,12 +30,41 @@ func (m MapVal) GetType() ast.PrimitiveValueType {
 	return ast.Map
 }
 
+func (m MapVal) GetMemberType() ast.PrimitiveValueType {
+	var prev *VariableVal
+	for _, val := range m.Members {
+		if prev == nil {
+			prev = &val
+			continue
+		}
+		if prev.GetType() != val.GetType() {
+			return ast.Undefined
+		}
+	}
+	return prev.GetType()
+}
+
 type ListVal struct {
+	ValuesType ast.PrimitiveValueType
 	values []Value
 }
 
 func (l ListVal) GetType() ast.PrimitiveValueType {
 	return ast.List
+}
+
+func (m ListVal) GetValuesType() ast.PrimitiveValueType {
+	var prev *Value
+	for _, val := range m.values {
+		if prev == nil {
+			prev = &val
+			continue
+		}
+		if (*prev).GetType() != val.GetType() {
+			return ast.Undefined
+		}
+	}
+	return (*prev).GetType()
 }
 
 type NumberVal struct {
