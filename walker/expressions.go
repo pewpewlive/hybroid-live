@@ -176,24 +176,40 @@ func (w *Walker) parentExpr(node ast.ParentExpr, scope *Scope) Value {
 	}
 }
 
-func (w *Walker) memberExpr(mapp Value, node ast.Node, scope *Scope) Value {
-	member, success := node.(ast.MemberExpr)
+func (w *Walker) memberExpr(mapp Value, node ast.MemberExpr, scope *Scope) Value {
+	if node.Owner == nil {
+		sc := scope.Resolve(node.Identifier.GetToken().Lexeme)
+
+		if sc == nil {
+			w.error(node.Identifier.GetToken(), fmt.Sprintf("undeclared variable \"%s\"", node.Identifier.GetToken().Lexeme))
+			return Unknown{}
+		}
+
+		next, ok := node.Property.(ast.MemberExpr)
+
+		if ok {
+			return w.memberExpr(next, scope)
+		} else {
+			w.error(node.GetToken(), "expected member expression")
+			return Unknown{}
+		}
+	}
 
 	var val Value
 
-	if member.Bracketed && member.GetToken().Type != lexer.Identifier {
-		val = StringVal{member.GetToken().Literal}
-	} else if member.Bracketed && member.GetToken().Type == lexer.Identifier {
+	if node.Bracketed && node.GetToken().Type != lexer.Identifier {
+		val = StringVal{node.GetToken().Literal}
+	} else if node.Bracketed && node.GetToken().Type == lexer.Identifier {
 		if mapp.GetType() == ast.Map {
-			val = w.GetNodeValue(member.Identifier, scope)
+			val = w.GetNodeValue(node.Identifier, scope)
 			if val.GetType() != ast.String && val.GetType() != 0 {
-				w.error(member.Identifier.GetToken(), "variable is not a string")
+				w.error(node.Identifier.GetToken(), "variable is not a string")
 				return Unknown{}
 			}
 		} else if mapp.GetType() == ast.List {
-			val = w.GetNodeValue(member.Identifier, scope)
+			val = w.GetNodeValue(node.Identifier, scope)
 			if val.GetType() != ast.Number && val.GetType() != 0 {
-				w.error(member.Identifier.GetToken(), "variable is not a number")
+				w.error(node.Identifier.GetToken(), "variable is not a number")
 				return Unknown{}
 			}
 			varia, isVar := val.(VariableVal)
@@ -202,13 +218,9 @@ func (w *Walker) memberExpr(mapp Value, node ast.Node, scope *Scope) Value {
 			}
 		}
 	} else {
-		val = StringVal{member.GetToken().Lexeme}
+		val = StringVal{node.GetToken().Lexeme}
 	}
 
-	if !success {
-		mem, _ := findMember(mapp, val)
-		return mem
-	}
 	var mem Value
 	mem, _ = findMember(mapp, val)
 
@@ -221,7 +233,7 @@ func (w *Walker) memberExpr(mapp Value, node ast.Node, scope *Scope) Value {
 		value = mem
 	}
 
-	next, isMember := member.Property.(ast.MemberExpr)
+	next, isMember := node.Property.(ast.MemberExpr)
 
 	if isMember {
 		if value.GetType() == ast.Map {
@@ -229,7 +241,7 @@ func (w *Walker) memberExpr(mapp Value, node ast.Node, scope *Scope) Value {
 		} else if value.GetType() == ast.List {
 			return w.memberExpr(value, next, scope)
 		} else {
-			w.error(member.Identifier.GetToken(), "variable is being treated as a map or list, but isn't one")
+			w.error(node.Identifier.GetToken(), "variable is being treated as a map or list, but isn't one")
 			return Unknown{}
 		}
 	} else {

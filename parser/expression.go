@@ -163,26 +163,7 @@ func (p *Parser) unary() ast.Node {
 		return ast.UnaryExpr{Operator: operator, Value: right}
 	}
 
-	return p.parent()
-}
-
-func (p *Parser) parent() ast.Node {
-	expr := p.primary()
-
-	if p.check(lexer.Dot) || p.check(lexer.LeftBracket) {
-		if expr.GetType() != ast.Identifier {
-			p.error(p.peek(), "expected an identifier before '.'")
-			return ast.Unknown{Token: p.peek()}
-		}
-		expr2 := p.memberCall(expr)
-		expr := ast.ParentExpr{
-			Identifier: expr.GetToken(),
-			Member:     expr2,
-		}
-		return expr
-	}
-
-	return expr
+	return p.memberCall(nil)
 }
 
 func (p *Parser) memberCall(owner ast.Node) ast.Node {

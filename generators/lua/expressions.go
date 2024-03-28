@@ -6,6 +6,11 @@ import (
 	"hybroid/lexer"
 )
 
+// let a = {a:{b:0},b:[2,3,4]}
+
+// Member Node
+// a.a.b
+
 func (gen *Generator) binaryExpr(node ast.BinaryExpr) string {
 	left, right := gen.GenerateNode(node.Left), gen.GenerateNode(node.Right)
 	return fmt.Sprintf("%s %s %s", left, node.Operator.Lexeme, right)
@@ -99,10 +104,6 @@ func (gen *Generator) mapExpr(node ast.MapExpr) string {
 
 func (gen *Generator) unaryExpr(node ast.UnaryExpr) string {
 	return fmt.Sprintf("%s%s", node.Operator.Lexeme, gen.GenerateNode(node.Value))
-}
-
-func (gen *Generator) parentExpr(node ast.ParentExpr) string {
-	return gen.GenerateNode(node.Member)
 }
 
 func (gen *Generator) memberExpr(node ast.MemberExpr) string {

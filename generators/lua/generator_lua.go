@@ -126,8 +126,6 @@ func (gen *Generator) GenerateNode(node ast.Node) string {
 		return gen.memberExpr(newNode)
 	case ast.DirectiveExpr:
 		return gen.directiveExpr(newNode)
-	case ast.ParentExpr:
-		return gen.parentExpr(newNode)
 	}
 
 	return ""

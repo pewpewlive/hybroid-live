@@ -153,23 +153,6 @@ func (n ListExpr) GetValueType() PrimitiveValueType {
 	return n.ValueType
 }
 
-type ParentExpr struct {
-	Identifier lexer.Token
-	Member     Node
-}
-
-func (p ParentExpr) GetType() NodeType {
-	return p.Member.GetType()
-}
-
-func (p ParentExpr) GetToken() lexer.Token {
-	return p.Identifier
-}
-
-func (p ParentExpr) GetValueType() PrimitiveValueType {
-	return p.Member.GetValueType()
-}
-
 type IdentifierExpr struct {
 	Name      lexer.Token
 	ValueType PrimitiveValueType
