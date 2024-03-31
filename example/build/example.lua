@@ -1,6 +1,4 @@
 
-local test = require("/dynamic/import_test.hyb")
-local map = {
-	a = 1
-}
+local test = require("/dynamic/import_test.lua")
+local map = test.a
 local one = 1

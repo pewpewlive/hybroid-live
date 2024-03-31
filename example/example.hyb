@@ -2,6 +2,6 @@
 
 use "import_test.hyb" as test
 
-let map = {a:1}
+let map = test.a
 
 let one = 1

@@ -53,6 +53,7 @@ const (
 	Entity
 	Struct
 	Ident
+	Namespace
 
 	Undefined
 )

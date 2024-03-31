@@ -65,8 +65,8 @@ func (w *Walker) assignmentStmt(assignStmt ast.AssignmentStmt, scope *Scope) {
 func (w *Walker) functionDeclarationStmt(node ast.FunctionDeclarationStmt, scope *Scope) {
 	fnScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
 	var returnStmts []ReturnValue
-	variable := VariableVal{
-		Name:  node.Name.Lexeme,
+	variable := VariableVal{//
+		Name:  node.Name.Lexeme,//todo: fix
 		Value: CallVal{params: node.Params},
 		Node:  node,
 	}
@@ -94,8 +94,8 @@ func (w *Walker) functionDeclarationStmt(node ast.FunctionDeclarationStmt, scope
 		}
 	}
 
-	varr := fnScope.GetVariable(node.Name.Lexeme).Value.(CallVal)
-	varr.returnVals = returnStmts
+	varr := fnScope.GetVariable(node.Name.Lexeme).Value.(FunctionVal)
+	varr.returnVal = returnStmts
 }
 
 func (w *Walker) returnStmt(node ast.ReturnStmt, scope *Scope) {
@@ -247,7 +247,7 @@ func (w *Walker) variableDeclarationStmt(declaration ast.VariableDeclarationStmt
 }
 
 func (w *Walker) useStmt(node ast.UseStmt, scope *Scope) {
-	variable := VariableVal{Name: node.Variable.Name.Lexeme, Node: node}
+	variable := VariableVal{Name: node.Variable.Name.Lexeme, Value: NamespaceVal{Name:node.Variable.Name.Lexeme}, Node: node}
 
 	if _, success := scope.DeclareVariable(variable); !success {
 		w.error(node.Variable.Name, "cannot declare a value in the same scope twice")

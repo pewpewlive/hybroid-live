@@ -40,9 +40,14 @@ func (vds VariableDeclarationStmt) GetValueType() PrimitiveValueType {
 	return Undefined
 }
 
+type Param struct {
+	Type lexer.Token
+	Name lexer.Token
+}
+
 type FunctionDeclarationStmt struct {
 	Name    lexer.Token
-	Params  []lexer.Token
+	Params  []Param
 	IsLocal bool
 	Body    []Node
 }

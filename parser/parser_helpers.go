@@ -9,7 +9,7 @@ import (
 func (p *Parser) error(token lexer.Token, msg string) {
 	errMsg := ast.Error{Token: token, Message: msg}
 	p.Errors = append(p.Errors, errMsg)
-	panic(errMsg.Message)
+	//panic(errMsg.Message)
 }
 
 func (p *Parser) synchronize() {

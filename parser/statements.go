@@ -158,20 +158,7 @@ func (p *Parser) functionDeclarationStmt() ast.Node {
 	}
 
 	fnDec.Name = ident
-
-	args := p.arguments()
-	var params []lexer.Token
-
-	for _, arg := range args {
-		if arg.GetType() == ast.Identifier {
-			params = append(params, arg.GetToken())
-			continue
-		}
-		p.error(arg.GetToken(), "expected identifier in function declaration")
-	}
-
-	fnDec.Params = params
-
+	fnDec.Params = p.parameters()
 	body := make([]ast.Node, 0)
 	if token, success := p.consume("expected body of the function", lexer.LeftBrace); success { // hjere
 		for !p.match(lexer.RightBrace) {
@@ -406,10 +393,10 @@ func (p *Parser) useStmt() ast.Node {
 	useStmt := ast.UseStmt{}
 
 	filepath := p.expression()
-	if filepath.GetType() == 0 {
+	if filepath.GetType() == 0 || filepath.GetType() == ast.NA {
 		p.error(p.peek(), "expected filepath")
 	}
-	useStmt.File = filepath.GetToken()
+	useStmt.File = filepath.GetToken() 
 
 	if _, ok := p.consume("expected keyword 'as' after filepath in a 'use' statement", lexer.As); !ok {
 		return useStmt

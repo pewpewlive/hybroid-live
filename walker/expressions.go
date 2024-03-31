@@ -99,16 +99,18 @@ func (w *Walker) callExpr(node ast.CallExpr, scope *Scope) Value {
 		return Unknown{}
 	} else {
 		fn := sc.GetVariable(callerToken.Lexeme)
-		call, ok := fn.Value.(CallVal)
-		if !ok {
+		fun, ok := fn.Value.(FunctionVal)
+		if !ok { // 
 			w.error(callerToken, "variable used as if it's a function")
-		} else if len(call.params) < len(node.Args) {
+		} else if len(fun.params) < len(node.Args) {
 			w.error(callerToken, "too many arguments given in function call")
-		} else if len(call.params) > len(node.Args) {
+		} else if len(fun.params) > len(node.Args) {
 			w.error(callerToken, "too few arguments given in function call")
 		}
 
-		return call
+		//type check
+
+		return fun.returnVal
 	}
 }
 
@@ -145,8 +147,11 @@ func (w *Walker) memberExpr(mapp Value, node ast.MemberExpr, scope *Scope) Value
 		next, ok := node.Property.(ast.MemberExpr)
 
 		if ok {
+			if mapp.GetType() == ast.Namespace {
+				return Undefined{}
+			}
 			if mapp.GetType() != ast.List && mapp.GetType() != ast.Map {
-				w.error(node.Identifier.GetToken(), "variable is not a list nor a map")
+				w.error(node.Identifier.GetToken(), "variable is not a list, map or a namespace")
 				return Unknown{}
 			}
 			return w.memberExpr(mapp, next, scope)

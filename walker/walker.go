@@ -52,7 +52,7 @@ func (w *Walker) GetValue(pvt ast.PrimitiveValueType) Value {
 	case ast.Map:
 		return MapVal{}
 	case ast.Func:
-		return CallVal{}
+		return FunctionVal{}
 	case ast.Nil:
 		return NilVal{}
 	case ast.String:
@@ -167,18 +167,20 @@ func (w *Walker) validateArithmeticOperands(left Value, right Value, expr ast.Bi
 
 func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
 	switch str{
-	case "Map":
+	case "map":
 		return ast.Map
-	case "List":
+	case "list":
 		return ast.List
-	case "Number":
+	case "number":
 		return ast.Number
 	case "Bool":
 		return ast.Bool
-	case "Fixedpoint","Radian","Degree":
+	case "fixed":
 		return ast.FixedPoint
-	case "String":
+	case "text":
 		return ast.String
+	case "fn":
+		return ast.Func
 	default:
 		return ast.Undefined
 	}

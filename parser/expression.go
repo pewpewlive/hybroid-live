@@ -200,6 +200,36 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 	return call_expr
 }
 
+func (p *Parser)  getParam(params []ast.Param) {
+	paramName := p.expression();
+	paramType := p.expression();
+	if paramType.GetType() != ast.Identifier {
+		p.error(paramType.GetToken(),"Expected an name as for a type");
+	}else if paramName.GetType() != ast.Identifier {
+		p.error(paramName.GetToken(), "expected an identifier in parameter");
+	}
+	params = append(params, ast.Param{Type: paramType.GetToken(), Name:paramName.GetToken()})
+}
+
+func (p *Parser) parameters() []ast.Param {
+	if _, ok := p.consume("expected opening paren after an identifier", lexer.LeftParen); !ok {
+		return nil
+	}
+
+	var args []ast.Param
+	if p.match(lexer.RightParen) {
+		args = make([]ast.Param, 0)
+	} else {
+		p.getParam(args);
+		for p.match(lexer.Comma) {
+			p.getParam(args);
+		}
+		p.consume("expected closing paren after parameters", lexer.RightParen)
+	}
+
+	return args
+}
+
 func (p *Parser) arguments() []ast.Node {
 	if _, ok := p.consume("expected opening paren after an identifier", lexer.LeftParen); !ok {
 		return nil
@@ -209,15 +239,18 @@ func (p *Parser) arguments() []ast.Node {
 	if p.match(lexer.RightParen) {
 		args = make([]ast.Node, 0)
 	} else {
-		args = append(args, p.expression())
-		for p.match(lexer.Comma) {
-			args = append(args, p.expression())
+		arg := p.expression();
+		args = append(args, arg);
+		for p.match(lexer.Comma) { // ok
+			arg := p.expression();
+			args = append(args, arg)
 		}
 		p.consume("expected closing paren after arguments", lexer.RightParen)
 	}
 
 	return args
 }
+
 
 func (p *Parser) member(owner ast.Node) ast.Node {
 	if owner == nil  {

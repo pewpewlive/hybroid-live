@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hybroid/ast"
 	"hybroid/lexer"
+	"strings"
 )
 
 func (gen *Generator) ifStmt(node ast.IfStmt) string {
@@ -201,7 +202,8 @@ func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclaratio
 func (gen *Generator) useStmt(node ast.UseStmt) string {
 	src := StringBuilder{}
 
-	src.Append("local ", node.Variable.Name.Lexeme, " = require(\"/dynamic/", node.File.Literal, "\")")
+	fileName := strings.Replace(node.File.Literal, ".hyb", ".lua", 1)
+	src.Append("local ", node.Variable.Name.Lexeme, " = require(\"/dynamic/", fileName, "\")")
 
 	return src.String()
 }

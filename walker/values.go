@@ -21,6 +21,14 @@ func (v VariableVal) GetType() ast.PrimitiveValueType {
 	return v.Value.GetType()
 }
 
+type NamespaceVal struct {
+	Name string
+}
+
+func (n NamespaceVal) GetType() ast.PrimitiveValueType {
+	return ast.Namespace;
+}
+
 type MapVal struct {
 	MemberType ast.PrimitiveValueType
 	Members map[string]VariableVal
@@ -89,21 +97,25 @@ func (f FixedVal) GetType() ast.PrimitiveValueType {
 	return ast.FixedPoint
 }
 
-type ReturnValue struct {
+type ReturnType struct {
 	values []ast.PrimitiveValueType
 }
 
-func (n ReturnValue) GetType() ast.PrimitiveValueType {
+func (n ReturnType) GetType() ast.PrimitiveValueType {
 	return 0
 }
 
-type CallVal struct {
+type FunctionVal struct { 
 	params     []lexer.Token
-	returnVals []ReturnValue
+	returnVal ReturnType
 }
 
-func (f CallVal) GetType() ast.PrimitiveValueType {
+func (f FunctionVal) GetType() ast.PrimitiveValueType {
 	return 0
+}
+
+func (f FunctionVal) GetReturnType() ReturnType {
+	return f.returnVal
 }
 
 type BoolVal struct {
