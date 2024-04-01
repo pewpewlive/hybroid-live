@@ -46,7 +46,7 @@ var app = &cli.App{
 		{
 			Name:    "add",
 			Aliases: []string{"a"},
-			Usage:   "Installs packages from the Hybroid Package Repository",
+			Usage:   "Installs packages from the PewPew Marketplace",
 			Action: func(ctx *cli.Context) error {
 				return commands.Add(ctx)
 			},
