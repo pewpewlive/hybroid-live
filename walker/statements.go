@@ -64,10 +64,20 @@ func (w *Walker) assignmentStmt(assignStmt ast.AssignmentStmt, scope *Scope) {
 
 func (w *Walker) functionDeclarationStmt(node ast.FunctionDeclarationStmt, scope *Scope) {
 	fnScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
-	var returnStmts []ReturnValue
+
+	func_params := make([]lexer.Token,len(node.Params))
+	for i := range node.Params {
+		func_params = append(func_params, node.Params[i].Name)
+	}
+
+	var ret ReturnType
+	for _, token := range node.Return {
+		ret.values = append(ret.values, w.GetTypeFromString(token.Lexeme))
+	}
+
 	variable := VariableVal{//
 		Name:  node.Name.Lexeme,//todo: fix
-		Value: CallVal{params: node.Params},
+		Value: FunctionVal{params:func_params, returnVal: ret},
 		Node:  node,
 	}
 	if _, success := scope.DeclareVariable(variable); !success {
@@ -78,30 +88,45 @@ func (w *Walker) functionDeclarationStmt(node ast.FunctionDeclarationStmt, scope
 		w.error(node.GetToken(), "cannot declare a global function inside a local block")
 	}
 
+	/*
+
+	func {
+		if {
+			 
+		}else {
+			return
+		}
+		return
+	}
+				 
+	funcreturn > (elsereturn = ifreturn) 
+
+	*/
+
 	for _, param := range node.Params {
-		fnScope.DeclareVariable(VariableVal{Name: param.Lexeme, Node: node})
+		fnScope.DeclareVariable(VariableVal{Name: param.Name.Lexeme, Node: node})
 	}
 
 	for _, stmt := range node.Body {
 		if stmt.GetType() == ast.ReturnStatement {
 			returnStmt := stmt.(ast.ReturnStmt)
-			returnValue := ReturnValue{}
+			returnValue := ReturnType{}
 			for _, arg := range returnStmt.Args {
 				value := w.GetNodeValue(arg, &fnScope)
 				returnValue.values = append(returnValue.values, value.GetType())
 			}
-			returnStmts = append(returnStmts, returnValue)
 		}
 	}
-
-	varr := fnScope.GetVariable(node.Name.Lexeme).Value.(FunctionVal)
-	varr.returnVal = returnStmts
 }
 
 func (w *Walker) returnStmt(node ast.ReturnStmt, scope *Scope) {
-	// for i, expr := range node.Args {
-	// 	val := w.GetNodeValue(expr, scope)
-	// }
+/*	ret := ReturnType{}
+	for _, expr := range node.Args {
+		val := w.GetNodeValue(expr, scope)
+		ret.values = append(ret.values, val.GetType())
+	}
+	return ret
+*/
 }
 
 func (w *Walker) repeatStmt(node ast.RepeatStmt, scope *Scope) {

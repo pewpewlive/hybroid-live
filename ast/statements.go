@@ -1,6 +1,8 @@
 package ast
 
-import "hybroid/lexer"
+import (
+	"hybroid/lexer"
+)
 
 type AssignmentStmt struct {
 	Values      []Node
@@ -47,6 +49,7 @@ type Param struct {
 
 type FunctionDeclarationStmt struct {
 	Name    lexer.Token
+	Return  []lexer.Token
 	Params  []Param
 	IsLocal bool
 	Body    []Node

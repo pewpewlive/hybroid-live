@@ -159,6 +159,18 @@ func (p *Parser) functionDeclarationStmt() ast.Node {
 
 	fnDec.Name = ident
 	fnDec.Params = p.parameters()
+
+	ret := make([]lexer.Token, 0)
+	for p.check(lexer.Identifier) {
+		ret = append(ret, p.advance())
+		if !p.check(lexer.Comma) {
+			break
+		}else {
+			p.advance()
+		}
+	}
+	fnDec.Return = ret
+
 	body := make([]ast.Node, 0)
 	if token, success := p.consume("expected body of the function", lexer.LeftBrace); success { // hjere
 		for !p.match(lexer.RightBrace) {

@@ -241,7 +241,7 @@ func (p *Parser) arguments() []ast.Node {
 	} else {
 		arg := p.expression();
 		args = append(args, arg);
-		for p.match(lexer.Comma) { // ok
+		for p.match(lexer.Comma) { 
 			arg := p.expression();
 			args = append(args, arg)
 		}

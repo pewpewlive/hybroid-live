@@ -70,7 +70,7 @@ func (gen *Generator) functionDeclarationStmt(node ast.FunctionDeclarationStmt) 
 
 	gen.Src.Append("function ", node.Name.Lexeme, "(")
 	for i, param := range node.Params {
-		gen.Src.Append(param.Lexeme)
+		gen.Src.Append(param.Name.Lexeme)
 		if i != len(node.Params)-1 {
 			gen.Src.Append(", ")
 		}

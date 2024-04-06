@@ -5,3 +5,9 @@ use "import_test.hyb" as test
 let map = test.a
 
 let one = 1
+
+fn thing(param map, param2 number) map {
+
+}
+
+let a = 1 - thing()
