@@ -165,7 +165,7 @@ func (p *Parser) functionDeclarationStmt() ast.Node {
 		ret = append(ret, p.advance())
 		if !p.check(lexer.Comma) {
 			break
-		}else {
+		} else {
 			p.advance()
 		}
 	}
@@ -350,9 +350,9 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 		conv, ok := typ.(ast.TypeExpr)
 		if !ok {
 			return ast.Unknown{Token: p.peek(-1)}
-		}	
+		}
 
-		typee = &conv;
+		typee = &conv
 	}
 	idents := []string{ident.Lexeme}
 	types := []*ast.TypeExpr{typee}
@@ -368,7 +368,7 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 			if !ok {
 				return ast.Unknown{Token: p.peek(-1)}
 			}
-			typee = &conv;
+			typee = &conv
 		}
 
 		idents = append(idents, ident.Lexeme)
@@ -408,7 +408,7 @@ func (p *Parser) useStmt() ast.Node {
 	if filepath.GetType() == 0 || filepath.GetType() == ast.NA {
 		p.error(p.peek(), "expected filepath")
 	}
-	useStmt.File = filepath.GetToken() 
+	useStmt.File = filepath.GetToken()
 
 	if _, ok := p.consume("expected keyword 'as' after filepath in a 'use' statement", lexer.As); !ok {
 		return useStmt

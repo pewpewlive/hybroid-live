@@ -24,7 +24,7 @@ func (as AssignmentStmt) GetValueType() PrimitiveValueType {
 
 type VariableDeclarationStmt struct {
 	Identifiers []string
-	Types 		[]*TypeExpr
+	Types       []*TypeExpr
 	Values      []Node
 	IsLocal     bool
 	Token       lexer.Token
@@ -85,11 +85,75 @@ func (is IfStmt) GetValueType() PrimitiveValueType {
 	return Undefined
 }
 
+/*
+
+let a = match ExprToMatch {
+"a" => {
+
+}
+"b" => {
+
+}
+
+_ => {
+
+}
+
+}
+
+let a = if condition {
+	a =  1
+}
+
+local a
+if condtion then
+	a = 1
+end
+
+let o = 0
+repeat to 10 with i {
+
+	if i == 10 {
+		o = i+20
+	}else {
+		o = 0
+	}
+}
+
+local o
+
+for i = 1, 10 do
+	if i == 10 then
+		o = i+20
+		break
+	else
+	 o = 0
+	 break
+	end
+end
+
+*/
+
 type MatchStmt struct {
 	ExprToMatch Node
-	Match       PrimitiveValueType
-	Cases       [][]Node
-	Bodies      []Node
+	Cases       []CaseStmt
+}
+
+type CaseStmt struct {
+	Body  []Node
+	Cases []Node
+}
+
+func (ms MatchStmt) GetType() NodeType {
+	return MatchStatement
+}
+
+func (ms MatchStmt) GetValueType() PrimitiveValueType {
+	return Undefined
+}
+
+func (ms MatchStmt) GetToken() lexer.Token {
+	return ms.ExprToMatch.GetToken()
 }
 
 type RepeatStmt struct {

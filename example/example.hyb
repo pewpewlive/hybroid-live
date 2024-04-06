@@ -6,8 +6,10 @@ let map = test.a
 
 let one = 1
 
-fn thing(param map, param2 number) map {
+fn thing(param bool, param2 text) text {
+  if param {
 
+  }
 }
 
 let a = 1 - thing()

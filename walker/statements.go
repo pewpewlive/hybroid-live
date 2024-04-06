@@ -65,19 +65,22 @@ func (w *Walker) assignmentStmt(assignStmt ast.AssignmentStmt, scope *Scope) {
 func (w *Walker) functionDeclarationStmt(node ast.FunctionDeclarationStmt, scope *Scope) {
 	fnScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
 
-	func_params := make([]lexer.Token,len(node.Params))
+	funcParams := make([]lexer.Token, len(node.Params))
 	for i := range node.Params {
-		func_params = append(func_params, node.Params[i].Name)
+		funcParams = append(funcParams, node.Params[i].Name)
 	}
 
 	var ret ReturnType
 	for _, token := range node.Return {
 		ret.values = append(ret.values, w.GetTypeFromString(token.Lexeme))
 	}
+	if len(ret.values) == 0 {
+		ret.values = append(ret.values, ast.Nil)
+	}
 
-	variable := VariableVal{//
-		Name:  node.Name.Lexeme,//todo: fix
-		Value: FunctionVal{params:func_params, returnVal: ret},
+	variable := VariableVal{ //
+		Name:  node.Name.Lexeme, //todo: fix
+		Value: FunctionVal{params: funcParams, returnVal: ret},
 		Node:  node,
 	}
 	if _, success := scope.DeclareVariable(variable); !success {
@@ -87,21 +90,6 @@ func (w *Walker) functionDeclarationStmt(node ast.FunctionDeclarationStmt, scope
 	if scope.Parent != nil && !node.IsLocal {
 		w.error(node.GetToken(), "cannot declare a global function inside a local block")
 	}
-
-	/*
-
-	func {
-		if {
-			 
-		}else {
-			return
-		}
-		return
-	}
-				 
-	funcreturn > (elsereturn = ifreturn) 
-
-	*/
 
 	for _, param := range node.Params {
 		fnScope.DeclareVariable(VariableVal{Name: param.Name.Lexeme, Node: node})
@@ -117,16 +105,50 @@ func (w *Walker) functionDeclarationStmt(node ast.FunctionDeclarationStmt, scope
 			}
 		}
 	}
+
+	if w.bodyReturns(node.Body, &ret, &fnScope) == nil {
+		w.error(node.GetToken(), "not all function paths return a value")
+	}
 }
 
-func (w *Walker) returnStmt(node ast.ReturnStmt, scope *Scope) {
-/*	ret := ReturnType{}
+func (w *Walker) ifReturns(node ast.IfStmt, expectedReturn *ReturnType, scope *Scope) *ReturnType {
+	return expectedReturn
+}
+
+func (w *Walker) bodyReturns(body []ast.Node, expectedReturn *ReturnType, scope *Scope) *ReturnType {
+	var returns *ReturnType
+	localScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
+	for _, node := range body {
+		switch node.GetType() {
+		case ast.IfStatement:
+			returns = w.ifReturns(node.(ast.IfStmt), expectedReturn, &localScope)
+		case ast.RepeatStatement:
+			returns = w.bodyReturns(node.(ast.RepeatStmt).Body, expectedReturn, &localScope)
+		case ast.ReturnStatement:
+			returns = w.returnStmt(node.(ast.ReturnStmt), scope)
+		default:
+			returns = nil
+		}
+		if returns != nil && expectedReturn != nil {
+			if !listsAreValid(returns.values, expectedReturn.values) {
+				w.error(node.GetToken(), "invalid return types")
+			}
+		}
+	}
+
+	return returns
+}
+
+func (w *Walker) returnStmt(node ast.ReturnStmt, scope *Scope) *ReturnType {
+	var ret ReturnType
 	for _, expr := range node.Args {
 		val := w.GetNodeValue(expr, scope)
 		ret.values = append(ret.values, val.GetType())
 	}
-	return ret
-*/
+	if len(ret.values) == 0 {
+		ret.values = append(ret.values, ast.Nil)
+	}
+	return &ret
 }
 
 func (w *Walker) repeatStmt(node ast.RepeatStmt, scope *Scope) {
@@ -190,7 +212,7 @@ func (w *Walker) variableDeclarationStmt(declaration ast.VariableDeclarationStmt
 			typee := w.GetTypeFromString(declaration.Types[i].Name.Lexeme)
 			exprValueType := exprValue.GetType()
 			if typee != exprValueType {
-				w.error(expr.GetToken(), fmt.Sprintf("mismatched types: a type '%s' is given, but a value of type '%s' is assigned",typee.ToString(), exprValueType.ToString()))
+				w.error(expr.GetToken(), fmt.Sprintf("mismatched types: a type '%s' is given, but a value of type '%s' is assigned", typee.ToString(), exprValueType.ToString()))
 			}
 			var valueType ast.PrimitiveValueType
 			value := ""
@@ -205,18 +227,18 @@ func (w *Walker) variableDeclarationStmt(declaration ast.VariableDeclarationStmt
 			if value != "" {
 				if declaration.Types[i].WrappedType == nil {
 					w.error(declaration.Types[i].GetToken(), value+"s require a wrapped type to be given")
-				}else {
+				} else {
 
 					wrappedType := w.GetTypeFromString(declaration.Types[i].WrappedType.Name.Lexeme)
 					if wrappedType == ast.Undefined {
 						w.error(declaration.Types[i].WrappedType.Name, "wrapped type given is undefined")
-					}else if valueType != wrappedType {
+					} else if valueType != wrappedType {
 						w.error(expr.GetToken(), value+" contents must the same type as the wrapped type given")
 					}
 				}
 			}
-			
-		}else {
+
+		} else {
 			var valueType ast.PrimitiveValueType
 			switch val := exprValue.(type) {
 			case MapVal:
@@ -226,7 +248,7 @@ func (w *Walker) variableDeclarationStmt(declaration ast.VariableDeclarationStmt
 			}
 
 			if valueType == ast.Undefined {
-				
+
 			}
 		}
 		values = append(values, exprValue)
@@ -251,7 +273,7 @@ func (w *Walker) variableDeclarationStmt(declaration ast.VariableDeclarationStmt
 			w.error(declaration.Token, "cannot declare a global constant without a value")
 		}
 	}
-	
+
 	for i, ident := range declaration.Identifiers {
 		variable := VariableVal{
 			Value: GetValue(values, i),
@@ -272,7 +294,7 @@ func (w *Walker) variableDeclarationStmt(declaration ast.VariableDeclarationStmt
 }
 
 func (w *Walker) useStmt(node ast.UseStmt, scope *Scope) {
-	variable := VariableVal{Name: node.Variable.Name.Lexeme, Value: NamespaceVal{Name:node.Variable.Name.Lexeme}, Node: node}
+	variable := VariableVal{Name: node.Variable.Name.Lexeme, Value: NamespaceVal{Name: node.Variable.Name.Lexeme}, Node: node}
 
 	if _, success := scope.DeclareVariable(variable); !success {
 		w.error(node.Variable.Name, "cannot declare a value in the same scope twice")

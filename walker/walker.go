@@ -69,6 +69,24 @@ func (w *Walker) GetValue(pvt ast.PrimitiveValueType) Value {
 	}
 }
 
+type ComparableType interface {
+	ast.PrimitiveValueType
+}
+
+func listsAreValid[T ComparableType](list1 []T, list2 []T) bool {
+	if len(list1) != len(list2) {
+		return false
+	}
+
+	for i, v := range list1 {
+		if list2[i] != v {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (s *Scope) GetVariable(name string) VariableVal {
 
 	scope := s.Resolve(name)
@@ -166,7 +184,7 @@ func (w *Walker) validateArithmeticOperands(left Value, right Value, expr ast.Bi
 }
 
 func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
-	switch str{
+	switch str {
 	case "map":
 		return ast.Map
 	case "list":
