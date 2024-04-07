@@ -2,7 +2,6 @@ package walker
 
 import (
 	"hybroid/ast"
-	"hybroid/lexer"
 )
 
 type Value interface {
@@ -106,7 +105,7 @@ func (n ReturnType) GetType() ast.PrimitiveValueType {
 }
 
 type FunctionVal struct { 
-	params     []lexer.Token
+	params     []ast.Param
 	returnVal ReturnType
 }
 

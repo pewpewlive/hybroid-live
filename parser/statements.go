@@ -46,7 +46,7 @@ func (p *Parser) statement() ast.Node {
 		return p.assignmentStmt()
 	case lexer.If:
 		p.advance()
-		return p.ifStmt()
+		return p.ifStmt(false, false, false)
 	case lexer.Repeat:
 		p.advance()
 		return p.repeatStmt()
@@ -64,29 +64,51 @@ func (p *Parser) statement() ast.Node {
 	return expr
 }
 
-func (p *Parser) ifStmt() ast.Node {
+func (p *Parser) getBody() *[]ast.Node {
+	body := make([]ast.Node, 0)
+	if _, success := p.consume("expected opening of the body", lexer.LeftBrace); !success {
+		return &body
+	}
+	for !p.match(lexer.RightBrace) {
+		if p.peek().Type == lexer.Eof {
+			p.error(p.peek(), "expected body closure")
+			break
+		}
+		statement := p.statement()
+		if statement != nil {
+			body = append(body, statement)
+		}
+	}
+	return &body
+}
+
+func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) ast.IfStmt {
 	ifStm := ast.IfStmt{
 		Token: p.peek(-1),
 	}
-
-	expr := p.expression()
-
-	body := make([]ast.Node, 0)
-	if _, success := p.consume("expected body of the if statement", lexer.LeftBrace); success {
-		for !p.match(lexer.RightBrace) {
-			if p.peek().Type == lexer.Eof {
-				p.error(p.peek(), "expected body closure")
-				break
-			}
-			statement := p.statement()
-			if statement != nil {
-				body = append(body, statement)
-			}
+	var expr ast.Node
+	if !is_else {
+		expr = p.expression()
+	}
+	ifStm.BoolExpr = expr
+	ifStm.Body = *p.getBody()
+	if is_else || is_elseif {
+		return ifStm
+	}
+	for p.match(lexer.Else) {
+		if else_exists {
+			p.error(p.peek(-1), "cannot have two else statements in an if statement")
+		}
+		var ifbody ast.IfStmt
+		if p.match(lexer.If) {
+			ifbody = p.ifStmt(else_exists, false, true)
+			ifStm.Elseifs = append(ifStm.Elseifs, &ifbody)
+		}else {
+			else_exists = true
+			ifbody = p.ifStmt(else_exists, true, false)
+			ifStm.Else = &ifbody
 		}
 	}
-
-	ifStm.Body = body
-	ifStm.BoolExpr = expr
 
 	return ifStm
 }

@@ -8,16 +8,36 @@ import (
 )
 
 func (w *Walker) ifStmt(node ast.IfStmt, scope *Scope) {
-	ifScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
-
-	for _, stmt := range node.Body {
-		w.WalkNode(stmt, &ifScope)
+	
+	for _, node := range node.Body {
+		ifScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
+		w.WalkNode(node, &ifScope)
 		// if stmt.GetType() == ast.ReturnStatement {
 		// 	returnStmt := stmt.(ast.ReturnStmt)
 		// 	for _, arg := range returnStmt.Args {
 		// 		value := w.GetNodeValue(arg, scope)
 		// 	}
 		// }
+	}
+
+	for _, elseif := range node.Elseifs {
+		ifScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
+		for _, stmt := range elseif.Body {
+			w.WalkNode(stmt, &ifScope)
+			// if stmt.GetType() == ast.ReturnStatement {
+			// 	returnStmt := stmt.(ast.ReturnStmt)
+			// 	for _, arg := range returnStmt.Args {
+			// 		value := w.GetNodeValue(arg, scope)
+			// 	}
+			// }
+		}
+	}
+
+	if node.Else != nil {
+		ifScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
+		for _, stmt := range node.Else.Body {
+			w.WalkNode(stmt, &ifScope)
+		}
 	}
 }
 
@@ -65,9 +85,9 @@ func (w *Walker) assignmentStmt(assignStmt ast.AssignmentStmt, scope *Scope) {
 func (w *Walker) functionDeclarationStmt(node ast.FunctionDeclarationStmt, scope *Scope) {
 	fnScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
 
-	funcParams := make([]lexer.Token, len(node.Params))
-	for i := range node.Params {
-		funcParams = append(funcParams, node.Params[i].Name)
+	for i, param := range node.Params {
+		value := w.GetValue(w.GetTypeFromString(node.Params[i].Type.Lexeme))
+		fnScope.DeclareVariable(VariableVal{Name: param.Name.Lexeme, Value: value, Node: node})
 	}
 
 	var ret ReturnType
@@ -78,9 +98,9 @@ func (w *Walker) functionDeclarationStmt(node ast.FunctionDeclarationStmt, scope
 		ret.values = append(ret.values, ast.Nil)
 	}
 
-	variable := VariableVal{ //
-		Name:  node.Name.Lexeme, //todo: fix
-		Value: FunctionVal{params: funcParams, returnVal: ret},
+	variable := VariableVal{ 
+		Name:  node.Name.Lexeme, 
+		Value: FunctionVal{params: node.Params, returnVal: ret},
 		Node:  node,
 	}
 	if _, success := scope.DeclareVariable(variable); !success {
@@ -90,10 +110,7 @@ func (w *Walker) functionDeclarationStmt(node ast.FunctionDeclarationStmt, scope
 	if scope.Parent != nil && !node.IsLocal {
 		w.error(node.GetToken(), "cannot declare a global function inside a local block")
 	}
-
-	for _, param := range node.Params {
-		fnScope.DeclareVariable(VariableVal{Name: param.Name.Lexeme, Node: node})
-	}
+	
 
 	for _, stmt := range node.Body {
 		if stmt.GetType() == ast.ReturnStatement {
@@ -112,7 +129,56 @@ func (w *Walker) functionDeclarationStmt(node ast.FunctionDeclarationStmt, scope
 }
 
 func (w *Walker) ifReturns(node ast.IfStmt, expectedReturn *ReturnType, scope *Scope) *ReturnType {
-	return expectedReturn
+	var returns *ReturnType
+
+	for _, node := range node.Body {
+		localScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
+		switch node.GetType() {
+		case ast.IfStatement:
+			returns = w.ifReturns(node.(ast.IfStmt), expectedReturn, &localScope)
+		case ast.RepeatStatement:
+			returns = w.bodyReturns(node.(ast.RepeatStmt).Body, expectedReturn, &localScope)
+		case ast.ReturnStatement:
+			returns = w.returnStmt(node.(ast.ReturnStmt), scope)
+		default:
+			returns = nil
+		}
+		if returns == nil {
+			return returns
+		}
+		if !listsAreValid(returns.values, expectedReturn.values) {
+			w.error(node.GetToken(), "invalid return types")
+		}
+	}
+
+	for _, elseif := range node.Elseifs {
+		localScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
+		for _, node := range elseif.Body {
+			switch node.GetType() {
+			case ast.IfStatement:
+				returns = w.ifReturns(node.(ast.IfStmt), expectedReturn, &localScope)
+			case ast.RepeatStatement:
+				returns = w.bodyReturns(node.(ast.RepeatStmt).Body, expectedReturn, &localScope)
+			case ast.ReturnStatement:
+				returns = w.returnStmt(node.(ast.ReturnStmt), scope)
+			default:
+				returns = nil
+			}
+			if returns == nil {
+				return returns
+			}
+			if !listsAreValid(returns.values, expectedReturn.values) {
+				w.error(node.GetToken(), "invalid return types")
+			}
+		}
+	}
+
+	if node.Else != nil {
+		localScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
+		returns = w.bodyReturns(node.Else.Body, expectedReturn, &localScope)
+	}
+
+	return returns
 }
 
 func (w *Walker) bodyReturns(body []ast.Node, expectedReturn *ReturnType, scope *Scope) *ReturnType {

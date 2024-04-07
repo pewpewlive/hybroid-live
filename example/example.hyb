@@ -7,9 +7,13 @@ let map = test.a
 let one = 1
 
 fn thing(param bool, param2 text) text {
-  if param {
-
-  }
+	if param {
+		return "yeah"
+	}else if param2 == "oooo" {
+		return "booo"
+	}else {
+		param2 = "looool"
+		return param2
+	}
 }
 
-let a = 1 - thing()

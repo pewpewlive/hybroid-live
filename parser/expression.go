@@ -200,15 +200,15 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 	return call_expr
 }
 
-func (p *Parser)  getParam(params []ast.Param) {
+func (p *Parser)  getParam() ast.Param {
 	paramName := p.expression();
 	paramType := p.expression();
 	if paramType.GetType() != ast.Identifier {
-		p.error(paramType.GetToken(),"Expected an name as for a type");
+		p.error(paramType.GetToken(),"Expected name for a type");
 	}else if paramName.GetType() != ast.Identifier {
 		p.error(paramName.GetToken(), "expected an identifier in parameter");
 	}
-	params = append(params, ast.Param{Type: paramType.GetToken(), Name:paramName.GetToken()})
+	return ast.Param{Type: paramType.GetToken(), Name:paramName.GetToken()}
 }
 
 func (p *Parser) parameters() []ast.Param {
@@ -220,9 +220,9 @@ func (p *Parser) parameters() []ast.Param {
 	if p.match(lexer.RightParen) {
 		args = make([]ast.Param, 0)
 	} else {
-		p.getParam(args);
+		args = append(args, p.getParam());
 		for p.match(lexer.Comma) {
-			p.getParam(args);
+			args = append(args, p.getParam());
 		}
 		p.consume("expected closing paren after parameters", lexer.RightParen)
 	}

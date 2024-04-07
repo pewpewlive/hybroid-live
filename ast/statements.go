@@ -69,7 +69,9 @@ func (fds FunctionDeclarationStmt) GetValueType() PrimitiveValueType {
 
 type IfStmt struct {
 	BoolExpr Node
-	Body     []Node
+	Body   	 []Node
+	Elseifs  []*IfStmt
+	Else     *IfStmt
 	Token    lexer.Token
 }
 
