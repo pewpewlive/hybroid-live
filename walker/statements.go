@@ -123,32 +123,45 @@ func (w *Walker) functionDeclarationStmt(node ast.FunctionDeclarationStmt, scope
 		}
 	}
 
-	if w.bodyReturns(node.Body, &ret, &fnScope) == nil {
+	if w.bodyReturns(node.Body, &ret, &fnScope) == nil && ret.values[0] != ast.Nil {
 		w.error(node.GetToken(), "not all function paths return a value")
+	}
+}
+
+func (w *Walker) validateReturnValues(node ast.Node, returnValues []ast.PrimitiveValueType, expectedReturnValues []ast.PrimitiveValueType) {
+	if !listsAreValid(returnValues, expectedReturnValues) {
+		w.error(node.GetToken(), "invalid return type(s)")
+	}
+	if len(returnValues) < len(expectedReturnValues) {
+		w.error(node.GetToken(), "not enough return values given")
+	} else if len(returnValues) > len(expectedReturnValues) {
+		w.error(node.GetToken(), "too many return values given")
 	}
 }
 
 func (w *Walker) ifReturns(node ast.IfStmt, expectedReturn *ReturnType, scope *Scope) *ReturnType {
 	var returns *ReturnType
 
-	for _, node := range node.Body {
+	for _, bodynode := range node.Body {
 		localScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
-		switch node.GetType() {
+		switch bodynode.GetType() {
 		case ast.IfStatement:
-			returns = w.ifReturns(node.(ast.IfStmt), expectedReturn, &localScope)
+			returns = w.ifReturns(bodynode.(ast.IfStmt), expectedReturn, &localScope)
 		case ast.RepeatStatement:
-			returns = w.bodyReturns(node.(ast.RepeatStmt).Body, expectedReturn, &localScope)
+			returns = w.bodyReturns(bodynode.(ast.RepeatStmt).Body, expectedReturn, &localScope)
 		case ast.ReturnStatement:
-			returns = w.returnStmt(node.(ast.ReturnStmt), scope)
-		default:
-			returns = nil
+			returns = w.returnStmt(bodynode.(ast.ReturnStmt), scope)
 		}
 		if returns == nil {
-			return returns
+			continue
+		} else if bodynode.GetToken() != node.Body[len(node.Body)-1].GetToken() {
+			w.error(bodynode.GetToken(), "unreachable code detected")
 		}
-		if !listsAreValid(returns.values, expectedReturn.values) {
-			w.error(node.GetToken(), "invalid return types")
-		}
+		
+		w.validateReturnValues(node, returns.values, expectedReturn.values)
+	}
+	if returns == nil {
+		return returns
 	}
 
 	for _, elseif := range node.Elseifs {
@@ -161,21 +174,25 @@ func (w *Walker) ifReturns(node ast.IfStmt, expectedReturn *ReturnType, scope *S
 				returns = w.bodyReturns(node.(ast.RepeatStmt).Body, expectedReturn, &localScope)
 			case ast.ReturnStatement:
 				returns = w.returnStmt(node.(ast.ReturnStmt), scope)
-			default:
-				returns = nil
 			}
 			if returns == nil {
-				return returns
+				continue
+			} else if node.GetToken() != elseif.Body[len(elseif.Body)-1].GetToken() {
+				w.error(node.GetToken(), "unreachable code detected")
 			}
-			if !listsAreValid(returns.values, expectedReturn.values) {
-				w.error(node.GetToken(), "invalid return types")
-			}
+
+			w.validateReturnValues(node, returns.values, expectedReturn.values)
+		}
+		if returns == nil {
+			return returns
 		}
 	}
 
 	if node.Else != nil {
 		localScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
 		returns = w.bodyReturns(node.Else.Body, expectedReturn, &localScope)
+	}else {
+		return nil
 	}
 
 	return returns
@@ -187,19 +204,23 @@ func (w *Walker) bodyReturns(body []ast.Node, expectedReturn *ReturnType, scope 
 	for _, node := range body {
 		switch node.GetType() {
 		case ast.IfStatement:
+			fmt.Printf("called\n")
 			returns = w.ifReturns(node.(ast.IfStmt), expectedReturn, &localScope)
 		case ast.RepeatStatement:
 			returns = w.bodyReturns(node.(ast.RepeatStmt).Body, expectedReturn, &localScope)
 		case ast.ReturnStatement:
 			returns = w.returnStmt(node.(ast.ReturnStmt), scope)
-		default:
-			returns = nil
+		}	
+		if returns == nil {
+			continue
+		} else if node.GetToken() != body[len(body)-1].GetToken() {
+			w.error(node.GetToken(), "unreachable code detected")
 		}
-		if returns != nil && expectedReturn != nil {
-			if !listsAreValid(returns.values, expectedReturn.values) {
-				w.error(node.GetToken(), "invalid return types")
-			}
-		}
+
+		w.validateReturnValues(node, returns.values, expectedReturn.values)
+	}
+	if returns == nil {
+		return returns
 	}
 
 	return returns

@@ -8,12 +8,14 @@ let one = 1
 
 fn thing(param bool, param2 text) text {
 	if param {
-		return "yeah"
-	}else if param2 == "oooo" {
-		return "booo"
-	}else {
+		return "p"
+	} else if param2 == "oooo" {
+		return "a"
+	} else {
 		param2 = "looool"
-		return param2
+		return "a"
 	}
+	param2 = "aa"
+	return param2
 }
 

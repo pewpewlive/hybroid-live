@@ -11,16 +11,21 @@ func (gen *Generator) ifStmt(node ast.IfStmt) string {
 	ifTabs := gen.getTabs()
 
 	gen.TabsCount += 1
-	tabs := gen.getTabs()
 
 	gen.Src.Append(ifTabs, "if ", gen.GenerateNode(node.BoolExpr), " then\n")
 
-	body := node.Body
-	for _, stmt := range body {
-		gen.Src.Append(tabs, gen.GenerateNode(stmt), "\n")
+	gen.Generate(node.Body)
+	for _, elseif := range node.Elseifs {
+		gen.Src.Append(ifTabs, "elseif ", gen.GenerateNode(elseif.BoolExpr), " then\n")
+		gen.Generate(elseif.Body)
+	}
+	if node.Else != nil {
+		gen.Src.Append(ifTabs, "else \n")
+		gen.Generate(node.Else.Body)
 	}
 
-	gen.Src.Append(ifTabs, "end\n")
+
+	gen.Src.Append(ifTabs, "end")
 
 	gen.TabsCount -= 1
 
@@ -52,7 +57,6 @@ func (gen *Generator) assignmentStmt(assginStmt ast.AssignmentStmt) string {
 			src.Append(value, ", ")
 		}
 	}
-
 	return src.String()
 }
 
@@ -60,7 +64,6 @@ func (gen *Generator) functionDeclarationStmt(node ast.FunctionDeclarationStmt) 
 	fnTabs := gen.getTabs()
 
 	gen.TabsCount += 1
-	tabs := gen.getTabs()
 
 	if node.IsLocal {
 		gen.Src.Append(fnTabs, "local ")
@@ -77,11 +80,9 @@ func (gen *Generator) functionDeclarationStmt(node ast.FunctionDeclarationStmt) 
 	}
 	gen.Src.Append(")\n")
 
-	for _, stmt := range node.Body {
-		gen.Src.Append(tabs, gen.GenerateNode(stmt), "\n")
-	}
+	gen.Generate(node.Body)
 
-	gen.Src.Append(fnTabs + "end\n")
+	gen.Src.Append(fnTabs + "end")
 
 	gen.TabsCount -= 1
 
@@ -99,7 +100,6 @@ func (gen *Generator) returnStmt(node ast.ReturnStmt) string {
 			src.Append(", ")
 		}
 	}
-
 	return src.String()
 }
 
@@ -125,7 +125,7 @@ func (gen *Generator) repeatStmt(node ast.RepeatStmt) string {
 		gen.Src.Append(tabs, value, "\n")
 	}
 
-	gen.Src.Append(repeatTabs, "end\n")
+	gen.Src.Append(repeatTabs, "end")
 
 	gen.TabsCount -= 1
 
@@ -153,7 +153,7 @@ func (gen *Generator) tickStmt(node ast.TickStmt) string {
 		gen.Src.Append(tabs, value, "\n")
 	}
 
-	gen.Src.Append(repeatTabs, "end)\n")
+	gen.Src.Append(repeatTabs, "end)")
 
 	gen.TabsCount -= 1
 
@@ -194,7 +194,7 @@ func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclaratio
 		}
 	}
 
-	src.WriteString(src2.String())
+	src.Append(src2.String(), "\n")
 
 	return src.String()
 }
