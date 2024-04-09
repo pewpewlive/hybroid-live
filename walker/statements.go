@@ -1,7 +1,6 @@
 package walker
 
 import (
-	"fmt"
 	"hybroid/ast"
 	"hybroid/lexer"
 	"hybroid/parser"
@@ -50,8 +49,7 @@ func (w *Walker) assignmentStmt(assignStmt ast.AssignmentStmt, scope *Scope) {
 
 	wIdents := []Value{}
 	for _, ident := range assignStmt.Identifiers {
-		ident := w.GetNodeValue(ident, scope)
-		wIdents = append(wIdents, ident)
+		wIdents = append(wIdents, w.GetNodeValue(ident, scope))
 	}
 
 	for i, rightValue := range assignStmt.Values {
@@ -62,13 +60,20 @@ func (w *Walker) assignmentStmt(assignStmt ast.AssignmentStmt, scope *Scope) {
 		if i > len(wIdents)-1 {
 			break
 		}
-		if assignStmt.Identifiers[i].GetType() != ast.MemberExpression {
-			variable, ok := wIdents[i].(VariableVal)
-			if ok {
-				if _, err := scope.AssignVariable(variable.Name, value); err != nil {
-					err.Token = variable.Node.GetToken()
-					w.addError(*err)
-				}
+		if assignStmt.Identifiers[i].GetType() == ast.MemberExpression {
+			/*memberType := wIdents[i].(MapMemberVal).Owner.MemberType
+			valueType := value.GetType()
+			if value.GetType() != 0 && memberType != valueType {
+				w.error(rightValue.GetToken(), fmt.Sprintf("map accepts only type of %s but a value of type %s is assigned to its member", memberType.ToString(), valueType.ToString()))
+			}*/
+			continue
+		}
+
+		variable, ok := wIdents[i].(VariableVal)
+		if ok {
+			if _, err := scope.AssignVariable(variable, value); err != nil {
+				err.Token = variable.Node.GetToken()
+				w.addError(*err)
 			}
 		}
 	}
@@ -110,120 +115,10 @@ func (w *Walker) functionDeclarationStmt(node ast.FunctionDeclarationStmt, scope
 	if scope.Parent != nil && !node.IsLocal {
 		w.error(node.GetToken(), "cannot declare a global function inside a local block")
 	}
-	
-
-	for _, stmt := range node.Body {
-		if stmt.GetType() == ast.ReturnStatement {
-			returnStmt := stmt.(ast.ReturnStmt)
-			returnValue := ReturnType{}
-			for _, arg := range returnStmt.Args {
-				value := w.GetNodeValue(arg, &fnScope)
-				returnValue.values = append(returnValue.values, value.GetType())
-			}
-		}
-	}
 
 	if w.bodyReturns(node.Body, &ret, &fnScope) == nil && ret.values[0] != ast.Nil {
 		w.error(node.GetToken(), "not all function paths return a value")
 	}
-}
-
-func (w *Walker) validateReturnValues(node ast.Node, returnValues []ast.PrimitiveValueType, expectedReturnValues []ast.PrimitiveValueType) {
-	if !listsAreValid(returnValues, expectedReturnValues) {
-		w.error(node.GetToken(), "invalid return type(s)")
-	}
-	if len(returnValues) < len(expectedReturnValues) {
-		w.error(node.GetToken(), "not enough return values given")
-	} else if len(returnValues) > len(expectedReturnValues) {
-		w.error(node.GetToken(), "too many return values given")
-	}
-}
-
-func (w *Walker) ifReturns(node ast.IfStmt, expectedReturn *ReturnType, scope *Scope) *ReturnType {
-	var returns *ReturnType
-
-	for _, bodynode := range node.Body {
-		localScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
-		switch bodynode.GetType() {
-		case ast.IfStatement:
-			returns = w.ifReturns(bodynode.(ast.IfStmt), expectedReturn, &localScope)
-		case ast.RepeatStatement:
-			returns = w.bodyReturns(bodynode.(ast.RepeatStmt).Body, expectedReturn, &localScope)
-		case ast.ReturnStatement:
-			returns = w.returnStmt(bodynode.(ast.ReturnStmt), scope)
-		}
-		if returns == nil {
-			continue
-		} else if bodynode.GetToken() != node.Body[len(node.Body)-1].GetToken() {
-			w.error(bodynode.GetToken(), "unreachable code detected")
-		}
-		
-		w.validateReturnValues(node, returns.values, expectedReturn.values)
-	}
-	if returns == nil {
-		return returns
-	}
-
-	for _, elseif := range node.Elseifs {
-		localScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
-		for _, node := range elseif.Body {
-			switch node.GetType() {
-			case ast.IfStatement:
-				returns = w.ifReturns(node.(ast.IfStmt), expectedReturn, &localScope)
-			case ast.RepeatStatement:
-				returns = w.bodyReturns(node.(ast.RepeatStmt).Body, expectedReturn, &localScope)
-			case ast.ReturnStatement:
-				returns = w.returnStmt(node.(ast.ReturnStmt), scope)
-			}
-			if returns == nil {
-				continue
-			} else if node.GetToken() != elseif.Body[len(elseif.Body)-1].GetToken() {
-				w.error(node.GetToken(), "unreachable code detected")
-			}
-
-			w.validateReturnValues(node, returns.values, expectedReturn.values)
-		}
-		if returns == nil {
-			return returns
-		}
-	}
-
-	if node.Else != nil {
-		localScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
-		returns = w.bodyReturns(node.Else.Body, expectedReturn, &localScope)
-	}else {
-		return nil
-	}
-
-	return returns
-}
-
-func (w *Walker) bodyReturns(body []ast.Node, expectedReturn *ReturnType, scope *Scope) *ReturnType {
-	var returns *ReturnType
-	localScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
-	for _, node := range body {
-		switch node.GetType() {
-		case ast.IfStatement:
-			fmt.Printf("called\n")
-			returns = w.ifReturns(node.(ast.IfStmt), expectedReturn, &localScope)
-		case ast.RepeatStatement:
-			returns = w.bodyReturns(node.(ast.RepeatStmt).Body, expectedReturn, &localScope)
-		case ast.ReturnStatement:
-			returns = w.returnStmt(node.(ast.ReturnStmt), scope)
-		}	
-		if returns == nil {
-			continue
-		} else if node.GetToken() != body[len(body)-1].GetToken() {
-			w.error(node.GetToken(), "unreachable code detected")
-		}
-
-		w.validateReturnValues(node, returns.values, expectedReturn.values)
-	}
-	if returns == nil {
-		return returns
-	}
-
-	return returns
 }
 
 func (w *Walker) returnStmt(node ast.ReturnStmt, scope *Scope) *ReturnType {
@@ -290,54 +185,12 @@ func (w *Walker) variableDeclarationStmt(declaration ast.VariableDeclarationStmt
 	var values []Value
 
 	hasFuncs := false
-	for i, expr := range declaration.Values {
+	for _, expr := range declaration.Values {
 		if expr.GetType() == ast.CallExpression {
 			hasFuncs = true
 		}
 		exprValue := w.GetNodeValue(expr, scope)
-		if declaration.Types[i] != nil {
-			typee := w.GetTypeFromString(declaration.Types[i].Name.Lexeme)
-			exprValueType := exprValue.GetType()
-			if typee != exprValueType {
-				w.error(expr.GetToken(), fmt.Sprintf("mismatched types: a type '%s' is given, but a value of type '%s' is assigned", typee.ToString(), exprValueType.ToString()))
-			}
-			var valueType ast.PrimitiveValueType
-			value := ""
-			switch val := exprValue.(type) {
-			case MapVal:
-				valueType = val.GetMemberType()
-				value = "map"
-			case ListVal:
-				valueType = val.GetValuesType()
-				value = "list"
-			}
-			if value != "" {
-				if declaration.Types[i].WrappedType == nil {
-					w.error(declaration.Types[i].GetToken(), value+"s require a wrapped type to be given")
-				} else {
-
-					wrappedType := w.GetTypeFromString(declaration.Types[i].WrappedType.Name.Lexeme)
-					if wrappedType == ast.Undefined {
-						w.error(declaration.Types[i].WrappedType.Name, "wrapped type given is undefined")
-					} else if valueType != wrappedType {
-						w.error(expr.GetToken(), value+" contents must the same type as the wrapped type given")
-					}
-				}
-			}
-
-		} else {
-			var valueType ast.PrimitiveValueType
-			switch val := exprValue.(type) {
-			case MapVal:
-				valueType = val.GetMemberType()
-			case ListVal:
-				valueType = val.GetValuesType()
-			}
-
-			if valueType == ast.Undefined {
-
-			}
-		}
+		
 		values = append(values, exprValue)
 	}
 

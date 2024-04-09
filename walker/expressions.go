@@ -115,14 +115,17 @@ func (w *Walker) callExpr(node ast.CallExpr, scope *Scope) Value {
 }
 
 func (w *Walker) mapExpr(node ast.MapExpr, scope *Scope) Value {
-	mapVal := MapVal{Members: map[string]VariableVal{}}
+	mapVal := MapVal{Members: map[string]MapMemberVal{}}
 	for k, v := range node.Map {
 		val := w.GetNodeValue(v.Expr, scope)
 
-		mapVal.Members[k.Lexeme] = VariableVal{
-			Name:  k.Lexeme,
-			Value: val,
-			Node:  v.Expr,
+		mapVal.Members[k.Lexeme] = MapMemberVal{ 
+			Var: VariableVal{
+				Name:  k.Lexeme,
+				Value: val,
+				Node:  v.Expr,
+			},
+			Owner:mapVal,
 		}
 	}
 	return mapVal
@@ -190,11 +193,11 @@ func (w *Walker) memberExpr(mapp Value, node ast.MemberExpr, scope *Scope) Value
 	var mem Value
 	mem, _ = findMember(mapp, val)
 
-	variable, isVariable := mem.(VariableVal)
+	mapMember, isVariable := mem.(MapMemberVal)
 
 	var value Value
 	if isVariable {
-		value = variable.Value
+		value = mapMember.Var.Value
 	} else {
 		value = mem
 	}
@@ -239,7 +242,7 @@ func findMember(val Value, detection Value) (Value, bool) {
 		if found {
 			return mem, false
 		}
-		return Undefined{}, false
+		return MapMemberVal{Var:VariableVal{Value: Undefined{}}, Owner: mapp}, false
 	}
 	return Unknown{}, false
 }

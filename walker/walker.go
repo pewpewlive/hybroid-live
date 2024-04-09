@@ -100,7 +100,7 @@ func (s *Scope) GetVariable(name string) VariableVal {
 	return scope.Variables[name]
 }
 
-func (s *Scope) AssignVariable(name string, value Value) (Value, *ast.Error) {
+func (s *Scope) AssignVariableByName(name string, value Value) (Value, *ast.Error) {
 	scope := s.Resolve(name)
 
 	if scope == nil {
@@ -119,8 +119,14 @@ func (s *Scope) AssignVariable(name string, value Value) (Value, *ast.Error) {
 	return scope.Variables[name], nil
 }
 
-func (s *Scope) AssignVariableType(name string, pvt ast.PrimitiveValueType) {
+func (s *Scope) AssignVariable(variable VariableVal, value Value) (Value, *ast.Error) {
+	if variable.IsConst {
+		return Unknown{}, &ast.Error{Message: "cannot assign to a constant variable"}
+	}
 
+	variable.Value = value
+
+	return variable, nil
 }
 
 func (s *Scope) DeclareVariable(value VariableVal) (VariableVal, bool) {
@@ -202,6 +208,93 @@ func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
 	default:
 		return ast.Undefined
 	}
+}
+
+func (w *Walker) validateReturnValues(node ast.Node, returnValues []ast.PrimitiveValueType, expectedReturnValues []ast.PrimitiveValueType) {
+	if !listsAreValid(returnValues, expectedReturnValues) {
+		w.error(node.GetToken(), "invalid return type(s)")
+	}
+	if len(returnValues) < len(expectedReturnValues) {
+		w.error(node.GetToken(), "not enough return values given")
+	} else if len(returnValues) > len(expectedReturnValues) {
+		w.error(node.GetToken(), "too many return values given")
+	}
+}
+
+func (w *Walker) getReturnFromNode(node ast.Node, expectedReturn *ReturnType, scope *Scope) *ReturnType {
+	localScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
+	switch node.GetType() {
+	case ast.IfStatement:
+		return w.ifReturns(node.(ast.IfStmt), expectedReturn, &localScope)
+	case ast.RepeatStatement:
+		return w.bodyReturns(node.(ast.RepeatStmt).Body, expectedReturn, &localScope)
+	case ast.ReturnStatement:
+		return w.returnStmt(node.(ast.ReturnStmt), scope)
+	default:
+		return nil
+	}
+}
+
+func (w *Walker) ifReturns(node ast.IfStmt, expectedReturn *ReturnType, scope *Scope) *ReturnType {
+	var returns *ReturnType
+
+	for _, bodynode := range node.Body {
+		returns = w.getReturnFromNode(bodynode, expectedReturn, scope)
+		if returns == nil {
+			continue
+		} else if bodynode.GetToken() != node.Body[len(node.Body)-1].GetToken() {
+			w.error(bodynode.GetToken(), "unreachable code detected")
+		}
+		
+		w.validateReturnValues(node, returns.values, expectedReturn.values)
+	}
+	if returns == nil {
+		return returns
+	}
+
+	for _, elseif := range node.Elseifs {
+		for _, node := range elseif.Body {
+			returns = w.getReturnFromNode(node, expectedReturn, scope)
+			if returns == nil {
+				continue
+			} else if node.GetToken() != elseif.Body[len(elseif.Body)-1].GetToken() {
+				w.error(node.GetToken(), "unreachable code detected")
+			}
+
+			w.validateReturnValues(node, returns.values, expectedReturn.values)
+		}
+		if returns == nil {
+			return returns
+		}
+	}
+
+	if node.Else != nil {
+		localScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
+		returns = w.bodyReturns(node.Else.Body, expectedReturn, &localScope)
+	}else {
+		return nil
+	}
+
+	return returns
+}
+
+func (w *Walker) bodyReturns(body []ast.Node, expectedReturn *ReturnType, scope *Scope) *ReturnType {
+	var returns *ReturnType
+	for _, node := range body {
+		returns = w.getReturnFromNode(node, expectedReturn, scope)
+		if returns == nil {
+			continue
+		} else if node.GetToken() != body[len(body)-1].GetToken() {
+			w.error(node.GetToken(), "unreachable code detected")
+		}
+
+		w.validateReturnValues(node, returns.values, expectedReturn.values)
+	}
+	if returns == nil {
+		return returns
+	}
+
+	return returns
 }
 
 func (w *Walker) Walk(nodes []ast.Node, global *Global) []ast.Node {

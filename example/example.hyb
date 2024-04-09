@@ -2,13 +2,16 @@
 
 use "import_test.hyb" as test
 
-let map = test.a
+let map:map<number> = {o:1}
 
 let one = 1
+let two = 2
+one += 1
+
+two, map.o = 10, 20
 
 fn thing(param bool, param2 text) text {
 	if param {
-		return "p"
 	} else if param2 == "oooo" {
 		return "a"
 	} else {
@@ -16,6 +19,9 @@ fn thing(param bool, param2 text) text {
 		return "a"
 	}
 	param2 = "aa"
+	if param2 == "000" and param {
+		return "ppp"
+	}
 	return param2
 }
 

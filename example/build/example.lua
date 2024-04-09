@@ -1,9 +1,15 @@
 
 local test = require("/dynamic/import_test.lua")
-local map = test.a
+local map = {
+	o = 1
+}
 
 local one = 1
 
+local two = 2
+
+one = one + (1)
+two, map.o = 10, 20
 local function thing(param, param2)
 	if param then
 	elseif param2 == "oooo" then
@@ -13,5 +19,8 @@ local function thing(param, param2)
 		return "a"
 	end	
 	param2 = "aa"
+	if param2 == "000" and param then
+		return "ppp"
+	end	
 	return param2
 end

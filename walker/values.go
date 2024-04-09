@@ -27,18 +27,36 @@ type NamespaceVal struct {
 func (n NamespaceVal) GetType() ast.PrimitiveValueType {
 	return ast.Namespace;
 }
+/*
+type ListMemberVal struct {
+	Val Value
+	Owner ListVal
+}
+
+func (lm ListMemberVal) GetType() ast.PrimitiveValueType {
+	return lm.Val.GetType()
+}
+*/
+type MapMemberVal struct {
+	Var VariableVal
+	Owner MapVal
+}
+
+func (mm MapMemberVal) GetType() ast.PrimitiveValueType {
+	return mm.Var.GetType()
+}
 
 type MapVal struct {
 	MemberType ast.PrimitiveValueType
-	Members map[string]VariableVal
+	Members map[string]MapMemberVal
 }
 
 func (m MapVal) GetType() ast.PrimitiveValueType {
 	return ast.Map
 }
 
-func (m MapVal) GetMemberType() ast.PrimitiveValueType {
-	var prev *VariableVal
+func (m MapVal) GetMembersType() ast.PrimitiveValueType {
+	var prev *MapMemberVal
 	for _, val := range m.Members {
 		if prev == nil {
 			prev = &val
@@ -52,7 +70,7 @@ func (m MapVal) GetMemberType() ast.PrimitiveValueType {
 }
 
 type ListVal struct {
-	ValuesType ast.PrimitiveValueType
+	ValueType ast.PrimitiveValueType
 	values []Value
 }
 
