@@ -22,12 +22,12 @@ func (w *Walker) determineValueType(left Value, right Value) ast.PrimitiveValueT
 	return ast.Undefined
 }
 
-func (w *Walker) binaryExpr(node ast.BinaryExpr, scope *Scope) Value {
-	left, right := w.GetNodeValue(node.Left, scope), w.GetNodeValue(node.Right, scope)
+func (w *Walker) binaryExpr(node *ast.BinaryExpr, scope *Scope) Value {
+	left, right := w.GetNodeValue(&node.Left, scope), w.GetNodeValue(&node.Right, scope)
 	op := node.Operator
 	switch op.Type {
 	case lexer.Plus, lexer.Minus, lexer.Caret, lexer.Star, lexer.Slash, lexer.Modulo:
-		w.validateArithmeticOperands(left, right, node)
+		w.validateArithmeticOperands(left, right, *node)
 	}
 	val := w.GetValue(w.determineValueType(left, right))
 
@@ -39,7 +39,7 @@ func (w *Walker) binaryExpr(node ast.BinaryExpr, scope *Scope) Value {
 	}
 }
 
-func (w *Walker) literalExpr(node ast.LiteralExpr) Value {
+func (w *Walker) literalExpr(node *ast.LiteralExpr) Value {
 
 	switch node.ValueType {
 	case ast.String:
@@ -66,7 +66,7 @@ func (w *Walker) literalExpr(node ast.LiteralExpr) Value {
 
 }
 
-func (w *Walker) identifierExpr(node ast.IdentifierExpr, scope *Scope) Value {
+func (w *Walker) identifierExpr(node *ast.IdentifierExpr, scope *Scope) Value {
 	sc := scope.Resolve(node.Name.Lexeme)
 
 	if sc != nil {
@@ -78,19 +78,19 @@ func (w *Walker) identifierExpr(node ast.IdentifierExpr, scope *Scope) Value {
 	}
 }
 
-func (w *Walker) groupingExpr(node ast.GroupExpr, scope *Scope) Value {
-	return w.GetNodeValue(node.Expr, scope)
+func (w *Walker) groupingExpr(node *ast.GroupExpr, scope *Scope) Value {
+	return w.GetNodeValue(&node.Expr, scope)
 }
 
-func (w *Walker) listExpr(node ast.ListExpr, scope *Scope) Value {
+func (w *Walker) listExpr(node *ast.ListExpr, scope *Scope) Value {
 	var value ListVal
 	for _, expr := range node.List {
-		value.values = append(value.values, w.GetNodeValue(expr, scope))
+		value.values = append(value.values, w.GetNodeValue(&expr, scope))
 	}
 	return value
 }
 
-func (w *Walker) callExpr(node ast.CallExpr, scope *Scope) Value {
+func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope) Value {
 	callerToken := node.Caller.GetToken()
 	sc := scope.Resolve(callerToken.Lexeme)
 
@@ -100,7 +100,7 @@ func (w *Walker) callExpr(node ast.CallExpr, scope *Scope) Value {
 	} else {
 		fn := sc.GetVariable(callerToken.Lexeme)
 		fun, ok := fn.Value.(FunctionVal)
-		if !ok { // 
+		if !ok { //
 			w.error(callerToken, "variable used as if it's a function")
 		} else if len(fun.params) < len(node.Args) {
 			w.error(callerToken, "too many arguments given in function call")
@@ -114,28 +114,28 @@ func (w *Walker) callExpr(node ast.CallExpr, scope *Scope) Value {
 	}
 }
 
-func (w *Walker) mapExpr(node ast.MapExpr, scope *Scope) Value {
+func (w *Walker) mapExpr(node *ast.MapExpr, scope *Scope) Value {
 	mapVal := MapVal{Members: map[string]MapMemberVal{}}
 	for k, v := range node.Map {
-		val := w.GetNodeValue(v.Expr, scope)
+		val := w.GetNodeValue(&v.Expr, scope)
 
-		mapVal.Members[k.Lexeme] = MapMemberVal{ 
+		mapVal.Members[k.Lexeme] = MapMemberVal{
 			Var: VariableVal{
 				Name:  k.Lexeme,
 				Value: val,
 				Node:  v.Expr,
 			},
-			Owner:mapVal,
+			Owner: mapVal,
 		}
 	}
 	return mapVal
 }
 
-func (w *Walker) unaryExpr(node ast.UnaryExpr, scope *Scope) Value {
-	return w.GetNodeValue(node.Value, scope)
+func (w *Walker) unaryExpr(node *ast.UnaryExpr, scope *Scope) Value {
+	return w.GetNodeValue(&node.Value, scope)
 }
 
-func (w *Walker) memberExpr(mapp Value, node ast.MemberExpr, scope *Scope) Value {
+func (w *Walker) memberExpr(mapp Value, node *ast.MemberExpr, scope *Scope) Value {
 	if node.Owner == nil {
 		sc := scope.Resolve(node.Identifier.GetToken().Lexeme)
 
@@ -143,7 +143,7 @@ func (w *Walker) memberExpr(mapp Value, node ast.MemberExpr, scope *Scope) Value
 		if sc == nil {
 			w.error(node.Identifier.GetToken(), fmt.Sprintf("undeclared variable \"%s\"", node.Identifier.GetToken().Lexeme))
 			return Unknown{}
-		}else {
+		} else {
 			mapp = sc.GetVariable(node.Identifier.GetToken().Lexeme).Value
 		}
 
@@ -157,7 +157,7 @@ func (w *Walker) memberExpr(mapp Value, node ast.MemberExpr, scope *Scope) Value
 				w.error(node.Identifier.GetToken(), "variable is not a list, map or a namespace")
 				return Unknown{}
 			}
-			return w.memberExpr(mapp, next, scope)
+			return w.memberExpr(mapp, &next, scope)
 		} else {
 			w.error(node.GetToken(), "expected member expression")
 			return Unknown{}
@@ -170,13 +170,13 @@ func (w *Walker) memberExpr(mapp Value, node ast.MemberExpr, scope *Scope) Value
 		val = StringVal{node.GetToken().Literal}
 	} else if node.Bracketed && node.GetToken().Type == lexer.Identifier {
 		if mapp.GetType() == ast.Map {
-			val = w.GetNodeValue(node.Identifier, scope)
+			val = w.GetNodeValue(&node.Identifier, scope)
 			if val.GetType() != ast.String && val.GetType() != 0 {
 				w.error(node.Identifier.GetToken(), "variable is not a string")
 				return Unknown{}
 			}
 		} else if mapp.GetType() == ast.List {
-			val = w.GetNodeValue(node.Identifier, scope)
+			val = w.GetNodeValue(&node.Identifier, scope)
 			if val.GetType() != ast.Number && val.GetType() != 0 {
 				w.error(node.Identifier.GetToken(), "variable is not a number")
 				return Unknown{}
@@ -206,9 +206,9 @@ func (w *Walker) memberExpr(mapp Value, node ast.MemberExpr, scope *Scope) Value
 
 	if isMember {
 		if value.GetType() == ast.Map {
-			return w.memberExpr(value, next, scope)
+			return w.memberExpr(value, &next, scope)
 		} else if value.GetType() == ast.List {
-			return w.memberExpr(value, next, scope)
+			return w.memberExpr(value, &next, scope)
 		} else {
 			w.error(node.Identifier.GetToken(), "variable is being treated as a map or list, but isn't one")
 			return Unknown{}
@@ -242,15 +242,15 @@ func findMember(val Value, detection Value) (Value, bool) {
 		if found {
 			return mem, false
 		}
-		return MapMemberVal{Var:VariableVal{Value: Undefined{}}, Owner: mapp}, false
+		return MapMemberVal{Var: VariableVal{Value: Undefined{}}, Owner: mapp}, false
 	}
 	return Unknown{}, false
 }
 
-func (w *Walker) directiveExpr(node ast.DirectiveExpr, scope *Scope) Value {
+func (w *Walker) directiveExpr(node *ast.DirectiveExpr, scope *Scope) Value {
 
 	if node.Identifier.Lexeme != "Environment" {
-		variable := w.GetNodeValue(node.Expr, scope)
+		variable := w.GetNodeValue(&node.Expr, scope)
 		variableToken := node.Expr.GetToken()
 		switch node.Identifier.Lexeme {
 		case "Len":

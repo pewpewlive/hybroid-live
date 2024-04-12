@@ -54,7 +54,7 @@ func (gen *Generator) Generate(program []ast.Node) {
 	generatedStr := ""
 	for _, node := range program {
 		generatedStr = gen.GenerateNode(node)
-		gen.Src.Append(gen.getTabs(), generatedStr,"\n")
+		gen.Src.Append(gen.getTabs(), generatedStr, "\n")
 	}
 }
 

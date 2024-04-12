@@ -145,6 +145,8 @@ func (l *Lexer) scanToken() {
 		l.addToken(Colon, "")
 	case '@':
 		l.addToken(At, "")
+	case '|':
+		l.addToken(Wall, "")
 	case '.':
 		if l.matchChar('.') {
 			l.addToken(Concat, "")

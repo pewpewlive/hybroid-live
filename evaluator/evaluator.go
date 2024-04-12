@@ -79,7 +79,7 @@ func (e *Evaluator) Action() error {
 
 	global := walker.NewGlobal()
 
-	e.walker.Walk(prog, &global)
+	prog = e.walker.Walk(&prog, &global)
 	if len(e.walker.Errors) != 0 {
 		colorstring.Println("[red]Failed walking:")
 		for _, err := range e.walker.Errors {

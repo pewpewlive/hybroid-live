@@ -2,26 +2,26 @@
 
 use "import_test.hyb" as test
 
-let map:map<number> = {o:1}
+// all of this should be allowed
+let a:list<number>, b = nil, 1
+let c, d = 1, [ 1 ] // c is a number and d is a list of numbers
+let e:map<fixed>, f:fixed
+let g:text, h:list<text> = "xd", [ "wow" ]
 
-let one = 1
-let two = 2
-one += 1
+let one = 1;
+let two = 2;
+one += 1;
 
-two, map.o = 10, 20
+
+
+two, map.o = 10, 20;
 
 fn thing(param bool, param2 text) text {
-	if param {
-	} else if param2 == "oooo" {
-		return "a"
-	} else {
-		param2 = "looool"
-		return "a"
-	}
-	param2 = "aa"
+  return "a";
+
+	param2 = "aa";
 	if param2 == "000" and param {
-		return "ppp"
 	}
-	return param2
+	return param2;
 }
 

@@ -6,11 +6,11 @@ import (
 	"hybroid/parser"
 )
 
-func (w *Walker) ifStmt(node ast.IfStmt, scope *Scope) {
-	
+func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
+
 	for _, node := range node.Body {
 		ifScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
-		w.WalkNode(node, &ifScope)
+		w.WalkNode(&node, &ifScope)
 		// if stmt.GetType() == ast.ReturnStatement {
 		// 	returnStmt := stmt.(ast.ReturnStmt)
 		// 	for _, arg := range returnStmt.Args {
@@ -22,7 +22,7 @@ func (w *Walker) ifStmt(node ast.IfStmt, scope *Scope) {
 	for _, elseif := range node.Elseifs {
 		ifScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
 		for _, stmt := range elseif.Body {
-			w.WalkNode(stmt, &ifScope)
+			w.WalkNode(&stmt, &ifScope)
 			// if stmt.GetType() == ast.ReturnStatement {
 			// 	returnStmt := stmt.(ast.ReturnStmt)
 			// 	for _, arg := range returnStmt.Args {
@@ -35,12 +35,12 @@ func (w *Walker) ifStmt(node ast.IfStmt, scope *Scope) {
 	if node.Else != nil {
 		ifScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
 		for _, stmt := range node.Else.Body {
-			w.WalkNode(stmt, &ifScope)
+			w.WalkNode(&stmt, &ifScope)
 		}
 	}
 }
 
-func (w *Walker) assignmentStmt(assignStmt ast.AssignmentStmt, scope *Scope) {
+func (w *Walker) assignmentStmt(assignStmt *ast.AssignmentStmt, scope *Scope) {
 	//if node.Expression.NodeType != parser.Identifier {
 	//	w.error(node.Expression.Token, "expected an identifier to assign to")
 	//}
@@ -49,14 +49,14 @@ func (w *Walker) assignmentStmt(assignStmt ast.AssignmentStmt, scope *Scope) {
 
 	wIdents := []Value{}
 	for _, ident := range assignStmt.Identifiers {
-		wIdents = append(wIdents, w.GetNodeValue(ident, scope))
+		wIdents = append(wIdents, w.GetNodeValue(&ident, scope))
 	}
 
 	for i, rightValue := range assignStmt.Values {
 		if rightValue.GetType() == ast.CallExpression {
 			hasFuncs = true
 		}
-		value := w.GetNodeValue(rightValue, scope)
+		value := w.GetNodeValue(&rightValue, scope)
 		if i > len(wIdents)-1 {
 			break
 		}
@@ -87,7 +87,7 @@ func (w *Walker) assignmentStmt(assignStmt ast.AssignmentStmt, scope *Scope) {
 	}
 }
 
-func (w *Walker) functionDeclarationStmt(node ast.FunctionDeclarationStmt, scope *Scope) {
+func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scope *Scope) {
 	fnScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
 
 	for i, param := range node.Params {
@@ -103,8 +103,8 @@ func (w *Walker) functionDeclarationStmt(node ast.FunctionDeclarationStmt, scope
 		ret.values = append(ret.values, ast.Nil)
 	}
 
-	variable := VariableVal{ 
-		Name:  node.Name.Lexeme, 
+	variable := VariableVal{
+		Name:  node.Name.Lexeme,
 		Value: FunctionVal{params: node.Params, returnVal: ret},
 		Node:  node,
 	}
@@ -116,15 +116,15 @@ func (w *Walker) functionDeclarationStmt(node ast.FunctionDeclarationStmt, scope
 		w.error(node.GetToken(), "cannot declare a global function inside a local block")
 	}
 
-	if w.bodyReturns(node.Body, &ret, &fnScope) == nil && ret.values[0] != ast.Nil {
+	if w.bodyReturns(&node.Body, &ret, &fnScope) == nil && ret.values[0] != ast.Nil {
 		w.error(node.GetToken(), "not all function paths return a value")
 	}
 }
 
-func (w *Walker) returnStmt(node ast.ReturnStmt, scope *Scope) *ReturnType {
+func (w *Walker) returnStmt(node *ast.ReturnStmt, scope *Scope) *ReturnType {
 	var ret ReturnType
 	for _, expr := range node.Args {
-		val := w.GetNodeValue(expr, scope)
+		val := w.GetNodeValue(&expr, scope)
 		ret.values = append(ret.values, val.GetType())
 	}
 	if len(ret.values) == 0 {
@@ -133,12 +133,12 @@ func (w *Walker) returnStmt(node ast.ReturnStmt, scope *Scope) *ReturnType {
 	return &ret
 }
 
-func (w *Walker) repeatStmt(node ast.RepeatStmt, scope *Scope) {
+func (w *Walker) repeatStmt(node *ast.RepeatStmt, scope *Scope) {
 	repeatScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
 
-	end := w.GetNodeValue(node.Iterator, scope)
-	start := w.GetNodeValue(node.Start, scope)
-	skip := w.GetNodeValue(node.Skip, scope)
+	end := w.GetNodeValue(&node.Iterator, scope)
+	start := w.GetNodeValue(&node.Start, scope)
+	skip := w.GetNodeValue(&node.Skip, scope)
 
 	if !parser.IsFx(end.GetType()) && end.GetType() != ast.Number {
 		w.error(node.Iterator.GetToken(), "invalid value type of iterator")
@@ -152,16 +152,16 @@ func (w *Walker) repeatStmt(node ast.RepeatStmt, scope *Scope) {
 	}
 
 	if node.Variable.GetValueType() != 0 {
-		repeatScope.DeclareVariable(VariableVal{Name: node.Variable.Name.Lexeme, Value: w.GetNodeValue(node.Start, scope), Node: node})
+		repeatScope.DeclareVariable(VariableVal{Name: node.Variable.Name.Lexeme, Value: w.GetNodeValue(&node.Start, scope), Node: node})
 	}
 
 	body := node.Body
 	for _, stmt := range body {
-		w.WalkNode(stmt, &repeatScope)
+		w.WalkNode(&stmt, &repeatScope)
 	}
 }
 
-func (w *Walker) tickStmt(node ast.TickStmt, scope *Scope) {
+func (w *Walker) tickStmt(node *ast.TickStmt, scope *Scope) {
 	tickScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
 
 	if node.Variable.GetValueType() != 0 {
@@ -169,7 +169,7 @@ func (w *Walker) tickStmt(node ast.TickStmt, scope *Scope) {
 	}
 
 	for _, nod := range node.Body {
-		w.WalkNode(nod, &tickScope)
+		w.WalkNode(&nod, &tickScope)
 	}
 }
 
@@ -181,7 +181,7 @@ func GetValue(values []Value, index int) Value {
 	}
 }
 
-func (w *Walker) variableDeclarationStmt(declaration ast.VariableDeclarationStmt, scope *Scope) {
+func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStmt, scope *Scope) {
 	var values []Value
 
 	hasFuncs := false
@@ -189,8 +189,8 @@ func (w *Walker) variableDeclarationStmt(declaration ast.VariableDeclarationStmt
 		if expr.GetType() == ast.CallExpression {
 			hasFuncs = true
 		}
-		exprValue := w.GetNodeValue(expr, scope)
-		
+		exprValue := w.GetNodeValue(&expr, scope)
+
 		values = append(values, exprValue)
 	}
 
@@ -233,7 +233,7 @@ func (w *Walker) variableDeclarationStmt(declaration ast.VariableDeclarationStmt
 	}
 }
 
-func (w *Walker) useStmt(node ast.UseStmt, scope *Scope) {
+func (w *Walker) useStmt(node *ast.UseStmt, scope *Scope) {
 	variable := VariableVal{Name: node.Variable.Name.Lexeme, Value: NamespaceVal{Name: node.Variable.Name.Lexeme}, Node: node}
 
 	if _, success := scope.DeclareVariable(variable); !success {

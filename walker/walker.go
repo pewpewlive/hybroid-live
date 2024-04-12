@@ -6,7 +6,7 @@ import (
 )
 
 type Walker struct {
-	nodes  []ast.Node
+	nodes  *[]ast.Node
 	Errors []ast.Error
 }
 
@@ -221,31 +221,34 @@ func (w *Walker) validateReturnValues(node ast.Node, returnValues []ast.Primitiv
 	}
 }
 
-func (w *Walker) getReturnFromNode(node ast.Node, expectedReturn *ReturnType, scope *Scope) *ReturnType {
+func (w *Walker) getReturnFromNode(node *ast.Node, expectedReturn *ReturnType, scope *Scope) *ReturnType {
 	localScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
-	switch node.GetType() {
+	switch (*node).GetType() {
 	case ast.IfStatement:
-		return w.ifReturns(node.(ast.IfStmt), expectedReturn, &localScope)
+		converted := (*node).(ast.IfStmt)
+		return w.ifReturns(&converted, expectedReturn, &localScope)
 	case ast.RepeatStatement:
-		return w.bodyReturns(node.(ast.RepeatStmt).Body, expectedReturn, &localScope)
+		converted := ((*node).(ast.RepeatStmt)).Body
+		return w.bodyReturns(&converted, expectedReturn, &localScope)
 	case ast.ReturnStatement:
-		return w.returnStmt(node.(ast.ReturnStmt), scope)
+		converted := (*node).(ast.ReturnStmt)
+		return w.returnStmt(&converted, scope)
 	default:
 		return nil
 	}
 }
 
-func (w *Walker) ifReturns(node ast.IfStmt, expectedReturn *ReturnType, scope *Scope) *ReturnType {
+func (w *Walker) ifReturns(node *ast.IfStmt, expectedReturn *ReturnType, scope *Scope) *ReturnType {
 	var returns *ReturnType
 
 	for _, bodynode := range node.Body {
-		returns = w.getReturnFromNode(bodynode, expectedReturn, scope)
+		returns = w.getReturnFromNode(&bodynode, expectedReturn, scope)
 		if returns == nil {
 			continue
 		} else if bodynode.GetToken() != node.Body[len(node.Body)-1].GetToken() {
 			w.error(bodynode.GetToken(), "unreachable code detected")
 		}
-		
+
 		w.validateReturnValues(node, returns.values, expectedReturn.values)
 	}
 	if returns == nil {
@@ -254,7 +257,7 @@ func (w *Walker) ifReturns(node ast.IfStmt, expectedReturn *ReturnType, scope *S
 
 	for _, elseif := range node.Elseifs {
 		for _, node := range elseif.Body {
-			returns = w.getReturnFromNode(node, expectedReturn, scope)
+			returns = w.getReturnFromNode(&node, expectedReturn, scope)
 			if returns == nil {
 				continue
 			} else if node.GetToken() != elseif.Body[len(elseif.Body)-1].GetToken() {
@@ -270,22 +273,25 @@ func (w *Walker) ifReturns(node ast.IfStmt, expectedReturn *ReturnType, scope *S
 
 	if node.Else != nil {
 		localScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
-		returns = w.bodyReturns(node.Else.Body, expectedReturn, &localScope)
-	}else {
+		returns = w.bodyReturns(&node.Else.Body, expectedReturn, &localScope)
+	} else {
 		return nil
 	}
 
 	return returns
 }
 
-func (w *Walker) bodyReturns(body []ast.Node, expectedReturn *ReturnType, scope *Scope) *ReturnType {
+func (w *Walker) bodyReturns(body *[]ast.Node, expectedReturn *ReturnType, scope *Scope) *ReturnType {
 	var returns *ReturnType
-	for _, node := range body {
-		returns = w.getReturnFromNode(node, expectedReturn, scope)
+	for i, node := range *body {
+		returns = w.getReturnFromNode(&node, expectedReturn, scope)
 		if returns == nil {
 			continue
-		} else if node.GetToken() != body[len(body)-1].GetToken() {
-			w.error(node.GetToken(), "unreachable code detected")
+		} else if node.GetToken() != (*body)[len(*body)-1].GetToken() {
+			*body = (*body)[:i+1]
+			
+			return returns
+			//w.error(node.GetToken(), "unreachable code detected")
 		}
 
 		w.validateReturnValues(node, returns.values, expectedReturn.values)
@@ -297,67 +303,78 @@ func (w *Walker) bodyReturns(body []ast.Node, expectedReturn *ReturnType, scope 
 	return returns
 }
 
-func (w *Walker) Walk(nodes []ast.Node, global *Global) []ast.Node {
+func (w *Walker) Walk(nodes *[]ast.Node, global *Global) []ast.Node {
 	w.nodes = nodes
 
-	newNodes := make([]ast.Node, len(nodes))
+	newNodes := make([]ast.Node, len(*nodes))
 
-	for _, node := range nodes {
-		w.WalkNode(node, &global.Scope)
+	for _, node := range *nodes {
+		w.WalkNode(&node, &global.Scope)
+		newNodes = append(newNodes, node)
 	}
 
 	return newNodes
 }
 
-func (w *Walker) WalkNode(node ast.Node, scope *Scope) {
-	switch newNode := node.(type) {
+func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
+	switch newNode := (*node).(type) {
 	case ast.VariableDeclarationStmt:
-		w.variableDeclarationStmt(newNode, scope)
+		w.variableDeclarationStmt(&newNode, scope)
+		*node = newNode
 	case ast.IfStmt:
-		w.ifStmt(newNode, scope)
+		w.ifStmt(&newNode, scope)
+		*node = newNode
 	case ast.AssignmentStmt:
-		w.assignmentStmt(newNode, scope)
+		w.assignmentStmt(&newNode, scope)
+		*node = newNode
 	case ast.FunctionDeclarationStmt:
-		w.functionDeclarationStmt(newNode, scope)
+		w.functionDeclarationStmt(&newNode, scope)
+		*node = newNode
 	case ast.ReturnStmt:
-		w.returnStmt(newNode, scope)
+		w.returnStmt(&newNode, scope)
+		*node = newNode
 	case ast.RepeatStmt:
-		w.repeatStmt(newNode, scope)
+		w.repeatStmt(&newNode, scope)
+		*node = newNode
 	case ast.TickStmt:
-		w.tickStmt(newNode, scope)
+		w.tickStmt(&newNode, scope)
+		*node = newNode
 	case ast.CallExpr:
-		w.callExpr(newNode, scope)
+		w.callExpr(&newNode, scope)
+		*node = newNode
 	case ast.DirectiveExpr:
-		w.directiveExpr(newNode, scope)
+		w.directiveExpr(&newNode, scope)
+		*node = newNode
 	case ast.UseStmt:
-		w.useStmt(newNode, scope)
+		w.useStmt(&newNode, scope)
+		*node = newNode
 	default:
 		w.error(newNode.GetToken(), "Expected statement")
 	}
 }
 
-func (w *Walker) GetNodeValue(node ast.Node, scope *Scope) Value {
-	switch newNode := node.(type) {
+func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
+	switch newNode := (*node).(type) {
 	case ast.LiteralExpr:
-		return w.literalExpr(newNode)
+		return w.literalExpr(&newNode)
 	case ast.BinaryExpr:
-		return w.binaryExpr(newNode, scope)
+		return w.binaryExpr(&newNode, scope)
 	case ast.IdentifierExpr:
-		return w.identifierExpr(newNode, scope)
+		return w.identifierExpr(&newNode, scope)
 	case ast.GroupExpr:
-		return w.groupingExpr(newNode, scope)
+		return w.groupingExpr(&newNode, scope)
 	case ast.ListExpr:
-		return w.listExpr(newNode, scope)
+		return w.listExpr(&newNode, scope)
 	case ast.UnaryExpr:
-		return w.unaryExpr(newNode, scope)
+		return w.unaryExpr(&newNode, scope)
 	case ast.CallExpr:
-		return w.callExpr(newNode, scope)
+		return w.callExpr(&newNode, scope)
 	case ast.MapExpr:
-		return w.mapExpr(newNode, scope)
+		return w.mapExpr(&newNode, scope)
 	case ast.DirectiveExpr:
-		return w.directiveExpr(newNode, scope)
+		return w.directiveExpr(&newNode, scope)
 	case ast.MemberExpr:
-		return w.memberExpr(nil, newNode, scope)
+		return w.memberExpr(nil, &newNode, scope)
 	default:
 		w.error(newNode.GetToken(), "Expected expression")
 		return NilVal{}

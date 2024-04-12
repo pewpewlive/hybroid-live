@@ -200,15 +200,15 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 	return call_expr
 }
 
-func (p *Parser)  getParam() ast.Param {
-	paramName := p.expression();
-	paramType := p.expression();
+func (p *Parser) getParam() ast.Param {
+	paramName := p.expression()
+	paramType := p.expression()
 	if paramType.GetType() != ast.Identifier {
-		p.error(paramType.GetToken(),"Expected name for a type");
-	}else if paramName.GetType() != ast.Identifier {
-		p.error(paramName.GetToken(), "expected an identifier in parameter");
+		p.error(paramType.GetToken(), "Expected name for a type")
+	} else if paramName.GetType() != ast.Identifier {
+		p.error(paramName.GetToken(), "expected an identifier in parameter")
 	}
-	return ast.Param{Type: paramType.GetToken(), Name:paramName.GetToken()}
+	return ast.Param{Type: paramType.GetToken(), Name: paramName.GetToken()}
 }
 
 func (p *Parser) parameters() []ast.Param {
@@ -220,9 +220,9 @@ func (p *Parser) parameters() []ast.Param {
 	if p.match(lexer.RightParen) {
 		args = make([]ast.Param, 0)
 	} else {
-		args = append(args, p.getParam());
+		args = append(args, p.getParam())
 		for p.match(lexer.Comma) {
-			args = append(args, p.getParam());
+			args = append(args, p.getParam())
 		}
 		p.consume("expected closing paren after parameters", lexer.RightParen)
 	}
@@ -239,10 +239,10 @@ func (p *Parser) arguments() []ast.Node {
 	if p.match(lexer.RightParen) {
 		args = make([]ast.Node, 0)
 	} else {
-		arg := p.expression();
-		args = append(args, arg);
-		for p.match(lexer.Comma) { 
-			arg := p.expression();
+		arg := p.expression()
+		args = append(args, arg)
+		for p.match(lexer.Comma) {
+			arg := p.expression()
 			args = append(args, arg)
 		}
 		p.consume("expected closing paren after arguments", lexer.RightParen)
@@ -251,35 +251,34 @@ func (p *Parser) arguments() []ast.Node {
 	return args
 }
 
-
 func (p *Parser) member(owner ast.Node) ast.Node {
-	if owner == nil  {
+	if owner == nil {
 		if p.match(lexer.Dot, lexer.LeftBracket) {
-			p.error(p.peek(-1),"cannot start a member expression with . or brackets")
+			p.error(p.peek(-1), "cannot start a member expression with . or brackets")
 			return ast.MemberExpr{
 				Identifier: ast.IdentifierExpr{Name: p.peek(-2), ValueType: ast.Undefined},
 			}
 		}
 		expression := p.primary()
 		expr := ast.MemberExpr{
-			Owner:owner,
-			Property: expression,
+			Owner:      owner,
+			Property:   expression,
 			Identifier: expression,
-			Bracketed: false,
+			Bracketed:  false,
 		}
 
 		if p.check(lexer.Dot) || p.check(lexer.LeftBracket) {
 			expr2 := p.memberCall(expr)
 			expr.Property = expr2
 			return expr
-		}else {
+		} else {
 			return expression
 		}
-		
-	}else {
+
+	} else {
 		var expr ast.MemberExpr
 		bracketed := false
-		operator, _ := p.consume("expected '.' or '[' after member expression",lexer.Dot, lexer.LeftBracket)
+		operator, _ := p.consume("expected '.' or '[' after member expression", lexer.Dot, lexer.LeftBracket)
 
 		var prop ast.Node
 		if operator.Type == lexer.Dot {
@@ -304,8 +303,8 @@ func (p *Parser) member(owner ast.Node) ast.Node {
 		if p.check(lexer.Dot) || p.check(lexer.LeftBracket) {
 			expr2 := p.memberCall(expr)
 			expr.Property = expr2
-		}	
-	
+		}
+
 		return expr
 	}
 }
@@ -385,24 +384,28 @@ func (p *Parser) primary() ast.Node {
 	return ast.Unknown{Token: p.peek()}
 }
 
-pewpew.configure_player(0, {})
-
-func (p *Parser) WrappedType() *[]ast.TypeExpr {// let a = {b:1, c: 2f, s:"text"}
+func (p *Parser) WrappedType() *[]ast.TypeExpr {
 	if p.check(lexer.Greater) {
-		p.error(p.peek(), )// let a: map<number>
+		p.error(p.peek(), "empty wrapped type") 
 		return nil
 	}
+	types := []ast.TypeExpr{}
 	expr2 := p.Type()
 	wrappedType, ok := expr2.(ast.TypeExpr)
 	if !ok {
 		p.error(expr2.GetToken(), "expected identifier as type")
-		return ast.Unknown{Token:expr2.GetToken()}
 	}
-	typee.WrappedType = &wrappedType
-	typee.Name = expr.GetToken();
+	types = append(types, wrappedType)
+	for p.match(lexer.Wall) {
+		expr2 := p.Type()
+		wrappedType, ok := expr2.(ast.TypeExpr)
+		if !ok {
+			p.error(expr2.GetToken(), "expected identifier as type")
+		}
+		types = append(types, wrappedType) 
+	}
 
-
-
+	return &types
 }
 
 func (p *Parser) Type() ast.Node {
@@ -414,13 +417,13 @@ func (p *Parser) Type() ast.Node {
 			typee.WrappedType = p.WrappedType()
 			p.consume("expected '>'", lexer.Greater)
 			return typee
-		}else {
+		} else {
 			typee.Name = expr.GetToken()
 			return typee
 		}
-	}else {
+	} else {
 		p.error(expr.GetToken(), "Expected an identifier for a type")
-		return ast.Unknown{Token:p.peek(-1)}
+		return ast.Unknown{Token: p.peek(-1)}
 	}
 
 }

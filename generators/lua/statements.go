@@ -24,7 +24,6 @@ func (gen *Generator) ifStmt(node ast.IfStmt) string {
 		gen.Generate(node.Else.Body)
 	}
 
-
 	gen.Src.Append(ifTabs, "end")
 
 	gen.TabsCount -= 1
