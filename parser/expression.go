@@ -385,21 +385,33 @@ func (p *Parser) primary() ast.Node {
 	return ast.Unknown{Token: p.peek()}
 }
 
+pewpew.configure_player(0, {})
+
+func (p *Parser) WrappedType() *[]ast.TypeExpr {// let a = {b:1, c: 2f, s:"text"}
+	if p.check(lexer.Greater) {
+		p.error(p.peek(), )// let a: map<number>
+		return nil
+	}
+	expr2 := p.Type()
+	wrappedType, ok := expr2.(ast.TypeExpr)
+	if !ok {
+		p.error(expr2.GetToken(), "expected identifier as type")
+		return ast.Unknown{Token:expr2.GetToken()}
+	}
+	typee.WrappedType = &wrappedType
+	typee.Name = expr.GetToken();
+
+
+
+}
+
 func (p *Parser) Type() ast.Node {
 	expr := p.primary()
 
 	if expr.GetType() == ast.Identifier {
 		typee := ast.TypeExpr{}
 		if p.match(lexer.Less) {
-			expr2 := p.Type()
-			wrappedType, ok := expr2.(ast.TypeExpr)
-			if !ok {
-				p.error(expr2.GetToken(), "expected identifier as type")
-				return ast.Unknown{Token:expr2.GetToken()}
-			}
-			typee.WrappedType = &wrappedType
-			typee.Name = expr.GetToken();
-
+			typee.WrappedType = p.WrappedType()
 			p.consume("expected '>'", lexer.Greater)
 			return typee
 		}else {

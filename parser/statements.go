@@ -57,6 +57,7 @@ func (p *Parser) statement() ast.Node {
 		p.advance()
 		return p.useStmt()
 	}
+
 	expr := p.expression()
 	if expr.GetType() == 0 {
 		p.error(p.peek(), "expected statement")
