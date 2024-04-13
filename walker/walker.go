@@ -260,14 +260,10 @@ func (w *Walker) ifReturns(node *ast.IfStmt, expectedReturn *ReturnType, scope *
 
 func (w *Walker) bodyReturns(body *[]ast.Node, expectedReturn *ReturnType, scope *Scope) *ReturnType {
 	var returns *ReturnType
-	for i, node := range *body {
+	for _, node := range *body {
 		returns = w.getReturnFromNode(&node, expectedReturn, scope)
 		if returns == nil {
 			continue
-		} else if node.GetToken() != (*body)[len(*body)-1].GetToken() {
-			*body = (*body)[:i+1]
-			//w.error(node.GetToken(), "unreachable code detected")
-			return returns
 		}
 
 		w.validateReturnValues(node, returns.values, expectedReturn.values)

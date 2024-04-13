@@ -114,11 +114,11 @@ func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scop
 		Value: FunctionVal{params: node.Params, returnVal: ret},
 		Node:  node,
 	}
-	if _, success := fnScope.DeclareVariable(variable); !success {
+	if _, success := scope.DeclareVariable(variable); !success {
 		w.error(node.Name, "cannot redeclare a function")
 	}
 
-	if fnScope.Parent != nil && !node.IsLocal {
+	if scope.Parent != nil && !node.IsLocal {
 		w.error(node.GetToken(), "cannot declare a global function inside a local block")
 	}
 

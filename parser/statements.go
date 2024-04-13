@@ -61,6 +61,7 @@ func (p *Parser) statement() ast.Node {
 	expr := p.expression()
 	if expr.GetType() == 0 {
 		p.error(p.peek(), "expected statement")
+		p.advance()
 	}
 	return expr
 }
@@ -70,16 +71,27 @@ func (p *Parser) getBody() *[]ast.Node {
 	if _, success := p.consume("expected opening of the body", lexer.LeftBrace); !success {
 		return &body
 	}
+
+	hasReturn := false
 	for !p.match(lexer.RightBrace) {
 		if p.peek().Type == lexer.Eof {
 			p.error(p.peek(), "expected body closure")
 			break
 		}
+
 		statement := p.statement()
 		if statement != nil {
+			if hasReturn {
+				continue
+			}
+
 			body = append(body, statement)
+			if statement.GetType() == ast.ReturnStatement {
+				hasReturn = true
+			}
 		}
 	}
+
 	return &body
 }
 
@@ -104,7 +116,7 @@ func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) ast.IfSt
 		if p.match(lexer.If) {
 			ifbody = p.ifStmt(else_exists, false, true)
 			ifStm.Elseifs = append(ifStm.Elseifs, &ifbody)
-		}else {
+		} else {
 			else_exists = true
 			ifbody = p.ifStmt(else_exists, true, false)
 			ifStm.Else = &ifbody
@@ -164,8 +176,11 @@ func (p *Parser) returnStmt() ast.Node {
 		}
 		args = append(args, expr)
 	}
-
 	returnStmt.Args = args
+
+	if !p.check(lexer.RightBrace) {
+		//p.error(p.peek(), "unreachable code detected")
+	}
 
 	return returnStmt
 }
@@ -193,22 +208,7 @@ func (p *Parser) functionDeclarationStmt() ast.Node {
 		}
 	}
 	fnDec.Return = ret
-
-	body := make([]ast.Node, 0)
-	if token, success := p.consume("expected body of the function", lexer.LeftBrace); success { // hjere
-		for !p.match(lexer.RightBrace) {
-			if p.peek().Type == lexer.Eof {
-				p.error(token, "expected body closure")
-				break
-			}
-			statement := p.statement()
-			if statement != nil {
-				body = append(body, statement)
-			}
-		}
-	}
-
-	fnDec.Body = body
+	fnDec.Body = *p.getBody()
 
 	return fnDec
 }
@@ -309,21 +309,7 @@ func (p *Parser) repeatStmt() ast.Node {
 		repeatStmt.Iterator = ast.LiteralExpr{Token: repeatStmt.Token, Value: "1", ValueType: ast.Number}
 	}
 
-	body := make([]ast.Node, 0)
-	if _, success := p.consume("expected body of the repeat statement", lexer.LeftBrace); success {
-		for !p.match(lexer.RightBrace) {
-			if p.peek().Type == lexer.Eof {
-				p.error(p.peek(), "expected body closure")
-				break
-			}
-			statement := p.statement()
-			if statement != nil {
-				body = append(body, statement)
-			}
-		}
-	}
-
-	repeatStmt.Body = body
+	repeatStmt.Body = *p.getBody()
 
 	return repeatStmt
 }
@@ -342,21 +328,7 @@ func (p *Parser) tickStmt() ast.Node {
 		tickStmt.Variable = identExpr.(ast.IdentifierExpr)
 	}
 
-	body := make([]ast.Node, 0)
-	if _, success := p.consume("expected body of the tick statement", lexer.LeftBrace); success {
-		for !p.match(lexer.RightBrace) {
-			if p.peek().Type == lexer.Eof {
-				p.error(p.peek(), "expected body closure")
-				break
-			}
-			statement := p.statement()
-			if statement != nil {
-				body = append(body, statement)
-			}
-		}
-	}
-
-	tickStmt.Body = body
+	tickStmt.Body = *p.getBody()
 
 	return tickStmt
 }

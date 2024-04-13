@@ -6,3 +6,8 @@ type Error struct {
 	Token   lexer.Token
 	Message string
 }
+
+type Warning struct {
+	Token   lexer.Token
+	Message string
+}

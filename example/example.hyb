@@ -12,18 +12,20 @@
 //let two = 2;
 //one += 1;
 
-
 let shiii = 1
 //two, map.o = 10, 20;
 
 fn thing(param bool, param2 text) text {
 	if param {
 		return param2
-		shiii = "a"
-		let a = 2
 	}
 	param2 = "aa"
 	if param2 == "000" and param {
+		return "aaaa"
 	}
-	return param2
+	return "a"
 }
+
+let b = thing(true, "xd")
+
+b = 2
