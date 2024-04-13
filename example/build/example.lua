@@ -2,22 +2,17 @@
 
 
 
+local shiii = 1
 
-
-
-
-
-local test = require("/dynamic/import_test.lua")
-local map = {
-	o = 1
-}
-
-local one = 1
-
-local two = 2
-
-one = one + (1)
-two, map.o = 10, 20
 local function thing(param, param2)
-	return "a"
+	if param then
+		return param2
+		shiii = "a"
+		local a = 2
+
+	end	
+	param2 = "aa"
+	if param2 == "000" and param then
+	end	
+	return param2
 end

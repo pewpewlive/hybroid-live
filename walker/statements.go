@@ -69,7 +69,13 @@ func (w *Walker) assignmentStmt(assignStmt *ast.AssignmentStmt, scope *Scope) {
 			continue
 		}
 
+		if wIdents[i].GetType() == ast.Undefined {
+			w.error(assignStmt.Identifiers[i].GetToken(), "cannot assign a value to an undeclared variable")
+			continue
+		}
+
 		variable, ok := wIdents[i].(VariableVal)
+
 		if ok {
 			if _, err := scope.AssignVariable(variable, value); err != nil {
 				err.Token = variable.Node.GetToken()
@@ -108,12 +114,16 @@ func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scop
 		Value: FunctionVal{params: node.Params, returnVal: ret},
 		Node:  node,
 	}
-	if _, success := scope.DeclareVariable(variable); !success {
+	if _, success := fnScope.DeclareVariable(variable); !success {
 		w.error(node.Name, "cannot redeclare a function")
 	}
 
-	if scope.Parent != nil && !node.IsLocal {
+	if fnScope.Parent != nil && !node.IsLocal {
 		w.error(node.GetToken(), "cannot declare a global function inside a local block")
+	}
+
+	for _, node := range node.Body {
+		w.WalkNode(&node, &fnScope)
 	}
 
 	if w.bodyReturns(&node.Body, &ret, &fnScope) == nil && ret.values[0] != ast.Nil {
@@ -152,7 +162,8 @@ func (w *Walker) repeatStmt(node *ast.RepeatStmt, scope *Scope) {
 	}
 
 	if node.Variable.GetValueType() != 0 {
-		repeatScope.DeclareVariable(VariableVal{Name: node.Variable.Name.Lexeme, Value: w.GetNodeValue(&node.Start, scope), Node: node})
+		repeatScope.
+			DeclareVariable(VariableVal{Name: node.Variable.Name.Lexeme, Value: w.GetNodeValue(&node.Start, scope), Node: node})
 	}
 
 	body := node.Body

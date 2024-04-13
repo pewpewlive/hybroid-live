@@ -1,27 +1,29 @@
 @Environment(Level)
 
-use "import_test.hyb" as test
+//use "import_test.hyb" as test
 
 // all of this should be allowed
-let a:list<number>, b = nil, 1
-let c, d = 1, [ 1 ] // c is a number and d is a list of numbers
-let e:map<fixed>, f:fixed
-let g:text, h:list<text> = "xd", [ "wow" ]
+//let a:list<number>, b = nil, 1
+//let c, d = 1, [ 1 ] // c is a number and d is a list of numbers
+//let e:map<fixed>, f:fixed
+//let g:text, h:list<text> = "xd", [ "wow" ]
 
-let one = 1;
-let two = 2;
-one += 1;
+//let one = 1;
+//let two = 2;
+//one += 1;
 
 
-
-two, map.o = 10, 20;
+let shiii = 1
+//two, map.o = 10, 20;
 
 fn thing(param bool, param2 text) text {
-  return "a";
-
-	param2 = "aa";
+	if param {
+		return param2
+		shiii = "a"
+		let a = 2
+	}
+	param2 = "aa"
 	if param2 == "000" and param {
 	}
-	return param2;
+	return param2
 }
-

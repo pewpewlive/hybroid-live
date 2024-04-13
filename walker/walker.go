@@ -88,7 +88,6 @@ func listsAreValid[T ComparableType](list1 []T, list2 []T) bool {
 }
 
 func (s *Scope) GetVariable(name string) VariableVal {
-
 	scope := s.Resolve(name)
 
 	variable := scope.Variables[name]
@@ -197,7 +196,7 @@ func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
 		return ast.List
 	case "number":
 		return ast.Number
-	case "Bool":
+	case "bool":
 		return ast.Bool
 	case "fixed":
 		return ast.FixedPoint
@@ -241,34 +240,12 @@ func (w *Walker) getReturnFromNode(node *ast.Node, expectedReturn *ReturnType, s
 func (w *Walker) ifReturns(node *ast.IfStmt, expectedReturn *ReturnType, scope *Scope) *ReturnType {
 	var returns *ReturnType
 
-	for _, bodynode := range node.Body {
-		returns = w.getReturnFromNode(&bodynode, expectedReturn, scope)
-		if returns == nil {
-			continue
-		} else if bodynode.GetToken() != node.Body[len(node.Body)-1].GetToken() {
-			w.error(bodynode.GetToken(), "unreachable code detected")
-		}
+	localScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
+	w.bodyReturns(&node.Body, expectedReturn, &localScope)
 
-		w.validateReturnValues(node, returns.values, expectedReturn.values)
-	}
-	if returns == nil {
-		return returns
-	}
-
-	for _, elseif := range node.Elseifs {
-		for _, node := range elseif.Body {
-			returns = w.getReturnFromNode(&node, expectedReturn, scope)
-			if returns == nil {
-				continue
-			} else if node.GetToken() != elseif.Body[len(elseif.Body)-1].GetToken() {
-				w.error(node.GetToken(), "unreachable code detected")
-			}
-
-			w.validateReturnValues(node, returns.values, expectedReturn.values)
-		}
-		if returns == nil {
-			return returns
-		}
+	for i := range node.Elseifs {
+		localScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
+		w.bodyReturns(&node.Elseifs[i].Body, expectedReturn, &localScope)
 	}
 
 	if node.Else != nil {
@@ -289,9 +266,8 @@ func (w *Walker) bodyReturns(body *[]ast.Node, expectedReturn *ReturnType, scope
 			continue
 		} else if node.GetToken() != (*body)[len(*body)-1].GetToken() {
 			*body = (*body)[:i+1]
-			
-			return returns
 			//w.error(node.GetToken(), "unreachable code detected")
+			return returns
 		}
 
 		w.validateReturnValues(node, returns.values, expectedReturn.values)
