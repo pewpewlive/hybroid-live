@@ -8,6 +8,7 @@ import (
 type Walker struct {
 	nodes  *[]ast.Node
 	Errors []ast.Error
+	Warnings []ast.Warning
 }
 
 type Global struct {

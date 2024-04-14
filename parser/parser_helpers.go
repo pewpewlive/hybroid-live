@@ -12,6 +12,11 @@ func (p *Parser) error(token lexer.Token, msg string) {
 	//panic(errMsg.Message)
 }
 
+func (p *Parser) warn(token lexer.Token, msg string) {
+	warn := ast.Warning{Token: token, Message: msg}
+	p.Warnings = append(p.Warnings, warn)
+}
+
 func (p *Parser) synchronize() {
 	p.advance()
 	for !p.isAtEnd() {
@@ -24,6 +29,14 @@ func (p *Parser) synchronize() {
 
 		p.advance()
 	}
+}
+
+func (p *Parser) isMultiComparison() bool {
+	return p.match(lexer.And, lexer.Or)
+}
+
+func (p *Parser) isComparison() bool {
+	return p.match(lexer.Greater, lexer.GreaterEqual, lexer.Less, lexer.LessEqual, lexer.BangEqual, lexer.EqualEqual)
 }
 
 // Creates a BinaryExpr

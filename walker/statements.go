@@ -7,9 +7,9 @@ import (
 )
 
 func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
-
+	ifScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
+	w.GetNodeValue(&node.BoolExpr,scope)
 	for _, node := range node.Body {
-		ifScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
 		w.WalkNode(&node, &ifScope)
 		// if stmt.GetType() == ast.ReturnStatement {
 		// 	returnStmt := stmt.(ast.ReturnStmt)
@@ -20,6 +20,7 @@ func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
 	}
 
 	for _, elseif := range node.Elseifs {
+		w.GetNodeValue(&elseif.BoolExpr,scope)
 		ifScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
 		for _, stmt := range elseif.Body {
 			w.WalkNode(&stmt, &ifScope)

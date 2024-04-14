@@ -66,10 +66,15 @@ func (e *Evaluator) Action() error {
 	if len(e.parser.Errors) != 0 {
 		colorstring.Println("[red]Syntax error found:")
 		for _, err := range e.parser.Errors {
-			e.writeSyntaxError(string(sourceFile), err)
+			e.writeSyntaxAlert(string(sourceFile), err)
 			//colorstring.Printf("[red]Error: %+v\n", err)
 		}
 		return fmt.Errorf("failed to parse source file")
+	}
+	if len(e.parser.Warnings) != 0 {
+		for _, err := range e.parser.Warnings {
+			colorstring.Printf("[yellow]Warning: %+v\n", err)
+		}
 	}
 
 	fmt.Printf("Parsing time: %v seconds\n\n", time.Since(start).Seconds())
@@ -86,6 +91,11 @@ func (e *Evaluator) Action() error {
 			colorstring.Printf("[red]Error: %+v\n", err)
 		}
 		return fmt.Errorf("failed to walk through the nodes")
+	}
+	if len(e.walker.Warnings) != 0 {
+		for _, err := range e.walker.Warnings {
+			colorstring.Printf("[yellow]Warning: %+v\n", err)
+		}
 	}
 
 	fmt.Printf("Walking time: %v seconds\n\n", time.Since(start).Seconds())
@@ -111,8 +121,8 @@ func (e *Evaluator) Action() error {
 	return nil
 }
 
-func (e *Evaluator) writeSyntaxError(source string, errMsg ast.Error) {
-	token := errMsg.Token
+func (e *Evaluator) writeSyntaxAlert(source string, errMsg ast.Alert) {
+	token := errMsg.GetToken()
 
 	sourceLines := strings.Split(source, "\n")
 	line := sourceLines[token.Location.LineStart-1]
@@ -124,5 +134,5 @@ func (e *Evaluator) writeSyntaxError(source string, errMsg ast.Error) {
 	} else {
 		fmt.Printf("%s%s^\n", strings.Repeat(" ", token.Location.ColStart-6), strings.Repeat("-", 5))
 	}
-	fmt.Println("message: " + errMsg.Message + "\n")
+	fmt.Println("message: " + errMsg.GetMessage() + "\n")
 }

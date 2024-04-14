@@ -28,6 +28,12 @@ func (w *Walker) binaryExpr(node *ast.BinaryExpr, scope *Scope) Value {
 	switch op.Type {
 	case lexer.Plus, lexer.Minus, lexer.Caret, lexer.Star, lexer.Slash, lexer.Modulo:
 		w.validateArithmeticOperands(left, right, *node)
+	default:
+		if left.GetType() != right.GetType() {
+			w.error(node.GetToken(), fmt.Sprintf("invalid comparison: types are not the same (left: %s, right: %s)",left.GetType().ToString(), right.GetType().ToString()))
+		}else {
+			return BoolVal{}
+		}
 	}
 	val := w.GetValue(w.determineValueType(left, right))
 

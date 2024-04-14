@@ -99,9 +99,23 @@ func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) ast.IfSt
 	ifStm := ast.IfStmt{
 		Token: p.peek(-1),
 	}
+	
 	var expr ast.Node
 	if !is_else {
-		expr = p.expression()
+		expr = p.multiComparison()
+		exprType := expr.GetType()
+		if exprType == ast.Identifier && !(p.isMultiComparison() || p.check(lexer.LeftBrace)) {
+			p.error(p.peek(), "if condition is not a valid expression")
+			for !p.check(lexer.LeftBrace) {
+				p.advance()
+			}
+		}
+		if exprType != ast.BinaryExpression && exprType != ast.Identifier && exprType != ast.UnaryExpression {
+			p.error(expr.GetToken(), "if condition is not a valid expression")
+			for !p.check(lexer.LeftBrace) {
+				p.advance()
+			}
+		}
 	}
 	ifStm.BoolExpr = expr
 	ifStm.Body = *p.getBody()
@@ -179,7 +193,7 @@ func (p *Parser) returnStmt() ast.Node {
 	returnStmt.Args = args
 
 	if !p.check(lexer.RightBrace) {
-		//p.error(p.peek(), "unreachable code detected")
+		p.warn(p.peek(), "unreachable code detected")
 	}
 
 	return returnStmt

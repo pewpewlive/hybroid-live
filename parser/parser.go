@@ -6,14 +6,15 @@ import (
 )
 
 type Parser struct {
-	program []ast.Node
-	current int
-	tokens  []lexer.Token
-	Errors  []ast.Error
+	program  []ast.Node
+	current  int
+	tokens   []lexer.Token
+	Errors   []ast.Error
+	Warnings []ast.Warning
 }
 
 func New() *Parser {
-	return &Parser{make([]ast.Node, 0), 0, make([]lexer.Token, 0), make([]ast.Error, 0)}
+	return &Parser{make([]ast.Node, 0), 0, make([]lexer.Token, 0), make([]ast.Error, 0), make([]ast.Warning, 0)}
 }
 
 func (p *Parser) AssignTokens(tokens []lexer.Token) {

@@ -85,21 +85,9 @@ func (p *Parser) directive() ast.Node {
 }
 
 func (p *Parser) multiComparison() ast.Node {
-	expr := p.equality()
-
-	if p.match(lexer.And, lexer.Or) {
-		operator := p.peek(-1)
-		right := p.equality()
-		expr = ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: ast.Bool}
-	}
-
-	return expr
-}
-
-func (p *Parser) equality() ast.Node {
 	expr := p.comparison()
 
-	if p.match(lexer.BangEqual, lexer.EqualEqual) {
+	if p.isMultiComparison() {
 		operator := p.peek(-1)
 		right := p.comparison()
 		expr = ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: ast.Bool}
@@ -111,7 +99,7 @@ func (p *Parser) equality() ast.Node {
 func (p *Parser) comparison() ast.Node {
 	expr := p.term()
 
-	if p.match(lexer.Greater, lexer.GreaterEqual, lexer.Less, lexer.LessEqual) {
+	if p.isComparison() {
 		operator := p.peek(-1)
 		right := p.term()
 		expr = ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: ast.Bool}
