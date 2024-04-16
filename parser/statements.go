@@ -288,15 +288,28 @@ func (p *Parser) repeatStmt() ast.Node {
 		repeatStmt.Start = ast.LiteralExpr{Value: "1", ValueType: ast.Number, Token: repeatStmt.Token}
 	}
 
+	variableAssigned := false
+	iteratorAssgined := false
+	skipAssigned := false
+	startAssigned := false
+
 	for i := 0; i < 4; i++ {
 		if p.match(lexer.With) {
 			identExpr := p.expression()
+			if variableAssigned {
+				p.error(p.peek(-1), "duplicate keyword 'with' in repeat statement")
+			}
+			variableAssigned = true
 			if identExpr.GetType() != ast.Identifier {
 				p.error(identExpr.GetToken(), "expected identifier expression after keyword 'with'")
-				return repeatStmt
+			}else {
+				repeatStmt.Variable = identExpr.(ast.IdentifierExpr)
 			}
-			repeatStmt.Variable = identExpr.(ast.IdentifierExpr)
 		} else if p.match(lexer.To) {
+			if iteratorAssgined {
+				p.error(p.peek(-1), "duplicate keyword 'to' in repeat statement")
+			}
+			iteratorAssgined = true
 			if gotIterator {
 				p.error(p.peek(-1), "unnecessary redefinition of iterator")
 			} else {
@@ -306,11 +319,19 @@ func (p *Parser) repeatStmt() ast.Node {
 				}
 			}
 		} else if p.match(lexer.By) {
+			if skipAssigned {
+				p.error(p.peek(-1), "duplicate keyword 'by' in repeat statement")
+			}
+			skipAssigned = true
 			repeatStmt.Skip = p.expression()
 			if repeatStmt.Skip.GetType() == ast.NA {
 				p.error(repeatStmt.Skip.GetToken(), "unknown expression after keyword 'by'")
 			}
 		} else if p.match(lexer.From) {
+			if startAssigned {
+				p.error(p.peek(-1), "duplicate keyword 'from' in repeat statement")
+			}
+			startAssigned = true
 			repeatStmt.Start = p.expression()
 			if repeatStmt.Start.GetType() == ast.NA {
 				p.error(repeatStmt.Start.GetToken(), "unknown expression after keyword 'from'")

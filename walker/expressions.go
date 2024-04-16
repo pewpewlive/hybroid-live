@@ -106,17 +106,24 @@ func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope) Value {
 	} else {
 		fn := sc.GetVariable(callerToken.Lexeme)
 		fun, ok := fn.Value.(FunctionVal)
-		if !ok { //
+		arguments := make([]ast.PrimitiveValueType, 0)
+		for _, arg := range node.Args {
+			val := w.GetNodeValue(&arg, scope)
+			if function, ok := val.(FunctionVal); ok {
+				arguments = append(arguments, function.returnVal.values...)
+			}else {
+				arguments = append(arguments, val.GetType())
+			}
+		}
+		if !ok {
 			w.error(callerToken, "variable used as if it's a function")
-		} else if len(fun.params) < len(node.Args) {
+		} else if len(fun.params) < len(arguments) {
 			w.error(callerToken, "too many arguments given in function call")
-		} else if len(fun.params) > len(node.Args) {
+		} else if len(fun.params) > len(arguments) {
 			w.error(callerToken, "too few arguments given in function call")
 		}
 
-		//type check
-
-		return fun.returnVal
+		return fun
 	}
 }
 

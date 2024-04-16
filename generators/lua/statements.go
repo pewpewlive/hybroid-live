@@ -181,16 +181,13 @@ func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclaratio
 			src.WriteString(fmt.Sprintf("%s, ", ident))
 		}
 	}
-	for i := range declaration.Identifiers {
-		if i == len(declaration.Identifiers)-1 {
+	for i := range values {
+		if i == len(values)-1 {
 			src2.WriteString(values[i])
 			break
 		}
-		if i == len(declaration.Identifiers)-1 {
-			src2.WriteString(values[i])
-		} else {
-			src2.WriteString(fmt.Sprintf("%s, ", values[i]))
-		}
+		src2.WriteString(fmt.Sprintf("%s, ", values[i]))
+		
 	}
 
 	src.Append(src2.String(), "\n")

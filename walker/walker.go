@@ -18,18 +18,30 @@ type Global struct {
 
 func NewGlobal() Global {
 	return Global{
-		Scope: Scope{
-			Global:    nil,
-			Parent:    nil,
-			Variables: make(map[string]VariableVal),
-		},
+		Scope: NewScope(nil, nil, ReturnProhibiting),
 	}
 }
 
+type ScopeType int
+
+const (
+	ReturnAllowing ScopeType = iota
+	ReturnProhibiting
+)
 type Scope struct {
 	Global    *Global
 	Parent    *Scope
+	Type      ScopeType
 	Variables map[string]VariableVal
+}
+
+func NewScope(global *Global, parent *Scope, typee ScopeType) Scope {
+	return Scope{
+		Global: global,
+		Parent: parent,
+		Type: typee,
+		Variables: map[string]VariableVal{},
+	}
 }
 
 func (w *Walker) error(token lexer.Token, msg string) {
@@ -222,7 +234,7 @@ func (w *Walker) validateReturnValues(node ast.Node, returnValues []ast.Primitiv
 }
 
 func (w *Walker) getReturnFromNode(node *ast.Node, expectedReturn *ReturnType, scope *Scope) *ReturnType {
-	localScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
+	localScope := NewScope(scope.Global, scope, scope.Type)
 	switch (*node).GetType() {
 	case ast.IfStatement:
 		converted := (*node).(ast.IfStmt)
@@ -241,16 +253,16 @@ func (w *Walker) getReturnFromNode(node *ast.Node, expectedReturn *ReturnType, s
 func (w *Walker) ifReturns(node *ast.IfStmt, expectedReturn *ReturnType, scope *Scope) *ReturnType {
 	var returns *ReturnType
 
-	localScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
+	localScope := NewScope(scope.Global, scope, scope.Type)
 	w.bodyReturns(&node.Body, expectedReturn, &localScope)
 
 	for i := range node.Elseifs {
-		localScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
+		localScope := NewScope(scope.Global, scope, scope.Type)
 		w.bodyReturns(&node.Elseifs[i].Body, expectedReturn, &localScope)
 	}
 
 	if node.Else != nil {
-		localScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
+		localScope := NewScope(scope.Global, scope, scope.Type)
 		returns = w.bodyReturns(&node.Else.Body, expectedReturn, &localScope)
 	} else {
 		return nil

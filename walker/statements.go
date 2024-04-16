@@ -7,7 +7,7 @@ import (
 )
 
 func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
-	ifScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
+	ifScope := NewScope(scope.Global, scope, scope.Type)
 	w.GetNodeValue(&node.BoolExpr,scope)
 	for _, node := range node.Body {
 		w.WalkNode(&node, &ifScope)
@@ -21,7 +21,7 @@ func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
 
 	for _, elseif := range node.Elseifs {
 		w.GetNodeValue(&elseif.BoolExpr,scope)
-		ifScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
+		ifScope := NewScope(scope.Global, scope, scope.Type)
 		for _, stmt := range elseif.Body {
 			w.WalkNode(&stmt, &ifScope)
 			// if stmt.GetType() == ast.ReturnStatement {
@@ -34,7 +34,7 @@ func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
 	}
 
 	if node.Else != nil {
-		ifScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
+		ifScope := NewScope(scope.Global, scope, scope.Type)
 		for _, stmt := range node.Else.Body {
 			w.WalkNode(&stmt, &ifScope)
 		}
@@ -95,7 +95,7 @@ func (w *Walker) assignmentStmt(assignStmt *ast.AssignmentStmt, scope *Scope) {
 }
 
 func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scope *Scope) {
-	fnScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
+	fnScope := NewScope(scope.Global, scope, ReturnAllowing)
 
 	for i, param := range node.Params {
 		value := w.GetValue(w.GetTypeFromString(node.Params[i].Type.Lexeme))
@@ -134,6 +134,9 @@ func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scop
 
 func (w *Walker) returnStmt(node *ast.ReturnStmt, scope *Scope) *ReturnType {
 	var ret ReturnType
+	if scope.Type == ReturnProhibiting {
+		w.error(node.GetToken(), "can't have a return statement outside of a function")
+	}
 	for _, expr := range node.Args {
 		val := w.GetNodeValue(&expr, scope)
 		ret.values = append(ret.values, val.GetType())
@@ -145,7 +148,7 @@ func (w *Walker) returnStmt(node *ast.ReturnStmt, scope *Scope) *ReturnType {
 }
 
 func (w *Walker) repeatStmt(node *ast.RepeatStmt, scope *Scope) {
-	repeatScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
+	repeatScope := NewScope(scope.Global, scope, scope.Type)
 
 	end := w.GetNodeValue(&node.Iterator, scope)
 	start := w.GetNodeValue(&node.Start, scope)
@@ -174,7 +177,7 @@ func (w *Walker) repeatStmt(node *ast.RepeatStmt, scope *Scope) {
 }
 
 func (w *Walker) tickStmt(node *ast.TickStmt, scope *Scope) {
-	tickScope := Scope{Global: scope.Global, Parent: scope, Variables: map[string]VariableVal{}}
+	tickScope := NewScope(scope.Global, scope, scope.Type)
 
 	if node.Variable.GetValueType() != 0 {
 		tickScope.DeclareVariable(VariableVal{Name: node.Variable.Name.Lexeme})
@@ -196,14 +199,16 @@ func GetValue(values []Value, index int) Value {
 func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStmt, scope *Scope) {
 	var values []Value
 
-	hasFuncs := false
 	for _, expr := range declaration.Values {
-		if expr.GetType() == ast.CallExpression {
-			hasFuncs = true
-		}
-		exprValue := w.GetNodeValue(&expr, scope)
 
-		values = append(values, exprValue)
+		exprValue := w.GetNodeValue(&expr, scope)
+		if function, ok := exprValue.(FunctionVal); ok {
+			for _, returnVal := range function.returnVal.values {
+				values = append(values, w.GetValue(returnVal))
+			}
+		}else{
+			values = append(values, exprValue)
+		}
 	}
 
 	isLocal := declaration.Token.Type == lexer.Let
@@ -227,6 +232,9 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 	}
 
 	for i, ident := range declaration.Identifiers {
+		if ident == "_" {
+			continue
+		}
 		variable := VariableVal{
 			Value: GetValue(values, i),
 			Name:  ident,
@@ -240,7 +248,7 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 
 	if len(values) > len(declaration.Identifiers) {
 		w.error(declaration.Token, "too many values provided in declaration")
-	} else if len(values) < len(declaration.Identifiers) && !hasFuncs && !isLocal {
+	} else if len(values) < len(declaration.Identifiers) {
 		w.error(declaration.Token, "too few values provided in declaration")
 	}
 }

@@ -52,10 +52,12 @@ func (gen *Generator) GetSrc() string {
 
 func (gen *Generator) Generate(program []ast.Node) {
 	generatedStr := ""
+	//gen.Src.WriteString("local M = {}\n")
 	for _, node := range program {
 		generatedStr = gen.GenerateNode(node)
 		gen.Src.Append(gen.getTabs(), generatedStr, "\n")
 	}
+	//gen.Src.WriteString("return M")
 }
 
 func fixedToFx(floatstr string) string {

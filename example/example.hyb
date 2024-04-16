@@ -15,6 +15,10 @@
 //let shiii = 1
 //two, map.o = 10, 20;
 
+fn process(a bool) bool, text {
+	return !a, "yeah"
+}
+
 fn thing(param bool, param2 text) text, number {
 	if param {
 		return param2, 1
@@ -23,9 +27,12 @@ fn thing(param bool, param2 text) text, number {
 	if param2 == "000" and param {
 		return "aaaa", 2
 	}
-	return "a", 3
+	return "b", 0
 }
-
-let b = thing(true, "xd")
-
-b = 2
+/*
+repeat 10 with i by 5 from 9 {
+	if i == 1 {
+		return "b", 0
+	}
+}
+*/
