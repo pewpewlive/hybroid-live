@@ -29,10 +29,5 @@ fn thing(param bool, param2 text) text, number {
 	}
 	return "b", 0
 }
-/*
-repeat 10 with i by 5 from 9 {
-	if i == 1 {
-		return "b", 0
-	}
-}
-*/
+
+let ma:map<fixed> = {a:1r, b:1fx}

@@ -56,8 +56,22 @@ func (w *Walker) GetValue(pvt ast.PrimitiveValueType) Value {
 	switch pvt {
 	case ast.Number:
 		return NumberVal{}
-	case ast.FixedPoint:
-		return FixedVal{}
+	case ast.Fixed:
+		return FixedVal{
+			SpecificType:ast.Fixed,
+		}
+	case ast.Radian:
+		return FixedVal{
+			SpecificType:ast.Radian,
+		}
+	case ast.FixedPoint: 
+		return FixedVal{
+			SpecificType:ast.FixedPoint,
+		}
+	case ast.Degree: 
+		return FixedVal{
+			SpecificType:ast.Degree,
+		}
 	case ast.Bool:
 		return BoolVal{}
 	case ast.List:

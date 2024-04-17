@@ -39,7 +39,7 @@ func (n UnaryExpr) GetValueType() PrimitiveValueType {
 }
 
 type TypeExpr struct {//syntax: Type(WrappedType)
-	WrappedType *[]TypeExpr
+	WrappedType []TypeExpr
 	Name lexer.Token
 }
 
@@ -135,9 +135,8 @@ type Property struct {
 }
 
 type MapExpr struct {
-	ValueType PrimitiveValueType
-	Token     lexer.Token
-	Map       map[lexer.Token]Property
+	Token      lexer.Token
+	Map        map[lexer.Token]Property
 }
 
 func (me MapExpr) GetType() NodeType {
@@ -149,7 +148,7 @@ func (n MapExpr) GetToken() lexer.Token {
 }
 
 func (n MapExpr) GetValueType() PrimitiveValueType {
-	return n.ValueType
+	return 0
 }
 
 type ListExpr struct {

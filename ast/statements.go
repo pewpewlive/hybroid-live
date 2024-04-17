@@ -23,7 +23,7 @@ func (as AssignmentStmt) GetValueType() PrimitiveValueType {
 }
 
 type VariableDeclarationStmt struct {
-	Identifiers []string
+	Identifiers []lexer.Token
 	Types       []*TypeExpr
 	Values      []Node
 	IsLocal     bool

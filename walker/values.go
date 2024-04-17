@@ -47,7 +47,7 @@ func (mm MapMemberVal) GetType() ast.PrimitiveValueType {
 }
 
 type MapVal struct {
-	MemberType ast.PrimitiveValueType
+	MemberTypes []ast.PrimitiveValueType
 	Members map[string]MapMemberVal
 }
 
@@ -55,41 +55,47 @@ func (m MapVal) GetType() ast.PrimitiveValueType {
 	return ast.Map
 }
 
-func (m MapVal) GetMembersType() ast.PrimitiveValueType {
-	var prev *MapMemberVal
-	for _, val := range m.Members {
-		if prev == nil {
-			prev = &val
+func (l MapVal) GetValueTypes() []ast.PrimitiveValueType {
+	valTypes := []ast.PrimitiveValueType{}
+	for _, v := range l.Members {
+		exists := false
+		for _, v2 := range valTypes {
+			if v.GetType() == v2 {
+				exists = true
+			}
+		}
+		if exists {
 			continue
 		}
-		if prev.GetType() != val.GetType() {
-			return ast.Undefined
-		}
+		valTypes = append(valTypes, v.GetType())
 	}
-	return prev.GetType()
+	return valTypes
 }
 
 type ListVal struct {
-	ValueType ast.PrimitiveValueType
-	values []Value
+	ValueTypes []ast.PrimitiveValueType
+	Values     []Value
 }
 
 func (l ListVal) GetType() ast.PrimitiveValueType {
 	return ast.List
 }
 
-func (m ListVal) GetValuesType() ast.PrimitiveValueType {
-	var prev *Value
-	for _, val := range m.values {
-		if prev == nil {
-			prev = &val
+func (l ListVal) GetValueTypes() []ast.PrimitiveValueType {
+	valTypes := []ast.PrimitiveValueType{}
+	for _, v := range l.Values {
+		exists := false
+		for _, v2 := range valTypes {
+			if v.GetType() == v2 {
+				exists = true
+			}
+		}
+		if exists {
 			continue
 		}
-		if (*prev).GetType() != val.GetType() {
-			return ast.Undefined
-		}
+		valTypes = append(valTypes, v.GetType())
 	}
-	return (*prev).GetType()
+	return valTypes
 }
 
 type NumberVal struct {
@@ -107,11 +113,16 @@ func (d DirectiveVal) GetType() ast.PrimitiveValueType {
 }
 
 type FixedVal struct {
+	SpecificType ast.PrimitiveValueType
 	Val string
 }
 
 func (f FixedVal) GetType() ast.PrimitiveValueType {
 	return ast.FixedPoint
+}
+
+func (f FixedVal) GetSpecificType() ast.PrimitiveValueType {
+	return f.SpecificType
 }
 
 type ReturnType struct {

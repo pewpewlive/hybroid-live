@@ -275,18 +275,19 @@ func (p *Parser) repeatStmt() ast.Node {
 	}
 
 	gotIterator := false
-	if !p.check(lexer.With) && !p.check(lexer.To) && !p.check(lexer.By) && !p.check(lexer.From) {
+	if p.check(lexer.Number) || 
+		p.check(lexer.Fixed) || 
+		p.check(lexer.FixedPoint) || 
+		p.check(lexer.Radian) || 
+		p.check(lexer.Degree) || 
+		p.check(lexer.Identifier) {
+			
 		repeatStmt.Iterator = p.expression()
 		gotIterator = true
 	}
 
-	if gotIterator {
-		repeatStmt.Skip = ast.LiteralExpr{Value: "1", ValueType: repeatStmt.Iterator.GetValueType(), Token: repeatStmt.Token}
-		repeatStmt.Start = ast.LiteralExpr{Value: "1", ValueType: repeatStmt.Iterator.GetValueType(), Token: repeatStmt.Token}
-	} else {
-		repeatStmt.Skip = ast.LiteralExpr{Value: "1", ValueType: ast.Number, Token: repeatStmt.Token}
-		repeatStmt.Start = ast.LiteralExpr{Value: "1", ValueType: ast.Number, Token: repeatStmt.Token}
-	}
+	repeatStmt.Skip = ast.Unknown{Token:repeatStmt.Token}
+	repeatStmt.Start = ast.Unknown{Token:repeatStmt.Token}
 
 	variableAssigned := false
 	iteratorAssgined := false
@@ -384,7 +385,7 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 
 		typee = &conv
 	}
-	idents := []string{ident.Lexeme}
+	idents := []lexer.Token{ident}
 	types := []*ast.TypeExpr{typee}
 	for p.match(lexer.Comma) {
 		ident, identOk := p.consume("expected identifier in variable declaration", lexer.Identifier)
@@ -401,7 +402,7 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 			typee = &conv
 		}
 
-		idents = append(idents, ident.Lexeme)
+		idents = append(idents, ident)
 		types = append(types, typee)
 	}
 

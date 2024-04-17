@@ -5,7 +5,6 @@ import (
 	"hybroid/ast"
 	"hybroid/lexer"
 	"hybroid/parser"
-	"strconv"
 )
 
 func (w *Walker) determineValueType(left Value, right Value) ast.PrimitiveValueType {
@@ -52,8 +51,24 @@ func (w *Walker) literalExpr(node *ast.LiteralExpr) Value {
 		return StringVal{
 			node.Value,
 		}
-	case ast.FixedPoint, ast.Radian, ast.Fixed, ast.Degree:
+	case ast.Fixed:
 		return FixedVal{
+			ast.Fixed,
+			node.Value,
+		}
+	case ast.Radian:
+		return FixedVal{
+			ast.Radian,
+			node.Value,
+		}
+	case ast.FixedPoint: 
+		return FixedVal{
+			ast.FixedPoint,
+			node.Value,
+		}
+	case ast.Degree: 
+		return FixedVal{
+			ast.Degree,
 			node.Value,
 		}
 	case ast.Bool:
@@ -65,11 +80,10 @@ func (w *Walker) literalExpr(node *ast.LiteralExpr) Value {
 	case ast.Number:
 		return NumberVal{
 			node.Value,
-		} // ok
+		}
 	default:
 		return Unknown{}
 	}
-
 }
 
 func (w *Walker) identifierExpr(node *ast.IdentifierExpr, scope *Scope) Value {
@@ -91,7 +105,7 @@ func (w *Walker) groupingExpr(node *ast.GroupExpr, scope *Scope) Value {
 func (w *Walker) listExpr(node *ast.ListExpr, scope *Scope) Value {
 	var value ListVal
 	for _, expr := range node.List {
-		value.values = append(value.values, w.GetNodeValue(&expr, scope))
+		value.Values = append(value.Values, w.GetNodeValue(&expr, scope))
 	}
 	return value
 }
@@ -148,116 +162,52 @@ func (w *Walker) unaryExpr(node *ast.UnaryExpr, scope *Scope) Value {
 	return w.GetNodeValue(&node.Value, scope)
 }
 
-func (w *Walker) memberExpr(mapp Value, node *ast.MemberExpr, scope *Scope) Value {
+func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Value {
 	if node.Owner == nil {
 		sc := scope.Resolve(node.Identifier.GetToken().Lexeme)
 
-		var mapp Value
+		var array Value
 		if sc == nil {
 			w.error(node.Identifier.GetToken(), fmt.Sprintf("undeclared variable \"%s\"", node.Identifier.GetToken().Lexeme))
 			return Unknown{}
 		} else {
-			mapp = sc.GetVariable(node.Identifier.GetToken().Lexeme).Value
+			array = sc.GetVariable(node.Identifier.GetToken().Lexeme).Value
 		}
 
 		next, ok := node.Property.(ast.MemberExpr)
 
 		if ok {
-			if mapp.GetType() == ast.Namespace {
+			if array.GetType() == ast.Namespace {
 				return Undefined{}
 			}
-			if mapp.GetType() != ast.List && mapp.GetType() != ast.Map {
+			if array.GetType() != ast.List && array.GetType() != ast.Map {
 				w.error(node.Identifier.GetToken(), "variable is not a list, map or a namespace")
 				return Unknown{}
 			}
-			return w.memberExpr(mapp, &next, scope)
+			return w.memberExpr(array, &next, scope)
 		} else {
 			w.error(node.GetToken(), "expected member expression")
 			return Unknown{}
 		}
 	}
 
-	var val Value
+	val := w.GetNodeValue(&node.Identifier, scope)
 
-	if node.Bracketed && node.GetToken().Type != lexer.Identifier {
-		val = StringVal{node.GetToken().Literal}
-	} else if node.Bracketed && node.GetToken().Type == lexer.Identifier {
-		if mapp.GetType() == ast.Map {
-			val = w.GetNodeValue(&node.Identifier, scope)
+	if node.Bracketed {
+		if array.GetType() == ast.Map {
 			if val.GetType() != ast.String && val.GetType() != 0 {
 				w.error(node.Identifier.GetToken(), "variable is not a string")
 				return Unknown{}
 			}
-		} else if mapp.GetType() == ast.List {
-			val = w.GetNodeValue(&node.Identifier, scope)
+		} else if array.GetType() == ast.List {
 			if val.GetType() != ast.Number && val.GetType() != 0 {
 				w.error(node.Identifier.GetToken(), "variable is not a number")
 				return Unknown{}
 			}
-			varia, isVar := val.(VariableVal)
-			if isVar {
-				val = varia.Value
-			}
 		}
-	} else {
-		val = StringVal{node.GetToken().Lexeme}
-	}
-
-	var mem Value
-	mem, _ = findMember(mapp, val)
-
-	mapMember, isVariable := mem.(MapMemberVal)
-
-	var value Value
-	if isVariable {
-		value = mapMember.Var.Value
-	} else {
-		value = mem
-	}
-
-	next, isMember := node.Property.(ast.MemberExpr)
-
-	if isMember {
-		if value.GetType() == ast.Map {
-			return w.memberExpr(value, &next, scope)
-		} else if value.GetType() == ast.List {
-			return w.memberExpr(value, &next, scope)
-		} else {
-			w.error(node.Identifier.GetToken(), "variable is being treated as a map or list, but isn't one")
-			return Unknown{}
-		}
-	} else {
-		return mem
-	}
-}
-
-func findMember(val Value, detection Value) (Value, bool) {
-	list, isList := val.(ListVal)
-	mapp, isMap := val.(MapVal)
-
-	if isList {
-		if detection.GetType() == ast.Number {
-			parsedNum, ok := strconv.Atoi(detection.(NumberVal).Val)
-			if ok != nil {
-				return Unknown{}, false
-			}
-			if parsedNum > len(list.values) {
-				return Undefined{}, false
-			}
-			mem := list.values[parsedNum-1]
-			return mem, false
-		} else if detection.GetType() == 0 {
-			return Undefined{}, false
-		}
-	} else if isMap {
-
-		mem, found := mapp.Members[detection.(StringVal).Val]
-		if found {
-			return mem, false
-		}
-		return MapMemberVal{Var: VariableVal{Value: Undefined{}}, Owner: mapp}, false
-	}
-	return Unknown{}, false
+	} 
+	
+	return Undefined{}
 }
 
 func (w *Walker) directiveExpr(node *ast.DirectiveExpr, scope *Scope) Value {

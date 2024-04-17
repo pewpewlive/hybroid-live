@@ -174,11 +174,11 @@ func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclaratio
 	}
 	for i, ident := range declaration.Identifiers {
 		if i == len(declaration.Identifiers)-1 && len(values) != 0 {
-			src.WriteString(fmt.Sprintf("%s = ", ident))
+			src.WriteString(fmt.Sprintf("%s = ", ident.Lexeme))
 		} else if i == len(declaration.Identifiers)-1 {
-			src.WriteString(ident)
+			src.WriteString(ident.Lexeme)
 		} else {
-			src.WriteString(fmt.Sprintf("%s, ", ident))
+			src.WriteString(fmt.Sprintf("%s, ", ident.Lexeme))
 		}
 	}
 	for i := range values {

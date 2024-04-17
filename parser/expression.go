@@ -73,7 +73,7 @@ func (p *Parser) parseMap() ast.Node {
 	}
 	p.advance()
 
-	return ast.MapExpr{ValueType: ast.Map, Map: parsedMap, Token: token}
+	return ast.MapExpr{Map: parsedMap, Token: token}
 }
 
 func (p *Parser) directive() ast.Node {
@@ -372,12 +372,12 @@ func (p *Parser) primary() ast.Node {
 	return ast.Unknown{Token: p.peek()}
 }
 
-func (p *Parser) WrappedType() *[]ast.TypeExpr {
+func (p *Parser) WrappedType() []ast.TypeExpr {
+	types := []ast.TypeExpr{}
 	if p.check(lexer.Greater) {
 		p.error(p.peek(), "empty wrapped type") 
-		return nil
+		return types
 	}
-	types := []ast.TypeExpr{}
 	expr2 := p.Type()
 	wrappedType, ok := expr2.(ast.TypeExpr)
 	if !ok {
@@ -393,7 +393,7 @@ func (p *Parser) WrappedType() *[]ast.TypeExpr {
 		types = append(types, wrappedType) 
 	}
 
-	return &types
+	return types
 }
 
 func (p *Parser) Type() ast.Node {
@@ -404,11 +404,10 @@ func (p *Parser) Type() ast.Node {
 		if p.match(lexer.Less) {
 			typee.WrappedType = p.WrappedType()
 			p.consume("expected '>'", lexer.Greater)
-			return typee
 		} else {
 			typee.Name = expr.GetToken()
-			return typee
 		}
+		return typee
 	} else {
 		p.error(expr.GetToken(), "Expected an identifier for a type")
 		return ast.Unknown{Token: p.peek(-1)}

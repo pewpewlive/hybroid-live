@@ -1,6 +1,7 @@
 package walker
 
 import (
+	"fmt"
 	"hybroid/ast"
 	"hybroid/lexer"
 	"hybroid/parser"
@@ -151,18 +152,33 @@ func (w *Walker) repeatStmt(node *ast.RepeatStmt, scope *Scope) {
 	repeatScope := NewScope(scope.Global, scope, scope.Type)
 
 	end := w.GetNodeValue(&node.Iterator, scope)
-	start := w.GetNodeValue(&node.Start, scope)
-	skip := w.GetNodeValue(&node.Skip, scope)
-
+	endType := end.GetType()
 	if !parser.IsFx(end.GetType()) && end.GetType() != ast.Number {
 		w.error(node.Iterator.GetToken(), "invalid value type of iterator")
+	}else if variable, ok := end.(VariableVal); ok{
+		if fixedpoint, ok := variable.Value.(FixedVal); ok {
+			endType = fixedpoint.SpecificType
+		}
+	}else {
+		if fixedpoint, ok := end.(FixedVal); ok {
+			endType = fixedpoint.SpecificType
+		}
 	}
+	if node.Start.GetType() == ast.NA {
+		node.Start = ast.LiteralExpr{Token:node.Start.GetToken(), ValueType: endType, Value:"1"}
+	}
+	start := w.GetNodeValue(&node.Start, scope)
+	if node.Skip.GetType() == ast.NA {
+		fmt.Printf("%s\n",endType.ToString())
+		node.Skip = ast.LiteralExpr{Token:node.Skip.GetToken(), ValueType: endType, Value:"1"}
+	}
+	skip := w.GetNodeValue(&node.Skip, scope)
 
 	repeatType := end.GetType()
 
 	if (repeatType != start.GetType() || start.GetType() == 0) &&
 		(repeatType != skip.GetType() || skip.GetType() == 0) {
-		w.error(node.Start.GetToken(), "all value types must be the same")
+		w.error(node.Start.GetToken(), fmt.Sprintf("all value types must be the same (iter:%s, start:%s, by:%s)", repeatType.ToString(), start.GetType().ToString(), skip.GetType().ToString()))
 	}
 
 	if node.Variable.GetValueType() != 0 {
@@ -232,16 +248,71 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 	}
 
 	for i, ident := range declaration.Identifiers {
-		if ident == "_" {
+		if ident.Lexeme == "_" {
 			continue
 		}
+		val := GetValue(values, i)
 		variable := VariableVal{
-			Value: GetValue(values, i),
-			Name:  ident,
+			Value: val,
+			Name:  ident.Lexeme,
 			Node:  declaration,
 		}
+
+		wasMapOrList := false
+		valTypes := []ast.PrimitiveValueType{}
+		explicitTypes := []ast.PrimitiveValueType{}
+		switch newVal := val.(type) {
+		case MapVal:
+			wasMapOrList = true
+			valTypes = newVal.GetValueTypes()
+			newVal.MemberTypes = valTypes
+			if declaration.Types[i] != nil && declaration.Types[i].WrappedType != nil {
+				for _, v := range declaration.Types[i].WrappedType {
+					explicitTypes = append(explicitTypes, w.GetTypeFromString(v.Name.Lexeme))
+				}
+				if len(valTypes) == 0 {
+					newVal.MemberTypes = explicitTypes
+				}
+			}
+		case ListVal:
+			wasMapOrList = true
+			valTypes = newVal.GetValueTypes()
+			newVal.ValueTypes = valTypes
+			if declaration.Types[i] != nil && declaration.Types[i].WrappedType != nil {
+				for _, v := range declaration.Types[i].WrappedType {
+					explicitTypes = append(explicitTypes, w.GetTypeFromString(v.Name.Lexeme))
+				}
+				if len(valTypes) == 0 {
+					newVal.ValueTypes = explicitTypes
+				}
+			}
+		}
+		if wasMapOrList {// then perform error handling for that
+			if declaration.Types[i] == nil {
+				if len(valTypes) == 0 {
+					w.error(ident, "cannot infer the wrapped type(s) of the map/list because the value given is an empty map/list")
+				}
+			}else if declaration.Types[i].WrappedType == nil {
+				w.error(declaration.Types[i].GetToken(), "expected a wrapped type in map/list declaration")
+			}else if len(valTypes) != 0 {
+				for _, v := range valTypes {
+					isValid := false
+					for _, ev := range explicitTypes {
+						fmt.Printf("%s | %s\n",v.ToString(), ev.ToString())
+						if v == ev {
+							isValid = true
+						}
+					}
+					if !isValid {
+						w.error(ident, "values given in map/list do not match with the wrapped type(s) given")
+						break
+					}
+				}
+			}
+		}
+
 		if _, success := scope.DeclareVariable(variable); !success {
-			w.error(lexer.Token{Lexeme: ident, Location: declaration.Token.Location},
+			w.error(lexer.Token{Lexeme: ident.Lexeme, Location: declaration.Token.Location},
 				"cannot declare a value in the same scope twice")
 		}
 	}

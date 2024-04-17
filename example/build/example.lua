@@ -2,6 +2,7 @@
 
 
 
+
 local function process(a)
 	return !a, "yeah"
 end
@@ -15,3 +16,8 @@ local function thing(param, param2)
 	end	
 	return "b", 0
 end
+local ma = {
+	a = 1fx,
+	b = 1fx
+}
+
