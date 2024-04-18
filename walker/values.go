@@ -47,55 +47,57 @@ func (mm MapMemberVal) GetType() ast.PrimitiveValueType {
 }
 
 type MapVal struct {
-	MemberTypes []ast.PrimitiveValueType
-	Members map[string]MapMemberVal
+	MemberType  ast.PrimitiveValueType
+	Members     map[string]MapMemberVal
 }
 
 func (m MapVal) GetType() ast.PrimitiveValueType {
 	return ast.Map
 }
 
-func (l MapVal) GetValueTypes() []ast.PrimitiveValueType {
+func (l MapVal) GetContentsValueType() ast.PrimitiveValueType {
 	valTypes := []ast.PrimitiveValueType{}
+	index := 0
 	for _, v := range l.Members {
-		exists := false
-		for _, v2 := range valTypes {
-			if v.GetType() == v2 {
-				exists = true
-			}
-		}
-		if exists {
+		if index == 0 {
+			valTypes = append(valTypes, v.GetType())
+			index++
 			continue
 		}
 		valTypes = append(valTypes, v.GetType())
+		if valTypes[index-1] != valTypes[len(valTypes)-1] {
+			return ast.Undefined
+		}
+		index++
 	}
-	return valTypes
+	return valTypes[1]
 }
 
 type ListVal struct {
-	ValueTypes []ast.PrimitiveValueType
-	Values     []Value
+	ValueType   ast.PrimitiveValueType
+	Values      []Value
 }
 
 func (l ListVal) GetType() ast.PrimitiveValueType {
 	return ast.List
 }
 
-func (l ListVal) GetValueTypes() []ast.PrimitiveValueType {
+func (l ListVal) GetContentsValueType() ast.PrimitiveValueType {
 	valTypes := []ast.PrimitiveValueType{}
+	index := 0
 	for _, v := range l.Values {
-		exists := false
-		for _, v2 := range valTypes {
-			if v.GetType() == v2 {
-				exists = true
-			}
-		}
-		if exists {
+		if index == 0 {
+			valTypes = append(valTypes, v.GetType())
+			index++
 			continue
 		}
 		valTypes = append(valTypes, v.GetType())
+		if valTypes[index-1] != valTypes[len(valTypes)-1] {
+			return ast.Undefined
+		}
+		index++
 	}
-	return valTypes
+	return valTypes[1]
 }
 
 type NumberVal struct {

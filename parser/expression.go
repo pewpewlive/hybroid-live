@@ -241,12 +241,6 @@ func (p *Parser) arguments() []ast.Node {
 
 func (p *Parser) member(owner ast.Node) ast.Node {
 	if owner == nil {
-		if p.match(lexer.Dot, lexer.LeftBracket) {
-			p.error(p.peek(-1), "cannot start a member expression with . or brackets")
-			return ast.MemberExpr{
-				Identifier: ast.IdentifierExpr{Name: p.peek(-2), ValueType: ast.Undefined},
-			}
-		}
 		expression := p.primary()
 		expr := ast.MemberExpr{
 			Owner:      owner,
@@ -372,28 +366,19 @@ func (p *Parser) primary() ast.Node {
 	return ast.Unknown{Token: p.peek()}
 }
 
-func (p *Parser) WrappedType() []ast.TypeExpr {
-	types := []ast.TypeExpr{}
+func (p *Parser) WrappedType() *ast.TypeExpr {
+	typee := ast.TypeExpr{}
 	if p.check(lexer.Greater) {
 		p.error(p.peek(), "empty wrapped type") 
-		return types
+		return &typee
 	}
 	expr2 := p.Type()
 	wrappedType, ok := expr2.(ast.TypeExpr)
 	if !ok {
 		p.error(expr2.GetToken(), "expected identifier as type")
 	}
-	types = append(types, wrappedType)
-	for p.match(lexer.Wall) {
-		expr2 := p.Type()
-		wrappedType, ok := expr2.(ast.TypeExpr)
-		if !ok {
-			p.error(expr2.GetToken(), "expected identifier as type")
-		}
-		types = append(types, wrappedType) 
-	}
 
-	return types
+	return &wrappedType
 }
 
 func (p *Parser) Type() ast.Node {

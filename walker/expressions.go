@@ -37,7 +37,7 @@ func (w *Walker) binaryExpr(node *ast.BinaryExpr, scope *Scope) Value {
 	val := w.GetValue(w.determineValueType(left, right))
 
 	if val.GetType() == ast.Undefined {
-		w.error(node.GetToken(), "invalid binary expression")
+		w.error(node.GetToken(), fmt.Sprintf("invalid binary expression (left: %s, right: %s)",left.GetType().ToString(), right.GetType().ToString()))
 		return val
 	} else {
 		return val
@@ -206,8 +206,15 @@ func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Val
 			}
 		}
 	} 
+
+	wrappedValType := ast.Undefined
+	if list, ok := array.(ListVal); ok {
+		wrappedValType = list.ValueType
+	}else if mapp, ok := array.(ListVal); ok {
+		wrappedValType = mapp.ValueType
+	}
 	
-	return Undefined{}
+	return w.GetValue(wrappedValType)
 }
 
 func (w *Walker) directiveExpr(node *ast.DirectiveExpr, scope *Scope) Value {

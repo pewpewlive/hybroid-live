@@ -169,7 +169,6 @@ func (w *Walker) repeatStmt(node *ast.RepeatStmt, scope *Scope) {
 	}
 	start := w.GetNodeValue(&node.Start, scope)
 	if node.Skip.GetType() == ast.NA {
-		fmt.Printf("%s\n",endType.ToString())
 		node.Skip = ast.LiteralExpr{Token:node.Skip.GetToken(), ValueType: endType, Value:"1"}
 	}
 	skip := w.GetNodeValue(&node.Skip, scope)
@@ -259,55 +258,39 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 		}
 
 		wasMapOrList := false
-		valTypes := []ast.PrimitiveValueType{}
-		explicitTypes := []ast.PrimitiveValueType{}
+		var valType ast.PrimitiveValueType
+		var explicitType ast.PrimitiveValueType
 		switch newVal := val.(type) {
 		case MapVal:
 			wasMapOrList = true
-			valTypes = newVal.GetValueTypes()
-			newVal.MemberTypes = valTypes
+			valType = newVal.GetContentsValueType()
+			newVal.MemberType = valType
 			if declaration.Types[i] != nil && declaration.Types[i].WrappedType != nil {
-				for _, v := range declaration.Types[i].WrappedType {
-					explicitTypes = append(explicitTypes, w.GetTypeFromString(v.Name.Lexeme))
-				}
-				if len(valTypes) == 0 {
-					newVal.MemberTypes = explicitTypes
+				explicitType = w.GetTypeFromString(declaration.Types[i].WrappedType.Name.Lexeme)
+				if valType == 0 {
+					newVal.MemberType = explicitType
 				}
 			}
 		case ListVal:
 			wasMapOrList = true
-			valTypes = newVal.GetValueTypes()
-			newVal.ValueTypes = valTypes
+			valType = newVal.GetContentsValueType()
+			newVal.ValueType = valType
 			if declaration.Types[i] != nil && declaration.Types[i].WrappedType != nil {
-				for _, v := range declaration.Types[i].WrappedType {
-					explicitTypes = append(explicitTypes, w.GetTypeFromString(v.Name.Lexeme))
-				}
-				if len(valTypes) == 0 {
-					newVal.ValueTypes = explicitTypes
+				explicitType = w.GetTypeFromString(declaration.Types[i].WrappedType.Name.Lexeme)
+				if valType == 0 {
+					newVal.ValueType = explicitType
 				}
 			}
 		}
 		if wasMapOrList {// then perform error handling for that
 			if declaration.Types[i] == nil {
-				if len(valTypes) == 0 {
-					w.error(ident, "cannot infer the wrapped type(s) of the map/list because the value given is an empty map/list")
+				if valType == 0 {
+					w.error(ident, "cannot infer the wrapped type of the map/list because the value given is an empty map/list")
 				}
 			}else if declaration.Types[i].WrappedType == nil {
 				w.error(declaration.Types[i].GetToken(), "expected a wrapped type in map/list declaration")
-			}else if len(valTypes) != 0 {
-				for _, v := range valTypes {
-					isValid := false
-					for _, ev := range explicitTypes {
-						fmt.Printf("%s | %s\n",v.ToString(), ev.ToString())
-						if v == ev {
-							isValid = true
-						}
-					}
-					if !isValid {
-						w.error(ident, "values given in map/list do not match with the wrapped type(s) given")
-						break
-					}
-				}
+			}else if valType != 0 && valType != explicitType {
+				w.error(ident, "values given in map/list do not match with the wrapped type(s) given")
 			}
 		}
 

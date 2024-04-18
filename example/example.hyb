@@ -30,4 +30,6 @@ fn thing(param bool, param2 text) text, number {
 	return "b", 0
 }
 
-let ma:map<fixed> = {a:1r, b:1fx}
+let ma = [1r, 9f, 4f]
+
+let p = ma[1]-9f
