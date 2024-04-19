@@ -621,6 +621,7 @@ enum SandwichType {
 Structures are classes that do not have inheritance.
 
 ```rs
+
 struct Rectangle {
   mesh_id1 number
   mesh_id1, mesh_id1, mesh_id1, mesh_id1: 0f, 0f, 0f, 0f, 0f

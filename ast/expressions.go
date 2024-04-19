@@ -38,13 +38,11 @@ func (n UnaryExpr) GetValueType() PrimitiveValueType {
 	return n.ValueType
 }
 
-/*
-
-*/
-
-type TypeExpr struct {//syntax: Type(WrappedType)
+type TypeExpr struct {//syntax: Type<WrappedType>
 	WrappedType *TypeExpr
 	Name lexer.Token
+	Params []TypeExpr
+	Returns []TypeExpr
 }
 
 func (t TypeExpr) GetType() NodeType {

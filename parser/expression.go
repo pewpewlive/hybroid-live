@@ -190,13 +190,11 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 
 func (p *Parser) getParam() ast.Param {
 	paramName := p.expression()
-	paramType := p.expression()
-	if paramType.GetType() != ast.Identifier {
-		p.error(paramType.GetToken(), "Expected name for a type")
-	} else if paramName.GetType() != ast.Identifier {
+	paramType := p.Type()
+	if paramName.GetType() != ast.Identifier {
 		p.error(paramName.GetToken(), "expected an identifier in parameter")
 	}
-	return ast.Param{Type: paramType.GetToken(), Name: paramName.GetToken()}
+	return ast.Param{Type: paramType, Name: paramName.GetToken()}
 }
 
 func (p *Parser) parameters() []ast.Param {
@@ -373,19 +371,40 @@ func (p *Parser) WrappedType() *ast.TypeExpr {
 		return &typee
 	}
 	expr2 := p.Type()
-	wrappedType, ok := expr2.(ast.TypeExpr)
-	if !ok {
-		p.error(expr2.GetToken(), "expected identifier as type")
-	}
-
-	return &wrappedType
+	return &expr2
 }
 
-func (p *Parser) Type() ast.Node {
+func (p *Parser) Type() ast.TypeExpr {
 	expr := p.primary()
 
-	if expr.GetType() == ast.Identifier {
+	if expr.GetType() == ast.Identifier || expr.GetToken().Type == lexer.Fn {
 		typee := ast.TypeExpr{}
+
+		if expr.GetToken().Lexeme == "fn" {// fn(text, number) map<fixed>
+			p.advance()
+			typee.Params = make([]ast.TypeExpr, 0)
+			typee.Returns = make([]ast.TypeExpr, 0)
+			if p.match(lexer.LeftParen) {
+				typee.Params = append(typee.Params, p.Type())
+
+				for p.match(lexer.Comma) {
+					typee.Params = append(typee.Params, p.Type())
+				}
+				p.consume("expected closing parenthesis in 'fn(...'", lexer.RightParen)
+			}
+
+			if p.check(lexer.Identifier) {
+				typee.Returns = append(typee.Returns, p.Type())
+
+				for p.match(lexer.Comma) {
+					typee.Returns = append(typee.Returns, p.Type())
+				}
+			}
+
+			typee.Name = expr.GetToken()
+			return typee
+		}
+
 		if p.match(lexer.Less) {
 			typee.WrappedType = p.WrappedType()
 			p.consume("expected '>'", lexer.Greater)
@@ -395,7 +414,8 @@ func (p *Parser) Type() ast.Node {
 		return typee
 	} else {
 		p.error(expr.GetToken(), "Expected an identifier for a type")
-		return ast.Unknown{Token: p.peek(-1)}
+		p.advance()
+		return ast.TypeExpr{Name:expr.GetToken()}
 	}
 
 }

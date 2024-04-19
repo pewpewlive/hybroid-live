@@ -71,7 +71,7 @@ func (w *Walker) assignmentStmt(assignStmt *ast.AssignmentStmt, scope *Scope) {
 			continue
 		}
 
-		if wIdents[i].GetType() == ast.Undefined {
+		if wIdents[i].GetType().Type == ast.Undefined {
 			w.error(assignStmt.Identifiers[i].GetToken(), "cannot assign a value to an undeclared variable")
 			continue
 		}
@@ -98,22 +98,24 @@ func (w *Walker) assignmentStmt(assignStmt *ast.AssignmentStmt, scope *Scope) {
 func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scope *Scope) {
 	fnScope := NewScope(scope.Global, scope, ReturnAllowing)
 
+	params := make([]TypeVal, 0)
 	for i, param := range node.Params {
-		value := w.GetValue(w.GetTypeFromString(node.Params[i].Type.Lexeme))
+		params = append(params, w.typeExpr(&param.Type))
+		value := w.GetValueFromType(params[i])
 		fnScope.DeclareVariable(VariableVal{Name: param.Name.Lexeme, Value: value, Node: node})
 	}
 
 	var ret ReturnType
-	for _, token := range node.Return {
-		ret.values = append(ret.values, w.GetTypeFromString(token.Lexeme))
+	for _, typee := range node.Return {
+		ret.values = append(ret.values, w.typeExpr(&typee))
 	}
 	if len(ret.values) == 0 {
-		ret.values = append(ret.values, ast.Nil)
+		ret.values = append(ret.values, TypeVal{Type:ast.Nil})
 	}
 
 	variable := VariableVal{
 		Name:  node.Name.Lexeme,
-		Value: FunctionVal{params: node.Params, returnVal: ret},
+		Value: FunctionVal{params: params, returnVal: ret},
 		Node:  node,
 	}
 	if _, success := scope.DeclareVariable(variable); !success {
@@ -128,7 +130,7 @@ func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scop
 		w.WalkNode(&node, &fnScope)
 	}
 
-	if w.bodyReturns(&node.Body, &ret, &fnScope) == nil && ret.values[0] != ast.Nil {
+	if w.bodyReturns(&node.Body, &ret, &fnScope) == nil && ret.values[0].Type != ast.Nil {
 		w.error(node.GetToken(), "not all function paths return a value")
 	}
 }
@@ -143,7 +145,7 @@ func (w *Walker) returnStmt(node *ast.ReturnStmt, scope *Scope) *ReturnType {
 		ret.values = append(ret.values, val.GetType())
 	}
 	if len(ret.values) == 0 {
-		ret.values = append(ret.values, ast.Nil)
+		ret.values = append(ret.values, TypeVal{Type:ast.Nil})
 	}
 	return &ret
 }
@@ -153,31 +155,33 @@ func (w *Walker) repeatStmt(node *ast.RepeatStmt, scope *Scope) {
 
 	end := w.GetNodeValue(&node.Iterator, scope)
 	endType := end.GetType()
-	if !parser.IsFx(end.GetType()) && end.GetType() != ast.Number {
+	if !parser.IsFx(endType.Type) && endType.Type != ast.Number {
 		w.error(node.Iterator.GetToken(), "invalid value type of iterator")
 	}else if variable, ok := end.(VariableVal); ok{
 		if fixedpoint, ok := variable.Value.(FixedVal); ok {
-			endType = fixedpoint.SpecificType
+			endType = TypeVal{Type:fixedpoint.SpecificType}
 		}
 	}else {
 		if fixedpoint, ok := end.(FixedVal); ok {
-			endType = fixedpoint.SpecificType
+			endType = TypeVal{Type:fixedpoint.SpecificType}
 		}
 	}
 	if node.Start.GetType() == ast.NA {
-		node.Start = ast.LiteralExpr{Token:node.Start.GetToken(), ValueType: endType, Value:"1"}
+		node.Start = ast.LiteralExpr{Token:node.Start.GetToken(), ValueType: endType.Type, Value:"1"}
 	}
 	start := w.GetNodeValue(&node.Start, scope)
 	if node.Skip.GetType() == ast.NA {
-		node.Skip = ast.LiteralExpr{Token:node.Skip.GetToken(), ValueType: endType, Value:"1"}
+		node.Skip = ast.LiteralExpr{Token:node.Skip.GetToken(), ValueType: endType.Type, Value:"1"}
 	}
 	skip := w.GetNodeValue(&node.Skip, scope)
 
-	repeatType := end.GetType()
+	repeatType := end.GetType().Type
+	startType := start.GetType().Type
+	skipType := skip.GetType().Type
 
-	if (repeatType != start.GetType() || start.GetType() == 0) &&
-		(repeatType != skip.GetType() || skip.GetType() == 0) {
-		w.error(node.Start.GetToken(), fmt.Sprintf("all value types must be the same (iter:%s, start:%s, by:%s)", repeatType.ToString(), start.GetType().ToString(), skip.GetType().ToString()))
+	if (repeatType != startType || startType == 0) &&
+		(repeatType != skipType || skipType == 0) {
+		w.error(node.Start.GetToken(), fmt.Sprintf("all value types must be the same (iter:%s, start:%s, by:%s)", repeatType.ToString(), startType.ToString(), skipType.ToString()))
 	}
 
 	if node.Variable.GetValueType() != 0 {
@@ -219,7 +223,7 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 		exprValue := w.GetNodeValue(&expr, scope)
 		if function, ok := exprValue.(FunctionVal); ok {
 			for _, returnVal := range function.returnVal.values {
-				values = append(values, w.GetValue(returnVal))
+				values = append(values, w.GetValueFromType(returnVal))
 			}
 		}else{
 			values = append(values, exprValue)
@@ -258,16 +262,16 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 		}
 
 		wasMapOrList := false
-		var valType ast.PrimitiveValueType
-		var explicitType ast.PrimitiveValueType
+		var valType TypeVal
+		var explicitType TypeVal
 		switch newVal := val.(type) {
 		case MapVal:
 			wasMapOrList = true
 			valType = newVal.GetContentsValueType()
 			newVal.MemberType = valType
 			if declaration.Types[i] != nil && declaration.Types[i].WrappedType != nil {
-				explicitType = w.GetTypeFromString(declaration.Types[i].WrappedType.Name.Lexeme)
-				if valType == 0 {
+				explicitType = w.typeExpr(declaration.Types[i].WrappedType)
+				if valType.Type == ast.Undefined {
 					newVal.MemberType = explicitType
 				}
 			}
@@ -276,22 +280,24 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 			valType = newVal.GetContentsValueType()
 			newVal.ValueType = valType
 			if declaration.Types[i] != nil && declaration.Types[i].WrappedType != nil {
-				explicitType = w.GetTypeFromString(declaration.Types[i].WrappedType.Name.Lexeme)
-				if valType == 0 {
+				explicitType = w.typeExpr(declaration.Types[i].WrappedType)
+				if valType.Type == ast.Undefined {
 					newVal.ValueType = explicitType
 				}
 			}
+		default:
+			valType = val.GetType()
 		}
 		if wasMapOrList {// then perform error handling for that
-			if declaration.Types[i] == nil {
-				if valType == 0 {
-					w.error(ident, "cannot infer the wrapped type of the map/list because the value given is an empty map/list")
-				}
-			}else if declaration.Types[i].WrappedType == nil {
+			if declaration.Types[i] == nil && valType.Type == ast.Undefined {
+				w.error(ident, "cannot infer the wrapped type of the map/list: empty or mixed value types")
+
+			} else if declaration.Types[i].WrappedType == nil {
 				w.error(declaration.Types[i].GetToken(), "expected a wrapped type in map/list declaration")
-			}else if valType != 0 && valType != explicitType {
-				w.error(ident, "values given in map/list do not match with the wrapped type(s) given")
 			}
+		}
+		if valType.Type != ast.Undefined && explicitType.Type != 0 && !valType.Eq(explicitType) {
+			w.error(ident, fmt.Sprintf("given value for '%s' does not match with the type given",ident.Lexeme))
 		}
 
 		if _, success := scope.DeclareVariable(variable); !success {

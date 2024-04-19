@@ -7,37 +7,38 @@ import (
 	"hybroid/parser"
 )
 
-func (w *Walker) determineValueType(left Value, right Value) ast.PrimitiveValueType {
-	if left.GetType() == 0 || right.GetType() == 0 {
-		return 0
+func (w *Walker) determineValueType(left TypeVal, right TypeVal) TypeVal {
+	if left.Type == 0 || right.Type == 0 {
+		return TypeVal{Type:0}
 	}
-	if left.GetType() == right.GetType() {
-		return left.GetType()
+	if left.Eq(right) {
+		return right
 	}
-	if parser.IsFx(left.GetType()) && parser.IsFx(right.GetType()) {
-		return ast.FixedPoint
+	if parser.IsFx(left.Type) && parser.IsFx(right.Type) {
+		return left
 	}
 
-	return ast.Undefined
+	return TypeVal{Type:ast.Undefined}
 }
 
 func (w *Walker) binaryExpr(node *ast.BinaryExpr, scope *Scope) Value {
 	left, right := w.GetNodeValue(&node.Left, scope), w.GetNodeValue(&node.Right, scope)
+	leftType, rightType := left.GetType(), right.GetType()
 	op := node.Operator
 	switch op.Type {
 	case lexer.Plus, lexer.Minus, lexer.Caret, lexer.Star, lexer.Slash, lexer.Modulo:
-		w.validateArithmeticOperands(left, right, *node)
+		w.validateArithmeticOperands(leftType, rightType, *node)
 	default:
-		if left.GetType() != right.GetType() {
-			w.error(node.GetToken(), fmt.Sprintf("invalid comparison: types are not the same (left: %s, right: %s)",left.GetType().ToString(), right.GetType().ToString()))
+		if left.GetType().Eq(rightType) {
+			w.error(node.GetToken(), fmt.Sprintf("invalid comparison: types are not the same (left: %s, right: %s)",leftType.Type.ToString(), rightType.Type.ToString()))
 		}else {
 			return BoolVal{}
 		}
 	}
-	val := w.GetValue(w.determineValueType(left, right))
+	val := w.GetValueFromType(w.determineValueType(leftType, rightType))
 
-	if val.GetType() == ast.Undefined {
-		w.error(node.GetToken(), fmt.Sprintf("invalid binary expression (left: %s, right: %s)",left.GetType().ToString(), right.GetType().ToString()))
+	if val.GetType().Type == ast.Undefined {
+		w.error(node.GetToken(), fmt.Sprintf("invalid binary expression (left: %s, right: %s)",leftType.Type.ToString(), rightType.Type.ToString()))
 		return val
 	} else {
 		return val
@@ -48,39 +49,25 @@ func (w *Walker) literalExpr(node *ast.LiteralExpr) Value {
 
 	switch node.ValueType {
 	case ast.String:
-		return StringVal{
-			node.Value,
-		}
+		return StringVal{}
 	case ast.Fixed:
 		return FixedVal{
-			ast.Fixed,
-			node.Value,
-		}
+			ast.Fixed,}
 	case ast.Radian:
 		return FixedVal{
-			ast.Radian,
-			node.Value,
-		}
+			ast.Radian,}
 	case ast.FixedPoint: 
 		return FixedVal{
-			ast.FixedPoint,
-			node.Value,
-		}
+			ast.FixedPoint,}
 	case ast.Degree: 
 		return FixedVal{
-			ast.Degree,
-			node.Value,
-		}
+			ast.Degree,}
 	case ast.Bool:
-		return BoolVal{
-			node.Value,
-		}
+		return BoolVal{}
 	case ast.Nil:
 		return NilVal{}
 	case ast.Number:
-		return NumberVal{
-			node.Value,
-		}
+		return NumberVal{}
 	default:
 		return Unknown{}
 	}
@@ -120,7 +107,8 @@ func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope) Value {
 	} else {
 		fn := sc.GetVariable(callerToken.Lexeme)
 		fun, ok := fn.Value.(FunctionVal)
-		arguments := make([]ast.PrimitiveValueType, 0)
+
+		arguments := make([]TypeVal, 0)
 		for _, arg := range node.Args {
 			val := w.GetNodeValue(&arg, scope)
 			if function, ok := val.(FunctionVal); ok {
@@ -177,10 +165,11 @@ func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Val
 		next, ok := node.Property.(ast.MemberExpr)
 
 		if ok {
-			if array.GetType() == ast.Namespace {
+			arrayType := array.GetType()
+			if arrayType.Type == ast.Namespace {
 				return Undefined{}
 			}
-			if array.GetType() != ast.List && array.GetType() != ast.Map {
+			if arrayType.Type != ast.List && arrayType.Type != ast.Map {
 				w.error(node.Identifier.GetToken(), "variable is not a list, map or a namespace")
 				return Unknown{}
 			}
@@ -192,50 +181,53 @@ func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Val
 	}
 
 	val := w.GetNodeValue(&node.Identifier, scope)
-
+	valType := val.GetType()
+	arrayType := array.GetType()
 	if node.Bracketed {
-		if array.GetType() == ast.Map {
-			if val.GetType() != ast.String && val.GetType() != 0 {
+		if arrayType.Type == ast.Map {
+			if valType.Type != ast.String && valType.Type != 0 {
 				w.error(node.Identifier.GetToken(), "variable is not a string")
 				return Unknown{}
 			}
-		} else if array.GetType() == ast.List {
-			if val.GetType() != ast.Number && val.GetType() != 0 {
+		} else if arrayType.Type == ast.List {
+			if valType.Type != ast.Number && valType.Type != 0 {
 				w.error(node.Identifier.GetToken(), "variable is not a number")
 				return Unknown{}
 			}
 		}
 	} 
 
-	wrappedValType := ast.Undefined
+	wrappedValType := TypeVal{Type:ast.Undefined}
 	if list, ok := array.(ListVal); ok {
 		wrappedValType = list.ValueType
 	}else if mapp, ok := array.(ListVal); ok {
 		wrappedValType = mapp.ValueType
 	}
 	
-	return w.GetValue(wrappedValType)
+	return w.GetValueFromType(wrappedValType)
 }
 
-func (w *Walker) directiveExpr(node *ast.DirectiveExpr, scope *Scope) Value {
+func (w *Walker) directiveExpr(node *ast.DirectiveExpr, scope *Scope) DirectiveVal {
 
 	if node.Identifier.Lexeme != "Environment" {
 		variable := w.GetNodeValue(&node.Expr, scope)
 		variableToken := node.Expr.GetToken()
+		
+		variableType := variable.GetType().Type
 		switch node.Identifier.Lexeme {
 		case "Len":
 			node.ValueType = ast.Number
-			if variable.GetType() != ast.Map && variable.GetType() != ast.List && variable.GetType() != ast.String {
+			if variableType != ast.Map && variableType != ast.List && variableType != ast.String {
 				w.error(variableToken, "invalid expression in '@Len' directive")
 			}
 		case "MapToStr":
 			node.ValueType = ast.String
-			if variable.GetType() != ast.Map {
+			if variableType != ast.Map {
 				w.error(variableToken, "expected a map in '@MapToStr' directive")
 			}
 		case "ListToStr":
 			node.ValueType = ast.List
-			if variable.GetType() != ast.List {
+			if variableType != ast.List {
 				w.error(variableToken, "expected a list in '@ListToStr' directive")
 			}
 		default:
@@ -257,4 +249,26 @@ func (w *Walker) directiveExpr(node *ast.DirectiveExpr, scope *Scope) Value {
 		}
 	}
 	return DirectiveVal{}
+}
+
+func (w *Walker) typeExpr(typee *ast.TypeExpr) TypeVal {
+	var wrapped *TypeVal
+	if typee.WrappedType != nil {
+		temp := w.typeExpr(typee.WrappedType)
+		wrapped = &temp
+	}
+	params := make([]TypeVal, 0)
+	for _, v := range typee.Params {
+		params = append(params, w.typeExpr(&v))
+	}
+	returns := make([]TypeVal, 0)
+	for _, v := range typee.Returns {
+		returns = append(returns, w.typeExpr(&v))
+	}
+	return TypeVal{
+		Type:w.GetTypeFromString(typee.Name.Lexeme),
+		WrappedType: wrapped,
+		Params: params,
+		Returns: ReturnType{values: returns},
+	}
 }

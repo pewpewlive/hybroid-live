@@ -43,13 +43,13 @@ func (vds VariableDeclarationStmt) GetValueType() PrimitiveValueType {
 }
 
 type Param struct {
-	Type lexer.Token
+	Type TypeExpr
 	Name lexer.Token
 }
 
 type FunctionDeclarationStmt struct {
 	Name    lexer.Token
-	Return  []lexer.Token
+	Return  []TypeExpr
 	Params  []Param
 	IsLocal bool
 	Body    []Node

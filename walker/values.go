@@ -5,7 +5,7 @@ import (
 )
 
 type Value interface {
-	GetType() ast.PrimitiveValueType
+	GetType() TypeVal
 }
 
 type VariableVal struct {
@@ -16,7 +16,7 @@ type VariableVal struct {
 	Node    ast.Node
 }
 
-func (v VariableVal) GetType() ast.PrimitiveValueType {
+func (v VariableVal) GetType() TypeVal {
 	return v.Value.GetType()
 }
 
@@ -24,8 +24,8 @@ type NamespaceVal struct {
 	Name string
 }
 
-func (n NamespaceVal) GetType() ast.PrimitiveValueType {
-	return ast.Namespace;
+func (n NamespaceVal) GetType() TypeVal {
+	return TypeVal{Type:ast.Namespace}
 }
 /*
 type ListMemberVal struct {
@@ -42,22 +42,25 @@ type MapMemberVal struct {
 	Owner MapVal
 }
 
-func (mm MapMemberVal) GetType() ast.PrimitiveValueType {
+func (mm MapMemberVal) GetType() TypeVal {
 	return mm.Var.GetType()
 }
 
 type MapVal struct {
-	MemberType  ast.PrimitiveValueType
+	MemberType  TypeVal
 	Members     map[string]MapMemberVal
 }
 
-func (m MapVal) GetType() ast.PrimitiveValueType {
-	return ast.Map
+func (m MapVal) GetType() TypeVal {
+	return TypeVal{Type:ast.Map}
 }
 
-func (l MapVal) GetContentsValueType() ast.PrimitiveValueType {
-	valTypes := []ast.PrimitiveValueType{}
+func (l MapVal) GetContentsValueType() TypeVal {
+	valTypes := []TypeVal{}
 	index := 0
+	if len(l.Members) == 0 {
+		return TypeVal{Type:ast.Undefined}
+	}
 	for _, v := range l.Members {
 		if index == 0 {
 			valTypes = append(valTypes, v.GetType())
@@ -65,26 +68,29 @@ func (l MapVal) GetContentsValueType() ast.PrimitiveValueType {
 			continue
 		}
 		valTypes = append(valTypes, v.GetType())
-		if valTypes[index-1] != valTypes[len(valTypes)-1] {
-			return ast.Undefined
+		if valTypes[index-1].Type != valTypes[len(valTypes)-1].Type {
+			return TypeVal{Type:ast.Undefined}
 		}
 		index++
 	}
-	return valTypes[1]
+	return valTypes[0]
 }
 
-type ListVal struct {
-	ValueType   ast.PrimitiveValueType
+type ListVal struct {// list<list<list<list<list<number>>>>>
+	ValueType   TypeVal
 	Values      []Value
 }
 
-func (l ListVal) GetType() ast.PrimitiveValueType {
-	return ast.List
+func (l ListVal) GetType() TypeVal {
+	return l.ValueType
 }
 
-func (l ListVal) GetContentsValueType() ast.PrimitiveValueType {
-	valTypes := []ast.PrimitiveValueType{}
+func (l ListVal) GetContentsValueType() TypeVal {
+	valTypes := []TypeVal{}
 	index := 0
+	if len(l.Values) == 0 {
+		return TypeVal{Type:ast.Undefined}
+	}
 	for _, v := range l.Values {
 		if index == 0 {
 			valTypes = append(valTypes, v.GetType())
@@ -92,35 +98,32 @@ func (l ListVal) GetContentsValueType() ast.PrimitiveValueType {
 			continue
 		}
 		valTypes = append(valTypes, v.GetType())
-		if valTypes[index-1] != valTypes[len(valTypes)-1] {
-			return ast.Undefined
+		if valTypes[index-1].Type != valTypes[len(valTypes)-1].Type {
+			return TypeVal{Type:ast.Undefined}
 		}
 		index++
 	}
-	return valTypes[1]
+	return valTypes[0]
 }
 
-type NumberVal struct {
-	Val string
-}
+type NumberVal struct {}
 
-func (n NumberVal) GetType() ast.PrimitiveValueType {
-	return ast.Number
+func (n NumberVal) GetType() TypeVal {
+	return TypeVal{Type:ast.Number}
 }
 
 type DirectiveVal struct{}
 
-func (d DirectiveVal) GetType() ast.PrimitiveValueType {
-	return 0
+func (d DirectiveVal) GetType() TypeVal {
+	return TypeVal{Type:0}
 }
 
 type FixedVal struct {
 	SpecificType ast.PrimitiveValueType
-	Val string
 }
 
-func (f FixedVal) GetType() ast.PrimitiveValueType {
-	return ast.FixedPoint
+func (f FixedVal) GetType() TypeVal {
+	return TypeVal{Type:ast.FixedPoint}
 }
 
 func (f FixedVal) GetSpecificType() ast.PrimitiveValueType {
@@ -128,58 +131,100 @@ func (f FixedVal) GetSpecificType() ast.PrimitiveValueType {
 }
 
 type ReturnType struct {
-	values []ast.PrimitiveValueType
+	values []TypeVal
 }
 
-func (n ReturnType) GetType() ast.PrimitiveValueType {
-	return 0
+func (rt *ReturnType) Eq(otherRT *ReturnType) bool {
+	typesSame := true
+	if len(rt.values) == len(otherRT.values) {
+		for i, v := range rt.values {
+			if !v.Eq(otherRT.values[i]) {
+				typesSame = false
+				break
+			}
+		}
+	}else {
+		typesSame = false
+	}
+	return typesSame
 }
 
-type FunctionVal struct { 
-	params     []ast.Param
-	returnVal ReturnType
+func (n ReturnType) GetType() TypeVal {// map, map<fixed>, fn(text, ...) number
+	return TypeVal{Type: 0}
 }
 
-func (f FunctionVal) GetType() ast.PrimitiveValueType {
-	return 0
+type TypeVal struct {
+	WrappedType *TypeVal
+	Type   ast.PrimitiveValueType
+	Params []TypeVal
+	Returns ReturnType
+}
+
+func (t TypeVal) Eq(otherT TypeVal) bool {
+	paramsAreSame := true
+	if len(t.Params) == len(otherT.Params) {
+		for i, v := range t.Params {
+			if !v.Eq(otherT.Params[i]) {
+				paramsAreSame = false
+				break
+			}
+		}
+	}else {
+		paramsAreSame = false
+	}
+
+	if (otherT.WrappedType == nil || t.WrappedType == nil) && !(otherT.WrappedType == nil && t.WrappedType == nil)  {
+		return false
+	}else if otherT.WrappedType == nil && t.WrappedType == nil {
+		return (t.Type == otherT.Type) && paramsAreSame && (t.Returns.Eq(&otherT.Returns))
+	}
+
+	return (t.Type == otherT.Type) && (t.WrappedType.Eq(*otherT.WrappedType)) && paramsAreSame && (t.Returns.Eq(&otherT.Returns))
+}
+
+func (t TypeVal) GetType() TypeVal {
+	return t
+}
+
+type FunctionVal struct { // fn test(param map<fixed>)
+	params     []TypeVal
+	returnVal  ReturnType
+}
+
+func (f FunctionVal) GetType() TypeVal {
+	return TypeVal{Type:ast.Func, Params: f.params, Returns: f.returnVal}
 }
 
 func (f FunctionVal) GetReturnType() ReturnType {
 	return f.returnVal
 }
 
-type BoolVal struct {
-	Val string
+type BoolVal struct {}
+
+func (b BoolVal) GetType() TypeVal {
+	return TypeVal{Type:ast.Bool}
 }
 
-func (b BoolVal) GetType() ast.PrimitiveValueType {
-	return ast.Bool
-}
+type StringVal struct {}
 
-type StringVal struct {
-	Val string
-}
-
-func (b StringVal) GetType() ast.PrimitiveValueType {
-	return ast.String
+func (b StringVal) GetType() TypeVal {
+	return TypeVal{Type:ast.String}
 }
 
 type NilVal struct{}
 
-func (n NilVal) GetType() ast.PrimitiveValueType {
-	return ast.Nil
+func (n NilVal) GetType() TypeVal {
+	return TypeVal{Type:ast.Nil}
 }
 
-type Unknown struct {
+type Unknown struct {}
+
+func (u Unknown) GetType() TypeVal {
+	return TypeVal{Type:ast.Undefined}
 }
 
-func (u Unknown) GetType() ast.PrimitiveValueType {
-	return ast.Undefined
-}
+type Undefined struct {}
 
-type Undefined struct {
-}
-
-func (u Undefined) GetType() ast.PrimitiveValueType {
-	return 0
+func (u Undefined) GetType() TypeVal {
+	return TypeVal{Type:0}
 }

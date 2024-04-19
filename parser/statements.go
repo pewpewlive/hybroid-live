@@ -212,9 +212,9 @@ func (p *Parser) functionDeclarationStmt() ast.Node {
 	fnDec.Name = ident
 	fnDec.Params = p.parameters()
 
-	ret := make([]lexer.Token, 0)
+	ret := make([]ast.TypeExpr, 0)
 	for p.check(lexer.Identifier) {
-		ret = append(ret, p.advance())
+		ret = append(ret, p.Type())
 		if !p.check(lexer.Comma) {
 			break
 		} else {
@@ -378,12 +378,11 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 	var typee *ast.TypeExpr
 	if p.match(lexer.Colon) {
 		typ := p.Type()
-		conv, ok := typ.(ast.TypeExpr)
-		if !ok {
+		if typ.Name.Type != lexer.Identifier {
 			return ast.Unknown{Token: p.peek(-1)}
 		}
 
-		typee = &conv
+		typee = &typ
 	}
 	idents := []lexer.Token{ident}
 	types := []*ast.TypeExpr{typee}
@@ -395,11 +394,11 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 		typee = nil
 		if p.match(lexer.Colon) {
 			typ := p.Type()
-			conv, ok := typ.(ast.TypeExpr)
-			if !ok {
+			if typ.Name.Type != lexer.Identifier {
 				return ast.Unknown{Token: p.peek(-1)}
 			}
-			typee = &conv
+
+			typee = &typ
 		}
 
 		idents = append(idents, ident)

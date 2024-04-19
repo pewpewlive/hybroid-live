@@ -52,66 +52,42 @@ func (w *Walker) addError(err ast.Error) {
 	w.Errors = append(w.Errors, err)
 }
 
-func (w *Walker) GetValue(pvt ast.PrimitiveValueType) Value {
-	switch pvt {
+func (w *Walker) GetValueFromType(typee TypeVal) Value {
+	switch typee.Type {
 	case ast.Number:
 		return NumberVal{}
 	case ast.Fixed:
 		return FixedVal{
-			SpecificType:ast.Fixed,
-		}
-	case ast.Radian:
-		return FixedVal{
-			SpecificType:ast.Radian,
-		}
-	case ast.FixedPoint: 
-		return FixedVal{
 			SpecificType:ast.FixedPoint,
-		}
-	case ast.Degree: 
-		return FixedVal{
-			SpecificType:ast.Degree,
 		}
 	case ast.Bool:
 		return BoolVal{}
 	case ast.List:
-		return ListVal{}
+		return ListVal{
+			ValueType: *typee.WrappedType,
+		}
 	case ast.Map:
-		return MapVal{}
+		return MapVal{
+			MemberType: *typee.WrappedType,
+		}
 	case ast.Func:
-		return FunctionVal{}
+		// return types
+		return FunctionVal{
+			params: typee.Params,
+			returnVal: typee.Returns,
+		}
 	case ast.Nil:
 		return NilVal{}
 	case ast.String:
 		return StringVal{}
-	case ast.Ident:
-		return VariableVal{}
 	case ast.Undefined:
-		return Unknown{}
-	case 0:
 		return Undefined{}
+	case 0:
+		return Unknown{}
 	// TODO: handle structs and entities in the future
 	default:
 		return Unknown{}
 	}
-}
-
-type ComparableType interface {
-	ast.PrimitiveValueType
-}
-
-func listsAreValid[T ComparableType](list1 []T, list2 []T) bool {
-	if len(list1) != len(list2) {
-		return false
-	}
-
-	for i, v := range list1 {
-		if list2[i] != v {
-			return false
-		}
-	}
-
-	return true
 }
 
 func (s *Scope) GetVariable(name string) VariableVal {
@@ -180,9 +156,9 @@ func (g *Global) GetForeignType(str string) Value {
 	return g.foreignTypes[str]
 }
 
-func (w *Walker) validateArithmeticOperands(left Value, right Value, expr ast.BinaryExpr) bool {
+func (w *Walker) validateArithmeticOperands(left TypeVal, right TypeVal, expr ast.BinaryExpr) bool {
 	//fmt.Printf("Validating operands: %v (%v) and %v (%v)\n", left.Val, left.Type, right.Val, right.Type)
-	switch left.GetType() {
+	switch left.Type {
 	case ast.Nil:
 		w.error(expr.Left.GetToken(), "cannot perform arithmetic on nil value")
 		return false
@@ -191,7 +167,7 @@ func (w *Walker) validateArithmeticOperands(left Value, right Value, expr ast.Bi
 		return false
 	}
 
-	switch right.GetType() {
+	switch right.Type {
 	case ast.Nil:
 		w.error(expr.Right.GetToken(), "cannot perform arithmetic on nil value")
 		return false
@@ -200,13 +176,13 @@ func (w *Walker) validateArithmeticOperands(left Value, right Value, expr ast.Bi
 		return false
 	}
 
-	switch left.GetType() {
+	switch left.Type {
 	case ast.List, ast.Map, ast.String, ast.Bool, ast.Entity, ast.Struct:
 		w.error(expr.Left.GetToken(), "cannot perform arithmetic on a non-number value")
 		return false
 	}
 
-	switch right.GetType() {
+	switch right.Type {
 	case ast.List, ast.Map, ast.String, ast.Bool, ast.Entity, ast.Struct:
 		w.error(expr.Right.GetToken(), "cannot perform arithmetic on a non-number value")
 		return false
@@ -215,29 +191,21 @@ func (w *Walker) validateArithmeticOperands(left Value, right Value, expr ast.Bi
 	return true
 }
 
-func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
-	switch str {
-	case "map":
-		return ast.Map
-	case "list":
-		return ast.List
-	case "number":
-		return ast.Number
-	case "bool":
-		return ast.Bool
-	case "fixed":
-		return ast.FixedPoint
-	case "text":
-		return ast.String
-	case "fn":
-		return ast.Func
-	default:
-		return ast.Undefined
+func returnsAreValid(list1 []TypeVal, list2 []TypeVal) bool {
+	if len(list1) != len(list2) {
+		return false
 	}
+
+	for i, v := range list1 {
+		if list2[i].Eq(v) {
+			return false
+		}
+	}
+	return true
 }
 
-func (w *Walker) validateReturnValues(node ast.Node, returnValues []ast.PrimitiveValueType, expectedReturnValues []ast.PrimitiveValueType) {
-	if !listsAreValid(returnValues, expectedReturnValues) {
+func (w *Walker) validateReturnValues(node ast.Node, returnValues []TypeVal, expectedReturnValues []TypeVal) {
+	if !returnsAreValid(returnValues, expectedReturnValues) {
 		w.error(node.GetToken(), "invalid return type(s)")
 	}
 	if len(returnValues) < len(expectedReturnValues) {
@@ -300,6 +268,27 @@ func (w *Walker) bodyReturns(body *[]ast.Node, expectedReturn *ReturnType, scope
 	}
 
 	return returns
+}
+
+func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
+	switch str{
+	case "number":
+		return ast.Number
+	case "fixed":
+		return ast.FixedPoint
+	case "text":
+		return ast.String
+	case "map":
+		return ast.Map
+	case "list": 
+		return ast.List
+	case "fn":
+		return ast.Func
+	case "bool":
+		return ast.Bool
+	default:
+		return ast.Undefined
+	}
 }
 
 func (w *Walker) Walk(nodes *[]ast.Node, global *Global) []ast.Node {
@@ -374,6 +363,8 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 		return w.directiveExpr(&newNode, scope)
 	case ast.MemberExpr:
 		return w.memberExpr(nil, &newNode, scope)
+	case ast.TypeExpr:
+		return w.typeExpr(&newNode)
 	default:
 		w.error(newNode.GetToken(), "Expected expression")
 		return NilVal{}

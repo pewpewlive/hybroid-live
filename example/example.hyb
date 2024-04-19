@@ -15,21 +15,8 @@
 //let shiii = 1
 //two, map.o = 10, 20;
 
-fn process(a bool) bool, text {
-	return !a, "yeah"
+let a = 1
+
+fn test(param fn(text) number) {
+	let b:number = param("a")
 }
-
-fn thing(param bool, param2 text) text, number {
-	if param {
-		return param2, 1
-	}
-	param2 = "aa"
-	if param2 == "000" and param {
-		return "aaaa", 2
-	}
-	return "b", 0
-}
-
-let ma = [1r, 9f, 4f]
-
-let p = ma[1]-9f
