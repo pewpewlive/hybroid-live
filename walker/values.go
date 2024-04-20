@@ -52,7 +52,7 @@ type MapVal struct {
 }
 
 func (m MapVal) GetType() TypeVal {
-	return TypeVal{Type:ast.Map}
+	return TypeVal{Type:ast.Map, WrappedType: &m.MemberType}
 }
 
 func (l MapVal) GetContentsValueType() TypeVal {
@@ -76,7 +76,7 @@ func (l MapVal) GetContentsValueType() TypeVal {
 	return valTypes[0]
 }
 
-type ListVal struct {// list<list<list<list<list<number>>>>>
+type ListVal struct {
 	ValueType   TypeVal
 	Values      []Value
 }
@@ -149,15 +149,15 @@ func (rt *ReturnType) Eq(otherRT *ReturnType) bool {
 	return typesSame
 }
 
-func (n ReturnType) GetType() TypeVal {// map, map<fixed>, fn(text, ...) number
+func (n ReturnType) GetType() TypeVal {
 	return TypeVal{Type: 0}
 }
 
-type TypeVal struct {
+type TypeVal struct {// fn(text, text) text
 	WrappedType *TypeVal
-	Type   ast.PrimitiveValueType
-	Params []TypeVal
-	Returns ReturnType
+	Type        ast.PrimitiveValueType
+	Params      []TypeVal
+	Returns     ReturnType
 }
 
 func (t TypeVal) Eq(otherT TypeVal) bool {

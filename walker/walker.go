@@ -71,7 +71,6 @@ func (w *Walker) GetValueFromType(typee TypeVal) Value {
 			MemberType: *typee.WrappedType,
 		}
 	case ast.Func:
-		// return types
 		return FunctionVal{
 			params: typee.Params,
 			returnVal: typee.Returns,
@@ -288,6 +287,25 @@ func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
 		return ast.Bool
 	default:
 		return ast.Undefined
+	}
+}
+
+func (w *Walker) GetDefaultValue(typee TypeVal) string {
+	switch typee.Type {
+	case ast.Number:
+		return "0"
+	case ast.Fixed:
+		return "0fx"
+	case ast.Bool:
+		return "false"
+	case ast.String:
+		return "\"\""
+	case ast.List, ast.Map:
+		return "{}"
+	case ast.Func:
+		return ""
+	default:
+		return "nil"
 	}
 }
 

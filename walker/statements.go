@@ -211,7 +211,7 @@ func GetValue(values []Value, index int) Value {
 	if index <= len(values)-1 {
 		return values[index]
 	} else {
-		return NilVal{}
+		return Undefined{}
 	}
 }
 
@@ -262,41 +262,32 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 		}
 
 		wasMapOrList := false
-		var valType TypeVal
-		var explicitType TypeVal
-		switch newVal := val.(type) {
-		case MapVal:
+		valType := val.GetType()
+		explicitType := w.typeExpr(declaration.Types[i])
+		if valType.Type == ast.Map || valType.Type == ast.List {
 			wasMapOrList = true
-			valType = newVal.GetContentsValueType()
-			newVal.MemberType = valType
-			if declaration.Types[i] != nil && declaration.Types[i].WrappedType != nil {
-				explicitType = w.typeExpr(declaration.Types[i].WrappedType)
-				if valType.Type == ast.Undefined {
-					newVal.MemberType = explicitType
-				}
-			}
-		case ListVal:
-			wasMapOrList = true
-			valType = newVal.GetContentsValueType()
-			newVal.ValueType = valType
-			if declaration.Types[i] != nil && declaration.Types[i].WrappedType != nil {
-				explicitType = w.typeExpr(declaration.Types[i].WrappedType)
-				if valType.Type == ast.Undefined {
-					newVal.ValueType = explicitType
-				}
-			}
-		default:
-			valType = val.GetType()
 		}
-		if wasMapOrList {// then perform error handling for that
-			if declaration.Types[i] == nil && valType.Type == ast.Undefined {
-				w.error(ident, "cannot infer the wrapped type of the map/list: empty or mixed value types")
-
+		if valType.Type == 0 {
+			if explicitType.Type == ast.Undefined {
+				w.error(declaration.Identifiers[i], "uninitialized variable must have its type declared")
+			}
+			declaration.Values = append(declaration.Values, ast.LiteralExpr{Value: w.GetDefaultValue(explicitType), ValueType: explicitType.Type})
+			val = w.GetValueFromType(explicitType)
+			valType = val.GetType()
+			values = append(values, val)
+		}
+		if wasMapOrList {
+			if declaration.Types[i] == nil {
+				if valType.Type == ast.Undefined {
+					w.error(ident, "cannot infer the wrapped type of the map/list: empty or mixed value types")
+				}
 			} else if declaration.Types[i].WrappedType == nil {
 				w.error(declaration.Types[i].GetToken(), "expected a wrapped type in map/list declaration")
 			}
 		}
-		if valType.Type != ast.Undefined && explicitType.Type != 0 && !valType.Eq(explicitType) {
+		//fmt.Printf("%s\n", valType.Type.ToString())
+		//fmt.Printf("%s\n", explicitType.Type.ToString())
+		if valType.Type != ast.Undefined && explicitType.Type != ast.Undefined && !valType.Eq(explicitType) {
 			w.error(ident, fmt.Sprintf("given value for '%s' does not match with the type given",ident.Lexeme))
 		}
 
@@ -305,7 +296,10 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 				"cannot declare a value in the same scope twice")
 		}
 	}
-
+	
+	if len(values) == 0 {
+		return
+	}
 	if len(values) > len(declaration.Identifiers) {
 		w.error(declaration.Token, "too many values provided in declaration")
 	} else if len(values) < len(declaration.Identifiers) {

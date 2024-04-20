@@ -94,6 +94,7 @@ func (w *Walker) listExpr(node *ast.ListExpr, scope *Scope) Value {
 	for _, expr := range node.List {
 		value.Values = append(value.Values, w.GetNodeValue(&expr, scope))
 	}
+	value.ValueType = value.GetContentsValueType()
 	return value
 }
 
@@ -143,6 +144,7 @@ func (w *Walker) mapExpr(node *ast.MapExpr, scope *Scope) Value {
 			Owner: mapVal,
 		}
 	}
+	mapVal.MemberType = mapVal.GetContentsValueType()
 	return mapVal
 }
 

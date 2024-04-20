@@ -408,9 +408,8 @@ func (p *Parser) Type() ast.TypeExpr {
 		if p.match(lexer.Less) {
 			typee.WrappedType = p.WrappedType()
 			p.consume("expected '>'", lexer.Greater)
-		} else {
-			typee.Name = expr.GetToken()
-		}
+		} 
+		typee.Name = expr.GetToken()
 		return typee
 	} else {
 		p.error(expr.GetToken(), "Expected an identifier for a type")
