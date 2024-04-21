@@ -31,8 +31,8 @@ var app = &cli.App{
 			},
 		},
 		{
-			Name:      "init",
-			Aliases:   []string{"i"},
+			Name:      "initialize",
+			Aliases:   []string{"init", "i"},
 			Usage:     "Initializes a new Hybroid project",
 			Args:      true,
 			ArgsUsage: "<level name> <target> <output directory>",
