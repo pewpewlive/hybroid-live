@@ -25,20 +25,21 @@ type NamespaceVal struct {
 }
 
 func (n NamespaceVal) GetType() TypeVal {
-	return TypeVal{Type:ast.Namespace}
-}
-/*
-type ListMemberVal struct {
-	Val Value
-	Owner ListVal
+	return TypeVal{Type: ast.Namespace}
 }
 
-func (lm ListMemberVal) GetType() ast.PrimitiveValueType {
-	return lm.Val.GetType()
-}
+/*
+	type ListMemberVal struct {
+		Val Value
+		Owner ListVal
+	}
+
+	func (lm ListMemberVal) GetType() ast.PrimitiveValueType {
+		return lm.Val.GetType()
+	}
 */
 type MapMemberVal struct {
-	Var VariableVal
+	Var   VariableVal
 	Owner MapVal
 }
 
@@ -47,19 +48,19 @@ func (mm MapMemberVal) GetType() TypeVal {
 }
 
 type MapVal struct {
-	MemberType  TypeVal
-	Members     map[string]MapMemberVal
+	MemberType TypeVal
+	Members    map[string]MapMemberVal
 }
 
 func (m MapVal) GetType() TypeVal {
-	return TypeVal{Type:ast.Map, WrappedType: &m.MemberType}
+	return TypeVal{Type: ast.Map, WrappedType: &m.MemberType}
 }
 
 func (l MapVal) GetContentsValueType() TypeVal {
 	valTypes := []TypeVal{}
 	index := 0
 	if len(l.Members) == 0 {
-		return TypeVal{Type:ast.Undefined}
+		return TypeVal{Type: ast.Undefined}
 	}
 	for _, v := range l.Members {
 		if index == 0 {
@@ -69,7 +70,7 @@ func (l MapVal) GetContentsValueType() TypeVal {
 		}
 		valTypes = append(valTypes, v.GetType())
 		if valTypes[index-1].Type != valTypes[len(valTypes)-1].Type {
-			return TypeVal{Type:ast.Undefined}
+			return TypeVal{Type: ast.Undefined}
 		}
 		index++
 	}
@@ -77,8 +78,8 @@ func (l MapVal) GetContentsValueType() TypeVal {
 }
 
 type ListVal struct {
-	ValueType   TypeVal
-	Values      []Value
+	ValueType TypeVal
+	Values    []Value
 }
 
 func (l ListVal) GetType() TypeVal {
@@ -89,7 +90,7 @@ func (l ListVal) GetContentsValueType() TypeVal {
 	valTypes := []TypeVal{}
 	index := 0
 	if len(l.Values) == 0 {
-		return TypeVal{Type:ast.Undefined}
+		return TypeVal{Type: ast.Undefined}
 	}
 	for _, v := range l.Values {
 		if index == 0 {
@@ -99,23 +100,23 @@ func (l ListVal) GetContentsValueType() TypeVal {
 		}
 		valTypes = append(valTypes, v.GetType())
 		if valTypes[index-1].Type != valTypes[len(valTypes)-1].Type {
-			return TypeVal{Type:ast.Undefined}
+			return TypeVal{Type: ast.Undefined}
 		}
 		index++
 	}
 	return valTypes[0]
 }
 
-type NumberVal struct {}
+type NumberVal struct{}
 
 func (n NumberVal) GetType() TypeVal {
-	return TypeVal{Type:ast.Number}
+	return TypeVal{Type: ast.Number}
 }
 
 type DirectiveVal struct{}
 
 func (d DirectiveVal) GetType() TypeVal {
-	return TypeVal{Type:0}
+	return TypeVal{Type: 0}
 }
 
 type FixedVal struct {
@@ -123,7 +124,7 @@ type FixedVal struct {
 }
 
 func (f FixedVal) GetType() TypeVal {
-	return TypeVal{Type:ast.FixedPoint}
+	return TypeVal{Type: ast.FixedPoint}
 }
 
 func (f FixedVal) GetSpecificType() ast.PrimitiveValueType {
@@ -143,7 +144,7 @@ func (rt *ReturnType) Eq(otherRT *ReturnType) bool {
 				break
 			}
 		}
-	}else {
+	} else {
 		typesSame = false
 	}
 	return typesSame
@@ -153,7 +154,7 @@ func (n ReturnType) GetType() TypeVal {
 	return TypeVal{Type: 0}
 }
 
-type TypeVal struct {// fn(text, text) text
+type TypeVal struct { // fn(text, text) text
 	WrappedType *TypeVal
 	Type        ast.PrimitiveValueType
 	Params      []TypeVal
@@ -169,13 +170,13 @@ func (t TypeVal) Eq(otherT TypeVal) bool {
 				break
 			}
 		}
-	}else {
+	} else {
 		paramsAreSame = false
 	}
 
-	if (otherT.WrappedType == nil || t.WrappedType == nil) && !(otherT.WrappedType == nil && t.WrappedType == nil)  {
+	if (otherT.WrappedType == nil || t.WrappedType == nil) && !(otherT.WrappedType == nil && t.WrappedType == nil) {
 		return false
-	}else if otherT.WrappedType == nil && t.WrappedType == nil {
+	} else if otherT.WrappedType == nil && t.WrappedType == nil {
 		return (t.Type == otherT.Type) && paramsAreSame && (t.Returns.Eq(&otherT.Returns))
 	}
 
@@ -187,44 +188,44 @@ func (t TypeVal) GetType() TypeVal {
 }
 
 type FunctionVal struct { // fn test(param map<fixed>)
-	params     []TypeVal
-	returnVal  ReturnType
+	params    []TypeVal
+	returnVal ReturnType
 }
 
 func (f FunctionVal) GetType() TypeVal {
-	return TypeVal{Type:ast.Func, Params: f.params, Returns: f.returnVal}
+	return TypeVal{Type: ast.Func, Params: f.params, Returns: f.returnVal}
 }
 
 func (f FunctionVal) GetReturnType() ReturnType {
 	return f.returnVal
 }
 
-type BoolVal struct {}
+type BoolVal struct{}
 
 func (b BoolVal) GetType() TypeVal {
-	return TypeVal{Type:ast.Bool}
+	return TypeVal{Type: ast.Bool}
 }
 
-type StringVal struct {}
+type StringVal struct{}
 
 func (b StringVal) GetType() TypeVal {
-	return TypeVal{Type:ast.String}
+	return TypeVal{Type: ast.String}
 }
 
 type NilVal struct{}
 
 func (n NilVal) GetType() TypeVal {
-	return TypeVal{Type:ast.Nil}
+	return TypeVal{Type: ast.Nil}
 }
 
-type Unknown struct {}
+type Unknown struct{}
 
 func (u Unknown) GetType() TypeVal {
-	return TypeVal{Type:ast.Undefined}
+	return TypeVal{Type: ast.Undefined}
 }
 
-type Undefined struct {}
+type Undefined struct{}
 
 func (u Undefined) GetType() TypeVal {
-	return TypeVal{Type:0}
+	return TypeVal{Type: 0}
 }

@@ -9,7 +9,7 @@ import (
 
 func (w *Walker) determineValueType(left TypeVal, right TypeVal) TypeVal {
 	if left.Type == 0 || right.Type == 0 {
-		return TypeVal{Type:0}
+		return TypeVal{Type: 0}
 	}
 	if left.Eq(right) {
 		return right
@@ -18,7 +18,7 @@ func (w *Walker) determineValueType(left TypeVal, right TypeVal) TypeVal {
 		return left
 	}
 
-	return TypeVal{Type:ast.Undefined}
+	return TypeVal{Type: ast.Undefined}
 }
 
 func (w *Walker) binaryExpr(node *ast.BinaryExpr, scope *Scope) Value {
@@ -30,15 +30,15 @@ func (w *Walker) binaryExpr(node *ast.BinaryExpr, scope *Scope) Value {
 		w.validateArithmeticOperands(leftType, rightType, *node)
 	default:
 		if left.GetType().Eq(rightType) {
-			w.error(node.GetToken(), fmt.Sprintf("invalid comparison: types are not the same (left: %s, right: %s)",leftType.Type.ToString(), rightType.Type.ToString()))
-		}else {
+			w.error(node.GetToken(), fmt.Sprintf("invalid comparison: types are not the same (left: %s, right: %s)", leftType.Type.ToString(), rightType.Type.ToString()))
+		} else {
 			return BoolVal{}
 		}
 	}
 	val := w.GetValueFromType(w.determineValueType(leftType, rightType))
 
 	if val.GetType().Type == ast.Undefined {
-		w.error(node.GetToken(), fmt.Sprintf("invalid binary expression (left: %s, right: %s)",leftType.Type.ToString(), rightType.Type.ToString()))
+		w.error(node.GetToken(), fmt.Sprintf("invalid binary expression (left: %s, right: %s)", leftType.Type.ToString(), rightType.Type.ToString()))
 		return val
 	} else {
 		return val
@@ -52,16 +52,16 @@ func (w *Walker) literalExpr(node *ast.LiteralExpr) Value {
 		return StringVal{}
 	case ast.Fixed:
 		return FixedVal{
-			ast.Fixed,}
+			ast.Fixed}
 	case ast.Radian:
 		return FixedVal{
-			ast.Radian,}
-	case ast.FixedPoint: 
+			ast.Radian}
+	case ast.FixedPoint:
 		return FixedVal{
-			ast.FixedPoint,}
-	case ast.Degree: 
+			ast.FixedPoint}
+	case ast.Degree:
 		return FixedVal{
-			ast.Degree,}
+			ast.Degree}
 	case ast.Bool:
 		return BoolVal{}
 	case ast.Nil:
@@ -114,7 +114,7 @@ func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope) Value {
 			val := w.GetNodeValue(&arg, scope)
 			if function, ok := val.(FunctionVal); ok {
 				arguments = append(arguments, function.returnVal.values...)
-			}else {
+			} else {
 				arguments = append(arguments, val.GetType())
 			}
 		}
@@ -197,15 +197,15 @@ func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Val
 				return Unknown{}
 			}
 		}
-	} 
+	}
 
-	wrappedValType := TypeVal{Type:ast.Undefined}
+	wrappedValType := TypeVal{Type: ast.Undefined}
 	if list, ok := array.(ListVal); ok {
 		wrappedValType = list.ValueType
-	}else if mapp, ok := array.(ListVal); ok {
+	} else if mapp, ok := array.(ListVal); ok {
 		wrappedValType = mapp.ValueType
 	}
-	
+
 	return w.GetValueFromType(wrappedValType)
 }
 
@@ -214,7 +214,7 @@ func (w *Walker) directiveExpr(node *ast.DirectiveExpr, scope *Scope) DirectiveV
 	if node.Identifier.Lexeme != "Environment" {
 		variable := w.GetNodeValue(&node.Expr, scope)
 		variableToken := node.Expr.GetToken()
-		
+
 		variableType := variable.GetType().Type
 		switch node.Identifier.Lexeme {
 		case "Len":
@@ -268,9 +268,9 @@ func (w *Walker) typeExpr(typee *ast.TypeExpr) TypeVal {
 		returns = append(returns, w.typeExpr(&v))
 	}
 	return TypeVal{
-		Type:w.GetTypeFromString(typee.Name.Lexeme),
+		Type:        w.GetTypeFromString(typee.Name.Lexeme),
 		WrappedType: wrapped,
-		Params: params,
-		Returns: ReturnType{values: returns},
+		Params:      params,
+		Returns:     ReturnType{values: returns},
 	}
 }

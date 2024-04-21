@@ -99,7 +99,7 @@ func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) ast.IfSt
 	ifStm := ast.IfStmt{
 		Token: p.peek(-1),
 	}
-	
+
 	var expr ast.Node
 	if !is_else {
 		expr = p.multiComparison()
@@ -275,19 +275,19 @@ func (p *Parser) repeatStmt() ast.Node {
 	}
 
 	gotIterator := false
-	if p.check(lexer.Number) || 
-		p.check(lexer.Fixed) || 
-		p.check(lexer.FixedPoint) || 
-		p.check(lexer.Radian) || 
-		p.check(lexer.Degree) || 
+	if p.check(lexer.Number) ||
+		p.check(lexer.Fixed) ||
+		p.check(lexer.FixedPoint) ||
+		p.check(lexer.Radian) ||
+		p.check(lexer.Degree) ||
 		p.check(lexer.Identifier) {
-			
+
 		repeatStmt.Iterator = p.expression()
 		gotIterator = true
 	}
 
-	repeatStmt.Skip = ast.Unknown{Token:repeatStmt.Token}
-	repeatStmt.Start = ast.Unknown{Token:repeatStmt.Token}
+	repeatStmt.Skip = ast.Unknown{Token: repeatStmt.Token}
+	repeatStmt.Start = ast.Unknown{Token: repeatStmt.Token}
 
 	variableAssigned := false
 	iteratorAssgined := false
@@ -303,7 +303,7 @@ func (p *Parser) repeatStmt() ast.Node {
 			variableAssigned = true
 			if identExpr.GetType() != ast.Identifier {
 				p.error(identExpr.GetToken(), "expected identifier expression after keyword 'with'")
-			}else {
+			} else {
 				repeatStmt.Variable = identExpr.(ast.IdentifierExpr)
 			}
 		} else if p.match(lexer.To) {

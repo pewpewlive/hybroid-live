@@ -187,7 +187,7 @@ func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclaratio
 			break
 		}
 		src2.WriteString(fmt.Sprintf("%s, ", values[i]))
-		
+
 	}
 
 	src.Append(src2.String(), "\n")

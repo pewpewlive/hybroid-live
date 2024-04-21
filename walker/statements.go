@@ -9,7 +9,7 @@ import (
 
 func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
 	ifScope := NewScope(scope.Global, scope, scope.Type)
-	w.GetNodeValue(&node.BoolExpr,scope)
+	w.GetNodeValue(&node.BoolExpr, scope)
 	for _, node := range node.Body {
 		w.WalkNode(&node, &ifScope)
 		// if stmt.GetType() == ast.ReturnStatement {
@@ -21,7 +21,7 @@ func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
 	}
 
 	for _, elseif := range node.Elseifs {
-		w.GetNodeValue(&elseif.BoolExpr,scope)
+		w.GetNodeValue(&elseif.BoolExpr, scope)
 		ifScope := NewScope(scope.Global, scope, scope.Type)
 		for _, stmt := range elseif.Body {
 			w.WalkNode(&stmt, &ifScope)
@@ -110,7 +110,7 @@ func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scop
 		ret.values = append(ret.values, w.typeExpr(&typee))
 	}
 	if len(ret.values) == 0 {
-		ret.values = append(ret.values, TypeVal{Type:ast.Nil})
+		ret.values = append(ret.values, TypeVal{Type: ast.Nil})
 	}
 
 	variable := VariableVal{
@@ -145,7 +145,7 @@ func (w *Walker) returnStmt(node *ast.ReturnStmt, scope *Scope) *ReturnType {
 		ret.values = append(ret.values, val.GetType())
 	}
 	if len(ret.values) == 0 {
-		ret.values = append(ret.values, TypeVal{Type:ast.Nil})
+		ret.values = append(ret.values, TypeVal{Type: ast.Nil})
 	}
 	return &ret
 }
@@ -157,21 +157,21 @@ func (w *Walker) repeatStmt(node *ast.RepeatStmt, scope *Scope) {
 	endType := end.GetType()
 	if !parser.IsFx(endType.Type) && endType.Type != ast.Number {
 		w.error(node.Iterator.GetToken(), "invalid value type of iterator")
-	}else if variable, ok := end.(VariableVal); ok{
+	} else if variable, ok := end.(VariableVal); ok {
 		if fixedpoint, ok := variable.Value.(FixedVal); ok {
-			endType = TypeVal{Type:fixedpoint.SpecificType}
+			endType = TypeVal{Type: fixedpoint.SpecificType}
 		}
-	}else {
+	} else {
 		if fixedpoint, ok := end.(FixedVal); ok {
-			endType = TypeVal{Type:fixedpoint.SpecificType}
+			endType = TypeVal{Type: fixedpoint.SpecificType}
 		}
 	}
 	if node.Start.GetType() == ast.NA {
-		node.Start = ast.LiteralExpr{Token:node.Start.GetToken(), ValueType: endType.Type, Value:"1"}
+		node.Start = ast.LiteralExpr{Token: node.Start.GetToken(), ValueType: endType.Type, Value: "1"}
 	}
 	start := w.GetNodeValue(&node.Start, scope)
 	if node.Skip.GetType() == ast.NA {
-		node.Skip = ast.LiteralExpr{Token:node.Skip.GetToken(), ValueType: endType.Type, Value:"1"}
+		node.Skip = ast.LiteralExpr{Token: node.Skip.GetToken(), ValueType: endType.Type, Value: "1"}
 	}
 	skip := w.GetNodeValue(&node.Skip, scope)
 
@@ -225,7 +225,7 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 			for _, returnVal := range function.returnVal.values {
 				values = append(values, w.GetValueFromType(returnVal))
 			}
-		}else{
+		} else {
 			values = append(values, exprValue)
 		}
 	}
@@ -288,7 +288,7 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 		//fmt.Printf("%s\n", valType.Type.ToString())
 		//fmt.Printf("%s\n", explicitType.Type.ToString())
 		if valType.Type != ast.Undefined && explicitType.Type != ast.Undefined && !valType.Eq(explicitType) {
-			w.error(ident, fmt.Sprintf("given value for '%s' does not match with the type given",ident.Lexeme))
+			w.error(ident, fmt.Sprintf("given value for '%s' does not match with the type given", ident.Lexeme))
 		}
 
 		if _, success := scope.DeclareVariable(variable); !success {
@@ -296,7 +296,7 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 				"cannot declare a value in the same scope twice")
 		}
 	}
-	
+
 	if len(values) == 0 {
 		return
 	}

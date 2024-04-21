@@ -6,8 +6,8 @@ import (
 )
 
 type Walker struct {
-	nodes  *[]ast.Node
-	Errors []ast.Error
+	nodes    *[]ast.Node
+	Errors   []ast.Error
 	Warnings []ast.Warning
 }
 
@@ -28,6 +28,7 @@ const (
 	ReturnAllowing ScopeType = iota
 	ReturnProhibiting
 )
+
 type Scope struct {
 	Global    *Global
 	Parent    *Scope
@@ -37,9 +38,9 @@ type Scope struct {
 
 func NewScope(global *Global, parent *Scope, typee ScopeType) Scope {
 	return Scope{
-		Global: global,
-		Parent: parent,
-		Type: typee,
+		Global:    global,
+		Parent:    parent,
+		Type:      typee,
 		Variables: map[string]VariableVal{},
 	}
 }
@@ -58,7 +59,7 @@ func (w *Walker) GetValueFromType(typee TypeVal) Value {
 		return NumberVal{}
 	case ast.Fixed:
 		return FixedVal{
-			SpecificType:ast.FixedPoint,
+			SpecificType: ast.FixedPoint,
 		}
 	case ast.Bool:
 		return BoolVal{}
@@ -72,7 +73,7 @@ func (w *Walker) GetValueFromType(typee TypeVal) Value {
 		}
 	case ast.Func:
 		return FunctionVal{
-			params: typee.Params,
+			params:    typee.Params,
 			returnVal: typee.Returns,
 		}
 	case ast.Nil:
@@ -270,7 +271,7 @@ func (w *Walker) bodyReturns(body *[]ast.Node, expectedReturn *ReturnType, scope
 }
 
 func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
-	switch str{
+	switch str {
 	case "number":
 		return ast.Number
 	case "fixed":
@@ -279,7 +280,7 @@ func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
 		return ast.String
 	case "map":
 		return ast.Map
-	case "list": 
+	case "list":
 		return ast.List
 	case "fn":
 		return ast.Func
