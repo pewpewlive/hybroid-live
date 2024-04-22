@@ -2,6 +2,7 @@ package walker
 
 import (
 	"hybroid/ast"
+	"hybroid/parser"
 )
 
 type Value interface {
@@ -60,7 +61,7 @@ func (l MapVal) GetContentsValueType() TypeVal {
 	valTypes := []TypeVal{}
 	index := 0
 	if len(l.Members) == 0 {
-		return TypeVal{Type: ast.Undefined}
+		return TypeVal{Type: 0}
 	}
 	for _, v := range l.Members {
 		if index == 0 {
@@ -69,10 +70,14 @@ func (l MapVal) GetContentsValueType() TypeVal {
 			continue
 		}
 		valTypes = append(valTypes, v.GetType())
-		if valTypes[index-1].Type != valTypes[len(valTypes)-1].Type {
+		prev, curr := index-1, len(valTypes)-1
+		if !(parser.IsFx(valTypes[prev].Type) && parser.IsFx(valTypes[curr].Type)) && valTypes[prev].Type != valTypes[curr].Type {
 			return TypeVal{Type: ast.Undefined}
 		}
 		index++
+	}
+	if parser.IsFx(valTypes[0].Type) {
+		return TypeVal{Type:ast.FixedPoint}
 	}
 	return valTypes[0]
 }
@@ -99,10 +104,14 @@ func (l ListVal) GetContentsValueType() TypeVal {
 			continue
 		}
 		valTypes = append(valTypes, v.GetType())
-		if valTypes[index-1].Type != valTypes[len(valTypes)-1].Type {
+		prev, curr := index-1, len(valTypes)-1
+		if !(parser.IsFx(valTypes[prev].Type) && parser.IsFx(valTypes[curr].Type)) && valTypes[prev].Type != valTypes[curr].Type {
 			return TypeVal{Type: ast.Undefined}
 		}
 		index++
+	}
+	if parser.IsFx(valTypes[0].Type) {
+		return TypeVal{Type:ast.FixedPoint}
 	}
 	return valTypes[0]
 }
@@ -180,7 +189,7 @@ func (t TypeVal) Eq(otherT TypeVal) bool {
 		return (t.Type == otherT.Type) && paramsAreSame && (t.Returns.Eq(&otherT.Returns))
 	}
 
-	return (t.Type == otherT.Type) && (t.WrappedType.Eq(*otherT.WrappedType)) && paramsAreSame && (t.Returns.Eq(&otherT.Returns))
+	return (t.Type == 0 || otherT.Type == 0 || t.Type == otherT.Type) && (t.WrappedType.Eq(*otherT.WrappedType)) && paramsAreSame && (t.Returns.Eq(&otherT.Returns))
 }
 
 func (t TypeVal) GetType() TypeVal {

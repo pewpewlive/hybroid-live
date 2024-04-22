@@ -1,4 +1,11 @@
 @Environment(Level)
 
-let o:map<fixed>
+let o = {a:1f}
 
+fn test(param map<fixed>) map<fixed>, number {
+    let a = {o:1fx}
+    if param == a {
+        return {p:1r,f:3d}, 0
+    }
+    return {},-1
+}

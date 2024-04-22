@@ -278,18 +278,21 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 		}
 		if wasMapOrList {
 			if declaration.Types[i] == nil {
-				if valType.Type == ast.Undefined {
+				if valType.WrappedType.Type == ast.Undefined || valType.WrappedType.Type == 0 {
 					w.error(ident, "cannot infer the wrapped type of the map/list: empty or mixed value types")
 				}
 			} else if declaration.Types[i].WrappedType == nil {
 				w.error(declaration.Types[i].GetToken(), "expected a wrapped type in map/list declaration")
+			}else if valType.WrappedType.Type != 0 && !valType.Eq(explicitType) {
+				w.error(ident, fmt.Sprintf("given value for '%s' does not match with the type given", ident.Lexeme))
 			}
+
+		}else if valType.Type != 0 && explicitType.Type != 0 && !valType.Eq(explicitType) {
+			w.error(ident, fmt.Sprintf("given value for '%s' does not match with the type given", ident.Lexeme))
 		}
 		//fmt.Printf("%s\n", valType.Type.ToString())
 		//fmt.Printf("%s\n", explicitType.Type.ToString())
-		if valType.Type != ast.Undefined && explicitType.Type != ast.Undefined && !valType.Eq(explicitType) {
-			w.error(ident, fmt.Sprintf("given value for '%s' does not match with the type given", ident.Lexeme))
-		}
+		
 
 		if _, success := scope.DeclareVariable(variable); !success {
 			w.error(lexer.Token{Lexeme: ident.Lexeme, Location: declaration.Token.Location},

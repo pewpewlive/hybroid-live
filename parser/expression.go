@@ -48,6 +48,7 @@ func (p *Parser) parseMap() ast.Node {
 			newKey = key.GetToken()
 		default:
 			p.error(key.GetToken(), "expected either string or an identifier in map initialization")
+			p.advance()
 			return ast.Unknown{Token: p.peek(-1)}
 		}
 

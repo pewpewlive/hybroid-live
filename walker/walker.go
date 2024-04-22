@@ -197,7 +197,11 @@ func returnsAreValid(list1 []TypeVal, list2 []TypeVal) bool {
 	}
 
 	for i, v := range list1 {
-		if list2[i].Eq(v) {
+		if !((list2[i].WrappedType != nil && list2[i].WrappedType.Type == 0) || 
+			(v.WrappedType != nil && v.WrappedType.Type == 0)) && 
+			!list2[i].Eq(v) {
+			//fmt.Printf("%s : %s\n", v.WrappedType.Type.ToString(), list2[i].WrappedType.Type.ToString())
+
 			return false
 		}
 	}

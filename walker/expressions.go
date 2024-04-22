@@ -29,7 +29,7 @@ func (w *Walker) binaryExpr(node *ast.BinaryExpr, scope *Scope) Value {
 	case lexer.Plus, lexer.Minus, lexer.Caret, lexer.Star, lexer.Slash, lexer.Modulo:
 		w.validateArithmeticOperands(leftType, rightType, *node)
 	default:
-		if left.GetType().Eq(rightType) {
+		if !leftType.Eq(rightType) {
 			w.error(node.GetToken(), fmt.Sprintf("invalid comparison: types are not the same (left: %s, right: %s)", leftType.Type.ToString(), rightType.Type.ToString()))
 		} else {
 			return BoolVal{}
@@ -133,6 +133,7 @@ func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope) Value {
 func (w *Walker) mapExpr(node *ast.MapExpr, scope *Scope) Value {
 	mapVal := MapVal{Members: map[string]MapMemberVal{}}
 	for k, v := range node.Map {
+		//fmt.Printf("%s, ",v.Type.ToString())
 		val := w.GetNodeValue(&v.Expr, scope)
 
 		mapVal.Members[k.Lexeme] = MapMemberVal{
@@ -254,6 +255,9 @@ func (w *Walker) directiveExpr(node *ast.DirectiveExpr, scope *Scope) DirectiveV
 }
 
 func (w *Walker) typeExpr(typee *ast.TypeExpr) TypeVal {
+	if typee == nil {
+		return TypeVal{Type:ast.Undefined}
+	}
 	var wrapped *TypeVal
 	if typee.WrappedType != nil {
 		temp := w.typeExpr(typee.WrappedType)

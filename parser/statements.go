@@ -59,7 +59,7 @@ func (p *Parser) statement() ast.Node {
 	}
 
 	expr := p.expression()
-	if expr.GetType() == 0 {
+	if expr.GetType() == ast.NA {
 		p.error(p.peek(), "expected statement")
 		p.advance()
 	}

@@ -50,7 +50,7 @@ func (p *Parser) ParseTokens() []ast.Node {
 
 	for !p.isAtEnd() {
 		statement := p.statement()
-		if statement.GetType() != 0 {
+		if statement.GetType() != ast.NA {
 			p.program = append(p.program, statement)
 		}
 	}
