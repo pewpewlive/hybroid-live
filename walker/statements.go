@@ -142,7 +142,12 @@ func (w *Walker) returnStmt(node *ast.ReturnStmt, scope *Scope) *ReturnType {
 	}
 	for _, expr := range node.Args {
 		val := w.GetNodeValue(&expr, scope)
-		ret.values = append(ret.values, val.GetType())
+		valType := val.GetType()
+		if valType.Type == ast.Func {
+			ret.values = append(ret.values, valType.Returns.values...)
+		}else {
+			ret.values = append(ret.values, valType)
+		}
 	}
 	if len(ret.values) == 0 {
 		ret.values = append(ret.values, TypeVal{Type: ast.Nil})
@@ -264,6 +269,7 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 		wasMapOrList := false
 		valType := val.GetType()
 		explicitType := w.typeExpr(declaration.Types[i])
+		//fmt.Printf("%s\n", valType.Type.ToString())
 		if valType.Type == ast.Map || valType.Type == ast.List {
 			wasMapOrList = true
 		}
@@ -284,10 +290,11 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 			} else if declaration.Types[i].WrappedType == nil {
 				w.error(declaration.Types[i].GetToken(), "expected a wrapped type in map/list declaration")
 			}else if valType.WrappedType.Type != 0 && !valType.Eq(explicitType) {
+				fmt.Printf("a\n")
 				w.error(ident, fmt.Sprintf("given value for '%s' does not match with the type given", ident.Lexeme))
 			}
 
-		}else if valType.Type != 0 && explicitType.Type != 0 && !valType.Eq(explicitType) {
+		}else if valType.Type != 0 && explicitType.Type != ast.Undefined && !valType.Eq(explicitType) {
 			w.error(ident, fmt.Sprintf("given value for '%s' does not match with the type given", ident.Lexeme))
 		}
 		//fmt.Printf("%s\n", valType.Type.ToString())

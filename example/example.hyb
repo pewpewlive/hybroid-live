@@ -2,10 +2,18 @@
 
 let o = {a:1f}
 
-fn test(param map<fixed>) map<fixed>, number {
-    let a = {o:1fx}
-    if param == a {
-        return {p:1r,f:3d}, 0
+fn uh(ko list<list<number>>) bool {
+    if ko[1][2] == 1 {
+        return true
     }
-    return {},-1
+    return false
+}
+
+fn main() bool {
+    let thing:list<list<number>> = [
+        [1,2,3,4],
+        [5,6,7,8]
+    ]
+    
+    return uh(thing)
 }

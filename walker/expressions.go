@@ -203,8 +203,18 @@ func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Val
 	wrappedValType := TypeVal{Type: ast.Undefined}
 	if list, ok := array.(ListVal); ok {
 		wrappedValType = list.ValueType
-	} else if mapp, ok := array.(ListVal); ok {
-		wrappedValType = mapp.ValueType
+	} else if mapp, ok := array.(MapVal); ok {
+		wrappedValType = mapp.MemberType
+	}
+
+	if wrappedValType.Type == ast.Map || wrappedValType.Type == ast.List || wrappedValType.Type == ast.Namespace {
+		next, ok :=  node.Property.(ast.MemberExpr)
+		if ok {
+			return w.memberExpr(w.GetValueFromType(wrappedValType), &next , scope)
+		}else {
+			w.error(node.GetToken(), "expected member expression")
+			return Unknown{}
+		}
 	}
 
 	return w.GetValueFromType(wrappedValType)

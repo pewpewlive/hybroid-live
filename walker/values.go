@@ -88,7 +88,7 @@ type ListVal struct {
 }
 
 func (l ListVal) GetType() TypeVal {
-	return l.ValueType
+	return TypeVal{Type:ast.List, WrappedType: &l.ValueType}
 }
 
 func (l ListVal) GetContentsValueType() TypeVal {
