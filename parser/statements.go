@@ -286,8 +286,8 @@ func (p *Parser) repeatStmt() ast.Node {
 		gotIterator = true
 	}
 
-	repeatStmt.Skip = ast.Unknown{Token: repeatStmt.Token}
-	repeatStmt.Start = ast.Unknown{Token: repeatStmt.Token}
+	repeatStmt.Skip = ast.Improper{Token: repeatStmt.Token}
+	repeatStmt.Start = ast.Improper{Token: repeatStmt.Token}
 
 	variableAssigned := false
 	iteratorAssgined := false
@@ -378,8 +378,8 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 	var typee *ast.TypeExpr
 	if p.match(lexer.Colon) {
 		typ := p.Type()
-		if typ.Name.Type != lexer.Identifier {
-			return ast.Unknown{Token: p.peek(-1)}
+		if typ.GetType() == ast.NA {
+			return ast.Improper{Token: p.peek(-1)}
 		}
 
 		typee = &typ
@@ -389,13 +389,13 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 	for p.match(lexer.Comma) {
 		ident, identOk := p.consume("expected identifier in variable declaration", lexer.Identifier)
 		if !identOk {
-			return ast.Unknown{Token: p.peek(-1)}
+			return ast.Improper{Token: p.peek(-1)}
 		}
 		typee = nil
 		if p.match(lexer.Colon) {
 			typ := p.Type()
-			if typ.Name.Type != lexer.Identifier {
-				return ast.Unknown{Token: p.peek(-1)}
+			if typ.GetType() == ast.NA {
+				return ast.Improper{Token: p.peek(-1)}
 			}
 
 			typee = &typ

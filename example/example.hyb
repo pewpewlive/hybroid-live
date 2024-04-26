@@ -1,19 +1,5 @@
 @Environment(Level)
 
-let o = {a:1f}
-
-fn uh(ko list<list<number>>) bool {
-    if ko[1][2] == 1 {
-        return true
-    }
+let b = fn(param text) bool {
     return false
-}
-
-fn main() bool {
-    let thing:list<list<number>> = [
-        [1,2,3,4],
-        [5,6,7,8]
-    ]
-    
-    return uh(thing)
 }

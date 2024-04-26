@@ -139,3 +139,27 @@ func (gen *Generator) directiveExpr(node ast.DirectiveExpr) string {
 
 	return src.String()
 }
+
+func (gen *Generator) anonFnExpr(fn ast.AnonFnExpr) string {
+	src := StringBuilder{}
+
+	fnTabs := gen.getTabs()
+	gen.TabsCount += 1
+
+	src.WriteString("function (")
+	for i, param := range fn.Params {
+		src.Append(param.Name.Lexeme)
+		if i != len(fn.Params)-1 {
+			src.Append(", ")
+		}
+	}
+	src.Append(")\n")
+
+	src.WriteString(gen.GenerateString(fn.Body))
+
+	src.Append(fnTabs + "end")
+
+	gen.TabsCount -= 1
+
+	return src.String()
+}

@@ -71,7 +71,7 @@ func (w *Walker) assignmentStmt(assignStmt *ast.AssignmentStmt, scope *Scope) {
 			continue
 		}
 
-		if wIdents[i].GetType().Type == ast.Undefined {
+		if wIdents[i].GetType().Type == ast.Invalid {
 			w.error(assignStmt.Identifiers[i].GetToken(), "cannot assign a value to an undeclared variable")
 			continue
 		}
@@ -216,7 +216,7 @@ func GetValue(values []Value, index int) Value {
 	if index <= len(values)-1 {
 		return values[index]
 	} else {
-		return Undefined{}
+		return Unknown{}
 	}
 }
 
@@ -226,8 +226,8 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 	for _, expr := range declaration.Values {
 
 		exprValue := w.GetNodeValue(&expr, scope)
-		if function, ok := exprValue.(FunctionVal); ok {
-			for _, returnVal := range function.returnVal.values {
+		if call, ok := exprValue.(CallVal); ok {
+			for _, returnVal := range call.types.values {
 				values = append(values, w.GetValueFromType(returnVal))
 			}
 		} else {
@@ -254,7 +254,6 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 			w.error(declaration.Token, "cannot declare a global constant without a value")
 		}
 	}
-
 	for i, ident := range declaration.Identifiers {
 		if ident.Lexeme == "_" {
 			continue
@@ -273,9 +272,13 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 		if valType.Type == ast.Map || valType.Type == ast.List {
 			wasMapOrList = true
 		}
+		//fmt.Printf("%s\n", explicitType.Type.ToString())
+
 		if valType.Type == 0 {
-			if explicitType.Type == ast.Undefined {
+			if explicitType.Type == ast.Invalid {
 				w.error(declaration.Identifiers[i], "uninitialized variable must have its type declared")
+			}else if explicitType.Type == ast.Func {
+				w.error(declaration.Identifiers[i], "cannot declare an uninitialized function")
 			}
 			declaration.Values = append(declaration.Values, ast.LiteralExpr{Value: w.GetDefaultValue(explicitType), ValueType: explicitType.Type})
 			val = w.GetValueFromType(explicitType)
@@ -284,7 +287,7 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 		}
 		if wasMapOrList {
 			if declaration.Types[i] == nil {
-				if valType.WrappedType.Type == ast.Undefined || valType.WrappedType.Type == 0 {
+				if valType.WrappedType.Type == ast.Invalid || valType.WrappedType.Type == 0 {
 					w.error(ident, "cannot infer the wrapped type of the map/list: empty or mixed value types")
 				}
 			} else if declaration.Types[i].WrappedType == nil {
@@ -294,7 +297,7 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 				w.error(ident, fmt.Sprintf("given value for '%s' does not match with the type given", ident.Lexeme))
 			}
 
-		}else if valType.Type != 0 && explicitType.Type != ast.Undefined && !valType.Eq(explicitType) {
+		}else if valType.Type != 0 && explicitType.Type != ast.Invalid && !valType.Eq(explicitType) {
 			w.error(ident, fmt.Sprintf("given value for '%s' does not match with the type given", ident.Lexeme))
 		}
 		//fmt.Printf("%s\n", valType.Type.ToString())

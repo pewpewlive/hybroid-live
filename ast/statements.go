@@ -19,7 +19,7 @@ func (as AssignmentStmt) GetToken() lexer.Token {
 }
 
 func (as AssignmentStmt) GetValueType() PrimitiveValueType {
-	return Undefined
+	return 0
 }
 
 type VariableDeclarationStmt struct {
@@ -39,7 +39,7 @@ func (vds VariableDeclarationStmt) GetToken() lexer.Token {
 }
 
 func (vds VariableDeclarationStmt) GetValueType() PrimitiveValueType {
-	return Undefined
+	return 0
 }
 
 type Param struct {
@@ -64,7 +64,7 @@ func (fds FunctionDeclarationStmt) GetToken() lexer.Token {
 }
 
 func (fds FunctionDeclarationStmt) GetValueType() PrimitiveValueType {
-	return Undefined
+	return 0
 }
 
 type IfStmt struct {
@@ -84,7 +84,7 @@ func (is IfStmt) GetToken() lexer.Token {
 }
 
 func (is IfStmt) GetValueType() PrimitiveValueType {
-	return Undefined
+	return 0
 }
 
 /*
@@ -151,7 +151,7 @@ func (ms MatchStmt) GetType() NodeType {
 }
 
 func (ms MatchStmt) GetValueType() PrimitiveValueType {
-	return Undefined
+	return 0
 }
 
 func (ms MatchStmt) GetToken() lexer.Token {
@@ -176,7 +176,7 @@ func (rs RepeatStmt) GetToken() lexer.Token {
 }
 
 func (rs RepeatStmt) GetValueType() PrimitiveValueType {
-	return Undefined
+	return 0
 }
 
 type TickStmt struct {
@@ -194,7 +194,7 @@ func (ts TickStmt) GetToken() lexer.Token {
 }
 
 func (ts TickStmt) GetValueType() PrimitiveValueType {
-	return Undefined
+	return 0
 }
 
 type ReturnStmt struct {
@@ -211,7 +211,7 @@ func (rs ReturnStmt) GetToken() lexer.Token {
 }
 
 func (rs ReturnStmt) GetValueType() PrimitiveValueType {
-	return Undefined
+	return 0
 }
 
 type AddStmt struct {
@@ -229,7 +229,7 @@ func (as AddStmt) GetToken() lexer.Token {
 }
 
 func (as AddStmt) GetValueType() PrimitiveValueType {
-	return Undefined
+	return 0
 }
 
 type RemoveStmt struct {
@@ -247,7 +247,7 @@ func (rs RemoveStmt) GetType() NodeType {
 }
 
 func (rs RemoveStmt) GetValueType() PrimitiveValueType {
-	return Undefined
+	return 0
 }
 
 type UseStmt struct {
@@ -264,5 +264,5 @@ func (us UseStmt) GetType() NodeType {
 }
 
 func (us UseStmt) GetValueType() PrimitiveValueType {
-	return Undefined
+	return 0
 }

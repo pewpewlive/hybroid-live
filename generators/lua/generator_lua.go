@@ -60,6 +60,17 @@ func (gen *Generator) Generate(program []ast.Node) {
 	//gen.Src.WriteString("return M")
 }
 
+func (gen *Generator) GenerateString(program []ast.Node) string {
+	src := StringBuilder{}
+	generatedStr := ""
+
+	for _, node := range program {
+		generatedStr = gen.GenerateNode(node)
+		src.Append(gen.getTabs(), generatedStr, "\n")
+	}
+	return src.String()
+}
+
 func fixedToFx(floatstr string) string {
 	float, _ := strconv.ParseFloat(floatstr, 64)
 	abs_float := math.Abs(float)
@@ -128,6 +139,8 @@ func (gen *Generator) GenerateNode(node ast.Node) string {
 		return gen.memberExpr(newNode)
 	case ast.DirectiveExpr:
 		return gen.directiveExpr(newNode)
+	case ast.AnonFnExpr:
+		return gen.anonFnExpr(newNode)
 	}
 
 	return ""

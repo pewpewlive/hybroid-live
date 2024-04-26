@@ -80,13 +80,13 @@ func (w *Walker) GetValueFromType(typee TypeVal) Value {
 		return NilVal{}
 	case ast.String:
 		return StringVal{}
-	case ast.Undefined:
-		return Undefined{}
+	case ast.Invalid:
+		return Invalid{}
 	case 0:
 		return Unknown{}
 	// TODO: handle structs and entities in the future
 	default:
-		return Unknown{}
+		return Invalid{}
 	}
 }
 
@@ -106,12 +106,12 @@ func (s *Scope) AssignVariableByName(name string, value Value) (Value, *ast.Erro
 	scope := s.Resolve(name)
 
 	if scope == nil {
-		return Unknown{}, &ast.Error{Message: "cannot assign to an undeclared variable"}
+		return Invalid{}, &ast.Error{Message: "cannot assign to an undeclared variable"}
 	}
 
 	variable := scope.Variables[name]
 	if variable.IsConst {
-		return Unknown{}, &ast.Error{Message: "cannot assign to a constant variable"}
+		return Invalid{}, &ast.Error{Message: "cannot assign to a constant variable"}
 	}
 
 	variable.Value = value
@@ -123,7 +123,7 @@ func (s *Scope) AssignVariableByName(name string, value Value) (Value, *ast.Erro
 
 func (s *Scope) AssignVariable(variable VariableVal, value Value) (Value, *ast.Error) {
 	if variable.IsConst {
-		return Unknown{}, &ast.Error{Message: "cannot assign to a constant variable"}
+		return Invalid{}, &ast.Error{Message: "cannot assign to a constant variable"}
 	}
 
 	variable.Value = value
@@ -162,8 +162,8 @@ func (w *Walker) validateArithmeticOperands(left TypeVal, right TypeVal, expr as
 	case ast.Nil:
 		w.error(expr.Left.GetToken(), "cannot perform arithmetic on nil value")
 		return false
-	case ast.Undefined:
-		w.error(expr.Left.GetToken(), "cannot perform arithmetic on undefined value")
+	case ast.Invalid:
+		w.error(expr.Left.GetToken(), "cannot perform arithmetic on Invalid value")
 		return false
 	}
 
@@ -171,8 +171,8 @@ func (w *Walker) validateArithmeticOperands(left TypeVal, right TypeVal, expr as
 	case ast.Nil:
 		w.error(expr.Right.GetToken(), "cannot perform arithmetic on nil value")
 		return false
-	case ast.Undefined:
-		w.error(expr.Right.GetToken(), "cannot perform arithmetic on undefined value")
+	case ast.Invalid:
+		w.error(expr.Right.GetToken(), "cannot perform arithmetic on Invalid value")
 		return false
 	}
 
@@ -291,7 +291,7 @@ func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
 	case "bool":
 		return ast.Bool
 	default:
-		return ast.Undefined
+		return ast.Invalid
 	}
 }
 
@@ -384,6 +384,8 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 		return w.mapExpr(&newNode, scope)
 	case ast.DirectiveExpr:
 		return w.directiveExpr(&newNode, scope)
+	case ast.AnonFnExpr:
+		return w.anonFnExpr(&newNode)
 	case ast.MemberExpr:
 		return w.memberExpr(nil, &newNode, scope)
 	case ast.TypeExpr:

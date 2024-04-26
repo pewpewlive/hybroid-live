@@ -1,6 +1,8 @@
 package ast
 
-import "hybroid/lexer"
+import (
+	"hybroid/lexer"
+)
 
 type LiteralExpr struct {
 	Value     string
@@ -54,7 +56,7 @@ func (t TypeExpr) GetToken() lexer.Token {
 }
 
 func (t TypeExpr) GetValueType() PrimitiveValueType {
-	return Undefined
+	return 0
 }
 
 type GroupExpr struct {
@@ -109,6 +111,25 @@ func (n CallExpr) GetToken() lexer.Token {
 }
 
 func (n CallExpr) GetValueType() PrimitiveValueType {
+	return 0
+}
+
+type AnonFnExpr struct {
+	Token   lexer.Token
+	Return  []TypeExpr
+	Params  []Param
+	Body    []Node
+}
+
+func (af AnonFnExpr) GetType() NodeType {
+	return AnonymousFunctionExpression
+}
+
+func (af AnonFnExpr) GetToken() lexer.Token {
+	return af.Token
+}
+
+func (af AnonFnExpr) GetValueType() PrimitiveValueType {
 	return 0
 }
 
@@ -204,21 +225,21 @@ func (de DirectiveExpr) GetToken() lexer.Token {
 }
 
 func (de DirectiveExpr) GetValueType() PrimitiveValueType {
-	return Undefined
+	return 0
 }
 
-type Unknown struct {
+type Improper struct {
 	Token lexer.Token
 }
 
-func (un Unknown) GetType() NodeType {
+func (un Improper) GetType() NodeType {
 	return NA
 }
 
-func (n Unknown) GetToken() lexer.Token {
+func (n Improper) GetToken() lexer.Token {
 	return n.Token
 }
 
-func (n Unknown) GetValueType() PrimitiveValueType {
-	return Undefined
+func (n Improper) GetValueType() PrimitiveValueType {
+	return Invalid
 }

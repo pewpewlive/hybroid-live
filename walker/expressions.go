@@ -18,7 +18,7 @@ func (w *Walker) determineValueType(left TypeVal, right TypeVal) TypeVal {
 		return left
 	}
 
-	return TypeVal{Type: ast.Undefined}
+	return TypeVal{Type: ast.Invalid}
 }
 
 func (w *Walker) binaryExpr(node *ast.BinaryExpr, scope *Scope) Value {
@@ -37,7 +37,7 @@ func (w *Walker) binaryExpr(node *ast.BinaryExpr, scope *Scope) Value {
 	}
 	val := w.GetValueFromType(w.determineValueType(leftType, rightType))
 
-	if val.GetType().Type == ast.Undefined {
+	if val.GetType().Type == ast.Invalid {
 		w.error(node.GetToken(), fmt.Sprintf("invalid binary expression (left: %s, right: %s)", leftType.Type.ToString(), rightType.Type.ToString()))
 		return val
 	} else {
@@ -69,7 +69,7 @@ func (w *Walker) literalExpr(node *ast.LiteralExpr) Value {
 	case ast.Number:
 		return NumberVal{}
 	default:
-		return Unknown{}
+		return Invalid{}
 	}
 }
 
@@ -81,7 +81,7 @@ func (w *Walker) identifierExpr(node *ast.IdentifierExpr, scope *Scope) Value {
 		return newValue
 	} else {
 		//w.error(node.Name, "unknown identifier")
-		return Unknown{}
+		return Invalid{}
 	}
 }
 
@@ -104,7 +104,7 @@ func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope) Value {
 
 	if sc == nil { //make sure in the future member calls are also taken into account
 		w.error(node.Token, "undeclared function")
-		return Unknown{}
+		return Invalid{}
 	} else {
 		fn := sc.GetVariable(callerToken.Lexeme)
 		fun, ok := fn.Value.(FunctionVal)
@@ -126,7 +126,7 @@ func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope) Value {
 			w.error(callerToken, "too few arguments given in function call")
 		}
 
-		return fun
+		return CallVal{types: fun.returnVal}
 	}
 }
 
@@ -160,7 +160,7 @@ func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Val
 		var array Value
 		if sc == nil {
 			w.error(node.Identifier.GetToken(), fmt.Sprintf("undeclared variable \"%s\"", node.Identifier.GetToken().Lexeme))
-			return Unknown{}
+			return Invalid{}
 		} else {
 			array = sc.GetVariable(node.Identifier.GetToken().Lexeme).Value
 		}
@@ -170,16 +170,16 @@ func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Val
 		if ok {
 			arrayType := array.GetType()
 			if arrayType.Type == ast.Namespace {
-				return Undefined{}
+				return Unknown{}
 			}
 			if arrayType.Type != ast.List && arrayType.Type != ast.Map {
 				w.error(node.Identifier.GetToken(), "variable is not a list, map or a namespace")
-				return Unknown{}
+				return Invalid{}
 			}
 			return w.memberExpr(array, &next, scope)
 		} else {
 			w.error(node.GetToken(), "expected member expression")
-			return Unknown{}
+			return Invalid{}
 		}
 	}
 
@@ -190,17 +190,17 @@ func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Val
 		if arrayType.Type == ast.Map {
 			if valType.Type != ast.String && valType.Type != 0 {
 				w.error(node.Identifier.GetToken(), "variable is not a string")
-				return Unknown{}
+				return Invalid{}
 			}
 		} else if arrayType.Type == ast.List {
 			if valType.Type != ast.Number && valType.Type != 0 {
 				w.error(node.Identifier.GetToken(), "variable is not a number")
-				return Unknown{}
+				return Invalid{}
 			}
 		}
 	}
 
-	wrappedValType := TypeVal{Type: ast.Undefined}
+	wrappedValType := TypeVal{Type: ast.Invalid}
 	if list, ok := array.(ListVal); ok {
 		wrappedValType = list.ValueType
 	} else if mapp, ok := array.(MapVal); ok {
@@ -213,7 +213,7 @@ func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Val
 			return w.memberExpr(w.GetValueFromType(wrappedValType), &next , scope)
 		}else {
 			w.error(node.GetToken(), "expected member expression")
-			return Unknown{}
+			return Invalid{}
 		}
 	}
 
@@ -264,9 +264,29 @@ func (w *Walker) directiveExpr(node *ast.DirectiveExpr, scope *Scope) DirectiveV
 	return DirectiveVal{}
 }
 
+func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr) FunctionVal {
+	params := make([]TypeVal, 0)
+	for _, param := range fn.Params {
+		params = append(params, w.typeExpr(&param.Type))
+	}
+
+	var ret ReturnType
+	for _, typee := range fn.Return {
+		ret.values = append(ret.values, w.typeExpr(&typee))
+	}
+	if len(ret.values) == 0 {
+		ret.values = append(ret.values, TypeVal{Type: ast.Nil})
+	}
+
+	return FunctionVal{
+		params: params,
+		returnVal: ret,
+	}
+}
+
 func (w *Walker) typeExpr(typee *ast.TypeExpr) TypeVal {
 	if typee == nil {
-		return TypeVal{Type:ast.Undefined}
+		return TypeVal{Type:ast.Invalid}
 	}
 	var wrapped *TypeVal
 	if typee.WrappedType != nil {
@@ -281,6 +301,7 @@ func (w *Walker) typeExpr(typee *ast.TypeExpr) TypeVal {
 	for _, v := range typee.Returns {
 		returns = append(returns, w.typeExpr(&v))
 	}
+	//fmt.Printf("%s\n",typee.Name.Lexeme)
 	return TypeVal{
 		Type:        w.GetTypeFromString(typee.Name.Lexeme),
 		WrappedType: wrapped,

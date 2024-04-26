@@ -20,6 +20,7 @@ const (
 
 	Progr
 
+	AnonymousFunctionExpression
 	DirectiveExpression
 	LiteralExpression
 	UnaryExpression
@@ -56,7 +57,7 @@ const (
 	Ident
 	Namespace
 
-	Undefined
+	Invalid
 )
 
 func (pvt PrimitiveValueType) ToString() string {

@@ -72,7 +72,7 @@ func (l MapVal) GetContentsValueType() TypeVal {
 		valTypes = append(valTypes, v.GetType())
 		prev, curr := index-1, len(valTypes)-1
 		if !(parser.IsFx(valTypes[prev].Type) && parser.IsFx(valTypes[curr].Type)) && valTypes[prev].Type != valTypes[curr].Type {
-			return TypeVal{Type: ast.Undefined}
+			return TypeVal{Type: ast.Invalid}
 		}
 		index++
 	}
@@ -95,7 +95,7 @@ func (l ListVal) GetContentsValueType() TypeVal {
 	valTypes := []TypeVal{}
 	index := 0
 	if len(l.Values) == 0 {
-		return TypeVal{Type: ast.Undefined}
+		return TypeVal{Type: ast.Invalid}
 	}
 	for _, v := range l.Values {
 		if index == 0 {
@@ -106,7 +106,7 @@ func (l ListVal) GetContentsValueType() TypeVal {
 		valTypes = append(valTypes, v.GetType())
 		prev, curr := index-1, len(valTypes)-1
 		if !(parser.IsFx(valTypes[prev].Type) && parser.IsFx(valTypes[curr].Type)) && valTypes[prev].Type != valTypes[curr].Type {
-			return TypeVal{Type: ast.Undefined}
+			return TypeVal{Type: ast.Invalid}
 		}
 		index++
 	}
@@ -209,6 +209,17 @@ func (f FunctionVal) GetReturnType() ReturnType {
 	return f.returnVal
 }
 
+type CallVal struct {
+	types ReturnType
+}
+
+func (f CallVal) GetType() TypeVal {
+	if len(f.types.values) == 1 {
+		return f.types.values[0]
+	}
+	return TypeVal{Type: ast.Invalid, Returns: f.types}
+}
+
 type BoolVal struct{}
 
 func (b BoolVal) GetType() TypeVal {
@@ -227,14 +238,14 @@ func (n NilVal) GetType() TypeVal {
 	return TypeVal{Type: ast.Nil}
 }
 
+type Invalid struct{}
+
+func (u Invalid) GetType() TypeVal {
+	return TypeVal{Type: ast.Invalid}
+}
+
 type Unknown struct{}
 
 func (u Unknown) GetType() TypeVal {
-	return TypeVal{Type: ast.Undefined}
-}
-
-type Undefined struct{}
-
-func (u Undefined) GetType() TypeVal {
 	return TypeVal{Type: 0}
 }

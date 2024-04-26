@@ -6,10 +6,6 @@ import (
 	"strings"
 )
 
-func (p *Parser) expression() ast.Node {
-	return p.directive()
-}
-
 func (p *Parser) list() ast.Node {
 	token := p.peek(-1)
 	list := make([]ast.Node, 0)
@@ -49,11 +45,11 @@ func (p *Parser) parseMap() ast.Node {
 		default:
 			p.error(key.GetToken(), "expected either string or an identifier in map initialization")
 			p.advance()
-			return ast.Unknown{Token: p.peek(-1)}
+			return ast.Improper{Token: p.peek(-1)}
 		}
 
 		if _, ok := p.consume("expected ':' after map key", lexer.Colon); !ok {
-			return ast.Unknown{Token: p.peek(-1)}
+			return ast.Improper{Token: p.peek(-1)}
 		}
 
 		expr := p.expression()
@@ -67,7 +63,7 @@ func (p *Parser) parseMap() ast.Node {
 		}
 
 		if _, ok := p.consume("expected ',' or '}' after expression", lexer.Comma, lexer.RightBrace); !ok {
-			return ast.Unknown{Token: p.peek(-1)}
+			return ast.Improper{Token: p.peek(-1)}
 		}
 
 		parsedMap[newKey] = ast.Property{Expr: expr, Type: expr.GetValueType()}
@@ -75,6 +71,32 @@ func (p *Parser) parseMap() ast.Node {
 	p.advance()
 
 	return ast.MapExpr{Map: parsedMap, Token: token}
+}
+
+func (p *Parser) expression() ast.Node {
+	return p.fn()
+}
+
+func (p *Parser) fn() ast.Node {
+	if p.match(lexer.Fn) {
+		fn := ast.AnonFnExpr{}
+		fn.Params = p.parameters()
+
+		ret := make([]ast.TypeExpr, 0)
+		for p.check(lexer.Identifier) {
+			ret = append(ret, p.Type())
+			if !p.check(lexer.Comma) {
+				break
+			} else {
+				p.advance()
+			}
+		}
+		fn.Return = ret
+		fn.Body = *p.getBody()
+		return fn
+	}else {
+		return p.directive()
+	}
 }
 
 func (p *Parser) directive() ast.Node {
@@ -117,7 +139,7 @@ func (p *Parser) determineValueType(left ast.Node, right ast.Node) ast.Primitive
 		return ast.FixedPoint
 	}
 
-	return ast.Undefined
+	return ast.Invalid
 }
 
 func (p *Parser) term() ast.Node {
@@ -169,7 +191,7 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 	callerType := caller.GetType()
 	if callerType != ast.Identifier && callerType != ast.MemberExpression && callerType != ast.CallExpression {
 		p.error(p.peek(-1), "cannot call unidentified value")
-		return ast.Unknown{Token: p.peek(-1)}
+		return ast.Improper{Token: p.peek(-1)}
 	}
 
 	call_expr := ast.CallExpr{
@@ -362,7 +384,7 @@ func (p *Parser) primary() ast.Node {
 		return ast.GroupExpr{Expr: expr, Token: token, ValueType: expr.GetValueType()}
 	}
 
-	return ast.Unknown{Token: p.peek()}
+	return ast.Improper{Token: p.peek()}
 }
 
 func (p *Parser) WrappedType() *ast.TypeExpr {
@@ -378,33 +400,8 @@ func (p *Parser) WrappedType() *ast.TypeExpr {
 func (p *Parser) Type() ast.TypeExpr {
 	expr := p.primary()
 
-	if expr.GetType() == ast.Identifier || expr.GetToken().Type == lexer.Fn {
+	if expr.GetType() == ast.Identifier {
 		typee := ast.TypeExpr{}
-
-		if expr.GetToken().Lexeme == "fn" {// fn(text, number) map<fixed>
-			p.advance()
-			typee.Params = make([]ast.TypeExpr, 0)
-			typee.Returns = make([]ast.TypeExpr, 0)
-			if p.match(lexer.LeftParen) {
-				typee.Params = append(typee.Params, p.Type())
-
-				for p.match(lexer.Comma) {
-					typee.Params = append(typee.Params, p.Type())
-				}
-				p.consume("expected closing parenthesis in 'fn(...'", lexer.RightParen)
-			}
-
-			if p.check(lexer.Identifier) {
-				typee.Returns = append(typee.Returns, p.Type())
-
-				for p.match(lexer.Comma) {
-					typee.Returns = append(typee.Returns, p.Type())
-				}
-			}
-
-			typee.Name = expr.GetToken()
-			return typee
-		}
 
 		if p.match(lexer.Less) {
 			typee.WrappedType = p.WrappedType()
@@ -412,7 +409,32 @@ func (p *Parser) Type() ast.TypeExpr {
 		} 
 		typee.Name = expr.GetToken()
 		return typee
-	} else {
+	} else if expr.GetToken().Type == lexer.Fn {
+		typee := ast.TypeExpr{}
+
+		p.advance()
+		typee.Params = make([]ast.TypeExpr, 0)
+		typee.Returns = make([]ast.TypeExpr, 0)
+		if p.match(lexer.LeftParen) {
+			typee.Params = append(typee.Params, p.Type())
+
+			for p.match(lexer.Comma) {
+				typee.Params = append(typee.Params, p.Type())
+			}
+			p.consume("expected closing parenthesis in 'fn(...'", lexer.RightParen)
+		}
+
+		if p.check(lexer.Identifier) {
+			typee.Returns = append(typee.Returns, p.Type())
+
+			for p.match(lexer.Comma) {
+				typee.Returns = append(typee.Returns, p.Type())
+			}
+		}
+
+		typee.Name = expr.GetToken()
+		return typee
+	}else {
 		p.error(expr.GetToken(), "Expected an identifier for a type")
 		p.advance()
 		return ast.TypeExpr{Name:expr.GetToken()}
