@@ -264,10 +264,14 @@ func (w *Walker) directiveExpr(node *ast.DirectiveExpr, scope *Scope) DirectiveV
 	return DirectiveVal{}
 }
 
-func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr) FunctionVal {
+func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) FunctionVal {
+	fnScope := NewScope(scope.Global, scope, ReturnAllowing)
+
 	params := make([]TypeVal, 0)
-	for _, param := range fn.Params {
+	for i, param := range fn.Params {
 		params = append(params, w.typeExpr(&param.Type))
+		value := w.GetValueFromType(params[i])
+		fnScope.DeclareVariable(VariableVal{Name: param.Name.Lexeme, Value: value, Node: fn})
 	}
 
 	var ret ReturnType
@@ -276,6 +280,15 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr) FunctionVal {
 	}
 	if len(ret.values) == 0 {
 		ret.values = append(ret.values, TypeVal{Type: ast.Nil})
+	}
+
+	
+	for _, node := range fn.Body {
+		w.WalkNode(&node, &fnScope)
+	}
+
+	if w.bodyReturns(&fn.Body, &ret, &fnScope) == nil && ret.values[0].Type != ast.Nil {
+		w.error(fn.GetToken(), "not all function paths return a value")
 	}
 
 	return FunctionVal{

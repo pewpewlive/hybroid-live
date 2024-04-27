@@ -1,5 +1,10 @@
 @Environment(Level)
 
 let b = fn(param text) bool {
-    return false
+    if param == "a" {
+        //emty
+    }else {
+        return false
+    }
+    return true
 }

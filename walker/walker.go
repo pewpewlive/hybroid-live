@@ -240,11 +240,17 @@ func (w *Walker) ifReturns(node *ast.IfStmt, expectedReturn *ReturnType, scope *
 	var returns *ReturnType
 
 	localScope := NewScope(scope.Global, scope, scope.Type)
-	w.bodyReturns(&node.Body, expectedReturn, &localScope)
+	returns = w.bodyReturns(&node.Body, expectedReturn, &localScope)
+	if returns == nil {
+		return nil
+	}
 
 	for i := range node.Elseifs {
 		localScope := NewScope(scope.Global, scope, scope.Type)
-		w.bodyReturns(&node.Elseifs[i].Body, expectedReturn, &localScope)
+		returns = w.bodyReturns(&node.Elseifs[i].Body, expectedReturn, &localScope)
+	}
+	if returns == nil {
+		return nil
 	}
 
 	if node.Else != nil {
@@ -385,7 +391,7 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 	case ast.DirectiveExpr:
 		return w.directiveExpr(&newNode, scope)
 	case ast.AnonFnExpr:
-		return w.anonFnExpr(&newNode)
+		return w.anonFnExpr(&newNode, scope)
 	case ast.MemberExpr:
 		return w.memberExpr(nil, &newNode, scope)
 	case ast.TypeExpr:
