@@ -145,7 +145,7 @@ func (w *Walker) returnStmt(node *ast.ReturnStmt, scope *Scope) *ReturnType {
 		valType := val.GetType()
 		if valType.Type == ast.Func {
 			ret.values = append(ret.values, valType.Returns.values...)
-		}else {
+		} else {
 			ret.values = append(ret.values, valType)
 		}
 	}
@@ -277,7 +277,7 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 		if valType.Type == 0 {
 			if explicitType.Type == ast.Invalid {
 				w.error(declaration.Identifiers[i], "uninitialized variable must have its type declared")
-			}else if explicitType.Type == ast.Func {
+			} else if explicitType.Type == ast.Func {
 				w.error(declaration.Identifiers[i], "cannot declare an uninitialized function")
 			}
 			declaration.Values = append(declaration.Values, ast.LiteralExpr{Value: w.GetDefaultValue(explicitType), ValueType: explicitType.Type})
@@ -292,17 +292,16 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 				}
 			} else if declaration.Types[i].WrappedType == nil {
 				w.error(declaration.Types[i].GetToken(), "expected a wrapped type in map/list declaration")
-			}else if valType.WrappedType.Type != 0 && !valType.Eq(explicitType) {
+			} else if valType.WrappedType.Type != 0 && !valType.Eq(explicitType) {
 				fmt.Printf("a\n")
 				w.error(ident, fmt.Sprintf("given value for '%s' does not match with the type given", ident.Lexeme))
 			}
 
-		}else if valType.Type != 0 && explicitType.Type != ast.Invalid && !valType.Eq(explicitType) {
+		} else if valType.Type != 0 && explicitType.Type != ast.Invalid && !valType.Eq(explicitType) {
 			w.error(ident, fmt.Sprintf("given value for '%s' does not match with the type given", ident.Lexeme))
 		}
 		//fmt.Printf("%s\n", valType.Type.ToString())
 		//fmt.Printf("%s\n", explicitType.Type.ToString())
-		
 
 		if _, success := scope.DeclareVariable(variable); !success {
 			w.error(lexer.Token{Lexeme: ident.Lexeme, Location: declaration.Token.Location},

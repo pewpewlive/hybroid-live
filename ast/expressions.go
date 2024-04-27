@@ -115,10 +115,10 @@ func (n CallExpr) GetValueType() PrimitiveValueType {
 }
 
 type AnonFnExpr struct {
-	Token   lexer.Token
-	Return  []TypeExpr
-	Params  []Param
-	Body    []Node
+	Token  lexer.Token
+	Return []TypeExpr
+	Params []Param
+	Body   []Node
 }
 
 func (af AnonFnExpr) GetType() NodeType {

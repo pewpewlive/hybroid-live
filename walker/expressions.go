@@ -208,10 +208,10 @@ func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Val
 	}
 
 	if wrappedValType.Type == ast.Map || wrappedValType.Type == ast.List || wrappedValType.Type == ast.Namespace {
-		next, ok :=  node.Property.(ast.MemberExpr)
+		next, ok := node.Property.(ast.MemberExpr)
 		if ok {
-			return w.memberExpr(w.GetValueFromType(wrappedValType), &next , scope)
-		}else {
+			return w.memberExpr(w.GetValueFromType(wrappedValType), &next, scope)
+		} else {
 			w.error(node.GetToken(), "expected member expression")
 			return Invalid{}
 		}
@@ -282,7 +282,6 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) FunctionVal {
 		ret.values = append(ret.values, TypeVal{Type: ast.Nil})
 	}
 
-	
 	for _, node := range fn.Body {
 		w.WalkNode(&node, &fnScope)
 	}
@@ -292,14 +291,14 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) FunctionVal {
 	}
 
 	return FunctionVal{
-		params: params,
+		params:    params,
 		returnVal: ret,
 	}
 }
 
 func (w *Walker) typeExpr(typee *ast.TypeExpr) TypeVal {
 	if typee == nil {
-		return TypeVal{Type:ast.Invalid}
+		return TypeVal{Type: ast.Invalid}
 	}
 	var wrapped *TypeVal
 	if typee.WrappedType != nil {

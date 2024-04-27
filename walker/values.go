@@ -77,7 +77,7 @@ func (l MapVal) GetContentsValueType() TypeVal {
 		index++
 	}
 	if parser.IsFx(valTypes[0].Type) {
-		return TypeVal{Type:ast.FixedPoint}
+		return TypeVal{Type: ast.FixedPoint}
 	}
 	return valTypes[0]
 }
@@ -88,7 +88,7 @@ type ListVal struct {
 }
 
 func (l ListVal) GetType() TypeVal {
-	return TypeVal{Type:ast.List, WrappedType: &l.ValueType}
+	return TypeVal{Type: ast.List, WrappedType: &l.ValueType}
 }
 
 func (l ListVal) GetContentsValueType() TypeVal {
@@ -111,7 +111,7 @@ func (l ListVal) GetContentsValueType() TypeVal {
 		index++
 	}
 	if parser.IsFx(valTypes[0].Type) {
-		return TypeVal{Type:ast.FixedPoint}
+		return TypeVal{Type: ast.FixedPoint}
 	}
 	return valTypes[0]
 }

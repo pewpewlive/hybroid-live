@@ -94,7 +94,7 @@ func (p *Parser) fn() ast.Node {
 		fn.Return = ret
 		fn.Body = *p.getBody()
 		return fn
-	}else {
+	} else {
 		return p.directive()
 	}
 }
@@ -390,7 +390,7 @@ func (p *Parser) primary() ast.Node {
 func (p *Parser) WrappedType() *ast.TypeExpr {
 	typee := ast.TypeExpr{}
 	if p.check(lexer.Greater) {
-		p.error(p.peek(), "empty wrapped type") 
+		p.error(p.peek(), "empty wrapped type")
 		return &typee
 	}
 	expr2 := p.Type()
@@ -406,7 +406,7 @@ func (p *Parser) Type() ast.TypeExpr {
 		if p.match(lexer.Less) {
 			typee.WrappedType = p.WrappedType()
 			p.consume("expected '>'", lexer.Greater)
-		} 
+		}
 		typee.Name = expr.GetToken()
 		return typee
 	} else if expr.GetToken().Type == lexer.Fn {
@@ -434,10 +434,10 @@ func (p *Parser) Type() ast.TypeExpr {
 
 		typee.Name = expr.GetToken()
 		return typee
-	}else {
+	} else {
 		p.error(expr.GetToken(), "Expected an identifier for a type")
 		p.advance()
-		return ast.TypeExpr{Name:expr.GetToken()}
+		return ast.TypeExpr{Name: expr.GetToken()}
 	}
 
 }

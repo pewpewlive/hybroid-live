@@ -7,6 +7,8 @@ type NodeType int
 const (
 	VariableDeclarationStatement NodeType = iota + 1
 	FunctionDeclarationStatement
+	StructureDeclarationStatement
+	FieldDeclarationStatement
 
 	AssignmentStatement
 	RepeatStatement

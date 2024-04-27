@@ -56,6 +56,9 @@ func (p *Parser) statement() ast.Node {
 	case lexer.Use:
 		p.advance()
 		return p.useStmt()
+	case lexer.Struct:
+		p.advance()
+		return p.structDeclarationStatement()
 	}
 
 	expr := p.expression()
@@ -93,6 +96,54 @@ func (p *Parser) getBody() *[]ast.Node {
 	}
 
 	return &body
+}
+
+func (p *Parser) structDeclarationStatement() ast.StructDeclarationStmt {
+	p.consume("expected the name of the structure", lexer.Identifier)
+
+	p.getStructBody()
+}
+
+func (p *Parser) getStructBody() *[]ast.Node {
+	_, ok := p.consume("expected opening of the struct body", lexer.LeftBrace)
+	if !ok {
+		return nil
+	}
+	body := []ast.Node{}
+
+	for !p.match(lexer.RightBrace) { //im koocing ongg
+		if p.check(lexer.Identifier) {
+			body = append(body, p.structFieldDeclarationStmt())
+		} else if p.check(lexer.Fn) {
+			body = append(body, p.functionDeclarationStmt())
+		} else if p.check(lexer.Trait) { // hello?
+			//check syntax spec
+		} else {
+			p.error(p.peek)
+		}
+	}
+}
+
+func (p *Parser) structFieldDeclarationStmt() ast.Node { //we gonna do that
+	p.consume("expected field identifier", lexer.Identifier)
+
+	for !p.match(lexer.Comma) {
+		p.consume("expected field identifier", lexer.Identifier)
+	}
+
+	if p.check(lexer.Equal) {
+
+	} else if p.check(lexer.Identifier) { // idk what token type types use
+
+	}
+
+	p.consume("expected value in field declaration", lexer.Identifier)
+
+	for !p.match(lexer.Comma) {
+		p.consume("expected value in field declaration", lexer.Identifier)
+	} // smth like that, ig i have to get expressions but rn im kinda tired brb
+
+	//gonna make the struct
 }
 
 func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) ast.IfStmt {

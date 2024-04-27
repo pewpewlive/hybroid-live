@@ -42,6 +42,39 @@ func (vds VariableDeclarationStmt) GetValueType() PrimitiveValueType {
 	return 0
 }
 
+type StructDeclarationStmt struct {
+	Token lexer.Token
+}
+
+func (sds StructDeclarationStmt) GetType() NodeType {
+	return StructureDeclarationStatement
+}
+
+func (sds StructDeclarationStmt) GetToken() lexer.Token {
+	return sds.Token
+}
+
+func (sds StructDeclarationStmt) GetValueType() PrimitiveValueType {
+	return 0
+}
+
+type FieldDeclarationStmt struct {
+	Name  lexer.Token
+	Value Node
+}
+
+func (f FieldDeclarationStmt) GetType() NodeType {
+	return FieldDeclarationStatement
+}
+
+func (f FieldDeclarationStmt) GetToken() lexer.Token {
+	return f.Name
+}
+
+func (f FieldDeclarationStmt) GetValueType() PrimitiveValueType {
+	return 0
+}
+
 type Param struct {
 	Type TypeExpr
 	Name lexer.Token
