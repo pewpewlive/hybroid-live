@@ -69,6 +69,19 @@ pub meaning_of_life = 42
 name = "blade"
 ```
 
+## Typed declarations
+
+- [ ] Completed
+
+Types allow you to explicitly describe a variable's type. In Hybroid, types are not always necessary. Types might be necessary when you want to describe a complex type variable, or if the variable is left undefined. Types are what allows Hybroid to make sure you can write valid code without much headache and without the need to debug a lot.
+
+```rs
+let a: number // variable uninitialized, type required
+let num = 1 // variable initialized, type inferred
+let numbers: list<number> = [] // list is empty, list value type required
+let callback: fn(text, bool) // function uninitialized, type required
+```
+
 ## Declaration of constants
 
 - [ ] Completed
@@ -87,15 +100,25 @@ Entities are transpile-time classes. They are designed to provide OOP-like feel 
 
 ```rs
 entity Quadro {
-  // asdiaosd
-  mesh_id2, speed, thing: 1, 2, 3;
-  // Ahjhasd
-  x: 1; y; z;
-  z number;
-  string w;
-  bool z;
+  id: number
 
-  Spawn(x, y, speed) {
+  mesh_id: number
+  mesh_id2: number
+  mesh_id3: number
+  
+  x = 1f y: fixed z: fixed = 0f
+  
+  /* you can also do this
+  x = 1f; y: fixed; z: fixed = 0f
+
+  x = 1f
+  y: fixed
+  z: fixed = 0f
+  */
+  speed = 10f
+  damage = 2
+
+  Spawn(x fixed, y fixed, speed fixed) {
     self.speed = speed 
     self.mesh_id2 = PewPew.NewEntity(x, y)
     PewPew.SetMesh(self, "file_path", 0)
@@ -119,84 +142,59 @@ entity Quadro {
   WallCollision(wall_x, wall_y) {
   }
 
-  fn DamageOtherEntity(entity, x, y) {
-    entity.damage(self.damage)
+  fn DamageOtherEntity(entity OtherEntity) {
+    entity.Damage(self.damage)
   }
 }
-
-fn func(Quadro q, string s) {
-  q.DamageOtherEntity(entity_id, 100fx, 200fx)
-  q.DamageOtherEntity(entity_id, 100fx, 200fx)
-  q.DamageOtherEntity(entity_id, 100fx, 200fx)
-  q.DamageOtherEntity(entity_id, 100fx, 200fx)
-  q.DamageOtherEntity(entity_id, 100fx, 200fx)
-  q.DamageOtherEntity(entity_id, 100fx, 200fx)
-  entity
-}
-
-fn func(fx p, fx a) {
-  return a + p
-
-  return 1
-}
-
-//lua gen
-QuadroStates[entity]
 ```
+
+The Hybroid code shown gets generated into Lua like so:
 
 ```lua
 QuadroStates = {}
 
 local function quadro_update(id)
   local x, y = pewpew.entity_get_position(id)
-  x = x + 10fx * QuadroState[id].speed
+  x = x + 10fx * QuadroState[id][8] -- this is speed because all of the entity fields get mapped to their indexes
   pewpew.entity_set_position(id, x, y)
 end
 
 local function quadro_weapon_collision(id, index, wtype)
-  -- does stuff
 end
 
 local function quadro_player_collision(id, index, ship_id)
-  -- does stuff
 end
 
 local function quadro_wall_collision(id, wall_x, wall_y)
-  -- does stuff
 end
 
 function quadro_damage_other_entity(id, entity)
-  QuadroStates[id].damage(1)
+  other_entity_damage(entity, QuadroStates[id][9])
 end
 
 function Quadro.new(x, y, speed)
   local id = pewpew.new_customizable_entity(x, y)
-  QuadroState[id] = {}
+  QuadroState[id] = {id, 0, 1, 2, 1fx, 0fx, 0fx, 10fx, 2} -- set default values specified in the entity fields
 
   pewpew.entity_set_update_callback(id, quadro_update)
   pewpew.customizable_entity_set_weapon_collision_callback(id, quadro_weapon_collision)
   pewpew.customizable_entity_set_player_collision_callback(id, quadro_player_collision)
   pewpew.customizable_entity_configure_wall_collision(id, quadro_wall_collision)
 
-  QuadroState[id].speed = speed
-  QuadroState[id].mesh_id2 = pewpew.new_customizable_entity(x, y)
+  QuadroState[id][8] = speed
+  QuadroState[id][3] = pewpew.new_customizable_entity(x, y)
   pewpew.customizable_entity_set_mesh(id, "file_path", 0)
-  pewpew.customizable_entity_set_mesh(QuadroState[id].mesh_id2, "file_path", 1)
+  pewpew.customizable_entity_set_mesh(QuadroState[id][3], "file_path", 1)
 
   return id
 end
-
 ```
 
 ### Creating an entity
 
 ```rs
 let id = spawn Quadro(100fx, 100fx, 10fx)
-
-local id = Quadro.new(100fx, 100fx, 10fx)
-
-// Invoking a Destroy trait
-Destroy id
+destroy id
 ```
 
 ## Lua interop & importing
@@ -226,7 +224,7 @@ However, this is discouraged, as the transpiler can lose important context, such
 
 ## Number Literals
 
-- [ ] Completed
+- [x] Completed
 
 In PPL, you use number literals with `fx` at the end of the number. But thankfully, Hybroid makes working with numbers easier, by giving several options.
 
@@ -306,7 +304,7 @@ while true {
 
 ### Repeat loops
 
-Repeat loops are simple for loops.
+Repeat loops are simple `for` loops.
 
 ```rs
 repeat 10 {
@@ -324,7 +322,7 @@ repeat 10 with index {
 
 ### For loops
 
-For loops are designed for advanced iterations.
+`for` loops are designed for advanced iterations.
 
 ```rs
 let fruits = ["banana", "kiwi", "apple", "pear", "cherry"]
@@ -346,7 +344,7 @@ for index, item in fruits {
 
 ## Lists
 
-- [ ] Completed
+- [x] Completed
 
 In Lua, these structures are called "tables". These structures hold multiple data associated with a numeric index.
 
@@ -368,6 +366,8 @@ repeat @Len(fruits) with i {
 
 ### Adding elements to the list
 
+- [ ] Completed
+
 Using `add` keyword.
 
 ```rs
@@ -380,6 +380,8 @@ Print(@ListToStr(fruits)) // -> ["banana", "kiwi", "apple", "pear", "cherry", "w
 
 ### Finding the index of the item
 
+- [ ] Completed
+
 Using `find` keyword. Only the first match is returned.
 
 ```rs
@@ -389,6 +391,8 @@ Print(find "apple" in fruits) // -> 3
 ```
 
 ### Removing an element from the list
+
+- [ ] Completed
 
 Using `remove` keyword.
 
@@ -402,7 +406,7 @@ Print(@ListToStr(fruits)) // -> ["banana", "kiwi", "apple", "cherry"]
 
 ## Maps
 
-- [ ] Completed
+- [x] Completed
 
 In Lua, these structures are also called _tables_. These structures hold multiple data entries associated with a string index.
 
@@ -423,6 +427,8 @@ Print(fruits.apples) // -> 5
 ```
 
 ### Adding elements to the map
+
+- [ ] Completed
 
 Using `add` keyword.
 
@@ -453,6 +459,8 @@ Print(@MapToStr(fruits))
 
 ### Finding the key of the item
 
+- [ ] Completed
+
 Using `find` keyword. Only the first match is returned.
 
 ```rs
@@ -468,6 +476,8 @@ Print(find 10 in fruits) // -> "kiwis"
 ```
 
 ### Removing an element from the map
+
+- [ ] Completed
 
 Using `remove` keyword.
 
@@ -496,7 +506,7 @@ Print(@MapToStr(fruits))
 
 ## Functions
 
-- [ ] Completed
+- [x] Completed
 
 Declaring a function works with the `fn` keyword. Functions are local by default.
 
@@ -623,10 +633,8 @@ Structures are classes that do not have inheritance.
 ```rs
 
 struct Rectangle {
-  mesh_id1 number
-  mesh_id1, mesh_id1, mesh_id1, mesh_id1: 0f, 0f, 0f, 0f, 0f
-  
-  x, y, z, w fixed
+  mesh_id1: number
+  mesh_id1, mesh_id1, mesh_id1, mesh_id1 = 0f, 0f, 0f, 0f, 0f
   
   New(length, height) {
     self.length = length
