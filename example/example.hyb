@@ -13,9 +13,29 @@ let b = fn(param text) bool {
 }
 
 struct Test {
-    x,y = 0,0
+    x, y = 0fx, 0fx
 
-    New() {
-        
+    new() {
+        x = 10fx
+        //self.x = 10fx // new.x
+        if 1 + 1 {
+            if true {
+
+            }
+        }
+    }
+
+    fn thing() {
+        if true {
+            if false {
+                
+            }
+        }else {
+
+        }
+    }
+
+    fn mega(a text) text {
+        thing()
     }
 }

@@ -59,7 +59,7 @@ func (gen *Generator) callExpr(node ast.CallExpr) string {
 	src := StringBuilder{}
 	fn := gen.GenerateNode(node.Caller)
 
-	src.Append(fn, "(")
+	src.AppendTabbed(fn, "(")
 	for i, arg := range node.Args {
 		src.WriteString(gen.GenerateNode(arg))
 		if i != len(node.Args)-1 {
@@ -74,10 +74,8 @@ func (gen *Generator) callExpr(node ast.CallExpr) string {
 func (gen *Generator) mapExpr(node ast.MapExpr) string {
 	src := StringBuilder{}
 
-	gen.TabsCount += 1
-	tabs := gen.getTabs()
-
 	src.WriteString("{\n")
+	TabsCount += 1
 	index := 0
 	for k, v := range node.Map {
 		val := gen.GenerateNode(v.Expr)
@@ -89,15 +87,14 @@ func (gen *Generator) mapExpr(node ast.MapExpr) string {
 		}
 
 		if index != len(node.Map)-1 {
-			src.WriteString(fmt.Sprintf("%s%s = %v,\n", tabs, ident, val))
+			src.AppendTabbed(fmt.Sprintf("%s = %v,\n", ident, val))
 		} else {
-			src.WriteString(fmt.Sprintf("%s%s = %v\n", tabs, ident, val))
+			src.AppendTabbed(fmt.Sprintf("%s = %v\n", ident, val))
 		}
 		index++
 	}
-	gen.TabsCount -= 1
-	tabs = gen.getTabs()
-	src.Append(tabs, "}")
+	TabsCount -= 1
+	src.AppendTabbed("}")
 
 	return src.String()
 }
@@ -143,8 +140,7 @@ func (gen *Generator) directiveExpr(node ast.DirectiveExpr) string {
 func (gen *Generator) anonFnExpr(fn ast.AnonFnExpr) string {
 	src := StringBuilder{}
 
-	fnTabs := gen.getTabs()
-	gen.TabsCount += 1
+	TabsCount += 1
 
 	src.WriteString("function (")
 	for i, param := range fn.Params {
@@ -157,9 +153,9 @@ func (gen *Generator) anonFnExpr(fn ast.AnonFnExpr) string {
 
 	src.WriteString(gen.GenerateString(fn.Body))
 
-	src.Append(fnTabs + "end")
+	TabsCount -= 1
 
-	gen.TabsCount -= 1
+	src.AppendTabbed("end")
 
 	return src.String()
 }

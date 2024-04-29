@@ -87,6 +87,7 @@ const (
 	Match
 	From
 	Struct
+	Neww
 
 	Eof // EOF (End of File)
 )
@@ -127,11 +128,12 @@ var keywords = map[string]TokenType{
 	"match":    Match,
 	"from":     From,
 	"struct":   Struct,
+	"new":      Neww,
 }
 
 func (t TokenType) ToString() string {
 	return [...]string{
-		"LeftParen", "RightParen", "LeftBrace", "RightBrace", "LeftBracket", "RightBracket", "Comma", "Colon", "At", "Wall", "Dot", "Concat", "Minus", "MinusEqual", "Plus", "PlusEqual", "Slash", "SlashEqual", "Star", "StarEqual", "Caret", "CaretEqual", "Bang", "BangEqual", "Equal", "EqualEqual", "FatArrow", "Greater", "GreaterEqual", "Less", "LessEqual", "Identifier", "String", "Number", "FixedPoint", "Degree", "Radian", "Fixed", "By", "Add", "And", "Or", "True", "False", "Self", "Fn", "Tick", "Repeat", "For", "While", "If", "Else", "Nil", "Return", "Break", "Continue", "Let", "Pub", "Const", "In", "As", "To", "With", "Enum", "Use", "Spawn", "Trait", "Entity", "Find", "Remove", "Match", "From", "Struct", "Eof",
+		"LeftParen", "RightParen", "LeftBrace", "RightBrace", "LeftBracket", "RightBracket", "Comma", "Colon", "At", "Wall", "Dot", "Concat", "Minus", "MinusEqual", "Plus", "PlusEqual", "Slash", "SlashEqual", "Star", "StarEqual", "Caret", "CaretEqual", "Bang", "BangEqual", "Equal", "EqualEqual", "FatArrow", "Greater", "GreaterEqual", "Less", "LessEqual", "Identifier", "String", "Number", "FixedPoint", "Degree", "Radian", "Fixed", "By", "Add", "And", "Or", "True", "False", "Self", "Fn", "Tick", "Repeat", "For", "While", "If", "Else", "Nil", "Return", "Break", "Continue", "Let", "Pub", "Const", "In", "As", "To", "With", "Enum", "Use", "Spawn", "Trait", "Entity", "Find", "Remove", "Match", "From", "Struct", "New", "Eof",
 	}[t]
 }
 

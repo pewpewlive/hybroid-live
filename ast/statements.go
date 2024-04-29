@@ -42,9 +42,30 @@ func (vds VariableDeclarationStmt) GetValueType() PrimitiveValueType {
 	return 0
 }
 
+type ConstructorStmt struct {
+	Token lexer.Token
+	Body *[]Node
+	Return []TypeExpr
+	Params  []Param
+}
+
+func (cs ConstructorStmt) GetType() NodeType {
+	return ConstructorStatement
+}
+
+func (cs ConstructorStmt) GetToken() lexer.Token {
+	return cs.Token
+}
+
+func (cs ConstructorStmt) GetValueType() PrimitiveValueType {
+	return 0
+}
+
 type StructDeclarationStmt struct {
 	Token lexer.Token
 	Name  lexer.Token
+	Fields []FieldDeclarationStmt
+	Constructor *ConstructorStmt
 	Body  *[]Node
 	IsLocal bool
 }
@@ -108,6 +129,7 @@ func (fds FunctionDeclarationStmt) GetValueType() PrimitiveValueType {
 
 
 type MethodDeclarationStmt struct {
+	Owner   lexer.Token
 	Name    lexer.Token
 	Return  []TypeExpr
 	Params  []Param

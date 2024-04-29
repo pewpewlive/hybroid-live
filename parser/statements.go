@@ -112,10 +112,52 @@ func (p *Parser) structDeclarationStatement() ast.Node {
 		return ast.Improper{Token: stmt.Token}
 	}
 
-	stmt.Body = p.getStructBody()
+	_, ok = p.consume("expected opening of the struct body", lexer.LeftBrace)
+	if !ok {
+		return ast.Improper{Token: stmt.Token}
+	}
+	stmt.Body = &[]ast.Node{}
+	for !p.match(lexer.RightBrace) { //im koocing ongg
+		if p.match(lexer.Fn) {
+			*stmt.Body = append(*stmt.Body, p.methodDeclarationStmt(stmt.IsLocal))
+		} else if p.match(lexer.Neww) {
+			construct, ok := p.constructorDeclarationStmt().(ast.ConstructorStmt)
+			if ok {
+				stmt.Constructor = &construct
+			}
+		} else if p.match(lexer.Identifier) {
+			field := p.fieldDeclarationStmt(stmt.IsLocal)
+			if field.GetType() != ast.NA {
+				stmt.Fields = append(stmt.Fields, field.(ast.FieldDeclarationStmt))
+			}
+		}else {
+			p.error(p.peek(), "unknown statement inside struct")
+		}
+	}
+
+	if stmt.Constructor == nil {
+		stmt.Constructor = &ast.ConstructorStmt{
+			Return: []ast.TypeExpr{
+				{
+					Name: stmt.Name,
+				},
+			},
+			Token: stmt.Token,
+		}
+	}
+
+	return stmt
+}
+
+func (p *Parser) constructorDeclarationStmt() ast.Node {
+	stmt := ast.ConstructorStmt{Token:p.peek(-1)}
+
+	stmt.Params = p.parameters()
+
+	stmt.Body = p.getBody()
 
 	if stmt.Body == nil {
-		return ast.Improper{Token:stmt.Token}
+		return ast.Improper{Token: stmt.Token}
 	}
 
 	return stmt
@@ -124,15 +166,10 @@ func (p *Parser) structDeclarationStatement() ast.Node {
 func (p *Parser) fieldDeclarationStmt(isLocal bool) ast.Node {
 	stmt := ast.FieldDeclarationStmt{
 		IsLocal: isLocal,
+		Token: p.peek(-1),
 	}
 
-	ident, _ := p.consume("expected identifier in field declaration", lexer.Identifier);
-
-	if !isLocal {
-		stmt.Token = p.peek(-1)
-	}else {
-		stmt.Token = ident
-	}
+	ident := p.peek()
 
 	var typee *ast.TypeExpr
 	if p.match(lexer.Colon) {
@@ -190,10 +227,10 @@ func (p *Parser) fieldDeclarationStmt(isLocal bool) ast.Node {
 	return stmt
 }
 
-func (p *Parser) methodDeclarationStmt() ast.Node {
-	fnDec := ast.MethodDeclarationStmt{}
-
-	fnDec.IsLocal = p.peek(-2).Type != lexer.Pub
+func (p *Parser) methodDeclarationStmt(IsLocal bool) ast.Node {
+	fnDec := ast.MethodDeclarationStmt{
+		IsLocal: IsLocal,
+	}
 
 	ident, ok := p.consume("expected a function name", lexer.Identifier)
 	if !ok {
@@ -218,45 +255,6 @@ func (p *Parser) methodDeclarationStmt() ast.Node {
 	return fnDec
 }
 
-
-func (p *Parser) getStructBody() *[]ast.Node {
-	_, ok := p.consume("expected opening of the struct body", lexer.LeftBrace)
-	if !ok {
-		return nil
-	}
-	body := []ast.Node{}
-	constructor_exists := false
-
-	for !p.match(lexer.RightBrace) { //im koocing ongg
-		if p.match(lexer.Pub) {
-			if p.match(lexer.Fn) {
-				body = append(body, p.methodDeclarationStmt())
-			}else if p.check(lexer.Identifier) {
-				body = append(body, p.fieldDeclarationStmt(false))
-			}else {
-				p.error(p.peek(), "expected function or field after 'pub'")
-			}
-		} else if p.match(lexer.Fn) {
-			body = append(body, p.methodDeclarationStmt())
-		} else if p.check(lexer.Identifier) {
-			if p.peek().Lexeme == "New" {
-				constructor_exists = true
-				body = append(body, p.methodDeclarationStmt())
-			}else {
-				body = append(body, p.fieldDeclarationStmt(true))
-			}
-		}else {
-			p.error(p.peek(), "unknown statement inside struct")
-		}
-	}
-
-	if !constructor_exists {
-		p.error(p.peek(-1), "struct must have a constructor")
-	}
-
-	return &body
-}
-
 func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) ast.IfStmt {
 	ifStm := ast.IfStmt{
 		Token: p.peek(-1),
@@ -265,19 +263,17 @@ func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) ast.IfSt
 	var expr ast.Node
 	if !is_else {
 		expr = p.multiComparison()
-		exprType := expr.GetType()
-		if exprType == ast.Identifier && !(p.isMultiComparison() || p.check(lexer.LeftBrace)) {
-			p.error(p.peek(), "if condition is not a valid expression")
-			for !p.check(lexer.LeftBrace) {
-				p.advance()
-			}
-		}
-		if exprType != ast.BinaryExpression && exprType != ast.Identifier && exprType != ast.UnaryExpression {
-			p.error(expr.GetToken(), "if condition is not a valid expression")
-			for !p.check(lexer.LeftBrace) {
-				p.advance()
-			}
-		}
+		// if exprType == ast.Identifier && !(p.isMultiComparison() || p.check(lexer.LeftBrace)) {
+		// 	for !p.check(lexer.LeftBrace) {
+		// 		p.advance()
+		// 	}
+		// }
+		// if exprType != ast.BinaryExpression && exprType != ast.Identifier && exprType != ast.UnaryExpression {
+		// 	p.error(expr.GetToken(), "if condition is not a valid expression")
+		// 	for !p.check(lexer.LeftBrace) {
+		// 		p.advance()
+		// 	}
+		// }
 	}
 	ifStm.BoolExpr = expr
 	ifStm.Body = *p.getBody()
@@ -374,6 +370,13 @@ func (p *Parser) functionDeclarationStmt() ast.Node {
 	fnDec.Name = ident
 	fnDec.Params = p.parameters()
 
+	fnDec.Return = p.returnings()
+	fnDec.Body = *p.getBody()
+
+	return fnDec
+}
+
+func (p *Parser) returnings() []ast.TypeExpr {
 	ret := make([]ast.TypeExpr, 0)
 	for p.check(lexer.Identifier) {
 		ret = append(ret, p.Type())
@@ -383,10 +386,7 @@ func (p *Parser) functionDeclarationStmt() ast.Node {
 			p.advance()
 		}
 	}
-	fnDec.Return = ret
-	fnDec.Body = *p.getBody()
-
-	return fnDec
+	return ret
 }
 
 func (p *Parser) addToStmt() ast.Node {

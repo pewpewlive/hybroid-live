@@ -127,6 +127,10 @@ entity Quadro {
     return self
   }
 
+  Destroy() {
+    PewPew.start_exploding(self, 30)
+  }
+
   Update() {
     let x, y = PewPew.GetPosition(self)
     x = x + 10fx * self.speed
@@ -193,8 +197,9 @@ end
 ### Creating an entity
 
 ```rs
-let id = spawn Quadro(100fx, 100fx, 10fx)
-destroy id
+let quadro = spawn Quadro(100fx, 100fx, 10fx)
+
+destroy quadro
 ```
 
 ## Lua interop & importing
@@ -626,7 +631,7 @@ enum SandwichType {
 
 ## Structures
 
-- [ ] Completed
+- [x] Completed
 
 Structures are classes that do not have inheritance.
 
@@ -636,7 +641,7 @@ struct Rectangle {
   let mesh_id1: number
   let mesh_id1, mesh_id1, mesh_id1, mesh_id1 = 0f, 0f, 0f, 0f, 0f
 
-  let x,y = 0,0
+  let x, y = 0,0
 
   pub rectangle_instances:list<Rectangle> = [] //static variable, accessible from all Rectangle instances
   
@@ -666,26 +671,27 @@ Print(rect.Area())
 ```
 
 ```lua
-function Rectangle(length, height)
-  local new = {length = 0, height = 0, thing = nil}
-  new.length = length
-  new.height = height
+function Rectangle_New(length, height)
+  local new = {0, 0, nil}
+  new[1] = length
+  new[2] = height
   return new
 end
 
-function Area(self)
-  return self.length * self.height
+function Rectangle_Area(self)
+  return self[1] * self[2]
 end
 
-function Perimeter(self)
-  return (self.length + self.height) * 2
+function Rectangle_Perimeter(self)
+  return (self[1] + self[2]) * 2
 end
 
-function Move(self)
+function Rectangle_Move(self)
   self.x = self.x + 5
 end
 
-local rect = Rectangle(100, 100)
+local rect = Rectangle_New(100, 100)
 
 print(Area(rect))
 ```
+

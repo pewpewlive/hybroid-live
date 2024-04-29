@@ -198,6 +198,10 @@ func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Val
 				return Invalid{}
 			}
 		}
+	}else {
+		if arrayType.Type == ast.Map {
+			w.error(node.Identifier.GetToken(), "map members are accessed with '[]'")
+		}
 	}
 
 	wrappedValType := TypeVal{Type: ast.Invalid}

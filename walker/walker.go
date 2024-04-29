@@ -27,6 +27,8 @@ type ScopeType int
 const (
 	ReturnAllowing ScopeType = iota
 	ReturnProhibiting
+	Structure
+	Entity
 )
 
 type Scope struct {

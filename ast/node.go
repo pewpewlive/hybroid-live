@@ -10,6 +10,7 @@ const (
 	StructureDeclarationStatement
 	FieldDeclarationStatement
 	MethodDeclarationStatement
+	ConstructorStatement
 
 	AssignmentStatement
 	RepeatStatement

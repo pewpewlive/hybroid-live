@@ -27,15 +27,23 @@ func (sb *StringBuilder) Append(chunks ...string) {
 	}
 }
 
+func (sb *StringBuilder) AppendTabbed(chunks ...string) {
+	sb.WriteString(getTabs())
+	for _, chunk := range chunks {
+		sb.WriteString(chunk)
+	}
+}
+
+var TabsCount int
+
 type Generator struct {
 	Errors    []ast.Error
 	Src       StringBuilder
-	TabsCount int
 }
 
-func (gen *Generator) getTabs() string {
+func getTabs() string {
 	tabs := StringBuilder{}
-	for i := 0; i < gen.TabsCount; i++ {
+	for i := 0; i < TabsCount; i++ {
 		tabs.Append("\t")
 	}
 
@@ -55,7 +63,7 @@ func (gen *Generator) Generate(program []ast.Node) {
 	//gen.Src.WriteString("local M = {}\n")
 	for _, node := range program {
 		generatedStr = gen.GenerateNode(node)
-		gen.Src.Append(gen.getTabs(), generatedStr, "\n")
+		gen.Src.Append(generatedStr, "\n")
 	}
 	//gen.Src.WriteString("return M")
 }
@@ -66,7 +74,7 @@ func (gen *Generator) GenerateString(program []ast.Node) string {
 
 	for _, node := range program {
 		generatedStr = gen.GenerateNode(node)
-		src.Append(gen.getTabs(), generatedStr, "\n")
+		src.Append(generatedStr, "\n")
 	}
 	return src.String()
 }
