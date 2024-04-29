@@ -633,10 +633,14 @@ Structures are classes that do not have inheritance.
 ```rs
 
 struct Rectangle {
-  mesh_id1: number
-  mesh_id1, mesh_id1, mesh_id1, mesh_id1 = 0f, 0f, 0f, 0f, 0f
+  let mesh_id1: number
+  let mesh_id1, mesh_id1, mesh_id1, mesh_id1 = 0f, 0f, 0f, 0f, 0f
+
+  let x,y = 0,0
+
+  pub rectangle_instances:list<Rectangle> = [] //static variable, accessible from all Rectangle instances
   
-  New(length, height) {
+  New(length number, height number) {
     self.length = length
     self.height = height
     return self
@@ -651,7 +655,7 @@ struct Rectangle {
   }
 
   fn Move() {
-    self.x += 5
+    x += 5
   }
 }
 

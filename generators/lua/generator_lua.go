@@ -105,6 +105,8 @@ func (gen *Generator) GenerateNode(node ast.Node) string {
 	switch newNode := node.(type) {
 	case ast.VariableDeclarationStmt:
 		return gen.variableDeclarationStmt(newNode)
+	case ast.StructDeclarationStmt:
+		return gen.structDeclarationStmt(newNode)
 	case ast.IfStmt:
 		return gen.ifStmt(newNode)
 	case ast.AssignmentStmt:

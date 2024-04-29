@@ -8,27 +8,28 @@ import (
 )
 
 func (gen *Generator) ifStmt(node ast.IfStmt) string {
+	src := StringBuilder{}
 	ifTabs := gen.getTabs()
 
 	gen.TabsCount += 1
 
-	gen.Src.Append(ifTabs, "if ", gen.GenerateNode(node.BoolExpr), " then\n")
+	src.Append("if ", gen.GenerateNode(node.BoolExpr), " then\n")
 
-	gen.Generate(node.Body)
+	src.WriteString(gen.GenerateString(node.Body))
 	for _, elseif := range node.Elseifs {
-		gen.Src.Append(ifTabs, "elseif ", gen.GenerateNode(elseif.BoolExpr), " then\n")
-		gen.Generate(elseif.Body)
+		src.Append(ifTabs, "elseif ", gen.GenerateNode(elseif.BoolExpr), " then\n")
+		src.WriteString(gen.GenerateString(elseif.Body))
 	}
 	if node.Else != nil {
-		gen.Src.Append(ifTabs, "else \n")
-		gen.Generate(node.Else.Body)
+		src.Append(ifTabs, "else \n")
+		src.WriteString(gen.GenerateString(node.Else.Body))
 	}
 
-	gen.Src.Append(ifTabs, "end")
+	src.Append(ifTabs, "end")
 
 	gen.TabsCount -= 1
 
-	return ""
+	return src.String()
 }
 
 func (gen *Generator) assignmentStmt(assginStmt ast.AssignmentStmt) string {
@@ -60,32 +61,33 @@ func (gen *Generator) assignmentStmt(assginStmt ast.AssignmentStmt) string {
 }
 
 func (gen *Generator) functionDeclarationStmt(node ast.FunctionDeclarationStmt) string {
+	src := StringBuilder{}
 	fnTabs := gen.getTabs()
 
 	gen.TabsCount += 1
 
 	if node.IsLocal {
-		gen.Src.Append(fnTabs, "local ")
+		src.Append(fnTabs, "local ")
 	} else {
-		gen.Src.Append(fnTabs)
+		src.Append(fnTabs)
 	}
 
-	gen.Src.Append("function ", node.Name.Lexeme, "(")
+	src.Append("function ", node.Name.Lexeme, "(")
 	for i, param := range node.Params {
-		gen.Src.Append(param.Name.Lexeme)
+		src.Append(param.Name.Lexeme)
 		if i != len(node.Params)-1 {
-			gen.Src.Append(", ")
+			src.Append(", ")
 		}
 	}
-	gen.Src.Append(")\n")
+	src.Append(")\n")
 
-	gen.Generate(node.Body)
+	src.WriteString(gen.GenerateString(node.Body))
 
-	gen.Src.Append(fnTabs + "end")
+	src.Append(fnTabs + "end")
 
 	gen.TabsCount -= 1
 
-	return ""
+	return src.String()
 }
 
 func (gen *Generator) returnStmt(node ast.ReturnStmt) string {
@@ -103,7 +105,7 @@ func (gen *Generator) returnStmt(node ast.ReturnStmt) string {
 }
 
 func (gen *Generator) repeatStmt(node ast.RepeatStmt) string {
-
+	src := StringBuilder{}
 	repeatTabs := gen.getTabs()
 
 	gen.TabsCount += 1
@@ -114,49 +116,49 @@ func (gen *Generator) repeatStmt(node ast.RepeatStmt) string {
 	skip := gen.GenerateNode(node.Skip)
 	if node.Variable.GetValueType() != 0 {
 		variable := gen.GenerateNode(node.Variable)
-		gen.Src.Append(repeatTabs, "for ", variable, " = ", start, ", ", end, ", ", skip, " do\n")
+		src.Append(repeatTabs, "for ", variable, " = ", start, ", ", end, ", ", skip, " do\n")
 	} else {
-		gen.Src.Append(repeatTabs, "for _ = ", start, ", ", end, ", ", skip, " do\n")
+		src.Append(repeatTabs, "for _ = ", start, ", ", end, ", ", skip, " do\n")
 	}
 
 	for _, stmt := range node.Body {
 		value := gen.GenerateNode(stmt)
-		gen.Src.Append(tabs, value, "\n")
+		src.Append(tabs, value, "\n")
 	}
 
-	gen.Src.Append(repeatTabs, "end")
+	src.Append(repeatTabs, "end")
 
 	gen.TabsCount -= 1
 
-	return ""
+	return src.String()
 }
 
 func (gen *Generator) tickStmt(node ast.TickStmt) string {
-
-	repeatTabs := gen.getTabs()
+	src := StringBuilder{}
+	tickTabs := gen.getTabs()
 
 	gen.TabsCount += 1
 	tabs := gen.getTabs()
 
 	if node.Variable.GetValueType() != 0 {
 		variable := gen.GenerateNode(node.Variable)
-		gen.Src.Append(repeatTabs, "local ", variable, " = 0\n")
-		gen.Src.Append(repeatTabs, "pewpew.add_update_callback(function()\n")
-		gen.Src.Append(tabs, variable, " = ", variable, " + 1\n")
+		src.Append(tickTabs, "local ", variable, " = 0\n")
+		src.Append(tickTabs, "pewpew.add_update_callback(function()\n")
+		src.Append(tabs, variable, " = ", variable, " + 1\n")
 	} else {
-		gen.Src.Append(repeatTabs, "pewpew.add_update_callback(function()\n")
+		src.Append(tickTabs, "pewpew.add_update_callback(function()\n")
 	}
 
 	for _, stmt := range node.Body {
 		value := gen.GenerateNode(stmt)
-		gen.Src.Append(tabs, value, "\n")
+		src.Append(tabs, value, "\n")
 	}
 
-	gen.Src.Append(repeatTabs, "end)")
+	src.Append(tickTabs, "end)")
 
 	gen.TabsCount -= 1
 
-	return ""
+	return src.String()
 }
 
 func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclarationStmt) string {
@@ -191,6 +193,85 @@ func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclaratio
 	}
 
 	src.Append(src2.String(), "\n")
+
+	return src.String()
+}
+
+func (gen *Generator) structDeclarationStmt(node ast.StructDeclarationStmt) string {
+	src := StringBuilder{}
+
+	structTabs := gen.getTabs()
+	gen.TabsCount += 1;
+
+	if node.IsLocal {
+		src.Append(structTabs, "local ")
+	}
+
+	src.Append(structTabs, node.Name.Lexeme, " = {}\n")
+
+	for _, nodebody := range *node.Body {
+		switch newNode := nodebody.(type)  {
+		case ast.FieldDeclarationStmt:
+			src.WriteString(gen.fieldDeclarationStmt(newNode, node.Name.Lexeme))
+		case ast.MethodDeclarationStmt:
+			src.WriteString(gen.methodDeclarationStmt(newNode, node.Name.Lexeme))
+		}
+	}
+
+	gen.TabsCount -= 1
+
+	return src.String()
+}
+
+func (gen *Generator) fieldDeclarationStmt(node ast.FieldDeclarationStmt, structName string) string {
+	src := StringBuilder{}
+
+	var values []string
+	for _, expr := range node.Values {
+		values = append(values, gen.GenerateNode(expr))
+	}
+
+	for i, ident := range node.Identifiers {
+		if i == len(node.Identifiers)-1 && len(values) != 0 {
+			src.WriteString(fmt.Sprintf("%s.%s = ", structName, ident.Lexeme))
+		} else if i == len(node.Identifiers)-1 {
+			src.Append(structName, ".", ident.Lexeme)
+		} else {
+			src.WriteString(fmt.Sprintf("%s.%s, ", structName, ident.Lexeme))
+		}
+	}
+	src2 := StringBuilder{}
+	for i := range values {
+		if i == len(values)-1 {
+			src2.WriteString(values[i])
+			break
+		}
+		src2.WriteString(fmt.Sprintf("%s, ", values[i]))
+
+	}
+
+	src.Append(src2.String(), "\n")
+
+	return src.String()
+}
+
+func (gen *Generator) methodDeclarationStmt(node ast.MethodDeclarationStmt, structName string) string {
+	src := StringBuilder{}
+
+	gen.TabsCount += 1
+
+	src.Append("function ", structName, ".", node.Name.Lexeme, "(")
+	for i, param := range node.Params {
+		src.Append(param.Name.Lexeme)
+		if i != len(node.Params)-1 {
+			src.Append(", ")
+		}
+	}
+	src.Append(")\n")
+
+	src.Append(gen.GenerateString(node.Body), "end")
+
+	gen.TabsCount -= 1
 
 	return src.String()
 }

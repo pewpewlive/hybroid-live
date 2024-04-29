@@ -365,6 +365,8 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 	case ast.UseStmt:
 		w.useStmt(&newNode, scope)
 		*node = newNode
+	case ast.StructDeclarationStmt:
+		
 	default:
 		w.error(newNode.GetToken(), "Expected statement")
 	}

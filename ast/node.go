@@ -9,6 +9,7 @@ const (
 	FunctionDeclarationStatement
 	StructureDeclarationStatement
 	FieldDeclarationStatement
+	MethodDeclarationStatement
 
 	AssignmentStatement
 	RepeatStatement

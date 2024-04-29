@@ -98,11 +98,126 @@ func (p *Parser) getBody() *[]ast.Node {
 	return &body
 }
 
-func (p *Parser) structDeclarationStatement() ast.StructDeclarationStmt {
-	p.consume("expected the name of the structure", lexer.Identifier)
+func (p *Parser) structDeclarationStatement() ast.Node {
+	stmt := ast.StructDeclarationStmt{
+		IsLocal: p.peek(-1).Type == lexer.Pub,
+	}
+	stmt.Token = p.peek(-1)
 
-	p.getStructBody()
+	name, ok := p.consume("expected the name of the structure", lexer.Identifier)
+
+	if ok {
+		stmt.Name = name
+	}else {
+		return ast.Improper{Token: stmt.Token}
+	}
+
+	stmt.Body = p.getStructBody()
+
+	if stmt.Body == nil {
+		return ast.Improper{Token:stmt.Token}
+	}
+
+	return stmt
 }
+
+func (p *Parser) fieldDeclarationStmt(isLocal bool) ast.Node {
+	stmt := ast.FieldDeclarationStmt{
+		IsLocal: isLocal,
+	}
+
+	ident, _ := p.consume("expected identifier in field declaration", lexer.Identifier);
+
+	if !isLocal {
+		stmt.Token = p.peek(-1)
+	}else {
+		stmt.Token = ident
+	}
+
+	var typee *ast.TypeExpr
+	if p.match(lexer.Colon) {
+		typ := p.Type()
+		if typ.GetType() == ast.NA {
+			return ast.Improper{Token: p.peek(-1)}
+		}
+
+		typee = &typ
+	}
+	idents := []lexer.Token{ident}
+	types := []*ast.TypeExpr{typee}
+	for p.match(lexer.Comma) {
+		ident, identOk := p.consume("expected identifier in field declaration", lexer.Identifier)
+		if !identOk {
+			return ast.Improper{Token: p.peek(-1)}
+		}
+		typee = nil
+		if p.match(lexer.Colon) {
+			typ := p.Type()
+			if typ.GetType() == ast.NA {
+				return ast.Improper{Token: p.peek(-1)}
+			}
+
+			typee = &typ
+		}
+
+		idents = append(idents, ident)
+		types = append(types, typee)
+	}
+
+	stmt.Identifiers = idents
+	stmt.Types = types
+
+	if !p.match(lexer.Equal) {
+		stmt.Values = []ast.Node{}
+		return stmt
+	}
+
+	expr := p.expression()
+	if expr.GetType() == 0 {
+		p.error(p.peek(), "expected expression")
+	}
+
+	exprs := []ast.Node{expr}
+	for p.match(lexer.Comma) {
+		expr = p.expression()
+		if expr.GetType() == 0 {
+			p.error(p.peek(), "expected expression")
+		}
+		exprs = append(exprs, expr)
+	}
+	stmt.Values = exprs
+
+	return stmt
+}
+
+func (p *Parser) methodDeclarationStmt() ast.Node {
+	fnDec := ast.MethodDeclarationStmt{}
+
+	fnDec.IsLocal = p.peek(-2).Type != lexer.Pub
+
+	ident, ok := p.consume("expected a function name", lexer.Identifier)
+	if !ok {
+		return fnDec
+	}
+
+	fnDec.Name = ident
+	fnDec.Params = p.parameters()
+
+	ret := make([]ast.TypeExpr, 0)
+	for p.check(lexer.Identifier) {
+		ret = append(ret, p.Type())
+		if !p.check(lexer.Comma) {
+			break
+		} else {
+			p.advance()
+		}
+	}
+	fnDec.Return = ret
+	fnDec.Body = *p.getBody()
+
+	return fnDec
+}
+
 
 func (p *Parser) getStructBody() *[]ast.Node {
 	_, ok := p.consume("expected opening of the struct body", lexer.LeftBrace)
@@ -110,40 +225,36 @@ func (p *Parser) getStructBody() *[]ast.Node {
 		return nil
 	}
 	body := []ast.Node{}
+	constructor_exists := false
 
 	for !p.match(lexer.RightBrace) { //im koocing ongg
-		if p.check(lexer.Identifier) {
-			body = append(body, p.structFieldDeclarationStmt())
-		} else if p.check(lexer.Fn) {
-			body = append(body, p.functionDeclarationStmt())
-		} else if p.check(lexer.Trait) { // hello?
-			//check syntax spec
-		} else {
-			p.error(p.peek)
+		if p.match(lexer.Pub) {
+			if p.match(lexer.Fn) {
+				body = append(body, p.methodDeclarationStmt())
+			}else if p.check(lexer.Identifier) {
+				body = append(body, p.fieldDeclarationStmt(false))
+			}else {
+				p.error(p.peek(), "expected function or field after 'pub'")
+			}
+		} else if p.match(lexer.Fn) {
+			body = append(body, p.methodDeclarationStmt())
+		} else if p.check(lexer.Identifier) {
+			if p.peek().Lexeme == "New" {
+				constructor_exists = true
+				body = append(body, p.methodDeclarationStmt())
+			}else {
+				body = append(body, p.fieldDeclarationStmt(true))
+			}
+		}else {
+			p.error(p.peek(), "unknown statement inside struct")
 		}
 	}
-}
 
-func (p *Parser) structFieldDeclarationStmt() ast.Node { //we gonna do that
-	p.consume("expected field identifier", lexer.Identifier)
-
-	for !p.match(lexer.Comma) {
-		p.consume("expected field identifier", lexer.Identifier)
+	if !constructor_exists {
+		p.error(p.peek(-1), "struct must have a constructor")
 	}
 
-	if p.check(lexer.Equal) {
-
-	} else if p.check(lexer.Identifier) { // idk what token type types use
-
-	}
-
-	p.consume("expected value in field declaration", lexer.Identifier)
-
-	for !p.match(lexer.Comma) {
-		p.consume("expected value in field declaration", lexer.Identifier)
-	} // smth like that, ig i have to get expressions but rn im kinda tired brb
-
-	//gonna make the struct
+	return &body
 }
 
 func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) ast.IfStmt {

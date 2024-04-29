@@ -3,8 +3,19 @@
 let b = fn(param text) bool {
     if param == "a" {
         //emty
+        if param == "aa" {
+
+        }
     }else {
         return false
     }
     return true
+}
+
+struct Test {
+    x,y = 0,0
+
+    New() {
+        
+    }
 }

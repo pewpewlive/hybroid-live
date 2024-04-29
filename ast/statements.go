@@ -44,6 +44,9 @@ func (vds VariableDeclarationStmt) GetValueType() PrimitiveValueType {
 
 type StructDeclarationStmt struct {
 	Token lexer.Token
+	Name  lexer.Token
+	Body  *[]Node
+	IsLocal bool
 }
 
 func (sds StructDeclarationStmt) GetType() NodeType {
@@ -59,8 +62,11 @@ func (sds StructDeclarationStmt) GetValueType() PrimitiveValueType {
 }
 
 type FieldDeclarationStmt struct {
-	Name  lexer.Token
-	Value Node
+	Identifiers []lexer.Token
+	Types       []*TypeExpr
+	Values      []Node
+	IsLocal     bool
+	Token       lexer.Token
 }
 
 func (f FieldDeclarationStmt) GetType() NodeType {
@@ -68,7 +74,7 @@ func (f FieldDeclarationStmt) GetType() NodeType {
 }
 
 func (f FieldDeclarationStmt) GetToken() lexer.Token {
-	return f.Name
+	return f.Token
 }
 
 func (f FieldDeclarationStmt) GetValueType() PrimitiveValueType {
@@ -89,7 +95,7 @@ type FunctionDeclarationStmt struct {
 }
 
 func (fds FunctionDeclarationStmt) GetType() NodeType {
-	return FunctionDeclarationStatement
+	return MethodDeclarationStatement
 }
 
 func (fds FunctionDeclarationStmt) GetToken() lexer.Token {
@@ -97,6 +103,27 @@ func (fds FunctionDeclarationStmt) GetToken() lexer.Token {
 }
 
 func (fds FunctionDeclarationStmt) GetValueType() PrimitiveValueType {
+	return 0
+}
+
+
+type MethodDeclarationStmt struct {
+	Name    lexer.Token
+	Return  []TypeExpr
+	Params  []Param
+	IsLocal bool
+	Body    []Node
+}
+
+func (fds MethodDeclarationStmt) GetType() NodeType {
+	return FunctionDeclarationStatement
+}
+
+func (fds MethodDeclarationStmt) GetToken() lexer.Token {
+	return fds.Name
+}
+
+func (fds MethodDeclarationStmt) GetValueType() PrimitiveValueType {
 	return 0
 }
 
