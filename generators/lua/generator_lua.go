@@ -37,8 +37,8 @@ func (sb *StringBuilder) AppendTabbed(chunks ...string) {
 var TabsCount int
 
 type Generator struct {
-	Errors    []ast.Error
-	Src       StringBuilder
+	Errors []ast.Error
+	Src    StringBuilder
 }
 
 func getTabs() string {

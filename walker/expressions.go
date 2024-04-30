@@ -98,6 +98,10 @@ func (w *Walker) listExpr(node *ast.ListExpr, scope *Scope) Value {
 	return value
 }
 
+// func (w *Walker) selfExpr(ndoe *ast.SelfExpr, scope *Scope) Value {
+
+// }
+
 func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope) Value {
 	callerToken := node.Caller.GetToken()
 	sc := scope.Resolve(callerToken.Lexeme)
@@ -198,7 +202,7 @@ func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Val
 				return Invalid{}
 			}
 		}
-	}else {
+	} else {
 		if arrayType.Type == ast.Map {
 			w.error(node.Identifier.GetToken(), "map members are accessed with '[]'")
 		}

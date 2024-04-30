@@ -36,6 +36,7 @@ const (
 	MemberExpression
 	ParentExpression
 	TypeExpression
+	SelfExpression
 
 	Identifier
 

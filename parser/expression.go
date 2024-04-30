@@ -174,6 +174,18 @@ func (p *Parser) unary() ast.Node {
 		return ast.UnaryExpr{Operator: operator, Value: right}
 	}
 
+	return p.self()
+}
+
+func (p *Parser) self() ast.Node { // somestruct.x
+	if p.check(lexer.Self) {
+		expr := ast.SelfExpr{
+			Token: p.peek(),
+			Value: p.memberCall(nil),
+		}
+		return expr
+	}
+
 	return p.memberCall(nil)
 }
 
@@ -382,6 +394,10 @@ func (p *Parser) primary() ast.Node {
 		}
 		p.consume("expected ')' after expression", lexer.RightParen)
 		return ast.GroupExpr{Expr: expr, Token: token, ValueType: expr.GetValueType()}
+	}
+
+	if p.match(lexer.Self) {
+		return ast.IdentifierExpr{Name: p.peek(-1)}
 	}
 
 	return ast.Improper{Token: p.peek()}

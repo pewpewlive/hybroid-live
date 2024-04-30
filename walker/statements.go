@@ -108,6 +108,7 @@ func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scop
 	var ret ReturnType
 	for _, typee := range node.Return {
 		ret.values = append(ret.values, w.typeExpr(&typee))
+		fmt.Printf("%s\n", ret.values[len(ret.values)-1].Type.ToString())
 	}
 	if len(ret.values) == 0 {
 		ret.values = append(ret.values, TypeVal{Type: ast.Nil})
@@ -137,8 +138,8 @@ func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scop
 
 func (w *Walker) returnStmt(node *ast.ReturnStmt, scope *Scope) *ReturnType {
 	var ret ReturnType
-	if scope.Type == ReturnProhibiting {
-		w.error(node.GetToken(), "can't have a return statement outside of a function")
+	if scope.Type != ReturnAllowing {
+		w.error(node.GetToken(), "can't have a return statement outside of a function or method")
 	}
 	for _, expr := range node.Args {
 		val := w.GetNodeValue(&expr, scope)
@@ -317,6 +318,45 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 	} else if len(values) < len(declaration.Identifiers) {
 		w.error(declaration.Token, "too few values provided in declaration")
 	}
+}
+
+func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *Scope) {
+	structScope := NewScope(scope.Global, scope, Structure)
+
+	for _, field := range node.Fields {
+		w.fieldDeclarationStmt(&field, scope)
+	}
+
+	for _, method := range *node.Methods {
+		w.methodDeclarationStmt(&method, &structScope)
+	}
+}
+
+func (w *Walker) fieldDeclarationStmt(node *ast.FieldDeclarationStmt, scope *Scope) {
+	// declare fields as variables in structure scope
+	// we can copy from variable declaration for this 1:1 wait
+	// so we can do this funny
+	varDecl := ast.VariableDeclarationStmt{
+		Identifiers: node.Identifiers,
+		Types:       node.Types,
+		Values:      node.Values,
+		IsLocal:     node.IsLocal,
+		Token:       node.Token,
+	} // casual programming experiance, write new structure to turn it into the old one
+	// xdxddxdsdxdxd
+	w.variableDeclarationStmt(&varDecl, scope) // lmaooo does this work tho?
+} // boom lmao
+
+func (w *Walker) methodDeclarationStmt(node *ast.MethodDeclarationStmt, scope *Scope) {
+	funcExpr := ast.FunctionDeclarationStmt{ //NANHHHHHHH
+		Name:    node.Name,
+		Return:  node.Return,
+		Params:  node.Params,
+		Body:    node.Body,
+		IsLocal: true,
+	}
+
+	w.functionDeclarationStmt(&funcExpr, scope)
 }
 
 func (w *Walker) useStmt(node *ast.UseStmt, scope *Scope) {

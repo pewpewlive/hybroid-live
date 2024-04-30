@@ -133,6 +133,31 @@ func (af AnonFnExpr) GetValueType() PrimitiveValueType {
 	return 0
 }
 
+type SelfExprType int
+
+const (
+	SelfStruct SelfExprType = iota
+	SelfEntity
+)
+
+type SelfExpr struct {
+	Token lexer.Token
+	Value Node
+	Type  SelfExprType
+}
+
+func (se SelfExpr) GetType() NodeType {
+	return SelfExpression
+}
+
+func (se SelfExpr) GetToken() lexer.Token {
+	return se.Token
+}
+
+func (se SelfExpr) GetValueType() PrimitiveValueType {
+	return 0
+}
+
 type MemberExpr struct {
 	Owner      Node
 	Property   Node

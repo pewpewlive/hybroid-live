@@ -42,7 +42,7 @@ func (p *Parser) statement() ast.Node {
 	case lexer.Return:
 		p.advance()
 		return p.returnStmt()
-	case lexer.Identifier:
+	case lexer.Identifier, lexer.Self:
 		return p.assignmentStmt()
 	case lexer.If:
 		p.advance()
@@ -108,7 +108,7 @@ func (p *Parser) structDeclarationStatement() ast.Node {
 
 	if ok {
 		stmt.Name = name
-	}else {
+	} else {
 		return ast.Improper{Token: stmt.Token}
 	}
 
@@ -116,10 +116,13 @@ func (p *Parser) structDeclarationStatement() ast.Node {
 	if !ok {
 		return ast.Improper{Token: stmt.Token}
 	}
-	stmt.Body = &[]ast.Node{}
+	stmt.Methods = &[]ast.MethodDeclarationStmt{}
 	for !p.match(lexer.RightBrace) { //im koocing ongg
 		if p.match(lexer.Fn) {
-			*stmt.Body = append(*stmt.Body, p.methodDeclarationStmt(stmt.IsLocal))
+			method, ok := p.methodDeclarationStmt(stmt.IsLocal).(ast.MethodDeclarationStmt)
+			if ok {
+				*stmt.Methods = append(*stmt.Methods, method)
+			}
 		} else if p.match(lexer.Neww) {
 			construct, ok := p.constructorDeclarationStmt().(ast.ConstructorStmt)
 			if ok {
@@ -130,7 +133,7 @@ func (p *Parser) structDeclarationStatement() ast.Node {
 			if field.GetType() != ast.NA {
 				stmt.Fields = append(stmt.Fields, field.(ast.FieldDeclarationStmt))
 			}
-		}else {
+		} else {
 			p.error(p.peek(), "unknown statement inside struct")
 		}
 	}
@@ -150,7 +153,7 @@ func (p *Parser) structDeclarationStatement() ast.Node {
 }
 
 func (p *Parser) constructorDeclarationStmt() ast.Node {
-	stmt := ast.ConstructorStmt{Token:p.peek(-1)}
+	stmt := ast.ConstructorStmt{Token: p.peek(-1)}
 
 	stmt.Params = p.parameters()
 
@@ -166,7 +169,7 @@ func (p *Parser) constructorDeclarationStmt() ast.Node {
 func (p *Parser) fieldDeclarationStmt(isLocal bool) ast.Node {
 	stmt := ast.FieldDeclarationStmt{
 		IsLocal: isLocal,
-		Token: p.peek(-1),
+		Token:   p.peek(-1),
 	}
 
 	ident := p.peek()

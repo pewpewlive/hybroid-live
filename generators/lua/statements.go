@@ -202,11 +202,8 @@ func (gen *Generator) structDeclarationStmt(node ast.StructDeclarationStmt) stri
 
 	src.WriteString(gen.constructorDeclarationStmt(*node.Constructor, node))
 
-	for _, nodebody := range *node.Body {
-		switch newNode := nodebody.(type)  {
-		case ast.MethodDeclarationStmt:
-			src.WriteString(gen.methodDeclarationStmt(newNode, node.Name.Lexeme))
-		}
+	for _, nodebody := range *node.Methods {
+		src.WriteString(gen.methodDeclarationStmt(nodebody, node.Name.Lexeme))
 	}
 
 	return src.String()
@@ -232,8 +229,8 @@ func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, Struc
 		for i, value := range field.Values {
 			if i == len(field.Values)-1 {
 				src.WriteString(gen.GenerateNode(value))
-			}else {
-				src.Append(gen.GenerateNode(value),",")
+			} else {
+				src.Append(gen.GenerateNode(value), ",")
 			}
 		}
 	}

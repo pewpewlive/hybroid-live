@@ -43,10 +43,10 @@ func (vds VariableDeclarationStmt) GetValueType() PrimitiveValueType {
 }
 
 type ConstructorStmt struct {
-	Token lexer.Token
-	Body *[]Node
+	Token  lexer.Token
+	Body   *[]Node
 	Return []TypeExpr
-	Params  []Param
+	Params []Param
 }
 
 func (cs ConstructorStmt) GetType() NodeType {
@@ -62,12 +62,12 @@ func (cs ConstructorStmt) GetValueType() PrimitiveValueType {
 }
 
 type StructDeclarationStmt struct {
-	Token lexer.Token
-	Name  lexer.Token
-	Fields []FieldDeclarationStmt
+	Token       lexer.Token
+	Name        lexer.Token
+	Fields      []FieldDeclarationStmt
 	Constructor *ConstructorStmt
-	Body  *[]Node
-	IsLocal bool
+	Methods     *[]MethodDeclarationStmt
+	IsLocal     bool
 }
 
 func (sds StructDeclarationStmt) GetType() NodeType {
@@ -126,7 +126,6 @@ func (fds FunctionDeclarationStmt) GetToken() lexer.Token {
 func (fds FunctionDeclarationStmt) GetValueType() PrimitiveValueType {
 	return 0
 }
-
 
 type MethodDeclarationStmt struct {
 	Owner   lexer.Token
