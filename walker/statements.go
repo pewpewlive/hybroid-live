@@ -95,7 +95,7 @@ func (w *Walker) assignmentStmt(assignStmt *ast.AssignmentStmt, scope *Scope) {
 	}
 }
 
-func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scope *Scope) {
+func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scope *Scope) VariableVal {
 	fnScope := NewScope(scope.Global, scope, ReturnAllowing)
 
 	params := make([]TypeVal, 0)
@@ -108,7 +108,7 @@ func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scop
 	var ret ReturnType
 	for _, typee := range node.Return {
 		ret.values = append(ret.values, w.typeExpr(&typee))
-		fmt.Printf("%s\n", ret.values[len(ret.values)-1].Type.ToString())
+		//fmt.Printf("%s\n", ret.values[len(ret.values)-1].Type.ToString())
 	}
 	if len(ret.values) == 0 {
 		ret.values = append(ret.values, TypeVal{Type: ast.Nil})
@@ -134,6 +134,8 @@ func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scop
 	if w.bodyReturns(&node.Body, &ret, &fnScope) == nil && ret.values[0].Type != ast.Nil {
 		w.error(node.GetToken(), "not all function paths return a value")
 	}
+
+	return variable
 }
 
 func (w *Walker) returnStmt(node *ast.ReturnStmt, scope *Scope) *ReturnType {
@@ -221,7 +223,9 @@ func GetValue(values []Value, index int) Value {
 	}
 }
 
-func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStmt, scope *Scope) {
+func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStmt, scope *Scope) []VariableVal {
+	declaredVariables := []VariableVal{}
+
 	var values []Value
 
 	for _, expr := range declaration.Values {
@@ -304,35 +308,53 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 		//fmt.Printf("%s\n", valType.Type.ToString())
 		//fmt.Printf("%s\n", explicitType.Type.ToString())
 
+		declaredVariables = append(declaredVariables, variable)
 		if _, success := scope.DeclareVariable(variable); !success {
 			w.error(lexer.Token{Lexeme: ident.Lexeme, Location: declaration.Token.Location},
 				"cannot declare a value in the same scope twice")
 		}
 	}
 
-	if len(values) == 0 {
-		return
+	if len(values) != 0 {
+		return declaredVariables
 	}
 	if len(values) > len(declaration.Identifiers) {
 		w.error(declaration.Token, "too many values provided in declaration")
 	} else if len(values) < len(declaration.Identifiers) {
 		w.error(declaration.Token, "too few values provided in declaration")
 	}
+
+	return declaredVariables
 }
 
 func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *Scope) {
 	structScope := NewScope(scope.Global, scope, Structure)
 
+	structTypeVal := StructTypeVal{
+		Name: node.Name,
+	}
+	params := make([]TypeVal, 0)
+	for _, param := range node.Constructor.Params {
+		params = append(params, w.typeExpr(&param.Type))
+	}
+	structTypeVal.Params = params
+
+	scope.DeclareStructType(structTypeVal)
+
+	node.Constructor.Return = ast.TypeExpr{
+		Name: node.Name,
+	}
+
 	for _, field := range node.Fields {
-		w.fieldDeclarationStmt(&field, scope)
+		w.fieldDeclarationStmt(&field, &structTypeVal, scope)
 	}
 
 	for _, method := range *node.Methods {
-		w.methodDeclarationStmt(&method, &structScope)
+		w.methodDeclarationStmt(&method, &structTypeVal, &structScope)
 	}
 }
 
-func (w *Walker) fieldDeclarationStmt(node *ast.FieldDeclarationStmt, scope *Scope) {
+func (w *Walker) fieldDeclarationStmt(node *ast.FieldDeclarationStmt, structType *StructTypeVal,  scope *Scope) {
 	// declare fields as variables in structure scope
 	// we can copy from variable declaration for this 1:1 wait
 	// so we can do this funny
@@ -344,10 +366,13 @@ func (w *Walker) fieldDeclarationStmt(node *ast.FieldDeclarationStmt, scope *Sco
 		Token:       node.Token,
 	} // casual programming experiance, write new structure to turn it into the old one
 	// xdxddxdsdxdxd
-	w.variableDeclarationStmt(&varDecl, scope) // lmaooo does this work tho?
+	variables := w.variableDeclarationStmt(&varDecl, scope) // lmaooo does this work tho?
+	for _, variable := range variables {
+		structType.Fields[variable.Name] = variable
+	}
 } // boom lmao
 
-func (w *Walker) methodDeclarationStmt(node *ast.MethodDeclarationStmt, scope *Scope) {
+func (w *Walker) methodDeclarationStmt(node *ast.MethodDeclarationStmt, structType *StructTypeVal, scope *Scope) {
 	funcExpr := ast.FunctionDeclarationStmt{ //NANHHHHHHH
 		Name:    node.Name,
 		Return:  node.Return,
@@ -356,7 +381,8 @@ func (w *Walker) methodDeclarationStmt(node *ast.MethodDeclarationStmt, scope *S
 		IsLocal: true,
 	}
 
-	w.functionDeclarationStmt(&funcExpr, scope)
+	variable := w.functionDeclarationStmt(&funcExpr, scope)
+	structType.Methods[variable.Name] = variable
 }
 
 func (w *Walker) useStmt(node *ast.UseStmt, scope *Scope) {

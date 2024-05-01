@@ -21,9 +21,15 @@ func (p *Parser) statement() ast.Node {
 	token := p.peek().Type
 	next := p.peek(1).Type
 
-	if token == lexer.Pub && next == lexer.Fn {
-		p.advance()
-		token = p.peek().Type
+	if token == lexer.Pub {
+		if next == lexer.Fn {
+			p.advance()
+			token = p.peek().Type
+		}else if next == lexer.Struct {
+			p.advance()
+			p.advance()
+			return p.structDeclarationStatement()
+		}
 	}
 
 	switch token {
@@ -100,7 +106,7 @@ func (p *Parser) getBody() *[]ast.Node {
 
 func (p *Parser) structDeclarationStatement() ast.Node {
 	stmt := ast.StructDeclarationStmt{
-		IsLocal: p.peek(-1).Type == lexer.Pub,
+		IsLocal: p.peek(-1).Type != lexer.Pub,
 	}
 	stmt.Token = p.peek(-1)
 
@@ -140,11 +146,6 @@ func (p *Parser) structDeclarationStatement() ast.Node {
 
 	if stmt.Constructor == nil {
 		stmt.Constructor = &ast.ConstructorStmt{
-			Return: []ast.TypeExpr{
-				{
-					Name: stmt.Name,
-				},
-			},
 			Token: stmt.Token,
 		}
 	}

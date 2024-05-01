@@ -37,6 +37,7 @@ const (
 	ParentExpression
 	TypeExpression
 	SelfExpression
+	NewExpession
 
 	Identifier
 

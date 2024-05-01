@@ -2,6 +2,7 @@ package walker
 
 import (
 	"hybroid/ast"
+	"hybroid/lexer"
 	"hybroid/parser"
 )
 
@@ -19,6 +20,25 @@ type VariableVal struct {
 
 func (v VariableVal) GetType() TypeVal {
 	return v.Value.GetType()
+}
+
+type StructTypeVal struct {
+	Name lexer.Token
+	Params []TypeVal
+	Fields map[string]VariableVal
+	Methods map[string]VariableVal
+}
+
+func (st StructTypeVal) GetType() TypeVal {
+	return TypeVal{Type: ast.Struct, Name: st.Name.Lexeme}
+}
+
+type StructVal struct {
+	Type *StructTypeVal
+}
+
+func (s StructVal) GetType() TypeVal {
+	return s.Type.GetType()
 }
 
 type NamespaceVal struct {
@@ -165,6 +185,7 @@ func (n ReturnType) GetType() TypeVal {
 
 type TypeVal struct { // fn(text, text) text
 	WrappedType *TypeVal
+	Name        string
 	Type        ast.PrimitiveValueType
 	Params      []TypeVal
 	Returns     ReturnType

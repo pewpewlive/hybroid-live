@@ -199,82 +199,9 @@ func (p *Parser) memberCall(owner ast.Node) ast.Node {
 	return expr
 }
 
-func (p *Parser) call(caller ast.Node) ast.Node {
-	callerType := caller.GetType()
-	if callerType != ast.Identifier && callerType != ast.MemberExpression && callerType != ast.CallExpression {
-		p.error(p.peek(-1), "cannot call unidentified value")
-		return ast.Improper{Token: p.peek(-1)}
-	}
-
-	call_expr := ast.CallExpr{
-		Identifier: caller.GetToken().Lexeme,
-		Caller:     caller,
-		Args:       p.arguments(),
-		Token:      caller.GetToken(),
-	}
-
-	if p.check(lexer.LeftParen) {
-		expr := p.call(call_expr)
-		if expr.GetType() == ast.CallExpression {
-			call_expr = expr.(ast.CallExpr)
-		}
-	}
-
-	return call_expr
-}
-
-func (p *Parser) getParam() ast.Param {
-	paramName := p.expression()
-	paramType := p.Type()
-	if paramName.GetType() != ast.Identifier {
-		p.error(paramName.GetToken(), "expected an identifier in parameter")
-	}
-	return ast.Param{Type: paramType, Name: paramName.GetToken()}
-}
-
-func (p *Parser) parameters() []ast.Param {
-	if _, ok := p.consume("expected opening paren after an identifier", lexer.LeftParen); !ok {
-		return nil
-	}
-
-	var args []ast.Param
-	if p.match(lexer.RightParen) {
-		args = make([]ast.Param, 0)
-	} else {
-		args = append(args, p.getParam())
-		for p.match(lexer.Comma) {
-			args = append(args, p.getParam())
-		}
-		p.consume("expected closing paren after parameters", lexer.RightParen)
-	}
-
-	return args
-}
-
-func (p *Parser) arguments() []ast.Node {
-	if _, ok := p.consume("expected opening paren after an identifier", lexer.LeftParen); !ok {
-		return nil
-	}
-
-	var args []ast.Node
-	if p.match(lexer.RightParen) {
-		args = make([]ast.Node, 0)
-	} else {
-		arg := p.expression()
-		args = append(args, arg)
-		for p.match(lexer.Comma) {
-			arg := p.expression()
-			args = append(args, arg)
-		}
-		p.consume("expected closing paren after arguments", lexer.RightParen)
-	}
-
-	return args
-}
-
 func (p *Parser) member(owner ast.Node) ast.Node {
 	if owner == nil {
-		expression := p.primary()
+		expression := p.new()
 		expr := ast.MemberExpr{
 			Owner:      owner,
 			Property:   expression,
@@ -322,6 +249,50 @@ func (p *Parser) member(owner ast.Node) ast.Node {
 
 		return expr
 	}
+}
+
+func (p *Parser) call(caller ast.Node) ast.Node {
+	callerType := caller.GetType()
+	if callerType != ast.Identifier && callerType != ast.MemberExpression && callerType != ast.CallExpression {
+		p.error(p.peek(-1), "cannot call unidentified value")
+		return ast.Improper{Token: p.peek(-1)}
+	}
+
+	call_expr := ast.CallExpr{
+		Identifier: caller.GetToken().Lexeme,
+		Caller:     caller,
+		Args:       p.arguments(),
+		Token:      caller.GetToken(),
+	}
+
+	if p.check(lexer.LeftParen) {
+		expr := p.call(call_expr)
+		if expr.GetType() == ast.CallExpression {
+			call_expr = expr.(ast.CallExpr)
+		}
+	}
+
+	return call_expr
+}
+
+func (p *Parser) new() ast.Node {
+	if p.match(lexer.Neww) {
+		expr := ast.NewExpr{
+			Token: p.peek(-1),
+		}
+
+		typee, ok := p.consume("expected type after new keyword",lexer.Identifier);
+
+		if ok {
+			expr.Type = typee
+		}
+
+		expr.Params = p.arguments()
+
+		return expr
+	}
+
+	return p.primary()
 }
 
 func (p *Parser) primary() ast.Node {

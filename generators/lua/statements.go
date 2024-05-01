@@ -212,6 +212,10 @@ func (gen *Generator) structDeclarationStmt(node ast.StructDeclarationStmt) stri
 func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, Struct ast.StructDeclarationStmt) string {
 	src := StringBuilder{}
 
+	if Struct.IsLocal {
+		src.WriteString("local ")
+	}
+
 	src.Append("function ", Struct.Name.Lexeme, "_New(")
 
 	TabsCount += 1

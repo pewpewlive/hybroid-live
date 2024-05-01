@@ -158,6 +158,24 @@ func (se SelfExpr) GetValueType() PrimitiveValueType {
 	return 0
 }
 
+type NewExpr struct {
+	Type lexer.Token
+	Params []Node
+	Token lexer.Token
+}
+
+func (new NewExpr) GetType() NodeType {
+	return NewExpession
+}
+
+func (new NewExpr) GetToken() lexer.Token {
+	return new.Token
+}
+
+func (new NewExpr) GetValueType() PrimitiveValueType {
+	return 0;
+}
+
 type MemberExpr struct {
 	Owner      Node
 	Property   Node

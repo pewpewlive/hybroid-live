@@ -32,10 +32,12 @@ const (
 )
 
 type Scope struct {
-	Global    *Global
-	Parent    *Scope
-	Type      ScopeType
-	Variables map[string]VariableVal
+	Global      *Global
+	Parent      *Scope
+	Type        ScopeType
+	Variables   map[string]VariableVal
+	StructTypes map[string]StructTypeVal
+	//EntityTypes map[string]EntityTypeVal
 }
 
 func NewScope(global *Global, parent *Scope, typee ScopeType) Scope {
@@ -92,9 +94,7 @@ func (w *Walker) GetValueFromType(typee TypeVal) Value {
 	}
 }
 
-func (s *Scope) GetVariable(name string) VariableVal {
-	scope := s.Resolve(name)
-
+func (s *Scope) GetVariable(scope *Scope, name string) VariableVal {
 	variable := scope.Variables[name]
 
 	variable.IsUsed = true
@@ -104,8 +104,18 @@ func (s *Scope) GetVariable(name string) VariableVal {
 	return scope.Variables[name]
 }
 
+func (s *Scope) GetStructType(scope *Scope, name string) StructTypeVal {
+	variable := scope.Variables[name]
+
+	variable.IsUsed = true
+
+	scope.Variables[name] = variable
+
+	return scope.StructTypes[name]
+}
+
 func (s *Scope) AssignVariableByName(name string, value Value) (Value, *ast.Error) {
-	scope := s.Resolve(name)
+	scope := s.ResolveVariable(name)
 
 	if scope == nil {
 		return Invalid{}, &ast.Error{Message: "cannot assign to an undeclared variable"}
@@ -142,7 +152,16 @@ func (s *Scope) DeclareVariable(value VariableVal) (VariableVal, bool) {
 	return value, true
 }
 
-func (s *Scope) Resolve(name string) *Scope {
+func (s *Scope) DeclareStructType(structType StructTypeVal) bool {
+	if _, found := s.StructTypes[structType.Name.Lexeme]; found {
+		return false
+	}
+
+	s.StructTypes[structType.Name.Lexeme] = structType
+	return true
+} 
+
+func (s *Scope) ResolveVariable(name string) *Scope {
 	if _, found := s.Variables[name]; found {
 		return s
 	}
@@ -151,7 +170,19 @@ func (s *Scope) Resolve(name string) *Scope {
 		return nil
 	}
 
-	return s.Parent.Resolve(name)
+	return s.Parent.ResolveVariable(name)
+}
+
+func (s *Scope) ResolveStructType(name string) *Scope {
+	if _, found := s.StructTypes[name]; found {
+		return s
+	}
+
+	if s.Parent == nil {
+		return nil
+	}
+
+	return s.Parent.ResolveStructType(name)
 }
 
 func (g *Global) GetForeignType(str string) Value {
@@ -400,6 +431,8 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 		return w.memberExpr(nil, &newNode, scope)
 	case ast.TypeExpr:
 		return w.typeExpr(&newNode)
+	case ast.NewExpr:
+		return w.newExpr(&newNode, scope)
 	default:
 		w.error(newNode.GetToken(), "Expected expression")
 		return NilVal{}

@@ -40,6 +40,55 @@ func (p *Parser) getOp(opEqual lexer.Token) lexer.Token {
 	}
 }
 
+func (p *Parser) getParam() ast.Param {
+	paramName := p.expression()
+	paramType := p.Type()
+	if paramName.GetType() != ast.Identifier {
+		p.error(paramName.GetToken(), "expected an identifier in parameter")
+	}
+	return ast.Param{Type: paramType, Name: paramName.GetToken()}
+}
+
+func (p *Parser) parameters() []ast.Param {
+	if _, ok := p.consume("expected opening paren after an identifier", lexer.LeftParen); !ok {
+		return nil
+	}
+
+	var args []ast.Param
+	if p.match(lexer.RightParen) {
+		args = make([]ast.Param, 0)
+	} else {
+		args = append(args, p.getParam())
+		for p.match(lexer.Comma) {
+			args = append(args, p.getParam())
+		}
+		p.consume("expected closing paren after parameters", lexer.RightParen)
+	}
+
+	return args
+}
+
+func (p *Parser) arguments() []ast.Node {
+	if _, ok := p.consume("expected opening paren", lexer.LeftParen); !ok {
+		return nil
+	}
+
+	var args []ast.Node
+	if p.match(lexer.RightParen) {
+		args = make([]ast.Node, 0)
+	} else {
+		arg := p.expression()
+		args = append(args, arg)
+		for p.match(lexer.Comma) {
+			arg := p.expression()
+			args = append(args, arg)
+		}
+		p.consume("expected closing paren after arguments", lexer.RightParen)
+	}
+
+	return args
+}
+
 func (p *Parser) ParseTokens() []ast.Node {
 	// Expect environment directive call as the first node
 	statement := p.statement()

@@ -74,10 +74,10 @@ func (w *Walker) literalExpr(node *ast.LiteralExpr) Value {
 }
 
 func (w *Walker) identifierExpr(node *ast.IdentifierExpr, scope *Scope) Value {
-	sc := scope.Resolve(node.Name.Lexeme)
+	sc := scope.ResolveVariable(node.Name.Lexeme)
 
 	if sc != nil {
-		newValue := sc.GetVariable(node.Name.Lexeme)
+		newValue := sc.GetVariable(sc, node.Name.Lexeme)
 		return newValue
 	} else {
 		//w.error(node.Name, "unknown identifier")
@@ -98,19 +98,19 @@ func (w *Walker) listExpr(node *ast.ListExpr, scope *Scope) Value {
 	return value
 }
 
-// func (w *Walker) selfExpr(ndoe *ast.SelfExpr, scope *Scope) Value {
+// func (w *Walker) selfExpr(node *ast.SelfExpr, scope *Scope) Value {
 
 // }
 
 func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope) Value {
 	callerToken := node.Caller.GetToken()
-	sc := scope.Resolve(callerToken.Lexeme)
+	sc := scope.ResolveVariable(callerToken.Lexeme)
 
 	if sc == nil { //make sure in the future member calls are also taken into account
 		w.error(node.Token, "undeclared function")
 		return Invalid{}
 	} else {
-		fn := sc.GetVariable(callerToken.Lexeme)
+		fn := sc.GetVariable(sc, callerToken.Lexeme)
 		fun, ok := fn.Value.(FunctionVal)
 
 		arguments := make([]TypeVal, 0)
@@ -159,14 +159,14 @@ func (w *Walker) unaryExpr(node *ast.UnaryExpr, scope *Scope) Value {
 
 func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Value {
 	if node.Owner == nil {
-		sc := scope.Resolve(node.Identifier.GetToken().Lexeme)
+		sc := scope.ResolveVariable(node.Identifier.GetToken().Lexeme)
 
 		var array Value
 		if sc == nil {
 			w.error(node.Identifier.GetToken(), fmt.Sprintf("undeclared variable \"%s\"", node.Identifier.GetToken().Lexeme))
 			return Invalid{}
 		} else {
-			array = sc.GetVariable(node.Identifier.GetToken().Lexeme).Value
+			array = sc.GetVariable(sc, node.Identifier.GetToken().Lexeme).Value
 		}
 
 		next, ok := node.Property.(ast.MemberExpr)
@@ -270,6 +270,16 @@ func (w *Walker) directiveExpr(node *ast.DirectiveExpr, scope *Scope) DirectiveV
 		}
 	}
 	return DirectiveVal{}
+}
+
+func (w *Walker) newExpr(new *ast.NewExpr, scope *Scope) StructVal {
+	resolved := scope.ResolveStructType(new.Type.Lexeme)
+
+	structTypeVal := resolved.GetStructType(resolved, new.Type.Lexeme)
+
+	return StructVal{
+		Type: &structTypeVal,
+	}
 }
 
 func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) FunctionVal {
