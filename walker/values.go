@@ -27,6 +27,7 @@ type StructTypeVal struct {
 	Params []TypeVal
 	Fields map[string]VariableVal
 	Methods map[string]VariableVal
+	IsUsed bool
 }
 
 func (st StructTypeVal) GetType() TypeVal {

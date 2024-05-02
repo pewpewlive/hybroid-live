@@ -151,6 +151,8 @@ func (gen *Generator) GenerateNode(node ast.Node) string {
 		return gen.directiveExpr(newNode)
 	case ast.AnonFnExpr:
 		return gen.anonFnExpr(newNode)
+	case ast.SelfExpr:
+		return gen.selfExpr(newNode)
 	}
 
 	return ""

@@ -105,13 +105,12 @@ func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scop
 		fnScope.DeclareVariable(VariableVal{Name: param.Name.Lexeme, Value: value, Node: node})
 	}
 
-	var ret ReturnType
+	ret := ReturnType{
+		values: []TypeVal{},
+	}
 	for _, typee := range node.Return {
 		ret.values = append(ret.values, w.typeExpr(&typee))
 		//fmt.Printf("%s\n", ret.values[len(ret.values)-1].Type.ToString())
-	}
-	if len(ret.values) == 0 {
-		ret.values = append(ret.values, TypeVal{Type: ast.Nil})
 	}
 
 	variable := VariableVal{
@@ -131,7 +130,7 @@ func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scop
 		w.WalkNode(&node, &fnScope)
 	}
 
-	if w.bodyReturns(&node.Body, &ret, &fnScope) == nil && ret.values[0].Type != ast.Nil {
+	if w.bodyReturns(&node.Body, &ret, &fnScope) == nil && len(ret.values) != 0 {
 		w.error(node.GetToken(), "not all function paths return a value")
 	}
 
@@ -240,8 +239,7 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 		}
 	}
 
-	isLocal := declaration.Token.Type == lexer.Let
-	if !isLocal {
+	if !declaration.IsLocal {
 		if scope.Parent != nil {
 			w.error(declaration.Token, "cannot declare a global variable inside a local block")
 		}
@@ -332,7 +330,11 @@ func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *S
 
 	structTypeVal := StructTypeVal{
 		Name: node.Name,
+		Methods: map[string]VariableVal{},
+		Fields: map[string]VariableVal{},
 	}
+	structScope.WrappedType = structTypeVal.GetType()
+
 	params := make([]TypeVal, 0)
 	for _, param := range node.Constructor.Params {
 		params = append(params, w.typeExpr(&param.Type))
@@ -341,13 +343,19 @@ func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *S
 
 	scope.DeclareStructType(structTypeVal)
 
-	node.Constructor.Return = ast.TypeExpr{
-		Name: node.Name,
+	funcDeclaration := ast.MethodDeclarationStmt{
+		Name: node.Constructor.Token,
+		Params: node.Constructor.Params,
+		Return: node.Constructor.Return,
+		IsLocal: true,
+		Body: *node.Constructor.Body,
 	}
 
 	for _, field := range node.Fields {
-		w.fieldDeclarationStmt(&field, &structTypeVal, scope)
+		w.fieldDeclarationStmt(&field, &structTypeVal, &structScope)
 	}
+
+	w.methodDeclarationStmt(&funcDeclaration, &structTypeVal, &structScope)
 
 	for _, method := range *node.Methods {
 		w.methodDeclarationStmt(&method, &structTypeVal, &structScope)
@@ -362,7 +370,7 @@ func (w *Walker) fieldDeclarationStmt(node *ast.FieldDeclarationStmt, structType
 		Identifiers: node.Identifiers,
 		Types:       node.Types,
 		Values:      node.Values,
-		IsLocal:     node.IsLocal,
+		IsLocal:     true,
 		Token:       node.Token,
 	} // casual programming experiance, write new structure to turn it into the old one
 	// xdxddxdsdxdxd

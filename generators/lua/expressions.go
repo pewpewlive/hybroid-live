@@ -159,3 +159,14 @@ func (gen *Generator) anonFnExpr(fn ast.AnonFnExpr) string {
 
 	return src.String()
 }
+
+func (gen *Generator) selfExpr(self ast.SelfExpr) string {
+	if self.Type == ast.SelfStruct {
+		if self.Value.GetType() == ast.SelfExpression {
+			return "Self"
+		}else {
+			return "Self."+gen.GenerateNode(self.Value)
+		}
+	}
+	return ""
+}

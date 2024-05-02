@@ -1,13 +1,8 @@
 @Environment(Level)
 
-let test = {a:1}
-
-
-let a = {a: 1}
-
-a["a"] = 1
-
+/*
 pub struct Test {
+    x = 0fx
 
     new() {
         self.x = 10fx
@@ -22,3 +17,8 @@ pub struct Test {
 }
 
 let aa = new Test()
+*/
+
+let testa = {a:fn(param text) {}}
+
+testa["a"]("aa")

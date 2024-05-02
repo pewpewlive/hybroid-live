@@ -66,7 +66,7 @@ func (sds StructDeclarationStmt) GetValueType() PrimitiveValueType {
 type ConstructorStmt struct {
 	Token  lexer.Token
 	Body   *[]Node
-	Return TypeExpr
+	Return []TypeExpr
 	Params []Param
 }
 

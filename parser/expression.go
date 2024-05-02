@@ -178,11 +178,30 @@ func (p *Parser) unary() ast.Node {
 }
 
 func (p *Parser) self() ast.Node { // somestruct.x
-	if p.check(lexer.Self) {
+	if p.match(lexer.Self) {
 		expr := ast.SelfExpr{
-			Token: p.peek(),
-			Value: p.memberCall(nil),
+			Token: p.peek(-1),
 		}
+
+		if p.match(lexer.Dot) {
+			if !p.check(lexer.Identifier) {
+				p.error(p.peek(), "expected identifier after '.'")
+			}
+			expr.Value = p.memberCall(nil)
+		}else {
+			expr.Value = ast.SelfExpr{
+				Token:expr.Token,
+			}
+		}
+
+		if p.check(lexer.LeftParen) {
+			expr.Value = ast.MethodCallExpr{
+				Token:expr.Value.GetToken(),
+				Args:p.arguments(),
+				Name:expr.Value.GetToken(),
+			}
+		}
+
 		return expr
 	}
 
@@ -209,8 +228,8 @@ func (p *Parser) member(owner ast.Node) ast.Node {
 			Bracketed:  false,
 		}
 
-		if p.check(lexer.Dot) || p.check(lexer.LeftBracket) {
-			expr2 := p.memberCall(expr)
+		if p.match(lexer.Dot) || p.match(lexer.LeftBracket) {
+			expr2 := p.member(expr)
 			expr.Property = expr2
 			return expr
 		} else {
@@ -220,7 +239,7 @@ func (p *Parser) member(owner ast.Node) ast.Node {
 	} else {
 		var expr ast.MemberExpr
 		bracketed := false
-		operator, _ := p.consume("expected '.' or '[' after member expression", lexer.Dot, lexer.LeftBracket)
+		operator := p.peek(-1)
 
 		var prop ast.Node
 		if operator.Type == lexer.Dot {

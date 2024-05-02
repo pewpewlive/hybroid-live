@@ -33,6 +33,7 @@ const (
 	ListExpression
 	MapExpression
 	CallExpression
+	MethodCallExpression
 	MemberExpression
 	ParentExpression
 	TypeExpression

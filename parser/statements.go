@@ -173,7 +173,7 @@ func (p *Parser) fieldDeclarationStmt(isLocal bool) ast.Node {
 		Token:   p.peek(-1),
 	}
 
-	ident := p.peek()
+	ident := p.peek(-1)
 
 	var typee *ast.TypeExpr
 	if p.match(lexer.Colon) {
@@ -537,7 +537,8 @@ func (p *Parser) tickStmt() ast.Node {
 
 func (p *Parser) variableDeclarationStmt() ast.Node {
 	variable := ast.VariableDeclarationStmt{
-		Token: p.peek(-1), //let or pub, important
+		Token: p.peek(-1), 
+		IsLocal: p.peek(-1).Type == lexer.Let,
 	}
 
 	ident, _ := p.consume("expected identifier in variable declaration", lexer.Identifier)

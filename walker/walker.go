@@ -14,12 +14,20 @@ type Walker struct {
 type Global struct {
 	Scope        Scope
 	foreignTypes map[string]Value
+	StructTypes map[string]StructTypeVal
+	//EntityTypes map[string]EntityTypeVal
 }
 
 func NewGlobal() Global {
-	return Global{
-		Scope: NewScope(nil, nil, ReturnProhibiting),
+	scope := NewScope(nil, nil, ReturnProhibiting)
+	global := Global{
+		Scope: scope,
+		foreignTypes: map[string]Value{},
+		StructTypes: map[string]StructTypeVal{},
 	}
+
+	global.Scope.Global = &global
+	return global
 }
 
 type ScopeType int
@@ -36,8 +44,7 @@ type Scope struct {
 	Parent      *Scope
 	Type        ScopeType
 	Variables   map[string]VariableVal
-	StructTypes map[string]StructTypeVal
-	//EntityTypes map[string]EntityTypeVal
+	WrappedType TypeVal
 }
 
 func NewScope(global *Global, parent *Scope, typee ScopeType) Scope {
@@ -105,13 +112,13 @@ func (s *Scope) GetVariable(scope *Scope, name string) VariableVal {
 }
 
 func (s *Scope) GetStructType(scope *Scope, name string) StructTypeVal {
-	variable := scope.Variables[name]
+	structType := scope.Global.StructTypes[name]
 
-	variable.IsUsed = true
+	structType.IsUsed = true
 
-	scope.Variables[name] = variable
+	scope.Global.StructTypes[name] = structType
 
-	return scope.StructTypes[name]
+	return scope.Global.StructTypes[name]
 }
 
 func (s *Scope) AssignVariableByName(name string, value Value) (Value, *ast.Error) {
@@ -153,11 +160,11 @@ func (s *Scope) DeclareVariable(value VariableVal) (VariableVal, bool) {
 }
 
 func (s *Scope) DeclareStructType(structType StructTypeVal) bool {
-	if _, found := s.StructTypes[structType.Name.Lexeme]; found {
+	if _, found := s.Global.StructTypes[structType.Name.Lexeme]; found {
 		return false
 	}
 
-	s.StructTypes[structType.Name.Lexeme] = structType
+	s.Global.StructTypes[structType.Name.Lexeme] = structType
 	return true
 } 
 
@@ -174,7 +181,7 @@ func (s *Scope) ResolveVariable(name string) *Scope {
 }
 
 func (s *Scope) ResolveStructType(name string) *Scope {
-	if _, found := s.StructTypes[name]; found {
+	if _, found := s.Global.StructTypes[name]; found {
 		return s
 	}
 
@@ -183,6 +190,18 @@ func (s *Scope) ResolveStructType(name string) *Scope {
 	}
 
 	return s.Parent.ResolveStructType(name)
+}
+
+func (s *Scope) ResolveStructScope() *Scope {
+	if s.Type == Structure {
+		return s
+	}
+
+	if s.Parent == nil {
+		return nil
+	}
+
+	return s.Parent.ResolveStructScope()
 }
 
 func (g *Global) GetForeignType(str string) Value {
@@ -433,6 +452,8 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 		return w.typeExpr(&newNode)
 	case ast.NewExpr:
 		return w.newExpr(&newNode, scope)
+	case ast.SelfExpr:
+		return w.selfExpr(&newNode, scope)
 	default:
 		w.error(newNode.GetToken(), "Expected expression")
 		return NilVal{}

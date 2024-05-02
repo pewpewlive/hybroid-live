@@ -216,7 +216,7 @@ func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, Struc
 		src.WriteString("local ")
 	}
 
-	src.Append("function ", Struct.Name.Lexeme, "_New(")
+	src.Append("function Hybroid_", Struct.Name.Lexeme, "_New(")
 
 	TabsCount += 1
 
@@ -228,7 +228,7 @@ func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, Struc
 	}
 	src.Append(")\n")
 
-	src.AppendTabbed("local new = {")
+	src.AppendTabbed("local Self = {")
 	for _, field := range Struct.Fields {
 		for i, value := range field.Values {
 			if i == len(field.Values)-1 {
@@ -241,7 +241,7 @@ func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, Struc
 	src.WriteString("}\n")
 
 	src.WriteString(gen.GenerateString(*node.Body))
-	src.AppendTabbed("return new\n")
+	src.AppendTabbed("return Self\n")
 	TabsCount -= 1
 	src.AppendTabbed("end\n")
 	return src.String()
@@ -254,7 +254,7 @@ func (gen *Generator) methodDeclarationStmt(node ast.MethodDeclarationStmt, stru
 		src.WriteString("local ")
 	}
 
-	src.Append("function ", structName, "_", node.Name.Lexeme, "(")
+	src.Append("function Hybroid_", structName, "_", node.Name.Lexeme, "(Self")
 	for i, param := range node.Params {
 		src.Append(param.Name.Lexeme)
 		if i != len(node.Params)-1 {

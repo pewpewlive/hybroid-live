@@ -104,35 +104,37 @@ func (w *Walker) listExpr(node *ast.ListExpr, scope *Scope) Value {
 
 func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope) Value {
 	callerToken := node.Caller.GetToken()
-	sc := scope.ResolveVariable(callerToken.Lexeme)
+	val := w.GetNodeValue(&node.Caller,scope)
 
-	if sc == nil { //make sure in the future member calls are also taken into account
-		w.error(node.Token, "undeclared function")
+	if val.GetType().Type != ast.Func {
+		w.error(callerToken, "variable used as if it's a function")
 		return Invalid{}
-	} else {
-		fn := sc.GetVariable(sc, callerToken.Lexeme)
-		fun, ok := fn.Value.(FunctionVal)
-
-		arguments := make([]TypeVal, 0)
-		for _, arg := range node.Args {
-			val := w.GetNodeValue(&arg, scope)
-			if function, ok := val.(FunctionVal); ok {
-				arguments = append(arguments, function.returnVal.values...)
-			} else {
-				arguments = append(arguments, val.GetType())
-			}
-		}
-		if !ok {
-			w.error(callerToken, "variable used as if it's a function")
-		} else if len(fun.params) < len(arguments) {
-			w.error(callerToken, "too many arguments given in function call")
-		} else if len(fun.params) > len(arguments) {
-			w.error(callerToken, "too few arguments given in function call")
-		}
-
-		return CallVal{types: fun.returnVal}
 	}
+
+	variable, it_is := val.(VariableVal)
+	if it_is {
+		val = variable
+	}
+	fun, _ := val.(FunctionVal)
+
+	arguments := make([]TypeVal, 0)
+	for _, arg := range node.Args {
+		val := w.GetNodeValue(&arg, scope)
+		if function, ok := val.(FunctionVal); ok {
+			arguments = append(arguments, function.returnVal.values...)
+		} else {
+			arguments = append(arguments, val.GetType())
+		}
+	}
+	if len(fun.params) < len(arguments) {
+		w.error(callerToken, "too many arguments given in function call")
+	} else if len(fun.params) > len(arguments) {
+		w.error(callerToken, "too few arguments given in function call")
+	}
+
+	return CallVal{types: fun.returnVal}
 }
+
 
 func (w *Walker) mapExpr(node *ast.MapExpr, scope *Scope) Value {
 	mapVal := MapVal{Members: map[string]MapMemberVal{}}
@@ -270,6 +272,28 @@ func (w *Walker) directiveExpr(node *ast.DirectiveExpr, scope *Scope) DirectiveV
 		}
 	}
 	return DirectiveVal{}
+}
+
+func (w *Walker) selfExpr(self *ast.SelfExpr, scope *Scope) Value {
+	sc := scope.ResolveStructScope()// TODO: CHECK FOR ENTITY SCOPE
+
+	if sc == nil {
+		w.error(self.Token, "can't use self outside of struct/entity")
+		return Invalid{}
+	}
+
+	if sc.Type == Structure {
+		self.Type = ast.SelfStruct
+	}
+
+	if _, ok := self.Value.(ast.SelfExpr); ok {// so just "self"
+		structTypeVal := sc.GetStructType(sc, sc.WrappedType.Name)
+		return StructVal{
+			Type: &structTypeVal,
+		}
+	}else {
+		return w.GetNodeValue(&self.Value, scope)
+	}
 }
 
 func (w *Walker) newExpr(new *ast.NewExpr, scope *Scope) StructVal {
