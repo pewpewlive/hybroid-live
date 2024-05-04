@@ -79,7 +79,9 @@ func (p *Parser) expression() ast.Node {
 
 func (p *Parser) fn() ast.Node {
 	if p.match(lexer.Fn) {
-		fn := ast.AnonFnExpr{}
+		fn := ast.AnonFnExpr{
+			Token:p.peek(-1),
+		}
 		fn.Params = p.parameters()
 
 		ret := make([]ast.TypeExpr, 0)

@@ -144,6 +144,7 @@ type SelfExpr struct {
 	Token lexer.Token
 	Value Node
 	Type  SelfExprType
+	Index int
 }
 
 func (se SelfExpr) GetType() NodeType {

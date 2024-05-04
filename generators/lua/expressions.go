@@ -59,7 +59,7 @@ func (gen *Generator) callExpr(node ast.CallExpr) string {
 	src := StringBuilder{}
 	fn := gen.GenerateNode(node.Caller)
 
-	src.AppendTabbed(fn, "(")
+	src.Append(fn, "(")
 	for i, arg := range node.Args {
 		src.WriteString(gen.GenerateNode(arg))
 		if i != len(node.Args)-1 {

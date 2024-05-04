@@ -113,7 +113,7 @@ func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope) Value {
 
 	variable, it_is := val.(VariableVal)
 	if it_is {
-		val = variable
+		val = variable.Value
 	}
 	fun, _ := val.(FunctionVal)
 
@@ -292,7 +292,7 @@ func (w *Walker) selfExpr(self *ast.SelfExpr, scope *Scope) Value {
 			Type: &structTypeVal,
 		}
 	}else {
-		return w.GetNodeValue(&self.Value, scope)
+		return w.GetNodeValue(&self.Value, sc)
 	}
 }
 
@@ -328,7 +328,7 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) FunctionVal {
 		w.WalkNode(&node, &fnScope)
 	}
 
-	if w.bodyReturns(&fn.Body, &ret, &fnScope) == nil && ret.values[0].Type != ast.Nil {
+	if w.bodyReturns(&fn.Body, &ret, &fnScope) == nil && len(ret.values) != 0 {
 		w.error(fn.GetToken(), "not all function paths return a value")
 	}
 

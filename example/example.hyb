@@ -19,6 +19,31 @@ pub struct Test {
 let aa = new Test()
 */
 
-let testa = {a:fn(param text) {}}
+let testa = {
+    a:fn(param text) bool {
+        if param == "aa" {
+            return true
+        }else {
+            return false
+        }
+    } 
+}
 
-testa["a"]("aa")
+fn ah(param bool) {
+    if param {
+
+    }else {
+
+    }
+}
+
+ah(testa["a"]("aa"))
+
+struct Rectangle {
+    width, height = 0fx,0fx
+    
+    new(width fixed, height fixed) {
+        self.width = width
+        self.height = height
+    }
+}

@@ -30,6 +30,14 @@ type StructTypeVal struct {
 	IsUsed bool
 }
 
+func (st StructTypeVal) GetField(name string) (*VariableVal, bool) {
+	if found, ok := st.Fields[name]; ok {
+		return &found, true
+	}
+
+	return nil, false
+}
+
 func (st StructTypeVal) GetType() TypeVal {
 	return TypeVal{Type: ast.Struct, Name: st.Name.Lexeme}
 }
