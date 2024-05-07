@@ -429,7 +429,7 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 		w.callExpr(&newNode, scope)
 		*node = newNode
 	case ast.MethodCallExpr:
-		w.methodCallExpr(&newNode, scope)
+		w.methodCallExpr(&newNode, scope) // start the debugger
 		*node = newNode
 	case ast.DirectiveExpr:
 		w.directiveExpr(&newNode, scope)

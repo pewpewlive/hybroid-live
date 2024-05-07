@@ -123,13 +123,13 @@ func (w *Walker) listExpr(node *ast.ListExpr, scope *Scope) Value {
 
 func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope) Value {
 	callerToken := node.Caller.GetToken()
-	val := w.GetNodeValue(&node.Caller, scope)
+	val := w.GetNodeValue(&node.Caller, scope) // is that where the pr
 
 	if val.GetType().Type != ast.Func {
-		w.error(callerToken, "variable used as if it's a function")
-		return Invalid{}
-	}
-
+		w.error(callerToken, fmt.Sprintf("variable used as if it's a function (type: %s)", val.GetType().Type.ToString()))
+		return Invalid{} // where can you get undefined
+	} // yes
+	// wait wait wait
 	variable, it_is := val.(VariableVal)
 	if it_is {
 		val = variable.Value
@@ -156,12 +156,12 @@ func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope) Value {
 
 func (w *Walker) methodCallExpr(node *ast.MethodCallExpr, scope *Scope) Value {
 	callExpr := ast.CallExpr{
-		Identifier: node.Name.Lexeme,
+		Identifier: node.Name.Lexeme, //lets go there yeah
 		Caller:     node.Caller,
-		Args:       node.Args,
+		Args:       node.Args, //
 		Token:      node.Token,
 	}
-
+	// wa
 	return w.callExpr(&callExpr, scope)
 }
 

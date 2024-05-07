@@ -355,12 +355,12 @@ func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *S
 		w.fieldDeclarationStmt(&field, &structTypeVal, &structScope)
 	}
 
-	w.methodDeclarationStmt(&funcDeclaration, &structTypeVal, &structScope)
-
 	for _, method := range *node.Methods {
 		w.methodDeclarationStmt(&method, &structTypeVal, &structScope)
 	}
-}
+	// is that constructor? ok
+	w.methodDeclarationStmt(&funcDeclaration, &structTypeVal, &structScope)
+} // works
 
 func (w *Walker) fieldDeclarationStmt(node *ast.FieldDeclarationStmt, structType *StructTypeVal, scope *Scope) {
 	// declare fields as variables in structure scope

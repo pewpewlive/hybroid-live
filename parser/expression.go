@@ -276,14 +276,17 @@ func (p *Parser) self() ast.Node { // somestruct.x
 			}
 		}
 
-		if p.check(lexer.LeftParen) {
-			return ast.MethodCallExpr{
+		if p.check(lexer.LeftParen) { //oh my god or you are
+			methodCall := ast.MethodCallExpr{
 				Token:  expr.Value.GetToken(),
 				Caller: expr,
 				Args:   p.arguments(),
 				Name:   expr.Value.GetToken(),
-			}
-		}
+			} // yeah lol
+			return methodCall // OOOOH WAITTTT
+		} // you have breakpoints?
+
+		//this is stupid tho
 
 		return expr
 	}

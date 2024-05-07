@@ -51,12 +51,19 @@ struct Rectangle {
         }
     }*/
     
+    
     new(widthasdasd fixed, heigh fixed) {
-        //self.test["a"]["b"]["c"] = 1
-        self.xd()
-    }
+        self.test["a"]["b"]["c"] = 1
+        self.xd() 
 
-    fn xd() {
+        
+    } // i think that the gen
 
-    }
+    fn xd() { // we can make function values and store them in array
+        self.yes() // then add them to scopes and generate bodies for them one by one
+    } // so you can call an unwalked function and it wont crash
+
+    fn yes() { // because then you have to gene eht on ni snoitcnuf eta
+        
+    } // wdo you have other way?
 }
