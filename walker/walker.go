@@ -14,16 +14,16 @@ type Walker struct {
 type Global struct {
 	Scope        Scope
 	foreignTypes map[string]Value
-	StructTypes map[string]StructTypeVal
+	StructTypes  map[string]StructTypeVal
 	//EntityTypes map[string]EntityTypeVal
 }
 
 func NewGlobal() Global {
 	scope := NewScope(nil, nil, ReturnProhibiting)
 	global := Global{
-		Scope: scope,
+		Scope:        scope,
 		foreignTypes: map[string]Value{},
-		StructTypes: map[string]StructTypeVal{},
+		StructTypes:  map[string]StructTypeVal{},
 	}
 
 	global.Scope.Global = &global
@@ -40,19 +40,23 @@ const (
 )
 
 type Scope struct {
-	Global      *Global
-	Parent      *Scope
-	Type        ScopeType
-	Variables   map[string]VariableVal
-	WrappedType TypeVal
+	Global               *Global
+	Parent               *Scope
+	Type                 ScopeType
+	Variables            map[string]VariableVal
+	VariableIndexes      map[string]int
+	currentVariableIndex int
+	WrappedType          TypeVal
 }
 
 func NewScope(global *Global, parent *Scope, typee ScopeType) Scope {
 	return Scope{
-		Global:    global,
-		Parent:    parent,
-		Type:      typee,
-		Variables: map[string]VariableVal{},
+		Global:               global,
+		Parent:               parent,
+		Type:                 typee,
+		Variables:            map[string]VariableVal{},
+		VariableIndexes:      map[string]int{},
+		currentVariableIndex: 1,
 	}
 }
 
@@ -68,9 +72,9 @@ func (w *Walker) GetValueFromType(typee TypeVal) Value {
 	switch typee.Type {
 	case ast.Number:
 		return NumberVal{}
-	case ast.Fixed:
+	case ast.FixedPoint, ast.Fixed, ast.Radian, ast.Degree:
 		return FixedVal{
-			SpecificType: ast.FixedPoint,
+			SpecificType: typee.Type,
 		}
 	case ast.Bool:
 		return BoolVal{}
@@ -109,6 +113,16 @@ func (s *Scope) GetVariable(scope *Scope, name string) VariableVal {
 	scope.Variables[name] = variable
 
 	return scope.Variables[name]
+}
+
+func (s *Scope) GetVariableIndex(scope *Scope, name string) int {
+	//variable := scope.Variables[name]
+
+	//variable.IsUsed = true
+
+	//scope.Variables[name] = variable
+
+	return scope.VariableIndexes[name]
 }
 
 func (s *Scope) GetStructType(scope *Scope, name string) StructTypeVal {
@@ -156,6 +170,9 @@ func (s *Scope) DeclareVariable(value VariableVal) (VariableVal, bool) {
 	}
 
 	s.Variables[value.Name] = value
+	s.VariableIndexes[value.Name] = s.currentVariableIndex
+	s.currentVariableIndex++
+
 	return value, true
 }
 
@@ -166,7 +183,7 @@ func (s *Scope) DeclareStructType(structType StructTypeVal) bool {
 
 	s.Global.StructTypes[structType.Name.Lexeme] = structType
 	return true
-} 
+}
 
 func (s *Scope) ResolveVariable(name string) *Scope {
 	if _, found := s.Variables[name]; found {
@@ -390,7 +407,7 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 	case ast.VariableDeclarationStmt:
 		w.variableDeclarationStmt(&newNode, scope)
 		*node = newNode
-	case ast.IfStmt:
+	case ast.IfStmt: // that might be  the reason why the shit isnt changing for identifier
 		w.ifStmt(&newNode, scope)
 		*node = newNode
 	case ast.AssignmentStmt:
@@ -411,6 +428,9 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 	case ast.CallExpr:
 		w.callExpr(&newNode, scope)
 		*node = newNode
+	case ast.MethodCallExpr:
+		w.methodCallExpr(&newNode, scope)
+		*node = newNode
 	case ast.DirectiveExpr:
 		w.directiveExpr(&newNode, scope)
 		*node = newNode
@@ -425,37 +445,58 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 }
 
 func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
+	var val Value
+
 	switch newNode := (*node).(type) {
 	case ast.LiteralExpr:
-		return w.literalExpr(&newNode)
+		val = w.literalExpr(&newNode)
+		*node = newNode
 	case ast.BinaryExpr:
-		return w.binaryExpr(&newNode, scope)
+		val = w.binaryExpr(&newNode, scope)
+		*node = newNode
 	case ast.IdentifierExpr:
-		return w.identifierExpr(&newNode, scope)
+		val = w.identifierExpr(&newNode, scope)
+		*node = newNode
 	case ast.GroupExpr:
-		return w.groupingExpr(&newNode, scope)
+		val = w.groupingExpr(&newNode, scope)
+		*node = newNode
 	case ast.ListExpr:
-		return w.listExpr(&newNode, scope)
+		val = w.listExpr(&newNode, scope)
+		*node = newNode
 	case ast.UnaryExpr:
-		return w.unaryExpr(&newNode, scope)
+		val = w.unaryExpr(&newNode, scope)
+		*node = newNode
 	case ast.CallExpr:
-		return w.callExpr(&newNode, scope)
+		val = w.callExpr(&newNode, scope)
+		*node = newNode
 	case ast.MapExpr:
-		return w.mapExpr(&newNode, scope)
+		val = w.mapExpr(&newNode, scope)
+		*node = newNode
 	case ast.DirectiveExpr:
-		return w.directiveExpr(&newNode, scope)
+		val = w.directiveExpr(&newNode, scope)
+		*node = newNode
 	case ast.AnonFnExpr:
-		return w.anonFnExpr(&newNode, scope)
+		val = w.anonFnExpr(&newNode, scope)
+		*node = newNode
+	case ast.MethodCallExpr:
+		val = w.methodCallExpr(&newNode, scope)
+		*node = newNode
 	case ast.MemberExpr:
-		return w.memberExpr(nil, &newNode, scope)
+		val = w.memberExpr(nil, &newNode, scope)
+		*node = newNode
 	case ast.TypeExpr:
-		return w.typeExpr(&newNode)
+		val = w.typeExpr(&newNode)
+		*node = newNode
 	case ast.NewExpr:
-		return w.newExpr(&newNode, scope)
+		val = w.newExpr(&newNode, scope)
+		*node = newNode
 	case ast.SelfExpr:
-		return w.selfExpr(&newNode, scope)
+		val = w.selfExpr(&newNode, scope)
+		*node = newNode
 	default:
 		w.error(newNode.GetToken(), "Expected expression")
 		return NilVal{}
 	}
+
+	return val
 }

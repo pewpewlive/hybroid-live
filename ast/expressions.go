@@ -97,7 +97,7 @@ func (n BinaryExpr) GetValueType() PrimitiveValueType {
 
 type CallExpr struct {
 	Identifier string
-	Caller     Node 
+	Caller     Node
 	Args       []Node
 	Token      lexer.Token
 }
@@ -160,10 +160,10 @@ func (se SelfExpr) GetValueType() PrimitiveValueType {
 }
 
 type MethodCallExpr struct {
-	Name lexer.Token
-	Caller lexer.Token
-	Args []Node
-	Token lexer.Token
+	Name   lexer.Token
+	Caller Node
+	Args   []Node
+	Token  lexer.Token
 }
 
 func (new MethodCallExpr) GetType() NodeType {
@@ -175,13 +175,13 @@ func (new MethodCallExpr) GetToken() lexer.Token {
 }
 
 func (new MethodCallExpr) GetValueType() PrimitiveValueType {
-	return 0;
+	return 0
 }
 
 type NewExpr struct {
-	Type lexer.Token
+	Type   lexer.Token
 	Params []Node
-	Token lexer.Token
+	Token  lexer.Token
 }
 
 func (new NewExpr) GetType() NodeType {
@@ -193,12 +193,12 @@ func (new NewExpr) GetToken() lexer.Token {
 }
 
 func (new NewExpr) GetValueType() PrimitiveValueType {
-	return 0;
+	return 0
 }
 
 type MemberExpr struct {
-	Owner      Node
-	Property   Node
+	Owner      *Node
+	Property   *Node
 	Identifier Node
 	Bracketed  bool
 }
@@ -208,11 +208,14 @@ func (me MemberExpr) GetType() NodeType {
 }
 
 func (n MemberExpr) GetToken() lexer.Token {
-	return n.Property.GetToken()
+	if n.Property != nil {
+		return (*n.Property).GetToken()
+	}
+	return n.Identifier.GetToken()
 }
 
 func (n MemberExpr) GetValueType() PrimitiveValueType {
-	return n.Property.GetValueType()
+	return 0
 }
 
 type Property struct {

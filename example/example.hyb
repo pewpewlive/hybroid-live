@@ -17,7 +17,7 @@ pub struct Test {
 }
 
 let aa = new Test()
-*/
+
 
 let testa = {
     a:fn(param text) bool {
@@ -30,20 +30,33 @@ let testa = {
 }
 
 fn ah(param bool) {
-    if param {
-
-    }else {
-
-    }
+    param = true
 }
 
 ah(testa["a"]("aa"))
+*/
+/*
+let dfs = fn () {
+    if true {
 
+    }
+}
+*/
 struct Rectangle {
-    width, height = 0fx,0fx
     
-    new(width fixed, height fixed) {
-        self.width = width
-        self.height = height
+    test = {a: {b: {c: 1}}}
+    /*thing = fn () {
+        if true {
+            
+        }
+    }*/
+    
+    new(widthasdasd fixed, heigh fixed) {
+        //self.test["a"]["b"]["c"] = 1
+        self.xd()
+    }
+
+    fn xd() {
+
     }
 }

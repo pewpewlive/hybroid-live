@@ -50,8 +50,8 @@ func (w *Walker) assignmentStmt(assignStmt *ast.AssignmentStmt, scope *Scope) {
 	hasFuncs := false
 
 	wIdents := []Value{}
-	for _, ident := range assignStmt.Identifiers {
-		wIdents = append(wIdents, w.GetNodeValue(&ident, scope))
+	for i := range assignStmt.Identifiers {
+		wIdents = append(wIdents, w.GetNodeValue(&assignStmt.Identifiers[i], scope))
 	}
 
 	for i, rightValue := range assignStmt.Values {
@@ -329,9 +329,9 @@ func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *S
 	structScope := NewScope(scope.Global, scope, Structure)
 
 	structTypeVal := StructTypeVal{
-		Name: node.Name,
+		Name:    node.Name,
 		Methods: map[string]VariableVal{},
-		Fields: map[string]VariableVal{},
+		Fields:  map[string]VariableVal{},
 	}
 	structScope.WrappedType = structTypeVal.GetType()
 
@@ -344,11 +344,11 @@ func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *S
 	scope.DeclareStructType(structTypeVal)
 
 	funcDeclaration := ast.MethodDeclarationStmt{
-		Name: node.Constructor.Token,
-		Params: node.Constructor.Params,
-		Return: node.Constructor.Return,
+		Name:    node.Constructor.Token,
+		Params:  node.Constructor.Params,
+		Return:  node.Constructor.Return,
 		IsLocal: true,
-		Body: *node.Constructor.Body,
+		Body:    *node.Constructor.Body,
 	}
 
 	for _, field := range node.Fields {
@@ -362,7 +362,7 @@ func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *S
 	}
 }
 
-func (w *Walker) fieldDeclarationStmt(node *ast.FieldDeclarationStmt, structType *StructTypeVal,  scope *Scope) {
+func (w *Walker) fieldDeclarationStmt(node *ast.FieldDeclarationStmt, structType *StructTypeVal, scope *Scope) {
 	// declare fields as variables in structure scope
 	// we can copy from variable declaration for this 1:1 wait
 	// so we can do this funny

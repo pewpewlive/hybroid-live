@@ -78,6 +78,29 @@ func (w *Walker) identifierExpr(node *ast.IdentifierExpr, scope *Scope) Value {
 
 	if sc != nil {
 		newValue := sc.GetVariable(sc, node.Name.Lexeme)
+
+		/*
+			if sc.Type == Structure {
+				varIndex := sc.GetVariableIndex(sc, node.Name.Lexeme)
+
+				selfExpr := ast.SelfExpr{
+					Token: node.GetToken(),
+					Value: node,
+					Type:  ast.SelfStruct,
+					Index: varIndex,
+				}
+			} /* else if sc.Type == Entity {
+				varIndex := sc.GetVariableIndex(sc, node.Name.Lexeme)
+
+				selfExpr := ast.SelfExpr{
+					Token: newValue.Node.GetToken(),
+					Value: newValue.Node,
+					Type:  ast.SelfEntity,
+					Index: varIndex,
+				}
+			}*/
+
+		//fmt.Printf("%v %s\n", sc.Type, newValue.Name)
 		return newValue
 	} else {
 		//w.error(node.Name, "unknown identifier")
@@ -98,13 +121,9 @@ func (w *Walker) listExpr(node *ast.ListExpr, scope *Scope) Value {
 	return value
 }
 
-// func (w *Walker) selfExpr(node *ast.SelfExpr, scope *Scope) Value {
-
-// }
-
 func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope) Value {
 	callerToken := node.Caller.GetToken()
-	val := w.GetNodeValue(&node.Caller,scope)
+	val := w.GetNodeValue(&node.Caller, scope)
 
 	if val.GetType().Type != ast.Func {
 		w.error(callerToken, "variable used as if it's a function")
@@ -135,6 +154,16 @@ func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope) Value {
 	return CallVal{types: fun.returnVal}
 }
 
+func (w *Walker) methodCallExpr(node *ast.MethodCallExpr, scope *Scope) Value {
+	callExpr := ast.CallExpr{
+		Identifier: node.Name.Lexeme,
+		Caller:     node.Caller,
+		Args:       node.Args,
+		Token:      node.Token,
+	}
+
+	return w.callExpr(&callExpr, scope)
+}
 
 func (w *Walker) mapExpr(node *ast.MapExpr, scope *Scope) Value {
 	mapVal := MapVal{Members: map[string]MapMemberVal{}}
@@ -161,28 +190,22 @@ func (w *Walker) unaryExpr(node *ast.UnaryExpr, scope *Scope) Value {
 
 func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Value {
 	if node.Owner == nil {
-		sc := scope.ResolveVariable(node.Identifier.GetToken().Lexeme)
+		val := w.GetNodeValue(&node.Identifier, scope)
+		valType := val.GetType().Type
 
-		var array Value
-		if sc == nil {
-			w.error(node.Identifier.GetToken(), fmt.Sprintf("undeclared variable \"%s\"", node.Identifier.GetToken().Lexeme))
+		if valType != ast.List && valType != ast.Map && valType != ast.Namespace {
+			w.error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a list, map, or namespace", node.Identifier.GetToken().Lexeme))
 			return Invalid{}
-		} else {
-			array = sc.GetVariable(sc, node.Identifier.GetToken().Lexeme).Value
 		}
 
-		next, ok := node.Property.(ast.MemberExpr)
+		next, ok := (*node.Property).(ast.MemberExpr)
 
 		if ok {
-			arrayType := array.GetType()
-			if arrayType.Type == ast.Namespace {
+			if valType == ast.Namespace { // TODO: RESOLVE THIS CASE IN THE SECOND WALKER STAGE
 				return Unknown{}
 			}
-			if arrayType.Type != ast.List && arrayType.Type != ast.Map {
-				w.error(node.Identifier.GetToken(), "variable is not a list, map or a namespace")
-				return Invalid{}
-			}
-			return w.memberExpr(array, &next, scope)
+
+			return w.memberExpr(val, &next, scope)
 		} else {
 			w.error(node.GetToken(), "expected member expression")
 			return Invalid{}
@@ -218,7 +241,10 @@ func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Val
 	}
 
 	if wrappedValType.Type == ast.Map || wrappedValType.Type == ast.List || wrappedValType.Type == ast.Namespace {
-		next, ok := node.Property.(ast.MemberExpr)
+		if node.Property == nil {
+			return w.GetValueFromType(wrappedValType)
+		} // run itshit
+		next, ok := (*node.Property).(ast.MemberExpr)
 		if ok {
 			return w.memberExpr(w.GetValueFromType(wrappedValType), &next, scope)
 		} else {
@@ -230,7 +256,7 @@ func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Val
 	return w.GetValueFromType(wrappedValType)
 }
 
-func (w *Walker) directiveExpr(node *ast.DirectiveExpr, scope *Scope) DirectiveVal {
+func (w *Walker) directiveExpr(node *ast.DirectiveExpr, scope *Scope) DirectiveVal { //hello
 
 	if node.Identifier.Lexeme != "Environment" {
 		variable := w.GetNodeValue(&node.Expr, scope)
@@ -275,7 +301,7 @@ func (w *Walker) directiveExpr(node *ast.DirectiveExpr, scope *Scope) DirectiveV
 }
 
 func (w *Walker) selfExpr(self *ast.SelfExpr, scope *Scope) Value {
-	sc := scope.ResolveStructScope()// TODO: CHECK FOR ENTITY SCOPE
+	sc := scope.ResolveStructScope() // TODO: CHECK FOR ENTITY SCOPE
 
 	if sc == nil {
 		w.error(self.Token, "can't use self outside of struct/entity")
@@ -283,15 +309,16 @@ func (w *Walker) selfExpr(self *ast.SelfExpr, scope *Scope) Value {
 	}
 
 	if sc.Type == Structure {
-		self.Type = ast.SelfStruct
+		(*self).Type = ast.SelfStruct
+		(*self).Index = sc.GetVariableIndex(sc, self.Value.GetToken().Lexeme)
 	}
 
-	if _, ok := self.Value.(ast.SelfExpr); ok {// so just "self"
+	if _, ok := self.Value.(ast.SelfExpr); ok { // so just "self"
 		structTypeVal := sc.GetStructType(sc, sc.WrappedType.Name)
 		return StructVal{
 			Type: &structTypeVal,
 		}
-	}else {
+	} else {
 		return w.GetNodeValue(&self.Value, sc)
 	}
 }
@@ -320,9 +347,11 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) FunctionVal {
 	for _, typee := range fn.Return {
 		ret.values = append(ret.values, w.typeExpr(&typee))
 	}
-	if len(ret.values) == 0 {
-		ret.values = append(ret.values, TypeVal{Type: ast.Nil})
-	}
+
+	/*
+		if len(ret.values) == 0 {
+			ret.values = append(ret.values, TypeVal{Type: ast.Nil})
+		}*/
 
 	for _, node := range fn.Body {
 		w.WalkNode(&node, &fnScope)

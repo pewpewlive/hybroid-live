@@ -106,12 +106,15 @@ func (gen *Generator) unaryExpr(node ast.UnaryExpr) string {
 func (gen *Generator) memberExpr(node ast.MemberExpr) string {
 	src := StringBuilder{}
 
-	if node.Property.GetType() == ast.MemberExpression {
-		return gen.memberExpr(node.Property.(ast.MemberExpr))
+	if (*node.Property).GetType() == ast.MemberExpression {
+		return gen.memberExpr((*node.Property).(ast.MemberExpr))
 	}
 
-	expr := gen.GenerateNode(node.Owner)
-	prop := gen.GenerateNode(node.Property)
+	expr := gen.GenerateNode(*node.Owner)
+	if node.Property == nil {
+		return expr
+	}
+	prop := gen.GenerateNode(*node.Property)
 
 	if expr == "" {
 		return prop
@@ -164,8 +167,8 @@ func (gen *Generator) selfExpr(self ast.SelfExpr) string {
 	if self.Type == ast.SelfStruct {
 		if self.Value.GetType() == ast.SelfExpression {
 			return "Self"
-		}else {
-			return "Self."+gen.GenerateNode(self.Value)
+		} else {
+			return fmt.Sprintf("%s%v%s", "Self[", self.Index, "]")
 		}
 	}
 	return ""
