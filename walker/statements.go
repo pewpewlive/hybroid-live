@@ -119,7 +119,7 @@ func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scop
 		Node:  node,
 	}
 	if _, success := scope.DeclareVariable(variable); !success {
-		w.error(node.Name, "cannot redeclare a function")
+		w.error(node.Name, fmt.Sprintf("variable with name '%s' already exists",variable.Name))
 	}
 
 	if scope.Parent != nil && !node.IsLocal {

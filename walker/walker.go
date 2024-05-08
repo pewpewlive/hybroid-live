@@ -176,7 +176,7 @@ func (s *Scope) DeclareVariable(value VariableVal) (VariableVal, bool) {
 	return value, true
 }
 
-func (s *Scope) DeclareStructType(structType StructTypeVal) bool {
+func (s *Scope) DeclareStructType(structType StructTypeVal) bool {// for structDeclaration
 	if _, found := s.Global.StructTypes[structType.Name.Lexeme]; found {
 		return false
 	}
@@ -197,19 +197,19 @@ func (s *Scope) ResolveVariable(name string) *Scope {
 	return s.Parent.ResolveVariable(name)
 }
 
-func (s *Scope) ResolveStructType(name string) *Scope {
-	if _, found := s.Global.StructTypes[name]; found {
+func (s *Scope) ResolveStructType(name string) *Scope { // for new expression, i.e new Rectangle
+	if _, found := s.Global.StructTypes[name]; found { //yes
 		return s
 	}
 
 	if s.Parent == nil {
 		return nil
 	}
-
+	
 	return s.Parent.ResolveStructType(name)
 }
 
-func (s *Scope) ResolveStructScope() *Scope {
+func (s *Scope) ResolveStructScope() *Scope { // for self.call()
 	if s.Type == Structure {
 		return s
 	}
@@ -426,7 +426,7 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 		w.tickStmt(&newNode, scope)
 		*node = newNode
 	case ast.CallExpr:
-		w.callExpr(&newNode, scope)
+		w.callExpr(&newNode, scope, UnknownCall)
 		*node = newNode
 	case ast.MethodCallExpr:
 		w.methodCallExpr(&newNode, scope) // start the debugger
@@ -467,7 +467,7 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 		val = w.unaryExpr(&newNode, scope)
 		*node = newNode
 	case ast.CallExpr:
-		val = w.callExpr(&newNode, scope)
+		val = w.callExpr(&newNode, scope, UnknownCall)
 		*node = newNode
 	case ast.MapExpr:
 		val = w.mapExpr(&newNode, scope)

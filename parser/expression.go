@@ -91,8 +91,9 @@ func (p *Parser) fn() ast.Node {
 				break
 			} else {
 				p.advance()
-			}
-		}
+			}// yes
+		}// did you pull??
+		
 		fn.Return = ret
 		fn.Body = *p.getBody()
 		return fn
@@ -259,7 +260,7 @@ func (p *Parser) new() ast.Node {
 	return p.self()
 }
 
-func (p *Parser) self() ast.Node { // somestruct.x
+func (p *Parser) self() ast.Node {
 	if p.match(lexer.Self) {
 		expr := ast.SelfExpr{
 			Token: p.peek(-1),
@@ -276,17 +277,14 @@ func (p *Parser) self() ast.Node { // somestruct.x
 			}
 		}
 
-		if p.check(lexer.LeftParen) { //oh my god or you are
+		if p.check(lexer.LeftParen) { 
 			methodCall := ast.MethodCallExpr{
 				Token:  expr.Value.GetToken(),
 				Caller: expr,
 				Args:   p.arguments(),
-				Name:   expr.Value.GetToken(),
-			} // yeah lol
-			return methodCall // OOOOH WAITTTT
-		} // you have breakpoints?
-
-		//this is stupid tho
+			} 
+			return methodCall 
+		} 
 
 		return expr
 	}

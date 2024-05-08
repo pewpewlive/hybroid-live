@@ -160,11 +160,10 @@ func (se SelfExpr) GetValueType() PrimitiveValueType {
 }
 
 type MethodCallExpr struct {
-	Name   lexer.Token
-	Owner  string
-	Caller Node
+	TypeName   string
+	Caller Node 
 	Args   []Node
-	Token  lexer.Token
+	Token  lexer.Token 
 }
 
 func (new MethodCallExpr) GetType() NodeType {

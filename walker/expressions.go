@@ -121,15 +121,57 @@ func (w *Walker) listExpr(node *ast.ListExpr, scope *Scope) Value {
 	return value
 }
 
-func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope) Value {
-	callerToken := node.Caller.GetToken()
-	val := w.GetNodeValue(&node.Caller, scope) // is that where the pr
+type CallType int 
+
+const (
+	UnknownCall CallType = iota
+	Function
+	Method
+)
+
+func (w *Walker) determineCallTypeString(callType CallType, node *ast.Node, call ast.CallExpr, scope *Scope) string {
+	if callType == Function {
+		return"function"
+	}
+	
+	if callType == Method {
+		return "method"
+	}
+	
+	member, ok := call.Caller.(ast.MemberExpr)
+
+	if !ok {
+		return "function"
+	}
+
+	val := w.GetNodeValue(&member.Identifier, scope)
+	valType := val.GetType()
+	if valType.Type != ast.Struct && valType.Type != ast.Entity {
+		return "function"
+	}
+
+	methodCallExpr := ast.MethodCallExpr{
+		TypeName: valType.Name,
+		Args: call.Args,
+		Caller: call.Caller,
+		Token: call.Token,
+	}
+	*node = methodCallExpr
+	return "method"
+}
+
+func (w *Walker) callExpr(node ast.Node, scope *Scope, callType CallType) Value {
+	callExpr := node.(ast.CallExpr)
+	typeCall := w.determineCallTypeString(callType, &node, callExpr, scope)
+
+	callerToken := callExpr.Caller.GetToken()
+	val := w.GetNodeValue(&callExpr.Caller, scope)
 
 	if val.GetType().Type != ast.Func {
-		w.error(callerToken, fmt.Sprintf("variable used as if it's a function (type: %s)", val.GetType().Type.ToString()))
-		return Invalid{} // where can you get undefined
-	} // yes
-	// wait wait wait
+		w.error(callerToken, fmt.Sprintf("variable used as if it's a %s (type: %s)", typeCall, val.GetType().Type.ToString()))
+		return Invalid{} 
+	}
+
 	variable, it_is := val.(VariableVal)
 	if it_is {
 		val = variable.Value
@@ -137,7 +179,7 @@ func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope) Value {
 	fun, _ := val.(FunctionVal)
 
 	arguments := make([]TypeVal, 0)
-	for _, arg := range node.Args {
+	for _, arg := range callExpr.Args {
 		val := w.GetNodeValue(&arg, scope)
 		if function, ok := val.(FunctionVal); ok {
 			arguments = append(arguments, function.returnVal.values...)
@@ -146,23 +188,28 @@ func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope) Value {
 		}
 	}
 	if len(fun.params) < len(arguments) {
-		w.error(callerToken, "too many arguments given in function call")
+		w.error(callerToken, fmt.Sprintf("too many arguments given in %s call", typeCall))
 	} else if len(fun.params) > len(arguments) {
-		w.error(callerToken, "too few arguments given in function call")
+		w.error(callerToken, fmt.Sprintf("too few arguments given in %s call", typeCall))
 	}
 
 	return CallVal{types: fun.returnVal}
 }
 
 func (w *Walker) methodCallExpr(node *ast.MethodCallExpr, scope *Scope) Value {
-	callExpr := ast.CallExpr{
-		Identifier: node.Name.Lexeme, //lets go there yeah
+	// so, i think that uhh, that's really all we need to do here
+	if node.Caller.GetType() == ast.SelfExpression { // 
+		sc := scope.ResolveStructScope()
+		node.TypeName = sc.WrappedType.Name
+	}
+	callExpr := ast.CallExpr{ 
+		Identifier: node.TypeName, 
 		Caller:     node.Caller,
-		Args:       node.Args, //
+		Args:       node.Args, 
 		Token:      node.Token,
 	}
-	// wa
-	return w.callExpr(&callExpr, scope)
+	
+	return w.callExpr(callExpr, scope, Method)
 }
 
 func (w *Walker) mapExpr(node *ast.MapExpr, scope *Scope) Value {
@@ -190,19 +237,19 @@ func (w *Walker) unaryExpr(node *ast.UnaryExpr, scope *Scope) Value {
 
 func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Value {
 	if node.Owner == nil {
-		val := w.GetNodeValue(&node.Identifier, scope)
-		valType := val.GetType().Type
+		val := w.GetNodeValue(&node.Identifier, scope)//node.Identifier is updated with the index, mhm
+		valType := val.GetType().Type// yes but owner wont get updated
 
 		if valType != ast.List && valType != ast.Map && valType != ast.Namespace {
 			w.error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a list, map, or namespace", node.Identifier.GetToken().Lexeme))
 			return Invalid{}
 		}
 
-		next, ok := (*node.Property).(ast.MemberExpr)
-
+		next, ok := (*node.Property).(ast.MemberExpr) // the owner at last is not getting generated or what like it just doesnt 
+		// we finna debug oh yeah
 		if ok {
 			if valType == ast.Namespace { // TODO: RESOLVE THIS CASE IN THE SECOND WALKER STAGE
-				return Unknown{}
+				return Unknown{} 
 			}
 
 			return w.memberExpr(val, &next, scope)
@@ -210,8 +257,8 @@ func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Val
 			w.error(node.GetToken(), "expected member expression")
 			return Invalid{}
 		}
-	}
-
+	} // lets go
+	w.GetNodeValue(node.Owner, scope)// we just walk it we dont really need it for anything else
 	val := w.GetNodeValue(&node.Identifier, scope)
 	valType := val.GetType()
 	arrayType := array.GetType()

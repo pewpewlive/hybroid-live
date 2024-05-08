@@ -229,9 +229,9 @@ func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, Struc
 	src.Append(")\n")
 
 	src.AppendTabbed("local Self = {")
-	for _, field := range Struct.Fields {
-		for i, value := range field.Values {
-			if i == len(field.Values) {
+	for i, field := range Struct.Fields {
+		for j, value := range field.Values {
+			if j == len(field.Values)-1 && i == len(Struct.Fields)-1 {
 				src.WriteString(gen.GenerateNode(value))
 			} else {
 				src.Append(gen.GenerateNode(value), ",")
