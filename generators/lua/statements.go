@@ -172,7 +172,9 @@ func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclaratio
 	src := StringBuilder{}
 	src2 := StringBuilder{}
 	if isLocal {
-		src.WriteString("local ")
+		src.AppendTabbed("local ")
+	}else {
+		src.AppendTabbed("")
 	}
 	for i, ident := range declaration.Identifiers {
 		if i == len(declaration.Identifiers)-1 && len(values) != 0 {

@@ -9,8 +9,12 @@ import (
 
 func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
 	ifScope := NewScope(scope.Global, scope, scope.Type)
-	w.GetNodeValue(&node.BoolExpr, scope)
+	boolExpr := w.GetNodeValue(&node.BoolExpr, scope)
+	if boolExpr.GetType().Type != ast.Bool {
+		w.error(node.BoolExpr.GetToken(), "if condition is not a comparison")
+	}
 	for _, node := range node.Body {
+		w.Context = node
 		w.WalkNode(&node, &ifScope)
 		// if stmt.GetType() == ast.ReturnStatement {
 		// 	returnStmt := stmt.(ast.ReturnStmt)
@@ -21,7 +25,10 @@ func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
 	}
 
 	for _, elseif := range node.Elseifs {
-		w.GetNodeValue(&elseif.BoolExpr, scope)
+		boolExpr := w.GetNodeValue(&elseif.BoolExpr, scope)
+		if boolExpr.GetType().Type != ast.Bool {
+			w.error(elseif.BoolExpr.GetToken(), "if condition is not a comparison")
+		}
 		ifScope := NewScope(scope.Global, scope, scope.Type)
 		for _, stmt := range elseif.Body {
 			w.WalkNode(&stmt, &ifScope)
@@ -227,9 +234,9 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 
 	var values []Value
 
-	for _, expr := range declaration.Values {
+	for i := range declaration.Values {
 
-		exprValue := w.GetNodeValue(&expr, scope)
+		exprValue := w.GetNodeValue(&declaration.Values[i], scope)
 		if call, ok := exprValue.(CallVal); ok {
 			for _, returnVal := range call.types.values {
 				values = append(values, w.GetValueFromType(returnVal))
@@ -332,6 +339,7 @@ func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *S
 		Name:    node.Name,
 		Methods: map[string]VariableVal{},
 		Fields:  map[string]VariableVal{},
+		FieldIndexes: map[string]int{},
 	}
 	structScope.WrappedType = structTypeVal.GetType()
 
@@ -341,7 +349,7 @@ func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *S
 	}
 	structTypeVal.Params = params
 
-	scope.DeclareStructType(structTypeVal)
+	scope.DeclareStructType(&structTypeVal)
 
 	funcDeclaration := ast.MethodDeclarationStmt{
 		Name:    node.Constructor.Token,
@@ -354,6 +362,8 @@ func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *S
 	for _, field := range node.Fields {
 		w.fieldDeclarationStmt(&field, &structTypeVal, &structScope)
 	}
+
+	structTypeVal.FieldIndexes = structScope.VariableIndexes
 
 	for _, method := range *node.Methods {
 		w.methodDeclarationStmt(&method, &structTypeVal, &structScope)

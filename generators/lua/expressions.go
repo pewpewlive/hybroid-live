@@ -89,9 +89,12 @@ Hybroid_MemberTypeName_methodCall(var.member) var.member is a field expression
 
 func (gen *Generator) methodCallExpr(node ast.MethodCallExpr) string {
 	src := StringBuilder{}
-	fn := gen.GenerateNode(node.Caller)
+	src.Append("Hybroid_", node.TypeName, "_", node.Call.GetToken().Lexeme)
 
-	src.Append(fn, "(")
+	src.Append("(", gen.GenerateNode(node.Owner))
+	if len(node.Args) != 0 {
+		src.WriteString(", ")
+	}
 	for i, arg := range node.Args {
 		src.WriteString(gen.GenerateNode(arg))
 		if i != len(node.Args)-1 {
@@ -135,29 +138,31 @@ func (gen *Generator) unaryExpr(node ast.UnaryExpr) string {
 	return fmt.Sprintf("%s%s", node.Operator.Lexeme, gen.GenerateNode(node.Value))
 }
 
+func (gen *Generator) fieldExpr(node ast.FieldExpr) string {
+	src := StringBuilder{}
+
+	if node.Property != nil && node.Property.GetType() == ast.FieldExpression {
+		return gen.fieldExpr((node.Property).(ast.FieldExpr))
+	}
+
+	expr := gen.GenerateNode(node.Owner)
+
+	src.Append(expr, "[", fmt.Sprintf("%v", node.Index), "]")
+
+	return src.String()
+}
+
 func (gen *Generator) memberExpr(node ast.MemberExpr) string {
 	src := StringBuilder{}
 
-	if (*node.Property).GetType() == ast.MemberExpression {
-		return gen.memberExpr((*node.Property).(ast.MemberExpr))
+	if node.Property != nil && node.Property.GetType() == ast.MemberExpression {
+		return gen.memberExpr((node.Property).(ast.MemberExpr))
 	}
 
-	expr := gen.GenerateNode(*node.Owner)
-	if node.Property == nil {
-		return expr
-	}
-	prop := gen.GenerateNode(*node.Property)
+	expr := gen.GenerateNode(node.Owner)
+	prop := gen.GenerateNode(node.Identifier)
 
-	if expr == "" {
-		return prop
-	}
-	src.WriteString(expr)
-
-	if node.Bracketed {
-		src.Append("[", prop, "]")
-	} else {
-		src.Append(".", prop)
-	}
+	src.Append(expr, "[", prop, "]")
 
 	return src.String()
 }
@@ -197,11 +202,22 @@ func (gen *Generator) anonFnExpr(fn ast.AnonFnExpr) string {
 
 func (gen *Generator) selfExpr(self ast.SelfExpr) string {
 	if self.Type == ast.SelfStruct {
-		if self.Value.GetType() == ast.SelfExpression {
-			return "Self"
-		} else {
-			return fmt.Sprintf("%s%v%s", "Self[", self.Index, "]")
-		}
+		return "Self"
 	}
 	return ""
+}
+
+func (gen *Generator) newExpr(new ast.NewExpr) string {
+	src := StringBuilder{}
+
+	src.Append("Hybroid_",new.Type.Lexeme,"_New(")
+	for i, arg := range new.Args {
+		src.WriteString(gen.GenerateNode(arg))
+		if i != len(new.Args)-1 {
+			src.WriteString(", ")
+		}
+	}
+	src.WriteString(")")
+
+	return src.String()
 }

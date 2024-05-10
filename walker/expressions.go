@@ -5,6 +5,7 @@ import (
 	"hybroid/ast"
 	"hybroid/lexer"
 	"hybroid/parser"
+	"reflect"
 )
 
 func (w *Walker) determineValueType(left TypeVal, right TypeVal) TypeVal {
@@ -45,7 +46,7 @@ func (w *Walker) binaryExpr(node *ast.BinaryExpr, scope *Scope) Value {
 	}
 }
 
-func (w *Walker) literalExpr(node *ast.LiteralExpr) Value {
+func (w *Walker) literalExpr(node *ast.LiteralExpr) (Value) {
 
 	switch node.ValueType {
 	case ast.String:
@@ -73,35 +74,43 @@ func (w *Walker) literalExpr(node *ast.LiteralExpr) Value {
 	}
 }
 
-func (w *Walker) identifierExpr(node *ast.IdentifierExpr, scope *Scope) Value {
-	sc := scope.ResolveVariable(node.Name.Lexeme)
+func (w *Walker) identifierExpr(node ast.Node, scope *Scope) Value {
+	ident := node.(*ast.IdentifierExpr)
+	sc := scope.ResolveVariable(ident.Name.Lexeme)
 
 	if sc != nil {
-		newValue := sc.GetVariable(sc, node.Name.Lexeme)
+		newValue := sc.GetVariable(sc, ident.Name.Lexeme)
 
-		/*
-			if sc.Type == Structure {
-				varIndex := sc.GetVariableIndex(sc, node.Name.Lexeme)
+		/* // this creates an infinite loop
+		if sc.Type == Structure {
+			varIndex := sc.GetVariableIndex(sc, ident.Name.Lexeme)
 
-				selfExpr := ast.SelfExpr{
-					Token: node.GetToken(),
-					Value: node,
-					Type:  ast.SelfStruct,
-					Index: varIndex,
-				}
-			} /* else if sc.Type == Entity {
-				varIndex := sc.GetVariableIndex(sc, node.Name.Lexeme)
+			selfExpr := ast.SelfExpr{
+				Token: node.GetToken(),
+				Type:  ast.SelfStruct,
+			}
 
-				selfExpr := ast.SelfExpr{
-					Token: newValue.Node.GetToken(),
-					Value: newValue.Node,
-					Type:  ast.SelfEntity,
-					Index: varIndex,
-				}
-			}*/
+			fieldExpr := ast.FieldExpr{
+				Owner: selfExpr,
+				Property: node,
+				Identifier: node,
+				Index: varIndex,
+			} // self.thing
+
+			node = fieldExpr
+		} /* else if sc.Type == Entity {
+			varIndex := sc.GetVariableIndex(sc, node.Name.Lexeme)
+
+			selfExpr := ast.SelfExpr{
+				Token: newValue.Node.GetToken(),
+				Value: newValue.Node,
+				Type:  ast.SelfEntity,
+				Index: varIndex,
+			}
+		}*/
 
 		//fmt.Printf("%v %s\n", sc.Type, newValue.Name)
-		return newValue
+		return newValue.Value
 	} else {
 		//w.error(node.Name, "unknown identifier")
 		return Invalid{}
@@ -124,45 +133,51 @@ func (w *Walker) listExpr(node *ast.ListExpr, scope *Scope) Value {
 type CallType int 
 
 const (
-	UnknownCall CallType = iota
-	Function
+	Function CallType = iota
 	Method
 )
 
-func (w *Walker) determineCallTypeString(callType CallType, node *ast.Node, call ast.CallExpr, scope *Scope) string {
+func (w *Walker) determineCallTypeString(callType CallType) string {
 	if callType == Function {
-		return"function"
-	}
-	
-	if callType == Method {
-		return "method"
-	}
-	
-	member, ok := call.Caller.(ast.MemberExpr)
-
-	if !ok {
 		return "function"
 	}
 
-	val := w.GetNodeValue(&member.Identifier, scope)
-	valType := val.GetType()
-	if valType.Type != ast.Struct && valType.Type != ast.Entity {
-		return "function"
-	}
-
-	methodCallExpr := ast.MethodCallExpr{
-		TypeName: valType.Name,
-		Args: call.Args,
-		Caller: call.Caller,
-		Token: call.Token,
-	}
-	*node = methodCallExpr
 	return "method"
 }
 
+func (w *Walker) validateArguments(args []TypeVal, params []TypeVal, callToken lexer.Token, typeCall string) bool {
+	if len(params) < len(args) {
+		w.error(callToken, fmt.Sprintf("too many arguments given in %s call", typeCall))
+		return false
+	}
+	if len(params) > len(args) {
+		w.error(callToken, fmt.Sprintf("too few arguments given in %s call", typeCall))
+		return false
+	}
+	for i, typeVal := range args {
+		if !typeVal.Eq(params[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func (w *Walker) typeifyNodeList(nodes []ast.Node, scope *Scope) []TypeVal {
+	arguments := make([]TypeVal, 0)
+	for _, arg := range nodes {
+		val := w.GetNodeValue(&arg, scope)
+		if function, ok := val.(FunctionVal); ok {
+			arguments = append(arguments, function.returnVal.values...)
+		} else {
+			arguments = append(arguments, val.GetType())
+		}
+	}
+	return arguments
+}
+
 func (w *Walker) callExpr(node ast.Node, scope *Scope, callType CallType) Value {
-	callExpr := node.(ast.CallExpr)
-	typeCall := w.determineCallTypeString(callType, &node, callExpr, scope)
+	callExpr := node.(*ast.CallExpr)
+	typeCall := w.determineCallTypeString(callType)
 
 	callerToken := callExpr.Caller.GetToken()
 	val := w.GetNodeValue(&callExpr.Caller, scope)
@@ -178,38 +193,94 @@ func (w *Walker) callExpr(node ast.Node, scope *Scope, callType CallType) Value 
 	}
 	fun, _ := val.(FunctionVal)
 
-	arguments := make([]TypeVal, 0)
-	for _, arg := range callExpr.Args {
-		val := w.GetNodeValue(&arg, scope)
-		if function, ok := val.(FunctionVal); ok {
-			arguments = append(arguments, function.returnVal.values...)
-		} else {
-			arguments = append(arguments, val.GetType())
-		}
-	}
-	if len(fun.params) < len(arguments) {
-		w.error(callerToken, fmt.Sprintf("too many arguments given in %s call", typeCall))
-	} else if len(fun.params) > len(arguments) {
-		w.error(callerToken, fmt.Sprintf("too few arguments given in %s call", typeCall))
-	}
+	arguments := w.typeifyNodeList(callExpr.Args, scope)
+	w.validateArguments(arguments, fun.params, callerToken, typeCall)
 
 	return CallVal{types: fun.returnVal}
 }
 
 func (w *Walker) methodCallExpr(node *ast.MethodCallExpr, scope *Scope) Value {
 	// so, i think that uhh, that's really all we need to do here
-	if node.Caller.GetType() == ast.SelfExpression { // 
-		sc := scope.ResolveStructScope()
-		node.TypeName = sc.WrappedType.Name
-	}
+
+	ownerVal := w.GetNodeValue(&node.Owner, scope)
+
+	node.TypeName = ownerVal.GetType().Name
+	
 	callExpr := ast.CallExpr{ 
 		Identifier: node.TypeName, 
-		Caller:     node.Caller,
+		Caller:     node.Call,
 		Args:       node.Args, 
 		Token:      node.Token,
 	}
 	
-	return w.callExpr(callExpr, scope, Method)
+	return w.callExpr(&callExpr, scope, Method)
+}
+
+func IsOfPrimitiveType(value Value, types ...ast.PrimitiveValueType) bool {
+	if types == nil {
+		return false
+	}
+	valType := value.GetType().Type
+	for _, prim := range types {
+		if valType == prim {
+			return true
+		}
+	}
+	
+	return false
+} 
+
+func (w *Walker) GetContainer(val Value) Container {
+	value := reflect.ValueOf(val)
+	ah := reflect.TypeFor[Container]()
+	if value.CanConvert(ah) {
+		test := value.Convert(ah).Interface()
+		return test.(Container)
+	}
+
+	return nil
+}
+
+func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
+	if node.Owner == nil {
+		val := w.GetNodeValue(&node.Identifier, scope)
+
+		if !IsOfPrimitiveType(val, ast.Struct, ast.Entity, ast.Namespace) {
+			w.error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a struct, entity or namespace", node.Identifier.GetToken().Lexeme))
+			return Invalid{}
+		}
+
+		next, _ := (node.Property).(ast.FieldExpr)
+		fieldVal := w.fieldExpr(&next, scope)
+		node.Property = next
+		return fieldVal
+	}
+	owner := w.GetNodeValue(&node.Owner, scope)
+	//ownerType := owner.GetType()
+	variable := VariableVal{Value:Invalid{}}
+	if IsOfPrimitiveType(owner, ast.Struct, ast.Entity, ast.Namespace) {
+		if container := w.GetContainer(owner); container != nil {
+			ident := node.Identifier.GetToken()
+			val, index, contains := container.Contains(ident.Lexeme)
+
+			if !contains {
+				w.error(ident, fmt.Sprintf("no field or method named '%s' in '%s'", ident.Lexeme, node.Owner.GetToken().Lexeme))
+				return Invalid{}
+			}else {
+				variable = val.(VariableVal)
+				node.Index = index
+			}
+		}
+	}
+
+	if IsOfPrimitiveType(variable, ast.Struct, ast.Entity, ast.Namespace) && node.Property != nil {
+		next, _ := node.Property.(ast.FieldExpr)
+		fieldVal := w.fieldExpr(&next, scope)
+		node.Property = next
+		return fieldVal
+	}
+
+	return variable.Value
 }
 
 func (w *Walker) mapExpr(node *ast.MapExpr, scope *Scope) Value {
@@ -235,65 +306,58 @@ func (w *Walker) unaryExpr(node *ast.UnaryExpr, scope *Scope) Value {
 	return w.GetNodeValue(&node.Value, scope)
 }
 
-func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Value {
+func (w *Walker) memberExpr(node *ast.MemberExpr, scope *Scope) Value {
 	if node.Owner == nil {
-		val := w.GetNodeValue(&node.Identifier, scope)//node.Identifier is updated with the index, mhm
-		valType := val.GetType().Type// yes but owner wont get updated
+		val := w.GetNodeValue(&node.Identifier, scope)
+		valType := val.GetType().Type
 
-		if valType != ast.List && valType != ast.Map && valType != ast.Namespace {
-			w.error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a list, map, or namespace", node.Identifier.GetToken().Lexeme))
+		if valType != ast.List && valType != ast.Map {
+			w.error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a list, map", node.Identifier.GetToken().Lexeme))
 			return Invalid{}
 		}
 
-		next, ok := (*node.Property).(ast.MemberExpr) // the owner at last is not getting generated or what like it just doesnt 
-		// we finna debug oh yeah
+		next, ok := (node.Property).(ast.MemberExpr) 
 		if ok {
-			if valType == ast.Namespace { // TODO: RESOLVE THIS CASE IN THE SECOND WALKER STAGE
-				return Unknown{} 
-			}
-
-			return w.memberExpr(val, &next, scope)
+			return w.memberExpr(&next, scope)
 		} else {
-			w.error(node.GetToken(), "expected member expression")
+			w.error(node.GetToken(), fmt.Sprintf("expected member expression (type: %v)", node.GetType()))
 			return Invalid{}
 		}
-	} // lets go
-	w.GetNodeValue(node.Owner, scope)// we just walk it we dont really need it for anything else
+	}
+	array := w.GetNodeValue(&node.Owner, scope)
 	val := w.GetNodeValue(&node.Identifier, scope)
 	valType := val.GetType()
 	arrayType := array.GetType()
-	if node.Bracketed {
-		if arrayType.Type == ast.Map {
-			if valType.Type != ast.String && valType.Type != 0 {
-				w.error(node.Identifier.GetToken(), "variable is not a string")
-				return Invalid{}
-			}
-		} else if arrayType.Type == ast.List {
-			if valType.Type != ast.Number && valType.Type != 0 {
-				w.error(node.Identifier.GetToken(), "variable is not a number")
-				return Invalid{}
-			}
+
+	if arrayType.Type == ast.Map {
+		if valType.Type != ast.String && valType.Type != 0 {
+			w.error(node.Identifier.GetToken(), "variable is not a string")
+			return Invalid{}
 		}
-	} else {
-		if arrayType.Type == ast.Map {
-			w.error(node.Identifier.GetToken(), "map members are accessed with '[]'")
+	} else if arrayType.Type == ast.List {
+		if valType.Type != ast.Number && valType.Type != 0 {
+			w.error(node.Identifier.GetToken(), "variable is not a number")
+			return Invalid{}
 		}
 	}
+	
 
 	wrappedValType := TypeVal{Type: ast.Invalid}
+
+	if variable, ok := array.(VariableVal); ok {
+		array = variable.Value
+	}
+
 	if list, ok := array.(ListVal); ok {
 		wrappedValType = list.ValueType
 	} else if mapp, ok := array.(MapVal); ok {
 		wrappedValType = mapp.MemberType
 	}
 
-	if wrappedValType.Type == ast.Map || wrappedValType.Type == ast.List || wrappedValType.Type == ast.Namespace {
-		if node.Property == nil {
-			return w.GetValueFromType(wrappedValType)
-		} // run itshit
-		next, ok := (*node.Property).(ast.MemberExpr)
+	if (wrappedValType.Type == ast.Map || wrappedValType.Type == ast.List) && node.Property != nil {
+		next, ok := node.Property.(ast.MemberExpr)
 		if ok {
-			return w.memberExpr(w.GetValueFromType(wrappedValType), &next, scope)
+			return w.memberExpr(&next, scope)
 		} else {
 			w.error(node.GetToken(), "expected member expression")
 			return Invalid{}
@@ -303,7 +367,7 @@ func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Val
 	return w.GetValueFromType(wrappedValType)
 }
 
-func (w *Walker) directiveExpr(node *ast.DirectiveExpr, scope *Scope) DirectiveVal { //hello
+func (w *Walker) directiveExpr(node *ast.DirectiveExpr, scope *Scope) DirectiveVal {
 
 	if node.Identifier.Lexeme != "Environment" {
 		variable := w.GetNodeValue(&node.Expr, scope)
@@ -357,17 +421,12 @@ func (w *Walker) selfExpr(self *ast.SelfExpr, scope *Scope) Value {
 
 	if sc.Type == Structure {
 		(*self).Type = ast.SelfStruct
-		(*self).Index = sc.GetVariableIndex(sc, self.Value.GetToken().Lexeme)
+		structTypeVal := sc.GetStructType(sc, sc.WrappedType.Name)
+		return StructVal{Type:structTypeVal}
+	}else {
+		return Invalid{}
 	}
 
-	if _, ok := self.Value.(ast.SelfExpr); ok { // so just "self"
-		structTypeVal := sc.GetStructType(sc, sc.WrappedType.Name)
-		return StructVal{
-			Type: &structTypeVal,
-		}
-	} else {
-		return w.GetNodeValue(&self.Value, sc)
-	}
 }
 
 func (w *Walker) newExpr(new *ast.NewExpr, scope *Scope) StructVal {
@@ -375,8 +434,11 @@ func (w *Walker) newExpr(new *ast.NewExpr, scope *Scope) StructVal {
 
 	structTypeVal := resolved.GetStructType(resolved, new.Type.Lexeme)
 
+	args := w.typeifyNodeList(new.Args, scope)
+	w.validateArguments(args, structTypeVal.Params, new.Type, "new")
+
 	return StructVal{
-		Type: &structTypeVal,
+		Type: structTypeVal,
 	}
 }
 
@@ -431,7 +493,7 @@ func (w *Walker) typeExpr(typee *ast.TypeExpr) TypeVal {
 	for _, v := range typee.Returns {
 		returns = append(returns, w.typeExpr(&v))
 	}
-	//fmt.Printf("%s\n",typee.Name.Lexeme)
+	
 	return TypeVal{
 		Type:        w.GetTypeFromString(typee.Name.Lexeme),
 		WrappedType: wrapped,

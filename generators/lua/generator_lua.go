@@ -145,6 +145,8 @@ func (gen *Generator) GenerateNode(node ast.Node) string {
 		return gen.callExpr(newNode)
 	case ast.MapExpr:
 		return gen.mapExpr(newNode)
+	case ast.FieldExpr:
+		return gen.fieldExpr(newNode)
 	case ast.MemberExpr:
 		return gen.memberExpr(newNode)
 	case ast.DirectiveExpr:
@@ -153,6 +155,10 @@ func (gen *Generator) GenerateNode(node ast.Node) string {
 		return gen.anonFnExpr(newNode)
 	case ast.SelfExpr:
 		return gen.selfExpr(newNode)
+	case ast.NewExpr:
+		return gen.newExpr(newNode)
+	case ast.MethodCallExpr:
+		return gen.methodCallExpr(newNode)
 	}
 
 	return ""

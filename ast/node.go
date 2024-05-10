@@ -34,6 +34,7 @@ const (
 	MapExpression
 	CallExpression
 	MethodCallExpression
+	FieldExpression
 	MemberExpression
 	ParentExpression
 	TypeExpression

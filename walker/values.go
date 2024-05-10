@@ -10,6 +10,12 @@ type Value interface {
 	GetType() TypeVal
 }
 
+type Container interface {
+	GetFields() map[string]VariableVal
+	GetMethods() map[string]VariableVal
+	Contains(name string) (Value, int, bool)
+}
+
 type VariableVal struct {
 	Name    string
 	Value   Value
@@ -26,6 +32,7 @@ type StructTypeVal struct {
 	Name lexer.Token
 	Params []TypeVal
 	Fields map[string]VariableVal
+	FieldIndexes map[string]int
 	Methods map[string]VariableVal
 	IsUsed bool
 }
@@ -50,13 +57,57 @@ func (s StructVal) GetType() TypeVal {
 	return s.Type.GetType()
 }
 
+func (s StructVal) GetFields() map[string]VariableVal {
+	return s.Type.Fields
+}
+
+func (s StructVal) GetMethods() map[string]VariableVal {
+	return s.Type.Methods
+}
+
+func (s StructVal) Contains(name string) (Value, int, bool) {
+	if variable, found := s.Type.Fields[name]; found {
+		return variable, s.Type.FieldIndexes[name], true
+	}
+
+	if variable, found := s.Type.Methods[name]; found {
+		return variable, s.Type.FieldIndexes[name], true
+	}
+
+	return nil, -1, false
+} 
+
 type NamespaceVal struct {
 	Name string
+	Fields map[string]VariableVal
+	Methods map[string]VariableVal
+	FieldIndexes map[string]int
 }
 
 func (n NamespaceVal) GetType() TypeVal {
 	return TypeVal{Type: ast.Namespace}
 }
+
+func (n NamespaceVal) GetFields() map[string]VariableVal {
+	return n.Fields
+}
+
+func (n NamespaceVal) GetMethods() map[string]VariableVal {
+	return n.Methods
+}
+
+func (n NamespaceVal) Contains(name string) (Value, int,  bool) {
+	if variable, found := n.Fields[name]; found {
+		return variable, n.FieldIndexes[name], true
+	}
+
+	if variable, found := n.Methods[name]; found {
+		return variable, n.FieldIndexes[name], true
+	}
+
+	return nil, -1, false
+} 
+
 
 /*
 	type ListMemberVal struct {

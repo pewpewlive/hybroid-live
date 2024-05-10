@@ -1,57 +1,65 @@
 @Environment(Level)
 
-/*
-pub struct Test {
-    x = 0fx
 
-    new() {
-        self.x = 10fx
+struct Test {
+    x, y = 0fx, 0fx
 
-        if 1 + 1 {
+    new(x fixed,y fixed) {
+        if 1 == 1 {
             if true {
 
             }
         }
     }
 
+    fn test() bool {
+        return true
+    }
 }
 
-let aa = new Test()
+let aa = new Test(10fx,10fx)
 
+if aa.test() {
 
+}
+
+/*
 let testa = {
-    a:fn(param text) bool {
-        if param == "aa" {
-            return true
-        }else {
-            return false
+    b: {
+        c: {
+            s: {
+                
+            }
         }
-    } 
+    }
 }
+
+let she = ["b"]
 
 fn ah(param bool) {
     param = true
 }
 
-ah(testa["a"]("aa"))
+ah(testa[she[0]]["c"]["s"])
 */
+
 /*
 let dfs = fn () {
     if true {
 
     }
 }
-*/
+
 struct Rectangle {
     
     test = {a: {b: {c: 1}}}
     xdsd = 23f
     test2 = {a: {b: {c: 1}}}
-    /*thing = fn () {
+    thing = fn () {
         if true {
             
         }
-    }*/
+    }
     
     
     new(widthasdasd fixed, heigh fixed) {
@@ -73,3 +81,4 @@ struct Rectangle {
         //self.xd()
     } // ok
 }
+*/

@@ -83,6 +83,7 @@ func (e *Evaluator) Action() error {
 	fmt.Println("Walking through the nodes...")
 
 	global := walker.NewGlobal()
+	e.walker.Global = &global
 
 	prog = e.walker.Walk(&prog, &global)
 	if len(e.walker.Errors) != 0 {

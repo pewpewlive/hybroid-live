@@ -6,15 +6,17 @@ import (
 )
 
 type Walker struct {
+	Global   *Global
 	nodes    *[]ast.Node
 	Errors   []ast.Error
 	Warnings []ast.Warning
+	Context  ast.Node
 }
 
 type Global struct {
 	Scope        Scope
 	foreignTypes map[string]Value
-	StructTypes  map[string]StructTypeVal
+	StructTypes  map[string]*StructTypeVal
 	//EntityTypes map[string]EntityTypeVal
 }
 
@@ -23,7 +25,7 @@ func NewGlobal() Global {
 	global := Global{
 		Scope:        scope,
 		foreignTypes: map[string]Value{},
-		StructTypes:  map[string]StructTypeVal{},
+		StructTypes:  map[string]*StructTypeVal{},
 	}
 
 	global.Scope.Global = &global
@@ -99,7 +101,8 @@ func (w *Walker) GetValueFromType(typee TypeVal) Value {
 		return Invalid{}
 	case 0:
 		return Unknown{}
-	// TODO: handle structs and entities in the future
+	case ast.Struct:
+		return w.Global.Scope.GetStructType(&w.Global.Scope, typee.Name)
 	default:
 		return Invalid{}
 	}
@@ -125,7 +128,7 @@ func (s *Scope) GetVariableIndex(scope *Scope, name string) int {
 	return scope.VariableIndexes[name]
 }
 
-func (s *Scope) GetStructType(scope *Scope, name string) StructTypeVal {
+func (s *Scope) GetStructType(scope *Scope, name string) *StructTypeVal {
 	structType := scope.Global.StructTypes[name]
 
 	structType.IsUsed = true
@@ -176,7 +179,7 @@ func (s *Scope) DeclareVariable(value VariableVal) (VariableVal, bool) {
 	return value, true
 }
 
-func (s *Scope) DeclareStructType(structType StructTypeVal) bool {// for structDeclaration
+func (s *Scope) DeclareStructType(structType *StructTypeVal) bool {// for structDeclaration
 	if _, found := s.Global.StructTypes[structType.Name.Lexeme]; found {
 		return false
 	}
@@ -407,7 +410,7 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 	case ast.VariableDeclarationStmt:
 		w.variableDeclarationStmt(&newNode, scope)
 		*node = newNode
-	case ast.IfStmt: // that might be  the reason why the shit isnt changing for identifier
+	case ast.IfStmt: 
 		w.ifStmt(&newNode, scope)
 		*node = newNode
 	case ast.AssignmentStmt:
@@ -426,7 +429,7 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 		w.tickStmt(&newNode, scope)
 		*node = newNode
 	case ast.CallExpr:
-		w.callExpr(&newNode, scope, UnknownCall)
+		w.callExpr(&newNode, scope, Function)
 		*node = newNode
 	case ast.MethodCallExpr:
 		w.methodCallExpr(&newNode, scope) // start the debugger
@@ -443,6 +446,8 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 		w.error(newNode.GetToken(), "Expected statement")
 	}
 }
+
+
 
 func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 	var val Value
@@ -467,7 +472,7 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 		val = w.unaryExpr(&newNode, scope)
 		*node = newNode
 	case ast.CallExpr:
-		val = w.callExpr(&newNode, scope, UnknownCall)
+		val = w.callExpr(&newNode, scope, Function)
 		*node = newNode
 	case ast.MapExpr:
 		val = w.mapExpr(&newNode, scope)
@@ -482,7 +487,10 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 		val = w.methodCallExpr(&newNode, scope)
 		*node = newNode
 	case ast.MemberExpr:
-		val = w.memberExpr(nil, &newNode, scope)
+		val = w.memberExpr(&newNode, scope)
+		*node = newNode
+	case ast.FieldExpr:
+		val = w.fieldExpr(&newNode, scope)
 		*node = newNode
 	case ast.TypeExpr:
 		val = w.typeExpr(&newNode)
@@ -497,6 +505,10 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 		w.error(newNode.GetToken(), "Expected expression")
 		return NilVal{}
 	}
-
+	
 	return val
+}
+
+func affectualAssignment(node ast.Node){
+	// go said nodes are not affected so yeah
 }

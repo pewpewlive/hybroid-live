@@ -177,7 +177,71 @@ func (p *Parser) unary() ast.Node {
 		return ast.UnaryExpr{Operator: operator, Value: right}
 	}
 
-	return p.memberCall(nil)
+	return p.methodCall(nil)
+}
+
+func (p *Parser) methodCall(owner ast.Node) ast.Node {
+	expr, call := p.fieldExpr(owner)
+
+	if call != nil {
+		return call
+	}
+
+	return expr
+}
+
+func (p *Parser) fieldExpr(owner ast.Node) (ast.Node, ast.Node) { 
+	if owner == nil {
+		expression := p.memberCall(nil) 
+		expr := ast.FieldExpr{
+			Identifier: expression, 
+		}
+
+		if p.match(lexer.Dot) {
+			expr2, call := p.fieldExpr(expr.Identifier)
+			expr.Property = expr2
+			return expr, call
+		} else {
+			return expression, nil
+		}
+	}
+
+	ident := p.memberCall(nil)
+
+	if memberExpr, ok := ident.(ast.MemberExpr); ok {
+		memberExpr.Owner = owner;
+		ident = memberExpr
+	}
+	
+	expr := ast.FieldExpr{
+		Owner:      owner,
+		Identifier: ident,
+	}
+
+	if ident.GetType() == ast.CallExpression && ident.(ast.CallExpr).Caller.GetType() == ast.Identifier { 
+		call := ident.(ast.CallExpr)
+		fieldExpr := ast.FieldExpr{
+			Owner:owner,
+			Identifier: call.Caller,
+		}
+		return owner, ast.MethodCallExpr{
+			Owner: owner,
+			Call: fieldExpr,
+			Args:call.Args,
+			Token:call.Token,
+		}
+	}
+
+	if p.match(lexer.Dot) {
+		expr2 := p.memberCall(nil)
+		if memberExpr, ok := expr2.(ast.MemberExpr); ok {
+			memberExpr.Owner = expr;
+			expr2 = memberExpr
+		}
+		expr.Property = expr2
+	}
+
+	return expr, nil
 }
 
 func (p *Parser) memberCall(owner ast.Node) ast.Node {
@@ -190,54 +254,37 @@ func (p *Parser) memberCall(owner ast.Node) ast.Node {
 	return expr
 }
 
-func (p *Parser) member(owner ast.Node) ast.Node { //start again well go immediately to
+func (p *Parser) member(owner ast.Node) ast.Node { 
 	if owner == nil {
 		expression := p.new()
 		expr := ast.MemberExpr{
 			Identifier: expression,
-			Bracketed:  false,
 		}
 
-		if p.match(lexer.Dot) || p.match(lexer.LeftBracket) {
+		if p.match(lexer.LeftBracket) {
 			expr2 := p.member(expr.Identifier)
-			expr.Property = &expr2
+			expr.Property = expr2
 			return expr
 		} else {
 			return expression
 		}
-
-	} else {
-		var expr ast.MemberExpr
-		bracketed := false
-		operator := p.peek(-1)
-
-		var prop ast.Node
-		if operator.Type == lexer.Dot {
-			prop = p.primary()
-			if prop.GetType() != ast.Identifier {
-				p.error(p.peek(-1), "expected identifier after '.'")
-			}
-			bracketed = false
-		} else if operator.Type == lexer.LeftBracket {
-			prop = p.expression()
-			p.consume("expected closing bracket", lexer.RightBracket)
-			bracketed = true
-		}
-
-		expr = ast.MemberExpr{
-			Owner:      &owner,
-			Property:   &prop,
-			Bracketed:  bracketed,
-			Identifier: prop,
-		}
-
-		if p.match(lexer.Dot, lexer.LeftBracket) {
-			expr2 := p.member(expr)
-			expr.Property = &expr2
-		}
-
-		return expr
 	}
+	var expr ast.MemberExpr 
+
+	prop := p.expression()
+	p.consume("expected closing bracket", lexer.RightBracket)
+
+	expr = ast.MemberExpr{
+		Owner:      owner,
+		Identifier: prop,
+	}
+
+	if p.match(lexer.LeftBracket) {
+		expr2 := p.member(expr)
+		expr.Property = expr2
+	}
+
+	return expr
 }
 
 func (p *Parser) new() ast.Node {
@@ -252,7 +299,7 @@ func (p *Parser) new() ast.Node {
 			expr.Type = typee
 		}
 
-		expr.Params = p.arguments()
+		expr.Args = p.arguments()
 
 		return expr
 	}
@@ -262,31 +309,9 @@ func (p *Parser) new() ast.Node {
 
 func (p *Parser) self() ast.Node {
 	if p.match(lexer.Self) {
-		expr := ast.SelfExpr{
+		return ast.SelfExpr{
 			Token: p.peek(-1),
 		}
-
-		if p.match(lexer.Dot) {
-			if !p.check(lexer.Identifier) {
-				p.error(p.peek(), "expected identifier after '.'")
-			}
-			expr.Value = p.primary()
-		} else {
-			expr.Value = ast.SelfExpr{
-				Token: expr.Token,
-			}
-		}
-
-		if p.check(lexer.LeftParen) { 
-			methodCall := ast.MethodCallExpr{
-				Token:  expr.Value.GetToken(),
-				Caller: expr,
-				Args:   p.arguments(),
-			} 
-			return methodCall 
-		} 
-
-		return expr
 	}
 
 	return p.primary()
