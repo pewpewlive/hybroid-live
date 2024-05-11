@@ -1,28 +1,37 @@
 @Environment(Level)
 
-
 struct Test {
-    x, y = 0fx, 0fx
+    mega = fn (yes fixed) { }
+     /*{
+        b: {
+            c:{
+                xd: fn (yes fixed) {
 
-    new(x fixed,y fixed) {
-        if 1 == 1 {
-            if true {
-
+                }
             }
         }
+    }*/
+
+    new() {
     }
 
-    fn test() bool {
-        return true
+    fn super(xd fixed) {
+
     }
+} // ok ye
+
+let aa = new Test() // ok so newExpr is fine
+// m
+aa.mega(2fx)
+aa.super(234324fx) // i really dont know what is happening
+// like, i have no idea why identifier is nil nice
+// I KNOW WHY
+// WE GOTTA LIKE, LOOK
+/*
+if aa.test() == false {
+
 }
-
-let aa = new Test(10fx,10fx)
-
-if aa.test() {
-
-}
-
+*/
 /*
 let testa = {
     b: {

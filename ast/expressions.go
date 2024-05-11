@@ -4,6 +4,12 @@ import (
 	"hybroid/lexer"
 )
 
+type Accessor interface {
+	Node 
+	SetProperty(prop Node) Accessor 
+	GetOwner() *Node
+} 
+
 type LiteralExpr struct {
 	Value     string
 	ValueType PrimitiveValueType
@@ -161,6 +167,7 @@ type MethodCallExpr struct {
 	TypeName string 
 	Owner  	 Node 
 	Call 	   Node
+	MethodName string
 	Args   	 []Node
 	Token  	 lexer.Token
 }
@@ -207,14 +214,20 @@ func (fi FieldExpr) GetType() NodeType {
 }
 
 func (fi FieldExpr) GetToken() lexer.Token {
-	if fi.Property != nil {
-		return fi.Property.GetToken()
-	}
 	return fi.Identifier.GetToken()
 }
 
 func (fi FieldExpr) GetValueType() PrimitiveValueType {
 	return 0
+}
+
+func (fi FieldExpr) SetProperty(prop Node) Accessor {
+	fi.Property = prop
+	return fi
+}
+
+func (fi FieldExpr) GetOwner() *Node {
+	return &fi.Owner 
 }
 
 type MemberExpr struct {
@@ -228,12 +241,21 @@ func (me MemberExpr) GetType() NodeType {
 	return MemberExpression
 }
 
-func (n MemberExpr) GetToken() lexer.Token {
-	return n.Identifier.GetToken()
+func (me MemberExpr) GetToken() lexer.Token {
+	return me.Identifier.GetToken()
 }
 
-func (n MemberExpr) GetValueType() PrimitiveValueType {
+func (me MemberExpr) GetValueType() PrimitiveValueType {
 	return 0
+}
+
+func (me MemberExpr) SetProperty(prop Node) Accessor {
+	me.Property = prop
+	return me
+}
+
+func (me MemberExpr) GetOwner() *Node {
+	return &me.Owner 
 }
 
 type Property struct {

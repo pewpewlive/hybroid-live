@@ -89,7 +89,7 @@ Hybroid_MemberTypeName_methodCall(var.member) var.member is a field expression
 
 func (gen *Generator) methodCallExpr(node ast.MethodCallExpr) string {
 	src := StringBuilder{}
-	src.Append("Hybroid_", node.TypeName, "_", node.Call.GetToken().Lexeme)
+	src.Append("Hybroid_", node.TypeName, "_", node.MethodName)
 
 	src.Append("(", gen.GenerateNode(node.Owner))
 	if len(node.Args) != 0 {
@@ -144,8 +144,13 @@ func (gen *Generator) fieldExpr(node ast.FieldExpr) string {
 	if node.Property != nil && node.Property.GetType() == ast.FieldExpression {
 		return gen.fieldExpr((node.Property).(ast.FieldExpr))
 	}
-
-	expr := gen.GenerateNode(node.Owner)
+	
+	var expr string
+	if node.Owner == nil {
+		return gen.GenerateNode(node.Identifier)
+	}else {
+		expr = gen.GenerateNode(node.Owner)
+	}
 
 	src.Append(expr, "[", fmt.Sprintf("%v", node.Index), "]")
 

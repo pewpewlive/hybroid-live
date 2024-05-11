@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"hybroid/ast"
 	"hybroid/lexer"
 	"strings"
@@ -177,115 +178,239 @@ func (p *Parser) unary() ast.Node {
 		return ast.UnaryExpr{Operator: operator, Value: right}
 	}
 
-	return p.methodCall(nil)
+	return p.call(p.accessorExpr(nil, 0))
 }
 
-func (p *Parser) methodCall(owner ast.Node) ast.Node {
-	expr, call := p.fieldExpr(owner)
+/*
 
-	if call != nil {
-		return call
-	}
+let's think about it first:
 
-	return expr
-}
+ok lets start simpler
 
-func (p *Parser) fieldExpr(owner ast.Node) (ast.Node, ast.Node) { 
-	if owner == nil {
-		expression := p.memberCall(nil) 
-		expr := ast.FieldExpr{
-			Identifier: expression, 
-		}
+(ident)  (ident)
+variable.variable2 | what is this?
+----------------^
+It's a Field Expression, characterised by the "." between two expressions
+A Field Expression has an identifier (what identifies the current expression (i.e the field)) 
+					   an owner (the expression directly to the left of the identifier )
+					   and a property (the expression directlty to the right of the identifier)
 
-		if p.match(lexer.Dot) {
-			expr2, call := p.fieldExpr(expr.Identifier)
-			expr.Property = expr2
-			return expr, call
-		} else {
-			return expression, nil
-		}
-	}
+variable has no owner, I guess you could technically say that the scope owns it (1)
+variable has a property and it's variable2 (2)
 
-	ident := p.memberCall(nil)
 
-	if memberExpr, ok := ident.(ast.MemberExpr); ok {
-		memberExpr.Owner = owner;
-		ident = memberExpr
-	}
+variable2 is owned by variable (by the logic of (2)), making variable its owner
+variable2 has no property
+
+Is this understandable? 
+
+variable["variable"] | what is this? 
+-------------------^
+It's a Member Expression, characterised by an expression followed up with an expression enclosed in brackets ( "[]" )
+
+wait why field is characterized by "." and member is characterized by an identifier? it's not characterized by an identifier,
+
+variable() | what is this? yes
+---------^
+A Call Expression characterized by an expression and "()" after that
+
+A few other examples:
+
+variable["variable"]()
+variable.variable()
+variable()
+variable()()
+
+
+
+variable.variable2["variable3"] | what is this? 
+-----------------^
+FieldExpr (variable2):
+	Owner: variable
+	Identifier: variable2
+	Property: MemberExpr (variable3)
+		 ---------------------^
+		 MemberExpr (variable3)
+		 	Owner: FieldExpr (variable2) 
+
+
+variable.variable2() 
+	FieldExpr: // wrong
+	Owner: variable
+	Identifier: variable2
+	Property: CallExpr:
+		Caller: variable2
+
+	CallExpr: // ALSO WRONG
+		Caller: FieldExpr(variable2)
+					Identifier: variable2
+					Owner: variable
+					Property: NA
+		Arguments: Empty 
 	
-	expr := ast.FieldExpr{
-		Owner:      owner,
-		Identifier: ident,
+	MethodCallExpr:
+		SelfPortion: FieldExpr(variable2).Owner
+		Caller: FieldExpr(variable2)
+
+i made this distinction because firstly, it's important for the generator
+and secondly, there is no secondly
+
+but SelfPortion and Caller could be different, e.g:
+
+variable["a"].call()
+-----------------^
+MethodCaller
+------------^ ---^
+SelfPortion   methodName
+
+so you can thinkg of it like this
+
+between the ".", on the left side is the SelfPortion
+meanwhile, on the right side is the methodName
+and the whole thing is the caller
+yeah i guess
+
+variable["a"]() 
+
+CallExpr:
+	Caller: MemberExpr("a"):
+				Identifier: "a"
+				Owner: variable
+				Property: NA
+	Arguments: Empty
+
+so im also wrong 
+variable.variable2["b"]()
+	CallExpr:
+		Caller:
+			FieldExpr(Member(variable2)):
+				Owner: variable
+				Property: MemberExpr(variable2):
+							Owner: variable
+							Property: MemberExpr("b")
+										Owner: MemberExpr(variable2)
+
+var[1].func() 
+so there is struct value which cannot be accsesed from things that are not identifier? lol
+like what was a reason for a rewrite
+
+so we gotta devise a different design for this
+
+alright let's try
+lets start? lesgo 
+its a field expr? which has an expression as a "owner" and and an identifier as a field name and  
+whats goin on
+It's a Field Expression, which has a property of a Member Expression, which has no property
+*/
+
+func (p *Parser) call(caller ast.Node) ast.Node {
+	if !p.check(lexer.LeftParen) {
+		return caller
 	}
 
-	if ident.GetType() == ast.CallExpression && ident.(ast.CallExpr).Caller.GetType() == ast.Identifier { 
-		call := ident.(ast.CallExpr)
-		fieldExpr := ast.FieldExpr{
-			Owner:owner,
-			Identifier: call.Caller,
-		}
-		return owner, ast.MethodCallExpr{
-			Owner: owner,
-			Call: fieldExpr,
-			Args:call.Args,
-			Token:call.Token,
-		}
+	if caller.GetType() == ast.FieldExpression {// var1.var2.var3()
+		fieldExpr := caller.(ast.FieldExpr)
+		
+		if fieldExpr.Property.GetType() == ast.FieldExpression && fieldExpr.Property.(ast.FieldExpr).Property == nil {// Property was nil, how
+			selfPortion := fieldExpr
+			selfPortion.Property = nil
+			methodCall := ast.MethodCallExpr{ // huh
+				Owner: selfPortion,
+				Call: fieldExpr,
+				MethodName: fieldExpr.Property.GetToken().Lexeme,
+				Args: p.arguments(),
+				Token: fieldExpr.Property.GetToken(),
+			}
+			return methodCall
+		} 
+	} 
+
+	callerType := caller.GetType()
+	if callerType != ast.Identifier && callerType != ast.MemberExpression && callerType != ast.FieldExpression && callerType != ast.CallExpression {
+		p.error(p.peek(-1), fmt.Sprintf("cannot call unidentified value (caller: %v)", callerType))
+		return ast.Improper{Token: p.peek(-1)}
 	}
 
-	if p.match(lexer.Dot) {
-		expr2 := p.memberCall(nil)
-		if memberExpr, ok := expr2.(ast.MemberExpr); ok {
-			memberExpr.Owner = expr;
-			expr2 = memberExpr
-		}
-		expr.Property = expr2
+	call_expr := ast.CallExpr{
+		Identifier: caller.GetToken().Lexeme,//THIS GIVES 'mega' HOW DOES IT GIVE MEGA WHAT
+		Caller:     caller,// ITS SUPPOSED TO GIVE 'aa' ok turns out im stupid, doesn't really change a lot anyway
+		Args:       p.arguments(), 
+		Token:      caller.GetToken(),
 	}
-
-	return expr, nil
-}
-
-func (p *Parser) memberCall(owner ast.Node) ast.Node {
-	expr := p.member(owner)
 
 	if p.check(lexer.LeftParen) {
-		return p.call(expr)
-	}
-
-	return expr
-}
-
-func (p *Parser) member(owner ast.Node) ast.Node { 
-	if owner == nil {
-		expression := p.new()
-		expr := ast.MemberExpr{
-			Identifier: expression,
-		}
-
-		if p.match(lexer.LeftBracket) {
-			expr2 := p.member(expr.Identifier)
-			expr.Property = expr2
-			return expr
-		} else {
-			return expression
+		expr := p.call(call_expr)
+		if expr.GetType() == ast.CallExpression {
+			call_expr = expr.(ast.CallExpr)
 		}
 	}
-	var expr ast.MemberExpr 
 
-	prop := p.expression()
-	p.consume("expected closing bracket", lexer.RightBracket)
-
-	expr = ast.MemberExpr{
-		Owner:      owner,
-		Identifier: prop,
-	}
-
-	if p.match(lexer.LeftBracket) {
-		expr2 := p.member(expr)
-		expr.Property = expr2
-	}
-
-	return expr
+	return call_expr
 }
+
+func (p *Parser) accessorExpr(owner ast.Node, nodeType ast.NodeType) ast.Node { // fieldExpr and memberExpr
+
+	var ident ast.Node // mhm
+	if owner != nil && owner.GetType() == ast.MemberExpression {
+		ident = p.expression() 
+		p.consume("expected closing bracket", lexer.RightBracket)
+	}else { 
+		ident = p.new() // yes
+	} 
+
+	isField, isMember := p.check(lexer.Dot), p.check(lexer.LeftBracket)
+
+	if !isField && !isMember{ 
+		if owner == nil {
+			return p.call(ident) 
+		}else {
+			if nodeType == ast.FieldExpression {
+				return ast.FieldExpr{
+					Owner: owner,
+					Identifier: ident,
+				}
+			}else {
+				return ast.MemberExpr{
+					Owner: owner,
+					Identifier: ident,
+				}
+			}
+		} 
+	} 
+	
+	p.advance()
+		
+	var propNodeType ast.NodeType
+	if isField {
+		propNodeType = ast.FieldExpression
+	}else {
+		propNodeType = ast.MemberExpression
+	}
+	if nodeType == 0 {
+		nodeType = propNodeType
+	}
+	
+	var expr ast.Accessor 
+	var prop ast.Node 
+	if nodeType == ast.FieldExpression { 
+		expr = ast.FieldExpr{
+			Owner: owner,
+			Identifier: ident,
+		}
+		prop = p.accessorExpr(expr, propNodeType)
+	}else {
+		expr = ast.MemberExpr{
+			Owner: owner, 
+			Identifier: ident, 
+			
+		}
+		prop = p.accessorExpr(expr, propNodeType)
+	} 
+	
+	expr = expr.SetProperty(prop)
+	
+	return expr 
+} 
 
 func (p *Parser) new() ast.Node {
 	if p.match(lexer.Neww) {
@@ -315,30 +440,6 @@ func (p *Parser) self() ast.Node {
 	}
 
 	return p.primary()
-}
-
-func (p *Parser) call(caller ast.Node) ast.Node {
-	callerType := caller.GetType()
-	if callerType != ast.Identifier && callerType != ast.MemberExpression && callerType != ast.CallExpression {
-		p.error(p.peek(-1), "cannot call unidentified value")
-		return ast.Improper{Token: p.peek(-1)}
-	}
-
-	call_expr := ast.CallExpr{
-		Identifier: caller.GetToken().Lexeme,
-		Caller:     caller,
-		Args:       p.arguments(),
-		Token:      caller.GetToken(),
-	}
-
-	if p.check(lexer.LeftParen) {
-		expr := p.call(call_expr)
-		if expr.GetType() == ast.CallExpression {
-			call_expr = expr.(ast.CallExpr)
-		}
-	}
-
-	return call_expr
 }
 
 func (p *Parser) primary() ast.Node {

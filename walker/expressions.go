@@ -175,12 +175,11 @@ func (w *Walker) typeifyNodeList(nodes []ast.Node, scope *Scope) []TypeVal {
 	return arguments
 }
 
-func (w *Walker) callExpr(node ast.Node, scope *Scope, callType CallType) Value {
-	callExpr := node.(*ast.CallExpr)
+func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope, callType CallType) Value {
 	typeCall := w.determineCallTypeString(callType)
 
-	callerToken := callExpr.Caller.GetToken()
-	val := w.GetNodeValue(&callExpr.Caller, scope)
+	callerToken := node.Caller.GetToken()
+	val := w.GetNodeValue(&node.Caller, scope)
 
 	if val.GetType().Type != ast.Func {
 		w.error(callerToken, fmt.Sprintf("variable used as if it's a %s (type: %s)", typeCall, val.GetType().Type.ToString()))
@@ -193,7 +192,7 @@ func (w *Walker) callExpr(node ast.Node, scope *Scope, callType CallType) Value 
 	}
 	fun, _ := val.(FunctionVal)
 
-	arguments := w.typeifyNodeList(callExpr.Args, scope)
+	arguments := w.typeifyNodeList(node.Args, scope)
 	w.validateArguments(arguments, fun.params, callerToken, typeCall)
 
 	return CallVal{types: fun.returnVal}
@@ -242,7 +241,7 @@ func (w *Walker) GetContainer(val Value) Container {
 }
 
 func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
-	if node.Owner == nil {
+	if node.Owner == nil { 
 		val := w.GetNodeValue(&node.Identifier, scope)
 
 		if !IsOfPrimitiveType(val, ast.Struct, ast.Entity, ast.Namespace) {
@@ -250,9 +249,12 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 			return Invalid{}
 		}
 
-		next, _ := (node.Property).(ast.FieldExpr)
-		fieldVal := w.fieldExpr(&next, scope)
-		node.Property = next
+		var fieldVal Value
+		if node.Property == nil {
+			fieldVal = w.GetNodeValue(&node.Identifier, scope)
+		}else {
+			fieldVal = w.GetNodeValue(&node.Property, scope)
+		}
 		return fieldVal
 	}
 	owner := w.GetNodeValue(&node.Owner, scope)
@@ -274,9 +276,7 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 	}
 
 	if IsOfPrimitiveType(variable, ast.Struct, ast.Entity, ast.Namespace) && node.Property != nil {
-		next, _ := node.Property.(ast.FieldExpr)
-		fieldVal := w.fieldExpr(&next, scope)
-		node.Property = next
+		fieldVal := w.GetNodeValue(&node.Property, scope)
 		return fieldVal
 	}
 
@@ -315,16 +315,16 @@ func (w *Walker) memberExpr(node *ast.MemberExpr, scope *Scope) Value {
 			w.error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a list, map", node.Identifier.GetToken().Lexeme))
 			return Invalid{}
 		}
-
-		next, ok := (node.Property).(ast.MemberExpr) 
-		if ok {
-			return w.memberExpr(&next, scope)
-		} else {
-			w.error(node.GetToken(), fmt.Sprintf("expected member expression (type: %v)", node.GetType()))
-			return Invalid{}
+		var fieldVal Value
+		if node.Property == nil {
+			fieldVal = w.GetNodeValue(&node.Identifier, scope)
+		}else {
+			fieldVal = w.GetNodeValue(&node.Property, scope)
 		}
+		return fieldVal
 	}
-	array := w.GetNodeValue(&node.Owner, scope)
+	array := w.GetNodeValue(&node.Owner, scope)// nil pointer deref
+
 	val := w.GetNodeValue(&node.Identifier, scope)
 	valType := val.GetType()
 	arrayType := array.GetType()

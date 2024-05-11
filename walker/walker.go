@@ -423,16 +423,16 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 		w.returnStmt(&newNode, scope)
 		*node = newNode
 	case ast.RepeatStmt:
-		w.repeatStmt(&newNode, scope)
+		w.repeatStmt(&newNode, scope) 
 		*node = newNode
 	case ast.TickStmt:
-		w.tickStmt(&newNode, scope)
+		w.tickStmt(&newNode, scope) 
 		*node = newNode
 	case ast.CallExpr:
-		w.callExpr(&newNode, scope, Function)
+		w.callExpr(&newNode, scope, Function) 
 		*node = newNode
 	case ast.MethodCallExpr:
-		w.methodCallExpr(&newNode, scope) // start the debugger
+		w.methodCallExpr(&newNode, scope) 
 		*node = newNode
 	case ast.DirectiveExpr:
 		w.directiveExpr(&newNode, scope)
@@ -442,7 +442,9 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 		*node = newNode
 	case ast.StructDeclarationStmt:
 		w.structDeclarationStmt(&newNode, scope)
-	default:
+	case ast.Improper:
+		w.error(newNode.GetToken(), "Improper statement: parser fault")
+	default:// lets just debug
 		w.error(newNode.GetToken(), "Expected statement")
 	}
 }
@@ -507,8 +509,4 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 	}
 	
 	return val
-}
-
-func affectualAssignment(node ast.Node){
-	// go said nodes are not affected so yeah
 }
