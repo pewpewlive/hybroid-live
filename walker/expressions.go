@@ -479,17 +479,26 @@ func (w *Walker) typeExpr(typee *ast.TypeExpr) TypeVal {
 		temp := w.typeExpr(typee.WrappedType)
 		wrapped = &temp
 	}
-	params := make([]TypeVal, 0)
-	for _, v := range typee.Params {
-		params = append(params, w.typeExpr(&v))
+	var params *[]TypeVal
+	if typee.Params != nil {
+		paramsTemp := []TypeVal{}
+		for _, v := range *typee.Params {
+			paramsTemp = append(paramsTemp, w.typeExpr(&v))
+		}
+		params = &paramsTemp
 	}
+
+	
 	returns := make([]TypeVal, 0)
 	for _, v := range typee.Returns {
 		returns = append(returns, w.typeExpr(&v))
 	}
+
+	typ := w.GetTypeFromString(typee.Name.Lexeme)
 	
 	return TypeVal{
-		Type:        w.GetTypeFromString(typee.Name.Lexeme),
+		Name: typ.ToString(),
+		Type: typ,
 		WrappedType: wrapped,
 		Params:      params,
 		Returns:     ReturnType{values: returns},

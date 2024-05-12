@@ -425,16 +425,17 @@ func (p *Parser) Type() ast.TypeExpr {
 		typee := ast.TypeExpr{}
 
 		p.advance()
-		typee.Params = make([]ast.TypeExpr, 0)
+		params := make([]ast.TypeExpr, 0)
 		typee.Returns = make([]ast.TypeExpr, 0)
 		if p.match(lexer.LeftParen) {
-			typee.Params = append(typee.Params, p.Type())
+			params = append(params, p.Type())
 
 			for p.match(lexer.Comma) {
-				typee.Params = append(typee.Params, p.Type())
+				params = append(params, p.Type())
 			}
 			p.consume("expected closing parenthesis in 'fn(...'", lexer.RightParen)
 		}
+		typee.Params = &params
 
 		if p.check(lexer.Identifier) {
 			typee.Returns = append(typee.Returns, p.Type())
@@ -451,5 +452,4 @@ func (p *Parser) Type() ast.TypeExpr {
 		p.advance()
 		return ast.TypeExpr{Name: expr.GetToken()}
 	}
-
 }

@@ -1,11 +1,10 @@
-@Environment(Mesh)
+@Environment(Level)
 
 struct Test {
-    mega = 
-    {
+    mega = {
         b: {
-            c:{
-                xd: fn (yes fixed) {
+            c: {
+                xd: fn (yes fixed) { 
 
                 }
             }
@@ -18,10 +17,14 @@ struct Test {
     fn super(xd fixed) {
 
     }
-} // ok ye
+}
 
-let aa = new Test() // ok so newExpr is fine
-// m
+let aa = new Test() 
+
+let amap = { b: fn (param fixed) {} }
+amap = {
+    b : fn (param fixed) {}
+}
 
 let tests = {a: aa}
 

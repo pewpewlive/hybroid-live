@@ -69,18 +69,15 @@ func (w *Walker) assignmentStmt(assignStmt *ast.AssignmentStmt, scope *Scope) {
 		if i > len(wIdents)-1 {
 			break
 		}
-		if assignStmt.Identifiers[i].GetType() == ast.MemberExpression {
-			/*memberType := wIdents[i].(MapMemberVal).Owner.MemberType
-			valueType := value.GetType()
-			if value.GetType() != 0 && memberType != valueType {
-				w.error(rightValue.GetToken(), fmt.Sprintf("map accepts only type of %s but a value of type %s is assigned to its member", memberType.ToString(), valueType.ToString()))
-			}*/
+		variableType := wIdents[i].GetType()
+		valueType := value.GetType()
+		if variableType.Type == ast.Invalid {
+			w.error(assignStmt.Identifiers[i].GetToken(), "cannot assign a value to an undeclared variable")
 			continue
 		}
 
-		if wIdents[i].GetType().Type == ast.Invalid {
-			w.error(assignStmt.Identifiers[i].GetToken(), "cannot assign a value to an undeclared variable")
-			continue
+		if !variableType.Eq(valueType) {
+			w.error(assignStmt.Values[i].GetToken(), fmt.Sprintf("mismatched types: variable has a type of %s, but a value of %s was given to it.", variableType.ToString(), valueType.ToString()))
 		}
 
 		variable, ok := wIdents[i].(VariableVal)

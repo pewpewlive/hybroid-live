@@ -2,6 +2,7 @@ package walker
 
 import (
 	"hybroid/ast"
+	"hybroid/generators/lua"
 	"hybroid/lexer"
 	"hybroid/parser"
 )
@@ -97,7 +98,7 @@ type NamespaceVal struct {
 }
 
 func (n NamespaceVal) GetType() TypeVal {
-	return TypeVal{Type: ast.Namespace}
+	return TypeVal{Name: "namespace", Type: ast.Namespace}
 }
 
 func (n NamespaceVal) GetFields() map[string]VariableVal {
@@ -146,7 +147,7 @@ type MapVal struct {
 }
 
 func (m MapVal) GetType() TypeVal {
-	return TypeVal{Type: ast.Map, WrappedType: &m.MemberType}
+	return TypeVal{Name: "map", Type: ast.Map, WrappedType: &m.MemberType}
 }
 
 func (l MapVal) GetContentsValueType() TypeVal {
@@ -180,7 +181,7 @@ type ListVal struct {
 }
 
 func (l ListVal) GetType() TypeVal {
-	return TypeVal{Type: ast.List, WrappedType: &l.ValueType}
+	return TypeVal{Name: "list", Type: ast.List, WrappedType: &l.ValueType}
 }
 
 func (l ListVal) GetContentsValueType() TypeVal {
@@ -211,13 +212,13 @@ func (l ListVal) GetContentsValueType() TypeVal {
 type NumberVal struct{}
 
 func (n NumberVal) GetType() TypeVal {
-	return TypeVal{Type: ast.Number}
+	return TypeVal{Type: ast.Number, Name: "number"}
 }
 
 type DirectiveVal struct{}
 
 func (d DirectiveVal) GetType() TypeVal {
-	return TypeVal{Type: 0}
+	return TypeVal{Type: 0, Name: "directive"}
 }
 
 type FixedVal struct {
@@ -225,7 +226,7 @@ type FixedVal struct {
 }
 
 func (f FixedVal) GetType() TypeVal {
-	return TypeVal{Type: ast.FixedPoint}
+	return TypeVal{Type: ast.FixedPoint, Name: "fixed"}
 }
 
 func (f FixedVal) GetSpecificType() ast.PrimitiveValueType {
@@ -259,22 +260,30 @@ type TypeVal struct { // fn(text, text) text
 	WrappedType *TypeVal
 	Name        string
 	Type        ast.PrimitiveValueType
-	Params      []TypeVal
+	Params      *[]TypeVal
 	Returns     ReturnType
 }
 
 func (t TypeVal) Eq(otherT TypeVal) bool {
 	paramsAreSame := true
-	if len(t.Params) == len(otherT.Params) {
-		for i, v := range t.Params {
-			if !v.Eq(otherT.Params[i]) {
-				paramsAreSame = false
-				break
+
+	if (otherT.Params == nil || t.Params == nil) && !(otherT.Params == nil && t.Params == nil) {
+		return false
+	}else {
+		if otherT.Params == nil && t.Params == nil {
+			paramsAreSame = true
+		}else if len(*t.Params) == len(*otherT.Params) {
+			for i, v := range *t.Params {
+				if !v.Eq((*otherT.Params)[i]) {
+					paramsAreSame = false
+					break
+				}
 			}
+		} else {
+			paramsAreSame = false
 		}
-	} else {
-		paramsAreSame = false
 	}
+
 
 	if (otherT.WrappedType == nil || t.WrappedType == nil) && !(otherT.WrappedType == nil && t.WrappedType == nil) {
 		return false
@@ -283,6 +292,41 @@ func (t TypeVal) Eq(otherT TypeVal) bool {
 	}
 
 	return (t.Type == 0 || otherT.Type == 0 || t.Type == otherT.Type) && (t.WrappedType.Eq(*otherT.WrappedType)) && paramsAreSame && (t.Returns.Eq(&otherT.Returns))
+}
+
+func (t TypeVal) ToString() string {
+	src := lua.StringBuilder{}
+
+	src.Append(t.Name)
+
+	if t.Params != nil {
+		src.Append("(")
+		for i := range *t.Params {
+			if i == len(*t.Params)-1 {
+				src.Append((*t.Params)[i].ToString())
+			}else {
+				src.Append((*t.Params)[i].ToString(), ", ")
+			}
+		}
+		src.Append(")")
+		if len(t.Returns.values) != 0 {
+			src.Append(" ")
+			for i := range t.Returns.values {
+				if i == len(t.Returns.values)-1 {
+					src.Append(t.Returns.values[i].ToString())
+				}else {
+					src.Append(t.Returns.values[i].ToString(), ", ")
+				}
+			}
+		}
+	}
+
+
+	if t.WrappedType != nil {
+		src.Append("<", t.WrappedType.ToString(), ">")
+	}
+
+	return src.String()
 }
 
 func (t TypeVal) GetType() TypeVal {
@@ -295,7 +339,7 @@ type FunctionVal struct { // fn test(param map<fixed>)
 }
 
 func (f FunctionVal) GetType() TypeVal {
-	return TypeVal{Type: ast.Func, Params: f.params, Returns: f.returnVal}
+	return TypeVal{Name: "function", Type: ast.Func, Params: &f.params, Returns: f.returnVal}
 }
 
 func (f FunctionVal) GetReturnType() ReturnType {
@@ -310,35 +354,35 @@ func (f CallVal) GetType() TypeVal {
 	if len(f.types.values) == 1 {
 		return f.types.values[0]
 	}
-	return TypeVal{Type: ast.Invalid, Returns: f.types}
+	return TypeVal{Name: "invalid", Type: ast.Invalid, Returns: f.types}
 }
 
 type BoolVal struct{}
 
 func (b BoolVal) GetType() TypeVal {
-	return TypeVal{Type: ast.Bool}
+	return TypeVal{Name: "boolean", Type: ast.Bool}
 }
 
 type StringVal struct{}
 
 func (b StringVal) GetType() TypeVal {
-	return TypeVal{Type: ast.String}
+	return TypeVal{Name: "string", Type: ast.String}
 }
 
 type NilVal struct{}
 
 func (n NilVal) GetType() TypeVal {
-	return TypeVal{Type: ast.Nil}
+	return TypeVal{Name: "nil", Type: ast.Nil}
 }
 
 type Invalid struct{}
 
 func (u Invalid) GetType() TypeVal {
-	return TypeVal{Type: ast.Invalid}
+	return TypeVal{Name: "invalid", Type: ast.Invalid}
 }
 
 type Unknown struct{}
 
 func (u Unknown) GetType() TypeVal {
-	return TypeVal{Type: 0}
+	return TypeVal{Name: "unknown", Type: 0}
 }

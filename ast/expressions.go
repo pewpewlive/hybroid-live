@@ -49,7 +49,7 @@ func (n UnaryExpr) GetValueType() PrimitiveValueType {
 type TypeExpr struct { //syntax: Type<WrappedType>
 	WrappedType *TypeExpr
 	Name        lexer.Token
-	Params      []TypeExpr
+	Params      *[]TypeExpr
 	Returns     []TypeExpr
 }
 

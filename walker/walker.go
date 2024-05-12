@@ -90,7 +90,7 @@ func (w *Walker) GetValueFromType(typee TypeVal) Value {
 		}
 	case ast.Func:
 		return FunctionVal{
-			params:    typee.Params,
+			params:    *typee.Params,
 			returnVal: typee.Returns,
 		}
 	case ast.Nil:
