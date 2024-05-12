@@ -181,140 +181,18 @@ func (p *Parser) unary() ast.Node {
 	return p.call(p.accessorExpr(nil, 0))
 }
 
-/*
-
-let's think about it first:
-
-ok lets start simpler
-
-(ident)  (ident)
-variable.variable2 | what is this?
-----------------^
-It's a Field Expression, characterised by the "." between two expressions
-A Field Expression has an identifier (what identifies the current expression (i.e the field)) 
-					   an owner (the expression directly to the left of the identifier )
-					   and a property (the expression directlty to the right of the identifier)
-
-variable has no owner, I guess you could technically say that the scope owns it (1)
-variable has a property and it's variable2 (2)
-
-
-variable2 is owned by variable (by the logic of (2)), making variable its owner
-variable2 has no property
-
-Is this understandable? 
-
-variable["variable"] | what is this? 
--------------------^
-It's a Member Expression, characterised by an expression followed up with an expression enclosed in brackets ( "[]" )
-
-wait why field is characterized by "." and member is characterized by an identifier? it's not characterized by an identifier,
-
-variable() | what is this? yes
----------^
-A Call Expression characterized by an expression and "()" after that
-
-A few other examples:
-
-variable["variable"]()
-variable.variable()
-variable()
-variable()()
-
-
-
-variable.variable2["variable3"] | what is this? 
------------------^
-FieldExpr (variable2):
-	Owner: variable
-	Identifier: variable2
-	Property: MemberExpr (variable3)
-		 ---------------------^
-		 MemberExpr (variable3)
-		 	Owner: FieldExpr (variable2) 
-
-
-variable.variable2() 
-	FieldExpr: // wrong
-	Owner: variable
-	Identifier: variable2
-	Property: CallExpr:
-		Caller: variable2
-
-	CallExpr: // ALSO WRONG
-		Caller: FieldExpr(variable2)
-					Identifier: variable2
-					Owner: variable
-					Property: NA
-		Arguments: Empty 
-	
-	MethodCallExpr:
-		SelfPortion: FieldExpr(variable2).Owner
-		Caller: FieldExpr(variable2)
-
-i made this distinction because firstly, it's important for the generator
-and secondly, there is no secondly
-
-but SelfPortion and Caller could be different, e.g:
-
-variable["a"].call()
------------------^
-MethodCaller
-------------^ ---^
-SelfPortion   methodName
-
-so you can thinkg of it like this
-
-between the ".", on the left side is the SelfPortion
-meanwhile, on the right side is the methodName
-and the whole thing is the caller
-yeah i guess
-
-variable["a"]() 
-
-CallExpr:
-	Caller: MemberExpr("a"):
-				Identifier: "a"
-				Owner: variable
-				Property: NA
-	Arguments: Empty
-
-so im also wrong 
-variable.variable2["b"]()
-	CallExpr:
-		Caller:
-			FieldExpr(Member(variable2)):
-				Owner: variable
-				Property: MemberExpr(variable2):
-							Owner: variable
-							Property: MemberExpr("b")
-										Owner: MemberExpr(variable2)
-
-var[1].func() 
-so there is struct value which cannot be accsesed from things that are not identifier? lol
-like what was a reason for a rewrite
-
-so we gotta devise a different design for this
-
-alright let's try
-lets start? lesgo 
-its a field expr? which has an expression as a "owner" and and an identifier as a field name and  
-whats goin on
-It's a Field Expression, which has a property of a Member Expression, which has no property
-*/
-
 func (p *Parser) call(caller ast.Node) ast.Node {
 	if !p.check(lexer.LeftParen) {
 		return caller
 	}
 
-	if caller.GetType() == ast.FieldExpression {// var1.var2.var3()
+	if caller.GetType() == ast.FieldExpression {
 		fieldExpr := caller.(ast.FieldExpr)
 		
-		if fieldExpr.Property.GetType() == ast.FieldExpression && fieldExpr.Property.(ast.FieldExpr).Property == nil {// Property was nil, how
+		if fieldExpr.Property.GetType() == ast.FieldExpression && fieldExpr.Property.(ast.FieldExpr).Property == nil {
 			selfPortion := fieldExpr
 			selfPortion.Property = nil
-			methodCall := ast.MethodCallExpr{ // huh
+			methodCall := ast.MethodCallExpr{ 
 				Owner: selfPortion,
 				Call: fieldExpr,
 				MethodName: fieldExpr.Property.GetToken().Lexeme,
@@ -332,8 +210,8 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 	}
 
 	call_expr := ast.CallExpr{
-		Identifier: caller.GetToken().Lexeme,//THIS GIVES 'mega' HOW DOES IT GIVE MEGA WHAT
-		Caller:     caller,// ITS SUPPOSED TO GIVE 'aa' ok turns out im stupid, doesn't really change a lot anyway
+		Identifier: caller.GetToken().Lexeme,
+		Caller:     caller,
 		Args:       p.arguments(), 
 		Token:      caller.GetToken(),
 	}
@@ -350,12 +228,12 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 
 func (p *Parser) accessorExpr(owner ast.Node, nodeType ast.NodeType) ast.Node { // fieldExpr and memberExpr
 
-	var ident ast.Node // mhm
-	if owner != nil && owner.GetType() == ast.MemberExpression {
+	var ident ast.Node 
+	if owner != nil && nodeType == ast.MemberExpression {
 		ident = p.expression() 
 		p.consume("expected closing bracket", lexer.RightBracket)
 	}else { 
-		ident = p.new() // yes
+		ident = p.new()
 	} 
 
 	isField, isMember := p.check(lexer.Dot), p.check(lexer.LeftBracket)

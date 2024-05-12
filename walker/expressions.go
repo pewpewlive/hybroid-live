@@ -252,7 +252,7 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 		var fieldVal Value
 		if node.Property == nil {
 			fieldVal = w.GetNodeValue(&node.Identifier, scope)
-		}else {
+		} else {
 			fieldVal = w.GetNodeValue(&node.Property, scope)
 		}
 		return fieldVal
@@ -275,9 +275,9 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 		}
 	}
 
-	if IsOfPrimitiveType(variable, ast.Struct, ast.Entity, ast.Namespace) && node.Property != nil {
-		fieldVal := w.GetNodeValue(&node.Property, scope)
-		return fieldVal
+	if node.Property != nil {
+		val := w.GetNodeValue(&node.Property, scope)
+		return val
 	}
 
 	return variable.Value
@@ -315,13 +315,13 @@ func (w *Walker) memberExpr(node *ast.MemberExpr, scope *Scope) Value {
 			w.error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a list, map", node.Identifier.GetToken().Lexeme))
 			return Invalid{}
 		}
-		var fieldVal Value
+		var memberVal Value
 		if node.Property == nil {
-			fieldVal = w.GetNodeValue(&node.Identifier, scope)
+			memberVal = w.GetNodeValue(&node.Identifier, scope)
 		}else {
-			fieldVal = w.GetNodeValue(&node.Property, scope)
+			memberVal = w.GetNodeValue(&node.Property, scope)
 		}
-		return fieldVal
+		return memberVal
 	}
 	array := w.GetNodeValue(&node.Owner, scope)// nil pointer deref
 
@@ -354,14 +354,8 @@ func (w *Walker) memberExpr(node *ast.MemberExpr, scope *Scope) Value {
 		wrappedValType = mapp.MemberType
 	}
 
-	if (wrappedValType.Type == ast.Map || wrappedValType.Type == ast.List) && node.Property != nil {
-		next, ok := node.Property.(ast.MemberExpr)
-		if ok {
-			return w.memberExpr(&next, scope)
-		} else {
-			w.error(node.GetToken(), "expected member expression")
-			return Invalid{}
-		}
+	if node.Property != nil {
+		return w.GetNodeValue(&node.Property, scope)
 	}
 
 	return w.GetValueFromType(wrappedValType)

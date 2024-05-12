@@ -45,6 +45,26 @@ func (st StructTypeVal) GetField(name string) (*VariableVal, bool) {
 	return nil, false
 }
 
+func (st StructTypeVal) GetFields() map[string]VariableVal {
+	return st.Fields
+}
+
+func (st StructTypeVal) GetMethods() map[string]VariableVal {
+	return st.Fields
+}
+
+func (st StructTypeVal) Contains(name string) (Value, int, bool) {
+	if variable, found := st.Fields[name]; found {
+		return variable, st.FieldIndexes[name], true
+	}
+
+	if variable, found := st.Methods[name]; found {
+		return variable, st.FieldIndexes[name], true
+	}
+
+	return nil, -1, false
+}
+
 func (st StructTypeVal) GetType() TypeVal {
 	return TypeVal{Type: ast.Struct, Name: st.Name.Lexeme}
 }
@@ -66,15 +86,7 @@ func (s StructVal) GetMethods() map[string]VariableVal {
 }
 
 func (s StructVal) Contains(name string) (Value, int, bool) {
-	if variable, found := s.Type.Fields[name]; found {
-		return variable, s.Type.FieldIndexes[name], true
-	}
-
-	if variable, found := s.Type.Methods[name]; found {
-		return variable, s.Type.FieldIndexes[name], true
-	}
-
-	return nil, -1, false
+	return s.Type.Contains(name)
 } 
 
 type NamespaceVal struct {

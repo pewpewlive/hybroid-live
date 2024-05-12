@@ -1,8 +1,8 @@
-@Environment(Level)
+@Environment(Mesh)
 
 struct Test {
-    mega = fn (yes fixed) { }
-     /*{
+    mega = 
+    {
         b: {
             c:{
                 xd: fn (yes fixed) {
@@ -10,7 +10,7 @@ struct Test {
                 }
             }
         }
-    }*/
+    }
 
     new() {
     }
@@ -22,8 +22,11 @@ struct Test {
 
 let aa = new Test() // ok so newExpr is fine
 // m
-aa.mega(2fx)
-aa.super(234324fx) // i really dont know what is happening
+
+let tests = {a: aa}
+
+tests["a"].mega["b"]["c"]["xd"](23f)
+
 // like, i have no idea why identifier is nil nice
 // I KNOW WHY
 // WE GOTTA LIKE, LOOK

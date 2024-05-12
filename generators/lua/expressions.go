@@ -141,8 +141,8 @@ func (gen *Generator) unaryExpr(node ast.UnaryExpr) string {
 func (gen *Generator) fieldExpr(node ast.FieldExpr) string {
 	src := StringBuilder{}
 
-	if node.Property != nil && node.Property.GetType() == ast.FieldExpression {
-		return gen.fieldExpr((node.Property).(ast.FieldExpr))
+	if node.Property != nil{
+		return gen.GenerateNode(node.Property)
 	}
 	
 	var expr string
@@ -160,8 +160,12 @@ func (gen *Generator) fieldExpr(node ast.FieldExpr) string {
 func (gen *Generator) memberExpr(node ast.MemberExpr) string {
 	src := StringBuilder{}
 
-	if node.Property != nil && node.Property.GetType() == ast.MemberExpression {
-		return gen.memberExpr((node.Property).(ast.MemberExpr))
+	if node.Property != nil {
+		return gen.GenerateNode(node.Property)
+	}
+
+	if node.Owner == nil {
+		return gen.GenerateNode(node.Identifier)
 	}
 
 	expr := gen.GenerateNode(node.Owner)
