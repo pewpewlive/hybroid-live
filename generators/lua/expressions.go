@@ -59,7 +59,7 @@ func (gen *Generator) callExpr(node ast.CallExpr) string {
 	src := StringBuilder{}
 	fn := gen.GenerateNode(node.Caller)
 
-	src.Append(fn, "(")
+	src.AppendTabbed(fn, "(")
 	for i, arg := range node.Args {
 		src.WriteString(gen.GenerateNode(arg))
 		if i != len(node.Args)-1 {
@@ -89,7 +89,7 @@ Hybroid_MemberTypeName_methodCall(var.member) var.member is a field expression
 
 func (gen *Generator) methodCallExpr(node ast.MethodCallExpr) string {
 	src := StringBuilder{}
-	src.Append("Hybroid_", node.TypeName, "_", node.MethodName)
+	src.AppendTabbed("Hybroid_", node.TypeName, "_", node.MethodName)
 
 	src.Append("(", gen.GenerateNode(node.Owner))
 	if len(node.Args) != 0 {
@@ -141,14 +141,14 @@ func (gen *Generator) unaryExpr(node ast.UnaryExpr) string {
 func (gen *Generator) fieldExpr(node ast.FieldExpr) string {
 	src := StringBuilder{}
 
-	if node.Property != nil{
+	if node.Property != nil {
 		return gen.GenerateNode(node.Property)
 	}
-	
+
 	var expr string
 	if node.Owner == nil {
 		return gen.GenerateNode(node.Identifier)
-	}else {
+	} else {
 		expr = gen.GenerateNode(node.Owner)
 	}
 
@@ -219,7 +219,7 @@ func (gen *Generator) selfExpr(self ast.SelfExpr) string {
 func (gen *Generator) newExpr(new ast.NewExpr) string {
 	src := StringBuilder{}
 
-	src.Append("Hybroid_",new.Type.Lexeme,"_New(")
+	src.Append("Hybroid_", new.Type.Lexeme, "_New(")
 	for i, arg := range new.Args {
 		src.WriteString(gen.GenerateNode(arg))
 		if i != len(new.Args)-1 {

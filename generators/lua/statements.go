@@ -173,7 +173,7 @@ func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclaratio
 	src2 := StringBuilder{}
 	if isLocal {
 		src.AppendTabbed("local ")
-	}else {
+	} else {
 		src.AppendTabbed("")
 	}
 	for i, ident := range declaration.Identifiers {
@@ -202,11 +202,11 @@ func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclaratio
 func (gen *Generator) structDeclarationStmt(node ast.StructDeclarationStmt) string {
 	src := StringBuilder{}
 
-	src.WriteString(gen.constructorDeclarationStmt(*node.Constructor, node))
-
 	for _, nodebody := range *node.Methods {
-		src.WriteString(gen.methodDeclarationStmt(nodebody, node.Name.Lexeme))
+		src.WriteString(gen.methodDeclarationStmt(nodebody, node))
 	}
+
+	src.WriteString(gen.constructorDeclarationStmt(*node.Constructor, node))
 
 	return src.String()
 }
@@ -249,14 +249,14 @@ func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, Struc
 	return src.String()
 }
 
-func (gen *Generator) methodDeclarationStmt(node ast.MethodDeclarationStmt, structName string) string {
+func (gen *Generator) methodDeclarationStmt(node ast.MethodDeclarationStmt, Struct ast.StructDeclarationStmt) string {
 	src := StringBuilder{}
 
-	if node.IsLocal {
+	if Struct.IsLocal {
 		src.WriteString("local ")
 	}
 
-	src.Append("function Hybroid_", structName, "_", node.Name.Lexeme, "(Self")
+	src.Append("function Hybroid_", Struct.Name.Lexeme, "_", node.Name.Lexeme, "(Self")
 	for i, param := range node.Params {
 		src.Append(param.Name.Lexeme)
 		if i != len(node.Params)-1 {

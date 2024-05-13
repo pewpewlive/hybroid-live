@@ -1,99 +1,46 @@
 @Environment(Level)
 
-struct Test {
-    mega = {
-        b: {
-            c: {
-                xd: fn (yes fixed) { 
-
-                }
-            }
-        }
-    }
-
-    new() {
-    }
-
-    fn super(xd fixed) {
-
-    }
-}
-
-let aa = new Test() 
-
-let amap = { b: fn (param fixed) {} }
-amap = {
-    b : fn (param fixed) {}
-}
-
-let tests = {a: aa}
-
-tests["a"].mega["b"]["c"]["xd"](23f)
-
-// like, i have no idea why identifier is nil nice
-// I KNOW WHY
-// WE GOTTA LIKE, LOOK
-/*
-if aa.test() == false {
-
-}
-*/
-/*
-let testa = {
-    b: {
-        c: {
-            s: {
-                
-            }
-        }
-    }
-}
-
-let she = ["b"]
-
-fn ah(param bool) {
-    param = true
-}
-
-ah(testa[she[0]]["c"]["s"])
-*/
-
-/*
-let dfs = fn () {
-    if true {
-
-    }
-}
-
-struct Rectangle {
-    
+pub struct Rectangle {
     test = {a: {b: {c: 1}}}
-    xdsd = 23f
-    test2 = {a: {b: {c: 1}}}
     thing = fn () {
         if true {
             
         }
     }
-    
+    thing2 = fn () {
+        if true {
+            
+        }
+    }
+    thing3 = fn () {
+        if true {
+            
+        }
+    }
     
     new(widthasdasd fixed, heigh fixed) {
-        self.test["a"]["b"]["c"] = 1
+        self.test["a"]["b"]["c"] = 2
         self.xd() 
-        self.xdsd = 231d
-        self.test2["a"]["b"]["c"] = 1 // generate
     } 
 
-    fn test2tiyu() {//test defined multiple times, wait keep it, lets see if compiler detects
-        
-    } // ima check the lua file 
+    fn test5() {
+    }
 
     fn xd() { 
-        //self.yes()
-    } // anyway let me test ssmth
+        self.thing()
+        self.thing2()
+        self.thing3()
+    }
 
     fn yes() { 
-        //self.xd()
-    } // ok
+        self.xd()
+    }
+
+    fn super(yes fixed) fixed {
+        return yes
+    }
 }
-*/
+
+let rect = new Rectangle(10f,10f)
+
+rect.super(rect.super(1f))

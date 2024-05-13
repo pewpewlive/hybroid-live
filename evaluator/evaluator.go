@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	//"hybroid/generators"
 	"hybroid/generators/lua"
 	"hybroid/lexer"
 	"hybroid/parser"
@@ -128,7 +127,7 @@ func (e *Evaluator) writeSyntaxAlert(source string, errMsg ast.Alert) {
 	sourceLines := strings.Split(source, "\n")
 	line := sourceLines[token.Location.LineStart-1]
 
-	fmt.Printf("line: %v in file yes\n", token.Location.LineStart)
+	fmt.Printf("line: %v in file \n", token.Location.LineStart)
 	fmt.Println(line)
 	if token.Location.ColStart-6 < 0 {
 		fmt.Printf("%s^%s\n", strings.Repeat(" ", token.Location.ColStart-1), strings.Repeat("-", 5))

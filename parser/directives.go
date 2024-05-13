@@ -30,11 +30,11 @@ func (p *Parser) directiveCall() ast.Node {
 
 func (p *Parser) verifyEnvironmentDirective(statement ast.Node) bool {
 	if _, ok := statement.(ast.DirectiveExpr); !ok {
-		p.error(lexer.Token{Type: lexer.Eof, Lexeme: "", Literal: "", Location: lexer.TokenLocation{}}, "the first statement in code has to be an '@Environment' directive")
+		p.error(lexer.Token{Location: lexer.TokenLocation{LineStart: 1, LineEnd: 1, ColStart: 1, ColEnd: 1}}, "the first statement in code has to be an '@Environment' directive")
 		return false
 	} else {
 		if statement.(ast.DirectiveExpr).Identifier.Lexeme != "Environment" {
-			p.error(statement.GetToken(), "the first statement in code has to be an '@Environment' directive")
+			p.error(lexer.Token{Location: lexer.TokenLocation{LineStart: 1, LineEnd: 1, ColStart: 1, ColEnd: 1}}, "the first statement in code has to be an '@Environment' directive")
 			return false
 		}
 	}

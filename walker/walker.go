@@ -179,7 +179,7 @@ func (s *Scope) DeclareVariable(value VariableVal) (VariableVal, bool) {
 	return value, true
 }
 
-func (s *Scope) DeclareStructType(structType *StructTypeVal) bool {// for structDeclaration
+func (s *Scope) DeclareStructType(structType *StructTypeVal) bool {
 	if _, found := s.Global.StructTypes[structType.Name.Lexeme]; found {
 		return false
 	}
@@ -208,7 +208,7 @@ func (s *Scope) ResolveStructType(name string) *Scope { // for new expression, i
 	if s.Parent == nil {
 		return nil
 	}
-	
+
 	return s.Parent.ResolveStructType(name)
 }
 
@@ -395,7 +395,7 @@ func (w *Walker) GetDefaultValue(typee TypeVal) string {
 func (w *Walker) Walk(nodes *[]ast.Node, global *Global) []ast.Node {
 	w.nodes = nodes
 
-	newNodes := make([]ast.Node, len(*nodes))
+	newNodes := make([]ast.Node, 0)
 
 	for _, node := range *nodes {
 		w.WalkNode(&node, &global.Scope)
@@ -410,7 +410,7 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 	case ast.VariableDeclarationStmt:
 		w.variableDeclarationStmt(&newNode, scope)
 		*node = newNode
-	case ast.IfStmt: 
+	case ast.IfStmt:
 		w.ifStmt(&newNode, scope)
 		*node = newNode
 	case ast.AssignmentStmt:
@@ -423,17 +423,16 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 		w.returnStmt(&newNode, scope)
 		*node = newNode
 	case ast.RepeatStmt:
-		w.repeatStmt(&newNode, scope) 
+		w.repeatStmt(&newNode, scope)
 		*node = newNode
 	case ast.TickStmt:
-		w.tickStmt(&newNode, scope) 
+		w.tickStmt(&newNode, scope)
 		*node = newNode
 	case ast.CallExpr:
-		w.callExpr(&newNode, scope, Function) 
+		w.callExpr(&newNode, scope, Function)
 		*node = newNode
 	case ast.MethodCallExpr:
-		w.methodCallExpr(&newNode, scope) 
-		*node = newNode
+		w.methodCallExpr(node, scope)
 	case ast.DirectiveExpr:
 		w.directiveExpr(&newNode, scope)
 		*node = newNode
@@ -444,12 +443,10 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 		w.structDeclarationStmt(&newNode, scope)
 	case ast.Improper:
 		w.error(newNode.GetToken(), "Improper statement: parser fault")
-	default:// lets just debug
+	default:
 		w.error(newNode.GetToken(), "Expected statement")
 	}
 }
-
-
 
 func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 	var val Value
@@ -486,8 +483,7 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 		val = w.anonFnExpr(&newNode, scope)
 		*node = newNode
 	case ast.MethodCallExpr:
-		val = w.methodCallExpr(&newNode, scope)
-		*node = newNode
+		val = w.methodCallExpr(node, scope)
 	case ast.MemberExpr:
 		val = w.memberExpr(&newNode, scope)
 		*node = newNode
@@ -507,6 +503,6 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 		w.error(newNode.GetToken(), "Expected expression")
 		return NilVal{}
 	}
-	
+
 	return val
 }

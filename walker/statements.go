@@ -50,10 +50,6 @@ func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
 }
 
 func (w *Walker) assignmentStmt(assignStmt *ast.AssignmentStmt, scope *Scope) {
-	//if node.Expression.NodeType != parser.Identifier {
-	//	w.error(node.Expression.Token, "expected an identifier to assign to")
-	//}
-
 	hasFuncs := false
 
 	wIdents := []Value{}
@@ -123,15 +119,15 @@ func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scop
 		Node:  node,
 	}
 	if _, success := scope.DeclareVariable(variable); !success {
-		w.error(node.Name, fmt.Sprintf("variable with name '%s' already exists",variable.Name))
+		w.error(node.Name, fmt.Sprintf("variable with name '%s' already exists", variable.Name))
 	}
 
 	if scope.Parent != nil && !node.IsLocal {
 		w.error(node.GetToken(), "cannot declare a global function inside a local block")
 	}
 
-	for _, node := range node.Body {
-		w.WalkNode(&node, &fnScope)
+	for i := range node.Body {
+		w.WalkNode(&node.Body[i], &fnScope)
 	}
 
 	if w.bodyReturns(&node.Body, &ret, &fnScope) == nil && len(ret.values) != 0 {
@@ -275,11 +271,9 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 		wasMapOrList := false
 		valType := val.GetType()
 		explicitType := w.typeExpr(declaration.Types[i])
-		//fmt.Printf("%s\n", valType.Type.ToString())
 		if valType.Type == ast.Map || valType.Type == ast.List {
 			wasMapOrList = true
 		}
-		//fmt.Printf("%s\n", explicitType.Type.ToString())
 
 		if valType.Type == 0 {
 			if explicitType.Type == ast.Invalid {
@@ -307,8 +301,6 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 		} else if valType.Type != 0 && explicitType.Type != ast.Invalid && !valType.Eq(explicitType) {
 			w.error(ident, fmt.Sprintf("given value for '%s' does not match with the type given", ident.Lexeme))
 		}
-		//fmt.Printf("%s\n", valType.Type.ToString())
-		//fmt.Printf("%s\n", explicitType.Type.ToString())
 
 		declaredVariables = append(declaredVariables, variable)
 		if _, success := scope.DeclareVariable(variable); !success {
@@ -333,9 +325,9 @@ func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *S
 	structScope := NewScope(scope.Global, scope, Structure)
 
 	structTypeVal := StructTypeVal{
-		Name:    node.Name,
-		Methods: map[string]VariableVal{},
-		Fields:  map[string]VariableVal{},
+		Name:         node.Name,
+		Methods:      map[string]VariableVal{},
+		Fields:       map[string]VariableVal{},
 		FieldIndexes: map[string]int{},
 	}
 	structScope.WrappedType = structTypeVal.GetType()
@@ -356,39 +348,35 @@ func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *S
 		Body:    *node.Constructor.Body,
 	}
 
-	for _, field := range node.Fields {
-		w.fieldDeclarationStmt(&field, &structTypeVal, &structScope)
+	for i := range node.Fields {
+		w.fieldDeclarationStmt(&node.Fields[i], &structTypeVal, &structScope)
 	}
 
 	structTypeVal.FieldIndexes = structScope.VariableIndexes
 
-	for _, method := range *node.Methods {
-		w.methodDeclarationStmt(&method, &structTypeVal, &structScope)
+	for i := range *node.Methods {
+		w.methodDeclarationStmt(&(*node.Methods)[i], &structTypeVal, &structScope)
 	}
-	// is that constructor? ok
+
 	w.methodDeclarationStmt(&funcDeclaration, &structTypeVal, &structScope)
-} // works
+}
 
 func (w *Walker) fieldDeclarationStmt(node *ast.FieldDeclarationStmt, structType *StructTypeVal, scope *Scope) {
-	// declare fields as variables in structure scope
-	// we can copy from variable declaration for this 1:1 wait
-	// so we can do this funny
 	varDecl := ast.VariableDeclarationStmt{
 		Identifiers: node.Identifiers,
 		Types:       node.Types,
 		Values:      node.Values,
 		IsLocal:     true,
 		Token:       node.Token,
-	} // casual programming experiance, write new structure to turn it into the old one
-	// xdxddxdsdxdxd
-	variables := w.variableDeclarationStmt(&varDecl, scope) // lmaooo does this work tho?
+	}
+	variables := w.variableDeclarationStmt(&varDecl, scope)
 	for _, variable := range variables {
 		structType.Fields[variable.Name] = variable
 	}
-} // boom lmao
+}
 
 func (w *Walker) methodDeclarationStmt(node *ast.MethodDeclarationStmt, structType *StructTypeVal, scope *Scope) {
-	funcExpr := ast.FunctionDeclarationStmt{ //NANHHHHHHH
+	funcExpr := ast.FunctionDeclarationStmt{
 		Name:    node.Name,
 		Return:  node.Return,
 		Params:  node.Params,
@@ -397,6 +385,7 @@ func (w *Walker) methodDeclarationStmt(node *ast.MethodDeclarationStmt, structTy
 	}
 
 	variable := w.functionDeclarationStmt(&funcExpr, scope)
+	node.Body = funcExpr.Body
 	structType.Methods[variable.Name] = variable
 }
 
