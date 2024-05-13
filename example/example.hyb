@@ -1,8 +1,8 @@
 @Environment(Level)
 
-pub struct Rectangle {
-    width: fixed
-    height: fixed
+struct Rectangle {
+    width = 0f
+    
     test2 = fn (yes fixed) fixed {
         return yes
     }
@@ -10,20 +10,42 @@ pub struct Rectangle {
     new(width fixed, height fixed) {
         self.width = width
         self.height = height
-    } 
+    }
+    
+    height = 0f
 
     fn area() fixed { 
+        self.test()
         return self.width * self.height
     }
 
     fn test() {
-        self.area()
         self.test2 = self.test2
-        self.test2(self.test2(1f))
+        self.test2(self.test2(self.area()))
+    }
+}
+
+struct Yes {
+    rect: Rectangle = new Rectangle(0f,0f)
+
+    
+
+    new() {
+
+    }
+
+    fn GetRectangle() Rectangle {
+        return self.rect
     }
 }
 
 let rect = new Rectangle(10f, 10f)
-let a = 1f + new Rectangle(10f, 10f).test2(2f)
+let a = 1f + new Rectangle(10f, new Rectangle(5f, 2f).width).test2(2f)
+
+let yesss = new Yes()
+
+yesss.rect = rect
+
+rect = yesss.GetRectangle()
 
 rect.test2(rect.test2(1f))

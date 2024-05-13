@@ -373,25 +373,6 @@ func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
 	}
 }
 
-func (w *Walker) GetDefaultValue(typee TypeVal) string {
-	switch typee.Type {
-	case ast.Number:
-		return "0"
-	case ast.Fixed:
-		return "0fx"
-	case ast.Bool:
-		return "false"
-	case ast.String:
-		return "\"\""
-	case ast.List, ast.Map:
-		return "{}"
-	case ast.Func:
-		return ""
-	default:
-		return "nil"
-	}
-}
-
 func (w *Walker) Walk(nodes *[]ast.Node, global *Global) []ast.Node {
 	w.nodes = nodes
 
@@ -417,7 +398,7 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 		w.assignmentStmt(&newNode, scope)
 		*node = newNode
 	case ast.FunctionDeclarationStmt:
-		w.functionDeclarationStmt(&newNode, scope)
+		w.functionDeclarationStmt(&newNode, scope, Function)
 		*node = newNode
 	case ast.ReturnStmt:
 		w.returnStmt(&newNode, scope)

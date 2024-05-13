@@ -1,6 +1,7 @@
 package walker
 
 import (
+	"fmt"
 	"hybroid/ast"
 	"hybroid/generators/lua"
 	"hybroid/lexer"
@@ -9,6 +10,7 @@ import (
 
 type Value interface {
 	GetType() TypeVal
+	GetDefault() ast.LiteralExpr
 }
 
 type Container interface {
@@ -27,6 +29,10 @@ type VariableVal struct {
 
 func (v VariableVal) GetType() TypeVal {
 	return v.Value.GetType()
+}
+
+func (v VariableVal) GetDefault() ast.LiteralExpr {
+	return v.Value.GetDefault()
 }
 
 type StructTypeVal struct {
@@ -70,6 +76,23 @@ func (st StructTypeVal) GetType() TypeVal {
 	return TypeVal{Type: ast.Struct, Name: st.Name.Lexeme}
 }
 
+func (st StructTypeVal) GetDefault() ast.LiteralExpr {
+	src := lua.StringBuilder{}
+	
+	src.WriteString("{")
+
+	index := 0
+	for _, v := range st.Fields {
+		src.WriteString(v.GetDefault().Value)
+		if index != len(st.Fields)-1 {
+			src.WriteString(", ")
+		}
+		index += 1
+	}
+
+	return ast.LiteralExpr{Value: src.String()}
+}
+
 type StructVal struct {
 	Type *StructTypeVal
 }
@@ -89,6 +112,10 @@ func (s StructVal) GetMethods() map[string]VariableVal {
 func (s StructVal) Contains(name string) (Value, int, bool) {
 	return s.Type.Contains(name)
 } 
+
+func (s StructVal) GetDefault() ast.LiteralExpr {
+	return s.Type.GetDefault()
+}
 
 type NamespaceVal struct {
 	Name string
@@ -121,17 +148,23 @@ func (n NamespaceVal) Contains(name string) (Value, int,  bool) {
 	return nil, -1, false
 } 
 
+func (n NamespaceVal) GetDefault() ast.LiteralExpr {
+	src := lua.StringBuilder{}
+	
+	src.WriteString("{")
 
-/*
-	type ListMemberVal struct {
-		Val Value
-		Owner ListVal
+	index := 0
+	for _, v := range n.Fields {
+		src.WriteString(v.GetDefault().Value)
+		if index != len(n.Fields)-1 {
+			src.WriteString(", ")
+		}
+		index += 1
 	}
 
-	func (lm ListMemberVal) GetType() ast.PrimitiveValueType {
-		return lm.Val.GetType()
-	}
-*/
+	return ast.LiteralExpr{Value: src.String()}
+}
+
 type MapMemberVal struct {
 	Var   VariableVal
 	Owner MapVal
@@ -141,6 +174,10 @@ func (mm MapMemberVal) GetType() TypeVal {
 	return mm.Var.GetType()
 }
 
+func (mm MapMemberVal) GetDefault() ast.Node {
+	return mm.Var.GetDefault()
+}
+
 type MapVal struct {
 	MemberType TypeVal
 	Members    map[string]MapMemberVal
@@ -148,6 +185,10 @@ type MapVal struct {
 
 func (m MapVal) GetType() TypeVal {
 	return TypeVal{Name: "map", Type: ast.Map, WrappedType: &m.MemberType}
+}
+
+func (m MapVal) GetDefault() ast.LiteralExpr {
+	return ast.LiteralExpr{ Value: "{}" }
 }
 
 func (l MapVal) GetContentsValueType() TypeVal {
@@ -184,6 +225,10 @@ func (l ListVal) GetType() TypeVal {
 	return TypeVal{Name: "list", Type: ast.List, WrappedType: &l.ValueType}
 }
 
+func ( l ListVal) GetDefault() ast.LiteralExpr {
+	return ast.LiteralExpr{ Value: "{}" }
+}
+
 func (l ListVal) GetContentsValueType() TypeVal {
 	valTypes := []TypeVal{}
 	index := 0
@@ -215,10 +260,18 @@ func (n NumberVal) GetType() TypeVal {
 	return TypeVal{Type: ast.Number, Name: "number"}
 }
 
+func (n NumberVal) GetDefault() ast.LiteralExpr {
+	return ast.LiteralExpr{ Value: "0" }
+}
+
 type DirectiveVal struct{}
 
 func (d DirectiveVal) GetType() TypeVal {
 	return TypeVal{Type: 0, Name: "directive"}
+}
+
+func (d DirectiveVal) GetDefault() ast.LiteralExpr {
+	return ast.LiteralExpr{ Value: "DEFAULT_DIRECTIVE_CALL" }
 }
 
 type FixedVal struct {
@@ -227,6 +280,10 @@ type FixedVal struct {
 
 func (f FixedVal) GetType() TypeVal {
 	return TypeVal{Type: ast.FixedPoint, Name: "fixed"}
+}
+
+func (f FixedVal) GetDefault() ast.LiteralExpr {
+	return ast.LiteralExpr{ Value: "0fx" }
 }
 
 func (f FixedVal) GetSpecificType() ast.PrimitiveValueType {
@@ -256,13 +313,15 @@ func (n ReturnType) GetType() TypeVal {
 	return TypeVal{Type: 0}
 }
 
-type TypeVal struct { // fn(text, text) text
+
+type TypeVal struct {
 	WrappedType *TypeVal
 	Name        string
 	Type        ast.PrimitiveValueType
 	Params      *[]TypeVal
 	Returns     ReturnType
 }
+
 
 func (t TypeVal) Eq(otherT TypeVal) bool {
 	paramsAreSame := true
@@ -333,6 +392,10 @@ func (t TypeVal) GetType() TypeVal {
 	return t
 }
 
+func (t TypeVal) GetDefault() ast.LiteralExpr {
+	return ast.LiteralExpr{ Value: "DEFAULT_TYPE_VALUE" }
+}
+
 type FunctionVal struct { // fn test(param map<fixed>)
 	params    []TypeVal
 	returnVal ReturnType
@@ -346,6 +409,18 @@ func (f FunctionVal) GetReturnType() ReturnType {
 	return f.returnVal
 }
 
+func (f FunctionVal) GetDefault() ast.LiteralExpr {
+	src := lua.StringBuilder{}
+	src.WriteString("function(")
+	for i := range f.params {
+		src.WriteString(fmt.Sprintf("param%v", i))
+		if i != len(f.params)-1 {
+			src.WriteString(", ")
+		}
+	}
+	return ast.LiteralExpr{ Value: src.String() }
+}
+
 type CallVal struct {
 	types ReturnType
 }
@@ -357,16 +432,28 @@ func (f CallVal) GetType() TypeVal {
 	return TypeVal{Name: "invalid", Type: ast.Invalid, Returns: f.types}
 }
 
+func (f CallVal) GetDefault() ast.LiteralExpr {
+	return ast.LiteralExpr{ Value: "DEFAULT_CALL_VALUE" }
+}
+
 type BoolVal struct{}
 
 func (b BoolVal) GetType() TypeVal {
 	return TypeVal{Name: "boolean", Type: ast.Bool}
 }
 
+func (b BoolVal) GetDefault() ast.LiteralExpr {
+	return ast.LiteralExpr{ Value: "false" }
+}
+
 type StringVal struct{}
 
-func (b StringVal) GetType() TypeVal {
+func (s StringVal) GetType() TypeVal {
 	return TypeVal{Name: "string", Type: ast.String}
+}
+
+func (s StringVal) GetDefault() ast.LiteralExpr {
+	return ast.LiteralExpr{ Value: "\"\"" }
 }
 
 type NilVal struct{}
@@ -375,14 +462,26 @@ func (n NilVal) GetType() TypeVal {
 	return TypeVal{Name: "nil", Type: ast.Nil}
 }
 
+func (n NilVal) GetDefault() ast.LiteralExpr {
+	return ast.LiteralExpr{ Value: "nil" }
+}
+
 type Invalid struct{}
 
 func (u Invalid) GetType() TypeVal {
 	return TypeVal{Name: "invalid", Type: ast.Invalid}
 }
 
+func (n Invalid) GetDefault() ast.LiteralExpr {
+	return ast.LiteralExpr{ Value: "invalid" }
+}
+
 type Unknown struct{}
 
 func (u Unknown) GetType() TypeVal {
 	return TypeVal{Name: "unknown", Type: 0}
+}
+
+func (u Unknown) GetDefault() ast.LiteralExpr {
+	return ast.LiteralExpr{ Value: "unknown" }
 }

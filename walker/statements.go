@@ -57,11 +57,11 @@ func (w *Walker) assignmentStmt(assignStmt *ast.AssignmentStmt, scope *Scope) {
 		wIdents = append(wIdents, w.GetNodeValue(&assignStmt.Identifiers[i], scope))
 	}
 
-	for i, rightValue := range assignStmt.Values {
-		if rightValue.GetType() == ast.CallExpression {
+	for i := range assignStmt.Values {
+		if assignStmt.Values[i].GetType() == ast.CallExpression {
 			hasFuncs = true
 		}
-		value := w.GetNodeValue(&rightValue, scope)
+		value := w.GetNodeValue(&assignStmt.Values[i], scope)
 		if i > len(wIdents)-1 {
 			break
 		}
@@ -95,7 +95,7 @@ func (w *Walker) assignmentStmt(assignStmt *ast.AssignmentStmt, scope *Scope) {
 	}
 }
 
-func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scope *Scope) VariableVal {
+func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scope *Scope, procType ProcedureType) VariableVal {
 	fnScope := NewScope(scope.Global, scope, ReturnAllowing)
 
 	params := make([]TypeVal, 0)
@@ -118,9 +118,12 @@ func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scop
 		Value: FunctionVal{params: params, returnVal: ret},
 		Node:  node,
 	}
-	if _, success := scope.DeclareVariable(variable); !success {
-		w.error(node.Name, fmt.Sprintf("variable with name '%s' already exists", variable.Name))
+	if procType == Function {
+		if _, success := scope.DeclareVariable(variable); !success {
+			w.error(node.Name, fmt.Sprintf("variable with name '%s' already exists", variable.Name))
+		}
 	}
+
 
 	if scope.Parent != nil && !node.IsLocal {
 		w.error(node.GetToken(), "cannot declare a global function inside a local block")
@@ -142,8 +145,8 @@ func (w *Walker) returnStmt(node *ast.ReturnStmt, scope *Scope) *ReturnType {
 	if scope.Type != ReturnAllowing {
 		w.error(node.GetToken(), "can't have a return statement outside of a function or method")
 	}
-	for _, expr := range node.Args {
-		val := w.GetNodeValue(&expr, scope)
+	for i := range node.Args {
+		val := w.GetNodeValue(&node.Args[i], scope)
 		valType := val.GetType()
 		if valType.Type == ast.Func {
 			ret.values = append(ret.values, valType.Returns.values...)
@@ -281,11 +284,13 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 			} else if explicitType.Type == ast.Func {
 				w.error(declaration.Identifiers[i], "cannot declare an uninitialized function")
 			}
-			declaration.Values = append(declaration.Values, ast.LiteralExpr{Value: w.GetDefaultValue(explicitType), ValueType: explicitType.Type})
+			declaration.Values = append(declaration.Values, w.GetValueFromType(explicitType).GetDefault())
 			val = w.GetValueFromType(explicitType)
+			variable.Value = val
 			valType = val.GetType()
 			values = append(values, val)
 		}
+		
 		if wasMapOrList {
 			if declaration.Types[i] == nil {
 				if valType.WrappedType.Type == ast.Invalid || valType.WrappedType.Type == 0 {
@@ -297,7 +302,6 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 				fmt.Printf("a\n")
 				w.error(ident, fmt.Sprintf("given value for '%s' does not match with the type given", ident.Lexeme))
 			}
-
 		} else if valType.Type != 0 && explicitType.Type != ast.Invalid && !valType.Eq(explicitType) {
 			w.error(ident, fmt.Sprintf("given value for '%s' does not match with the type given", ident.Lexeme))
 		}
@@ -339,6 +343,7 @@ func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *S
 	structTypeVal.Params = params
 
 	scope.DeclareStructType(&structTypeVal)
+	w.Global.foreignTypes[structTypeVal.Name.Lexeme] = &structTypeVal
 
 	funcDeclaration := ast.MethodDeclarationStmt{
 		Name:    node.Constructor.Token,
@@ -353,6 +358,30 @@ func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *S
 	}
 
 	structTypeVal.FieldIndexes = structScope.VariableIndexes
+
+	for i := range *node.Methods {
+		params := make([]TypeVal, 0)
+		for _, param := range (*node.Methods)[i].Params {
+			params = append(params, w.typeExpr(&param.Type))
+		}
+	
+		ret := ReturnType{
+			values: []TypeVal{},
+		}
+		for _, typee := range (*node.Methods)[i].Return {
+			ret.values = append(ret.values, w.typeExpr(&typee))
+			//fmt.Printf("%s\n", ret.values[len(ret.values)-1].Type.ToString())
+		}
+		variable := VariableVal{
+			Name:  (*node.Methods)[i].Name.Lexeme,
+			Value: FunctionVal{params: params, returnVal: ret},
+			Node:  (*node.Methods)[i],
+		}
+		if _, success := structScope.DeclareVariable(variable); !success {
+			w.error((*node.Methods)[i].Name, fmt.Sprintf("variable with name '%s' already exists", variable.Name))
+		}
+		structTypeVal.Methods[variable.Name] = variable
+	}
 
 	for i := range *node.Methods {
 		w.methodDeclarationStmt(&(*node.Methods)[i], &structTypeVal, &structScope)
@@ -384,9 +413,8 @@ func (w *Walker) methodDeclarationStmt(node *ast.MethodDeclarationStmt, structTy
 		IsLocal: true,
 	}
 
-	variable := w.functionDeclarationStmt(&funcExpr, scope)
+	w.functionDeclarationStmt(&funcExpr, scope, Method)
 	node.Body = funcExpr.Body
-	structType.Methods[variable.Name] = variable
 }
 
 func (w *Walker) useStmt(node *ast.UseStmt, scope *Scope) {

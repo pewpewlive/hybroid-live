@@ -130,14 +130,14 @@ func (w *Walker) listExpr(node *ast.ListExpr, scope *Scope) Value {
 	return value
 }
 
-type CallType int
+type ProcedureType int
 
 const (
-	Function CallType = iota
+	Function ProcedureType = iota
 	Method
 )
 
-func (w *Walker) determineCallTypeString(callType CallType) string {
+func (w *Walker) determineCallTypeString(callType ProcedureType) string {
 	if callType == Function {
 		return "function"
 	}
@@ -162,10 +162,10 @@ func (w *Walker) validateArguments(args []TypeVal, params []TypeVal, callToken l
 	return true
 }
 
-func (w *Walker) typeifyNodeList(nodes []ast.Node, scope *Scope) []TypeVal {
+func (w *Walker) typeifyNodeList(nodes *[]ast.Node, scope *Scope) []TypeVal {
 	arguments := make([]TypeVal, 0)
-	for _, arg := range nodes {
-		val := w.GetNodeValue(&arg, scope)
+	for i := range *nodes {
+		val := w.GetNodeValue(&(*nodes)[i], scope)
 		if function, ok := val.(FunctionVal); ok {
 			arguments = append(arguments, function.returnVal.values...)
 		} else {
@@ -175,7 +175,7 @@ func (w *Walker) typeifyNodeList(nodes []ast.Node, scope *Scope) []TypeVal {
 	return arguments
 }
 
-func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope, callType CallType) Value {
+func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope, callType ProcedureType) Value {
 	typeCall := w.determineCallTypeString(callType)
 
 	callerToken := node.Caller.GetToken()
@@ -192,7 +192,7 @@ func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope, callType CallType) V
 	}
 	fun, _ := val.(FunctionVal)
 
-	arguments := w.typeifyNodeList(node.Args, scope)
+	arguments := w.typeifyNodeList(&node.Args, scope)
 	w.validateArguments(arguments, fun.params, callerToken, typeCall)
 
 	return CallVal{types: fun.returnVal}
@@ -269,7 +269,7 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 
 		var fieldVal Value
 		if node.Property == nil {
-			fieldVal = w.GetNodeValue(&node.Identifier, scope)
+			return val
 		} else {
 			fieldVal = w.GetNodeValue(&node.Property, scope)
 		}
@@ -335,7 +335,7 @@ func (w *Walker) memberExpr(node *ast.MemberExpr, scope *Scope) Value {
 		}
 		var memberVal Value
 		if node.Property == nil {
-			memberVal = w.GetNodeValue(&node.Identifier, scope)
+			return val
 		} else {
 			memberVal = w.GetNodeValue(&node.Property, scope)
 		}
@@ -444,7 +444,7 @@ func (w *Walker) newExpr(new *ast.NewExpr, scope *Scope) StructVal {
 
 	structTypeVal := resolved.GetStructType(resolved, new.Type.Lexeme)
 
-	args := w.typeifyNodeList(new.Args, scope)
+	args := w.typeifyNodeList(&new.Args, scope)
 	w.validateArguments(args, structTypeVal.Params, new.Type, "new")
 
 	return StructVal{
@@ -510,6 +510,11 @@ func (w *Walker) typeExpr(typee *ast.TypeExpr) TypeVal {
 	}
 
 	typ := w.GetTypeFromString(typee.Name.Lexeme)
+	if typ == ast.Invalid {
+		if foreignType, ok := w.Global.foreignTypes[typee.Name.Lexeme]; ok {
+			return foreignType.GetType()
+		}
+	}
 
 	return TypeVal{
 		Name:        typ.ToString(),
