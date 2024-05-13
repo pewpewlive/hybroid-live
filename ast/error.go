@@ -25,10 +25,10 @@ type Warning struct {
 	Message string
 }
 
-func (e Warning) GetToken() lexer.Token {
-	return e.Token
+func (w Warning) GetToken() lexer.Token {
+	return w.Token
 }
 
-func (e Warning) GetMessage() string {
-	return e.Message
+func (w Warning) GetMessage() string {
+	return w.Message
 }

@@ -90,15 +90,15 @@ type FieldDeclarationStmt struct {
 	Token       lexer.Token
 }
 
-func (f FieldDeclarationStmt) GetType() NodeType {
+func (fds FieldDeclarationStmt) GetType() NodeType {
 	return FieldDeclarationStatement
 }
 
-func (f FieldDeclarationStmt) GetToken() lexer.Token {
-	return f.Token
+func (fds FieldDeclarationStmt) GetToken() lexer.Token {
+	return fds.Token
 }
 
-func (f FieldDeclarationStmt) GetValueType() PrimitiveValueType {
+func (fds FieldDeclarationStmt) GetValueType() PrimitiveValueType {
 	return 0
 }
 
@@ -136,15 +136,15 @@ type MethodDeclarationStmt struct {
 	Body    []Node
 }
 
-func (fds MethodDeclarationStmt) GetType() NodeType {
+func (mds MethodDeclarationStmt) GetType() NodeType {
 	return FunctionDeclarationStatement
 }
 
-func (fds MethodDeclarationStmt) GetToken() lexer.Token {
-	return fds.Name
+func (mds MethodDeclarationStmt) GetToken() lexer.Token {
+	return mds.Name
 }
 
-func (fds MethodDeclarationStmt) GetValueType() PrimitiveValueType {
+func (mds MethodDeclarationStmt) GetValueType() PrimitiveValueType {
 	return 0
 }
 
@@ -167,55 +167,6 @@ func (is IfStmt) GetToken() lexer.Token {
 func (is IfStmt) GetValueType() PrimitiveValueType {
 	return 0
 }
-
-/*
-
-let a = match ExprToMatch {
-"a" => {
-
-}
-"b" => {
-
-}
-
-_ => {
-
-}
-
-}
-
-let a = if condition {
-	a =  1
-}
-
-local a
-if condtion then
-	a = 1
-end
-
-let o = 0
-repeat to 10 with i {
-
-	if i == 10 {
-		o = i+20
-	}else {
-		o = 0
-	}
-}
-
-local o
-
-for i = 1, 10 do
-	if i == 10 then
-		o = i+20
-		break
-	else
-	 o = 0
-	 break
-	end
-end
-
-*/
 
 type MatchStmt struct {
 	ExprToMatch Node
