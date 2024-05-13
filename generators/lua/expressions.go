@@ -71,22 +71,6 @@ func (gen *Generator) callExpr(node ast.CallExpr) string {
 	return src.String()
 }
 
-/*
-
-self.methodCall()
-
-Hybroid_SelfTypeName_methodCall(Self)
-
-var.methodCall()
-
-Hybroid_VarTypeName_methodCall(var)
-
-var.member.methodCall()
-
-Hybroid_MemberTypeName_methodCall(var.member) var.member is a field expression
-
-*/
-
 func (gen *Generator) methodCallExpr(node ast.MethodCallExpr) string {
 	src := StringBuilder{}
 	src.AppendTabbed("Hybroid_", node.TypeName, "_", node.MethodName)

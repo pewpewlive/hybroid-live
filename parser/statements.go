@@ -25,7 +25,7 @@ func (p *Parser) statement() ast.Node {
 		if next == lexer.Fn {
 			p.advance()
 			token = p.peek().Type
-		}else if next == lexer.Struct {
+		} else if next == lexer.Struct {
 			p.advance()
 			p.advance()
 			return p.structDeclarationStatement()
@@ -123,7 +123,7 @@ func (p *Parser) structDeclarationStatement() ast.Node {
 		return ast.Improper{Token: stmt.Token}
 	}
 	stmt.Methods = &[]ast.MethodDeclarationStmt{}
-	for !p.match(lexer.RightBrace) { //im koocing ongg
+	for !p.match(lexer.RightBrace) {
 		if p.match(lexer.Fn) {
 			method, ok := p.methodDeclarationStmt(stmt.IsLocal).(ast.MethodDeclarationStmt)
 			if ok {
@@ -175,34 +175,34 @@ func (p *Parser) fieldDeclarationStmt(isLocal bool) ast.Node {
 
 	ident := p.peek(-1)
 
-	var typee *ast.TypeExpr
+	var typeExpr *ast.TypeExpr
 	if p.match(lexer.Colon) {
-		typ := p.Type()
-		if typ.GetType() == ast.NA {
+		t := p.Type()
+		if t.GetType() == ast.NA {
 			return ast.Improper{Token: p.peek(-1)}
 		}
 
-		typee = &typ
+		typeExpr = &t
 	}
 	idents := []lexer.Token{ident}
-	types := []*ast.TypeExpr{typee}
+	types := []*ast.TypeExpr{typeExpr}
 	for p.match(lexer.Comma) {
 		ident, identOk := p.consume("expected identifier in field declaration", lexer.Identifier)
 		if !identOk {
 			return ast.Improper{Token: p.peek(-1)}
 		}
-		typee = nil
+		typeExpr = nil
 		if p.match(lexer.Colon) {
 			typ := p.Type()
 			if typ.GetType() == ast.NA {
 				return ast.Improper{Token: p.peek(-1)}
 			}
 
-			typee = &typ
+			typeExpr = &typ
 		}
 
 		idents = append(idents, ident)
-		types = append(types, typee)
+		types = append(types, typeExpr)
 	}
 
 	stmt.Identifiers = idents
@@ -537,7 +537,7 @@ func (p *Parser) tickStmt() ast.Node {
 
 func (p *Parser) variableDeclarationStmt() ast.Node {
 	variable := ast.VariableDeclarationStmt{
-		Token: p.peek(-1), 
+		Token:   p.peek(-1),
 		IsLocal: p.peek(-1).Type == lexer.Let,
 	}
 

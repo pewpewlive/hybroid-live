@@ -257,11 +257,9 @@ func (gen *Generator) methodDeclarationStmt(node ast.MethodDeclarationStmt, Stru
 	}
 
 	src.Append("function Hybroid_", Struct.Name.Lexeme, "_", node.Name.Lexeme, "(Self")
-	for i, param := range node.Params {
+	for _, param := range node.Params {
+		src.WriteString(", ")
 		src.Append(param.Name.Lexeme)
-		if i != len(node.Params)-1 {
-			src.Append(", ")
-		}
 	}
 	src.Append(")\n")
 

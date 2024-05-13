@@ -1,46 +1,29 @@
 @Environment(Level)
 
 pub struct Rectangle {
-    test = {a: {b: {c: 1}}}
-    thing = fn () {
-        if true {
-            
-        }
-    }
-    thing2 = fn () {
-        if true {
-            
-        }
-    }
-    thing3 = fn () {
-        if true {
-            
-        }
+    width: fixed
+    height: fixed
+    test2 = fn (yes fixed) fixed {
+        return yes
     }
     
-    new(widthasdasd fixed, heigh fixed) {
-        self.test["a"]["b"]["c"] = 2
-        self.xd() 
+    new(width fixed, height fixed) {
+        self.width = width
+        self.height = height
     } 
 
-    fn test5() {
+    fn area() fixed { 
+        return self.width * self.height
     }
 
-    fn xd() { 
-        self.thing()
-        self.thing2()
-        self.thing3()
-    }
-
-    fn yes() { 
-        self.xd()
-    }
-
-    fn super(yes fixed) fixed {
-        return yes
+    fn test() {
+        self.area()
+        self.test2 = self.test2
+        self.test2(self.test2(1f))
     }
 }
 
-let rect = new Rectangle(10f,10f)
+let rect = new Rectangle(10f, 10f)
+let a = 1f + new Rectangle(10f, 10f).test2(2f)
 
-rect.super(rect.super(1f))
+rect.test2(rect.test2(1f))
