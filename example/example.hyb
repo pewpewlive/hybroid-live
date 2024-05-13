@@ -26,9 +26,7 @@ struct Rectangle {
 }
 
 struct Yes {
-    rect: Rectangle = new Rectangle(0f,0f)
-
-    
+    rect: Rectangle = new Rectangle(1fx, 2fx)
 
     new() {
 
@@ -44,8 +42,11 @@ let a = 1f + new Rectangle(10f, new Rectangle(5f, 2f).width).test2(2f)
 
 let yesss = new Yes()
 
+yesss.rect.width = 23fx
 yesss.rect = rect
 
 rect = yesss.GetRectangle()
+
+yesss.rect.area()
 
 rect.test2(rect.test2(1f))

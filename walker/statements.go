@@ -124,7 +124,6 @@ func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scop
 		}
 	}
 
-
 	if scope.Parent != nil && !node.IsLocal {
 		w.error(node.GetToken(), "cannot declare a global function inside a local block")
 	}
@@ -290,7 +289,7 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 			valType = val.GetType()
 			values = append(values, val)
 		}
-		
+
 		if wasMapOrList {
 			if declaration.Types[i] == nil {
 				if valType.WrappedType.Type == ast.Invalid || valType.WrappedType.Type == 0 {
@@ -364,7 +363,7 @@ func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *S
 		for _, param := range (*node.Methods)[i].Params {
 			params = append(params, w.typeExpr(&param.Type))
 		}
-	
+
 		ret := ReturnType{
 			values: []TypeVal{},
 		}
@@ -399,6 +398,7 @@ func (w *Walker) fieldDeclarationStmt(node *ast.FieldDeclarationStmt, structType
 		Token:       node.Token,
 	}
 	variables := w.variableDeclarationStmt(&varDecl, scope)
+	node.Values = varDecl.Values
 	for _, variable := range variables {
 		structType.Fields[variable.Name] = variable
 	}
