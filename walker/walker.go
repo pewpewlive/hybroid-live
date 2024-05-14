@@ -1,6 +1,7 @@
 package walker
 
 import (
+	"fmt"
 	"hybroid/ast"
 	"hybroid/lexer"
 )
@@ -269,6 +270,7 @@ func returnsAreValid(list1 []TypeVal, list2 []TypeVal) bool {
 	}
 
 	for i, v := range list1 {
+		fmt.Printf("%s compared to %s\n", list1[i].ToString(), list2[i].ToString())
 		if !((list2[i].WrappedType != nil && list2[i].WrappedType.Type == 0) ||
 			(v.WrappedType != nil && v.WrappedType.Type == 0)) &&
 			!list2[i].Eq(v) {
@@ -429,6 +431,8 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 	}
 }
 
+var owner Value
+
 func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 	var val Value
 
@@ -466,10 +470,10 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 	case ast.MethodCallExpr:
 		val = w.methodCallExpr(node, scope)
 	case ast.MemberExpr:
-		val = w.memberExpr(&newNode, scope)
+		val = w.memberExpr(owner, &newNode, scope)
 		*node = newNode
 	case ast.FieldExpr:
-		val = w.fieldExpr(&newNode, scope)
+		val = w.fieldExpr(owner, &newNode, scope)
 		*node = newNode
 	case ast.TypeExpr:
 		val = w.typeExpr(&newNode)

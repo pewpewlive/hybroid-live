@@ -177,8 +177,8 @@ func (p *Parser) unary() ast.Node {
 		right := p.unary()
 		return ast.UnaryExpr{Operator: operator, Value: right}
 	}
-
-	return p.call(p.accessorExpr(nil, 0))
+	expr, _ := p.accessorExpr(nil, nil, 0)
+	return p.call(expr)
 }
 
 func (p *Parser) call(caller ast.Node) ast.Node {
@@ -187,21 +187,21 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 	}
 
 	if caller.GetType() == ast.FieldExpression {
-		fieldExpr := caller.(ast.FieldExpr)
+		fieldExpr := caller.(ast.FieldExpr) 
 		
 		if fieldExpr.Property.GetType() == ast.FieldExpression && fieldExpr.Property.(ast.FieldExpr).Property == nil {
 			selfPortion := fieldExpr
 			selfPortion.Property = nil
-			methodCall := ast.MethodCallExpr{ 
-				Owner: selfPortion,
-				Call: fieldExpr,
+			methodCall := ast.MethodCallExpr{ // how it was before
+				Owner: selfPortion,//im thinging
+				Call: fieldExpr, // so like identifier should be a field
 				MethodName: fieldExpr.Property.GetToken().Lexeme,
 				Args: p.arguments(),
 				Token: fieldExpr.Property.GetToken(),
 			}
 			return methodCall
 		} 
-	} 
+	}
 
 	callerType := caller.GetType()
 	if callerType != ast.Identifier && callerType != ast.MemberExpression && callerType != ast.FieldExpression && callerType != ast.CallExpression {
@@ -226,38 +226,34 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 	return call_expr
 }
 
-func (p *Parser) accessorExpr(owner ast.Node, nodeType ast.NodeType) ast.Node { // fieldExpr and memberExpr
+func (p *Parser) accessorExpr(owner ast.Node, ident ast.Node, nodeType ast.NodeType) (ast.Node, bool) { // fieldExpr and memberExpr
 
-	var ident ast.Node 
-	if owner != nil && nodeType == ast.MemberExpression {
-		ident = p.expression() 
-		p.consume("expected closing bracket", lexer.RightBracket)
-	}else { 
+	if ident == nil {
 		ident = p.new()
-	} 
+	}
 
 	isField, isMember := p.check(lexer.Dot), p.check(lexer.LeftBracket)
 
 	if !isField && !isMember{ 
 		if owner == nil {
-			return p.call(ident) 
+			return p.call(ident), false
 		}else {
 			if nodeType == ast.FieldExpression {
 				return ast.FieldExpr{
 					Owner: owner,
 					Identifier: ident,
-				}
+				}, false
 			}else {
 				return ast.MemberExpr{
 					Owner: owner,
 					Identifier: ident,
-				}
+				}, false
 			}
 		} 
 	} 
 	
 	p.advance()
-		
+	
 	var propNodeType ast.NodeType
 	if isField {
 		propNodeType = ast.FieldExpression
@@ -270,24 +266,58 @@ func (p *Parser) accessorExpr(owner ast.Node, nodeType ast.NodeType) ast.Node { 
 	
 	var expr ast.Accessor 
 	var prop ast.Node 
+	var propIdent ast.Node
 	if nodeType == ast.FieldExpression { 
+		propIdent = p.new()
 		expr = ast.FieldExpr{
 			Owner: owner,
 			Identifier: ident,
 		}
-		prop = p.accessorExpr(expr, propNodeType)
+		prop = ast.FieldExpr{
+			Owner: expr,
+			Identifier:propIdent,
+		}
 	}else {
+		propIdent = p.expression() // var.var2().var3
+		p.consume("expected closing bracket", lexer.RightBracket)
 		expr = ast.MemberExpr{
 			Owner: owner, 
 			Identifier: ident, 
 			
+		}// uhm, this should maybe work
+		prop = ast.MemberExpr{
+			Owner: expr,
+			Identifier:propIdent,
 		}
-		prop = p.accessorExpr(expr, propNodeType)
 	} 
+
+	expr = expr.SetProperty(prop)
+	newOwner := p.call(expr) 
+
+	expr = expr.SetProperty(nil) // var1.var2().var3()
+	if _, ok := newOwner.(ast.Accessor); ok {
+		newOwner = expr
+	}
 	
+	prop, isCall := p.accessorExpr(newOwner, propIdent, propNodeType)
+
+	if isCall {
+		return prop, true
+	}
+
 	expr = expr.SetProperty(prop)
 	
-	return expr 
+	if newOwner.GetType() == ast.CallExpression || newOwner.GetType() == ast.MethodCallExpression {
+		if accessor, ok := prop.(ast.Accessor); ok {
+			thing := accessor.GetProperty()
+			if *thing == nil {
+				return newOwner, true
+			}
+		}
+		return prop, true
+	}else {
+		return expr, false
+	}
 } 
 
 func (p *Parser) new() ast.Node {

@@ -258,7 +258,7 @@ func (w *Walker) GetContainer(val Value) Container {
 	return nil
 }
 
-func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
+func (w *Walker) fieldExpr(ownerr Value, node *ast.FieldExpr, scope *Scope) Value {
 	if node.Owner == nil {
 		val := w.GetNodeValue(&node.Identifier, scope)
 
@@ -271,15 +271,15 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 		if node.Property == nil {
 			return val
 		} else {
+			owner = val
 			fieldVal = w.GetNodeValue(&node.Property, scope)
 		}
 		return fieldVal
 	}
-	owner := w.GetNodeValue(&node.Owner, scope)
-	//ownerType := owner.GetType()
+	
 	variable := VariableVal{Value: Invalid{}}
-	if IsOfPrimitiveType(owner, ast.Struct, ast.Entity, ast.Namespace) {
-		if container := w.GetContainer(owner); container != nil {
+	if IsOfPrimitiveType(ownerr, ast.Struct, ast.Entity, ast.Namespace) {
+		if container := w.GetContainer(ownerr); container != nil {
 			ident := node.Identifier.GetToken()
 			val, index, contains := container.Contains(ident.Lexeme)
 
@@ -294,6 +294,7 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 	}
 
 	if node.Property != nil {
+		owner = variable.Value
 		val := w.GetNodeValue(&node.Property, scope)
 		return val
 	}
@@ -324,7 +325,7 @@ func (w *Walker) unaryExpr(node *ast.UnaryExpr, scope *Scope) Value {
 	return w.GetNodeValue(&node.Value, scope)
 }
 
-func (w *Walker) memberExpr(node *ast.MemberExpr, scope *Scope) Value {
+func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Value {
 	if node.Owner == nil {
 		val := w.GetNodeValue(&node.Identifier, scope)
 		valType := val.GetType().Type
@@ -333,15 +334,16 @@ func (w *Walker) memberExpr(node *ast.MemberExpr, scope *Scope) Value {
 			w.error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a list, map", node.Identifier.GetToken().Lexeme))
 			return Invalid{}
 		}
+
 		var memberVal Value
 		if node.Property == nil {
 			return val
 		} else {
+			owner = val
 			memberVal = w.GetNodeValue(&node.Property, scope)
 		}
 		return memberVal
 	}
-	array := w.GetNodeValue(&node.Owner, scope) // nil pointer deref
 
 	val := w.GetNodeValue(&node.Identifier, scope)
 	valType := val.GetType()
@@ -372,6 +374,7 @@ func (w *Walker) memberExpr(node *ast.MemberExpr, scope *Scope) Value {
 	}
 
 	if node.Property != nil {
+		owner = val
 		return w.GetNodeValue(&node.Property, scope)
 	}
 

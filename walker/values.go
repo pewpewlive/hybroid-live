@@ -38,31 +38,46 @@ func (v VariableVal) GetDefault() ast.LiteralExpr {
 type StructTypeVal struct {
 	Name         lexer.Token
 	Params       []TypeVal
-	Fields       map[string]VariableVal
+	Fields       []VariableVal
 	FieldIndexes map[string]int
 	Methods      map[string]VariableVal
 	IsUsed       bool
 }
 
 func (st StructTypeVal) GetField(name string) (*VariableVal, bool) {
-	if found, ok := st.Fields[name]; ok {
-		return &found, true
+	if found, ok := FindFromList(st.Fields, name); ok {
+		return found, true
 	}
 
 	return nil, false
 }
 
 func (st StructTypeVal) GetFields() map[string]VariableVal {
-	return st.Fields
+	fields := map[string]VariableVal{}
+
+	for _, v := range st.Fields {
+		fields[v.Name] = v
+	}
+	
+	return fields
 }
 
 func (st StructTypeVal) GetMethods() map[string]VariableVal {
-	return st.Fields
+	return st.Methods
+}
+
+func FindFromList(list []VariableVal, name string) (*VariableVal, bool) {
+	for _, v := range list {
+		if v.Name == name {
+			return &v, true
+		}
+	}
+	return nil, false
 }
 
 func (st StructTypeVal) Contains(name string) (Value, int, bool) {
-	if variable, found := st.Fields[name]; found {
-		return variable, st.FieldIndexes[name], true
+	if variable, found := FindFromList(st.Fields, name); found {
+		return *variable, st.FieldIndexes[name], true
 	}
 
 	if variable, found := st.Methods[name]; found {
@@ -103,11 +118,11 @@ func (s StructVal) GetType() TypeVal {
 }
 
 func (s StructVal) GetFields() map[string]VariableVal {
-	return s.Type.Fields
+	return s.Type.GetFields()
 }
 
 func (s StructVal) GetMethods() map[string]VariableVal {
-	return s.Type.Methods
+	return s.Type.GetMethods()
 }
 
 func (s StructVal) Contains(name string) (Value, int, bool) {

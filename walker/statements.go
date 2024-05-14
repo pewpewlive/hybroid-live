@@ -330,7 +330,7 @@ func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *S
 	structTypeVal := StructTypeVal{
 		Name:         node.Name,
 		Methods:      map[string]VariableVal{},
-		Fields:       map[string]VariableVal{},
+		Fields:       []VariableVal{},
 		FieldIndexes: map[string]int{},
 	}
 	structScope.WrappedType = structTypeVal.GetType()
@@ -399,9 +399,7 @@ func (w *Walker) fieldDeclarationStmt(node *ast.FieldDeclarationStmt, structType
 	}
 	variables := w.variableDeclarationStmt(&varDecl, scope)
 	node.Values = varDecl.Values
-	for _, variable := range variables {
-		structType.Fields[variable.Name] = variable
-	}
+	structType.Fields = append(structType.Fields, variables...)
 }
 
 func (w *Walker) methodDeclarationStmt(node *ast.MethodDeclarationStmt, structType *StructTypeVal, scope *Scope) {

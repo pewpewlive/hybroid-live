@@ -8,6 +8,7 @@ type Accessor interface {
 	Node
 	SetProperty(prop Node) Accessor
 	GetOwner() *Node
+	GetProperty() *Node
 }
 
 type LiteralExpr struct {
@@ -226,6 +227,10 @@ func (fe FieldExpr) SetProperty(prop Node) Accessor {
 	return fe
 }
 
+func (fe FieldExpr) GetProperty() *Node {
+	return &fe.Property
+}
+
 func (fe FieldExpr) GetOwner() *Node {
 	return &fe.Owner
 }
@@ -252,6 +257,10 @@ func (me MemberExpr) GetValueType() PrimitiveValueType {
 func (me MemberExpr) SetProperty(prop Node) Accessor {
 	me.Property = prop
 	return me
+}
+
+func (me MemberExpr) GetProperty() *Node {
+	return &me.Property
 }
 
 func (me MemberExpr) GetOwner() *Node {
