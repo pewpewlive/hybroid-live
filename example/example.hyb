@@ -28,6 +28,14 @@ struct Rectangle {
 struct Yes {
     rect: Rectangle
 
+    a = self
+    b = self
+    c = {
+        wow: fn (yes Yes) {
+
+        }
+    }
+
     new() {
 
     }
@@ -35,14 +43,13 @@ struct Yes {
     fn GetRectangle() Rectangle {
         return self.rect
     }
-} // lol
+} 
 
-let yesss = new Yes()
+fn test(param string) map<Yes> {
+    return {
+        xd: new Yes(),
+        sdsd: new Yes()
+    }
+}
 
-yesss.GetRectangle().area() // wanna see how this is parsed
-
-let rect = new Rectangle(1f,1f)
-
-rect.test2(rect.test2(1f))
-
-
+test("b")["xd"].a.b.c["wow"](test("a")["sdsd"])

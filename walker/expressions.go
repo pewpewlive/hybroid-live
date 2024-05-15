@@ -123,8 +123,12 @@ func (w *Walker) groupingExpr(node *ast.GroupExpr, scope *Scope) Value {
 
 func (w *Walker) listExpr(node *ast.ListExpr, scope *Scope) Value {
 	var value ListVal
-	for _, expr := range node.List {
-		value.Values = append(value.Values, w.GetNodeValue(&expr, scope))
+	for i := range node.List {
+		val := w.GetNodeValue(&node.List[i], scope)
+		if val.GetType().Type == ast.Invalid {
+			w.error(node.List[i].GetToken(), fmt.Sprintf("variable '%s' inside list is invalid", node.List[i].GetToken().Lexeme))
+		}
+		value.Values = append(value.Values, val)
 	}
 	value.ValueType = value.GetContentsValueType()
 	return value
@@ -195,6 +199,9 @@ func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope, callType ProcedureTy
 	arguments := w.typeifyNodeList(&node.Args, scope)
 	w.validateArguments(arguments, fun.params, callerToken, typeCall)
 
+	if len(fun.returnVal.values) == 1 {
+		return w.GetValueFromType(fun.returnVal.values[0])
+	}
 	return CallVal{types: fun.returnVal}
 }
 
@@ -373,12 +380,14 @@ func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Val
 		wrappedValType = mapp.MemberType
 	}
 
+	wrappedVal := w.GetValueFromType(wrappedValType)
+
 	if node.Property != nil {
-		owner = val
+		owner = wrappedVal
 		return w.GetNodeValue(&node.Property, scope)
 	}
 
-	return w.GetValueFromType(wrappedValType)
+	return wrappedVal
 }
 
 func (w *Walker) directiveExpr(node *ast.DirectiveExpr, scope *Scope) DirectiveVal {

@@ -298,8 +298,7 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 			} else if declaration.Types[i].WrappedType == nil {
 				w.error(declaration.Types[i].GetToken(), "expected a wrapped type in map/list declaration")
 			} else if valType.WrappedType.Type != 0 && !valType.Eq(explicitType) {
-				fmt.Printf("a\n")
-				w.error(ident, fmt.Sprintf("given value for '%s' does not match with the type given", ident.Lexeme))
+				w.error(ident, fmt.Sprintf("given value for '%s' does not match with the type given, (explicit:%s, inferred:%s)", ident.Lexeme, explicitType.ToString(), valType.ToString()))
 			}
 		} else if valType.Type != 0 && explicitType.Type != ast.Invalid && !valType.Eq(explicitType) {
 			w.error(ident, fmt.Sprintf("given value for '%s' does not match with the type given", ident.Lexeme))

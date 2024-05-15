@@ -6,9 +6,11 @@ import (
 
 type Accessor interface {
 	Node
-	SetProperty(prop Node) Accessor
-	GetOwner() *Node
+	GetOwner() *Accessor
 	GetProperty() *Node
+	SetOwner(owner Accessor) Accessor
+	SetProperty(prop Node) Accessor
+	SetIdentifier(ident Node) Accessor
 }
 
 type LiteralExpr struct {
@@ -204,7 +206,7 @@ func (ne NewExpr) GetValueType() PrimitiveValueType {
 }
 
 type FieldExpr struct {
-	Owner      Node
+	Owner      Accessor
 	Property   Node
 	Identifier Node
 	Index      int
@@ -231,12 +233,22 @@ func (fe FieldExpr) GetProperty() *Node {
 	return &fe.Property
 }
 
-func (fe FieldExpr) GetOwner() *Node {
+func (fe FieldExpr) GetOwner() *Accessor {
 	return &fe.Owner
 }
 
+func (fe FieldExpr) SetIdentifier(ident Node) Accessor {
+	fe.Identifier = ident
+	return fe
+}
+
+func (fe FieldExpr) SetOwner(owner Accessor) Accessor {
+	fe.Owner = owner
+	return fe
+}
+
 type MemberExpr struct {
-	Owner      Node
+	Owner      Accessor
 	Property   Node
 	Identifier Node
 	IsList     bool
@@ -263,9 +275,20 @@ func (me MemberExpr) GetProperty() *Node {
 	return &me.Property
 }
 
-func (me MemberExpr) GetOwner() *Node {
+func (me MemberExpr) GetOwner() *Accessor {
 	return &me.Owner
 }
+
+func (me MemberExpr) SetIdentifier(ident Node) Accessor {
+	me.Identifier = ident
+	return me
+}
+
+func (me MemberExpr) SetOwner(owner Accessor) Accessor {
+	me.Owner = owner
+	return me
+}
+
 
 type Property struct {
 	Expr Node
