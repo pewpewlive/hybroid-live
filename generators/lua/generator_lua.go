@@ -157,6 +157,8 @@ func (gen *Generator) GenerateNode(node ast.Node) string {
 		return gen.selfExpr(newNode)
 	case ast.NewExpr:
 		return gen.newExpr(newNode)
+	case ast.MatchStmt:
+		return gen.matchStmt(newNode)
 	case ast.MethodCallExpr:
 		return gen.methodCallExpr(newNode)
 	}

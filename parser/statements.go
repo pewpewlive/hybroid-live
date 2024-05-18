@@ -48,6 +48,12 @@ func (p *Parser) statement() ast.Node {
 	case lexer.Return:
 		p.advance()
 		return p.returnStmt()
+	case lexer.Break:
+		p.advance()
+		return ast.BreakStmt{ Token: p.peek(-1) }
+	case lexer.Continue:
+		p.advance()
+		return ast.ContinueStmt{ Token: p.peek(-1) }
 	case lexer.Identifier, lexer.Self:
 		return p.assignmentStmt()
 	case lexer.If:
@@ -65,6 +71,9 @@ func (p *Parser) statement() ast.Node {
 	case lexer.Struct:
 		p.advance()
 		return p.structDeclarationStatement()
+	case lexer.Match:
+		p.advance()
+		return p.matchStmt()
 	}
 
 	expr := p.expression()
@@ -619,4 +628,52 @@ func (p *Parser) useStmt() ast.Node {
 	useStmt.Variable = identExpr.(ast.IdentifierExpr)
 
 	return useStmt
+}
+
+func (p *Parser) matchStmt() ast.Node {
+	matchStmt := ast.MatchStmt{}
+
+	matchStmt.ExprToMatch = p.expression()
+
+	p.consume("expected opening of the match body", lexer.LeftBrace)
+
+	caseStmt, stop := p.caseStmt()
+	for !stop {
+		matchStmt.Cases = append(matchStmt.Cases,*caseStmt)
+		caseStmt, stop = p.caseStmt()
+	}
+	matchStmt.Cases = append(matchStmt.Cases,*caseStmt)
+
+	p.consume("expected closing of the match body", lexer.RightBrace)
+
+	return matchStmt
+}
+
+func (p *Parser) caseStmt() (*ast.CaseStmt, bool) {
+	caseStmt := ast.CaseStmt{}
+
+	caseStmt.Expression = p.expression()
+	if caseStmt.Expression.GetType() == ast.NA {
+		return &caseStmt, true
+	}
+
+	p.consume("expected fat arrow after expression in case", lexer.FatArrow)
+
+	if p.check(lexer.LeftBrace) {
+		caseStmt.Body = *p.getBody()
+	} else {
+		caseStmt.Body = []ast.Node{}
+
+		expr := p.expression()
+
+		caseStmt.Body = append(caseStmt.Body, ast.ReturnStmt{
+			Args: []ast.Node{ expr },
+			Token: expr.GetToken(),
+		})
+	}
+	if p.check(lexer.RightBrace) {
+		return &caseStmt, true
+	}
+
+	return &caseStmt, false
 }

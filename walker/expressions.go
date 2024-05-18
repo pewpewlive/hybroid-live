@@ -283,7 +283,7 @@ func (w *Walker) fieldExpr(ownerr Value, node *ast.FieldExpr, scope *Scope) Valu
 		}
 		return fieldVal
 	}
-	
+
 	variable := VariableVal{Value: Invalid{}}
 	if IsOfPrimitiveType(ownerr, ast.Struct, ast.Entity, ast.Namespace) {
 		if container := w.GetContainer(ownerr); container != nil {
@@ -526,6 +526,9 @@ func (w *Walker) typeExpr(typee *ast.TypeExpr) TypeVal {
 		if foreignType, ok := w.Global.foreignTypes[typee.Name.Lexeme]; ok {
 			return foreignType.GetType()
 		}
+	}
+	if typ == ast.Invalid {
+		w.error(typee.GetToken(), "invalid type")
 	}
 
 	return TypeVal{

@@ -125,18 +125,16 @@ func (gen *Generator) unaryExpr(node ast.UnaryExpr) string {
 func (gen *Generator) fieldExpr(node ast.FieldExpr) string {
 	src := StringBuilder{}
 
+	var prop string
 	if node.Property != nil {
-		return gen.GenerateNode(node.Property)
+		prop = gen.GenerateNode(node.Property)
 	}
 
 	var expr string
 	if node.Owner == nil {
-		return gen.GenerateNode(node.Identifier)
-	} else {
-		expr = gen.GenerateNode(node.Owner)
+		expr = gen.GenerateNode(node.Identifier)
 	}
-
-	src.Append(expr, "[", fmt.Sprintf("%v", node.Index), "]")
+	src.Append(expr, "[", fmt.Sprintf("%v", node.Index), "]", prop)
 
 	return src.String()
 }
@@ -144,18 +142,19 @@ func (gen *Generator) fieldExpr(node ast.FieldExpr) string {
 func (gen *Generator) memberExpr(node ast.MemberExpr) string {
 	src := StringBuilder{}
 
+	var prop string
 	if node.Property != nil {
-		return gen.GenerateNode(node.Property)
+		prop = gen.GenerateNode(node.Property)
 	}
 
 	if node.Owner == nil {
-		return gen.GenerateNode(node.Identifier)
+		src.Append(gen.GenerateNode(node.Identifier), prop)
+		return src.String()
 	}
+	
+	expr := gen.GenerateNode(node.Identifier)
 
-	expr := gen.GenerateNode(node.Owner)
-	prop := gen.GenerateNode(node.Identifier)
-
-	src.Append(expr, "[", prop, "]")
+	src.Append("[", expr, "]", prop)
 
 	return src.String()
 }

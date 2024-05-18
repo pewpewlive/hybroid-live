@@ -19,6 +19,8 @@ const (
 	UseStatement
 	AddStatement
 	RemoveStatement
+	BreakStatement
+	ContinueStatement
 	ReturnStatement
 	MatchStatement
 
@@ -69,7 +71,7 @@ const (
 )
 
 func (pvt PrimitiveValueType) ToString() string {
-	return [...]string{"unknown", "number", "string", "bool", "fixedpoint", "fixed", "radian", "degree", "list", "map", "nil", "func", "entity", "struct", "identifier", "namespace", "invalid"}[pvt]
+	return [...]string{"unknown", "number", "text", "bool", "fixedpoint", "fixed", "radian", "degree", "list", "map", "nil", "func", "entity", "struct", "identifier", "namespace", "invalid"}[pvt]
 }
 
 type Node interface {

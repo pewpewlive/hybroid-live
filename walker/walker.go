@@ -300,8 +300,18 @@ func (w *Walker) getReturnFromNode(node *ast.Node, expectedReturn *ReturnType, s
 		converted := (*node).(ast.IfStmt)
 		return w.ifReturns(&converted, expectedReturn, &localScope)
 	case ast.RepeatStatement:
-		converted := ((*node).(ast.RepeatStmt)).Body
+		converted := (*node).(ast.RepeatStmt).Body
 		return w.bodyReturns(&converted, expectedReturn, &localScope)
+	case ast.MatchStatement:
+		converted := (*node).(ast.MatchStmt)
+		var returns *ReturnType
+		for i := range converted.Cases {
+			returns = w.bodyReturns(&converted.Cases[i].Body, expectedReturn, scope)
+			if returns == nil {
+				return nil
+			}
+		}
+		return returns
 	case ast.ReturnStatement:
 		converted := (*node).(ast.ReturnStmt)
 		return w.returnStmt(&converted, scope)
@@ -426,6 +436,9 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 		w.structDeclarationStmt(&newNode, scope)
 	case ast.Improper:
 		w.error(newNode.GetToken(), "Improper statement: parser fault")
+	case ast.MatchStmt:
+		w.matchStmt(&newNode, scope)
+		*node = newNode
 	default:
 		w.error(newNode.GetToken(), "Expected statement")
 	}

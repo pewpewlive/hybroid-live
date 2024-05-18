@@ -174,8 +174,8 @@ type MatchStmt struct {
 }
 
 type CaseStmt struct {
-	Body  []Node
-	Cases []Node
+	Expression Node
+	Body       []Node
 }
 
 func (ms MatchStmt) GetType() NodeType {
@@ -243,6 +243,38 @@ func (rs ReturnStmt) GetToken() lexer.Token {
 }
 
 func (rs ReturnStmt) GetValueType() PrimitiveValueType {
+	return 0
+}
+
+type BreakStmt struct {
+	Token lexer.Token
+}
+
+func (bs BreakStmt) GetType() NodeType {
+	return BreakStatement
+}
+
+func (bs BreakStmt) GetToken() lexer.Token {
+	return bs.Token
+}
+
+func (bs BreakStmt) GetValueType() PrimitiveValueType {
+	return 0
+}
+
+type ContinueStmt struct {
+	Token lexer.Token
+}
+
+func (cs ContinueStmt) GetType() NodeType {
+	return ContinueStatement
+}
+
+func (cs ContinueStmt) GetToken() lexer.Token {
+	return cs.Token
+}
+
+func (cs ContinueStmt) GetValueType() PrimitiveValueType {
 	return 0
 }
 

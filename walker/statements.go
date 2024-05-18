@@ -421,3 +421,28 @@ func (w *Walker) useStmt(node *ast.UseStmt, scope *Scope) {
 		w.error(node.Variable.Name, "cannot declare a value in the same scope twice")
 	}
 }
+
+func (w *Walker) matchStmt(node *ast.MatchStmt, scope *Scope) {
+	val := w.GetNodeValue(&node.ExprToMatch, scope)
+	valType := val.GetType()
+	
+	var has_default bool
+	for i := range node.Cases {
+		if node.Cases[i].Expression.GetToken().Lexeme == "_" {
+			has_default = true
+		}
+		caseValType := w.GetNodeValue(&node.Cases[i].Expression, scope).GetType()
+		if !valType.Eq(caseValType) {
+			w.error(
+				node.Cases[0].Expression.GetToken(), 
+				fmt.Sprintf("mismatched types: arm expression (%s) and match expression (%s)",
+					caseValType.ToString(), 
+					valType.ToString()))
+		}
+	}
+
+
+	if !has_default {
+		w.error(node.GetToken(), "match statement has no default arm")
+	}
+}

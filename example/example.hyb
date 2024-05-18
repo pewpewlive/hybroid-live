@@ -45,7 +45,21 @@ struct Yes {
     }
 } 
 
-fn test(param string) map<Yes> {
+fn test(param text) map<Yes> {
+    match param {
+        "a" => {
+            let a = 1
+        }
+
+        "b" => {
+            let testt = new Yes()
+        }
+
+        _ => {
+
+        }
+    }
+
     return {
         xd: new Yes(),
         sdsd: new Yes()

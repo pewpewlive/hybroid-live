@@ -282,3 +282,29 @@ func (gen *Generator) useStmt(node ast.UseStmt) string {
 
 	return src.String()
 }
+
+func (gen *Generator) matchStmt(node ast.MatchStmt) string {
+	src := StringBuilder{}
+	ifStmt := ast.IfStmt{
+		BoolExpr: ast.BinaryExpr{Left: node.ExprToMatch, Operator: lexer.Token{Type:lexer.EqualEqual, Lexeme: "=="}, Right:node.Cases[0].Expression},
+		Body: node.Cases[0].Body,
+	}
+	for i := range node.Cases {
+		if i == 0 || i == len(node.Cases)-1 {
+			continue
+		}
+		elseIfStmt := ast.IfStmt{
+			BoolExpr: ast.BinaryExpr{Left: node.ExprToMatch, Operator: lexer.Token{Type:lexer.EqualEqual, Lexeme: "=="}, Right:node.Cases[i].Expression},
+			Body: node.Cases[i].Body,
+		}
+		ifStmt.Elseifs = append(ifStmt.Elseifs, &elseIfStmt)
+	}
+
+	ifStmt.Else = &ast.IfStmt{
+		Body: node.Cases[len(node.Cases)-1].Body,
+	}
+
+	src.WriteString(gen.ifStmt(ifStmt))
+
+	return src.String()
+}

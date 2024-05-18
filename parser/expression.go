@@ -291,6 +291,9 @@ func (p *Parser) accessorExprDepth1(owner ast.Accessor, ident ast.Node, nodeType
 	if ident == nil {
 		ident = p.new()
 	}
+	if owner == nil {
+		ident = p.call(ident)
+	}
 
 	isField, isMember := p.check(lexer.Dot), p.check(lexer.LeftBracket)
 
