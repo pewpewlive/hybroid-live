@@ -58,7 +58,7 @@ func (st StructTypeVal) GetFields() map[string]VariableVal {
 	for _, v := range st.Fields {
 		fields[v.Name] = v
 	}
-	
+
 	return fields
 }
 
@@ -327,7 +327,16 @@ func (rt *ReturnType) Eq(otherRT *ReturnType) bool {
 }
 
 func (n ReturnType) GetType() TypeVal {
+	if len(n.values) == 1 {
+		return n.values[0].GetType()
+	}
+
 	return TypeVal{Type: 0}
+}
+
+func (n ReturnType) GetDefault() ast.LiteralExpr {
+	typeVal := n.GetType()
+	return typeVal.GetDefault()
 }
 
 type TypeVal struct {

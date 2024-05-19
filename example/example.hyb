@@ -46,17 +46,31 @@ struct Yes {
 fn test(param text) map<Yes> {
     let testt = new Yes()
     
-    match param {
-        "a" => {
-            let a = 1
-        }
-        "b", "c" => { 
-            testt = new Yes()// let me do that rq
-        }
-        _ => {// ong no kizzy
+    let sese, sese2 = match 3 {
+        3 => { 
+            yield 228, 1 
 
+            match 2 {
+                2 => 1
+            }
+
+            if true {
+                return 3
+            }
+
+            yield 1
         }
-    } 
+        _ => {
+            //do something 
+            1337, 2
+        }
+    }
+
+    /*
+
+
+
+    */
 
     return {
         xd: new Yes(),

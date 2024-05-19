@@ -14,11 +14,12 @@ type Walker struct {
 	Context  ast.Node
 }
 
-// type Context struct {
-// 	Node  *ast.Node
-// 	Value *Value
-// 	Ret   *ReturnType
-// } 
+//	type Context struct {
+//		Node  *ast.Node
+//		Value *Value
+//		Ret   *ReturnType
+//	}
+//
 // we may or may not need it
 // we should use it if absolutely necessary
 // or if there is no other way
@@ -364,7 +365,7 @@ func (w *Walker) bodyReturns(body *[]ast.Node, expectedReturn *ReturnType, scope
 			continue
 		}
 		if expectedReturn == nil {
-			*expectedReturn = *returns
+			expectedReturn = returns
 		}
 
 		w.validateReturnValues(node, returns.values, expectedReturn.values)
@@ -510,6 +511,9 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 	case ast.SelfExpr:
 		val = w.selfExpr(&newNode, scope)
 		*node = newNode
+	case ast.MatchExpr:
+		val = w.matchExpr(&newNode, scope) //ah yeah right yeah
+		*node = newNode                    // return type doesnt return interface, i.e method GetDefault
 	default:
 		w.error(newNode.GetToken(), "Expected expression")
 		return NilVal{}

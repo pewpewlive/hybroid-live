@@ -5,9 +5,9 @@ import (
 	"hybroid/ast"
 	"hybroid/lexer"
 	"math"
+	"math/rand"
 	"strconv"
 	"strings"
-	"math/rand"
 )
 
 // func (ge *GenError) generatorError() string {
@@ -49,7 +49,7 @@ var TabsCount int
 
 type Generator struct {
 	Errors []ast.Error
-	Src    StringBuilder	
+	Src    StringBuilder
 }
 
 func getTabs() string {
@@ -170,6 +170,8 @@ func (gen *Generator) GenerateNode(node ast.Node) string {
 		return gen.newExpr(newNode)
 	case ast.MatchStmt:
 		return gen.matchStmt(newNode)
+	case ast.MatchExpr:
+		gen.matchExpr(newNode)
 	case ast.MethodCallExpr:
 		return gen.methodCallExpr(newNode)
 	}

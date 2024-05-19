@@ -500,22 +500,22 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) FunctionVal {
 	}
 }
 
-func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) ReturnType { 
+func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) ReturnType {
 	w.matchStmt(&node.MatchStmt, true, scope) // yeah and so is itt for match statement
-	
+
 	isFine := true
 	var ret ReturnType
 	var fineRet ReturnType
 	for i := range node.MatchStmt.Cases {
 		if i == len(node.MatchStmt.Cases)-1 {
-			continue;
+			continue
 		}
-		fineRet = *w.bodyReturns(&node.MatchStmt.Cases[i].Body, nil, scope) 
-		nextRet := *w.bodyReturns(&node.MatchStmt.Cases[i+1].Body, nil, scope) 
-		
+		fineRet = *w.bodyReturns(&node.MatchStmt.Cases[i].Body, nil, scope)
+		nextRet := *w.bodyReturns(&node.MatchStmt.Cases[i+1].Body, nil, scope)
+
 		if !fineRet.Eq(&nextRet) {
 			isFine = false
-			ret = ReturnType{values:[]TypeVal{TypeVal{ Type: ast.Invalid, Name: "invalid" }}}
+			ret = ReturnType{values: []TypeVal{TypeVal{Type: ast.Invalid, Name: "invalid"}}}
 			w.error(node.MatchStmt.Cases[i+1].Expression.GetToken(), "this arm's return of the body is not the same as the above arm")
 		}
 	}
@@ -544,7 +544,7 @@ func (w *Walker) typeExpr(typee *ast.TypeExpr) TypeVal {
 		params = &paramsTemp
 	}
 
-	returns := make([]TypeVal, 0)  
+	returns := make([]TypeVal, 0)
 	for _, v := range typee.Returns { // follow
 		returns = append(returns, w.typeExpr(&v))
 	}
