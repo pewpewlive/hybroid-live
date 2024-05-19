@@ -142,6 +142,22 @@ func (afe AnonFnExpr) GetValueType() PrimitiveValueType {
 	return 0
 }
 
+type MatchExpr struct {
+	MatchStmt MatchStmt
+}
+
+func (me MatchExpr) GetType() NodeType {
+	return MatchExpression
+}
+
+func (me MatchExpr) GetToken() lexer.Token {
+	return me.MatchStmt.GetToken()
+}
+
+func (me MatchExpr) GetValueType() PrimitiveValueType {
+	return 0
+}
+
 type SelfExprType int
 
 const (

@@ -630,50 +630,63 @@ func (p *Parser) useStmt() ast.Node {
 	return useStmt
 }
 
-func (p *Parser) matchStmt() ast.Node {
+func (p *Parser) matchStmt() ast.MatchStmt {
 	matchStmt := ast.MatchStmt{}
 
 	matchStmt.ExprToMatch = p.expression()
 
 	p.consume("expected opening of the match body", lexer.LeftBrace)
 
-	caseStmt, stop := p.caseStmt()
+	caseStmts, stop := p.caseStmt()
 	for !stop {
-		matchStmt.Cases = append(matchStmt.Cases,*caseStmt)
-		caseStmt, stop = p.caseStmt()
+		matchStmt.Cases = append(matchStmt.Cases, caseStmts...)
+		caseStmts, stop = p.caseStmt()
 	}
-	matchStmt.Cases = append(matchStmt.Cases,*caseStmt)
+	matchStmt.Cases = append(matchStmt.Cases, caseStmts...)
 
 	p.consume("expected closing of the match body", lexer.RightBrace)
 
 	return matchStmt
 }
 
-func (p *Parser) caseStmt() (*ast.CaseStmt, bool) {
-	caseStmt := ast.CaseStmt{}
+func (p *Parser) caseStmt() ([]ast.CaseStmt, bool) {
+	caseStmts := []ast.CaseStmt{}
 
+	caseStmt := ast.CaseStmt{}
 	caseStmt.Expression = p.expression()
 	if caseStmt.Expression.GetType() == ast.NA {
-		return &caseStmt, true
+		return caseStmts, true
+	}
+	caseStmts = append(caseStmts, caseStmt)
+	for p.match(lexer.Comma) {
+		caseStmt.Expression = p.expression()
+		caseStmts = append(caseStmts, caseStmt)
+		if caseStmt.Expression.GetType() == ast.NA {
+			return caseStmts, true
+		}
 	}
 
 	p.consume("expected fat arrow after expression in case", lexer.FatArrow)
 
 	if p.check(lexer.LeftBrace) {
-		caseStmt.Body = *p.getBody()
+		body := *p.getBody()
+		for i := range caseStmts {
+			caseStmts[i].Body = body
+		}
 	} else {
-		caseStmt.Body = []ast.Node{}
+		expr := p.expression() 
 
-		expr := p.expression()
-
-		caseStmt.Body = append(caseStmt.Body, ast.ReturnStmt{
+		body := []ast.Node{ ast.ReturnStmt{
 			Args: []ast.Node{ expr },
 			Token: expr.GetToken(),
-		})
+		}}
+		for i := range caseStmts {
+			caseStmts[i].Body = body
+		}
 	}
 	if p.check(lexer.RightBrace) {
-		return &caseStmt, true
+		return caseStmts, true
 	}
 
-	return &caseStmt, false
+	return caseStmts, false
 }

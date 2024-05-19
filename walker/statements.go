@@ -232,9 +232,13 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 	for i := range declaration.Values {
 
 		exprValue := w.GetNodeValue(&declaration.Values[i], scope)
+		if declaration.Values[i].GetType() == ast.SelfExpression {
+			w.error(declaration.Values[i].GetToken(),"cannot assign self to a variable")
+		}
 		if call, ok := exprValue.(CallVal); ok {
 			for _, returnVal := range call.types.values {
-				values = append(values, w.GetValueFromType(returnVal))
+				val := w.GetValueFromType(returnVal)
+				values = append(values, val)
 			}
 		} else {
 			values = append(values, exprValue)
@@ -388,7 +392,7 @@ func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *S
 	w.methodDeclarationStmt(&funcDeclaration, &structTypeVal, &structScope)
 }
 
-func (w *Walker) fieldDeclarationStmt(node *ast.FieldDeclarationStmt, structType *StructTypeVal, scope *Scope) {
+func (w *Walker) fieldDeclarationStmt(node *ast.FieldDeclarationStmt, structTypeVal *StructTypeVal, scope *Scope) {
 	varDecl := ast.VariableDeclarationStmt{
 		Identifiers: node.Identifiers,
 		Types:       node.Types,
@@ -396,13 +400,33 @@ func (w *Walker) fieldDeclarationStmt(node *ast.FieldDeclarationStmt, structType
 		IsLocal:     true,
 		Token:       node.Token,
 	}
+	structType := structTypeVal.GetType()
+	if len(node.Types) != 0 {
+		for i := range node.Types {
+			explicitType := w.typeExpr(node.Types[i])
+			if explicitType.Eq(structType) {
+				w.error(node.Types[i].GetToken(), "cannot have a field with a value type of its struct")
+				return
+			}
+		}
+	}else if len(node.Types) != 0 {
+		for i := range node.Values {
+			valType := w.GetNodeValue(&node.Values[i], scope).GetType()
+			if valType.Eq(structType) {
+				w.error(node.Types[i].GetToken(), "cannot have a field with a value type of its struct")
+				return
+			}
+		}
+	}
+
+
 	variables := w.variableDeclarationStmt(&varDecl, scope)
 	node.Values = varDecl.Values
-	structType.Fields = append(structType.Fields, variables...)
+	structTypeVal.Fields = append(structTypeVal.Fields, variables...)
 }
 
-func (w *Walker) methodDeclarationStmt(node *ast.MethodDeclarationStmt, structType *StructTypeVal, scope *Scope) {
-	funcExpr := ast.FunctionDeclarationStmt{
+func (w *Walker) methodDeclarationStmt(node *ast.MethodDeclarationStmt, structType *StructTypeVal, scope *Scope) { 
+	funcExpr := ast.FunctionDeclarationStmt{ 
 		Name:    node.Name,
 		Return:  node.Return,
 		Params:  node.Params,
@@ -410,8 +434,9 @@ func (w *Walker) methodDeclarationStmt(node *ast.MethodDeclarationStmt, structTy
 		IsLocal: true,
 	}
 
-	w.functionDeclarationStmt(&funcExpr, scope, Method)
+	variable := w.functionDeclarationStmt(&funcExpr, scope, Method) 
 	node.Body = funcExpr.Body
+	structType.Methods[variable.Name] = variable 
 }
 
 func (w *Walker) useStmt(node *ast.UseStmt, scope *Scope) {
@@ -422,19 +447,23 @@ func (w *Walker) useStmt(node *ast.UseStmt, scope *Scope) {
 	}
 }
 
-func (w *Walker) matchStmt(node *ast.MatchStmt, scope *Scope) {
+func (w *Walker) matchStmt(node *ast.MatchStmt, needsDefault bool, scope *Scope) {
 	val := w.GetNodeValue(&node.ExprToMatch, scope)
 	valType := val.GetType()
 	
 	var has_default bool
 	for i := range node.Cases {
+		for j := range node.Cases[i].Body {
+			w.WalkNode(&node.Cases[i].Body[j], scope)
+		}
 		if node.Cases[i].Expression.GetToken().Lexeme == "_" {
 			has_default = true
+			continue
 		}
 		caseValType := w.GetNodeValue(&node.Cases[i].Expression, scope).GetType()
 		if !valType.Eq(caseValType) {
 			w.error(
-				node.Cases[0].Expression.GetToken(), 
+				node.Cases[i].Expression.GetToken(), 
 				fmt.Sprintf("mismatched types: arm expression (%s) and match expression (%s)",
 					caseValType.ToString(), 
 					valType.ToString()))
@@ -442,7 +471,7 @@ func (w *Walker) matchStmt(node *ast.MatchStmt, scope *Scope) {
 	}
 
 
-	if !has_default {
+	if !has_default && needsDefault {
 		w.error(node.GetToken(), "match statement has no default arm")
 	}
 }

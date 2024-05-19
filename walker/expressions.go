@@ -74,30 +74,32 @@ func (w *Walker) literalExpr(node *ast.LiteralExpr) Value {
 	}
 }
 
-func (w *Walker) identifierExpr(node ast.Node, scope *Scope) Value {
-	ident := node.(*ast.IdentifierExpr)
+func (w *Walker) identifierExpr(node *ast.Node, scope *Scope) Value {
+	valueNode := *node
+	ident := valueNode.(ast.IdentifierExpr)
 	sc := scope.ResolveVariable(ident.Name.Lexeme)
 
 	if sc != nil {
 		newValue := sc.GetVariable(sc, ident.Name.Lexeme)
 
-		/* // this creates an infinite loop
-		if sc.Type == Structure {
+		/*if sc.Type == Structure {
 			varIndex := sc.GetVariableIndex(sc, ident.Name.Lexeme)
 
-			selfExpr := ast.SelfExpr{
-				Token: node.GetToken(),
-				Type:  ast.SelfStruct,
+			selfExpr := ast.FieldExpr{
+				Identifier: ast.SelfExpr{
+					Token: valueNode.GetToken(),
+					Type:  ast.SelfStruct,
+				},
 			}
 
 			fieldExpr := ast.FieldExpr{
 				Owner: selfExpr,
-				Property: node,
-				Identifier: node,
+				Identifier: valueNode,
 				Index: varIndex,
 			} // self.thing
+			selfExpr.Property = fieldExpr
 
-			node = fieldExpr
+			*node = selfExpr
 		} /* else if sc.Type == Entity {
 			varIndex := sc.GetVariableIndex(sc, node.Name.Lexeme)
 
@@ -498,6 +500,32 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) FunctionVal {
 	}
 }
 
+func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) ReturnType { 
+	w.matchStmt(&node.MatchStmt, true, scope) // yeah and so is itt for match statement
+	
+	isFine := true
+	var ret ReturnType
+	var fineRet ReturnType
+	for i := range node.MatchStmt.Cases {
+		if i == len(node.MatchStmt.Cases)-1 {
+			continue;
+		}
+		fineRet = *w.bodyReturns(&node.MatchStmt.Cases[i].Body, nil, scope) 
+		nextRet := *w.bodyReturns(&node.MatchStmt.Cases[i+1].Body, nil, scope) 
+		
+		if !fineRet.Eq(&nextRet) {
+			isFine = false
+			ret = ReturnType{values:[]TypeVal{TypeVal{ Type: ast.Invalid, Name: "invalid" }}}
+			w.error(node.MatchStmt.Cases[i+1].Expression.GetToken(), "this arm's return of the body is not the same as the above arm")
+		}
+	}
+
+	if isFine {
+		return fineRet
+	}
+	return ret
+}
+
 func (w *Walker) typeExpr(typee *ast.TypeExpr) TypeVal {
 	if typee == nil {
 		return TypeVal{Type: ast.Invalid}
@@ -516,8 +544,8 @@ func (w *Walker) typeExpr(typee *ast.TypeExpr) TypeVal {
 		params = &paramsTemp
 	}
 
-	returns := make([]TypeVal, 0)
-	for _, v := range typee.Returns {
+	returns := make([]TypeVal, 0)  
+	for _, v := range typee.Returns { // follow
 		returns = append(returns, w.typeExpr(&v))
 	}
 

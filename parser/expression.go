@@ -99,16 +99,8 @@ func (p *Parser) fn() ast.Node {
 		fn.Body = *p.getBody()
 		return fn
 	} else {
-		return p.directive()
-	}
-}
-
-func (p *Parser) directive() ast.Node {
-	if !p.match(lexer.At) {
 		return p.multiComparison()
 	}
-
-	return p.directiveCall()
 }
 
 func (p *Parser) multiComparison() ast.Node {
@@ -289,7 +281,7 @@ func (p *Parser) accessorExprDepth2(owner ast.Accessor, ident ast.Node, nodeType
 
 func (p *Parser) accessorExprDepth1(owner ast.Accessor, ident ast.Node, nodeType ast.NodeType) ast.Node { // fieldExpr and memberExpr
 	if ident == nil {
-		ident = p.new()
+		ident = p.matchExpr()
 	}
 	if owner == nil {
 		ident = p.call(ident)
@@ -342,7 +334,7 @@ func (p *Parser) accessorExprDepth1(owner ast.Accessor, ident ast.Node, nodeType
 		}
 	} 
 	if propNodeType == ast.FieldExpression {
-		propIdent = p.new()
+		propIdent = p.directive()
 	}else {
 		propIdent = p.expression()
 		p.consume("expected closing bracket in member expression", lexer.RightBracket)
@@ -353,6 +345,23 @@ func (p *Parser) accessorExprDepth1(owner ast.Accessor, ident ast.Node, nodeType
 	
 	return expr
 } 
+
+func (p *Parser) matchExpr() ast.Node {
+	if p.match(lexer.Match) {
+		return ast.MatchExpr{MatchStmt:p.matchStmt()}
+	}
+
+	return p.directive()
+}
+
+func (p *Parser) directive() ast.Node {
+	if !p.match(lexer.At) {
+		return p.new()
+	}
+
+	return p.directiveCall()
+}
+
 
 func (p *Parser) new() ast.Node {
 	if p.match(lexer.Neww) {

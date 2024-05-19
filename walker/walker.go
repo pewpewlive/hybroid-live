@@ -14,7 +14,16 @@ type Walker struct {
 	Context  ast.Node
 }
 
+// type Context struct {
+// 	Node  *ast.Node
+// 	Value *Value
+// 	Ret   *ReturnType
+// } 
+// we may or may not need it
+// we should use it if absolutely necessary
+// or if there is no other way
 type Global struct {
+	//Ctx          Context
 	Scope        Scope
 	foreignTypes map[string]Value
 	StructTypes  map[string]*StructTypeVal
@@ -354,6 +363,9 @@ func (w *Walker) bodyReturns(body *[]ast.Node, expectedReturn *ReturnType, scope
 		if returns == nil {
 			continue
 		}
+		if expectedReturn == nil {
+			*expectedReturn = *returns
+		}
 
 		w.validateReturnValues(node, returns.values, expectedReturn.values)
 	}
@@ -434,11 +446,13 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 		*node = newNode
 	case ast.StructDeclarationStmt:
 		w.structDeclarationStmt(&newNode, scope)
+	case ast.MatchStmt:
+		w.matchStmt(&newNode, false, scope)
+		*node = newNode
+	case ast.MatchExpr:
+		w.matchExpr(&newNode, scope) // u can start making the generation of the match expr ima eat for a bit
 	case ast.Improper:
 		w.error(newNode.GetToken(), "Improper statement: parser fault")
-	case ast.MatchStmt:
-		w.matchStmt(&newNode, scope)
-		*node = newNode
 	default:
 		w.error(newNode.GetToken(), "Expected statement")
 	}
@@ -457,8 +471,7 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 		val = w.binaryExpr(&newNode, scope)
 		*node = newNode
 	case ast.IdentifierExpr:
-		val = w.identifierExpr(&newNode, scope)
-		*node = newNode
+		val = w.identifierExpr(node, scope)
 	case ast.GroupExpr:
 		val = w.groupingExpr(&newNode, scope)
 		*node = newNode

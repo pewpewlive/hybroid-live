@@ -36,6 +36,7 @@ const (
 	MapExpression
 	CallExpression
 	MethodCallExpression
+	MatchExpression
 	FieldExpression
 	MemberExpression
 	ParentExpression
@@ -71,7 +72,7 @@ const (
 )
 
 func (pvt PrimitiveValueType) ToString() string {
-	return [...]string{"unknown", "number", "text", "bool", "fixedpoint", "fixed", "radian", "degree", "list", "map", "nil", "func", "entity", "struct", "identifier", "namespace", "invalid"}[pvt]
+	return [...]string{"unknown", "number", "text", "bool", "fixed", "fixed", "fixed", "fixed", "list", "map", "nil", "func", "entity", "struct", "identifier", "namespace", "invalid"}[pvt]
 }
 
 type Node interface {

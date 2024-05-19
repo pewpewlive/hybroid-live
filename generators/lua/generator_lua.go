@@ -7,6 +7,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"math/rand"
 )
 
 // func (ge *GenError) generatorError() string {
@@ -34,11 +35,21 @@ func (sb *StringBuilder) AppendTabbed(chunks ...string) {
 	}
 }
 
+var charset = []byte("_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func (gen *Generator) RandStr(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
 var TabsCount int
 
 type Generator struct {
 	Errors []ast.Error
-	Src    StringBuilder
+	Src    StringBuilder	
 }
 
 func getTabs() string {

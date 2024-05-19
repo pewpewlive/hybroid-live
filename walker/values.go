@@ -340,6 +340,11 @@ type TypeVal struct {
 
 func (t TypeVal) Eq(otherT TypeVal) bool {
 	paramsAreSame := true
+	nameIsSame := false
+
+	if t.Name == otherT.Name {
+		nameIsSame = true
+	}
 
 	if (otherT.Params == nil || t.Params == nil) && !(otherT.Params == nil && t.Params == nil) {
 		return false
@@ -361,10 +366,10 @@ func (t TypeVal) Eq(otherT TypeVal) bool {
 	if (otherT.WrappedType == nil || t.WrappedType == nil) && !(otherT.WrappedType == nil && t.WrappedType == nil) {
 		return false
 	} else if otherT.WrappedType == nil && t.WrappedType == nil {
-		return (t.Type == otherT.Type) && paramsAreSame && (t.Returns.Eq(&otherT.Returns))
+		return (t.Type == otherT.Type) && paramsAreSame && (t.Returns.Eq(&otherT.Returns)) && nameIsSame
 	}
 
-	return (t.Type == 0 || otherT.Type == 0 || t.Type == otherT.Type) && (t.WrappedType.Eq(*otherT.WrappedType)) && paramsAreSame && (t.Returns.Eq(&otherT.Returns))
+	return (t.Type == 0 || otherT.Type == 0 || t.Type == otherT.Type) && (t.WrappedType.Eq(*otherT.WrappedType)) && paramsAreSame && (t.Returns.Eq(&otherT.Returns)) && nameIsSame
 }
 
 func (t TypeVal) ToString() string {

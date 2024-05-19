@@ -133,8 +133,11 @@ func (gen *Generator) fieldExpr(node ast.FieldExpr) string {
 	var expr string
 	if node.Owner == nil {
 		expr = gen.GenerateNode(node.Identifier)
-	}
-	src.Append(expr, "[", fmt.Sprintf("%v", node.Index), "]", prop)
+	}else {
+		src.Append("[",fmt.Sprintf("%v",node.Index), "]", prop)
+		return src.String()
+	}// Self.rect
+	src.Append(expr, prop)
 
 	return src.String()
 }
@@ -210,6 +213,36 @@ func (gen *Generator) newExpr(new ast.NewExpr) string {
 		}
 	}
 	src.WriteString(")")
+
+	return src.String()
+}
+
+func (gen *Generator) matchExpr(match ast.MatchExpr) string {
+	src := StringBuilder{}
+
+	src.Append("local hv", gen.RandStr(5), " = nil") // ""
+	node := match.MatchStmt
+
+	ifStmt := ast.IfStmt{
+		BoolExpr: ast.BinaryExpr{Left: node.ExprToMatch, Operator: lexer.Token{Type:lexer.EqualEqual, Lexeme: "=="}, Right:node.Cases[0].Expression},
+		Body: node.Cases[0].Body,
+	}
+	for i := range node.Cases {
+		if i == 0 || i == len(node.Cases)-1 {
+			continue
+		}
+		elseIfStmt := ast.IfStmt{
+			BoolExpr: ast.BinaryExpr{Left: node.ExprToMatch, Operator: lexer.Token{Type:lexer.EqualEqual, Lexeme: "=="}, Right:node.Cases[i].Expression},
+			Body: node.Cases[i].Body,
+		}
+		ifStmt.Elseifs = append(ifStmt.Elseifs, &elseIfStmt)
+	}
+
+	ifStmt.Else = &ast.IfStmt{
+		Body: node.Cases[len(node.Cases)-1].Body,
+	}
+
+	src.WriteString(gen.ifStmt(ifStmt))
 
 	return src.String()
 }

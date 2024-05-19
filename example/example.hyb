@@ -28,8 +28,6 @@ struct Rectangle {
 struct Yes {
     rect: Rectangle
 
-    a = self
-    b = self
     c = {
         wow: fn (yes Yes) {
 
@@ -46,19 +44,19 @@ struct Yes {
 } 
 
 fn test(param text) map<Yes> {
+    let testt = new Yes()
+    
     match param {
         "a" => {
             let a = 1
         }
-
-        "b" => {
-            let testt = new Yes()
+        "b", "c" => { 
+            testt = new Yes()// let me do that rq
         }
-
-        _ => {
+        _ => {// ong no kizzy
 
         }
-    }
+    } 
 
     return {
         xd: new Yes(),
@@ -66,4 +64,3 @@ fn test(param text) map<Yes> {
     }
 }
 
-test("b")["xd"].a.b.c["wow"](test("a")["sdsd"])
