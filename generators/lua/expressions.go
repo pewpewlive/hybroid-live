@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hybroid/ast"
 	"hybroid/lexer"
+	"strings"
 )
 
 // let a = {a:{b:0},b:[2,3,4]}
@@ -11,8 +12,8 @@ import (
 // Member Node
 // a.a.b
 
-func (gen *Generator) binaryExpr(node ast.BinaryExpr) string {
-	left, right := gen.GenerateNode(node.Left), gen.GenerateNode(node.Right)
+func (gen *Generator) binaryExpr(node ast.BinaryExpr, scope *GenScope) string {
+	left, right := gen.GenerateExpr(node.Left, scope), gen.GenerateExpr(node.Right, scope)
 	return fmt.Sprintf("%s %s %s", left, node.Operator.Lexeme, right)
 }
 
@@ -31,20 +32,20 @@ func (gen *Generator) literalExpr(node ast.LiteralExpr) string {
 	}
 }
 
-func (gen *Generator) identifierExpr(node ast.IdentifierExpr) string {
+func (gen *Generator) identifierExpr(node ast.IdentifierExpr, _ *GenScope) string {
 	return node.Name.Lexeme
 }
 
-func (gen *Generator) groupingExpr(node ast.GroupExpr) string {
-	return fmt.Sprintf("(%s)", gen.GenerateNode(node.Expr))
+func (gen *Generator) groupingExpr(node ast.GroupExpr, scope *GenScope) string {
+	return fmt.Sprintf("(%s)", gen.GenerateExpr(node.Expr, scope))
 }
 
-func (gen *Generator) listExpr(node ast.ListExpr) string {
+func (gen *Generator) listExpr(node ast.ListExpr, scope *GenScope) string {
 	src := StringBuilder{}
 
 	src.WriteString("{")
 	for i, expr := range node.List {
-		src.WriteString(gen.GenerateNode(expr))
+		src.WriteString(gen.GenerateExpr(expr, scope))
 
 		if i != len(node.List)-1 {
 			src.WriteString(", ")
@@ -55,13 +56,13 @@ func (gen *Generator) listExpr(node ast.ListExpr) string {
 	return src.String()
 }
 
-func (gen *Generator) callExpr(node ast.CallExpr) string {
+func (gen *Generator) callExpr(node ast.CallExpr, scope *GenScope) string {
 	src := StringBuilder{}
-	fn := gen.GenerateNode(node.Caller)
+	fn := gen.GenerateExpr(node.Caller, scope)
 
 	src.AppendTabbed(fn, "(")
 	for i, arg := range node.Args {
-		src.WriteString(gen.GenerateNode(arg))
+		src.WriteString(gen.GenerateExpr(arg, scope))
 		if i != len(node.Args)-1 {
 			src.WriteString(", ")
 		}
@@ -71,16 +72,16 @@ func (gen *Generator) callExpr(node ast.CallExpr) string {
 	return src.String()
 }
 
-func (gen *Generator) methodCallExpr(node ast.MethodCallExpr) string {
+func (gen *Generator) methodCallExpr(node ast.MethodCallExpr, scope *GenScope) string {
 	src := StringBuilder{}
 	src.AppendTabbed("Hybroid_", node.TypeName, "_", node.MethodName)
 
-	src.Append("(", gen.GenerateNode(node.Owner))
+	src.Append("(", gen.GenerateExpr(node.Owner, scope))
 	if len(node.Args) != 0 {
 		src.WriteString(", ")
 	}
 	for i, arg := range node.Args {
-		src.WriteString(gen.GenerateNode(arg))
+		src.WriteString(gen.GenerateExpr(arg, scope))
 		if i != len(node.Args)-1 {
 			src.WriteString(", ")
 		}
@@ -90,14 +91,14 @@ func (gen *Generator) methodCallExpr(node ast.MethodCallExpr) string {
 	return src.String()
 }
 
-func (gen *Generator) mapExpr(node ast.MapExpr) string {
+func (gen *Generator) mapExpr(node ast.MapExpr, scope *GenScope) string {
 	src := StringBuilder{}
 
 	src.WriteString("{\n")
 	TabsCount += 1
 	index := 0
 	for k, v := range node.Map {
-		val := gen.GenerateNode(v.Expr)
+		val := gen.GenerateExpr(v.Expr, scope)
 
 		ident := k.Lexeme
 
@@ -118,21 +119,21 @@ func (gen *Generator) mapExpr(node ast.MapExpr) string {
 	return src.String()
 }
 
-func (gen *Generator) unaryExpr(node ast.UnaryExpr) string {
-	return fmt.Sprintf("%s%s", node.Operator.Lexeme, gen.GenerateNode(node.Value))
+func (gen *Generator) unaryExpr(node ast.UnaryExpr, scope *GenScope) string {
+	return fmt.Sprintf("%s%s", node.Operator.Lexeme, gen.GenerateExpr(node.Value, scope))
 }
 
-func (gen *Generator) fieldExpr(node ast.FieldExpr) string {
+func (gen *Generator) fieldExpr(node ast.FieldExpr, scope *GenScope) string {
 	src := StringBuilder{}
 
 	var prop string
 	if node.Property != nil {
-		prop = gen.GenerateNode(node.Property)
+		prop = gen.GenerateExpr(node.Property, scope)
 	}
 
 	var expr string
 	if node.Owner == nil {
-		expr = gen.GenerateNode(node.Identifier)
+		expr = gen.GenerateExpr(node.Identifier, scope)
 	} else {
 		src.Append("[", fmt.Sprintf("%v", node.Index), "]", prop)
 		return src.String()
@@ -142,72 +143,72 @@ func (gen *Generator) fieldExpr(node ast.FieldExpr) string {
 	return src.String()
 }
 
-func (gen *Generator) memberExpr(node ast.MemberExpr) string {
+func (gen *Generator) memberExpr(node ast.MemberExpr, scope *GenScope) string {
 	src := StringBuilder{}
 
 	var prop string
 	if node.Property != nil {
-		prop = gen.GenerateNode(node.Property)
+		prop = gen.GenerateExpr(node.Property, scope)
 	}
 
 	if node.Owner == nil {
-		src.Append(gen.GenerateNode(node.Identifier), prop)
+		src.Append(gen.GenerateExpr(node.Identifier, scope), prop)
 		return src.String()
 	}
 
-	expr := gen.GenerateNode(node.Identifier)
+	expr := gen.GenerateExpr(node.Identifier, scope)
 
 	src.Append("[", expr, "]", prop)
 
 	return src.String()
 }
 
-func (gen *Generator) directiveExpr(node ast.DirectiveExpr) string {
+func (gen *Generator) directiveExpr(node ast.DirectiveExpr, scope *GenScope) string {
 	src := StringBuilder{}
 
 	if node.Identifier.Lexeme != "Environment" {
-		src.Append(node.Identifier.Lexeme, "(", gen.GenerateNode(node.Expr), ")")
+		src.Append(node.Identifier.Lexeme, "(", gen.GenerateExpr(node.Expr, scope), ")")
 	}
 
 	return src.String()
 }
 
-func (gen *Generator) anonFnExpr(fn ast.AnonFnExpr) string {
-	src := StringBuilder{}
+func (gen *Generator) anonFnExpr(fn ast.AnonFnExpr, scope *GenScope) string {
+	fnScope := NewGenScope(scope)
 
 	TabsCount += 1
 
-	src.WriteString("function (")
+	fnScope.WriteString("function (")
 	for i, param := range fn.Params {
-		src.Append(param.Name.Lexeme)
+		fnScope.Append(param.Name.Lexeme)
 		if i != len(fn.Params)-1 {
-			src.Append(", ")
+			fnScope.Append(", ")
 		}
 	}
-	src.Append(")\n")
+	fnScope.Append(")\n")
 
-	src.WriteString(gen.GenerateString(fn.Body))
+	gen.GenerateString(fn.Body, &fnScope)
 
 	TabsCount -= 1
 
-	src.AppendTabbed("end")
+	fnScope.AppendTabbed("end")
 
-	return src.String()
+	return fnScope.Src.String()
 }
 
-func (gen *Generator) selfExpr(self ast.SelfExpr) string {
+func (gen *Generator) selfExpr(self ast.SelfExpr, _ *GenScope) string {
 	if self.Type == ast.SelfStruct {
 		return "Self"
 	}
 	return ""
 }
 
-func (gen *Generator) newExpr(new ast.NewExpr) string {
+func (gen *Generator) newExpr(new ast.NewExpr, scope *GenScope) string {
 	src := StringBuilder{}
 
 	src.Append("Hybroid_", new.Type.Lexeme, "_New(")
 	for i, arg := range new.Args {
-		src.WriteString(gen.GenerateNode(arg))
+		src.WriteString(gen.GenerateExpr(arg, scope))
 		if i != len(new.Args)-1 {
 			src.WriteString(", ")
 		}
@@ -217,48 +218,54 @@ func (gen *Generator) newExpr(new ast.NewExpr) string {
 	return src.String()
 }
 
-func (gen *Generator) matchExpr(match ast.MatchExpr) string {
-	gen.Src.AppendTabbed()
+func (gen *Generator) matchExpr(match ast.MatchExpr, scope *GenScope) string {
+	scope.Src.AppendTabbed()
+
+	vars := StringBuilder{}
 
 	helperVarName := "hv" + gen.RandStr(5)
 
-	gen.Src.AppendTabbed("local ", helperVarName, "\n") // "hv" stands for hybroid variable
+	scope.Src.AppendTabbed("local ", helperVarName) // "hv" stands for hybroid variable
+
+	vars.WriteString(helperVarName)
+
+	for i := 1; i <= match.ReturnAmount; i++ {
+		helperVarName = "hv" + gen.RandStr(5)
+		scope.Src.Append(", ", helperVarName)
+		vars.Append(", ", helperVarName)
+	}
+
+	scope.Src.WriteString("\n")
+
 	node := match.MatchStmt
 
-	ifStmt := ast.IfStmt{
-		BoolExpr: ast.BinaryExpr{Left: node.ExprToMatch, Operator: lexer.Token{Type: lexer.EqualEqual, Lexeme: "=="}, Right: node.Cases[0].Expression},
-		Body:     node.Cases[0].Body,
-	}
-	for i := range node.Cases {
-		if i == 0 || i == len(node.Cases)-1 {
-			continue
+	toMatch := gen.GenerateExpr(node.ExprToMatch, scope)
+
+	for i := range node.Cases { //no wait its fine we dont actually need if scope
+		if i == 0 {
+			scope.AppendTabbed("if ", toMatch, " == ", gen.GenerateExpr(node.Cases[i].Expression, scope), "then\n")
+		} else if i == len(node.Cases)-1 {
+			scope.AppendTabbed("else\n")
+		} else {
+			scope.AppendTabbed("elseif ", toMatch, " == ", gen.GenerateExpr(node.Cases[i].Expression, scope), "then\n")
 		}
+
+		caseScope := NewGenScope(scope)
 
 		for j := range node.Cases[i].Body {
-			bodyNode := node.Cases[i].Body[j]
-
-			if bodyNode.GetType() == ast.ReturnStatement {
-
-			}
+			gen.GenerateStmt(node.Cases[i].Body[j], &caseScope)
+			caseScope.WriteString("\n")
 		}
 
-		assignStmt := ast.AssignmentStmt{
-			Values: node.Cases[i].Body,
-		}
-		assignStmt.Identifiers = append(assignStmt.Identifiers, ast.IdentifierExpr{Name: lexer.Token{Type: lexer.Identifier, Lexeme: helperVarName}})
+		str := strings.Replace(caseScope.Src.String(), "yield", fmt.Sprintf(vars.String(), " = "), -1)
+		caseScope.Src.Reset()
+		caseScope.Src.WriteString(str) //uhh yeah lets debug
 
-		elseIfStmt := ast.IfStmt{
-			BoolExpr: ast.BinaryExpr{Left: node.ExprToMatch, Operator: lexer.Token{Type: lexer.EqualEqual, Lexeme: "=="}, Right: node.Cases[i].Expression},
-		}
-		elseIfStmt.Body = append(elseIfStmt.Body, assignStmt)
-
-		ifStmt.Elseifs = append(ifStmt.Elseifs, &elseIfStmt)
+		scope.Write(caseScope.Src)
 	}
+	scope.AppendTabbed("end\n")
 
-	ifStmt.Else = &ast.IfStmt{
-		Body: node.Cases[len(node.Cases)-1].Body,
-	}
+	scope.AppendTabbed("::Leave::\n")
 
-	gen.Src.WriteString(gen.ifStmt(ifStmt))
-	return helperVarName
+	return vars.String()
 }

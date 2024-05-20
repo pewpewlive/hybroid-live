@@ -50,27 +50,12 @@ fn test(param text) map<Yes> {
         3 => { 
             yield 228, 1 
 
-            match 2 {
-                2 => 1
-            }
-
-            if true {
-                return 3
-            }
-
-            yield 1
         }
         _ => {
             //do something 
-            1337, 2
+            yield 1337, 2
         }
     }
-
-    /*
-
-
-
-    */
 
     return {
         xd: new Yes(),

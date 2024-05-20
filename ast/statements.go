@@ -246,6 +246,23 @@ func (rs ReturnStmt) GetValueType() PrimitiveValueType {
 	return 0
 }
 
+type YieldStmt struct {
+	Args  []Node
+	Token lexer.Token
+}
+
+func (rs YieldStmt) GetType() NodeType {
+	return YieldStatement
+}
+
+func (rs YieldStmt) GetToken() lexer.Token {
+	return rs.Token
+}
+
+func (rs YieldStmt) GetValueType() PrimitiveValueType {
+	return 0
+}
+
 type BreakStmt struct {
 	Token lexer.Token
 }

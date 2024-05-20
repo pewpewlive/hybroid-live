@@ -7,37 +7,38 @@ import (
 	"strings"
 )
 
-func (gen *Generator) ifStmt(node ast.IfStmt) string {
-	src := StringBuilder{}
+func (gen *Generator) ifStmt(node ast.IfStmt, scope *GenScope) {
+	ifScope := NewGenScope(scope)
 	ifTabs := getTabs()
 
 	TabsCount += 1
 
-	src.Append(ifTabs, "if ", gen.GenerateNode(node.BoolExpr), " then\n")
+	ifScope.Append(ifTabs, "if ", gen.GenerateExpr(node.BoolExpr, scope), " then\n")
 
-	src.WriteString(gen.GenerateString(node.Body))
+	gen.GenerateString(node.Body, &ifScope)
 	for _, elseif := range node.Elseifs {
-		src.Append(ifTabs, "elseif ", gen.GenerateNode(elseif.BoolExpr), " then\n")
-		src.WriteString(gen.GenerateString(elseif.Body))
+		ifScope.Append(ifTabs, "elseif ", gen.GenerateExpr(elseif.BoolExpr, scope), " then\n")
+		gen.GenerateString(elseif.Body, &ifScope)
 	}
 	if node.Else != nil {
-		src.Append(ifTabs, "else \n")
-		src.WriteString(gen.GenerateString(node.Else.Body))
+		ifScope.Append(ifTabs, "else \n")
+		gen.GenerateString(node.Else.Body, &ifScope)
 	}
 
-	src.Append(ifTabs, "end")
+	ifScope.Append(ifTabs, "end\n")
 
 	TabsCount -= 1
 
-	return src.String()
+	scope.Write(ifScope.Src)
 }
 
-func (gen *Generator) assignmentStmt(assginStmt ast.AssignmentStmt) string {
+func (gen *Generator) assignmentStmt(assginStmt ast.AssignmentStmt, scope *GenScope) {
 	src := StringBuilder{}
+
 	src.AppendTabbed()
 
 	for i, ident := range assginStmt.Identifiers {
-		ident := gen.GenerateNode(ident)
+		ident := gen.GenerateExpr(ident, scope)
 		if i == len(assginStmt.Identifiers)-1 {
 			src.Append(ident)
 		} else {
@@ -47,7 +48,7 @@ func (gen *Generator) assignmentStmt(assginStmt ast.AssignmentStmt) string {
 	src.Append(" = ")
 
 	for i, rightValue := range assginStmt.Values {
-		value := gen.GenerateNode(rightValue)
+		value := gen.GenerateExpr(rightValue, scope)
 		if i > len(assginStmt.Identifiers)-1 {
 			src.Append(value)
 			break
@@ -58,114 +59,150 @@ func (gen *Generator) assignmentStmt(assginStmt ast.AssignmentStmt) string {
 			src.Append(value, ", ")
 		}
 	}
-	return src.String()
+
+	scope.Write(src)
 }
 
-func (gen *Generator) functionDeclarationStmt(node ast.FunctionDeclarationStmt) string {
-	src := StringBuilder{}
+func (gen *Generator) functionDeclarationStmt(node ast.FunctionDeclarationStmt, scope *GenScope) {
+	fnScope := NewGenScope(scope)
 	fnTabs := getTabs()
 
 	TabsCount += 1
 
 	if node.IsLocal {
-		src.Append(fnTabs, "local ")
+		fnScope.Append(fnTabs, "local ")
 	} else {
-		src.Append(fnTabs)
+		fnScope.Append(fnTabs)
 	}
 
-	src.Append("function ", node.Name.Lexeme, "(")
+	scope.Append("function ", node.Name.Lexeme, "(")
 	for i, param := range node.Params {
-		src.Append(param.Name.Lexeme)
+		fnScope.Append(param.Name.Lexeme)
 		if i != len(node.Params)-1 {
-			src.Append(", ")
+			fnScope.Append(", ")
 		}
 	}
-	src.Append(")\n")
+	fnScope.Append(")\n")
 
-	src.WriteString(gen.GenerateString(node.Body))
+	/* scope src, node src
 
-	src.Append(fnTabs + "end")
+	function name(a)
+
+		call(1)
+
+		local hy12455
+		if a == "a" {
+			hy12455 = 1
+			goto Leave
+		}else {
+			hy12455 = 2
+			goto Leave
+		}
+		::Leave::
+		call(hy12455)
+
+
+	*/
+
+	gen.GenerateString(node.Body, &fnScope)
+
+	fnScope.Append(fnTabs + "end")
 
 	TabsCount -= 1
 
-	return src.String()
+	scope.Write(fnScope.Src)
 }
 
-func (gen *Generator) returnStmt(node ast.ReturnStmt) string {
+func (gen *Generator) returnStmt(node ast.ReturnStmt, scope *GenScope) {
 	src := StringBuilder{}
 
 	src.AppendTabbed("return ")
 	for i, expr := range node.Args {
-		val := gen.GenerateNode(expr)
+		val := gen.GenerateExpr(expr, scope)
 		src.Append(val)
 		if i != len(node.Args)-1 {
 			src.Append(", ")
 		}
 	}
-	return src.String()
+
+	scope.Write(src)
 }
 
-func (gen *Generator) repeatStmt(node ast.RepeatStmt) string {
+func (gen *Generator) yieldStmt(node ast.YieldStmt, scope *GenScope) {
 	src := StringBuilder{}
+
+	src.WriteString("yield ")
+	for i, expr := range node.Args {
+		val := gen.GenerateExpr(expr, scope)
+		src.Append(val)
+		if i != len(node.Args)-1 {
+			src.Append(", ")
+		}
+	}
+	src.Append("\n", "goto Leave")
+
+	scope.Write(src)
+}
+
+func (gen *Generator) repeatStmt(node ast.RepeatStmt, scope *GenScope) {
+	repeatScope := NewGenScope(scope)
 	repeatTabs := getTabs()
 
 	TabsCount += 1
 	tabs := getTabs()
 
-	end := gen.GenerateNode(node.Iterator)
-	start := gen.GenerateNode(node.Start)
-	skip := gen.GenerateNode(node.Skip)
+	end := gen.GenerateExpr(node.Iterator, scope)
+	start := gen.GenerateExpr(node.Start, scope)
+	skip := gen.GenerateExpr(node.Skip, scope)
 	if node.Variable.GetValueType() != 0 {
-		variable := gen.GenerateNode(node.Variable)
-		src.Append(repeatTabs, "for ", variable, " = ", start, ", ", end, ", ", skip, " do\n")
+		variable := gen.GenerateExpr(node.Variable, &repeatScope)
+		repeatScope.Append(repeatTabs, "for ", variable, " = ", start, ", ", end, ", ", skip, " do\n")
 	} else {
-		src.Append(repeatTabs, "for _ = ", start, ", ", end, ", ", skip, " do\n")
+		repeatScope.Append(repeatTabs, "for _ = ", start, ", ", end, ", ", skip, " do\n")
 	}
 
 	for _, stmt := range node.Body {
-		value := gen.GenerateNode(stmt)
-		src.Append(tabs, value, "\n")
+		value := gen.GenerateExpr(stmt, &repeatScope)
+		repeatScope.Append(tabs, value, "\n")
 	}
 
-	src.Append(repeatTabs, "end")
+	repeatScope.Append(repeatTabs, "end")
 
 	TabsCount -= 1
 
-	return src.String()
+	repeatScope.Write(repeatScope.Src)
 }
 
-func (gen *Generator) tickStmt(node ast.TickStmt) string {
-	src := StringBuilder{}
+func (gen *Generator) tickStmt(node ast.TickStmt, scope *GenScope) {
 	tickTabs := getTabs()
+
+	tickScope := GenScope{Src: StringBuilder{}, Parent: scope}
 
 	TabsCount += 1
 
 	if node.Variable.GetValueType() != 0 {
-		variable := gen.GenerateNode(node.Variable)
-		src.Append(tickTabs, "local ", variable, " = 0\n")
-		src.Append(tickTabs, "pewpew.add_update_callback(function()\n")
-		src.AppendTabbed(variable, " = ", variable, " + 1\n")
+		variable := gen.GenerateExpr(node.Variable, scope)
+		tickScope.Src.Append(tickTabs, "local ", variable, " = 0\n")
+		tickScope.Src.Append(tickTabs, "pewpew.add_update_callback(function()\n")
+		tickScope.Src.AppendTabbed(variable, " = ", variable, " + 1\n")
 	} else {
-		src.Append(tickTabs, "pewpew.add_update_callback(function()\n")
+		tickScope.Src.Append(tickTabs, "pewpew.add_update_callback(function()\n")
 	}
 
-	for _, stmt := range node.Body {
-		value := gen.GenerateNode(stmt)
-		src.AppendTabbed(value, "\n")
-	}
+	gen.GenerateString(node.Body, &tickScope)
 
-	src.Append(tickTabs, "end)")
+	tickScope.Src.Append(tickTabs, "end)")
 
 	TabsCount -= 1
 
-	return src.String()
+	scope.Write(tickScope.Src)
 }
 
-func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclarationStmt) string {
+func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclarationStmt, scope *GenScope) {
 	var values []string
 
 	for _, expr := range declaration.Values {
-		values = append(values, gen.GenerateNode(expr))
+		values = append(values, gen.GenerateExpr(expr, scope))
 	}
 
 	isLocal := declaration.Token.Type == lexer.Let
@@ -196,106 +233,105 @@ func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclaratio
 
 	src.Append(src2.String(), "\n")
 
-	return src.String()
+	scope.Write(src)
 }
 
-func (gen *Generator) structDeclarationStmt(node ast.StructDeclarationStmt) string {
-	src := StringBuilder{}
+func (gen *Generator) structDeclarationStmt(node ast.StructDeclarationStmt, scope *GenScope) {
+	structScope := NewGenScope(scope)
 
 	for _, nodebody := range *node.Methods {
-		src.WriteString(gen.methodDeclarationStmt(nodebody, node))
+		gen.methodDeclarationStmt(nodebody, node, &structScope)
 	}
 
-	src.WriteString(gen.constructorDeclarationStmt(*node.Constructor, node))
+	gen.constructorDeclarationStmt(*node.Constructor, node, &structScope)
 
-	return src.String()
+	scope.Write(structScope.Src)
 }
 
-func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, Struct ast.StructDeclarationStmt) string {
+func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, Struct ast.StructDeclarationStmt, scope *GenScope) {
 	src := StringBuilder{}
 
+	constructorScope := NewGenScope(scope)
+
 	if Struct.IsLocal {
-		src.WriteString("local ")
+		constructorScope.WriteString("local ")
 	}
 
-	src.Append("function Hybroid_", Struct.Name.Lexeme, "_New(")
+	constructorScope.Append("function Hybroid_", Struct.Name.Lexeme, "_New(")
 
 	TabsCount += 1
 
 	for i, param := range node.Params {
-		src.Append(param.Name.Lexeme)
+		constructorScope.Append(param.Name.Lexeme)
 		if i != len(node.Params)-1 {
-			src.Append(", ")
+			constructorScope.Append(", ")
 		}
 	}
-	src.Append(")\n")
+	constructorScope.Append(")\n")
 
 	src.AppendTabbed("local Self = {")
 	for i, field := range Struct.Fields {
 		for j, value := range field.Values {
 			if j == len(field.Values)-1 && i == len(Struct.Fields)-1 {
-				src.WriteString(gen.GenerateNode(value))
+				src.WriteString(gen.GenerateExpr(value, &constructorScope))
 			} else {
-				src.Append(gen.GenerateNode(value), ",")
+				src.Append(gen.GenerateExpr(value, &constructorScope), ",")
 			}
 		}
 	}
 	src.WriteString("}\n")
+	constructorScope.Write(src)
 
-	src.WriteString(gen.GenerateString(*node.Body))
-	src.AppendTabbed("return Self\n")
+	gen.GenerateString(*node.Body, &constructorScope)
+	constructorScope.AppendTabbed("return Self\n")
 	TabsCount -= 1
-	src.AppendTabbed("end\n")
-	return src.String()
+	constructorScope.AppendTabbed("end\n")
+
+	scope.Write(constructorScope.Src)
 }
 
-func (gen *Generator) methodDeclarationStmt(node ast.MethodDeclarationStmt, Struct ast.StructDeclarationStmt) string {
-	src := StringBuilder{}
+func (gen *Generator) methodDeclarationStmt(node ast.MethodDeclarationStmt, Struct ast.StructDeclarationStmt, scope *GenScope) {
+	methodScope := NewGenScope(scope)
 
 	if Struct.IsLocal {
-		src.WriteString("local ")
+		methodScope.WriteString("local ")
 	}
 
-	src.Append("function Hybroid_", Struct.Name.Lexeme, "_", node.Name.Lexeme, "(Self")
+	methodScope.Append("function Hybroid_", Struct.Name.Lexeme, "_", node.Name.Lexeme, "(Self")
 	for _, param := range node.Params {
-		src.WriteString(", ")
-		src.Append(param.Name.Lexeme)
+		methodScope.WriteString(", ")
+		methodScope.Append(param.Name.Lexeme)
 	}
-	src.Append(")\n")
+	methodScope.Append(")\n")
 
 	TabsCount += 1
 
-	src.Append(gen.GenerateString(node.Body))
+	gen.GenerateString(node.Body, &methodScope) // its constructor
 
 	TabsCount -= 1
 
-	src.AppendTabbed("end\n")
+	methodScope.AppendTabbed("end\n")
 
-	return src.String()
+	scope.Write(methodScope.Src)
 }
 
-func (gen *Generator) useStmt(node ast.UseStmt) string {
-	src := StringBuilder{}
-
+func (gen *Generator) useStmt(node ast.UseStmt, scope *GenScope) {
 	fileName := strings.Replace(node.File.Literal, ".hyb", ".lua", 1)
-	src.Append("local ", node.Variable.Name.Lexeme, " = require(\"/dynamic/", fileName, "\")")
-
-	return src.String()
+	scope.Append("local ", node.Variable.Name.Lexeme, " = require(\"/dynamic/", fileName, "\")")
 }
 
-func (gen *Generator) matchStmt(node ast.MatchStmt) string {
-	src := StringBuilder{}
+func (gen *Generator) matchStmt(node ast.MatchStmt, scope *GenScope) {
 	ifStmt := ast.IfStmt{
-		BoolExpr: ast.BinaryExpr{Left: node.ExprToMatch, Operator: lexer.Token{Type:lexer.EqualEqual, Lexeme: "=="}, Right:node.Cases[0].Expression},
-		Body: node.Cases[0].Body,
+		BoolExpr: ast.BinaryExpr{Left: node.ExprToMatch, Operator: lexer.Token{Type: lexer.EqualEqual, Lexeme: "=="}, Right: node.Cases[0].Expression},
+		Body:     node.Cases[0].Body,
 	}
 	for i := range node.Cases {
 		if i == 0 || i == len(node.Cases)-1 {
 			continue
 		}
 		elseIfStmt := ast.IfStmt{
-			BoolExpr: ast.BinaryExpr{Left: node.ExprToMatch, Operator: lexer.Token{Type:lexer.EqualEqual, Lexeme: "=="}, Right:node.Cases[i].Expression},
-			Body: node.Cases[i].Body,
+			BoolExpr: ast.BinaryExpr{Left: node.ExprToMatch, Operator: lexer.Token{Type: lexer.EqualEqual, Lexeme: "=="}, Right: node.Cases[i].Expression},
+			Body:     node.Cases[i].Body,
 		}
 		ifStmt.Elseifs = append(ifStmt.Elseifs, &elseIfStmt)
 	}
@@ -304,7 +340,5 @@ func (gen *Generator) matchStmt(node ast.MatchStmt) string {
 		Body: node.Cases[len(node.Cases)-1].Body,
 	}
 
-	src.WriteString(gen.ifStmt(ifStmt))
-
-	return src.String()
+	gen.ifStmt(ifStmt, scope)
 }

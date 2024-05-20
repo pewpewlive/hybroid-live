@@ -22,6 +22,7 @@ const (
 	BreakStatement
 	ContinueStatement
 	ReturnStatement
+	YieldStatement
 	MatchStatement
 
 	Progr

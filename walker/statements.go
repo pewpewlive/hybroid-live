@@ -8,7 +8,7 @@ import (
 )
 
 func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
-	ifScope := NewScope(scope.Global, scope, scope.Type)
+	ifScope := NewScope(scope.Global, scope)
 	boolExpr := w.GetNodeValue(&node.BoolExpr, scope)
 	if boolExpr.GetType().Type != ast.Bool {
 		w.error(node.BoolExpr.GetToken(), "if condition is not a comparison")
@@ -29,7 +29,7 @@ func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
 		if boolExpr.GetType().Type != ast.Bool {
 			w.error(elseif.BoolExpr.GetToken(), "if condition is not a comparison")
 		}
-		ifScope := NewScope(scope.Global, scope, scope.Type)
+		ifScope := NewScope(scope.Global, scope)
 		for _, stmt := range elseif.Body {
 			w.WalkNode(&stmt, &ifScope)
 			// if stmt.GetType() == ast.ReturnStatement {
@@ -42,7 +42,7 @@ func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
 	}
 
 	if node.Else != nil {
-		ifScope := NewScope(scope.Global, scope, scope.Type)
+		ifScope := NewScope(scope.Global, scope)
 		for _, stmt := range node.Else.Body {
 			w.WalkNode(&stmt, &ifScope)
 		}
@@ -96,7 +96,7 @@ func (w *Walker) assignmentStmt(assignStmt *ast.AssignmentStmt, scope *Scope) {
 }
 
 func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scope *Scope, procType ProcedureType) VariableVal {
-	fnScope := NewScope(scope.Global, scope, ReturnAllowing)
+	fnScope := NewScopeWithAttrs(scope.Global, scope, ReturnAllowing)
 
 	params := make([]TypeVal, 0)
 	for i, param := range node.Params {
@@ -141,7 +141,7 @@ func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scop
 
 func (w *Walker) returnStmt(node *ast.ReturnStmt, scope *Scope) *ReturnType {
 	var ret ReturnType
-	if scope.Type != ReturnAllowing {
+	if !scope.Is(ReturnAllowing) { // Structure ReturnAllowing false
 		w.error(node.GetToken(), "can't have a return statement outside of a function or method")
 	}
 	for i := range node.Args {
@@ -159,8 +159,32 @@ func (w *Walker) returnStmt(node *ast.ReturnStmt, scope *Scope) *ReturnType {
 	return &ret
 }
 
+func (w *Walker) yieldStmt(node *ast.YieldStmt, scope *Scope) *ReturnType {
+	if !scope.Is(YieldAllowing) {
+		w.error(node.GetToken(), "cannot use yield outside of ternary operators") // wut
+	}
+
+	var ret ReturnType
+
+	for i := range node.Args {
+		val := w.GetNodeValue(&node.Args[i], scope)
+		valType := val.GetType()
+		if valType.Type == ast.Func {
+			ret.values = append(ret.values, valType.Returns.values...)
+		} else {
+			ret.values = append(ret.values, valType)
+		}
+	}
+
+	if len(ret.values) == 0 {
+		ret.values = append(ret.values, TypeVal{Type: ast.Nil})
+	}
+
+	return &ret
+}
+
 func (w *Walker) repeatStmt(node *ast.RepeatStmt, scope *Scope) {
-	repeatScope := NewScope(scope.Global, scope, scope.Type)
+	repeatScope := NewScope(scope.Global, scope)
 
 	end := w.GetNodeValue(&node.Iterator, scope)
 	endType := end.GetType()
@@ -205,7 +229,7 @@ func (w *Walker) repeatStmt(node *ast.RepeatStmt, scope *Scope) {
 }
 
 func (w *Walker) tickStmt(node *ast.TickStmt, scope *Scope) {
-	tickScope := NewScope(scope.Global, scope, scope.Type)
+	tickScope := NewScope(scope.Global, scope)
 
 	if node.Variable.GetValueType() != 0 {
 		tickScope.DeclareVariable(VariableVal{Name: node.Variable.Name.Lexeme})
@@ -224,6 +248,13 @@ func GetValue(values []Value, index int) Value {
 	}
 }
 
+func (w *Walker) GetReturnVals(list *[]Value, ret ReturnType) {
+	for _, returnVal := range ret.values {
+		val := w.GetValueFromType(returnVal)
+		*list = append(*list, val)
+	}
+}
+
 func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStmt, scope *Scope) []VariableVal {
 	declaredVariables := []VariableVal{}
 
@@ -233,13 +264,12 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 
 		exprValue := w.GetNodeValue(&declaration.Values[i], scope)
 		if declaration.Values[i].GetType() == ast.SelfExpression {
-			w.error(declaration.Values[i].GetToken(),"cannot assign self to a variable")
+			w.error(declaration.Values[i].GetToken(), "cannot assign self to a variable")
 		}
 		if call, ok := exprValue.(CallVal); ok {
-			for _, returnVal := range call.types.values {
-				val := w.GetValueFromType(returnVal)
-				values = append(values, val)
-			}
+			w.GetReturnVals(&values, call.types)
+		} else if ret, ok := exprValue.(ReturnType); ok {
+			w.GetReturnVals(&values, ret)
 		} else {
 			values = append(values, exprValue)
 		}
@@ -328,7 +358,7 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 }
 
 func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *Scope) {
-	structScope := NewScope(scope.Global, scope, Structure)
+	structScope := NewScopeWithAttrs(scope.Global, scope, Structure)
 
 	structTypeVal := StructTypeVal{
 		Name:         node.Name,
@@ -409,7 +439,7 @@ func (w *Walker) fieldDeclarationStmt(node *ast.FieldDeclarationStmt, structType
 				return
 			}
 		}
-	}else if len(node.Types) != 0 {
+	} else if len(node.Types) != 0 {
 		for i := range node.Values {
 			valType := w.GetNodeValue(&node.Values[i], scope).GetType()
 			if valType.Eq(structType) {
@@ -419,14 +449,13 @@ func (w *Walker) fieldDeclarationStmt(node *ast.FieldDeclarationStmt, structType
 		}
 	}
 
-
 	variables := w.variableDeclarationStmt(&varDecl, scope)
 	node.Values = varDecl.Values
 	structTypeVal.Fields = append(structTypeVal.Fields, variables...)
 }
 
-func (w *Walker) methodDeclarationStmt(node *ast.MethodDeclarationStmt, structType *StructTypeVal, scope *Scope) { 
-	funcExpr := ast.FunctionDeclarationStmt{ 
+func (w *Walker) methodDeclarationStmt(node *ast.MethodDeclarationStmt, structType *StructTypeVal, scope *Scope) {
+	funcExpr := ast.FunctionDeclarationStmt{
 		Name:    node.Name,
 		Return:  node.Return,
 		Params:  node.Params,
@@ -434,9 +463,9 @@ func (w *Walker) methodDeclarationStmt(node *ast.MethodDeclarationStmt, structTy
 		IsLocal: true,
 	}
 
-	variable := w.functionDeclarationStmt(&funcExpr, scope, Method) 
+	variable := w.functionDeclarationStmt(&funcExpr, scope, Method)
 	node.Body = funcExpr.Body
-	structType.Methods[variable.Name] = variable 
+	structType.Methods[variable.Name] = variable
 }
 
 func (w *Walker) useStmt(node *ast.UseStmt, scope *Scope) {
@@ -450,11 +479,13 @@ func (w *Walker) useStmt(node *ast.UseStmt, scope *Scope) {
 func (w *Walker) matchStmt(node *ast.MatchStmt, needsDefault bool, scope *Scope) {
 	val := w.GetNodeValue(&node.ExprToMatch, scope)
 	valType := val.GetType()
-	
+
+	matchScope := NewScope(scope.Global, scope)
+
 	var has_default bool
 	for i := range node.Cases {
 		for j := range node.Cases[i].Body {
-			w.WalkNode(&node.Cases[i].Body[j], scope)
+			w.WalkNode(&node.Cases[i].Body[j], &matchScope)
 		}
 		if node.Cases[i].Expression.GetToken().Lexeme == "_" {
 			has_default = true
@@ -463,13 +494,12 @@ func (w *Walker) matchStmt(node *ast.MatchStmt, needsDefault bool, scope *Scope)
 		caseValType := w.GetNodeValue(&node.Cases[i].Expression, scope).GetType()
 		if !valType.Eq(caseValType) {
 			w.error(
-				node.Cases[i].Expression.GetToken(), 
+				node.Cases[i].Expression.GetToken(),
 				fmt.Sprintf("mismatched types: arm expression (%s) and match expression (%s)",
-					caseValType.ToString(), 
+					caseValType.ToString(),
 					valType.ToString()))
 		}
 	}
-
 
 	if !has_default && needsDefault {
 		w.error(node.GetToken(), "match statement has no default arm")

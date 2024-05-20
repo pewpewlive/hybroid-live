@@ -48,12 +48,15 @@ func (p *Parser) statement() ast.Node {
 	case lexer.Return:
 		p.advance()
 		return p.returnStmt()
+	case lexer.Yield:
+		p.advance()
+		return p.yieldStmt()
 	case lexer.Break:
 		p.advance()
-		return ast.BreakStmt{ Token: p.peek(-1) }
+		return ast.BreakStmt{Token: p.peek(-1)}
 	case lexer.Continue:
 		p.advance()
-		return ast.ContinueStmt{ Token: p.peek(-1) }
+		return ast.ContinueStmt{Token: p.peek(-1)}
 	case lexer.Identifier, lexer.Self:
 		return p.assignmentStmt()
 	case lexer.If:
@@ -370,6 +373,33 @@ func (p *Parser) returnStmt() ast.Node {
 	return returnStmt
 }
 
+func (p *Parser) yieldStmt() ast.Node {
+	yieldStmt := ast.YieldStmt{
+		Token: p.peek(-1),
+	}
+
+	if p.peek().Type == lexer.RightBrace {
+		return yieldStmt
+	}
+	args := []ast.Node{}
+	expr := p.expression()
+	args = append(args, expr)
+	for p.match(lexer.Comma) {
+		expr = p.expression()
+		if expr.GetType() == 0 {
+			p.error(p.peek(), "expected expression")
+		}
+		args = append(args, expr)
+	}
+	yieldStmt.Args = args
+
+	if !p.check(lexer.RightBrace) {
+		p.warn(p.peek(), "unreachable code detected")
+	}
+
+	return yieldStmt
+}
+
 func (p *Parser) functionDeclarationStmt() ast.Node {
 	fnDec := ast.FunctionDeclarationStmt{}
 
@@ -674,10 +704,10 @@ func (p *Parser) caseStmt() ([]ast.CaseStmt, bool) {
 			caseStmts[i].Body = body
 		}
 	} else {
-		expr := p.expression() 
+		expr := p.expression()
 
-		body := []ast.Node{ ast.ReturnStmt{
-			Args: []ast.Node{ expr },
+		body := []ast.Node{ast.ReturnStmt{
+			Args:  []ast.Node{expr},
 			Token: expr.GetToken(),
 		}}
 		for i := range caseStmts {

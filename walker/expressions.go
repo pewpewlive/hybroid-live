@@ -82,24 +82,24 @@ func (w *Walker) identifierExpr(node *ast.Node, scope *Scope) Value {
 	if sc != nil {
 		newValue := sc.GetVariable(sc, ident.Name.Lexeme)
 
-		/*if sc.Type == Structure {
-			varIndex := sc.GetVariableIndex(sc, ident.Name.Lexeme)
+		if sc.Is(Structure) /* && scope.Global.Ctx.Node.GetType() != ast.FieldExpression */ {
+			//varIndex := sc.GetVariableIndex(sc, ident.Name.Lexeme)
+			/*
+				selfExpr := ast.FieldExpr{
+					Identifier: ast.SelfExpr{
+						Token: valueNode.GetToken(),
+						Type:  ast.SelfStruct,
+					},
+				}
 
-			selfExpr := ast.FieldExpr{
-				Identifier: ast.SelfExpr{
-					Token: valueNode.GetToken(),
-					Type:  ast.SelfStruct,
-				},
-			}
+				fieldExpr := ast.FieldExpr{
+					Owner:      selfExpr,
+					Identifier: valueNode,
+					Index:      varIndex,
+				} // self.thing
+				selfExpr.Property = fieldExpr
 
-			fieldExpr := ast.FieldExpr{
-				Owner: selfExpr,
-				Identifier: valueNode,
-				Index: varIndex,
-			} // self.thing
-			selfExpr.Property = fieldExpr
-
-			*node = selfExpr
+				*node = selfExpr*/
 		} /* else if sc.Type == Entity {
 			varIndex := sc.GetVariableIndex(sc, node.Name.Lexeme)
 
@@ -267,7 +267,7 @@ func (w *Walker) GetContainer(val Value) Container {
 	return nil
 }
 
-func (w *Walker) fieldExpr(ownerr Value, node *ast.FieldExpr, scope *Scope) Value {
+func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 	if node.Owner == nil {
 		val := w.GetNodeValue(&node.Identifier, scope)
 
@@ -280,12 +280,12 @@ func (w *Walker) fieldExpr(ownerr Value, node *ast.FieldExpr, scope *Scope) Valu
 		if node.Property == nil {
 			return val
 		} else {
-			owner = val
+			scope.Global.Ctx.Value = val
 			fieldVal = w.GetNodeValue(&node.Property, scope)
 		}
 		return fieldVal
 	}
-
+	ownerr := scope.Global.Ctx.Value
 	variable := VariableVal{Value: Invalid{}}
 	if IsOfPrimitiveType(ownerr, ast.Struct, ast.Entity, ast.Namespace) {
 		if container := w.GetContainer(ownerr); container != nil {
@@ -303,7 +303,7 @@ func (w *Walker) fieldExpr(ownerr Value, node *ast.FieldExpr, scope *Scope) Valu
 	}
 
 	if node.Property != nil {
-		owner = variable.Value
+		scope.Global.Ctx.Value = variable.Value
 		val := w.GetNodeValue(&node.Property, scope)
 		return val
 	}
@@ -334,7 +334,7 @@ func (w *Walker) unaryExpr(node *ast.UnaryExpr, scope *Scope) Value {
 	return w.GetNodeValue(&node.Value, scope)
 }
 
-func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Value {
+func (w *Walker) memberExpr(node *ast.MemberExpr, scope *Scope) Value {
 	if node.Owner == nil {
 		val := w.GetNodeValue(&node.Identifier, scope)
 		valType := val.GetType().Type
@@ -348,7 +348,7 @@ func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Val
 		if node.Property == nil {
 			return val
 		} else {
-			owner = val
+			scope.Global.Ctx.Value = val
 			memberVal = w.GetNodeValue(&node.Property, scope)
 		}
 		return memberVal
@@ -356,6 +356,7 @@ func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Val
 
 	val := w.GetNodeValue(&node.Identifier, scope)
 	valType := val.GetType()
+	array := scope.Global.Ctx.Value
 	arrayType := array.GetType()
 
 	if arrayType.Type == ast.Map {
@@ -385,7 +386,7 @@ func (w *Walker) memberExpr(array Value, node *ast.MemberExpr, scope *Scope) Val
 	wrappedVal := w.GetValueFromType(wrappedValType)
 
 	if node.Property != nil {
-		owner = wrappedVal
+		scope.Global.Ctx.Value = wrappedVal
 		return w.GetNodeValue(&node.Property, scope)
 	}
 
@@ -444,7 +445,7 @@ func (w *Walker) selfExpr(self *ast.SelfExpr, scope *Scope) Value {
 		return Invalid{}
 	}
 
-	if sc.Type == Structure {
+	if sc.Is(Structure) {
 		(*self).Type = ast.SelfStruct
 		structTypeVal := sc.GetStructType(sc, sc.WrappedType.Name)
 		return StructVal{Type: structTypeVal}
@@ -467,7 +468,7 @@ func (w *Walker) newExpr(new *ast.NewExpr, scope *Scope) StructVal {
 }
 
 func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) FunctionVal {
-	fnScope := NewScope(scope.Global, scope, ReturnAllowing)
+	fnScope := NewScopeWithAttrs(scope.Global, scope, ReturnAllowing)
 
 	params := make([]TypeVal, 0)
 	for i, param := range fn.Params {
@@ -501,29 +502,33 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) FunctionVal {
 }
 
 func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) ReturnType {
-	w.matchStmt(&node.MatchStmt, true, scope) // yeah and so is itt for match statement
+	w.matchStmt(&node.MatchStmt, true, scope)
+
+	matchScope := NewScope(scope.Global, scope)
+	matchScope.Attributes.AddAttribute(YieldAllowing)
 
 	isFine := true
-	var ret ReturnType
-	var fineRet ReturnType
+	var ret *ReturnType
+	var fineRet *ReturnType
 	for i := range node.MatchStmt.Cases {
 		if i == len(node.MatchStmt.Cases)-1 {
 			continue
 		}
-		fineRet = *w.bodyReturns(&node.MatchStmt.Cases[i].Body, nil, scope)
-		nextRet := *w.bodyReturns(&node.MatchStmt.Cases[i+1].Body, nil, scope)
+		fineRet = w.bodyReturns(&node.MatchStmt.Cases[i].Body, nil, &matchScope)
+		nextRet := w.bodyReturns(&node.MatchStmt.Cases[i+1].Body, nil, &matchScope)
 
-		if !fineRet.Eq(&nextRet) {
+		if fineRet == nil || nextRet == nil || !fineRet.Eq(nextRet) {
 			isFine = false
-			ret = ReturnType{values: []TypeVal{TypeVal{Type: ast.Invalid, Name: "invalid"}}}
+			ret = &ReturnType{values: []TypeVal{TypeVal{Type: ast.Invalid, Name: "invalid"}}}
 			w.error(node.MatchStmt.Cases[i+1].Expression.GetToken(), "this arm's return of the body is not the same as the above arm")
 		}
 	}
 
 	if isFine {
-		return fineRet
+		return *fineRet
 	}
-	return ret
+
+	return *ret
 }
 
 func (w *Walker) typeExpr(typee *ast.TypeExpr) TypeVal {

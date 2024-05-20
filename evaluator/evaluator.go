@@ -103,7 +103,7 @@ func (e *Evaluator) Action() error {
 
 	fmt.Println("Generating the lua code...")
 
-	e.gen.Src.Grow(len(sourceFile))
+	e.gen.Scope.Src.Grow(len(sourceFile))
 	e.gen.Generate(prog)
 	if len(e.gen.Errors) != 0 {
 		colorstring.Println("[red]Failed generating:")

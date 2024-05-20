@@ -51,7 +51,7 @@ func Build(ctx *cli.Context, files ...FileInformation) error {
 		}
 		os.WriteFile(cwd+outputDir+"/manifest.json", manifest, 0644)
 
-		eval := evaluator.New(lua.Generator{})
+		eval := evaluator.New(lua.Generator{Scope: lua.GenScope{Src: lua.StringBuilder{}}})
 		var evalErr error = nil
 		if len(files) == 0 {
 			eval.AssignFile(cwd+entryPoint, cwd+outputDir+"/"+strings.Replace(entryPoint, ".hyb", ".lua", -1))

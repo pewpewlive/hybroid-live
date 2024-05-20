@@ -47,9 +47,37 @@ func (gen *Generator) RandStr(n int) string {
 
 var TabsCount int
 
-type Generator struct {
-	Errors []ast.Error
+type GenScope struct {
+	Parent *GenScope
 	Src    StringBuilder
+}
+
+func NewGenScope(scope *GenScope) GenScope {
+	return GenScope{
+		Parent: scope.Parent,
+		Src:    StringBuilder{},
+	}
+}
+
+func (gs *GenScope) Write(src StringBuilder) {
+	gs.Src.WriteString(src.String())
+}
+
+func (gs *GenScope) WriteString(src string) {
+	gs.Src.WriteString(src)
+}
+
+func (gs *GenScope) Append(strs ...string) {
+	gs.Src.Append(strs...)
+}
+
+func (gs *GenScope) AppendTabbed(strs ...string) {
+	gs.Src.AppendTabbed(strs...)
+}
+
+type Generator struct {
+	Scope  GenScope
+	Errors []ast.Error
 }
 
 func getTabs() string {
@@ -66,28 +94,21 @@ func (gen Generator) GetErrors() []ast.Error {
 }
 
 func (gen *Generator) GetSrc() string {
-	return gen.Src.String()
+	return gen.Scope.Src.String()
 }
 
 func (gen *Generator) Generate(program []ast.Node) {
-	generatedStr := ""
-	//gen.Src.WriteString("local M = {}\n")
 	for _, node := range program {
-		generatedStr = gen.GenerateNode(node)
-		gen.Src.Append(generatedStr, "\n")
+		gen.GenerateStmt(node, &gen.Scope)
+		gen.Scope.WriteString("\n")
 	}
-	//gen.Src.WriteString("return M")
 }
 
-func (gen *Generator) GenerateString(program []ast.Node) string {
-	src := StringBuilder{}
-	generatedStr := ""
-
+func (gen *Generator) GenerateString(program []ast.Node, scope *GenScope) {
 	for _, node := range program {
-		generatedStr = gen.GenerateNode(node)
-		src.Append(generatedStr, "\n")
+		gen.GenerateStmt(node, scope)
+		scope.Src.WriteString("\n")
 	}
-	return src.String()
 }
 
 func fixedToFx(floatstr string) string {
@@ -120,60 +141,77 @@ func degToRad(floatstr string) string {
 	return fixedToFx(fmt.Sprintf("%v", radians))
 }
 
-func (gen *Generator) GenerateNode(node ast.Node) string {
+func (gen *Generator) GenerateStmt(node ast.Node, scope *GenScope) {
 	switch newNode := node.(type) {
-	case ast.VariableDeclarationStmt:
-		return gen.variableDeclarationStmt(newNode)
-	case ast.StructDeclarationStmt:
-		return gen.structDeclarationStmt(newNode)
-	case ast.IfStmt:
-		return gen.ifStmt(newNode)
 	case ast.AssignmentStmt:
-		return gen.assignmentStmt(newNode)
-	case ast.FunctionDeclarationStmt:
-		return gen.functionDeclarationStmt(newNode)
+		gen.assignmentStmt(newNode, scope)
+	case ast.BreakStmt:
+		//gen.breakStmt(newNode, scope)
 	case ast.ReturnStmt:
-		return gen.returnStmt(newNode)
+		gen.returnStmt(newNode, scope)
+	case ast.YieldStmt:
+		gen.yieldStmt(newNode, scope)
+	case ast.ContinueStmt:
+		//gen.continueStmt(newNode, scope)
+	case ast.MatchStmt:
+		gen.matchStmt(newNode, scope)
+	case ast.IfStmt:
+		gen.ifStmt(newNode, scope)
 	case ast.RepeatStmt:
-		return gen.repeatStmt(newNode)
+		gen.repeatStmt(newNode, scope)
 	case ast.TickStmt:
-		return gen.tickStmt(newNode)
+		gen.tickStmt(newNode, scope)
+	case ast.VariableDeclarationStmt:
+		gen.variableDeclarationStmt(newNode, scope)
 	case ast.UseStmt:
-		return gen.useStmt(newNode)
+		gen.useStmt(newNode, scope)
+	case ast.MethodCallExpr:
+		val := gen.methodCallExpr(newNode, scope) // koocing
+		scope.WriteString(val)
+	case ast.CallExpr:
+		val := gen.callExpr(newNode, scope) // koocing
+		scope.WriteString(val)
+	case ast.FunctionDeclarationStmt:
+		gen.functionDeclarationStmt(newNode, scope)
+	case ast.StructDeclarationStmt:
+		gen.structDeclarationStmt(newNode, scope)
+	}
+}
+
+func (gen *Generator) GenerateExpr(node ast.Node, scope *GenScope) string {
+	switch newNode := node.(type) {
 	case ast.LiteralExpr:
 		return gen.literalExpr(newNode)
 	case ast.BinaryExpr:
-		return gen.binaryExpr(newNode)
+		return gen.binaryExpr(newNode, scope)
 	case ast.IdentifierExpr:
-		return gen.identifierExpr(newNode)
+		return gen.identifierExpr(newNode, scope)
 	case ast.GroupExpr:
-		return gen.groupingExpr(newNode)
+		return gen.groupingExpr(newNode, scope)
 	case ast.ListExpr:
-		return gen.listExpr(newNode)
+		return gen.listExpr(newNode, scope)
 	case ast.UnaryExpr:
-		return gen.unaryExpr(newNode)
+		return gen.unaryExpr(newNode, scope)
 	case ast.CallExpr:
-		return gen.callExpr(newNode)
+		return gen.callExpr(newNode, scope)
 	case ast.MapExpr:
-		return gen.mapExpr(newNode)
+		return gen.mapExpr(newNode, scope)
 	case ast.FieldExpr:
-		return gen.fieldExpr(newNode)
+		return gen.fieldExpr(newNode, scope)
 	case ast.MemberExpr:
-		return gen.memberExpr(newNode)
+		return gen.memberExpr(newNode, scope)
 	case ast.DirectiveExpr:
-		return gen.directiveExpr(newNode)
+		return gen.directiveExpr(newNode, scope)
 	case ast.AnonFnExpr:
-		return gen.anonFnExpr(newNode)
+		return gen.anonFnExpr(newNode, scope)
 	case ast.SelfExpr:
-		return gen.selfExpr(newNode)
+		return gen.selfExpr(newNode, scope)
 	case ast.NewExpr:
-		return gen.newExpr(newNode)
-	case ast.MatchStmt:
-		return gen.matchStmt(newNode)
+		return gen.newExpr(newNode, scope)
 	case ast.MatchExpr:
-		gen.matchExpr(newNode)
+		return gen.matchExpr(newNode, scope)
 	case ast.MethodCallExpr:
-		return gen.methodCallExpr(newNode)
+		return gen.methodCallExpr(newNode, scope)
 	}
 
 	return ""

@@ -14,17 +14,14 @@ type Walker struct {
 	Context  ast.Node
 }
 
-//	type Context struct {
-//		Node  *ast.Node
-//		Value *Value
-//		Ret   *ReturnType
-//	}
-//
-// we may or may not need it
-// we should use it if absolutely necessary
-// or if there is no other way
+type Context struct {
+	Node  ast.Node
+	Value Value
+	Ret   ReturnType
+}
+
 type Global struct {
-	//Ctx          Context
+	Ctx          Context
 	Scope        Scope
 	foreignTypes map[string]Value
 	StructTypes  map[string]*StructTypeVal
@@ -32,7 +29,7 @@ type Global struct {
 }
 
 func NewGlobal() Global {
-	scope := NewScope(nil, nil, ReturnProhibiting)
+	scope := NewScope(nil, nil)
 	global := Global{
 		Scope:        scope,
 		foreignTypes: map[string]Value{},
@@ -46,27 +43,85 @@ func NewGlobal() Global {
 type ScopeType int
 
 const (
-	ReturnAllowing ScopeType = iota
-	ReturnProhibiting
-	Structure
-	Entity
+	ReturnAllowing      ScopeType = iota + 1
+	YieldAllowing                 // 2
+	FlowControlAllowing           // 3
+	Structure                     // 4
+	Entity                        // 5
 )
+
+type ScopeAttributes []ScopeType
+
+func NewScopeAttributes(types ...ScopeType) ScopeAttributes {
+	return types
+}
+
+func (sa *ScopeAttributes) AddAttribute(_type ScopeType) {
+	for i := range *sa {
+		if (*sa)[i] == _type {
+			return
+		}
+	}
+	*sa = append(*sa, _type)
+}
+
+var EmptyAttributes = ScopeAttributes{}
 
 type Scope struct {
 	Global               *Global
 	Parent               *Scope
-	Type                 ScopeType
+	Attributes           ScopeAttributes
 	Variables            map[string]VariableVal
 	VariableIndexes      map[string]int
 	currentVariableIndex int
 	WrappedType          TypeVal
 }
 
-func NewScope(global *Global, parent *Scope, typee ScopeType) Scope {
+func Contains(list []ScopeType, thing ScopeType) bool {
+	for _, v := range list {
+		if thing == v {
+			return true
+		}
+	}
+	return false
+}
+
+func (sc *Scope) Is(types ...ScopeType) bool {
+	if len(types) == 0 {
+		return false
+	}
+
+	for _, v := range types {
+		if !Contains(sc.Attributes, v) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func NewScopeWithAttrs(global *Global, parent *Scope, types ...ScopeType) Scope {
 	return Scope{
 		Global:               global,
 		Parent:               parent,
-		Type:                 typee,
+		Attributes:           types,
+		Variables:            map[string]VariableVal{},
+		VariableIndexes:      map[string]int{},
+		currentVariableIndex: 1,
+	}
+}
+
+func NewScope(global *Global, parent *Scope) Scope {
+	var attrs ScopeAttributes
+	if parent == nil {
+		attrs = EmptyAttributes
+	} else {
+		attrs = parent.Attributes
+	}
+	return Scope{
+		Global:               global,
+		Parent:               parent,
+		Attributes:           attrs,
 		Variables:            map[string]VariableVal{},
 		VariableIndexes:      map[string]int{},
 		currentVariableIndex: 1,
@@ -224,7 +279,7 @@ func (s *Scope) ResolveStructType(name string) *Scope { // for new expression, i
 }
 
 func (s *Scope) ResolveStructScope() *Scope { // for self.call()
-	if s.Type == Structure {
+	if s.Is(Structure) {
 		return s
 	}
 
@@ -304,7 +359,7 @@ func (w *Walker) validateReturnValues(node ast.Node, returnValues []TypeVal, exp
 }
 
 func (w *Walker) getReturnFromNode(node *ast.Node, expectedReturn *ReturnType, scope *Scope) *ReturnType {
-	localScope := NewScope(scope.Global, scope, scope.Type)
+	localScope := NewScope(scope.Global, scope)
 	switch (*node).GetType() {
 	case ast.IfStatement:
 		converted := (*node).(ast.IfStmt)
@@ -333,14 +388,14 @@ func (w *Walker) getReturnFromNode(node *ast.Node, expectedReturn *ReturnType, s
 func (w *Walker) ifReturns(node *ast.IfStmt, expectedReturn *ReturnType, scope *Scope) *ReturnType {
 	var returns *ReturnType
 
-	localScope := NewScope(scope.Global, scope, scope.Type)
+	localScope := NewScope(scope.Global, scope)
 	returns = w.bodyReturns(&node.Body, expectedReturn, &localScope)
 	if returns == nil {
 		return nil
 	}
 
 	for i := range node.Elseifs {
-		localScope := NewScope(scope.Global, scope, scope.Type)
+		localScope := NewScope(scope.Global, scope)
 		returns = w.bodyReturns(&node.Elseifs[i].Body, expectedReturn, &localScope)
 	}
 	if returns == nil {
@@ -348,7 +403,7 @@ func (w *Walker) ifReturns(node *ast.IfStmt, expectedReturn *ReturnType, scope *
 	}
 
 	if node.Else != nil {
-		localScope := NewScope(scope.Global, scope, scope.Type)
+		localScope := NewScope(scope.Global, scope)
 		returns = w.bodyReturns(&node.Else.Body, expectedReturn, &localScope)
 	} else {
 		return nil
@@ -428,6 +483,9 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 	case ast.ReturnStmt:
 		w.returnStmt(&newNode, scope)
 		*node = newNode
+	case ast.YieldStmt:
+		w.yieldStmt(&newNode, scope)
+		*node = newNode
 	case ast.RepeatStmt:
 		w.repeatStmt(&newNode, scope)
 		*node = newNode
@@ -450,16 +508,12 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 	case ast.MatchStmt:
 		w.matchStmt(&newNode, false, scope)
 		*node = newNode
-	case ast.MatchExpr:
-		w.matchExpr(&newNode, scope) // u can start making the generation of the match expr ima eat for a bit
 	case ast.Improper:
 		w.error(newNode.GetToken(), "Improper statement: parser fault")
 	default:
 		w.error(newNode.GetToken(), "Expected statement")
 	}
 }
-
-var owner Value
 
 func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 	var val Value
@@ -497,10 +551,10 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 	case ast.MethodCallExpr:
 		val = w.methodCallExpr(node, scope)
 	case ast.MemberExpr:
-		val = w.memberExpr(owner, &newNode, scope)
+		val = w.memberExpr(&newNode, scope)
 		*node = newNode
 	case ast.FieldExpr:
-		val = w.fieldExpr(owner, &newNode, scope)
+		val = w.fieldExpr(&newNode, scope)
 		*node = newNode
 	case ast.TypeExpr:
 		val = w.typeExpr(&newNode)

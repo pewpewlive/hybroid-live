@@ -143,7 +143,8 @@ func (afe AnonFnExpr) GetValueType() PrimitiveValueType {
 }
 
 type MatchExpr struct {
-	MatchStmt MatchStmt
+	MatchStmt    MatchStmt
+	ReturnAmount int
 }
 
 func (me MatchExpr) GetType() NodeType {
@@ -304,7 +305,6 @@ func (me MemberExpr) SetOwner(owner Accessor) Accessor {
 	me.Owner = owner
 	return me
 }
-
 
 type Property struct {
 	Expr Node
