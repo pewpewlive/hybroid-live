@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"hybroid/ast"
 	"hybroid/lexer"
-	"strings"
 )
 
 // let a = {a:{b:0},b:[2,3,4]}
@@ -219,18 +218,18 @@ func (gen *Generator) newExpr(new ast.NewExpr, scope *GenScope) string {
 }
 
 func (gen *Generator) matchExpr(match ast.MatchExpr, scope *GenScope) string {
-	scope.Src.AppendTabbed()
-
 	vars := StringBuilder{}
 
-	helperVarName := "hv" + gen.RandStr(5)
+	gotoLabel := "glab" + RandStr(5)
+
+	helperVarName := "hv" + RandStr(5)
 
 	scope.Src.AppendTabbed("local ", helperVarName) // "hv" stands for hybroid variable
 
 	vars.WriteString(helperVarName)
 
-	for i := 1; i <= match.ReturnAmount; i++ {
-		helperVarName = "hv" + gen.RandStr(5)
+	for i := 1; i <= match.ReturnAmount-1; i++ {
+		helperVarName = "hv" + RandStr(5)
 		scope.Src.Append(", ", helperVarName)
 		vars.Append(", ", helperVarName)
 	}
@@ -241,14 +240,16 @@ func (gen *Generator) matchExpr(match ast.MatchExpr, scope *GenScope) string {
 
 	toMatch := gen.GenerateExpr(node.ExprToMatch, scope)
 
-	for i := range node.Cases { //no wait its fine we dont actually need if scope
+	for i := range node.Cases {
 		if i == 0 {
-			scope.AppendTabbed("if ", toMatch, " == ", gen.GenerateExpr(node.Cases[i].Expression, scope), "then\n")
+			scope.AppendTabbed("if ", toMatch, " == ", gen.GenerateExpr(node.Cases[i].Expression, scope), " then\n")
 		} else if i == len(node.Cases)-1 {
 			scope.AppendTabbed("else\n")
 		} else {
-			scope.AppendTabbed("elseif ", toMatch, " == ", gen.GenerateExpr(node.Cases[i].Expression, scope), "then\n")
+			scope.AppendTabbed("elseif ", toMatch, " == ", gen.GenerateExpr(node.Cases[i].Expression, scope), " then\n")
 		}
+
+		TabsCount += 1
 
 		caseScope := NewGenScope(scope)
 
@@ -257,15 +258,19 @@ func (gen *Generator) matchExpr(match ast.MatchExpr, scope *GenScope) string {
 			caseScope.WriteString("\n")
 		}
 
-		str := strings.Replace(caseScope.Src.String(), "yield", fmt.Sprintf(vars.String(), " = "), -1)
-		caseScope.Src.Reset()
-		caseScope.Src.WriteString(str) //uhh yeah lets debug
+		caseScope.DoTheDos(map[GenTag]string{
+			YieldReplacement: vars.String() + " = ",
+			GotoReplacement:  "goto " + gotoLabel,
+		})
 
 		scope.Write(caseScope.Src)
+
+		TabsCount -= 1
 	}
+
 	scope.AppendTabbed("end\n")
 
-	scope.AppendTabbed("::Leave::\n")
+	scope.AppendTabbed(fmt.Sprintf("::%s::\n", gotoLabel))
 
 	return vars.String()
 }

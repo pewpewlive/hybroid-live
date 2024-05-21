@@ -131,7 +131,10 @@ func (gen *Generator) returnStmt(node ast.ReturnStmt, scope *GenScope) {
 func (gen *Generator) yieldStmt(node ast.YieldStmt, scope *GenScope) {
 	src := StringBuilder{}
 
-	src.WriteString("yield ")
+	src.AppendTabbed()
+	startIndex := src.Len()
+	src.Append("yield ")
+	endIndex := src.Len()
 	for i, expr := range node.Args {
 		val := gen.GenerateExpr(expr, scope)
 		src.Append(val)
@@ -139,9 +142,22 @@ func (gen *Generator) yieldStmt(node ast.YieldStmt, scope *GenScope) {
 			src.Append(", ")
 		}
 	}
-	src.Append("\n", "goto Leave")
+
+	src.WriteString("\n")
+	src.AppendTabbed()
+	startIndex2 := src.Len()
+	src.Append("goto hyl")
+	endIndex2 := src.Len()
+	src.WriteString("\n")
+
+	scopeLength := scope.Src.Len()
 
 	scope.Write(src)
+
+	_range := NewRange(startIndex+scopeLength, endIndex+scopeLength)
+	scope.AddDo(YieldReplacement, _range)
+	_range2 := NewRange(startIndex2+scopeLength, endIndex2+scopeLength)
+	scope.AddDo(GotoReplacement, _range2)
 }
 
 func (gen *Generator) repeatStmt(node ast.RepeatStmt, scope *GenScope) {

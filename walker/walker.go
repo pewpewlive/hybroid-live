@@ -363,10 +363,14 @@ func (w *Walker) getReturnFromNode(node *ast.Node, expectedReturn *ReturnType, s
 	switch (*node).GetType() {
 	case ast.IfStatement:
 		converted := (*node).(ast.IfStmt)
-		return w.ifReturns(&converted, expectedReturn, &localScope)
+		val := w.ifReturns(&converted, expectedReturn, &localScope)
+		*node = converted
+		return val
 	case ast.RepeatStatement:
-		converted := (*node).(ast.RepeatStmt).Body
-		return w.bodyReturns(&converted, expectedReturn, &localScope)
+		converted := (*node).(ast.RepeatStmt)
+		val := w.bodyReturns(&converted.Body, expectedReturn, &localScope)
+		*node = converted
+		return val
 	case ast.MatchStatement:
 		converted := (*node).(ast.MatchStmt)
 		var returns *ReturnType
@@ -379,7 +383,14 @@ func (w *Walker) getReturnFromNode(node *ast.Node, expectedReturn *ReturnType, s
 		return returns
 	case ast.ReturnStatement:
 		converted := (*node).(ast.ReturnStmt)
-		return w.returnStmt(&converted, scope)
+		val := w.returnStmt(&converted, scope)
+		*node = converted
+		return val
+	case ast.YieldStatement:
+		converted := (*node).(ast.YieldStmt)
+		val := w.yieldStmt(&converted, scope)
+		*node = converted
+		return val
 	default:
 		return nil
 	}

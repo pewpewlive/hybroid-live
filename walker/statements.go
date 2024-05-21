@@ -476,16 +476,17 @@ func (w *Walker) useStmt(node *ast.UseStmt, scope *Scope) {
 	}
 }
 
-func (w *Walker) matchStmt(node *ast.MatchStmt, needsDefault bool, scope *Scope) {
+func (w *Walker) matchStmt(node *ast.MatchStmt, isExpr bool, scope *Scope) {
 	val := w.GetNodeValue(&node.ExprToMatch, scope)
 	valType := val.GetType()
 
-	matchScope := NewScope(scope.Global, scope)
-
 	var has_default bool
 	for i := range node.Cases {
-		for j := range node.Cases[i].Body {
-			w.WalkNode(&node.Cases[i].Body[j], &matchScope)
+		caseScope := NewScope(scope.Global, scope)
+		if !isExpr {
+			for j := range node.Cases[i].Body {
+				w.WalkNode(&node.Cases[i].Body[j], &caseScope)
+			}
 		}
 		if node.Cases[i].Expression.GetToken().Lexeme == "_" {
 			has_default = true
@@ -501,7 +502,7 @@ func (w *Walker) matchStmt(node *ast.MatchStmt, needsDefault bool, scope *Scope)
 		}
 	}
 
-	if !has_default && needsDefault {
+	if !has_default && isExpr {
 		w.error(node.GetToken(), "match statement has no default arm")
 	}
 }

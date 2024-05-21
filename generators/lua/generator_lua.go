@@ -3,11 +3,11 @@ package lua
 import (
 	"fmt"
 	"hybroid/ast"
+	"hybroid/generators"
 	"hybroid/lexer"
 	"math"
 	"math/rand"
 	"strconv"
-	"strings"
 )
 
 // func (ge *GenError) generatorError() string {
@@ -19,7 +19,7 @@ func (gen *Generator) error(token lexer.Token, message string) {
 }
 
 type StringBuilder struct {
-	strings.Builder
+	generators.BetterBuilder
 }
 
 func (sb *StringBuilder) Append(chunks ...string) {
@@ -30,16 +30,19 @@ func (sb *StringBuilder) Append(chunks ...string) {
 
 func (sb *StringBuilder) AppendTabbed(chunks ...string) {
 	sb.WriteString(getTabs())
+
 	for _, chunk := range chunks {
 		sb.WriteString(chunk)
 	}
 }
 
-var charset = []byte("_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+var charset = []byte("_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0987654321")
 
-func (gen *Generator) RandStr(n int) string {
+func RandStr(n int) string {
 	b := make([]byte, n)
-	for i := range b {
+	b[0] = charset[rand.Intn(len(charset)-10)]
+
+	for i := 1; i < len(b); i++ {
 		b[i] = charset[rand.Intn(len(charset))]
 	}
 	return string(b)
@@ -47,15 +50,60 @@ func (gen *Generator) RandStr(n int) string {
 
 var TabsCount int
 
+type GenTag int
+
+const (
+	YieldReplacement GenTag = iota
+	GotoReplacement
+)
+
+func (sb *StringBuilder) ReplaceRange(str string, _range Range) {
+	buf := sb.GetBuf()
+
+	endSlice := make([]byte, len(*buf)-_range.End)
+
+	copy(endSlice, (*buf)[_range.End:len(*buf)])
+	*buf = (*buf)[:_range.Start]
+
+	sb.WriteString(str)
+	sb.Write(endSlice)
+}
+
+type Range struct {
+	Start int
+	End   int
+}
+
+type Do struct { // we are out of ideas
+	Tag   GenTag
+	Range Range
+}
+
+func NewRange(start int, end int) Range {
+	return Range{Start: start, End: end}
+}
+
 type GenScope struct {
 	Parent *GenScope
 	Src    StringBuilder
+	Dos    []Do // (two)
+}
+
+func (gs *GenScope) AddDo(tag GenTag, _range Range) {
+	gs.Dos = append(gs.Dos, Do{Tag: tag, Range: _range})
+}
+
+func (gs *GenScope) DoTheDos(replacement map[GenTag]string) {
+	for i := len(gs.Dos) - 1; i >= 0; i-- {
+		gs.Src.ReplaceRange(replacement[gs.Dos[i].Tag], gs.Dos[i].Range)
+	}
 }
 
 func NewGenScope(scope *GenScope) GenScope {
 	return GenScope{
 		Parent: scope.Parent,
 		Src:    StringBuilder{},
+		Dos:    []Do{},
 	}
 }
 

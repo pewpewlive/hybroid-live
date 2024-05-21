@@ -504,18 +504,17 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) FunctionVal {
 func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) ReturnType {
 	w.matchStmt(&node.MatchStmt, true, scope)
 
-	matchScope := NewScope(scope.Global, scope)
-	matchScope.Attributes.AddAttribute(YieldAllowing)
-
 	isFine := true
 	var ret *ReturnType
 	var fineRet *ReturnType
 	for i := range node.MatchStmt.Cases {
+		caseScope := NewScope(scope.Global, scope)
+		caseScope.Attributes.AddAttribute(YieldAllowing)
 		if i == len(node.MatchStmt.Cases)-1 {
 			continue
 		}
-		fineRet = w.bodyReturns(&node.MatchStmt.Cases[i].Body, nil, &matchScope)
-		nextRet := w.bodyReturns(&node.MatchStmt.Cases[i+1].Body, nil, &matchScope)
+		fineRet = w.bodyReturns(&node.MatchStmt.Cases[i].Body, nil, &caseScope)
+		nextRet := w.bodyReturns(&node.MatchStmt.Cases[i+1].Body, nil, &caseScope)
 
 		if fineRet == nil || nextRet == nil || !fineRet.Eq(nextRet) {
 			isFine = false
@@ -525,6 +524,7 @@ func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) ReturnType {
 	}
 
 	if isFine {
+		node.ReturnAmount = len(fineRet.values)
 		return *fineRet
 	}
 
