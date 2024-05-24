@@ -348,7 +348,7 @@ func (p *Parser) accessorExprDepth1(owner ast.Accessor, ident ast.Node, nodeType
 
 func (p *Parser) matchExpr() ast.Node {
 	if p.match(lexer.Match) {
-		return ast.MatchExpr{MatchStmt:p.matchStmt()}
+		return ast.MatchExpr{MatchStmt:p.matchStmt(true)}
 	}
 
 	return p.directive()

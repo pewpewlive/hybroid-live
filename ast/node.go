@@ -72,8 +72,10 @@ const (
 	Invalid
 )
 
+var stringifiedPTV = [...]string{"unknown", "number", "text", "bool", "fixed", "fixed", "fixed", "fixed", "list", "map", "nil", "func", "entity", "struct", "identifier", "namespace", "invalid"}
+
 func (pvt PrimitiveValueType) ToString() string {
-	return [...]string{"unknown", "number", "text", "bool", "fixed", "fixed", "fixed", "fixed", "list", "map", "nil", "func", "entity", "struct", "identifier", "namespace", "invalid"}[pvt]
+	return stringifiedPTV[pvt]
 }
 
 type Node interface {

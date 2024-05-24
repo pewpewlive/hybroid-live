@@ -14,120 +14,6 @@ type Walker struct {
 	Context  ast.Node
 }
 
-type Context struct {
-	Node  ast.Node
-	Value Value
-	Ret   ReturnType
-}
-
-type Global struct {
-	Ctx          Context
-	Scope        Scope
-	foreignTypes map[string]Value
-	StructTypes  map[string]*StructTypeVal
-	//EntityTypes map[string]EntityTypeVal
-}
-
-func NewGlobal() Global {
-	scope := NewScope(nil, nil)
-	global := Global{
-		Scope:        scope,
-		foreignTypes: map[string]Value{},
-		StructTypes:  map[string]*StructTypeVal{},
-	}
-
-	global.Scope.Global = &global
-	return global
-}
-
-type ScopeType int
-
-const (
-	ReturnAllowing      ScopeType = iota + 1
-	YieldAllowing                 // 2
-	FlowControlAllowing           // 3
-	Structure                     // 4
-	Entity                        // 5
-)
-
-type ScopeAttributes []ScopeType
-
-func NewScopeAttributes(types ...ScopeType) ScopeAttributes {
-	return types
-}
-
-func (sa *ScopeAttributes) AddAttribute(_type ScopeType) {
-	for i := range *sa {
-		if (*sa)[i] == _type {
-			return
-		}
-	}
-	*sa = append(*sa, _type)
-}
-
-var EmptyAttributes = ScopeAttributes{}
-
-type Scope struct {
-	Global               *Global
-	Parent               *Scope
-	Attributes           ScopeAttributes
-	Variables            map[string]VariableVal
-	VariableIndexes      map[string]int
-	currentVariableIndex int
-	WrappedType          TypeVal
-}
-
-func Contains(list []ScopeType, thing ScopeType) bool {
-	for _, v := range list {
-		if thing == v {
-			return true
-		}
-	}
-	return false
-}
-
-func (sc *Scope) Is(types ...ScopeType) bool {
-	if len(types) == 0 {
-		return false
-	}
-
-	for _, v := range types {
-		if !Contains(sc.Attributes, v) {
-			return false
-		}
-	}
-
-	return true
-}
-
-func NewScopeWithAttrs(global *Global, parent *Scope, types ...ScopeType) Scope {
-	return Scope{
-		Global:               global,
-		Parent:               parent,
-		Attributes:           types,
-		Variables:            map[string]VariableVal{},
-		VariableIndexes:      map[string]int{},
-		currentVariableIndex: 1,
-	}
-}
-
-func NewScope(global *Global, parent *Scope) Scope {
-	var attrs ScopeAttributes
-	if parent == nil {
-		attrs = EmptyAttributes
-	} else {
-		attrs = parent.Attributes
-	}
-	return Scope{
-		Global:               global,
-		Parent:               parent,
-		Attributes:           attrs,
-		Variables:            map[string]VariableVal{},
-		VariableIndexes:      map[string]int{},
-		currentVariableIndex: 1,
-	}
-}
-
 func (w *Walker) error(token lexer.Token, msg string) {
 	w.Errors = append(w.Errors, ast.Error{Token: token, Message: msg})
 }
@@ -239,8 +125,7 @@ func (s *Scope) DeclareVariable(value VariableVal) (VariableVal, bool) {
 	}
 
 	s.Variables[value.Name] = value
-	s.VariableIndexes[value.Name] = s.currentVariableIndex
-	s.currentVariableIndex++
+	s.VariableIndexes[value.Name] = len(s.VariableIndexes)+1
 
 	return value, true
 }
@@ -278,16 +163,16 @@ func (s *Scope) ResolveStructType(name string) *Scope { // for new expression, i
 	return s.Parent.ResolveStructType(name)
 }
 
-func (s *Scope) ResolveStructScope() *Scope { // for self.call()
-	if s.Is(Structure) {
-		return s
+func ResolveTagScope[T ScopeTag](sc *Scope) (*Scope, *ScopeTag, *T) { 
+	if tag, ok := sc.Tag.(T); ok {
+		return sc, &sc.Tag, &tag
 	}
 
-	if s.Parent == nil {
-		return nil
+	if sc.Parent == nil {
+		return nil, nil, nil
 	}
 
-	return s.Parent.ResolveStructScope()
+	return ResolveTagScope[T](sc.Parent)
 }
 
 func (g *Global) GetForeignType(str string) Value {
@@ -347,100 +232,17 @@ func returnsAreValid(list1 []TypeVal, list2 []TypeVal) bool {
 	return true
 }
 
-func (w *Walker) validateReturnValues(node ast.Node, returnValues []TypeVal, expectedReturnValues []TypeVal) {
-	if !returnsAreValid(returnValues, expectedReturnValues) {
-		w.error(node.GetToken(), "invalid return type(s)")
-	}
+func (w *Walker) validateReturnValues(_return ReturnType, expectReturn ReturnType) string {
+	returnValues, expectedReturnValues := _return.values, expectReturn.values
 	if len(returnValues) < len(expectedReturnValues) {
-		w.error(node.GetToken(), "not enough return values given")
+		return "not enough return values given"
 	} else if len(returnValues) > len(expectedReturnValues) {
-		w.error(node.GetToken(), "too many return values given")
+		return "too many return values given"
 	}
-}
-
-func (w *Walker) getReturnFromNode(node *ast.Node, expectedReturn *ReturnType, scope *Scope) *ReturnType {
-	localScope := NewScope(scope.Global, scope)
-	switch (*node).GetType() {
-	case ast.IfStatement:
-		converted := (*node).(ast.IfStmt)
-		val := w.ifReturns(&converted, expectedReturn, &localScope)
-		*node = converted
-		return val
-	case ast.RepeatStatement:
-		converted := (*node).(ast.RepeatStmt)
-		val := w.bodyReturns(&converted.Body, expectedReturn, &localScope)
-		*node = converted
-		return val
-	case ast.MatchStatement:
-		converted := (*node).(ast.MatchStmt)
-		var returns *ReturnType
-		for i := range converted.Cases {
-			returns = w.bodyReturns(&converted.Cases[i].Body, expectedReturn, scope)
-			if returns == nil {
-				return nil
-			}
-		}
-		return returns
-	case ast.ReturnStatement:
-		converted := (*node).(ast.ReturnStmt)
-		val := w.returnStmt(&converted, scope)
-		*node = converted
-		return val
-	case ast.YieldStatement:
-		converted := (*node).(ast.YieldStmt)
-		val := w.yieldStmt(&converted, scope)
-		*node = converted
-		return val
-	default:
-		return nil
+	if !returnsAreValid(returnValues, expectedReturnValues) {
+		return "invalid return type(s)"
 	}
-}
-
-func (w *Walker) ifReturns(node *ast.IfStmt, expectedReturn *ReturnType, scope *Scope) *ReturnType {
-	var returns *ReturnType
-
-	localScope := NewScope(scope.Global, scope)
-	returns = w.bodyReturns(&node.Body, expectedReturn, &localScope)
-	if returns == nil {
-		return nil
-	}
-
-	for i := range node.Elseifs {
-		localScope := NewScope(scope.Global, scope)
-		returns = w.bodyReturns(&node.Elseifs[i].Body, expectedReturn, &localScope)
-	}
-	if returns == nil {
-		return nil
-	}
-
-	if node.Else != nil {
-		localScope := NewScope(scope.Global, scope)
-		returns = w.bodyReturns(&node.Else.Body, expectedReturn, &localScope)
-	} else {
-		return nil
-	}
-
-	return returns
-}
-
-func (w *Walker) bodyReturns(body *[]ast.Node, expectedReturn *ReturnType, scope *Scope) *ReturnType {
-	var returns *ReturnType
-	for _, node := range *body {
-		returns = w.getReturnFromNode(&node, expectedReturn, scope)
-		if returns == nil {
-			continue
-		}
-		if expectedReturn == nil {
-			expectedReturn = returns
-		}
-
-		w.validateReturnValues(node, returns.values, expectedReturn.values)
-	}
-	if returns == nil {
-		return returns
-	}
-
-	return returns
+	return ""
 }
 
 func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {

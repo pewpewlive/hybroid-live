@@ -307,6 +307,8 @@ func (f FixedVal) GetSpecificType() ast.PrimitiveValueType {
 	return f.SpecificType
 }
 
+var EmptyReturn = ReturnType{values:[]TypeVal{}}
+
 type ReturnType struct {
 	values []TypeVal
 }
@@ -467,7 +469,7 @@ func (f CallVal) GetDefault() ast.LiteralExpr {
 type BoolVal struct{}
 
 func (b BoolVal) GetType() TypeVal {
-	return TypeVal{Name: "boolean", Type: ast.Bool}
+	return TypeVal{Name: "bool", Type: ast.Bool}
 }
 
 func (b BoolVal) GetDefault() ast.LiteralExpr {

@@ -76,7 +76,7 @@ func (p *Parser) statement() ast.Node {
 		return p.structDeclarationStatement()
 	case lexer.Match:
 		p.advance()
-		return p.matchStmt()
+		return p.matchStmt(false)
 	}
 
 	expr := p.expression()
@@ -660,17 +660,17 @@ func (p *Parser) useStmt() ast.Node {
 	return useStmt
 }
 
-func (p *Parser) matchStmt() ast.MatchStmt {
+func (p *Parser) matchStmt(isExpr bool) ast.MatchStmt {
 	matchStmt := ast.MatchStmt{}
 
 	matchStmt.ExprToMatch = p.expression()
 
 	p.consume("expected opening of the match body", lexer.LeftBrace)
 
-	caseStmts, stop := p.caseStmt()
+	caseStmts, stop := p.caseStmt(isExpr)
 	for !stop {
 		matchStmt.Cases = append(matchStmt.Cases, caseStmts...)
-		caseStmts, stop = p.caseStmt()
+		caseStmts, stop = p.caseStmt(isExpr)
 	}
 	matchStmt.Cases = append(matchStmt.Cases, caseStmts...)
 
@@ -679,7 +679,7 @@ func (p *Parser) matchStmt() ast.MatchStmt {
 	return matchStmt
 }
 
-func (p *Parser) caseStmt() ([]ast.CaseStmt, bool) {
+func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
 	caseStmts := []ast.CaseStmt{}
 
 	caseStmt := ast.CaseStmt{}
@@ -706,10 +706,21 @@ func (p *Parser) caseStmt() ([]ast.CaseStmt, bool) {
 	} else {
 		expr := p.expression()
 
-		body := []ast.Node{ast.ReturnStmt{
-			Args:  []ast.Node{expr},
-			Token: expr.GetToken(),
-		}}
+		var node ast.Node
+
+		if isExpr {
+			node = ast.YieldStmt{
+				Args:  []ast.Node{expr},
+				Token: expr.GetToken(),
+			}
+		}else {
+			node = ast.ReturnStmt{
+				Args:  []ast.Node{expr},
+				Token: expr.GetToken(),
+			}
+		}
+
+		body := []ast.Node{node}
 		for i := range caseStmts {
 			caseStmts[i].Body = body
 		}

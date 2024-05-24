@@ -75,7 +75,7 @@ func (gen *Generator) functionDeclarationStmt(node ast.FunctionDeclarationStmt, 
 		fnScope.Append(fnTabs)
 	}
 
-	scope.Append("function ", node.Name.Lexeme, "(")
+	fnScope.Append("function ", node.Name.Lexeme, "(")
 	for i, param := range node.Params {
 		fnScope.Append(param.Name.Lexeme)
 		if i != len(node.Params)-1 {

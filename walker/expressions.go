@@ -82,9 +82,8 @@ func (w *Walker) identifierExpr(node *ast.Node, scope *Scope) Value {
 	if sc != nil {
 		newValue := sc.GetVariable(sc, ident.Name.Lexeme)
 
-		if sc.Is(Structure) /* && scope.Global.Ctx.Node.GetType() != ast.FieldExpression */ {
+		/* if sc.Is(Structure)  && scope.Global.Ctx.Node.GetType() != ast.FieldExpression  {
 			//varIndex := sc.GetVariableIndex(sc, ident.Name.Lexeme)
-			/*
 				selfExpr := ast.FieldExpr{
 					Identifier: ast.SelfExpr{
 						Token: valueNode.GetToken(),
@@ -99,8 +98,8 @@ func (w *Walker) identifierExpr(node *ast.Node, scope *Scope) Value {
 				} // self.thing
 				selfExpr.Property = fieldExpr
 
-				*node = selfExpr*/
-		} /* else if sc.Type == Entity {
+				*node = selfExpr
+		} else if sc.Type == Entity {
 			varIndex := sc.GetVariableIndex(sc, node.Name.Lexeme)
 
 			selfExpr := ast.SelfExpr{
@@ -438,16 +437,16 @@ func (w *Walker) directiveExpr(node *ast.DirectiveExpr, scope *Scope) DirectiveV
 }
 
 func (w *Walker) selfExpr(self *ast.SelfExpr, scope *Scope) Value {
-	sc := scope.ResolveStructScope() // TODO: CHECK FOR ENTITY SCOPE
-
-	if sc == nil {
+	if !scope.Is(SelfAllowing) {
 		w.error(self.Token, "can't use self outside of struct/entity")
 		return Invalid{}
 	}
 
-	if sc.Is(Structure) {
+	sc, _, structTag := ResolveTagScope[StructTag](scope) // TODO: CHECK FOR ENTITY SCOPE
+
+	if sc != nil {
 		(*self).Type = ast.SelfStruct
-		structTypeVal := sc.GetStructType(sc, sc.WrappedType.Name)
+		structTypeVal := sc.GetStructType(sc, structTag.StructType.GetType().Name)
 		return StructVal{Type: structTypeVal}
 	} else {
 		return Invalid{}
@@ -468,18 +467,19 @@ func (w *Walker) newExpr(new *ast.NewExpr, scope *Scope) StructVal {
 }
 
 func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) FunctionVal {
-	fnScope := NewScopeWithAttrs(scope.Global, scope, ReturnAllowing)
+	ret := EmptyReturn
+	for _, typee := range fn.Return {
+		ret.values = append(ret.values, w.typeExpr(&typee))
+	}
+
+	fnScope := NewScope(scope, FuncTag{ReturnType: ret})
+	fnScope.Attributes.Add(ReturnAllowing)
 
 	params := make([]TypeVal, 0)
 	for i, param := range fn.Params {
 		params = append(params, w.typeExpr(&param.Type))
 		value := w.GetValueFromType(params[i])
 		fnScope.DeclareVariable(VariableVal{Name: param.Name.Lexeme, Value: value, Node: fn})
-	}
-
-	var ret ReturnType
-	for _, typee := range fn.Return {
-		ret.values = append(ret.values, w.typeExpr(&typee))
 	}
 
 	/*
@@ -491,10 +491,6 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) FunctionVal {
 		w.WalkNode(&node, &fnScope)
 	}
 
-	if w.bodyReturns(&fn.Body, &ret, &fnScope) == nil && len(ret.values) != 0 {
-		w.error(fn.GetToken(), "not all function paths return a value")
-	}
-
 	return FunctionVal{
 		params:    params,
 		returnVal: ret,
@@ -502,33 +498,30 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) FunctionVal {
 }
 
 func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) ReturnType {
+	matchScope := NewScope(scope, MatchTag{})
+	matchScope.Attributes.Add(YieldAllowing)
+
 	w.matchStmt(&node.MatchStmt, true, scope)
 
-	isFine := true
-	var ret *ReturnType
-	var fineRet *ReturnType
 	for i := range node.MatchStmt.Cases {
-		caseScope := NewScope(scope.Global, scope)
-		caseScope.Attributes.AddAttribute(YieldAllowing)
-		if i == len(node.MatchStmt.Cases)-1 {
-			continue
+		var caseScope Scope
+		if node.MatchStmt.Cases[i].Expression.GetToken().Lexeme == "_" {
+			caseScope = NewScope(&matchScope, UntaggedTag{})
 		}
-		fineRet = w.bodyReturns(&node.MatchStmt.Cases[i].Body, nil, &caseScope)
-		nextRet := w.bodyReturns(&node.MatchStmt.Cases[i+1].Body, nil, &caseScope)
+		caseScope = NewScope(&matchScope, MultiPathTag{})
 
-		if fineRet == nil || nextRet == nil || !fineRet.Eq(nextRet) {
-			isFine = false
-			ret = &ReturnType{values: []TypeVal{TypeVal{Type: ast.Invalid, Name: "invalid"}}}
-			w.error(node.MatchStmt.Cases[i+1].Expression.GetToken(), "this arm's return of the body is not the same as the above arm")
+		for j := range node.MatchStmt.Cases[i].Body {
+			w.WalkNode(&node.MatchStmt.Cases[i].Body[j], &caseScope)
 		}
 	}
 
-	if isFine {
-		node.ReturnAmount = len(fineRet.values)
-		return *fineRet
+	matchTag, _ := matchScope.Tag.(MatchTag)
+
+	if len(node.MatchStmt.Cases) != matchTag.ArmsYielded {
+		w.error(node.MatchStmt.GetToken(), "not all arms yield a value")
 	}
 
-	return *ret
+	return *matchTag.YieldValues
 }
 
 func (w *Walker) typeExpr(typee *ast.TypeExpr) TypeVal {

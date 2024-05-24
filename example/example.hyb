@@ -19,7 +19,7 @@ struct Rectangle {
         return self.width * self.height
     }
 
-    fn test()  {
+    fn test() {
         //self.test2 = self.test2
         //self.test2(self.test2(self.area()))
     }// to make debugging process easier
@@ -43,51 +43,81 @@ struct Yes {
     }
 } 
 
-fn test(param number) map<Yes> {
-    let testt = new Yes()
-    
-    let sese, sese2 = match param {
-        3 => { 
-            let a = "yield  goto hyl"
-
-            let b = match param {
-                3 => {
-                    yield "a"
-                }
-                _ => {
-                    yield "b"
-                }
-            }
-            
-            yield 228, 1 
-        }
-        4, 5 => {
-            yield 2, 3
-        }
-        //1 => 1, 2 
-        _ => {
-            //do something 
-
-            if true {
-                return new Yes()
-            }
-            
-            yield 1337, 2
-        }
-    }
-
-    let a = match 1 {
-        1 => {
-            yield 3
-        }
-        _ => {
-            yield 2
-        }
-    }
-
-    return {
-        xd: new Yes(),
-        sdsd: new Yes()
-    }
+fn example(a text) {
+    a = "o"
 }
+let idk = 1
+example(match idk {
+    2 => "a"
+    _ => "b"
+})
+
+// fn simple_match(param text) bool {// fn scope: ret(bool), vars(param) 
+//     let a = match param {
+//         "a" => {
+//             yield 2
+//         }
+//         "a" => {
+//             if true {
+//                 return true
+//             }
+//             yield 2
+//         }
+//         _ => {
+//             yield 1
+//         }
+//     }
+
+//     let b = a-1
+
+//     return b == 1
+// }
+
+// fn test(param number) map<Yes> {
+//     let testt = new Yes()
+    
+//     let sese, sese2 = match param {
+//         3 => { 
+//             let a = "yield  goto hyl"
+
+//             let b = match param {
+//                 3 => {
+//                     yield "a"
+//                 }
+//                 _ => {
+//                     yield "b"
+//                 }
+//             }
+            
+//             yield 228, 1 
+//         }
+//         4, 5 => {
+//             yield 2, 3
+//         }
+//         //1 => 1, 2 
+//         _ => {
+//             //do something 
+
+//             if true {
+//                 return new Yes()
+//             }
+            
+//             yield 1337, 2
+//         }
+//     }
+
+//     let a = match 1 {
+//         1 => {
+//             yield 3
+//         }
+//         _ => {
+//             yield 2
+//         }
+//     }
+
+//     return {
+//         xd: new Yes(),
+//         sdsd: new Yes()
+//     }
+// }
 
