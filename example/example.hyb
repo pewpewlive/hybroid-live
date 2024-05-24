@@ -1,123 +1,70 @@
 @Environment(Level)
 
-struct Rectangle {
-    width = 0f
-    
-    test2 = fn (yes fixed) fixed {
-        return yes
-    }
-    
-    new(width fixed, height fixed) {
-        //self.width = width
-        //self.height = height
-    }
-    
-    height = 0f
-
-    fn area() fixed { 
-        //self.test()
-        return self.width * self.height
-    }
-
-    fn test() {
-        //self.test2 = self.test2
-        //self.test2(self.test2(self.area()))
-    }// to make debugging process easier
-}
-
-struct Yes {
-    rect: Rectangle
-
-    c = {
-        wow: fn (yes Yes) {
-
+fn simple_match(param text) bool {
+    let a = match param {
+        "a" => {
+            yield 2
+        }
+        "a" => {
+            if true {
+                return true
+            }
+            yield 2
+        }
+        _ => {
+            yield 1
         }
     }
 
-    new() {
+    let b = a-1
 
-    }
-
-    fn GetRectangle() Rectangle {
-        return self.rect
-    }
-} 
-
-fn example(a text) {
-    a = "o"
+    return b == 1
 }
-let idk = 1
-example(match idk {
-    2 => "a"
-    _ => "b"
-})
 
-// fn simple_match(param text) bool {// fn scope: ret(bool), vars(param) 
-//     let a = match param {
-//         "a" => {
-//             yield 2
-//         }
-//         "a" => {
-//             if true {
-//                 return true
-//             }
-//             yield 2
-//         }
-//         _ => {
-//             yield 1
-//         }
-//     }
-
-//     let b = a-1
-
-//     return b == 1
-// }
-
-// fn test(param number) map<Yes> {
-//     let testt = new Yes()
+fn test(param number) fixed {
+    let testt = 12f
     
-//     let sese, sese2 = match param {
-//         3 => { 
-//             let a = "yield  goto hyl"
+    let sese, sese2 = match param {
+        3 => { 
+            let a = "yield  goto hyl"
 
-//             let b = match param {
-//                 3 => {
-//                     yield "a"
-//                 }
-//                 _ => {
-//                     yield "b"
-//                 }
-//             }
+            let b = match param {
+                3 => {
+                    yield "a"
+                }
+                _ => {
+                    yield "b"
+                }
+            }
             
-//             yield 228, 1 
-//         }
-//         4, 5 => {
-//             yield 2, 3
-//         }
-//         //1 => 1, 2 
-//         _ => {
-//             //do something 
+            yield 228, 1 
+        }
+        4, 5 => {
+            yield 2, 3
+        }
+        //1 => 1, 2 
+        _ => {
+            //do something 
 
-//             if true {
-//                 return new Yes()
-//             }
+            if true {
+                return testt
+            }
             
-//             yield 1337, 2
-//         }
-//     }
+            yield 1337, 2
+        }
+    }
 
-//     let a = match 1 {
-//         1 => {
-//             yield 3
-//         }
-//         _ => {
-//             yield 2
-//         }
-//     }
+    sese = 2
 
-//     return {
-//         xd: new Yes(),
-//         sdsd: new Yes()
-//     }
-// }
+    let a = match sese {
+        1 => {
+            yield 3
+        }
+        _ => {
+            yield 2
+        }
+    }
+
+    return testt
+}
 

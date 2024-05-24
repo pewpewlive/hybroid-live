@@ -503,19 +503,20 @@ func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) ReturnType {
 
 	w.matchStmt(&node.MatchStmt, true, scope)
 
-	for i := range node.MatchStmt.Cases {
+	for _, matchCase := range node.MatchStmt.Cases {
 		var caseScope Scope
-		if node.MatchStmt.Cases[i].Expression.GetToken().Lexeme == "_" {
+		if matchCase.Expression.GetToken().Lexeme == "_" {
 			caseScope = NewScope(&matchScope, UntaggedTag{})
 		}
 		caseScope = NewScope(&matchScope, MultiPathTag{})
 
-		for j := range node.MatchStmt.Cases[i].Body {
-			w.WalkNode(&node.MatchStmt.Cases[i].Body[j], &caseScope)
+		for i := range matchCase.Body {
+			w.WalkNode(&matchCase.Body[i], &caseScope)
 		}
 	}
 
 	matchTag, _ := matchScope.Tag.(MatchTag)
+	node.ReturnAmount = len(matchTag.YieldValues.values)
 
 	if len(node.MatchStmt.Cases) != matchTag.ArmsYielded {
 		w.error(node.MatchStmt.GetToken(), "not all arms yield a value")

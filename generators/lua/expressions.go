@@ -222,16 +222,15 @@ func (gen *Generator) matchExpr(match ast.MatchExpr, scope *GenScope) string {
 
 	gotoLabel := "glab" + RandStr(5)
 
-	helperVarName := "hv" + RandStr(5)
-
-	scope.Src.AppendTabbed("local ", helperVarName) // "hv" stands for hybroid variable
-
-	vars.WriteString(helperVarName)
-
-	for i := 1; i <= match.ReturnAmount-1; i++ {
-		helperVarName = "hv" + RandStr(5)
-		scope.Src.Append(", ", helperVarName)
-		vars.Append(", ", helperVarName)
+	for i := 0; i < match.ReturnAmount; i++ {
+		helperVarName := "hv" + RandStr(5) // "hv" stands for hybroid variable
+		if i == 0 {
+			scope.Src.AppendTabbed("local ", helperVarName)
+			vars.WriteString(helperVarName)
+		} else {
+			scope.Src.Append(", ", helperVarName)
+			vars.Append(", ", helperVarName)
+		}
 	}
 
 	scope.Src.WriteString("\n")
@@ -240,21 +239,21 @@ func (gen *Generator) matchExpr(match ast.MatchExpr, scope *GenScope) string {
 
 	toMatch := gen.GenerateExpr(node.ExprToMatch, scope)
 
-	for i := range node.Cases {
+	for i, matchCase := range node.Cases {
 		if i == 0 {
-			scope.AppendTabbed("if ", toMatch, " == ", gen.GenerateExpr(node.Cases[i].Expression, scope), " then\n")
+			scope.AppendTabbed("if ", toMatch, " == ", gen.GenerateExpr(matchCase.Expression, scope), " then\n")
 		} else if i == len(node.Cases)-1 {
 			scope.AppendTabbed("else\n")
 		} else {
-			scope.AppendTabbed("elseif ", toMatch, " == ", gen.GenerateExpr(node.Cases[i].Expression, scope), " then\n")
+			scope.AppendTabbed("elseif ", toMatch, " == ", gen.GenerateExpr(matchCase.Expression, scope), " then\n")
 		}
 
 		TabsCount += 1
 
 		caseScope := NewGenScope(scope)
 
-		for j := range node.Cases[i].Body {
-			gen.GenerateStmt(node.Cases[i].Body[j], &caseScope)
+		for _, bodyNode := range matchCase.Body {
+			gen.GenerateStmt(bodyNode, &caseScope)
 			caseScope.WriteString("\n")
 		}
 

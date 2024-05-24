@@ -505,27 +505,27 @@ func (w *Walker) matchStmt(node *ast.MatchStmt, isExpr bool, scope *Scope) {
 	valType := val.GetType()
 
 	var has_default bool
-	for i := range node.Cases {
+	for _, matchCase := range node.Cases {
 		var caseScope Scope
 
-		if node.Cases[i].Expression.GetToken().Lexeme == "_" {
+		if matchCase.Expression.GetToken().Lexeme == "_" {
 			caseScope = NewScope(scope, UntaggedTag{})
 			has_default = true
 		} else {
 			caseScope = NewScope(scope, MultiPathTag{})
 		}
 		if !isExpr {
-			for j := range node.Cases[i].Body {
-				w.WalkNode(&node.Cases[i].Body[j], &caseScope)
+			for i := range matchCase.Body {
+				w.WalkNode(&matchCase.Body[i], &caseScope)
 			}
 		}
 		if caseScope.Tag.GetType() == Untagged {
 			continue
 		}
-		caseValType := w.GetNodeValue(&node.Cases[i].Expression, scope).GetType()
+		caseValType := w.GetNodeValue(&matchCase.Expression, scope).GetType()
 		if !valType.Eq(caseValType) {
 			w.error(
-				node.Cases[i].Expression.GetToken(),
+				matchCase.Expression.GetToken(),
 				fmt.Sprintf("mismatched types: arm expression (%s) and match expression (%s)",
 					caseValType.ToString(),
 					valType.ToString()))
