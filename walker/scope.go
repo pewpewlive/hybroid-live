@@ -33,8 +33,8 @@ func NewGlobal() Global {
 type ScopeTagType int
 
 const (
-	Untagged ScopeTagType = iota 
-	Struct 
+	Untagged ScopeTagType = iota
+	Struct
 	Entity
 	Func
 	MultiPath
@@ -45,12 +45,11 @@ type ScopeTag interface {
 	GetType() ScopeTagType
 }
 
-type UntaggedTag struct {}
+type UntaggedTag struct{}
 
 func (ut UntaggedTag) GetType() ScopeTagType {
 	return Untagged
 }
-
 
 type StructTag struct {
 	StructType *StructTypeVal
@@ -69,7 +68,7 @@ func (et EntityTag) GetType() ScopeTagType {
 }
 
 type FuncTag struct {
-	Returns bool
+	Returns    bool
 	ReturnType ReturnType
 }
 
@@ -86,7 +85,7 @@ func (et MatchTag) GetType() ScopeTagType {
 	return MatchExpr
 }
 
-type MultiPathTag struct {}
+type MultiPathTag struct{}
 
 func (mp MultiPathTag) GetType() ScopeTagType {
 	return MultiPath
@@ -159,11 +158,11 @@ func NewScope(parent *Scope, tag ScopeTag) Scope {
 		attrs = parent.Attributes
 	}
 	return Scope{
-		Global:          parent.Global,
-		Parent:          parent,
+		Global: parent.Global,
+		Parent: parent,
 
-		Tag:             tag,
-		Attributes:      attrs,
+		Tag:        tag,
+		Attributes: attrs,
 
 		Variables:       map[string]VariableVal{},
 		VariableIndexes: map[string]int{},

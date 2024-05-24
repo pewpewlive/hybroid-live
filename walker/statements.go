@@ -136,16 +136,16 @@ func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scop
 		if !funcTag.Returns && !ret.Eq(&EmptyReturn) {
 			w.error(node.GetToken(), "not all code paths return a value")
 		}
-	} 
+	}
 
 	return variable
 }
 
 func (w *Walker) returnStmt(node *ast.ReturnStmt, scope *Scope) *ReturnType {
-	if !scope.Is(ReturnAllowing) { 
+	if !scope.Is(ReturnAllowing) {
 		w.error(node.GetToken(), "can't have a return statement outside of a function or method")
 	}
-	
+
 	ret := EmptyReturn
 	for i := range node.Args {
 		val := w.GetNodeValue(&node.Args[i], scope)
@@ -185,15 +185,15 @@ func (w *Walker) yieldStmt(node *ast.YieldStmt, scope *Scope) *ReturnType {
 	}
 
 	sc, tag, matchExprTag := ResolveTagScope[MatchTag](scope)
-	
+
 	if sc != nil {
 		//if scope.Tag.GetType() != MultiPath {
-			matchExprTag.ArmsYielded++
+		matchExprTag.ArmsYielded++
 		//}
 
 		if matchExprTag.YieldValues == nil {
 			matchExprTag.YieldValues = &ret
-		}else {
+		} else {
 			errorMsg := w.validateReturnValues(ret, *matchExprTag.YieldValues)
 			if errorMsg != "" {
 				errorMsg = strings.Replace(errorMsg, "return", "yield", -1)
@@ -503,16 +503,15 @@ func (w *Walker) useStmt(node *ast.UseStmt, scope *Scope) {
 func (w *Walker) matchStmt(node *ast.MatchStmt, isExpr bool, scope *Scope) {
 	val := w.GetNodeValue(&node.ExprToMatch, scope)
 	valType := val.GetType()
-	
+
 	var has_default bool
 	for i := range node.Cases {
 		var caseScope Scope
-	
-		
+
 		if node.Cases[i].Expression.GetToken().Lexeme == "_" {
 			caseScope = NewScope(scope, UntaggedTag{})
 			has_default = true
-		}else {
+		} else {
 			caseScope = NewScope(scope, MultiPathTag{})
 		}
 		if !isExpr {
@@ -534,7 +533,7 @@ func (w *Walker) matchStmt(node *ast.MatchStmt, isExpr bool, scope *Scope) {
 	}
 
 	if has_default && len(node.Cases) == 1 {
-		w.error(node.Cases[0].Expression.GetToken(), "Cannot have a match statement/expression with one arm that is default");
+		w.error(node.Cases[0].Expression.GetToken(), "cannot have a match statement/expression with one arm that is default")
 	}
 
 	if !has_default && isExpr {

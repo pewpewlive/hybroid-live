@@ -713,7 +713,7 @@ func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
 				Args:  []ast.Node{expr},
 				Token: expr.GetToken(),
 			}
-		}else {
+		} else {
 			node = ast.ReturnStmt{
 				Args:  []ast.Node{expr},
 				Token: expr.GetToken(),

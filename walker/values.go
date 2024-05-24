@@ -307,7 +307,7 @@ func (f FixedVal) GetSpecificType() ast.PrimitiveValueType {
 	return f.SpecificType
 }
 
-var EmptyReturn = ReturnType{values:[]TypeVal{}}
+var EmptyReturn = ReturnType{values: []TypeVal{}}
 
 type ReturnType struct {
 	values []TypeVal

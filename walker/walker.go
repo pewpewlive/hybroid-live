@@ -125,7 +125,7 @@ func (s *Scope) DeclareVariable(value VariableVal) (VariableVal, bool) {
 	}
 
 	s.Variables[value.Name] = value
-	s.VariableIndexes[value.Name] = len(s.VariableIndexes)+1
+	s.VariableIndexes[value.Name] = len(s.VariableIndexes) + 1
 
 	return value, true
 }
@@ -163,7 +163,7 @@ func (s *Scope) ResolveStructType(name string) *Scope { // for new expression, i
 	return s.Parent.ResolveStructType(name)
 }
 
-func ResolveTagScope[T ScopeTag](sc *Scope) (*Scope, *ScopeTag, *T) { 
+func ResolveTagScope[T ScopeTag](sc *Scope) (*Scope, *ScopeTag, *T) {
 	if tag, ok := sc.Tag.(T); ok {
 		return sc, &sc.Tag, &tag
 	}

@@ -251,15 +251,15 @@ type YieldStmt struct {
 	Token lexer.Token
 }
 
-func (rs YieldStmt) GetType() NodeType {
+func (ys YieldStmt) GetType() NodeType {
 	return YieldStatement
 }
 
-func (rs YieldStmt) GetToken() lexer.Token {
-	return rs.Token
+func (ys YieldStmt) GetToken() lexer.Token {
+	return ys.Token
 }
 
-func (rs YieldStmt) GetValueType() PrimitiveValueType {
+func (ys YieldStmt) GetValueType() PrimitiveValueType {
 	return 0
 }
 
