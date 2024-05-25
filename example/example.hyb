@@ -1,14 +1,11 @@
 @Environment(Level)
 
-fn simple_match(param text) bool {
+fn simple_match(param text) {
     let a = match param {
         "a" => {
             yield 2
         }
         "a" => {
-            if true {
-                return true
-            }
             yield 2
         }
         _ => {
@@ -17,54 +14,52 @@ fn simple_match(param text) bool {
     }
 
     let b = a-1
-
-    return b == 1
 }
 
-fn test(param number) fixed {
-    let testt = 12f
+// fn test(param number) fixed {
+//     let testt = 12f
     
-    let sese, sese2 = match param {
-        3 => { 
-            let a = "yield  goto hyl"
+//     let sese, sese2 = match param {
+//         3 => { 
+//             let a = "yield  goto hyl"
 
-            let b = match param {
-                3 => {
-                    yield "a"
-                }
-                _ => {
-                    yield "b"
-                }
-            }
+//             let b = match param {
+//                 3 => {
+//                     yield "a"
+//                 }
+//                 _ => {
+//                     yield "b"
+//                 }
+//             }
             
-            yield 228, 1 
-        }
-        4, 5 => {
-            yield 2, 3
-        }
-        //1 => 1, 2 
-        _ => {
-            //do something 
+//             yield 228, 1 
+//         }
+//         4, 5 => {
+//             yield 2, 3
+//         }
+//         //1 => 1, 2 
+//         _ => {
+//             //do something 
 
-            if true {
-                return testt
-            }
+//             if true {
+//                 return testt
+//             }
             
-            yield 1337, 2
-        }
-    }
+//             yield 1337, 2
+//         }
+//     }
 
-    sese = 2
+//     sese = 2
 
-    let a = match sese {
-        1 => {
-            yield 3
-        }
-        _ => {
-            yield 2
-        }
-    }
+//     let a = match sese {
+//         1 => {
+//             yield 3
+//         }
+//         _ => {
+//             yield 2
+//         }
+//     }
 
-    return testt
-}
+//     return testt
+// }
 

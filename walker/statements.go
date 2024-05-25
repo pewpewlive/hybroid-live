@@ -9,7 +9,8 @@ import (
 )
 
 func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
-	ifScope := NewScope(scope, MultiPathTag{})
+	multiPathScope := NewScope(scope, MultiPathTag{})
+	ifScope := NewScope(&multiPathScope, UntaggedTag{})
 	boolExpr := w.GetNodeValue(&node.BoolExpr, scope)
 	if boolExpr.GetType().Type != ast.Bool {
 		w.error(node.BoolExpr.GetToken(), "if condition is not a comparison")
@@ -30,7 +31,7 @@ func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
 		if boolExpr.GetType().Type != ast.Bool {
 			w.error(elseif.BoolExpr.GetToken(), "if condition is not a comparison")
 		}
-		ifScope := NewScope(scope, MultiPathTag{})
+		ifScope := NewScope(&multiPathScope, UntaggedTag{})
 		for _, stmt := range elseif.Body {
 			w.WalkNode(&stmt, &ifScope)
 			// if stmt.GetType() == ast.ReturnStatement {
@@ -43,11 +44,24 @@ func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
 	}
 
 	if node.Else != nil {
-		ifScope := NewScope(scope, UntaggedTag{})
+		elseScope := NewScope(&multiPathScope, UntaggedTag{})
 		for _, stmt := range node.Else.Body {
-			w.WalkNode(&stmt, &ifScope)
+			w.WalkNode(&stmt, &elseScope)
+		}
+		if rsc, returnable := scope.ResolveReturnable(); returnable != nil {
+			rsc.Tag = (*returnable).SetReturn(false, RETURN, YIELD)
 		}
 	}
+
+	_, _, mpTag := ResolveTagScope[MultiPathTag](&ifScope)
+
+	rsc, returnable := scope.ResolveReturnable()
+
+	if returnable == nil {
+		return;
+	}
+	rsc.Tag = (*returnable).SetReturn(mpTag.ReturnAmount == 2+len(node.Elseifs), RETURN)
+	rsc.Tag = (*returnable).SetReturn(mpTag.YieldAmount == 2+len(node.Elseifs), YIELD)
 }
 
 func (w *Walker) assignmentStmt(assignStmt *ast.AssignmentStmt, scope *Scope) {
@@ -133,12 +147,27 @@ func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scop
 	}
 
 	if funcTag, ok := fnScope.Tag.(FuncTag); ok {
-		if !funcTag.Returns && !ret.Eq(&EmptyReturn) {
+		if !FunctionReturns(funcTag.Returns) && !ret.Eq(&EmptyReturn) {
 			w.error(node.GetToken(), "not all code paths return a value")
 		}
 	}
 
 	return variable
+}
+
+func FunctionReturns(returns []bool) bool {
+	if len(returns) == 0 {
+		return false
+	}
+	if returns[len(returns)-1] {
+		return true
+	}
+	for i := range returns {
+		if !returns[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func (w *Walker) returnStmt(node *ast.ReturnStmt, scope *Scope) *ReturnType {
@@ -156,15 +185,20 @@ func (w *Walker) returnStmt(node *ast.ReturnStmt, scope *Scope) *ReturnType {
 			ret.values = append(ret.values, valType)
 		}
 	}
-	sc, tag, funcTag := ResolveTagScope[FuncTag](scope)
-	if sc != nil && scope.Tag.GetType() != MultiPath {
-		funcTag.Returns = true
-		*tag = funcTag
+	sc, _, funcTag := ResolveTagScope[FuncTag](scope)
+	if sc == nil {
+		return &ret
 	}
+
+	if sc, returnable := scope.ResolveReturnable(); returnable != nil {
+		sc.Tag = (*returnable).SetReturn(true, RETURN)
+	}
+	
 	errorMsg := w.validateReturnValues(ret, funcTag.ReturnType)
 	if errorMsg != "" {
 		w.error(node.GetToken(), errorMsg)
 	}
+
 	return &ret
 }
 
@@ -183,25 +217,27 @@ func (w *Walker) yieldStmt(node *ast.YieldStmt, scope *Scope) *ReturnType {
 			ret.values = append(ret.values, valType)
 		}
 	}
-
+	
 	sc, tag, matchExprTag := ResolveTagScope[MatchTag](scope)
 
-	if sc != nil {
-		//if scope.Tag.GetType() != MultiPath {
-		matchExprTag.ArmsYielded++
-		//}
+	if sc == nil {
+		return &ret
+	}
 
-		if matchExprTag.YieldValues == nil {
-			matchExprTag.YieldValues = &ret
-		} else {
-			errorMsg := w.validateReturnValues(ret, *matchExprTag.YieldValues)
-			if errorMsg != "" {
-				errorMsg = strings.Replace(errorMsg, "return", "yield", -1)
-				w.error(node.GetToken(), errorMsg)
-			}
+	if matchExprTag.YieldValues == nil {
+		matchExprTag.YieldValues = &ret
+	} else {
+		errorMsg := w.validateReturnValues(ret, *matchExprTag.YieldValues)
+		if errorMsg != "" {
+			errorMsg = strings.Replace(errorMsg, "return", "yield", -1)
+			w.error(node.GetToken(), errorMsg)
 		}
+	}
 
-		*tag = *matchExprTag
+	*tag = *matchExprTag
+
+	if rsc, returnable := scope.ResolveReturnable(); returnable != nil {
+		rsc.Tag = (*returnable).SetReturn(true, YIELD)
 	}
 
 	return &ret
@@ -504,16 +540,16 @@ func (w *Walker) matchStmt(node *ast.MatchStmt, isExpr bool, scope *Scope) {
 	val := w.GetNodeValue(&node.ExprToMatch, scope)
 	valType := val.GetType()
 
+	multiPathScope := NewScope(scope, MultiPathTag{})
+
 	var has_default bool
 	for _, matchCase := range node.Cases {
-		var caseScope Scope
+		caseScope := NewScope(&multiPathScope, UntaggedTag{})
 
 		if matchCase.Expression.GetToken().Lexeme == "_" {
-			caseScope = NewScope(scope, UntaggedTag{})
 			has_default = true
-		} else {
-			caseScope = NewScope(scope, MultiPathTag{})
 		}
+		
 		if !isExpr {
 			for i := range matchCase.Body {
 				w.WalkNode(&matchCase.Body[i], &caseScope)
@@ -538,5 +574,24 @@ func (w *Walker) matchStmt(node *ast.MatchStmt, isExpr bool, scope *Scope) {
 
 	if !has_default && isExpr {
 		w.error(node.GetToken(), "match expression has no default arm")
+	}
+
+	if isExpr {
+		return;
+	}
+	
+	returnable := GetValOfInterface[ReturnableTag](scope.Tag)
+
+	if returnable == nil {
+		return;
+	}
+
+	mpTag := multiPathScope.Tag.(MultiPathTag)
+
+	if !has_default {
+		scope.Tag = (*returnable).SetReturn(false, RETURN)
+	}else {
+		returns := len(node.Cases) == mpTag.ReturnAmount
+		scope.Tag = (*returnable).SetReturn(returns, RETURN)
 	}
 }

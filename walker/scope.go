@@ -1,6 +1,9 @@
 package walker
 
-import "go/ast"
+import (
+	"go/ast"
+	"reflect"
+)
 
 type Context struct {
 	Node  ast.Node
@@ -41,6 +44,29 @@ const (
 	MatchExpr
 )
 
+type GetType int
+
+const (
+	YIELD GetType = iota
+	RETURN
+)
+
+type ReturnableTag interface {
+	SetReturn(state bool, types ...GetType) ScopeTag
+}
+
+func GetValOfInterface[T any, E any](val E) *T {
+	value := reflect.ValueOf(val)
+	ah := reflect.TypeFor[T]()
+	if value.CanConvert(ah) {
+		test := value.Convert(ah).Interface()
+		tVal := test.(T)
+		return &tVal
+	}
+
+	return nil
+}
+
 type ScopeTag interface {
 	GetType() ScopeTagType
 }
@@ -68,7 +94,7 @@ func (et EntityTag) GetType() ScopeTagType {
 }
 
 type FuncTag struct {
-	Returns    bool
+	Returns    []bool
 	ReturnType ReturnType
 }
 
@@ -76,7 +102,13 @@ func (et FuncTag) GetType() ScopeTagType {
 	return Func
 }
 
+func (et FuncTag) SetReturn(state bool, types ...GetType) ScopeTag {
+	et.Returns = append(et.Returns, state)
+	return et
+}
+
 type MatchTag struct {
+	ReturnAmount int
 	ArmsYielded int
 	YieldValues *ReturnType
 }
@@ -85,10 +117,39 @@ func (et MatchTag) GetType() ScopeTagType {
 	return MatchExpr
 }
 
-type MultiPathTag struct{}
+func (et MatchTag) SetReturn(state bool, types ...GetType) ScopeTag {
+	if state {
+		for _, v := range types {
+			if v == YIELD {
+				et.ArmsYielded++
+			}else {
+				et.ReturnAmount++
+			}
+		}
+	}
+	return et
+}
 
+type MultiPathTag struct {
+	ReturnAmount int
+	YieldAmount int
+}
+//
 func (mp MultiPathTag) GetType() ScopeTagType {
 	return MultiPath
+}
+
+func (et MultiPathTag) SetReturn(state bool, types ...GetType) ScopeTag {
+	if state {
+		for _, v := range types {
+			if v == YIELD {
+				et.YieldAmount++
+			}else {
+				et.ReturnAmount++
+			}
+		}
+	}
+	return et
 }
 
 type ScopeAttribute int

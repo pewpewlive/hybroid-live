@@ -5,7 +5,6 @@ import (
 	"hybroid/ast"
 	"hybroid/lexer"
 	"hybroid/parser"
-	"reflect"
 )
 
 func (w *Walker) determineValueType(left TypeVal, right TypeVal) TypeVal {
@@ -211,7 +210,8 @@ func (w *Walker) methodCallExpr(node *ast.Node, scope *Scope) Value {
 
 	ownerVal := w.GetNodeValue(&method.Owner, scope)
 
-	if container := w.GetContainer(ownerVal); container != nil {
+	if container := GetValOfInterface[Container](ownerVal); container != nil {
+		container := *container
 		fields := container.GetFields()
 		for _, value := range fields {
 			if value.Name == method.MethodName {
@@ -255,16 +255,7 @@ func IsOfPrimitiveType(value Value, types ...ast.PrimitiveValueType) bool {
 	return false
 }
 
-func (w *Walker) GetContainer(val Value) Container {
-	value := reflect.ValueOf(val)
-	ah := reflect.TypeFor[Container]()
-	if value.CanConvert(ah) {
-		test := value.Convert(ah).Interface()
-		return test.(Container)
-	}
 
-	return nil
-}
 
 func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 	if node.Owner == nil {
@@ -287,7 +278,8 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 	ownerr := scope.Global.Ctx.Value
 	variable := VariableVal{Value: Invalid{}}
 	if IsOfPrimitiveType(ownerr, ast.Struct, ast.Entity, ast.Namespace) {
-		if container := w.GetContainer(ownerr); container != nil {
+		if container := GetValOfInterface[Container](ownerr); container != nil {
+			container := *container
 			ident := node.Identifier.GetToken()
 			val, index, contains := container.Contains(ident.Lexeme)
 
@@ -502,24 +494,40 @@ func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) ReturnType {
 	matchScope.Attributes.Add(YieldAllowing)
 
 	w.matchStmt(&node.MatchStmt, true, scope)
-
-	for _, matchCase := range node.MatchStmt.Cases {
-		var caseScope Scope
-		if matchCase.Expression.GetToken().Lexeme == "_" {
-			caseScope = NewScope(&matchScope, UntaggedTag{})
+	has_default := false
+	for i := range node.MatchStmt.Cases {
+		if node.MatchStmt.Cases[i].Expression.GetToken().Lexeme == "_" {
+			has_default = true
 		}
-		caseScope = NewScope(&matchScope, MultiPathTag{})
+		caseScope := NewScope(&matchScope, UntaggedTag{})
 
-		for i := range matchCase.Body {
-			w.WalkNode(&matchCase.Body[i], &caseScope)
+		for j := range node.MatchStmt.Cases[i].Body {
+			w.WalkNode(&node.MatchStmt.Cases[i].Body[j], &caseScope)
 		}
 	}
+	returnable := GetValOfInterface[ReturnableTag](scope.Tag)
 
 	matchTag, _ := matchScope.Tag.(MatchTag)
+	if matchTag.YieldValues == nil {
+		matchTag.YieldValues = &EmptyReturn
+	}
 	node.ReturnAmount = len(matchTag.YieldValues.values)
 
-	if len(node.MatchStmt.Cases) != matchTag.ArmsYielded {
+	if returnable == nil {
+		return *matchTag.YieldValues
+	}
+
+	if !has_default {
 		w.error(node.MatchStmt.GetToken(), "not all arms yield a value")
+		scope.Tag = (*returnable).SetReturn(false, RETURN)
+	}else {
+		yields := len(node.MatchStmt.Cases) == matchTag.ArmsYielded
+		scope.Tag = (*returnable).SetReturn(yields, YIELD)
+		if !yields {
+			w.error(node.MatchStmt.GetToken(), "not all arms yield a value")
+		}
+		returns := len(node.MatchStmt.Cases) == matchTag.ReturnAmount
+		scope.Tag = (*returnable).SetReturn(returns, RETURN)
 	}
 
 	return *matchTag.YieldValues

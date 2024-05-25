@@ -175,6 +175,27 @@ func ResolveTagScope[T ScopeTag](sc *Scope) (*Scope, *ScopeTag, *T) {
 	return ResolveTagScope[T](sc.Parent)
 }
 
+func IsZero[T comparable](v T) bool {
+	var z T
+	return v == z
+}
+
+func (sc *Scope) ResolveReturnable() (*Scope, *ReturnableTag) {
+	if IsZero(sc.Tag) {
+		return nil,  nil
+	}
+	
+	if returnable := GetValOfInterface[ReturnableTag](sc.Tag); returnable != nil {
+		return sc, returnable
+	}
+
+	if sc.Parent == nil {
+		return nil, nil
+	}
+
+	return sc.Parent.ResolveReturnable()
+}
+
 func (g *Global) GetForeignType(str string) Value {
 	return g.foreignTypes[str]
 }
