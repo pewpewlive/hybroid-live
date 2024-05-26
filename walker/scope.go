@@ -50,6 +50,8 @@ type GetType int
 const (
 	YIELD GetType = iota
 	RETURN
+	CONTINUE
+	BREAK
 )
 
 type ReturnableTag interface {
@@ -132,10 +134,10 @@ func (et MatchTag) SetReturn(state bool, types ...GetType) ScopeTag {
 }
 
 type MultiPathTag struct {
-	ReturnAmount int
-	YieldAmount  int
-	//ContinueAmount int
-	//BreakAmount    int
+	ReturnAmount   int
+	YieldAmount    int
+	ContinueAmount int
+	BreakAmount    int
 }
 
 func (mp MultiPathTag) GetType() ScopeTagType {
@@ -149,14 +151,40 @@ func (et MultiPathTag) SetReturn(state bool, types ...GetType) ScopeTag {
 				et.YieldAmount++
 			} else if v == RETURN {
 				et.ReturnAmount++
-			} /* else if v == CONTINUE {
+			} else if v == CONTINUE {
 				et.ContinueAmount++
 			} else if v == BREAK {
 				et.BreakAmount++
-			} */
+			}
 		}
 	}
 	return et
+}
+
+type LoopTag struct {
+	Continues []bool
+	Breaks    []bool
+	Returns   []bool
+	Yields    []bool
+}
+
+func (lt LoopTag) GetType() ScopeTagType {
+	return Loop
+}
+
+func (lt LoopTag) SetReturn(state bool, types ...GetType) ScopeTag {
+	for _, v := range types {
+		if v == YIELD {
+			lt.Yields = append(lt.Yields, state)
+		} else if v == RETURN {
+			lt.Returns = append(lt.Returns, state)
+		} else if v == CONTINUE {
+			lt.Continues = append(lt.Continues, state)
+		} else if v == BREAK {
+			lt.Breaks = append(lt.Breaks, state)
+		}
+	}
+	return lt
 }
 
 type ScopeAttribute int

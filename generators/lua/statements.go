@@ -209,10 +209,11 @@ func (gen *Generator) repeatStmt(node ast.RepeatStmt, scope *GenScope) {
 
 	scope.Write(repeatScope.Src)
 
+	scope.AppendTabbed("::" + gotoLabel + "::\n")
+
 	TabsCount -= 1
 
-	scope.Append(repeatTabs, "end\n")
-	scope.Append(repeatTabs, "::"+gotoLabel+"::")
+	scope.Append(repeatTabs, "end")
 }
 
 func (gen *Generator) tickStmt(node ast.TickStmt, scope *GenScope) {

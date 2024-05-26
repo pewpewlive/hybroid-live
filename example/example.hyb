@@ -1,5 +1,9 @@
 @Environment(Level)
 
+
+
+
+
 fn simple_match(param text) {
     let a = match param {
         "b" => {
@@ -8,16 +12,12 @@ fn simple_match(param text) {
                     if false {
                         yield 5
                     }
-                    continue    
                 }
                 else {
                     yield 2
                 }
                 break
             }
-
-
-
             yield match param {
                 "s" => {
                     yield 7
