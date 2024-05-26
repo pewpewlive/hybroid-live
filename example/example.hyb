@@ -2,29 +2,36 @@
 
 fn simple_match(param text) {
     let a = match param {
-        "a" => {
-            yield 2
-        }
-        "a" => {
-            yield 2
+        "b" => {
+            repeat 10 {
+                if true {
+                    if false {
+                        yield 5
+                    }
+                    continue    
+                }
+                else {
+                    yield 2
+                }
+                break
+            }
+
+
+
+            yield match param {
+                "s" => {
+                    yield 7
+                }
+                _ => 5
+            }
         }
         _ => {
             yield 1
-
-            let c = 1
         }
     }
-
-    match a {
-        "b" => {
-            return
-        }
-    }
-
-    let b = a-1
 }
 
-// fn test(param number) fixed {
+// fn test(param number) fixed { 
 //     let testt = 12f
     
 //     let sese, sese2 = match param {

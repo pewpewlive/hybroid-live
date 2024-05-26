@@ -186,9 +186,9 @@ func IsZero[T comparable](v T) bool {
 
 func (sc *Scope) ResolveReturnable() (*Scope, *ReturnableTag) {
 	if IsZero(sc.Tag) {
-		return nil,  nil
+		return nil, nil
 	}
-	
+
 	if returnable := GetValOfInterface[ReturnableTag](sc.Tag); returnable != nil {
 		return sc, returnable
 	}
@@ -323,6 +323,12 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 		*node = newNode
 	case ast.YieldStmt:
 		w.yieldStmt(&newNode, scope)
+		*node = newNode
+	case ast.BreakStmt:
+		w.breakStmt(&newNode, scope)
+		*node = newNode
+	case ast.ContinueStmt:
+		w.continueStmt(&newNode, scope)
 		*node = newNode
 	case ast.RepeatStmt:
 		w.repeatStmt(&newNode, scope)

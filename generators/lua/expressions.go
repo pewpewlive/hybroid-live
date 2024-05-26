@@ -252,17 +252,15 @@ func (gen *Generator) matchExpr(match ast.MatchExpr, scope *GenScope) string {
 
 		caseScope := NewGenScope(scope)
 
-		for _, bodyNode := range matchCase.Body {
-			gen.GenerateStmt(bodyNode, &caseScope)
-			caseScope.WriteString("\n")
-		}
+		gen.GenerateString(matchCase.Body, &caseScope)
 
-		caseScope.DoTheDos(map[GenTag]string{
+		caseScope.DoTheDos(map[DoType]string{
 			YieldReplacement: vars.String() + " = ",
 			GotoReplacement:  "goto " + gotoLabel,
 		})
 
 		scope.Write(caseScope.Src)
+		//scope.TransferDos(&caseScope)
 
 		TabsCount -= 1
 	}

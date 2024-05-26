@@ -50,11 +50,12 @@ func RandStr(n int) string {
 
 var TabsCount int
 
-type GenTag int
+type DoType int
 
 const (
-	YieldReplacement GenTag = iota
+	YieldReplacement DoType = iota
 	GotoReplacement
+	ContinueReplacement
 )
 
 func (sb *StringBuilder) ReplaceRange(str string, _range Range) {
@@ -74,8 +75,8 @@ type Range struct {
 	End   int
 }
 
-type Do struct { // we are out of ideas
-	Tag   GenTag
+type Do struct {
+	Tag   DoType
 	Range Range
 }
 
@@ -83,19 +84,40 @@ func NewRange(start int, end int) Range {
 	return Range{Start: start, End: end}
 }
 
-type GenScope struct {
-	Parent *GenScope
-	Src    StringBuilder
-	Dos    []Do // (two)
+type Replacements map[DoType]string
+
+type GenScope struct { // 0 3
+	Parent       *GenScope
+	Src          StringBuilder
+	Dos          []Do
+	Replacements Replacements
 }
 
-func (gs *GenScope) AddDo(tag GenTag, _range Range) {
+func (gs *GenScope) AddDo(tag DoType, _range Range) {
 	gs.Dos = append(gs.Dos, Do{Tag: tag, Range: _range})
 }
 
-func (gs *GenScope) DoTheDos(replacement map[GenTag]string) {
+func RemoveIndex[T any](s []T, index int) []T {
+	return append(s[:index], s[index+1:]...)
+}
+
+func (gs *GenScope) DoTheDos(replacement Replacements) {
+	lengthBefore := gs.Src.Len()
+
 	for i := len(gs.Dos) - 1; i >= 0; i-- {
-		gs.Src.ReplaceRange(replacement[gs.Dos[i].Tag], gs.Dos[i].Range)
+		if r, ok := replacement[gs.Dos[i].Tag]; ok {
+			gs.Src.ReplaceRange(r, gs.Dos[i].Range)
+			length := gs.Src.Len() - lengthBefore
+			//continue
+			for j := i + 1; j < len(gs.Dos); j++ {
+				gs.Dos[j].Range.Start += length
+				gs.Dos[j].Range.End += length
+			}
+
+			lengthBefore = gs.Src.Len()
+
+			RemoveIndex(gs.Dos, i)
+		}
 	}
 }
 
@@ -194,13 +216,13 @@ func (gen *Generator) GenerateStmt(node ast.Node, scope *GenScope) {
 	case ast.AssignmentStmt:
 		gen.assignmentStmt(newNode, scope)
 	case ast.BreakStmt:
-		//gen.breakStmt(newNode, scope)
+		gen.breakStmt(newNode, scope)
 	case ast.ReturnStmt:
 		gen.returnStmt(newNode, scope)
 	case ast.YieldStmt:
 		gen.yieldStmt(newNode, scope)
 	case ast.ContinueStmt:
-		//gen.continueStmt(newNode, scope)
+		gen.continueStmt(newNode, scope)
 	case ast.MatchStmt:
 		gen.matchStmt(newNode, scope)
 	case ast.IfStmt:

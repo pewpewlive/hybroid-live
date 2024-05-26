@@ -28,7 +28,6 @@ func (gen *Generator) ifStmt(node ast.IfStmt, scope *GenScope) {
 	ifScope.Append(ifTabs, "end\n")
 
 	TabsCount -= 1
-
 	scope.Write(ifScope.Src)
 }
 
@@ -160,12 +159,32 @@ func (gen *Generator) yieldStmt(node ast.YieldStmt, scope *GenScope) {
 	scope.AddDo(GotoReplacement, _range2)
 }
 
+func (gen *Generator) breakStmt(_ ast.BreakStmt, scope *GenScope) {
+	scope.AppendTabbed("break")
+}
+
+func (gen *Generator) continueStmt(_ ast.ContinueStmt, scope *GenScope) {
+	src := StringBuilder{}
+
+	src.AppendTabbed()
+	startIndex := src.Len()
+	src.Append("continue")
+	endIndex := src.Len()
+
+	scopeLength := scope.Src.Len()
+
+	scope.Write(src)
+
+	_range := NewRange(startIndex+scopeLength, endIndex+scopeLength)
+	scope.AddDo(ContinueReplacement, _range)
+}
+
 func (gen *Generator) repeatStmt(node ast.RepeatStmt, scope *GenScope) {
 	repeatScope := NewGenScope(scope)
 	repeatTabs := getTabs()
 
 	TabsCount += 1
-	tabs := getTabs()
+	//tabs := getTabs()
 
 	end := gen.GenerateExpr(node.Iterator, scope)
 	start := gen.GenerateExpr(node.Start, scope)
@@ -177,16 +196,20 @@ func (gen *Generator) repeatStmt(node ast.RepeatStmt, scope *GenScope) {
 		repeatScope.Append(repeatTabs, "for _ = ", start, ", ", end, ", ", skip, " do\n")
 	}
 
-	for _, stmt := range node.Body {
-		value := gen.GenerateExpr(stmt, &repeatScope)
-		repeatScope.Append(tabs, value, "\n")
-	}
+	gen.GenerateString(node.Body, &repeatScope)
 
-	repeatScope.Append(repeatTabs, "end")
+	gotoLabel := "hgtl" + RandStr(5)
+
+	repeatScope.DoTheDos(map[DoType]string{
+		ContinueReplacement: "goto " + gotoLabel,
+	})
+
+	scope.Write(repeatScope.Src)
 
 	TabsCount -= 1
 
-	repeatScope.Write(repeatScope.Src)
+	scope.Append(repeatTabs, "end\n")
+	scope.Append(repeatTabs, "::"+gotoLabel+"::")
 }
 
 func (gen *Generator) tickStmt(node ast.TickStmt, scope *GenScope) {

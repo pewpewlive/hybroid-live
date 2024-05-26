@@ -42,6 +42,7 @@ const (
 	Func
 	MultiPath
 	MatchExpr
+	Loop
 )
 
 type GetType int
@@ -109,8 +110,8 @@ func (et FuncTag) SetReturn(state bool, types ...GetType) ScopeTag {
 
 type MatchTag struct {
 	ReturnAmount int
-	ArmsYielded int
-	YieldValues *ReturnType
+	ArmsYielded  int
+	YieldValues  *ReturnType
 }
 
 func (et MatchTag) GetType() ScopeTagType {
@@ -122,7 +123,7 @@ func (et MatchTag) SetReturn(state bool, types ...GetType) ScopeTag {
 		for _, v := range types {
 			if v == YIELD {
 				et.ArmsYielded++
-			}else {
+			} else {
 				et.ReturnAmount++
 			}
 		}
@@ -132,9 +133,11 @@ func (et MatchTag) SetReturn(state bool, types ...GetType) ScopeTag {
 
 type MultiPathTag struct {
 	ReturnAmount int
-	YieldAmount int
+	YieldAmount  int
+	//ContinueAmount int
+	//BreakAmount    int
 }
-//
+
 func (mp MultiPathTag) GetType() ScopeTagType {
 	return MultiPath
 }
@@ -144,9 +147,13 @@ func (et MultiPathTag) SetReturn(state bool, types ...GetType) ScopeTag {
 		for _, v := range types {
 			if v == YIELD {
 				et.YieldAmount++
-			}else {
+			} else if v == RETURN {
 				et.ReturnAmount++
-			}
+			} /* else if v == CONTINUE {
+				et.ContinueAmount++
+			} else if v == BREAK {
+				et.BreakAmount++
+			} */
 		}
 	}
 	return et
@@ -158,6 +165,8 @@ const (
 	ReturnAllowing ScopeAttribute = iota + 1
 	YieldAllowing
 	SelfAllowing
+	BreakAllowing
+	ContinueAllowing
 )
 
 type ScopeAttributes []ScopeAttribute

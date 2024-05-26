@@ -351,11 +351,11 @@ func (p *Parser) returnStmt() ast.Node {
 		Token: p.peek(-1),
 	}
 
-	if p.peek().Type == lexer.RightBrace {
-		return returnStmt
-	}
 	args := []ast.Node{}
 	expr := p.expression()
+	if expr.GetType() == ast.NA {
+		return returnStmt
+	}
 	args = append(args, expr)
 	for p.match(lexer.Comma) {
 		expr = p.expression()
