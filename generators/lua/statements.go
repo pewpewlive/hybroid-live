@@ -341,7 +341,11 @@ func (gen *Generator) matchStmt(node ast.MatchStmt, scope *GenScope) {
 		BoolExpr: ast.BinaryExpr{Left: node.ExprToMatch, Operator: lexer.Token{Type: lexer.EqualEqual, Lexeme: "=="}, Right: node.Cases[0].Expression},
 		Body:     node.Cases[0].Body,
 	}
+	has_default := false
 	for i := range node.Cases {
+		if node.Cases[i].Expression.GetToken().Lexeme == "_" {
+			has_default = true
+		}
 		if i == 0 || i == len(node.Cases)-1 {
 			continue
 		}
@@ -352,8 +356,10 @@ func (gen *Generator) matchStmt(node ast.MatchStmt, scope *GenScope) {
 		ifStmt.Elseifs = append(ifStmt.Elseifs, &elseIfStmt)
 	}
 
-	ifStmt.Else = &ast.IfStmt{
-		Body: node.Cases[len(node.Cases)-1].Body,
+	if has_default {
+		ifStmt.Else = &ast.IfStmt{
+			Body: node.Cases[len(node.Cases)-1].Body,
+		}
 	}
 
 	gen.ifStmt(ifStmt, scope)

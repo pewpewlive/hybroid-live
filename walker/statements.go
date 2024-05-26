@@ -142,8 +142,21 @@ func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scop
 		w.error(node.GetToken(), "cannot declare a global function inside a local block")
 	}
 
+	endIndex := -1
 	for i := range node.Body {
+		if funcTag, ok := fnScope.Tag.(FuncTag); ok {
+			if len(funcTag.Returns) != 0 {
+				if funcTag.Returns[len(funcTag.Returns)-1] {
+					w.warn(node.Body[i].GetToken(), "unreachable code detected")
+					endIndex = i
+					break
+				}
+			}
+		}
 		w.WalkNode(&node.Body[i], &fnScope)
+	}
+	if endIndex != -1 {
+		node.Body = node.Body[:endIndex]
 	}
 
 	if funcTag, ok := fnScope.Tag.(FuncTag); ok {
@@ -159,15 +172,12 @@ func FunctionReturns(returns []bool) bool {
 	if len(returns) == 0 {
 		return false
 	}
-	if returns[len(returns)-1] {
-		return true
-	}
 	for i := range returns {
-		if !returns[i] {
-			return false
+		if returns[i] {
+			return true
 		}
 	}
-	return true
+	return false
 }
 
 func (w *Walker) returnStmt(node *ast.ReturnStmt, scope *Scope) *ReturnType {

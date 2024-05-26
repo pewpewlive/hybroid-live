@@ -366,10 +366,6 @@ func (p *Parser) returnStmt() ast.Node {
 	}
 	returnStmt.Args = args
 
-	if !p.check(lexer.RightBrace) {
-		p.warn(p.peek(), "unreachable code detected")
-	}
-
 	return returnStmt
 }
 
@@ -392,10 +388,6 @@ func (p *Parser) yieldStmt() ast.Node {
 		args = append(args, expr)
 	}
 	yieldStmt.Args = args
-
-	if !p.check(lexer.RightBrace) {
-		p.warn(p.peek(), "unreachable code detected")
-	}
 
 	return yieldStmt
 }

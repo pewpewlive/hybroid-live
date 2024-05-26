@@ -501,8 +501,18 @@ func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) ReturnType {
 		}
 		caseScope := NewScope(&matchScope, UntaggedTag{})
 
+		endIndex := -1
 		for j := range node.MatchStmt.Cases[i].Body {
+			matchTag, _ := matchScope.Tag.(MatchTag) 
+			if matchTag.ArmsYielded == i+1 {
+				w.warn(node.MatchStmt.Cases[i].Body[j].GetToken(), "unreachable code detected")
+				endIndex = j
+				break
+			}
 			w.WalkNode(&node.MatchStmt.Cases[i].Body[j], &caseScope)
+		}
+		if endIndex != -1 {
+			node.MatchStmt.Cases[i].Body = node.MatchStmt.Cases[i].Body[:endIndex]
 		}
 	}
 	returnable := GetValOfInterface[ReturnableTag](scope.Tag)

@@ -12,11 +12,6 @@ func (p *Parser) error(token lexer.Token, msg string) {
 	//panic(errMsg.Message)
 }
 
-func (p *Parser) warn(token lexer.Token, msg string) {
-	warn := ast.Warning{Token: token, Message: msg}
-	p.Warnings = append(p.Warnings, warn)
-}
-
 func (p *Parser) synchronize() {
 	p.advance()
 	for !p.isAtEnd() {

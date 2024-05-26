@@ -70,12 +70,6 @@ func (e *Evaluator) Action() error {
 		}
 		return fmt.Errorf("failed to parse source file")
 	}
-	if len(e.parser.Warnings) != 0 {
-		for _, err := range e.parser.Warnings {
-			colorstring.Printf("[yellow]Warning: %+v\n", err)
-		}
-	}
-
 	fmt.Printf("Parsing time: %v seconds\n\n", time.Since(start).Seconds())
 	start = time.Now()
 

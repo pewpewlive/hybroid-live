@@ -18,6 +18,10 @@ func (w *Walker) error(token lexer.Token, msg string) {
 	w.Errors = append(w.Errors, ast.Error{Token: token, Message: msg})
 }
 
+func (w *Walker) warn(token lexer.Token, msg string) {
+	w.Warnings = append(w.Warnings, ast.Warning{Token: token, Message: msg})
+}
+
 func (w *Walker) addError(err ast.Error) {
 	w.Errors = append(w.Errors, err)
 }

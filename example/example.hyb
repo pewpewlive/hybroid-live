@@ -10,6 +10,14 @@ fn simple_match(param text) {
         }
         _ => {
             yield 1
+
+            let c = 1
+        }
+    }
+
+    match a {
+        "b" => {
+            return
         }
     }
 
