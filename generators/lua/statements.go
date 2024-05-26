@@ -27,6 +27,8 @@ func (gen *Generator) ifStmt(node ast.IfStmt, scope *GenScope) {
 
 	ifScope.Append(ifTabs, "end\n")
 
+	ifScope.DoTheDos(ifScope.ReplaceSettings)
+
 	TabsCount -= 1
 	scope.Write(ifScope.Src)
 }
@@ -196,13 +198,14 @@ func (gen *Generator) repeatStmt(node ast.RepeatStmt, scope *GenScope) {
 		repeatScope.Append(repeatTabs, "for _ = ", start, ", ", end, ", ", skip, " do\n")
 	}
 
+	gotoLabel := "hgtl" + RandStr(5)
+	repeatScope.ReplaceSettings = map[ReplaceType]string{
+		ContinueReplacement: "goto " + gotoLabel,
+	}
+
 	gen.GenerateString(node.Body, &repeatScope)
 
-	gotoLabel := "hgtl" + RandStr(5)
-
-	repeatScope.DoTheDos(map[DoType]string{
-		ContinueReplacement: "goto " + gotoLabel,
-	})
+	repeatScope.DoTheDos(repeatScope.ReplaceSettings)
 
 	scope.Write(repeatScope.Src)
 

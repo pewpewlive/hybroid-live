@@ -50,10 +50,10 @@ func RandStr(n int) string {
 
 var TabsCount int
 
-type DoType int
+type ReplaceType int
 
 const (
-	YieldReplacement DoType = iota
+	YieldReplacement ReplaceType = iota
 	GotoReplacement
 	ContinueReplacement
 )
@@ -75,8 +75,8 @@ type Range struct {
 	End   int
 }
 
-type Do struct {
-	Tag   DoType
+type Replacement struct {
+	Tag   ReplaceType
 	Range Range
 }
 
@@ -84,48 +84,61 @@ func NewRange(start int, end int) Range {
 	return Range{Start: start, End: end}
 }
 
-type Replacements map[DoType]string
+type ReplaceSettings map[ReplaceType]string
 
 type GenScope struct { // 0 3
-	Parent       *GenScope
-	Src          StringBuilder
-	Dos          []Do
-	Replacements Replacements
+	Parent          *GenScope
+	Src             StringBuilder
+	Replacements    []Replacement
+	ReplaceSettings ReplaceSettings
 }
 
-func (gs *GenScope) AddDo(tag DoType, _range Range) {
-	gs.Dos = append(gs.Dos, Do{Tag: tag, Range: _range})
+func (gs *GenScope) AddDo(tag ReplaceType, _range Range) {
+	gs.Replacements = append(gs.Replacements, Replacement{Tag: tag, Range: _range})
 }
 
 func RemoveIndex[T any](s []T, index int) []T {
 	return append(s[:index], s[index+1:]...)
 }
 
-func (gs *GenScope) DoTheDos(replacement Replacements) {
+func ResolveReplacement(rType ReplaceType, scope *GenScope) string {
+	if r, ok := scope.ReplaceSettings[rType]; ok {
+		return r
+	}
+
+	if scope.Parent == nil {
+		return "SKILL ISSUE"
+	}
+
+	return ResolveReplacement(rType, scope.Parent)
+}
+
+func (gs *GenScope) DoTheDos(replacement ReplaceSettings) {
 	lengthBefore := gs.Src.Len()
 
-	for i := len(gs.Dos) - 1; i >= 0; i-- {
-		if r, ok := replacement[gs.Dos[i].Tag]; ok {
-			gs.Src.ReplaceRange(r, gs.Dos[i].Range)
-			length := gs.Src.Len() - lengthBefore
-			//continue
-			for j := i + 1; j < len(gs.Dos); j++ {
-				gs.Dos[j].Range.Start += length
-				gs.Dos[j].Range.End += length
-			}
+	for i := len(gs.Replacements) - 1; i >= 0; i-- {
+		replace := ResolveReplacement(gs.Replacements[i].Tag, gs)
 
-			lengthBefore = gs.Src.Len()
+		gs.Src.ReplaceRange(replace, gs.Replacements[i].Range)
+		length := gs.Src.Len() - lengthBefore
 
-			RemoveIndex(gs.Dos, i)
+		for j := i + 1; j < len(gs.Replacements); j++ {
+			gs.Replacements[j].Range.Start += length
+			gs.Replacements[j].Range.End += length
 		}
+
+		lengthBefore = gs.Src.Len()
+
+		RemoveIndex(gs.Replacements, i)
 	}
 }
 
 func NewGenScope(scope *GenScope) GenScope {
 	return GenScope{
-		Parent: scope.Parent,
-		Src:    StringBuilder{},
-		Dos:    []Do{},
+		Parent:          scope,
+		Src:             StringBuilder{},
+		Replacements:    []Replacement{},
+		ReplaceSettings: map[ReplaceType]string{},
 	}
 }
 
