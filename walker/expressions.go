@@ -185,8 +185,13 @@ func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope, callType ProcedureTy
 	callerToken := node.Caller.GetToken()
 	val := w.GetNodeValue(&node.Caller, scope)
 
-	if val.GetType().Type != ast.Func {
-		w.error(callerToken, fmt.Sprintf("variable used as if it's a %s (type: %s)", typeCall, val.GetType().Type.ToString()))
+	valType := val.GetType().Type
+	if valType != ast.Func {
+		if valType != ast.Invalid {
+			w.error(callerToken, fmt.Sprintf("variable used as if it's a %s (type: %s)", typeCall, val.GetType().Type.ToString()))
+		} else {
+			w.error(callerToken, fmt.Sprintf("unkown %s", typeCall))
+		}
 		return Invalid{}
 	}
 
@@ -205,8 +210,8 @@ func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope, callType ProcedureTy
 	return CallVal{types: fun.returnVal}
 }
 
-func (w *Walker) methodCallExpr(node *ast.Node, scope *Scope) Value {
-	method := (*node).(ast.MethodCallExpr)
+func (w *Walker) methodCallExpr(node *ast.Node, scope *Scope) Value { // ty
+	method := (*node).(ast.MethodCallExpr) // ok
 
 	ownerVal := w.GetNodeValue(&method.Owner, scope)
 
@@ -254,8 +259,6 @@ func IsOfPrimitiveType(value Value, types ...ast.PrimitiveValueType) bool {
 
 	return false
 }
-
-
 
 func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 	if node.Owner == nil {
@@ -503,7 +506,7 @@ func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) ReturnType {
 
 		endIndex := -1
 		for j := range node.MatchStmt.Cases[i].Body {
-			matchTag, _ := matchScope.Tag.(MatchTag) 
+			matchTag, _ := matchScope.Tag.(MatchTag)
 			if matchTag.ArmsYielded == i+1 {
 				w.warn(node.MatchStmt.Cases[i].Body[j].GetToken(), "unreachable code detected")
 				endIndex = j
@@ -530,7 +533,7 @@ func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) ReturnType {
 	if !has_default {
 		w.error(node.MatchStmt.GetToken(), "not all arms yield a value")
 		scope.Tag = (*returnable).SetReturn(false, RETURN)
-	}else {
+	} else {
 		yields := len(node.MatchStmt.Cases) == matchTag.ArmsYielded
 		scope.Tag = (*returnable).SetReturn(yields, YIELD)
 		if !yields {

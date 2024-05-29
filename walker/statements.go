@@ -15,27 +15,27 @@ func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
 	if boolExpr.GetType().Type != ast.Bool {
 		w.error(node.BoolExpr.GetToken(), "if condition is not a comparison")
 	}
-	for _, node := range node.Body {
+	for i := range node.Body {
 		w.Context = node
-		w.WalkNode(&node, &ifScope)
+		w.WalkNode(&node.Body[i], &ifScope)
 	}
 
-	for _, elseif := range node.Elseifs {
-		boolExpr := w.GetNodeValue(&elseif.BoolExpr, scope)
+	for i := range node.Elseifs {
+		boolExpr := w.GetNodeValue(&node.Elseifs[i].BoolExpr, scope)
 		if boolExpr.GetType().Type != ast.Bool {
-			w.error(elseif.BoolExpr.GetToken(), "if condition is not a comparison")
+			w.error(node.Elseifs[i].BoolExpr.GetToken(), "if condition is not a comparison")
 		}
 		ifScope := NewScope(&multiPathScope, UntaggedTag{})
-		for _, stmt := range elseif.Body {
-			w.WalkNode(&stmt, &ifScope)
+		for j := range node.Elseifs[i].Body {
+			w.WalkNode(&node.Elseifs[i].Body[j], &ifScope)
 		}
 	}
 
 	has_else := false
 	if node.Else != nil {
 		elseScope := NewScope(&multiPathScope, UntaggedTag{})
-		for _, stmt := range node.Else.Body {
-			w.WalkNode(&stmt, &elseScope)
+		for i := range node.Else.Body {
+			w.WalkNode(&node.Else.Body[i], &elseScope) //lol
 		}
 		has_else = true
 	}
@@ -337,10 +337,10 @@ func (w *Walker) repeatStmt(node *ast.RepeatStmt, scope *Scope) {
 		node.Body = node.Body[:endIndex]
 	}
 
-	rsc, returnable := scope.Parent.ResolveReturnable()
+	rsc, returnable := repeatScope.Parent.ResolveReturnable()
 	loopTag := GetValOfInterface[LoopTag](repeatScope.Tag)
 
-	if rsc == nil {
+	if rsc == nil || returnable == nil {
 		return
 	}
 

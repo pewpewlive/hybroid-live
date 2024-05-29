@@ -185,7 +185,7 @@ func IsZero[T comparable](v T) bool {
 }
 
 func (sc *Scope) ResolveReturnable() (*Scope, *ReturnableTag) {
-	if IsZero(sc.Tag) {
+	if sc.Parent == nil {
 		return nil, nil
 	}
 
@@ -193,7 +193,7 @@ func (sc *Scope) ResolveReturnable() (*Scope, *ReturnableTag) {
 		return sc, returnable
 	}
 
-	if sc.Parent == nil {
+	if IsZero(sc.Tag) {
 		return nil, nil
 	}
 
