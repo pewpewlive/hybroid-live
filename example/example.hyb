@@ -84,22 +84,23 @@ struct Cube {
 
   health = 3
 
+  yuppie = [new Cube(2f, 2f)]
+
   new(x fixed, y fixed) {
     self.x = x
-    self.y = y
+    y = self.y
   }
 
-/*
- fun func
-*/
   fn SetPos(newX fixed, newY fixed) {
-    self.x = newX
-    self.y = newY
+    x = newX
+    y = newY
   } 
 
   fn Move(dirX fixed, dirY fixed) {
-    self.x += dirX
-    self.y += dirY
+    x += dirX + x
+    y += dirY
+
+    yuppie[0].yuppie[-322].yuppie[0].Move(2f, 2f)
   }
 }
 

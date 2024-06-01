@@ -81,24 +81,25 @@ func (w *Walker) identifierExpr(node *ast.Node, scope *Scope) Value {
 	if sc != nil {
 		newValue := sc.GetVariable(sc, ident.Name.Lexeme)
 
-		/* if sc.Is(Structure)  && scope.Global.Ctx.Node.GetType() != ast.FieldExpression  {
-			//varIndex := sc.GetVariableIndex(sc, ident.Name.Lexeme)
-				selfExpr := ast.FieldExpr{
-					Identifier: ast.SelfExpr{
-						Token: valueNode.GetToken(),
-						Type:  ast.SelfStruct,
-					},
-				}
+		if sc.Tag.GetType() == Struct {
+			varIndex := sc.GetVariableIndex(sc, ident.Name.Lexeme)
+			selfExpr := ast.FieldExpr{
+				Identifier: ast.SelfExpr{
+					Token: valueNode.GetToken(),
+					Type:  ast.SelfStruct,
+				},
+			}
 
-				fieldExpr := ast.FieldExpr{
-					Owner:      selfExpr,
-					Identifier: valueNode,
-					Index:      varIndex,
-				} // self.thing
-				selfExpr.Property = fieldExpr
+			fieldExpr := ast.FieldExpr{
+				Owner:      selfExpr,
+				Identifier: valueNode,
+				Index:      varIndex,
+			}
+			selfExpr.Property = fieldExpr
 
-				*node = selfExpr
-		} else if sc.Type == Entity {
+			*node = selfExpr
+		}
+		/*else if sc.Type == Entity {
 			varIndex := sc.GetVariableIndex(sc, node.Name.Lexeme)
 
 			selfExpr := ast.SelfExpr{

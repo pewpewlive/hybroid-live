@@ -1,7 +1,7 @@
 package walker
 
 import (
-	"go/ast"
+	"hybroid/ast"
 	"reflect"
 )
 
@@ -20,10 +20,16 @@ type Global struct {
 
 func NewGlobal() Global {
 	scope := Scope{
+		Tag:             UntaggedTag{},
 		Variables:       map[string]VariableVal{},
 		VariableIndexes: map[string]int{},
 	}
 	global := Global{
+		Ctx: Context{
+			Node:  ast.Improper{},
+			Value: Unknown{},
+			Ret:   ReturnType{},
+		},
 		Scope:        scope,
 		foreignTypes: map[string]Value{},
 		StructTypes:  map[string]*StructTypeVal{},
