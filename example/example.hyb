@@ -4,10 +4,13 @@ struct Cube {
   x, y = 20.5f, 30.01f
   size = 5f
 
-  name = "cube :3"
+  name = "cube"
 
   health = 3
 
+  yessss = fn (a fixed) {
+
+  }
   yuppie = [new Cube(2f, 2f)]
 
   new(x fixed, y fixed) {
@@ -24,9 +27,11 @@ struct Cube {
     x += dirX + x
     y += dirY
 
-    yuppie[0].yuppie[-322].yuppie[0].Move(2f, 2f)
+    yuppie[0].yuppie[-322].yuppie[0].Move(2f, 3f)
+    yessss(1f)
   }
 }
+
 
 let cube = new Cube(10f, 10f)
 

@@ -344,7 +344,7 @@ type TypeVal struct {
 	WrappedType *TypeVal
 	Name        string
 	Type        ast.PrimitiveValueType
-	Params      *[]TypeVal
+	Params      []TypeVal
 	Returns     ReturnType
 }
 
@@ -361,9 +361,9 @@ func (t TypeVal) Eq(otherT TypeVal) bool {
 	} else {
 		if otherT.Params == nil && t.Params == nil {
 			paramsAreSame = true
-		} else if len(*t.Params) == len(*otherT.Params) {
-			for i, v := range *t.Params {
-				if !v.Eq((*otherT.Params)[i]) {
+		} else if len(t.Params) == len(otherT.Params) {
+			for i, v := range t.Params {
+				if !v.Eq(otherT.Params[i]) {
 					paramsAreSame = false
 					break
 				}
@@ -389,11 +389,11 @@ func (t TypeVal) ToString() string {
 
 	if t.Params != nil {
 		src.Append("(")
-		for i := range *t.Params {
-			if i == len(*t.Params)-1 {
-				src.Append((*t.Params)[i].ToString())
+		for i := range t.Params {
+			if i == len(t.Params)-1 {
+				src.Append(t.Params[i].ToString())
 			} else {
-				src.Append((*t.Params)[i].ToString(), ", ")
+				src.Append(t.Params[i].ToString(), ", ")
 			}
 		}
 		src.Append(")")
@@ -430,7 +430,7 @@ type FunctionVal struct {
 }
 
 func (f FunctionVal) GetType() TypeVal {
-	return TypeVal{Name: "function", Type: ast.Func, Params: &f.params, Returns: f.returnVal}
+	return TypeVal{Name: "function", Type: ast.Func, Params: f.params, Returns: f.returnVal}
 }
 
 func (f FunctionVal) GetReturnType() ReturnType {

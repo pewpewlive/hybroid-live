@@ -428,8 +428,7 @@ func (w *Walker) selfExpr(self *ast.SelfExpr, scope *Scope) Value {
 
 	if sc != nil {
 		(*self).Type = ast.SelfStruct
-		structTypeVal := sc.GetStructType(sc, structTag.StructType.GetType().Name)
-		return StructVal{Type: structTypeVal}
+		return StructVal{Type: structTag.StructType}
 	} else {
 		return Invalid{}
 	}
@@ -550,17 +549,15 @@ func (w *Walker) typeExpr(typee *ast.TypeExpr) TypeVal {
 		temp := w.typeExpr(typee.WrappedType)
 		wrapped = &temp
 	}
-	var params *[]TypeVal
+	params := []TypeVal{}
 	if typee.Params != nil {
-		paramsTemp := []TypeVal{}
 		for _, v := range *typee.Params {
-			paramsTemp = append(paramsTemp, w.typeExpr(&v))
+			params = append(params, w.typeExpr(&v))
 		}
-		params = &paramsTemp
 	}
 
-	returns := make([]TypeVal, 0)
-	for _, v := range typee.Returns { // follow
+	returns := []TypeVal{}
+	for _, v := range typee.Returns {
 		returns = append(returns, w.typeExpr(&v))
 	}
 

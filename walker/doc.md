@@ -1,8 +1,8 @@
-# WALKER
+# Walker
 
 The walker walks through all the nodes, verifies their legitimacy and/or changes them.
 
-## values.go
+## `values.go`
 
 This section covers all the structs and interfaces used for abstracting values.
 
@@ -12,19 +12,17 @@ It's used to abstract any kind of value, including numbers, booleans, nil, strin
 
 ```go
 type Value interface {
-  GetType() TypeVal
-  GetDefault() ast.LiteralExpr
+	GetType() TypeVal
+	GetDefault() ast.LiteralExpr
 }
 ```
 
 **Methods:**
-
 1. `TypeVal GetType()` - returns the type of the value in the form of a TypeVal value
-2. `ast.LiteralExpr GetType()` - returns the default value in the form of a literal expression node
+2. `ast.LiteralExpr GetDefault()` - returns the default value in the form of a literal expression node
 
 
 **Implementations:**
-
 ```go
 type VariableVal struct {
 	Name    string
@@ -40,7 +38,7 @@ type TypeVal struct {
 	WrappedType *TypeVal
 	Name        string
 	Type        ast.PrimitiveValueType
-	Params      *[]TypeVal
+	Params      []TypeVal
 	Returns     ReturnType
 }
 ```
@@ -95,7 +93,7 @@ type MapVal struct {
 }
 ```
 
-Extra methods:
+**Extra methods:**
 1. `GetContentsValueType() -> TypeVal` - checks the contents of the `MapVal` and, if all the values have the same type, returns the `TypeVal` that they all share. If they don't have the same value type it returns `Invalid`.
 
 ```go
@@ -105,7 +103,7 @@ type ListVal struct {
 }
 ```
 
-Extra methods:
+**Extra methods:**
 1. a `GetContentsValueType() -> TypeVal` - checks the contents of the `MapVal` and, if all the values have the same type, returns the `TypeVal` that they all share. If they don't have the same value type it returns `Invalid`.
 
 ```go
@@ -185,7 +183,7 @@ Only `Value`s implement `Container`, specifically:
 3. `NamespaceVal`
 4. `EntityVal` (doesn't exist yet)
 
-## Scope.go
+## `scope.go`
 
 This section covers all the interfaces and structs used to make walking the nodes more organized and easier.
 
