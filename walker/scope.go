@@ -2,7 +2,7 @@ package walker
 
 import (
 	"hybroid/ast"
-	"reflect"
+	"hybroid/helpers"
 )
 
 type Context struct {
@@ -18,7 +18,7 @@ type Namespace struct {
 	StructTypes  map[string]*StructTypeVal
 }
 
-func NewGlobal() Namespace {
+func NewNamespace() Namespace {
 	scope := Scope{
 		Tag:             UntaggedTag{},
 		Variables:       map[string]VariableVal{},
@@ -48,32 +48,19 @@ const (
 	Func
 	MultiPath
 	MatchExpr
-	Loop
 )
 
-type GetType int
+type ExitType int
 
 const (
-	YIELD GetType = iota
-	RETURN
-	CONTINUE
-	BREAK
+	Yield ExitType = iota
+	Return
+	Continue
+	Break
 )
 
 type ReturnableTag interface {
-	SetReturn(state bool, types ...GetType) ScopeTag
-}
-
-func GetValOfInterface[T any, E any](val E) *T {
-	value := reflect.ValueOf(val)
-	ah := reflect.TypeFor[T]()
-	if value.CanConvert(ah) {
-		test := value.Convert(ah).Interface()
-		tVal := test.(T)
-		return &tVal
-	}
-
-	return nil
+	SetReturn(state bool, types ...ExitType) ScopeTag
 }
 
 type ScopeTag interface {
@@ -94,6 +81,7 @@ func (st StructTag) GetType() ScopeTagType {
 	return Struct
 }
 
+// to be used
 type EntityTag struct {
 	//EntityType *StructTypeVal
 }
@@ -111,86 +99,60 @@ func (et FuncTag) GetType() ScopeTagType {
 	return Func
 }
 
-func (et FuncTag) SetReturn(state bool, types ...GetType) ScopeTag {
+func (et FuncTag) SetReturn(state bool, types ...ExitType) ScopeTag {
 	et.Returns = append(et.Returns, state)
 	return et
 }
 
-type MatchTag struct {
-	ReturnAmount int
-	ArmsYielded  int
-	YieldValues  *ReturnType
+type MatchExprTag struct {
+	mpt         MultiPathTag
+	ArmsYielded int
+	YieldValues *ReturnType
 }
 
-func (et MatchTag) GetType() ScopeTagType {
+func (met MatchExprTag) GetType() ScopeTagType {
 	return MatchExpr
 }
 
-func (et MatchTag) SetReturn(state bool, types ...GetType) ScopeTag {
+func (met MatchExprTag) SetReturn(state bool, types ...ExitType) ScopeTag {
 	if state {
 		for _, v := range types {
-			if v == YIELD {
-				et.ArmsYielded++
+			if v == Yield {
+				met.ArmsYielded++
 			} else {
-				et.ReturnAmount++
+				met.mpt.SetReturn(state, types...)
 			}
 		}
 	}
-	return et
+	return met
 }
 
 type MultiPathTag struct {
-	ReturnAmount   int
-	YieldAmount    int
-	ContinueAmount int
-	BreakAmount    int
+	Returns   []bool
+	Yields    []bool
+	Continues []bool
+	Breaks    []bool
 }
 
-func (mp MultiPathTag) GetType() ScopeTagType {
+func (mpt MultiPathTag) GetType() ScopeTagType {
 	return MultiPath
 }
 
-func (et MultiPathTag) SetReturn(state bool, types ...GetType) ScopeTag {
+func (mpt MultiPathTag) SetReturn(state bool, types ...ExitType) ScopeTag {
 	if state {
 		for _, v := range types {
-			if v == YIELD {
-				et.YieldAmount++
-			} else if v == RETURN {
-				et.ReturnAmount++
-			} else if v == CONTINUE {
-				et.ContinueAmount++
-			} else if v == BREAK {
-				et.BreakAmount++
+			if v == Yield {
+				mpt.Yields = append(mpt.Yields, state)
+			} else if v == Return {
+				mpt.Returns = append(mpt.Returns, state)
+			} else if v == Continue {
+				mpt.Continues = append(mpt.Continues, state)
+			} else if v == Break {
+				mpt.Breaks = append(mpt.Breaks, state)
 			}
 		}
 	}
-	return et
-}
-
-type LoopTag struct {
-	Continues []bool
-	Breaks    []bool
-	Returns   []bool
-	Yields    []bool
-}
-
-func (lt LoopTag) GetType() ScopeTagType {
-	return Loop
-}
-
-func (lt LoopTag) SetReturn(state bool, types ...GetType) ScopeTag {
-	for _, v := range types {
-		if v == YIELD {
-			lt.Yields = append(lt.Yields, state)
-		} else if v == RETURN {
-			lt.Returns = append(lt.Returns, state)
-		} else if v == CONTINUE {
-			lt.Continues = append(lt.Continues, state)
-		} else if v == BREAK {
-			lt.Breaks = append(lt.Breaks, state)
-		}
-	}
-	return lt
+	return mpt
 }
 
 type ScopeAttribute int
@@ -231,22 +193,13 @@ type Scope struct {
 	VariableIndexes map[string]int
 }
 
-func Contains(list []ScopeAttribute, thing ScopeAttribute) bool {
-	for _, v := range list {
-		if thing == v {
-			return true
-		}
-	}
-	return false
-}
-
 func (sc *Scope) Is(types ...ScopeAttribute) bool {
 	if len(types) == 0 {
 		return false
 	}
 
 	for _, v := range types {
-		if !Contains(sc.Attributes, v) {
+		if !helpers.Contains(sc.Attributes, v) {
 			return false
 		}
 	}

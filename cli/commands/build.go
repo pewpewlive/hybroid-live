@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hybroid/evaluator"
 	"hybroid/generators/lua"
+	"hybroid/walker"
 	"os"
 	"strings"
 
@@ -51,7 +52,9 @@ func Build(ctx *cli.Context, files ...FileInformation) error {
 		}
 		os.WriteFile(cwd+outputDir+"/manifest.json", manifest, 0644)
 
-		eval := evaluator.New(lua.Generator{Scope: lua.GenScope{Src: lua.StringBuilder{}}})
+		namespaces := map[string]*walker.Namespace{}
+
+		eval := evaluator.New(lua.Generator{Scope: lua.GenScope{Src: lua.StringBuilder{}}}, &namespaces)
 		var evalErr error = nil
 		if len(files) == 0 {
 			eval.AssignFile(cwd+entryPoint, cwd+outputDir+"/"+strings.Replace(entryPoint, ".hyb", ".lua", -1))

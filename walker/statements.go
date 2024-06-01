@@ -3,6 +3,7 @@ package walker
 import (
 	"fmt"
 	"hybroid/ast"
+	"hybroid/helpers"
 	"hybroid/lexer"
 	"hybroid/parser"
 	"strings"
@@ -40,7 +41,7 @@ func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
 		has_else = true
 	}
 
-	mpTag := GetValOfInterface[MultiPathTag](multiPathScope.Tag)
+	mpTag := helpers.GetValOfInterface[MultiPathTag](multiPathScope.Tag)
 
 	rsc, returnable := scope.ResolveReturnable()
 
@@ -49,19 +50,19 @@ func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
 	}
 	ifsLength := 2 + len(node.Elseifs)
 	if has_else {
-		SetReturnIfTrue(mpTag.ReturnAmount, ifsLength, returnable, rsc, RETURN)
-		SetReturnIfTrue(mpTag.BreakAmount, ifsLength, returnable, rsc, BREAK)
-		SetReturnIfTrue(mpTag.ContinueAmount, ifsLength, returnable, rsc, CONTINUE)
-		SetReturnIfTrue(mpTag.YieldAmount, ifsLength, returnable, rsc, YIELD)
+		SetReturnIfTrue(mpTag.Returns, ifsLength, returnable, rsc, Return)
+		SetReturnIfTrue(mpTag.Breaks, ifsLength, returnable, rsc, Break)
+		SetReturnIfTrue(mpTag.Continues, ifsLength, returnable, rsc, Continue)
+		SetReturnIfTrue(mpTag.Yields, ifsLength, returnable, rsc, Yield)
 
-		if mpTag.ReturnAmount+mpTag.YieldAmount+mpTag.ContinueAmount+mpTag.BreakAmount > 1 {
-			rsc.Tag = (*returnable).SetReturn(false, RETURN)
+		if len(mpTag.Returns)+len(mpTag.Breaks)+len(mpTag.Continues)+len(mpTag.Yields) > 1 {
+			rsc.Tag = (*returnable).SetReturn(false, Return)
 		}
 	}
 }
 
-func SetReturnIfTrue(retAmount int, length int, returnable *ReturnableTag, rsc *Scope, gt GetType) {
-	if retAmount == length {
+func SetReturnIfTrue(exits []bool, length int, returnable *ReturnableTag, rsc *Scope, gt ExitType) {
+	if len(exits) == length {
 		rsc.Tag = (*returnable).SetReturn(true, gt)
 	}
 }
@@ -211,7 +212,7 @@ func (w *Walker) returnStmt(node *ast.ReturnStmt, scope *Scope) *ReturnType {
 	}
 
 	if sc, returnable := scope.ResolveReturnable(); returnable != nil {
-		sc.Tag = (*returnable).SetReturn(true, RETURN)
+		sc.Tag = (*returnable).SetReturn(true, Return)
 	}
 
 	errorMsg := w.validateReturnValues(ret, funcTag.ReturnType)
@@ -238,7 +239,7 @@ func (w *Walker) yieldStmt(node *ast.YieldStmt, scope *Scope) *ReturnType {
 		}
 	}
 
-	sc, tag, matchExprTag := ResolveTagScope[MatchTag](scope)
+	sc, tag, matchExprTag := ResolveTagScope[MatchExprTag](scope)
 
 	if sc == nil {
 		return &ret
@@ -257,7 +258,7 @@ func (w *Walker) yieldStmt(node *ast.YieldStmt, scope *Scope) *ReturnType {
 	*tag = *matchExprTag
 
 	if rsc, returnable := scope.ResolveReturnable(); returnable != nil {
-		rsc.Tag = (*returnable).SetReturn(true, YIELD)
+		rsc.Tag = (*returnable).SetReturn(true, Yield)
 	}
 
 	return &ret
@@ -269,7 +270,7 @@ func (w *Walker) breakStmt(node *ast.BreakStmt, scope *Scope) {
 	}
 
 	if rsc, returnable := scope.ResolveReturnable(); rsc != nil {
-		rsc.Tag = (*returnable).SetReturn(true, BREAK)
+		rsc.Tag = (*returnable).SetReturn(true, Break)
 	}
 }
 
@@ -279,12 +280,12 @@ func (w *Walker) continueStmt(node *ast.ContinueStmt, scope *Scope) {
 	}
 
 	if rsc, returnable := scope.ResolveReturnable(); rsc != nil {
-		rsc.Tag = (*returnable).SetReturn(true, CONTINUE)
+		rsc.Tag = (*returnable).SetReturn(true, Continue)
 	}
 }
 
 func (w *Walker) repeatStmt(node *ast.RepeatStmt, scope *Scope) {
-	repeatScope := NewScope(scope, LoopTag{})
+	repeatScope := NewScope(scope, MultiPathTag{})
 	repeatScope.Attributes.Add(BreakAllowing)
 	repeatScope.Attributes.Add(ContinueAllowing)
 
@@ -326,7 +327,7 @@ func (w *Walker) repeatStmt(node *ast.RepeatStmt, scope *Scope) {
 
 	endIndex := -1
 	for i := range node.Body {
-		loopTag := GetValOfInterface[LoopTag](repeatScope.Tag)
+		loopTag := helpers.GetValOfInterface[MultiPathTag](repeatScope.Tag)
 		if HasContents(loopTag.Breaks, loopTag.Returns, loopTag.Continues, loopTag.Yields) {
 			w.warn(node.Body[i].GetToken(), "unreachable code detected")
 			endIndex = i
@@ -338,17 +339,17 @@ func (w *Walker) repeatStmt(node *ast.RepeatStmt, scope *Scope) {
 	}
 
 	rsc, returnable := repeatScope.Parent.ResolveReturnable()
-	loopTag := GetValOfInterface[LoopTag](repeatScope.Tag)
+	loopTag := helpers.GetValOfInterface[MultiPathTag](repeatScope.Tag)
 
 	if rsc == nil || returnable == nil {
 		return
 	}
 
 	if CheckReturns(loopTag.Returns) {
-		rsc.Tag = (*returnable).SetReturn(true, RETURN)
+		rsc.Tag = (*returnable).SetReturn(true, Return)
 	}
 	if CheckReturns(loopTag.Yields) {
-		rsc.Tag = (*returnable).SetReturn(true, YIELD)
+		rsc.Tag = (*returnable).SetReturn(true, Yield)
 	}
 }
 
@@ -652,12 +653,13 @@ func (w *Walker) matchStmt(node *ast.MatchStmt, isExpr bool, scope *Scope) {
 
 	if has_default {
 		caseLength := len(node.Cases)
-		SetReturnIfTrue(mpTag.ReturnAmount, caseLength, returnable, rsc, RETURN)
-		SetReturnIfTrue(mpTag.BreakAmount, caseLength, returnable, rsc, BREAK)
-		SetReturnIfTrue(mpTag.ContinueAmount, caseLength, returnable, rsc, CONTINUE)
+		SetReturnIfTrue(mpTag.Returns, caseLength, returnable, rsc, Return)
+		SetReturnIfTrue(mpTag.Breaks, caseLength, returnable, rsc, Break)
+		SetReturnIfTrue(mpTag.Continues, caseLength, returnable, rsc, Continue)
 
-		if mpTag.ReturnAmount+mpTag.YieldAmount+mpTag.ContinueAmount+mpTag.BreakAmount > 1 {
-			rsc.Tag = (*returnable).SetReturn(false, RETURN)
+		if (len(mpTag.Returns) + len(mpTag.Breaks) +
+			len(mpTag.Continues) + len(mpTag.Yields)) > 1 {
+			rsc.Tag = (*returnable).SetReturn(false, Return)
 		}
 	}
 }

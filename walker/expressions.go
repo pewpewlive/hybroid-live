@@ -3,6 +3,7 @@ package walker
 import (
 	"fmt"
 	"hybroid/ast"
+	"hybroid/helpers"
 	"hybroid/lexer"
 	"hybroid/parser"
 )
@@ -96,26 +97,11 @@ func (w *Walker) identifierExpr(node *ast.Node, scope *Scope) Value {
 				Index:      varIndex,
 			}
 			selfExpr.Property = fieldExpr
-
 			*node = selfExpr
 		}
-		/*else if sc.Type == Entity {
-			varIndex := sc.GetVariableIndex(sc, node.Name.Lexeme)
-
-			selfExpr := ast.SelfExpr{
-				Token: newValue.Node.GetToken(),
-				Value: newValue.Node,
-				Type:  ast.SelfEntity,
-				Index: varIndex,
-			}
-		}*/
-
-		//fmt.Printf("%v %s\n", sc.Type, newValue.Name)
 		return newValue.Value
-	} else {
-		//w.error(node.Name, "unknown identifier")
-		return Invalid{}
 	}
+	return Invalid{}
 }
 
 func (w *Walker) groupingExpr(node *ast.GroupExpr, scope *Scope) Value {
@@ -216,7 +202,7 @@ func (w *Walker) methodCallExpr(node *ast.Node, scope *Scope) Value { // ty
 
 	ownerVal := w.GetNodeValue(&method.Owner, scope)
 
-	if container := GetValOfInterface[Container](ownerVal); container != nil {
+	if container := helpers.GetValOfInterface[Container](ownerVal); container != nil {
 		container := *container
 		fields := container.GetFields()
 		for _, value := range fields {
@@ -282,7 +268,7 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 	ownerr := scope.Namespace.Ctx.Value
 	variable := VariableVal{Value: Invalid{}}
 	if IsOfPrimitiveType(ownerr, ast.Struct, ast.Entity, ast.Namespace) {
-		if container := GetValOfInterface[Container](ownerr); container != nil {
+		if container := helpers.GetValOfInterface[Container](ownerr); container != nil {
 			container := *container
 			ident := node.Identifier.GetToken()
 			val, index, contains := container.Contains(ident.Lexeme)
@@ -494,7 +480,7 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) FunctionVal {
 }
 
 func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) ReturnType {
-	matchScope := NewScope(scope, MatchTag{})
+	matchScope := NewScope(scope, MatchExprTag{})
 	matchScope.Attributes.Add(YieldAllowing)
 
 	w.matchStmt(&node.MatchStmt, true, scope)
@@ -507,7 +493,7 @@ func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) ReturnType {
 
 		endIndex := -1
 		for j := range node.MatchStmt.Cases[i].Body {
-			matchTag, _ := matchScope.Tag.(MatchTag)
+			matchTag, _ := matchScope.Tag.(MatchExprTag)
 			if matchTag.ArmsYielded == i+1 {
 				w.warn(node.MatchStmt.Cases[i].Body[j].GetToken(), "unreachable code detected")
 				endIndex = j
@@ -519,9 +505,9 @@ func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) ReturnType {
 			node.MatchStmt.Cases[i].Body = node.MatchStmt.Cases[i].Body[:endIndex]
 		}
 	}
-	returnable := GetValOfInterface[ReturnableTag](scope.Tag)
+	returnable := helpers.GetValOfInterface[ReturnableTag](scope.Tag)
 
-	matchTag, _ := matchScope.Tag.(MatchTag)
+	matchTag, _ := matchScope.Tag.(MatchExprTag)
 	if matchTag.YieldValues == nil {
 		matchTag.YieldValues = &EmptyReturn
 	}
@@ -533,15 +519,23 @@ func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) ReturnType {
 
 	if !has_default {
 		w.error(node.MatchStmt.GetToken(), "not all arms yield a value")
-		scope.Tag = (*returnable).SetReturn(false, RETURN)
+		scope.Tag = (*returnable).SetReturn(false, Return)
 	} else {
-		yields := len(node.MatchStmt.Cases) == matchTag.ArmsYielded
-		scope.Tag = (*returnable).SetReturn(yields, YIELD)
+		caseLength := len(node.MatchStmt.Cases)
+		yields := caseLength == matchTag.ArmsYielded
+		scope.Tag = (*returnable).SetReturn(yields, Yield)
 		if !yields {
 			w.error(node.MatchStmt.GetToken(), "not all arms yield a value")
 		}
-		returns := len(node.MatchStmt.Cases) == matchTag.ReturnAmount
-		scope.Tag = (*returnable).SetReturn(returns, RETURN)
+		returns := caseLength == len(matchTag.mpt.Returns)
+		yieldss := caseLength == len(matchTag.mpt.Yields)
+		breaks := caseLength == len(matchTag.mpt.Breaks)
+		continues := caseLength == len(matchTag.mpt.Continues)
+
+		scope.Tag = (*returnable).SetReturn(returns, Return)
+		scope.Tag = (*returnable).SetReturn(yieldss, Yield)
+		scope.Tag = (*returnable).SetReturn(breaks, Break)
+		scope.Tag = (*returnable).SetReturn(continues, Continue)
 	}
 
 	return *matchTag.YieldValues

@@ -3,6 +3,7 @@ package walker
 import (
 	"fmt"
 	"hybroid/ast"
+	"hybroid/helpers"
 	"hybroid/lexer"
 )
 
@@ -12,6 +13,17 @@ type Walker struct {
 	Errors    []ast.Error
 	Warnings  []ast.Warning
 	Context   ast.Node
+}
+
+func New() *Walker {
+	namespace := NewNamespace()
+	walker := Walker{
+		Namespace: &namespace,
+		nodes:     &[]ast.Node{},
+		Errors:    []ast.Error{},
+		Warnings:  []ast.Warning{},
+	}
+	return &walker
 }
 
 func (w *Walker) error(token lexer.Token, msg string) {
@@ -155,8 +167,8 @@ func (s *Scope) ResolveVariable(name string) *Scope {
 	return s.Parent.ResolveVariable(name)
 }
 
-func (s *Scope) ResolveStructType(name string) *Scope { // for new expression, i.e new Rectangle
-	if _, found := s.Namespace.StructTypes[name]; found { //yes
+func (s *Scope) ResolveStructType(name string) *Scope {
+	if _, found := s.Namespace.StructTypes[name]; found {
 		return s
 	}
 
@@ -179,21 +191,16 @@ func ResolveTagScope[T ScopeTag](sc *Scope) (*Scope, *ScopeTag, *T) {
 	return ResolveTagScope[T](sc.Parent)
 }
 
-func IsZero[T comparable](v T) bool {
-	var z T
-	return v == z
-}
-
 func (sc *Scope) ResolveReturnable() (*Scope, *ReturnableTag) {
 	if sc.Parent == nil {
 		return nil, nil
 	}
 
-	if returnable := GetValOfInterface[ReturnableTag](sc.Tag); returnable != nil {
+	if returnable := helpers.GetValOfInterface[ReturnableTag](sc.Tag); returnable != nil {
 		return sc, returnable
 	}
 
-	if IsZero(sc.Tag) {
+	if helpers.IsZero(sc.Tag) {
 		return nil, nil
 	}
 
@@ -249,7 +256,7 @@ func returnsAreValid(list1 []TypeVal, list2 []TypeVal) bool {
 		if !((list2[i].WrappedType != nil && list2[i].WrappedType.Type == 0) ||
 			(v.WrappedType != nil && v.WrappedType.Type == 0)) &&
 			!list2[i].Eq(v) {
-			//fmt.Printf("%s : %s\n", v.WrappedType.Type.ToString(), list2[i].WrappedType.Type.ToString())
+			// fmt.Printf("%s : %s\n", v.WrappedType.Type.ToString(), list2[i].WrappedType.Type.ToString())
 
 			return false
 		}
@@ -291,17 +298,21 @@ func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
 	}
 }
 
-func (w *Walker) Walk(nodes *[]ast.Node, Namespace *Namespace) []ast.Node {
+func (w *Walker) Stage1(nodes *[]ast.Node) []ast.Node {
 	w.nodes = nodes
 
 	newNodes := make([]ast.Node, 0)
 
 	for _, node := range *nodes {
-		w.WalkNode(&node, &Namespace.Scope)
+		w.WalkNode(&node, &w.Namespace.Scope)
 		newNodes = append(newNodes, node)
 	}
 
 	return newNodes
+}
+
+func (w *Walker) Stage2(nodes *[]ast.Node, namespaces *map[string]*Namespace) []ast.Node {
+	return *nodes
 }
 
 func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {

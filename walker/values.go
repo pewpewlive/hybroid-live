@@ -134,6 +134,7 @@ func (s StructVal) GetDefault() ast.LiteralExpr {
 }
 
 type NamespaceVal struct {
+	Path         string
 	Name         string
 	Fields       map[string]VariableVal
 	Methods      map[string]VariableVal
