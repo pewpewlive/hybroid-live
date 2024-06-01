@@ -171,7 +171,6 @@ type Container interface {
 	Contains(name string) (Value, int, bool)
 }
 ```
-##
 **Methods:**
 
 1. `GetFields() -> map[string]VariableVal` - returns a map of its fields.
@@ -186,7 +185,7 @@ Only `Value`s implement `Container`, specifically:
 3. `NamespaceVal`
 4. `EntityVal` (doesn't exist yet)
 
-## scope.go
+## Scope.go
 
 This section covers all the interfaces and structs used to make walking the nodes more organized and easier.
 
