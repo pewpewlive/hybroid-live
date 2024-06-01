@@ -7,11 +7,11 @@ import (
 )
 
 type Walker struct {
-	Global   *Global
-	nodes    *[]ast.Node
-	Errors   []ast.Error
-	Warnings []ast.Warning
-	Context  ast.Node
+	Namespace *Namespace
+	nodes     *[]ast.Node
+	Errors    []ast.Error
+	Warnings  []ast.Warning
+	Context   ast.Node
 }
 
 func (w *Walker) error(token lexer.Token, msg string) {
@@ -58,7 +58,7 @@ func (w *Walker) GetValueFromType(typee TypeVal) Value {
 	case 0:
 		return Unknown{}
 	case ast.Struct:
-		return w.Global.Scope.GetStructType(&w.Global.Scope, typee.Name)
+		return w.Namespace.Scope.GetStructType(&w.Namespace.Scope, typee.Name)
 	default:
 		return Invalid{}
 	}
@@ -85,13 +85,13 @@ func (s *Scope) GetVariableIndex(scope *Scope, name string) int {
 }
 
 func (s *Scope) GetStructType(scope *Scope, name string) *StructTypeVal {
-	structType := scope.Global.StructTypes[name]
+	structType := scope.Namespace.StructTypes[name]
 
 	structType.IsUsed = true
 
-	scope.Global.StructTypes[name] = structType
+	scope.Namespace.StructTypes[name] = structType
 
-	return scope.Global.StructTypes[name]
+	return scope.Namespace.StructTypes[name]
 }
 
 func (s *Scope) AssignVariableByName(name string, value Value) (Value, *ast.Error) {
@@ -135,11 +135,11 @@ func (s *Scope) DeclareVariable(value VariableVal) (VariableVal, bool) {
 }
 
 func (s *Scope) DeclareStructType(structType *StructTypeVal) bool {
-	if _, found := s.Global.StructTypes[structType.Name.Lexeme]; found {
+	if _, found := s.Namespace.StructTypes[structType.Name.Lexeme]; found {
 		return false
 	}
 
-	s.Global.StructTypes[structType.Name.Lexeme] = structType
+	s.Namespace.StructTypes[structType.Name.Lexeme] = structType
 	return true
 }
 
@@ -156,7 +156,7 @@ func (s *Scope) ResolveVariable(name string) *Scope {
 }
 
 func (s *Scope) ResolveStructType(name string) *Scope { // for new expression, i.e new Rectangle
-	if _, found := s.Global.StructTypes[name]; found { //yes
+	if _, found := s.Namespace.StructTypes[name]; found { //yes
 		return s
 	}
 
@@ -200,7 +200,7 @@ func (sc *Scope) ResolveReturnable() (*Scope, *ReturnableTag) {
 	return sc.Parent.ResolveReturnable()
 }
 
-func (g *Global) GetForeignType(str string) Value {
+func (g *Namespace) GetForeignType(str string) Value {
 	return g.foreignTypes[str]
 }
 
@@ -258,7 +258,7 @@ func returnsAreValid(list1 []TypeVal, list2 []TypeVal) bool {
 }
 
 func (w *Walker) validateReturnValues(_return ReturnType, expectReturn ReturnType) string {
-	returnValues, expectedReturnValues := _return.values, expectReturn.values
+	returnValues, expectedReturnValues := _return, expectReturn
 	if len(returnValues) < len(expectedReturnValues) {
 		return "not enough return values given"
 	} else if len(returnValues) > len(expectedReturnValues) {
@@ -291,13 +291,13 @@ func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
 	}
 }
 
-func (w *Walker) Walk(nodes *[]ast.Node, global *Global) []ast.Node {
+func (w *Walker) Walk(nodes *[]ast.Node, Namespace *Namespace) []ast.Node {
 	w.nodes = nodes
 
 	newNodes := make([]ast.Node, 0)
 
 	for _, node := range *nodes {
-		w.WalkNode(&node, &global.Scope)
+		w.WalkNode(&node, &Namespace.Scope)
 		newNodes = append(newNodes, node)
 	}
 

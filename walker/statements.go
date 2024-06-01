@@ -115,7 +115,7 @@ func (w *Walker) assignmentStmt(assignStmt *ast.AssignmentStmt, scope *Scope) {
 func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scope *Scope, procType ProcedureType) VariableVal {
 	ret := EmptyReturn
 	for _, typee := range node.Return {
-		ret.values = append(ret.values, w.typeExpr(&typee))
+		ret = append(ret, w.typeExpr(&typee))
 		//fmt.Printf("%s\n", ret.values[len(ret.values)-1].Type.ToString())
 	}
 
@@ -200,9 +200,9 @@ func (w *Walker) returnStmt(node *ast.ReturnStmt, scope *Scope) *ReturnType {
 		val := w.GetNodeValue(&node.Args[i], scope)
 		valType := val.GetType()
 		if valType.Type == ast.Func {
-			ret.values = append(ret.values, valType.Returns.values...)
+			ret = append(ret, valType.Returns...)
 		} else {
-			ret.values = append(ret.values, valType)
+			ret = append(ret, valType)
 		}
 	}
 	sc, _, funcTag := ResolveTagScope[FuncTag](scope)
@@ -232,9 +232,9 @@ func (w *Walker) yieldStmt(node *ast.YieldStmt, scope *Scope) *ReturnType {
 		val := w.GetNodeValue(&node.Args[i], scope)
 		valType := val.GetType()
 		if valType.Type == ast.Func {
-			ret.values = append(ret.values, valType.Returns.values...)
+			ret = append(ret, valType.Returns...)
 		} else {
-			ret.values = append(ret.values, valType)
+			ret = append(ret, valType)
 		}
 	}
 
@@ -373,7 +373,7 @@ func GetValue(values []Value, index int) Value {
 }
 
 func (w *Walker) GetReturnVals(list *[]Value, ret ReturnType) {
-	for _, returnVal := range ret.values {
+	for _, returnVal := range ret {
 		val := w.GetValueFromType(returnVal)
 		*list = append(*list, val)
 	}
@@ -499,7 +499,7 @@ func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *S
 	structTypeVal.Params = params
 
 	scope.DeclareStructType(&structTypeVal)
-	w.Global.foreignTypes[structTypeVal.Name.Lexeme] = &structTypeVal
+	w.Namespace.foreignTypes[structTypeVal.Name.Lexeme] = &structTypeVal
 
 	funcDeclaration := ast.MethodDeclarationStmt{
 		Name:    node.Constructor.Token,
@@ -521,11 +521,9 @@ func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *S
 			params = append(params, w.typeExpr(&param.Type))
 		}
 
-		ret := ReturnType{
-			values: []TypeVal{},
-		}
+		ret := EmptyReturn
 		for _, typee := range (*node.Methods)[i].Return {
-			ret.values = append(ret.values, w.typeExpr(&typee))
+			ret = append(ret, w.typeExpr(&typee))
 			//fmt.Printf("%s\n", ret.values[len(ret.values)-1].Type.ToString())
 		}
 		variable := VariableVal{

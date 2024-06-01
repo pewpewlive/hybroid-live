@@ -172,7 +172,7 @@ func (w *Walker) typeifyNodeList(nodes *[]ast.Node, scope *Scope) []TypeVal {
 	for i := range *nodes {
 		val := w.GetNodeValue(&(*nodes)[i], scope)
 		if function, ok := val.(FunctionVal); ok {
-			arguments = append(arguments, function.returnVal.values...)
+			arguments = append(arguments, function.returnVal...)
 		} else {
 			arguments = append(arguments, val.GetType())
 		}
@@ -205,8 +205,8 @@ func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope, callType ProcedureTy
 	arguments := w.typeifyNodeList(&node.Args, scope)
 	w.validateArguments(arguments, fun.params, callerToken, typeCall)
 
-	if len(fun.returnVal.values) == 1 {
-		return w.GetValueFromType(fun.returnVal.values[0])
+	if len(fun.returnVal) == 1 {
+		return w.GetValueFromType(fun.returnVal[0])
 	}
 	return CallVal{types: fun.returnVal}
 }
@@ -274,12 +274,12 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 		if node.Property == nil {
 			return val
 		} else {
-			scope.Global.Ctx.Value = val
+			scope.Namespace.Ctx.Value = val
 			fieldVal = w.GetNodeValue(&node.Property, scope)
 		}
 		return fieldVal
 	}
-	ownerr := scope.Global.Ctx.Value
+	ownerr := scope.Namespace.Ctx.Value
 	variable := VariableVal{Value: Invalid{}}
 	if IsOfPrimitiveType(ownerr, ast.Struct, ast.Entity, ast.Namespace) {
 		if container := GetValOfInterface[Container](ownerr); container != nil {
@@ -298,7 +298,7 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 	}
 
 	if node.Property != nil {
-		scope.Global.Ctx.Value = variable.Value
+		scope.Namespace.Ctx.Value = variable.Value
 		val := w.GetNodeValue(&node.Property, scope)
 		return val
 	}
@@ -343,7 +343,7 @@ func (w *Walker) memberExpr(node *ast.MemberExpr, scope *Scope) Value {
 		if node.Property == nil {
 			return val
 		} else {
-			scope.Global.Ctx.Value = val
+			scope.Namespace.Ctx.Value = val
 			memberVal = w.GetNodeValue(&node.Property, scope)
 		}
 		return memberVal
@@ -351,7 +351,7 @@ func (w *Walker) memberExpr(node *ast.MemberExpr, scope *Scope) Value {
 
 	val := w.GetNodeValue(&node.Identifier, scope)
 	valType := val.GetType()
-	array := scope.Global.Ctx.Value
+	array := scope.Namespace.Ctx.Value
 	arrayType := array.GetType()
 
 	if arrayType.Type == ast.Map {
@@ -381,7 +381,7 @@ func (w *Walker) memberExpr(node *ast.MemberExpr, scope *Scope) Value {
 	wrappedVal := w.GetValueFromType(wrappedValType)
 
 	if node.Property != nil {
-		scope.Global.Ctx.Value = wrappedVal
+		scope.Namespace.Ctx.Value = wrappedVal
 		return w.GetNodeValue(&node.Property, scope)
 	}
 
@@ -465,7 +465,7 @@ func (w *Walker) newExpr(new *ast.NewExpr, scope *Scope) StructVal {
 func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) FunctionVal {
 	ret := EmptyReturn
 	for _, typee := range fn.Return {
-		ret.values = append(ret.values, w.typeExpr(&typee))
+		ret = append(ret, w.typeExpr(&typee))
 	}
 
 	fnScope := NewScope(scope, FuncTag{ReturnType: ret})
@@ -525,7 +525,7 @@ func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) ReturnType {
 	if matchTag.YieldValues == nil {
 		matchTag.YieldValues = &EmptyReturn
 	}
-	node.ReturnAmount = len(matchTag.YieldValues.values)
+	node.ReturnAmount = len(*matchTag.YieldValues)
 
 	if returnable == nil {
 		return *matchTag.YieldValues
@@ -572,7 +572,7 @@ func (w *Walker) typeExpr(typee *ast.TypeExpr) TypeVal {
 
 	typ := w.GetTypeFromString(typee.Name.Lexeme)
 	if typ == ast.Invalid {
-		if foreignType, ok := w.Global.foreignTypes[typee.Name.Lexeme]; ok {
+		if foreignType, ok := w.Namespace.foreignTypes[typee.Name.Lexeme]; ok {
 			return foreignType.GetType()
 		}
 	}
@@ -585,6 +585,6 @@ func (w *Walker) typeExpr(typee *ast.TypeExpr) TypeVal {
 		Type:        typ,
 		WrappedType: wrapped,
 		Params:      params,
-		Returns:     ReturnType{values: returns},
+		Returns:     returns,
 	}
 }

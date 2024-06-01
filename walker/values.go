@@ -307,17 +307,15 @@ func (f FixedVal) GetSpecificType() ast.PrimitiveValueType {
 	return f.SpecificType
 }
 
-var EmptyReturn = ReturnType{values: []TypeVal{}}
+var EmptyReturn = ReturnType{}
 
-type ReturnType struct {
-	values []TypeVal
-}
+type ReturnType []TypeVal
 
 func (rt *ReturnType) Eq(otherRT *ReturnType) bool {
 	typesSame := true
-	if len(rt.values) == len(otherRT.values) {
-		for i, v := range rt.values {
-			if !v.Eq(otherRT.values[i]) {
+	if len(*rt) == len(*otherRT) {
+		for i, v := range *rt {
+			if !v.Eq((*otherRT)[i]) {
 				typesSame = false
 				break
 			}
@@ -329,8 +327,8 @@ func (rt *ReturnType) Eq(otherRT *ReturnType) bool {
 }
 
 func (n ReturnType) GetType() TypeVal {
-	if len(n.values) == 1 {
-		return n.values[0].GetType()
+	if len(n) == 1 {
+		return n[0].GetType()
 	}
 
 	return TypeVal{Type: 0}
@@ -398,13 +396,13 @@ func (t TypeVal) ToString() string {
 			}
 		}
 		src.Append(")")
-		if len(t.Returns.values) != 0 {
+		if len(t.Returns) != 0 {
 			src.Append(" ")
-			for i := range t.Returns.values {
-				if i == len(t.Returns.values)-1 {
-					src.Append(t.Returns.values[i].ToString())
+			for i := range t.Returns {
+				if i == len(t.Returns)-1 {
+					src.Append(t.Returns[i].ToString())
 				} else {
-					src.Append(t.Returns.values[i].ToString(), ", ")
+					src.Append(t.Returns[i].ToString(), ", ")
 				}
 			}
 		}
@@ -425,7 +423,7 @@ func (t TypeVal) GetDefault() ast.LiteralExpr {
 	return ast.LiteralExpr{Value: "DEFAULT_TYPE_VALUE"}
 }
 
-type FunctionVal struct { // fn test(param map<fixed>)
+type FunctionVal struct {
 	params    []TypeVal
 	returnVal ReturnType
 }
@@ -456,8 +454,8 @@ type CallVal struct {
 }
 
 func (f CallVal) GetType() TypeVal {
-	if len(f.types.values) == 1 {
-		return f.types.values[0]
+	if len(f.types) == 1 {
+		return f.types[0]
 	}
 	return TypeVal{Name: "invalid", Type: ast.Invalid, Returns: f.types}
 }
