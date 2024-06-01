@@ -105,9 +105,9 @@ entity Quadro {
   mesh_id: number
   mesh_id2: number
   mesh_id3: number
-  
+
   x = 1f y: fixed z: fixed = 0f
-  
+
   /* you can also do this
   x = 1f; y: fixed; z: fixed = 0f
 
@@ -119,11 +119,11 @@ entity Quadro {
   damage = 2
 
   Spawn(x fixed, y fixed, speed fixed) {
-    self.speed = speed 
+    self.speed = speed
     self.mesh_id2 = PewPew.NewEntity(x, y)
     PewPew.SetMesh(self, "file_path", 0)
     PewPew.SetMesh(self.mesh_id2, "file_path", 1)
-    
+
     return self
   }
 
@@ -692,4 +692,24 @@ local rect = Rectangle_New(100, 100)
 
 print(Area(rect))
 ```
+
+## Proposals
+
+### Importing Lua files
+
+Require function:
+
+```rs
+Require(path text) -> any
+```
+
+```rs
+let Set = Require("/dynamic/set_timeout.lua")
+
+Set.timeout(10, fn() {
+  Print("uwu")
+})
+```
+
+### Using static namespace
 

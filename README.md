@@ -28,6 +28,6 @@ An experimental VS Code extension is available [here](https://github.com/pewpewl
 
 - [ ] Advanced codegen
 
-- [ ] Language server and syntax highlighting
+- [ ] APPAPI implementation
 
-- [ ] Support for other environments (such as `GoGeneric` or `PyGeneric`)
+- [ ] Language server and syntax highlighting
