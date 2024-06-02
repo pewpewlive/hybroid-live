@@ -262,7 +262,7 @@ func returnsAreValid(list1 []TypeVal, list2 []TypeVal) bool {
 	return true
 }
 
-func (w *Walker) validateReturnValues(_return ReturnType, expectReturn ReturnType) string {
+func (w *Walker) validateReturnValues(_return Returns, expectReturn Returns) string {
 	returnValues, expectedReturnValues := _return, expectReturn
 	if len(returnValues) < len(expectedReturnValues) {
 		return "not enough return values given"

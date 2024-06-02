@@ -293,18 +293,15 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 }
 
 func (w *Walker) mapExpr(node *ast.MapExpr, scope *Scope) Value {
-	mapVal := MapVal{Members: map[string]MapMemberVal{}}
+	mapVal := MapVal{Members: map[string]VariableVal{}}
 	for k, v := range node.Map {
 		//fmt.Printf("%s, ",v.Type.ToString())
 		val := w.GetNodeValue(&v.Expr, scope)
 
-		mapVal.Members[k.Lexeme] = MapMemberVal{
-			Var: VariableVal{
-				Name:  k.Lexeme,
-				Value: val,
-				Node:  v.Expr,
-			},
-			Owner: mapVal,
+		mapVal.Members[k.Lexeme] = VariableVal{
+			Name:  k.Lexeme,
+			Value: val,
+			Node:  v.Expr,
 		}
 	}
 	mapVal.MemberType = mapVal.GetContentsValueType()
@@ -478,7 +475,7 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) FunctionVal {
 	}
 }
 
-func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) ReturnType {
+func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) Returns {
 	matchScope := NewScope(scope, MatchExprTag{})
 	matchScope.Attributes.Add(YieldAllowing)
 

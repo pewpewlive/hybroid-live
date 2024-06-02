@@ -191,7 +191,7 @@ func HasContents[T any](contents ...[]T) bool {
 	return len(sumContents) != 0
 }
 
-func (w *Walker) returnStmt(node *ast.ReturnStmt, scope *Scope) *ReturnType {
+func (w *Walker) returnStmt(node *ast.ReturnStmt, scope *Scope) *Returns {
 	if !scope.Is(ReturnAllowing) {
 		w.error(node.GetToken(), "can't have a return statement outside of a function or method")
 	}
@@ -223,7 +223,7 @@ func (w *Walker) returnStmt(node *ast.ReturnStmt, scope *Scope) *ReturnType {
 	return &ret
 }
 
-func (w *Walker) yieldStmt(node *ast.YieldStmt, scope *Scope) *ReturnType {
+func (w *Walker) yieldStmt(node *ast.YieldStmt, scope *Scope) *Returns {
 	if !scope.Is(YieldAllowing) {
 		w.error(node.GetToken(), "cannot use yield outside of statement expressions") // wut
 	}
@@ -373,7 +373,7 @@ func GetValue(values []Value, index int) Value {
 	}
 }
 
-func (w *Walker) GetReturnVals(list *[]Value, ret ReturnType) {
+func (w *Walker) GetReturnVals(list *[]Value, ret Returns) {
 	for _, returnVal := range ret {
 		val := w.GetValueFromType(returnVal)
 		*list = append(*list, val)
@@ -393,7 +393,7 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 		}
 		if call, ok := exprValue.(CallVal); ok {
 			w.GetReturnVals(&values, call.types)
-		} else if ret, ok := exprValue.(ReturnType); ok {
+		} else if ret, ok := exprValue.(Returns); ok {
 			w.GetReturnVals(&values, ret)
 		} else {
 			values = append(values, exprValue)

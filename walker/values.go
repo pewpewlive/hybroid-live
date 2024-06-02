@@ -183,22 +183,9 @@ func (n NamespaceVal) GetDefault() ast.LiteralExpr {
 	return ast.LiteralExpr{Value: src.String()}
 }
 
-type MapMemberVal struct {
-	Var   VariableVal
-	Owner MapVal
-}
-
-func (mm MapMemberVal) GetType() TypeVal {
-	return mm.Var.GetType()
-}
-
-func (mm MapMemberVal) GetDefault() ast.Node {
-	return mm.Var.GetDefault()
-}
-
 type MapVal struct {
 	MemberType TypeVal
-	Members    map[string]MapMemberVal
+	Members    map[string]VariableVal
 }
 
 func (m MapVal) GetType() TypeVal {
@@ -308,11 +295,11 @@ func (f FixedVal) GetSpecificType() ast.PrimitiveValueType {
 	return f.SpecificType
 }
 
-var EmptyReturn = ReturnType{}
+var EmptyReturn = Returns{}
 
-type ReturnType []TypeVal
+type Returns []TypeVal
 
-func (rt *ReturnType) Eq(otherRT *ReturnType) bool {
+func (rt *Returns) Eq(otherRT *Returns) bool {
 	typesSame := true
 	if len(*rt) == len(*otherRT) {
 		for i, v := range *rt {
@@ -327,7 +314,7 @@ func (rt *ReturnType) Eq(otherRT *ReturnType) bool {
 	return typesSame
 }
 
-func (n ReturnType) GetType() TypeVal {
+func (n Returns) GetType() TypeVal {
 	if len(n) == 1 {
 		return n[0].GetType()
 	}
@@ -335,7 +322,7 @@ func (n ReturnType) GetType() TypeVal {
 	return TypeVal{Type: 0}
 }
 
-func (n ReturnType) GetDefault() ast.LiteralExpr {
+func (n Returns) GetDefault() ast.LiteralExpr {
 	typeVal := n.GetType()
 	return typeVal.GetDefault()
 }
@@ -345,7 +332,7 @@ type TypeVal struct {
 	Name        string
 	Type        ast.PrimitiveValueType
 	Params      []TypeVal
-	Returns     ReturnType
+	Returns     Returns
 }
 
 func (t TypeVal) Eq(otherT TypeVal) bool {
@@ -426,14 +413,14 @@ func (t TypeVal) GetDefault() ast.LiteralExpr {
 
 type FunctionVal struct {
 	params    []TypeVal
-	returnVal ReturnType
+	returnVal Returns
 }
 
 func (f FunctionVal) GetType() TypeVal {
 	return TypeVal{Name: "function", Type: ast.Func, Params: f.params, Returns: f.returnVal}
 }
 
-func (f FunctionVal) GetReturnType() ReturnType {
+func (f FunctionVal) GetReturns() Returns {
 	return f.returnVal
 }
 
@@ -451,7 +438,7 @@ func (f FunctionVal) GetDefault() ast.LiteralExpr {
 }
 
 type CallVal struct {
-	types ReturnType
+	types Returns
 }
 
 func (f CallVal) GetType() TypeVal {

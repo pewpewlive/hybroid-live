@@ -8,7 +8,7 @@ import (
 type Context struct {
 	Node  ast.Node
 	Value Value
-	Ret   ReturnType
+	Ret   Returns
 }
 
 type Namespace struct {
@@ -28,7 +28,7 @@ func NewNamespace() Namespace {
 		Ctx: Context{
 			Node:  ast.Improper{},
 			Value: Unknown{},
-			Ret:   ReturnType{},
+			Ret:   Returns{},
 		},
 		Scope:        scope,
 		foreignTypes: map[string]Value{},
@@ -92,7 +92,7 @@ func (et EntityTag) GetType() ScopeTagType {
 
 type FuncTag struct {
 	Returns    []bool
-	ReturnType ReturnType
+	ReturnType Returns
 }
 
 func (et FuncTag) GetType() ScopeTagType {
@@ -107,7 +107,7 @@ func (et FuncTag) SetReturn(state bool, types ...ExitType) ScopeTag {
 type MatchExprTag struct {
 	mpt         MultiPathTag
 	ArmsYielded int
-	YieldValues *ReturnType
+	YieldValues *Returns
 }
 
 func (met MatchExprTag) GetType() ScopeTagType {

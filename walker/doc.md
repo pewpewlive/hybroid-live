@@ -39,7 +39,7 @@ type TypeVal struct {
 	Name        string
 	Type        ast.PrimitiveValueType
 	Params      []TypeVal
-	Returns     ReturnType
+	Returns     Returns
 }
 ```
 
@@ -80,16 +80,9 @@ type NamespaceVal struct {
 ```
 
 ```go
-type MapMemberVal struct {
-	Var   VariableVal
-	Owner MapVal
-}
-```
-
-```go
 type MapVal struct {
 	MemberType TypeVal
-	Members    map[string]MapMemberVal
+	Members    map[string]VariableVal
 }
 ```
 
@@ -104,7 +97,7 @@ type ListVal struct {
 ```
 
 **Extra methods:**
-1. a `GetContentsValueType() -> TypeVal` - checks the contents of the `MapVal` and, if all the values have the same type, returns the `TypeVal` that they all share. If they don't have the same value type it returns `Invalid`.
+1. a `GetContentsValueType() -> TypeVal` - same with `MapVal`'s method
 
 ```go
 type NumberVal struct{}
@@ -121,19 +114,15 @@ type FixedVal struct {
 ```
 
 ```go
-type ReturnType []TypeVal
-```
-
-```go
 type FunctionVal struct {
-	params    []TypeVal
-	returnVal ReturnType
+	params    Returns
+	returnVal Returns
 }
 ```
 
 ```go
 type CallVal struct {
-	types ReturnType
+	types Returns
 }
 ```
 
@@ -155,6 +144,12 @@ type Invalid struct{}
 
 ```go
 type Unknown struct{}
+```
+
+**Extra types:**
+
+```go
+type Returns []TypeVal
 ```
 
 ##
@@ -214,7 +209,7 @@ type Scope struct {
 }
 ```
 
-`Scope` is essentially a body that contains variables and has a tag and attributes. Scopes have parents, from which they stem from. 
+`Scope` is essentially a body that contains variables and has a tag and attributes. A scope has a parent which it stems from. 
 
 **Constructor:**
 `NewScope(parent *Scope, tag ScopeTag) -> Scope` - returns a new scope with its parent being the *parent* parameter and its tag the *tag* param.
@@ -307,7 +302,7 @@ type EntityTag struct {
 ```go
 type FuncTag struct {
 	Returns    []bool
-	ReturnType ReturnType
+	ReturnType Returns
 }
 ```
 
@@ -315,7 +310,7 @@ type FuncTag struct {
 type MatchExprTag struct {
 	mpt         MultiPathTag
 	ArmsYielded int
-	YieldValues *ReturnType
+	YieldValues *Returns
 }
 ```
 
