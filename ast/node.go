@@ -14,6 +14,7 @@ const (
 
 	AssignmentStatement
 	RepeatStatement
+	ForStatement
 	TickStatement
 	IfStatement
 	UseStatement
@@ -62,7 +63,6 @@ const (
 	Degree
 	List
 	Map
-	Nil
 	Func
 	Entity
 	Struct

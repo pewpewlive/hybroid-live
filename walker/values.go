@@ -184,25 +184,30 @@ func (n NamespaceVal) GetDefault() ast.LiteralExpr {
 }
 
 type MapVal struct {
-	MemberType TypeVal
-	Members    map[string]VariableVal
+	MemberType *TypeVal
+	Members    []Value
+	// Keys       []string
 }
 
 func (m MapVal) GetType() TypeVal {
-	return TypeVal{Name: "map", Type: ast.Map, WrappedType: &m.MemberType}
+	if m.MemberType == nil {
+		memType := GetContentsValueType(m.Members)
+		m.MemberType = &memType
+	}
+	return TypeVal{Name: "map", Type: ast.Map, WrappedType: m.MemberType}
 }
 
 func (m MapVal) GetDefault() ast.LiteralExpr {
 	return ast.LiteralExpr{Value: "{}"}
 }
 
-func (l MapVal) GetContentsValueType() TypeVal {
+func GetContentsValueType(values []Value) TypeVal {
 	valTypes := []TypeVal{}
 	index := 0
-	if len(l.Members) == 0 {
+	if len(values) == 0 {
 		return TypeVal{Type: 0}
 	}
-	for _, v := range l.Members {
+	for _, v := range values {
 		if index == 0 {
 			valTypes = append(valTypes, v.GetType())
 			index++
@@ -222,41 +227,20 @@ func (l MapVal) GetContentsValueType() TypeVal {
 }
 
 type ListVal struct {
-	ValueType TypeVal
+	ValueType *TypeVal
 	Values    []Value
 }
 
 func (l ListVal) GetType() TypeVal {
-	return TypeVal{Name: "list", Type: ast.List, WrappedType: &l.ValueType}
+	if l.ValueType == nil {
+		memType := GetContentsValueType(l.Values)
+		l.ValueType = &memType
+	}
+	return TypeVal{Name: "list", Type: ast.List, WrappedType: l.ValueType}
 }
 
 func (l ListVal) GetDefault() ast.LiteralExpr {
 	return ast.LiteralExpr{Value: "{}"}
-}
-
-func (l ListVal) GetContentsValueType() TypeVal {
-	valTypes := []TypeVal{}
-	index := 0
-	if len(l.Values) == 0 {
-		return TypeVal{Type: ast.Invalid}
-	}
-	for _, v := range l.Values {
-		if index == 0 {
-			valTypes = append(valTypes, v.GetType())
-			index++
-			continue
-		}
-		valTypes = append(valTypes, v.GetType())
-		prev, curr := index-1, len(valTypes)-1
-		if !(parser.IsFx(valTypes[prev].Type) && parser.IsFx(valTypes[curr].Type)) && valTypes[prev].Type != valTypes[curr].Type {
-			return TypeVal{Type: ast.Invalid}
-		}
-		index++
-	}
-	if parser.IsFx(valTypes[0].Type) {
-		return TypeVal{Type: ast.FixedPoint}
-	}
-	return valTypes[0]
 }
 
 type NumberVal struct{}
@@ -470,16 +454,6 @@ func (s StringVal) GetType() TypeVal {
 
 func (s StringVal) GetDefault() ast.LiteralExpr {
 	return ast.LiteralExpr{Value: "\"\""}
-}
-
-type NilVal struct{}
-
-func (n NilVal) GetType() TypeVal {
-	return TypeVal{Name: "nil", Type: ast.Nil}
-}
-
-func (n NilVal) GetDefault() ast.LiteralExpr {
-	return ast.LiteralExpr{Value: "nil"}
 }
 
 type Invalid struct{}

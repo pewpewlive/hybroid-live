@@ -211,6 +211,26 @@ func (rs RepeatStmt) GetValueType() PrimitiveValueType {
 	return 0
 }
 
+type ForStmt struct {
+	Iterator Node
+	Value    IdentifierExpr
+	Key      IdentifierExpr
+	Body     []Node
+	Token    lexer.Token
+}
+
+func (fs ForStmt) GetType() NodeType {
+	return ForStatement
+}
+
+func (fs ForStmt) GetToken() lexer.Token {
+	return fs.Token
+}
+
+func (fs ForStmt) GetValueType() PrimitiveValueType {
+	return 0
+}
+
 type TickStmt struct {
 	Variable IdentifierExpr
 	Body     []Node

@@ -65,6 +65,9 @@ func (p *Parser) statement() ast.Node {
 	case lexer.Repeat:
 		p.advance()
 		return p.repeatStmt()
+	case lexer.For:
+		p.advance()
+		return p.forStmt()
 	case lexer.Tick:
 		p.advance()
 		return p.tickStmt()
@@ -545,6 +548,49 @@ func (p *Parser) repeatStmt() ast.Node {
 	repeatStmt.Body = *p.getBody()
 
 	return repeatStmt
+}
+
+func (p *Parser) forStmt() ast.Node {
+	forStmt := ast.ForStmt{
+		Token: p.peek(-1),
+	}
+
+	if p.peek().Type == lexer.Identifier &&
+		p.peek(1).Type == lexer.Comma {
+		identExpr := p.expression()
+		if identExpr.GetType() != ast.Identifier {
+			p.error(identExpr.GetToken(), "expected identifier expression after keyword 'for'")
+		} else {
+			forStmt.Key = identExpr.(ast.IdentifierExpr)
+		}
+		p.match(lexer.Comma)
+		identExpr = p.expression()
+		if identExpr.GetType() != ast.Identifier {
+			p.error(identExpr.GetToken(), "expected identifier expression after a comma")
+		} else {
+			forStmt.Value = identExpr.(ast.IdentifierExpr)
+		}
+	} else {
+		identExpr := p.expression()
+		if identExpr.GetType() != ast.Identifier {
+			p.error(identExpr.GetToken(), "expected identifier expression after keyword 'for'")
+		} else {
+			forStmt.Value = identExpr.(ast.IdentifierExpr)
+		}
+	}
+
+	p.consume("expected keyword 'in' after for loop variables", lexer.In)
+
+	forStmt.Iterator = p.expression()
+
+	if forStmt.Iterator == nil {
+		p.error(forStmt.Token, "no iterator provided in for loop statement")
+		forStmt.Iterator = ast.LiteralExpr{Token: forStmt.Token, Value: "[1]", ValueType: ast.List}
+	}
+
+	forStmt.Body = *p.getBody()
+
+	return forStmt
 }
 
 func (p *Parser) tickStmt() ast.Node {

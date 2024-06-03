@@ -6,7 +6,6 @@ import (
 	"hybroid/generators"
 	"hybroid/lexer"
 	"math"
-	"math/rand"
 	"strconv"
 )
 
@@ -36,16 +35,25 @@ func (sb *StringBuilder) AppendTabbed(chunks ...string) {
 	}
 }
 
-var charset = []byte("_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0987654321")
+var charset = []byte("_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+var charsetLength = len(charset)
+var varCounter = 0
 
-func RandStr(n int) string {
-	b := make([]byte, n)
-	b[0] = charset[rand.Intn(len(charset)-10)]
-
-	for i := 1; i < len(b); i++ {
-		b[i] = charset[rand.Intn(len(charset))]
+func ResolveVarCounter(varname *StringBuilder, counter int) {
+	if counter > charsetLength-1 {
+		newCounter := charsetLength - 1 - counter
+		varname.WriteByte(charset[charsetLength-1])
+		ResolveVarCounter(varname, newCounter)
+	} else {
+		varname.WriteByte(charset[counter])
 	}
-	return string(b)
+}
+
+func GenerateVar() string {
+	varName := StringBuilder{}
+	varName.WriteByte('H')
+	ResolveVarCounter(&varName, varCounter)
+	return varName.String()
 }
 
 var TabsCount int
@@ -242,6 +250,8 @@ func (gen *Generator) GenerateStmt(node ast.Node, scope *GenScope) {
 		gen.ifStmt(newNode, scope)
 	case ast.RepeatStmt:
 		gen.repeatStmt(newNode, scope)
+	case ast.ForStmt:
+		gen.forStmt(newNode, scope)
 	case ast.TickStmt:
 		gen.tickStmt(newNode, scope)
 	case ast.VariableDeclarationStmt:

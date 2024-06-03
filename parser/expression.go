@@ -399,9 +399,6 @@ func (p *Parser) primary() ast.Node {
 	if p.match(lexer.True) {
 		return ast.LiteralExpr{Value: "true", ValueType: ast.Bool, Token: p.peek(-1)}
 	}
-	if p.match(lexer.Nil) {
-		return ast.LiteralExpr{Value: "nil", ValueType: ast.Nil, Token: p.peek(-1)}
-	}
 
 	if p.match(lexer.Number, lexer.Fixed, lexer.FixedPoint, lexer.Degree, lexer.Radian, lexer.String) {
 		literal := p.peek(-1)

@@ -15,7 +15,7 @@ const (
 	Comma                         // ,
 	Colon                         // :
 	At                            // @
-	Wall                          // |
+	Pipe                          // |
 
 	// One or two character tokens
 	Dot          // .
@@ -66,7 +66,6 @@ const (
 	While
 	If
 	Else
-	Nil
 	Return
 	Break
 	Continue
@@ -108,7 +107,6 @@ var keywords = map[string]TokenType{
 	"while":    While,
 	"if":       If,
 	"else":     Else,
-	"nil":      Nil,
 	"return":   Return,
 	"break":    Break,
 	"continue": Continue,
@@ -135,7 +133,7 @@ var keywords = map[string]TokenType{
 
 func (t TokenType) ToString() string {
 	return [...]string{
-		"LeftParen", "RightParen", "LeftBrace", "RightBrace", "LeftBracket", "RightBracket", "Comma", "Colon", "At", "Wall", "Dot", "Concat", "Minus", "MinusEqual", "Plus", "PlusEqual", "Slash", "SlashEqual", "Star", "StarEqual", "Caret", "CaretEqual", "Bang", "BangEqual", "Equal", "EqualEqual", "FatArrow", "Greater", "GreaterEqual", "Less", "LessEqual", "Identifier", "String", "Number", "FixedPoint", "Degree", "Radian", "Fixed", "By", "Add", "And", "Or", "True", "False", "Self", "Fn", "Tick", "Repeat", "For", "While", "If", "Else", "Nil", "Return", "Break", "Continue", "Yield", "Let", "Pub", "Const", "In", "As", "To", "With", "Enum", "Use", "Spawn", "Trait", "Entity", "Find", "Remove", "Match", "From", "Struct", "New", "Eof",
+		"LeftParen", "RightParen", "LeftBrace", "RightBrace", "LeftBracket", "RightBracket", "Comma", "Colon", "At", "Wall", "Dot", "Concat", "Minus", "MinusEqual", "Plus", "PlusEqual", "Slash", "SlashEqual", "Star", "StarEqual", "Caret", "CaretEqual", "Bang", "BangEqual", "Equal", "EqualEqual", "FatArrow", "Greater", "GreaterEqual", "Less", "LessEqual", "Identifier", "String", "Number", "FixedPoint", "Degree", "Radian", "Fixed", "By", "Add", "And", "Or", "True", "False", "Self", "Fn", "Tick", "Repeat", "For", "While", "If", "Else", "Return", "Break", "Continue", "Yield", "Let", "Pub", "Const", "In", "As", "To", "With", "Enum", "Use", "Spawn", "Trait", "Entity", "Find", "Remove", "Match", "From", "Struct", "New", "Eof",
 	}[t]
 }
 

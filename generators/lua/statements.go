@@ -198,7 +198,7 @@ func (gen *Generator) repeatStmt(node ast.RepeatStmt, scope *GenScope) {
 		repeatScope.Append(repeatTabs, "for _ = ", start, ", ", end, ", ", skip, " do\n")
 	}
 
-	gotoLabel := "hgtl" + RandStr(5)
+	gotoLabel := "hgtl" + GenerateVar()
 	repeatScope.ReplaceSettings = map[ReplaceType]string{
 		ContinueReplacement: "goto " + gotoLabel,
 	}
@@ -214,6 +214,40 @@ func (gen *Generator) repeatStmt(node ast.RepeatStmt, scope *GenScope) {
 	TabsCount -= 1
 
 	scope.Append(repeatTabs, "end")
+}
+
+func (gen *Generator) forStmt(node ast.ForStmt, scope *GenScope) {
+	forScope := NewGenScope(scope)
+	forTabs := getTabs()
+
+	TabsCount += 1
+
+	iterator := gen.GenerateExpr(node.Iterator, scope)
+	if node.Key.GetValueType() != 0 && node.Value.GetValueType() != 0 {
+		key := gen.GenerateExpr(node.Key, &forScope)
+		value := gen.GenerateExpr(node.Value, &forScope)
+		forScope.Append(forTabs, "for ", key, ", ", value, " in ipairs(", iterator, ") do\n")
+	} else {
+		value := gen.GenerateExpr(node.Value, scope)
+		forScope.Append(forTabs, "for _, ", value, " in ipairs(", iterator, ") do\n")
+	}
+
+	gotoLabel := "hgtl" + GenerateVar()
+	forScope.ReplaceSettings = map[ReplaceType]string{
+		ContinueReplacement: "goto " + gotoLabel,
+	}
+
+	gen.GenerateString(node.Body, &forScope)
+
+	forScope.DoTheDos(forScope.ReplaceSettings)
+
+	scope.Write(forScope.Src)
+
+	scope.AppendTabbed("::" + gotoLabel + "::\n")
+
+	TabsCount -= 1
+
+	scope.Append(forTabs, "end")
 }
 
 func (gen *Generator) tickStmt(node ast.TickStmt, scope *GenScope) {

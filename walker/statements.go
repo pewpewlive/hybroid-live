@@ -353,23 +353,38 @@ func (w *Walker) repeatStmt(node *ast.RepeatStmt, scope *Scope) {
 	}
 }
 
+func (w *Walker) forStmt(node *ast.ForStmt, scope *Scope) {
+	forScope := NewScope(scope, UntaggedTag{})
+	forScope.Attributes.Add(BreakAllowing)
+	forScope.Attributes.Add(ContinueAllowing)
+
+	if node.Key.GetValueType() != 0 {
+		forScope.DeclareVariable(VariableVal{Name: node.Key.Name.Lexeme, Value: NumberVal{}})
+	}
+
+	if node.Value.GetValueType() != 0 {
+		forScope.DeclareVariable(VariableVal{Name: node.Value.Name.Lexeme, Value: w.GetNodeValue(&node.Iterator, scope).GetType().WrappedType})
+	}
+
+	iteratorType := w.GetNodeValue(&node.Iterator, scope).GetType().Type
+	if iteratorType != ast.List && iteratorType != ast.Map {
+		w.error(node.Iterator.GetToken(), "iterator must be of type map or list")
+	}
+
+	for i := range node.Body {
+		w.WalkNode(&node.Body[i], &forScope)
+	}
+}
+
 func (w *Walker) tickStmt(node *ast.TickStmt, scope *Scope) {
 	tickScope := NewScope(scope, UntaggedTag{})
 
 	if node.Variable.GetValueType() != 0 {
-		tickScope.DeclareVariable(VariableVal{Name: node.Variable.Name.Lexeme})
+		tickScope.DeclareVariable(VariableVal{Name: node.Variable.Name.Lexeme, Value: NumberVal{}})
 	}
 
-	for _, nod := range node.Body {
-		w.WalkNode(&nod, &tickScope)
-	}
-}
-
-func GetValue(values []Value, index int) Value {
-	if index <= len(values)-1 {
-		return values[index]
-	} else {
-		return Unknown{}
+	for i := range node.Body {
+		w.WalkNode(&node.Body[i], &tickScope)
 	}
 }
 
@@ -399,84 +414,47 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 			values = append(values, exprValue)
 		}
 	}
+	valuesLength := len(values)
+	if valuesLength > len(declaration.Identifiers) {
+		w.error(declaration.Token, "too many values provided in declaration")
+		return declaredVariables
+	} else if valuesLength < len(declaration.Identifiers) {
+		w.error(declaration.Token, "too few values provided in declaration")
+		return declaredVariables
+	}
 
 	if !declaration.IsLocal {
-		if scope.Parent != nil {
-			w.error(declaration.Token, "cannot declare a global variable inside a local block")
-		}
-		if len(values) == 0 {
-			w.error(declaration.Token, "cannot declare a global without a value")
-		}
+		w.error(declaration.Token, "cannot declare a global variable inside a local block")
+	}
+	if declaration.Token.Type == lexer.Const && scope.Parent != nil {
+		w.error(declaration.Token, "cannot declare a global constant inside a local block")
 	}
 
-	isConstant := declaration.Token.Type == lexer.Const
-	if isConstant {
-		if scope.Parent != nil {
-			w.error(declaration.Token, "cannot declare a global constant inside a local block")
-		}
-		if len(values) == 0 {
-			w.error(declaration.Token, "cannot declare a global constant without a value")
-		}
-	}
 	for i, ident := range declaration.Identifiers {
 		if ident.Lexeme == "_" {
 			continue
 		}
-		val := GetValue(values, i)
+
+		valType := values[i].GetType()
+
+		if declaration.Types[i] != nil {
+			if explicitType := w.typeExpr(declaration.Types[i]); !valType.Eq(explicitType) {
+				w.error(declaration.Token, fmt.Sprintf("mismatched types: explict type (%s) not the same with value type (%s)",
+					valType.ToString(),
+					explicitType.ToString()))
+			}
+		}
+
 		variable := VariableVal{
-			Value: val,
+			Value: values[i],
 			Name:  ident.Lexeme,
 			Node:  declaration,
 		}
-
-		wasMapOrList := false
-		valType := val.GetType()
-		explicitType := w.typeExpr(declaration.Types[i])
-		if valType.Type == ast.Map || valType.Type == ast.List {
-			wasMapOrList = true
-		}
-
-		if valType.Type == 0 {
-			if explicitType.Type == ast.Invalid {
-				w.error(declaration.Identifiers[i], "uninitialized variable must have its type declared")
-			} else if explicitType.Type == ast.Func {
-				w.error(declaration.Identifiers[i], "cannot declare an uninitialized function")
-			}
-			declaration.Values = append(declaration.Values, w.GetValueFromType(explicitType).GetDefault())
-			val = w.GetValueFromType(explicitType)
-			variable.Value = val
-			valType = val.GetType()
-			values = append(values, val)
-		}
-
-		if wasMapOrList {
-			if declaration.Types[i] == nil {
-				if valType.WrappedType.Type == ast.Invalid || valType.WrappedType.Type == 0 {
-					w.error(ident, "cannot infer the wrapped type of the map/list: empty or mixed value types")
-				}
-			} else if declaration.Types[i].WrappedType == nil {
-				w.error(declaration.Types[i].GetToken(), "expected a wrapped type in map/list declaration")
-			} else if valType.WrappedType.Type != 0 && !valType.Eq(explicitType) {
-				w.error(ident, fmt.Sprintf("given value for '%s' does not match with the type given, (explicit:%s, inferred:%s)", ident.Lexeme, explicitType.ToString(), valType.ToString()))
-			}
-		} else if valType.Type != 0 && explicitType.Type != ast.Invalid && !valType.Eq(explicitType) {
-			w.error(ident, fmt.Sprintf("given value for '%s' does not match with the type given", ident.Lexeme))
-		}
-
 		declaredVariables = append(declaredVariables, variable)
 		if _, success := scope.DeclareVariable(variable); !success {
 			w.error(lexer.Token{Lexeme: ident.Lexeme, Location: declaration.Token.Location},
 				"cannot declare a value in the same scope twice")
 		}
-	}
-
-	if len(values) != 0 {
-		return declaredVariables
-	}
-	if len(values) > len(declaration.Identifiers) {
-		w.error(declaration.Token, "too many values provided in declaration")
-	} else if len(values) < len(declaration.Identifiers) {
-		w.error(declaration.Token, "too few values provided in declaration")
 	}
 
 	return declaredVariables

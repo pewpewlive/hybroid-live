@@ -50,19 +50,17 @@ func (w *Walker) GetValueFromType(typee TypeVal) Value {
 		return BoolVal{}
 	case ast.List:
 		return ListVal{
-			ValueType: *typee.WrappedType,
+			ValueType: typee.WrappedType,
 		}
 	case ast.Map:
 		return MapVal{
-			MemberType: *typee.WrappedType,
+			MemberType: typee.WrappedType,
 		}
 	case ast.Func:
 		return FunctionVal{
 			params:    typee.Params,
 			returnVal: typee.Returns,
 		}
-	case ast.Nil:
-		return NilVal{}
 	case ast.String:
 		return StringVal{}
 	case ast.Invalid:
@@ -213,20 +211,12 @@ func (g *Namespace) GetForeignType(str string) Value {
 
 func (w *Walker) validateArithmeticOperands(left TypeVal, right TypeVal, expr ast.BinaryExpr) bool {
 	//fmt.Printf("Validating operands: %v (%v) and %v (%v)\n", left.Val, left.Type, right.Val, right.Type)
-	switch left.Type {
-	case ast.Nil:
-		w.error(expr.Left.GetToken(), "cannot perform arithmetic on nil value")
-		return false
-	case ast.Invalid:
+	if left.Type == ast.Invalid {
 		w.error(expr.Left.GetToken(), "cannot perform arithmetic on Invalid value")
 		return false
 	}
 
-	switch right.Type {
-	case ast.Nil:
-		w.error(expr.Right.GetToken(), "cannot perform arithmetic on nil value")
-		return false
-	case ast.Invalid:
+	if right.Type == ast.Invalid {
 		w.error(expr.Right.GetToken(), "cannot perform arithmetic on Invalid value")
 		return false
 	}
@@ -342,6 +332,9 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 	case ast.RepeatStmt:
 		w.repeatStmt(&newNode, scope)
 		*node = newNode
+	case ast.ForStmt:
+		w.forStmt(&newNode, scope)
+		*node = newNode
 	case ast.TickStmt:
 		w.tickStmt(&newNode, scope)
 		*node = newNode
@@ -419,12 +412,11 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 		val = w.selfExpr(&newNode, scope)
 		*node = newNode
 	case ast.MatchExpr:
-		val = w.matchExpr(&newNode, scope) //ah yeah right yeah
-		*node = newNode                    // return type doesnt return interface, i.e method GetDefault
+		val = w.matchExpr(&newNode, scope)
+		*node = newNode
 	default:
 		w.error(newNode.GetToken(), "Expected expression")
-		return NilVal{}
+		return Invalid{}
 	}
-
 	return val
 }

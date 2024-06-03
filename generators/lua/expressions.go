@@ -220,10 +220,10 @@ func (gen *Generator) newExpr(new ast.NewExpr, scope *GenScope) string {
 func (gen *Generator) matchExpr(match ast.MatchExpr, scope *GenScope) string {
 	vars := StringBuilder{}
 
-	gotoLabel := "glab" + RandStr(5)
+	gotoLabel := "glab" + GenerateVar()
 
 	for i := 0; i < match.ReturnAmount; i++ {
-		helperVarName := "hv" + RandStr(5) // "hv" stands for hybroid variable
+		helperVarName := "hv" + GenerateVar() // "hv" stands for hybroid variable
 		if i == 0 {
 			scope.Src.AppendTabbed("local ", helperVarName)
 			vars.WriteString(helperVarName)

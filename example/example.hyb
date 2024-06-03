@@ -1,46 +1,19 @@
 @Environment(Level)
 
-struct Cube {
-  x, y = 20.5f, 30.01f
-  size = 5f
+let a = true
+let b = false
 
-  name = "cube"
 
-  health = 3
-
-  yessss = fn (a fixed) {
-
-  }
-  yuppie = [new Cube(2f, 2f)]
-
-  new(x fixed, y fixed) {
-    self.x = x
-    y = self.y
-  }
-
-  fn SetPos(newX fixed, newY fixed) {
-    x = newX
-    y = newY
-  } 
-
-  fn Move(dirX fixed, dirY fixed) {
-    x += dirX + x
-    y += dirY
-
-    yuppie[0].yuppie[-322].yuppie[0].Move(2f, 3f)
-    yessss(1f)
-  }
+if a or b {
+  a = b
 }
 
+let test = {a:1}
 
-let cube = new Cube(10f, 10f)
+test["a"] += 2
 
-repeat 10 with time {
-  cube.SetPos(cube.x + 1f, time)
-  
-  if cube.y < 0f {
-    cube.Move(0f, 10f)
-
-    continue 
+fn testFunc(param map<map<number>>) bool {
+  if param == {a:{b:1}} {
+    return true
   }
-} 
+}

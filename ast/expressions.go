@@ -1,8 +1,6 @@
 package ast
 
-import (
-	"hybroid/lexer"
-)
+import "hybroid/lexer"
 
 type Accessor interface {
 	Node

@@ -65,8 +65,6 @@ func (w *Walker) literalExpr(node *ast.LiteralExpr) Value {
 			ast.Degree}
 	case ast.Bool:
 		return BoolVal{}
-	case ast.Nil:
-		return NilVal{}
 	case ast.Number:
 		return NumberVal{}
 	default:
@@ -77,6 +75,7 @@ func (w *Walker) literalExpr(node *ast.LiteralExpr) Value {
 func (w *Walker) identifierExpr(node *ast.Node, scope *Scope) Value {
 	valueNode := *node
 	ident := valueNode.(ast.IdentifierExpr)
+
 	sc := scope.ResolveVariable(ident.Name.Lexeme)
 
 	if sc != nil {
@@ -101,6 +100,7 @@ func (w *Walker) identifierExpr(node *ast.Node, scope *Scope) Value {
 		}
 		return newValue.Value
 	}
+
 	return Invalid{}
 }
 
@@ -117,7 +117,6 @@ func (w *Walker) listExpr(node *ast.ListExpr, scope *Scope) Value {
 		}
 		value.Values = append(value.Values, val)
 	}
-	value.ValueType = value.GetContentsValueType()
 	return value
 }
 
@@ -197,8 +196,8 @@ func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope, callType ProcedureTy
 	return CallVal{types: fun.returnVal}
 }
 
-func (w *Walker) methodCallExpr(node *ast.Node, scope *Scope) Value { // ty
-	method := (*node).(ast.MethodCallExpr) // ok
+func (w *Walker) methodCallExpr(node *ast.Node, scope *Scope) Value {
+	method := (*node).(ast.MethodCallExpr)
 
 	ownerVal := w.GetNodeValue(&method.Owner, scope)
 
@@ -265,10 +264,10 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 		}
 		return fieldVal
 	}
-	ownerr := scope.Namespace.Ctx.Value
+	owner := scope.Namespace.Ctx.Value
 	variable := VariableVal{Value: Invalid{}}
-	if IsOfPrimitiveType(ownerr, ast.Struct, ast.Entity, ast.Namespace) {
-		if container := helpers.GetValOfInterface[Container](ownerr); container != nil {
+	if IsOfPrimitiveType(owner, ast.Struct, ast.Entity, ast.Namespace) {
+		if container := helpers.GetValOfInterface[Container](owner); container != nil {
 			container := *container
 			ident := node.Identifier.GetToken()
 			val, index, contains := container.Contains(ident.Lexeme)
@@ -293,18 +292,11 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 }
 
 func (w *Walker) mapExpr(node *ast.MapExpr, scope *Scope) Value {
-	mapVal := MapVal{Members: map[string]VariableVal{}}
-	for k, v := range node.Map {
-		//fmt.Printf("%s, ",v.Type.ToString())
+	mapVal := MapVal{Members: []Value{}}
+	for _, v := range node.Map {
 		val := w.GetNodeValue(&v.Expr, scope)
-
-		mapVal.Members[k.Lexeme] = VariableVal{
-			Name:  k.Lexeme,
-			Value: val,
-			Node:  v.Expr,
-		}
+		mapVal.Members = append(mapVal.Members, val)
 	}
-	mapVal.MemberType = mapVal.GetContentsValueType()
 	return mapVal
 }
 
@@ -315,12 +307,6 @@ func (w *Walker) unaryExpr(node *ast.UnaryExpr, scope *Scope) Value {
 func (w *Walker) memberExpr(node *ast.MemberExpr, scope *Scope) Value {
 	if node.Owner == nil {
 		val := w.GetNodeValue(&node.Identifier, scope)
-		valType := val.GetType().Type
-
-		if valType != ast.List && valType != ast.Map {
-			w.error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a list, map", node.Identifier.GetToken().Lexeme))
-			return Invalid{}
-		}
 
 		var memberVal Value
 		if node.Property == nil {
@@ -349,17 +335,16 @@ func (w *Walker) memberExpr(node *ast.MemberExpr, scope *Scope) Value {
 		}
 	}
 
-	wrappedValType := TypeVal{Type: ast.Invalid}
+	if arrayType.Type != ast.List && arrayType.Type != ast.Map {
+		w.error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a list, or map", node.Identifier.GetToken().Lexeme))
+		return Invalid{}
+	}
 
 	if variable, ok := array.(VariableVal); ok {
 		array = variable.Value
 	}
 
-	if list, ok := array.(ListVal); ok {
-		wrappedValType = list.ValueType
-	} else if mapp, ok := array.(MapVal); ok {
-		wrappedValType = mapp.MemberType
-	}
+	wrappedValType := *array.GetType().WrappedType
 
 	wrappedVal := w.GetValueFromType(wrappedValType)
 
@@ -459,11 +444,6 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) FunctionVal {
 		value := w.GetValueFromType(params[i])
 		fnScope.DeclareVariable(VariableVal{Name: param.Name.Lexeme, Value: value, Node: fn})
 	}
-
-	/*
-		if len(ret.values) == 0 {
-			ret.values = append(ret.values, TypeVal{Type: ast.Nil})
-		}*/
 
 	for _, node := range fn.Body {
 		w.WalkNode(&node, &fnScope)

@@ -146,7 +146,7 @@ func (l *Lexer) scanToken() {
 	case '@':
 		l.addToken(At, "")
 	case '|':
-		l.addToken(Wall, "")
+		l.addToken(Pipe, "")
 	case '.':
 		if l.matchChar('.') {
 			l.addToken(Concat, "")
