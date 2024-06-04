@@ -53,6 +53,7 @@ func GenerateVar() string {
 	varName := StringBuilder{}
 	varName.WriteByte('H')
 	ResolveVarCounter(&varName, varCounter)
+	varCounter++
 	return varName.String()
 }
 
@@ -101,7 +102,7 @@ type GenScope struct { // 0 3
 	ReplaceSettings ReplaceSettings
 }
 
-func (gs *GenScope) AddDo(tag ReplaceType, _range Range) {
+func (gs *GenScope) AddReplacement(tag ReplaceType, _range Range) {
 	gs.Replacements = append(gs.Replacements, Replacement{Tag: tag, Range: _range})
 }
 
@@ -121,7 +122,7 @@ func ResolveReplacement(rType ReplaceType, scope *GenScope) string {
 	return ResolveReplacement(rType, scope.Parent)
 }
 
-func (gs *GenScope) DoTheDos(replacement ReplaceSettings) {
+func (gs *GenScope) ReplaceAll(replacement ReplaceSettings) {
 	lengthBefore := gs.Src.Len()
 
 	for i := len(gs.Replacements) - 1; i >= 0; i-- {

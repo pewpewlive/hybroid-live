@@ -259,7 +259,7 @@ func (gen *Generator) matchExpr(match ast.MatchExpr, scope *GenScope) string {
 
 		gen.GenerateString(matchCase.Body, &caseScope)
 
-		caseScope.DoTheDos(caseScope.ReplaceSettings)
+		caseScope.ReplaceAll(caseScope.ReplaceSettings)
 
 		scope.Write(caseScope.Src)
 

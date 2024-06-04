@@ -27,7 +27,7 @@ func (gen *Generator) ifStmt(node ast.IfStmt, scope *GenScope) {
 
 	ifScope.Append(ifTabs, "end\n")
 
-	ifScope.DoTheDos(ifScope.ReplaceSettings)
+	ifScope.ReplaceAll(ifScope.ReplaceSettings)
 
 	TabsCount -= 1
 	scope.Write(ifScope.Src)
@@ -156,9 +156,9 @@ func (gen *Generator) yieldStmt(node ast.YieldStmt, scope *GenScope) {
 	scope.Write(src)
 
 	_range := NewRange(startIndex+scopeLength, endIndex+scopeLength)
-	scope.AddDo(YieldReplacement, _range)
+	scope.AddReplacement(YieldReplacement, _range)
 	_range2 := NewRange(startIndex2+scopeLength, endIndex2+scopeLength)
-	scope.AddDo(GotoReplacement, _range2)
+	scope.AddReplacement(GotoReplacement, _range2)
 }
 
 func (gen *Generator) breakStmt(_ ast.BreakStmt, scope *GenScope) {
@@ -178,7 +178,7 @@ func (gen *Generator) continueStmt(_ ast.ContinueStmt, scope *GenScope) {
 	scope.Write(src)
 
 	_range := NewRange(startIndex+scopeLength, endIndex+scopeLength)
-	scope.AddDo(ContinueReplacement, _range)
+	scope.AddReplacement(ContinueReplacement, _range)
 }
 
 func (gen *Generator) repeatStmt(node ast.RepeatStmt, scope *GenScope) {
@@ -205,7 +205,7 @@ func (gen *Generator) repeatStmt(node ast.RepeatStmt, scope *GenScope) {
 
 	gen.GenerateString(node.Body, &repeatScope)
 
-	repeatScope.DoTheDos(repeatScope.ReplaceSettings)
+	repeatScope.ReplaceAll(repeatScope.ReplaceSettings)
 
 	scope.Write(repeatScope.Src)
 
@@ -239,7 +239,7 @@ func (gen *Generator) forStmt(node ast.ForStmt, scope *GenScope) {
 
 	gen.GenerateString(node.Body, &forScope)
 
-	forScope.DoTheDos(forScope.ReplaceSettings)
+	forScope.ReplaceAll(forScope.ReplaceSettings)
 
 	scope.Write(forScope.Src)
 
