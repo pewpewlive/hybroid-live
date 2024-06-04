@@ -50,7 +50,7 @@ func (p *Parser) isAtEnd() bool {
 	return p.peek().Type == lexer.Eof
 }
 
-// Advances by one into the next token and returns the previous tokne before advancing
+// Advances by one into the next token and returns the previous token before advancing
 func (p *Parser) advance() lexer.Token {
 	t := p.tokens[p.current]
 	if p.current < len(p.tokens)-1 {
@@ -59,7 +59,7 @@ func (p *Parser) advance() lexer.Token {
 	return t
 }
 
-// Peeks into the current token or peeks at the token that is offet from the current position by the given offset
+// Peeks into the current token or peeks at the token that is offset from the current position by the given offset
 func (p *Parser) peek(offset ...int) lexer.Token {
 	if offset == nil {
 		return p.tokens[p.current]
@@ -145,7 +145,7 @@ func (p *Parser) getParam() ast.Param {
 func (p *Parser) parameters() []ast.Param {
 	if _, ok := p.consume("expected opening paren after an identifier", lexer.LeftParen); !ok {
 		return nil
-	} // int a = 1 | 1
+	}
 
 	var args []ast.Param
 	if p.match(lexer.RightParen) {
