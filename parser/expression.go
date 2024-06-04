@@ -363,7 +363,7 @@ func (p *Parser) directive() ast.Node {
 }
 
 func (p *Parser) new() ast.Node {
-	if p.match(lexer.Neww) {
+	if p.match(lexer.New) {
 		expr := ast.NewExpr{
 			Token: p.peek(-1),
 		}

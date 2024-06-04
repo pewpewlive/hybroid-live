@@ -87,7 +87,7 @@ const (
 	Match
 	From
 	Struct
-	Neww
+	New
 
 	Eof // EOF (End of File)
 )
@@ -128,7 +128,7 @@ var keywords = map[string]TokenType{
 	"match":    Match,
 	"from":     From,
 	"struct":   Struct,
-	"new":      Neww,
+	"new":      New,
 }
 
 func (t TokenType) ToString() string {

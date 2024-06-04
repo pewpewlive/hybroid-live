@@ -22,10 +22,11 @@ func (p *Parser) statement() ast.Node {
 	next := p.peek(1).Type
 
 	if token == lexer.Pub {
-		if next == lexer.Fn {
+		switch next {
+		case lexer.Fn:
 			p.advance()
 			token = p.peek().Type
-		} else if next == lexer.Struct {
+		case lexer.Struct:
 			p.advance()
 			p.advance()
 			return p.structDeclarationStatement()
@@ -144,7 +145,7 @@ func (p *Parser) structDeclarationStatement() ast.Node {
 			if ok {
 				*stmt.Methods = append(*stmt.Methods, method)
 			}
-		} else if p.match(lexer.Neww) {
+		} else if p.match(lexer.New) {
 			construct, ok := p.constructorDeclarationStmt().(ast.ConstructorStmt)
 			if ok {
 				stmt.Constructor = &construct
