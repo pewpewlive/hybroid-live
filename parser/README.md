@@ -21,7 +21,7 @@ type Parser struct {
 }
 ```
 
-**Constructor:** `New() -> *Parser` - Creates a new `Parser` with an empty list of tokens, errors, empty program and returns a pointer to it.
+**Constructor:** `NewParser() -> *Parser` - Creates a new `Parser` with an empty list of tokens, errors, empty program and returns a pointer to it.
 
 **Methods:**
 

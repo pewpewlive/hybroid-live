@@ -54,7 +54,7 @@ func Build(ctx *cli.Context, files ...FileInformation) error {
 
 		namespaces := map[string]*walker.Namespace{}
 
-		eval := evaluator.New(lua.Generator{Scope: lua.GenScope{Src: lua.StringBuilder{}}}, &namespaces)
+		eval := evaluator.NewEvaluator(lua.Generator{Scope: lua.GenScope{Src: lua.StringBuilder{}}}, &namespaces)
 		var evalErr error = nil
 		if len(files) == 0 {
 			eval.AssignFile(cwd+entryPoint, cwd+outputDir+"/"+strings.Replace(entryPoint, ".hyb", ".lua", -1))

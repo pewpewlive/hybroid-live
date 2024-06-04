@@ -15,7 +15,7 @@ type Walker struct {
 	Context   ast.Node
 }
 
-func New() *Walker {
+func NewWalker() *Walker {
 	namespace := NewNamespace()
 	walker := Walker{
 		Namespace: &namespace,

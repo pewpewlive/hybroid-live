@@ -12,7 +12,7 @@ type Parser struct {
 	Errors  []ast.Error
 }
 
-func New() *Parser {
+func NewParser() *Parser {
 	return &Parser{make([]ast.Node, 0), 0, make([]lexer.Token, 0), make([]ast.Error, 0)}
 }
 

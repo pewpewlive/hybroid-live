@@ -25,12 +25,12 @@ type Evaluator struct {
 	DstPath    string
 }
 
-func New(gen lua.Generator, namespaces *map[string]*walker.Namespace) Evaluator {
+func NewEvaluator(gen lua.Generator, namespaces *map[string]*walker.Namespace) Evaluator {
 	return Evaluator{
 		namespaces: namespaces,
-		lexer:      lexer.New(),
-		parser:     parser.New(),
-		walker:     walker.New(),
+		lexer:      lexer.NewLexer(),
+		parser:     parser.NewParser(),
+		walker:     walker.NewWalker(),
 		gen:        gen,
 	}
 }
