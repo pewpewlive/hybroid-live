@@ -16,24 +16,24 @@ The following documentation structure is valid to all the docs across the codeba
 
 _Overview_
 
-# `file1.go`
+## `file1.go`
 
 `# file1.go`
 
 Small description talking about what this file is useful for and what it contains.
 
-## Types
+### Types
 
 _code snippet_
 _description (optional)_
 
 _..._
 
-## Interfaces
+### Interfaces
 
 `## Interfaces`
 
-### **_Foobar:_**
+#### **_Foobar:_**
 
 `### ***Foobar:***`
 

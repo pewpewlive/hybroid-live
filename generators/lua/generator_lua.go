@@ -41,7 +41,7 @@ var varCounter = 0
 
 func ResolveVarCounter(varname *StringBuilder, counter int) {
 	if counter > charsetLength-1 {
-		newCounter := charsetLength - 1 - counter
+		newCounter :=  counter-charsetLength
 		varname.WriteByte(charset[charsetLength-1])
 		ResolveVarCounter(varname, newCounter)
 	} else {

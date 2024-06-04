@@ -50,11 +50,11 @@ func (w *Walker) GetValueFromType(typee TypeVal) Value {
 		return BoolVal{}
 	case ast.List:
 		return ListVal{
-			ValueType: typee.WrappedType,
+			ValueType: *typee.WrappedType,
 		}
 	case ast.Map:
 		return MapVal{
-			MemberType: typee.WrappedType,
+			MemberType: *typee.WrappedType,
 		}
 	case ast.Func:
 		return FunctionVal{
@@ -245,7 +245,7 @@ func returnsAreValid(list1 []TypeVal, list2 []TypeVal) bool {
 		fmt.Printf("%s compared to %s\n", list1[i].ToString(), list2[i].ToString())
 		if !((list2[i].WrappedType != nil && list2[i].WrappedType.Type == 0) ||
 			(v.WrappedType != nil && v.WrappedType.Type == 0)) &&
-			!list2[i].Eq(v) {
+			!TypeEquals(&list2[i], &v) {
 			return false
 		}
 	}

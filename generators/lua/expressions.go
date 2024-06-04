@@ -32,7 +32,7 @@ func (gen *Generator) literalExpr(node ast.LiteralExpr) string {
 }
 
 func (gen *Generator) identifierExpr(node ast.IdentifierExpr, _ *GenScope) string {
-	return node.Name.Lexeme
+	return "V"+node.Name.Lexeme
 }
 
 func (gen *Generator) groupingExpr(node ast.GroupExpr, scope *GenScope) string {
@@ -220,10 +220,10 @@ func (gen *Generator) newExpr(new ast.NewExpr, scope *GenScope) string {
 func (gen *Generator) matchExpr(match ast.MatchExpr, scope *GenScope) string {
 	vars := StringBuilder{}
 
-	gotoLabel := "glab" + GenerateVar()
+	gotoLabel := GenerateVar()
 
 	for i := 0; i < match.ReturnAmount; i++ {
-		helperVarName := "hv" + GenerateVar() // "hv" stands for hybroid variable
+		helperVarName := GenerateVar() 
 		if i == 0 {
 			scope.Src.AppendTabbed("local ", helperVarName)
 			vars.WriteString(helperVarName)

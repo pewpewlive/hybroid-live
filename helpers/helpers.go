@@ -16,7 +16,7 @@ func Contains[T comparable](list []T, thing T) bool {
 	return false
 }
 
-func GetValOfInterface[T any, E any](val E) *T {
+func GetValOfInterface[T, E any](val E) *T {
 	value := reflect.ValueOf(val)
 	ah := reflect.TypeFor[T]()
 	if value.CanConvert(ah) {
@@ -26,4 +26,12 @@ func GetValOfInterface[T any, E any](val E) *T {
 	}
 
 	return nil
+}
+
+func XORNIL[T any](a, b *T) bool {
+	if (a == nil || b == nil) && !(a == nil && b == nil) {
+		return true
+	}
+
+	return false
 }

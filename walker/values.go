@@ -184,17 +184,13 @@ func (n NamespaceVal) GetDefault() ast.LiteralExpr {
 }
 
 type MapVal struct {
-	MemberType *TypeVal
+	MemberType TypeVal
 	Members    []Value
 	// Keys       []string
 }
 
 func (m MapVal) GetType() TypeVal {
-	if m.MemberType == nil {
-		memType := GetContentsValueType(m.Members)
-		m.MemberType = &memType
-	}
-	return TypeVal{Name: "map", Type: ast.Map, WrappedType: m.MemberType}
+	return TypeVal{Name: "map", Type: ast.Map, WrappedType: &m.MemberType}
 }
 
 func (m MapVal) GetDefault() ast.LiteralExpr {
@@ -227,16 +223,12 @@ func GetContentsValueType(values []Value) TypeVal {
 }
 
 type ListVal struct {
-	ValueType *TypeVal
+	ValueType TypeVal
 	Values    []Value
 }
 
 func (l ListVal) GetType() TypeVal {
-	if l.ValueType == nil {
-		memType := GetContentsValueType(l.Values)
-		l.ValueType = &memType
-	}
-	return TypeVal{Name: "list", Type: ast.List, WrappedType: l.ValueType}
+	return TypeVal{Name: "list", Type: ast.List, WrappedType: &l.ValueType}
 }
 
 func (l ListVal) GetDefault() ast.LiteralExpr {
@@ -287,7 +279,7 @@ func (rt *Returns) Eq(otherRT *Returns) bool {
 	typesSame := true
 	if len(*rt) == len(*otherRT) {
 		for i, v := range *rt {
-			if !v.Eq((*otherRT)[i]) {
+			if !TypeEquals(&v, &(*otherRT)[i]) {
 				typesSame = false
 				break
 			}
@@ -319,38 +311,54 @@ type TypeVal struct {
 	Returns     Returns
 }
 
-func (t TypeVal) Eq(otherT TypeVal) bool {
-	paramsAreSame := true
-	nameIsSame := false
+func TypeEquals(t *TypeVal, otherT *TypeVal) bool {
 
-	if t.Name == otherT.Name {
-		nameIsSame = true
+	if t == nil && otherT == nil {
+		return true
+	}else if t != nil && otherT != nil {}else {
+		return false
 	}
 
-	if (otherT.Params == nil || t.Params == nil) && !(otherT.Params == nil && t.Params == nil) {
+	// unknown checking
+	if t.Type == 0 || otherT.Type == 0 {
+		return true
+	}
+
+	// name checking
+	if t.Name != otherT.Name {
 		return false
-	} else {
-		if otherT.Params == nil && t.Params == nil {
-			paramsAreSame = true
-		} else if len(t.Params) == len(otherT.Params) {
-			for i, v := range t.Params {
-				if !v.Eq(otherT.Params[i]) {
-					paramsAreSame = false
-					break
-				}
-			}
-		} else {
-			paramsAreSame = false
+	}
+
+	// param checking
+	if len(t.Params) != len(otherT.Params) {
+		return false
+	}
+	for i, v := range t.Params {
+		if !TypeEquals(&v, &otherT.Params[i]) {
+			return false
 		}
 	}
 
-	if (otherT.WrappedType == nil || t.WrappedType == nil) && !(otherT.WrappedType == nil && t.WrappedType == nil) {
+	// return checking
+	if len(t.Returns) != len(otherT.Returns) {
 		return false
-	} else if otherT.WrappedType == nil && t.WrappedType == nil {
-		return (t.Type == otherT.Type) && paramsAreSame && (t.Returns.Eq(&otherT.Returns)) && nameIsSame
+	}
+	for i, v := range t.Returns {
+		if !TypeEquals(&v, &otherT.Returns[i]) {
+			return false
+		}
 	}
 
-	return (t.Type == 0 || otherT.Type == 0 || t.Type == otherT.Type) && (t.WrappedType.Eq(*otherT.WrappedType)) && paramsAreSame && (t.Returns.Eq(&otherT.Returns)) && nameIsSame
+	// pvt checking
+	if t.Type != otherT.Type {
+		return false
+	}
+	
+	if !TypeEquals(t.WrappedType, otherT.WrappedType) {
+		return false
+	}
+
+	return true
 }
 
 func (t TypeVal) ToString() string {

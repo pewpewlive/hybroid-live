@@ -76,9 +76,9 @@ func (gen *Generator) functionDeclarationStmt(node ast.FunctionDeclarationStmt, 
 		fnScope.Append(fnTabs)
 	}
 
-	fnScope.Append("function ", node.Name.Lexeme, "(")
+	fnScope.Append("function ", "V", node.Name.Lexeme, "(")
 	for i, param := range node.Params {
-		fnScope.Append(param.Name.Lexeme)
+		fnScope.Append("V", param.Name.Lexeme)
 		if i != len(node.Params)-1 {
 			fnScope.Append(", ")
 		}
@@ -292,11 +292,11 @@ func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclaratio
 	}
 	for i, ident := range declaration.Identifiers {
 		if i == len(declaration.Identifiers)-1 && len(values) != 0 {
-			src.WriteString(fmt.Sprintf("%s = ", ident.Lexeme))
+			src.Append("V", fmt.Sprintf("%s = ", ident.Lexeme))
 		} else if i == len(declaration.Identifiers)-1 {
-			src.WriteString(ident.Lexeme)
+			src.Append("V", ident.Lexeme)
 		} else {
-			src.WriteString(fmt.Sprintf("%s, ", ident.Lexeme))
+			src.Append("V", fmt.Sprintf("%s, ", ident.Lexeme))
 		}
 	}
 	for i := range values {
@@ -339,7 +339,7 @@ func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, Struc
 	TabsCount += 1
 
 	for i, param := range node.Params {
-		constructorScope.Append(param.Name.Lexeme)
+		constructorScope.Append("V", param.Name.Lexeme)
 		if i != len(node.Params)-1 {
 			constructorScope.Append(", ")
 		}
@@ -377,7 +377,7 @@ func (gen *Generator) methodDeclarationStmt(node ast.MethodDeclarationStmt, Stru
 	methodScope.Append("function Hybroid_", Struct.Name.Lexeme, "_", node.Name.Lexeme, "(Self")
 	for _, param := range node.Params {
 		methodScope.WriteString(", ")
-		methodScope.Append(param.Name.Lexeme)
+		methodScope.Append("V", param.Name.Lexeme)
 	}
 	methodScope.Append(")\n")
 

@@ -1,6 +1,6 @@
 # Walker
 
-The walker walks through all the nodes, verifies their legitimacy and/or changes them.
+The walker walks through all the nodes in the AST (Abstract Syntax Tree), verifies their legitimacy and/or changes them.
 
 # `values.go`
 
@@ -337,3 +337,5 @@ const (
 ```
 
 `ScopeTagType` is the identity of the `ScopeTag`.
+
+## 'statements.go'

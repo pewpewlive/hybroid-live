@@ -12,7 +12,7 @@ func (w *Walker) determineValueType(left TypeVal, right TypeVal) TypeVal {
 	if left.Type == 0 || right.Type == 0 {
 		return TypeVal{Type: 0}
 	}
-	if left.Eq(right) {
+	if TypeEquals(&left, &right) {
 		return right
 	}
 	if parser.IsFx(left.Type) && parser.IsFx(right.Type) {
@@ -30,7 +30,7 @@ func (w *Walker) binaryExpr(node *ast.BinaryExpr, scope *Scope) Value {
 	case lexer.Plus, lexer.Minus, lexer.Caret, lexer.Star, lexer.Slash, lexer.Modulo:
 		w.validateArithmeticOperands(leftType, rightType, *node)
 	default:
-		if !leftType.Eq(rightType) {
+		if !TypeEquals(&leftType, &rightType) {
 			w.error(node.GetToken(), fmt.Sprintf("invalid comparison: types are not the same (left: %s, right: %s)", leftType.Type.ToString(), rightType.Type.ToString()))
 		} else {
 			return BoolVal{}
@@ -117,6 +117,7 @@ func (w *Walker) listExpr(node *ast.ListExpr, scope *Scope) Value {
 		}
 		value.Values = append(value.Values, val)
 	}
+	value.ValueType = GetContentsValueType(value.Values)
 	return value
 }
 
@@ -145,7 +146,7 @@ func (w *Walker) validateArguments(args []TypeVal, params []TypeVal, callToken l
 		return false
 	}
 	for i, typeVal := range args {
-		if !typeVal.Eq(params[i]) {
+		if !TypeEquals(&typeVal, &params[i]) {
 			return false
 		}
 	}
@@ -297,6 +298,7 @@ func (w *Walker) mapExpr(node *ast.MapExpr, scope *Scope) Value {
 		val := w.GetNodeValue(&v.Expr, scope)
 		mapVal.Members = append(mapVal.Members, val)
 	}
+	mapVal.MemberType = GetContentsValueType(mapVal.Members)
 	return mapVal
 }
 

@@ -90,7 +90,7 @@ func (w *Walker) assignmentStmt(assignStmt *ast.AssignmentStmt, scope *Scope) {
 			continue
 		}
 
-		if !variableType.Eq(valueType) {
+		if !TypeEquals(&variableType, &valueType) {
 			w.error(assignStmt.Values[i].GetToken(), fmt.Sprintf("mismatched types: variable has a type of %s, but a value of %s was given to it.", variableType.ToString(), valueType.ToString()))
 		}
 
@@ -438,7 +438,7 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 		valType := values[i].GetType()
 
 		if declaration.Types[i] != nil {
-			if explicitType := w.typeExpr(declaration.Types[i]); !valType.Eq(explicitType) {
+			if explicitType := w.typeExpr(declaration.Types[i]); !TypeEquals(&valType, &explicitType) {
 				w.error(declaration.Token, fmt.Sprintf("mismatched types: explict type (%s) not the same with value type (%s)",
 					valType.ToString(),
 					explicitType.ToString()))
@@ -535,7 +535,7 @@ func (w *Walker) fieldDeclarationStmt(node *ast.FieldDeclarationStmt, structType
 	if len(node.Types) != 0 {
 		for i := range node.Types {
 			explicitType := w.typeExpr(node.Types[i])
-			if explicitType.Eq(structType) {
+			if TypeEquals(&explicitType, &structType) {
 				w.error(node.Types[i].GetToken(), "cannot have a field with a value type of its struct")
 				return
 			}
@@ -543,7 +543,7 @@ func (w *Walker) fieldDeclarationStmt(node *ast.FieldDeclarationStmt, structType
 	} else if len(node.Types) != 0 {
 		for i := range node.Values {
 			valType := w.GetNodeValue(&node.Values[i], scope).GetType()
-			if valType.Eq(structType) {
+			if TypeEquals(&valType, &structType) {
 				w.error(node.Types[i].GetToken(), "cannot have a field with a value type of its struct")
 				return
 			}
@@ -600,7 +600,7 @@ func (w *Walker) matchStmt(node *ast.MatchStmt, isExpr bool, scope *Scope) {
 			continue
 		}
 		caseValType := w.GetNodeValue(&matchCase.Expression, scope).GetType()
-		if !valType.Eq(caseValType) {
+		if !TypeEquals(&valType, &caseValType) {
 			w.error(
 				matchCase.Expression.GetToken(),
 				fmt.Sprintf("mismatched types: arm expression (%s) and match expression (%s)",

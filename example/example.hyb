@@ -1,19 +1,44 @@
 @Environment(Level)
 
-let a = true
-let b = false
+let Va = true
+let vb = false
 
 
-if a or b {
-  a = b
+if Va or vb {
+  Va = vb
 }
 
-let test = {a:1}
-
-test["a"] += 2
-
-fn testFunc(param map<map<number>>) bool {
-  if param == {a:{b:1}} {
-    return true
+struct B {
+  a: fixed, y: fixed = 0f,0f
+  
+  new(x fixed, y fixed) {
+    a = match x {
+      100f => 1f
+      _ => {
+        yield x * 100f
+      }
+    }
+    self.y = match a {
+      x => y
+      _ => y + 100d
+    }
   }
 }
+
+let something = new B(100f, 100f)
+
+let test = { a: something.a }
+
+let num = 6f
+
+test["a"] += num
+
+fn testFunc(param map<map<number>>) bool {
+  if param == { a: { b: 1 } } {
+    return true
+  }
+
+  return false
+}
+
+let p = testFunc({ a: { b: 1 } })
