@@ -46,10 +46,13 @@ type TypeVal struct {
 }
 ```
 
-Extra methods:
+**Extra methods:**
 
-1. `TypeVal.Eq(otherT TypeVal) -> bool` - returns true if the given TypeVal is the same with self.
-2. `TypeVal.ToString() -> string` - returns a stringified version of the TypeVal.
+1. `ToString() -> string` - returns a stringified version of the TypeVal.
+
+**Associated Functions:**
+
+1. `TypeEquals(t TypeVal, otherT TypeVal) -> bool` - returns true if the given TypeVal is the same with the other TypeVal.
 
 ```go
 type StructTypeVal struct {
@@ -62,9 +65,9 @@ type StructTypeVal struct {
 }
 ```
 
-`StructTypeVal` is a TypeVal specifically for structs. It's used in the `Global` struct as `StructTypes`.
+`StructTypeVal` is a TypeVal specifically for structs. It's used in the [Namespace](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#namespace) struct as `StructTypes`.
 
-Some nodes such as field expressions are associated with a struct type. This struct type is pretty much the `StructTypeVal`. When declaring a struct, you also declare its body, with all its methods and fields. You pretty much declare a `StructTypeVal`, which gets added into the `StructTypes` of the Global.
+Some nodes such as field expressions are associated with a struct type. This struct type is pretty much the `StructTypeVal`. When declaring a struct, you also declare its body, with all its methods and fields. You pretty much declare a `StructTypeVal`, which gets added into the `StructTypes` of the [Namespace](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#namespace).
 
 ```go
 type StructVal struct {
@@ -199,7 +202,7 @@ type ScopeTag interface {
 }
 ```
 
-`ScopeTag` is like `ScopeAttribute`, but it holds some special information with it (depending on the interface implementation).
+`ScopeTag` is like [ScopeAttribute](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#scopeattribute), but it holds some special information with it (depending on the interface implementation).
 
 _When creating a new scope, the tag of the parent scope does not get carried onto the new one._
 
@@ -270,7 +273,7 @@ type Namespace struct {
 
 ```go
 type Scope struct {
-  Global *Namespace
+  Namespace *Namespace
   Parent *Scope
 
   Tag        ScopeTag
@@ -288,7 +291,7 @@ type Scope struct {
 
 **Methods:**
 
-1. `*Scope.Is(types ...ScopeAttribute) bool` - checks whether the scope contains the given scope attributes.
+1. `Is(types ...ScopeAttribute) bool` - checks whether the scope contains the given scope attributes.
 
 ### Types
 
@@ -349,6 +352,6 @@ const (
 )
 ```
 
-`ScopeTagType` is the identity of the `ScopeTag`.
+`ScopeTagType` is the identity of the [ScopeTag](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#scopetag).
 
-### 'statements.go'
+### `statements.go`
