@@ -29,6 +29,7 @@ const (
 	Progr
 
 	AnonymousFunctionExpression
+	AnonymousStructExpression
 	DirectiveExpression
 	LiteralExpression
 	UnaryExpression

@@ -394,6 +394,9 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 	case ast.AnonFnExpr:
 		val = w.anonFnExpr(&newNode, scope)
 		*node = newNode
+	case ast.AnonStructExpr:
+		val = w.anonStructExpr(&newNode, scope)
+		*node = newNode
 	case ast.MethodCallExpr:
 		val = w.methodCallExpr(node, scope)
 	case ast.MemberExpr:

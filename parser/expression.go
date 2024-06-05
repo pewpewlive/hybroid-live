@@ -7,73 +7,6 @@ import (
 	"strings"
 )
 
-func (p *Parser) list() ast.Node {
-	token := p.peek(-1)
-	list := make([]ast.Node, 0)
-	for !p.match(lexer.RightBracket) {
-		exprInList := p.expression()
-		if exprInList.GetType() == ast.NA {
-			p.error(p.peek(), "expected expression")
-			break
-		}
-
-		token, _ := p.consume("expected ',' or ']' after expression", lexer.Comma, lexer.RightBracket)
-
-		list = append(list, exprInList)
-		if token.Type == lexer.RightBracket || token.Type == lexer.Eof {
-			break
-		}
-	}
-
-	return ast.ListExpr{ValueType: ast.List, List: list, Token: token}
-}
-
-func (p *Parser) parseMap() ast.Node {
-	token := p.peek(-1)
-	parsedMap := make(map[lexer.Token]ast.Property, 0)
-	for !p.check(lexer.RightBrace) {
-		key := p.primary()
-
-		var newKey lexer.Token
-		switch key := key.(type) {
-		case ast.IdentifierExpr:
-			newKey = key.GetToken()
-		case ast.LiteralExpr:
-			if key.GetValueType() != ast.String {
-				p.error(key.GetToken(), "expected a string in map initialization")
-			}
-			newKey = key.GetToken()
-		default:
-			p.error(key.GetToken(), "expected either string or an identifier in map initialization")
-			p.advance()
-			return ast.Improper{Token: p.peek(-1)}
-		}
-
-		if _, ok := p.consume("expected ':' after map key", lexer.Colon); !ok {
-			return ast.Improper{Token: p.peek(-1)}
-		}
-
-		expr := p.expression()
-		if expr.GetType() == 0 {
-			p.error(p.peek(), "expected expression")
-		}
-
-		if p.peek().Type == lexer.RightBrace {
-			parsedMap[newKey] = ast.Property{Expr: expr, Type: expr.GetValueType()}
-			break
-		}
-
-		if _, ok := p.consume("expected ',' or '}' after expression", lexer.Comma, lexer.RightBrace); !ok {
-			return ast.Improper{Token: p.peek(-1)}
-		}
-
-		parsedMap[newKey] = ast.Property{Expr: expr, Type: expr.GetValueType()}
-	}
-	p.advance()
-
-	return ast.MapExpr{Map: parsedMap, Token: token}
-}
-
 func (p *Parser) expression() ast.Node {
 	return p.fn()
 }
@@ -446,6 +379,10 @@ func (p *Parser) primary() ast.Node {
 		return p.list()
 	}
 
+	if p.match(lexer.Struct) {
+		return p.anonStruct()
+	}
+
 	if p.match(lexer.Identifier) {
 		token := p.peek(-1)
 		return ast.IdentifierExpr{Name: token, ValueType: ast.Ident}
@@ -466,6 +403,122 @@ func (p *Parser) primary() ast.Node {
 	}
 
 	return ast.Improper{Token: p.peek()}
+}
+
+func (p *Parser) list() ast.Node {
+	token := p.peek(-1)
+	list := make([]ast.Node, 0)
+	for !p.match(lexer.RightBracket) {
+		exprInList := p.expression()
+		if exprInList.GetType() == ast.NA {
+			p.error(p.peek(), "expected expression")
+			break
+		}
+
+		token, _ := p.consume("expected ',' or ']' after expression", lexer.Comma, lexer.RightBracket)
+
+		list = append(list, exprInList)
+		if token.Type == lexer.RightBracket || token.Type == lexer.Eof {
+			break
+		}
+	}
+
+	return ast.ListExpr{ValueType: ast.List, List: list, Token: token}
+}
+
+func (p *Parser) parseMap() ast.Node {
+	token := p.peek(-1)
+	parsedMap := make(map[lexer.Token]ast.Property, 0)
+	for !p.check(lexer.RightBrace) {
+		key := p.primary()
+
+		var newKey lexer.Token
+		switch key := key.(type) {
+		case ast.IdentifierExpr:
+			newKey = key.GetToken()
+		case ast.LiteralExpr:
+			if key.GetValueType() != ast.String {
+				p.error(key.GetToken(), "expected a string in map initialization")
+			}
+			newKey = key.GetToken()
+		default:
+			p.error(key.GetToken(), "expected either string or an identifier in map initialization")
+			p.advance()
+			return ast.Improper{Token: p.peek(-1)}
+		}
+
+		if _, ok := p.consume("expected ':' after map key", lexer.Colon); !ok {
+			return ast.Improper{Token: p.peek(-1)}
+		}
+
+		expr := p.expression()
+		if expr.GetType() == 0 {
+			p.error(p.peek(), "expected expression")
+		}
+
+		if p.peek().Type == lexer.RightBrace {
+			parsedMap[newKey] = ast.Property{Expr: expr, Type: expr.GetValueType()}
+			break
+		}
+
+		if _, ok := p.consume("expected ',' or '}' after expression", lexer.Comma, lexer.RightBrace); !ok {
+			return ast.Improper{Token: p.peek(-1)}
+		}
+
+		parsedMap[newKey] = ast.Property{Expr: expr, Type: expr.GetValueType()}
+	}
+	p.advance()
+
+	return ast.MapExpr{Map: parsedMap, Token: token}
+}
+
+func (p *Parser) anonStruct() ast.Node {
+	anonStruct := ast.AnonStructExpr{
+		Token:  p.peek(-1),
+		Fields: make(map[lexer.Token]ast.Property),
+	}
+
+	_, ok := p.consume("expected opening brace in anonymous struct expression", lexer.LeftBrace)
+	if !ok {
+		return ast.Improper{Token: anonStruct.Token}
+	}
+
+	for !p.match(lexer.RightBrace) {
+		if p.check(lexer.Identifier) {
+			key := p.primary()
+
+			if _, ok := key.(ast.IdentifierExpr); !ok {
+				p.error(key.GetToken(), "expected an identifier in anonymous struct field declaration")
+				p.advance()
+				return ast.Improper{Token: p.peek(-1)}
+			}
+
+			if _, ok := p.consume("expected ':' after struct field name", lexer.Colon); !ok {
+				return ast.Improper{Token: p.peek(-1)}
+			}
+
+			expr := p.expression()
+			if expr.GetType() == 0 {
+				p.error(p.peek(), "expected expression")
+			}
+
+			if p.peek().Type == lexer.RightBrace {
+				anonStruct.Fields[key.GetToken()] = ast.Property{Expr: expr, Type: expr.GetValueType()}
+				p.advance()
+				break
+			}
+
+			if _, ok := p.consume("expected ',' or '}' after expression", lexer.Comma, lexer.RightBrace); !ok {
+				return ast.Improper{Token: p.peek(-1)}
+			}
+
+			anonStruct.Fields[key.GetToken()] = ast.Property{Expr: expr, Type: expr.GetValueType()}
+		} else {
+			p.error(p.peek(), "unknown statement inside struct")
+		}
+	}
+
+	return anonStruct
 }
 
 func (p *Parser) WrappedType() *ast.TypeExpr {

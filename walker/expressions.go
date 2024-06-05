@@ -457,6 +457,20 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) FunctionVal {
 	}
 }
 
+func (w *Walker) anonStructExpr(node *ast.AnonStructExpr, scope *Scope) AnonStructTypeVal {
+	structTypeVal := AnonStructTypeVal{
+		Fields:       []VariableVal{},
+		FieldIndexes: map[string]int{},
+	}
+
+	for key, property := range node.Fields {
+		value := w.GetNodeValue(&property.Expr, scope)
+		structTypeVal.Fields = append(structTypeVal.Fields, VariableVal{Name: key.Lexeme, Value: value, Node: property.Expr})
+	}
+
+	return structTypeVal
+}
+
 func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) Returns {
 	matchScope := NewScope(scope, MatchExprTag{})
 	matchScope.Attributes.Add(YieldAllowing)

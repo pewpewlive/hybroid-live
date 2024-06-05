@@ -133,6 +133,60 @@ func (s StructVal) GetDefault() ast.LiteralExpr {
 	return s.Type.GetDefault()
 }
 
+type AnonStructTypeVal struct {
+	Fields       []VariableVal
+	FieldIndexes map[string]int
+	IsUsed       bool
+}
+
+func (astv AnonStructTypeVal) GetField(name string) (*VariableVal, bool) {
+	if found, ok := FindFromList(astv.Fields, name); ok {
+		return found, true
+	}
+
+	return nil, false
+}
+
+func (astv AnonStructTypeVal) GetFields() map[string]VariableVal {
+	fields := map[string]VariableVal{}
+
+	for _, v := range astv.Fields {
+		fields[v.Name] = v
+	}
+
+	return fields
+}
+
+func (astv AnonStructTypeVal) Contains(name string) (Value, int, bool) {
+	if variable, found := FindFromList(astv.Fields, name); found {
+		return *variable, astv.FieldIndexes[name], true
+	}
+
+	return nil, -1, false
+}
+
+func (astv AnonStructTypeVal) GetType() TypeVal {
+	return TypeVal{Type: ast.Struct}
+}
+
+func (astv AnonStructTypeVal) GetDefault() ast.LiteralExpr {
+	src := lua.StringBuilder{}
+
+	src.WriteString("{")
+
+	index := 0
+	for _, v := range astv.Fields {
+		src.WriteString(v.GetDefault().Value)
+		if index != len(astv.Fields)-1 {
+			src.WriteString(", ")
+		}
+		index += 1
+	}
+	src.WriteString("}")
+
+	return ast.LiteralExpr{Value: src.String()}
+}
+
 type NamespaceVal struct {
 	Path         string
 	Name         string
@@ -315,7 +369,8 @@ func TypeEquals(t *TypeVal, otherT *TypeVal) bool {
 
 	if t == nil && otherT == nil {
 		return true
-	}else if t != nil && otherT != nil {}else {
+	} else if t != nil && otherT != nil {
+	} else {
 		return false
 	}
 
@@ -353,7 +408,7 @@ func TypeEquals(t *TypeVal, otherT *TypeVal) bool {
 	if t.Type != otherT.Type {
 		return false
 	}
-	
+
 	if !TypeEquals(t.WrappedType, otherT.WrappedType) {
 		return false
 	}

@@ -140,6 +140,23 @@ func (afe AnonFnExpr) GetValueType() PrimitiveValueType {
 	return 0
 }
 
+type AnonStructExpr struct {
+	Token  lexer.Token
+	Fields map[lexer.Token]Property
+}
+
+func (ase AnonStructExpr) GetType() NodeType {
+	return AnonymousStructExpression
+}
+
+func (ase AnonStructExpr) GetToken() lexer.Token {
+	return ase.Token
+}
+
+func (ase AnonStructExpr) GetValueType() PrimitiveValueType {
+	return Struct
+}
+
 type MatchExpr struct {
 	MatchStmt    MatchStmt
 	ReturnAmount int

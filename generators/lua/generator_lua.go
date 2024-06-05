@@ -41,7 +41,7 @@ var varCounter = 0
 
 func ResolveVarCounter(varname *StringBuilder, counter int) {
 	if counter > charsetLength-1 {
-		newCounter :=  counter-charsetLength
+		newCounter := counter - charsetLength
 		varname.WriteByte(charset[charsetLength-1])
 		ResolveVarCounter(varname, newCounter)
 	} else {
@@ -298,6 +298,8 @@ func (gen *Generator) GenerateExpr(node ast.Node, scope *GenScope) string {
 		return gen.directiveExpr(newNode, scope)
 	case ast.AnonFnExpr:
 		return gen.anonFnExpr(newNode, scope)
+	case ast.AnonStructExpr:
+		return gen.anonStructExpr(newNode, scope)
 	case ast.SelfExpr:
 		return gen.selfExpr(newNode, scope)
 	case ast.NewExpr:

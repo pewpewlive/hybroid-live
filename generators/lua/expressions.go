@@ -32,7 +32,7 @@ func (gen *Generator) literalExpr(node ast.LiteralExpr) string {
 }
 
 func (gen *Generator) identifierExpr(node ast.IdentifierExpr, _ *GenScope) string {
-	return "V"+node.Name.Lexeme
+	return "V" + node.Name.Lexeme
 }
 
 func (gen *Generator) groupingExpr(node ast.GroupExpr, scope *GenScope) string {
@@ -134,6 +134,10 @@ func (gen *Generator) fieldExpr(node ast.FieldExpr, scope *GenScope) string {
 	if node.Owner == nil {
 		expr = gen.GenerateExpr(node.Identifier, scope)
 	} else {
+		if node.Owner.GetType() == ast.AnonymousStructExpression {
+			src.Append(".", fmt.Sprintf("%v", node.Identifier), prop)
+			return src.String()
+		}
 		src.Append("[", fmt.Sprintf("%v", node.Index), "]", prop)
 		return src.String()
 	} // Self.rect
@@ -195,6 +199,34 @@ func (gen *Generator) anonFnExpr(fn ast.AnonFnExpr, scope *GenScope) string {
 	return fnScope.Src.String()
 }
 
+func (gen *Generator) anonStructExpr(node ast.AnonStructExpr, scope *GenScope) string {
+	src := StringBuilder{}
+
+	src.WriteString("{\n")
+	TabsCount += 1
+	index := 0
+	for k, v := range node.Fields {
+		val := gen.GenerateExpr(v.Expr, scope)
+
+		ident := k.Lexeme
+
+		if k.Type == lexer.String {
+			ident = k.Literal
+		}
+
+		if index != len(node.Fields)-1 {
+			src.AppendTabbed(fmt.Sprintf("%s = %v,\n", ident, val))
+		} else {
+			src.AppendTabbed(fmt.Sprintf("%s = %v\n", ident, val))
+		}
+		index++
+	}
+	TabsCount -= 1
+	src.AppendTabbed("}")
+
+	return src.String()
+}
+
 func (gen *Generator) selfExpr(self ast.SelfExpr, _ *GenScope) string {
 	if self.Type == ast.SelfStruct {
 		return "Self"
@@ -223,7 +255,7 @@ func (gen *Generator) matchExpr(match ast.MatchExpr, scope *GenScope) string {
 	gotoLabel := GenerateVar()
 
 	for i := 0; i < match.ReturnAmount; i++ {
-		helperVarName := GenerateVar() 
+		helperVarName := GenerateVar()
 		if i == 0 {
 			scope.Src.AppendTabbed("local ", helperVarName)
 			vars.WriteString(helperVarName)

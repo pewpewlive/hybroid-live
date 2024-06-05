@@ -33,6 +33,10 @@ func (p *Parser) statement() ast.Node {
 		}
 	}
 
+	if token == lexer.Struct && next != lexer.Identifier {
+		return p.expression()
+	}
+
 	switch token {
 	case lexer.Let, lexer.Pub, lexer.Const:
 		p.advance()
