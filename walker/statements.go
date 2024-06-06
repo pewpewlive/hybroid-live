@@ -643,3 +643,17 @@ func (w *Walker) matchStmt(node *ast.MatchStmt, isExpr bool, scope *Scope) {
 		}
 	}
 }
+
+func (w *Walker) envStmt(node *ast.EnvironmentStmt, scope *Scope) {
+	if scope.Environment.Name != "" {
+		w.error(node.GetToken(), "can't have more than one environment statement in a file")
+	}
+
+	for i, v := range node.Env.Envs {
+		if i < len(node.Env.Envs)-1 {
+			scope.Environment.Name += v.Lexeme + "::"
+		}else {
+			scope.Environment.Name += v.Lexeme
+		}
+	}
+}

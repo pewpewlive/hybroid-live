@@ -4,18 +4,9 @@ import (
 	"hybroid/lexer"
 )
 
-type EnvType int
-
-const (
-	Mesh EnvType = iota
-	Level
-	Shared
-	Sound
-)
-
 type EnvironmentStmt struct {
-	EnvType EnvType
-	Name    lexer.Token
+	EnvType EnvTypeExpr
+	Env     EnvExpr
 }
 
 func (as EnvironmentStmt) GetType() NodeType {
@@ -23,7 +14,7 @@ func (as EnvironmentStmt) GetType() NodeType {
 }
 
 func (as EnvironmentStmt) GetToken() lexer.Token {
-	return as.Name
+	return as.Env.GetToken()
 }
 
 func (as EnvironmentStmt) GetValueType() PrimitiveValueType {

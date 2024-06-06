@@ -130,6 +130,33 @@ func (p *Parser) getBody() *[]ast.Node {
 func (p *Parser) envStmt() ast.Node {
 	stmt := ast.EnvironmentStmt{}
 
+	expr := p.envExpr(true)
+
+	if expr.GetType() == ast.Identifier {
+		expr = ast.EnvExpr{
+			Envs: []lexer.Token{expr.GetToken()},
+		}
+	}
+
+	if expr.GetType() != ast.EnvironmentExpression {
+		p.error(expr.GetToken(), "expected environment expression with no variable accessing")
+		return ast.Improper{Token: expr.GetToken()}
+	}
+
+	if _, ok := p.consume("expected keyword 'as' after envrionment expression", lexer.As); !ok {
+		return ast.Improper{Token: expr.GetToken()}
+	}
+
+	envTypeExpr := p.EnvType()
+
+	if envTypeExpr.Type == ast.InvalidEnv {
+		return ast.Improper{Token: envTypeExpr.GetToken()}
+	}
+
+	envExpr := expr.(ast.EnvExpr)
+	stmt.EnvType = envTypeExpr
+	stmt.Env = envExpr
+
 	return stmt
 }
 

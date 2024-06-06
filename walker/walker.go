@@ -305,6 +305,9 @@ func (w *Walker) Stage2(nodes *[]ast.Node, namespaces *map[string]*Environment) 
 
 func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 	switch newNode := (*node).(type) {
+	case ast.EnvironmentStmt:
+		w.envStmt(&newNode, scope)
+		*node = newNode
 	case ast.VariableDeclarationStmt:
 		w.variableDeclarationStmt(&newNode, scope)
 		*node = newNode

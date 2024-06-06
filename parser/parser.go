@@ -114,13 +114,11 @@ func (p *Parser) consume(message string, types ...lexer.TokenType) (lexer.Token,
 }
 
 func (p *Parser) ParseTokens() []ast.Node {
-	// Expect environment directive call as the first node
 	statement := p.statement()
-	if !p.verifyEnvironmentDirective(statement) {
-		return p.program
-	}
 	p.program = append(p.program, statement)
-
+	if statement.GetType() != ast.EnvironmentStatement {
+		p.error(statement.GetToken(), "expected environment as the first statement in a file")
+	}
 	for !p.isAtEnd() {
 		statement := p.statement()
 		if statement.GetType() != ast.NA {

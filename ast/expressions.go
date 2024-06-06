@@ -13,6 +13,33 @@ type Accessor interface {
 	SetIdentifier(ident Node) Accessor
 }
 
+type EnvType int
+
+const (
+	Mesh EnvType = iota
+	Level
+	Shared
+	Sound
+	InvalidEnv
+)
+
+type EnvTypeExpr struct {
+	Type EnvType
+	Token lexer.Token
+}
+
+func (le EnvTypeExpr) GetType() NodeType {
+	return EnvironmentExpression
+}
+
+func (le EnvTypeExpr) GetToken() lexer.Token {
+	return le.Token
+}
+
+func (le EnvTypeExpr) GetValueType() PrimitiveValueType {
+	return 0
+}
+
 type EnvExpr struct {
 	Envs []lexer.Token
 }

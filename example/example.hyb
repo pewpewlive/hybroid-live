@@ -1,1 +1,25 @@
-env Hybroid as Level
+env Hybroid::Test as Level
+// hello
+
+let a = 1
+
+fn test(param number) bool {
+    if param < 0 {
+        return true
+    }else if param == 0 {
+        return false
+    }
+    return true
+}
+
+struct StructTest {
+    field1 = 0f
+
+    new(param fixed) {
+        if param == 0f {
+            field1 = 100f
+        }else {
+            self.field1 = 9d
+        }
+    }
+}

@@ -102,32 +102,36 @@ func (p *Parser) unary() ast.Node {
 		right := p.unary()
 		return ast.UnaryExpr{Operator: operator, Value: right}
 	}
-	return p.envExpr()
+	return p.envExpr(false)
 }
 
-func (p *Parser) envExpr() ast.Node {
-	expr := p.accessorExprDepth2(nil, nil, 0) 
+func (p *Parser) envExpr(pathOnly bool) ast.Node {
+	expr := p.accessorExprDepth2(nil, nil, 0)
 
 	if p.match(lexer.DoubleColon) {
 		if expr.GetType() != ast.Identifier {
 			p.error(expr.GetToken(), "expected identifier in environment expression")
-			return ast.Improper{}
+			return ast.Improper{Token: expr.GetToken()}
 		}
 		envExpr := ast.EnvExpr{
 			Envs: []lexer.Token{expr.GetToken()},
 		}
 
-		next := p.primary()
+		next := p.accessorExprDepth2(nil, nil, 0)
 		if next.GetType() != ast.Identifier {
-			p.error(expr.GetToken(), "expected identifier in environment expression")
-			return ast.Improper{}
+			p.error(next.GetToken(), "expected identifier in environment expression")
+			return ast.Improper{Token: next.GetToken()}
 		}
 		envExpr.Envs = append(envExpr.Envs, next.GetToken())
 		for p.match(lexer.DoubleColon) {
-			next = p.primary()
-			if next.GetType() != ast.Identifier {
-				p.error(expr.GetToken(), "expected identifier in environment expression")
-				return ast.Improper{}
+			if !pathOnly && next.GetType() != ast.Identifier {
+				p.error(next.GetToken(), "expected identifier in environment expression")
+				return ast.Improper{Token: next.GetToken()}
+			}
+			next = p.accessorExprDepth2(nil, nil, 0)
+			if pathOnly && next.GetType() != ast.Identifier {
+				p.error(next.GetToken(), "expected identifier in environment expression")
+				return ast.Improper{Token: next.GetToken()}
 			}
 			envExpr.Envs = append(envExpr.Envs, next.GetToken())
 		}
@@ -369,8 +373,8 @@ func (p *Parser) primary() ast.Node {
 	if p.match(lexer.Number, lexer.Fixed, lexer.FixedPoint, lexer.Degree, lexer.Radian, lexer.String) {
 		literal := p.peek(-1)
 		var valueType ast.PrimitiveValueType
-		ident := p.program[0].(ast.DirectiveExpr).Expr.(ast.IdentifierExpr)
-		allowFX := ident.Name.Lexeme == "Level" || ident.Name.Lexeme == "Shared"
+		envType := p.program[0].(ast.EnvironmentStmt).EnvType.Type
+		allowFX := envType == ast.Level || envType == ast.Shared
 
 		switch literal.Type {
 		case lexer.Number:
@@ -583,4 +587,35 @@ func (p *Parser) Type() ast.TypeExpr {
 		p.advance()
 		return ast.TypeExpr{Name: expr.GetToken()}
 	}
+}
+
+func StringToEnvType(name string) ast.EnvType {
+	switch name {
+	case "Mesh":
+		return ast.Mesh
+	case "Level":
+		return ast.Level
+	case "Shared":
+		return ast.Shared
+	case "Sound":
+		return ast.Sound
+	default:
+		return ast.InvalidEnv
+	}
+}
+
+func (p *Parser) EnvType() ast.EnvTypeExpr {
+	name, ok := p.consume("expected identifier for a environment type expr", lexer.Identifier)
+
+	if !ok {
+		return ast.EnvTypeExpr{Type: ast.InvalidEnv, Token: name}
+	}
+
+	envType := StringToEnvType(name.Lexeme)
+
+	if envType == ast.InvalidEnv {
+		p.error(name, "expected 'Level', 'Shared', 'Mesh' or 'Sound' as environment type")
+	}
+
+	return ast.EnvTypeExpr{Type: envType, Token: name}
 }
