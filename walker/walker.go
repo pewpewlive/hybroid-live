@@ -38,39 +38,39 @@ func (w *Walker) addError(err ast.Error) {
 	w.Errors = append(w.Errors, err)
 }
 
-func (w *Walker) GetValueFromType(typee TypeVal) Value {
+func (w *Walker) GetValueFromType(typee Type) Value {
 	switch typee.Type {
 	case ast.Number:
-		return NumberVal{}
+		return &NumberVal{}
 	case ast.FixedPoint, ast.Fixed, ast.Radian, ast.Degree:
-		return FixedVal{
+		return &FixedVal{
 			SpecificType: typee.Type,
 		}
 	case ast.Bool:
-		return BoolVal{}
+		return &BoolVal{}
 	case ast.List:
-		return ListVal{
+		return &ListVal{
 			ValueType: *typee.WrappedType,
 		}
 	case ast.Map:
-		return MapVal{
+		return &MapVal{
 			MemberType: *typee.WrappedType,
 		}
 	case ast.Func:
-		return FunctionVal{
+		return &FunctionVal{
 			params:    typee.Params,
 			returnVal: typee.Returns,
 		}
 	case ast.String:
-		return StringVal{}
+		return &StringVal{}
 	case ast.Invalid:
-		return Invalid{}
+		return &Invalid{}
 	case 0:
-		return Unknown{}
+		return &Unknown{}
 	case ast.Struct:
 		return w.Environment.Scope.GetStructType(&w.Environment.Scope, typee.Name)
 	default:
-		return Invalid{}
+		return &Invalid{}
 	}
 }
 
@@ -108,29 +108,31 @@ func (s *Scope) AssignVariableByName(name string, value Value) (Value, *ast.Erro
 	scope := s.ResolveVariable(name)
 
 	if scope == nil {
-		return Invalid{}, &ast.Error{Message: "cannot assign to an undeclared variable"}
+		return &Invalid{}, &ast.Error{Message: "cannot assign to an undeclared variable"}
 	}
 
 	variable := scope.Variables[name]
 	if variable.IsConst {
-		return Invalid{}, &ast.Error{Message: "cannot assign to a constant variable"}
+		return &Invalid{}, &ast.Error{Message: "cannot assign to a constant variable"}
 	}
 
 	variable.Value = value
 
 	scope.Variables[name] = variable
 
-	return scope.Variables[name], nil
+	temp := scope.Variables[name]
+
+	return &temp, nil
 }
 
 func (s *Scope) AssignVariable(variable VariableVal, value Value) (Value, *ast.Error) {
 	if variable.IsConst {
-		return Invalid{}, &ast.Error{Message: "cannot assign to a constant variable"}
+		return &Invalid{}, &ast.Error{Message: "cannot assign to a constant variable"}
 	}
 
 	variable.Value = value
 
-	return variable, nil
+	return &variable, nil
 }
 
 func (s *Scope) DeclareVariable(value VariableVal) (VariableVal, bool) {
@@ -209,7 +211,7 @@ func (g *Environment) GetForeignType(str string) Value {
 	return g.foreignTypes[str]
 }
 
-func (w *Walker) validateArithmeticOperands(left TypeVal, right TypeVal, expr ast.BinaryExpr) bool {
+func (w *Walker) validateArithmeticOperands(left Type, right Type, expr ast.BinaryExpr) bool {
 	//fmt.Printf("Validating operands: %v (%v) and %v (%v)\n", left.Val, left.Type, right.Val, right.Type)
 	if left.Type == ast.Invalid {
 		w.error(expr.Left.GetToken(), "cannot perform arithmetic on Invalid value")
@@ -236,7 +238,7 @@ func (w *Walker) validateArithmeticOperands(left TypeVal, right TypeVal, expr as
 	return true
 }
 
-func returnsAreValid(list1 []TypeVal, list2 []TypeVal) bool {
+func returnsAreValid(list1 []Type, list2 []Type) bool {
 	if len(list1) != len(list2) {
 		return false
 	}
@@ -252,7 +254,7 @@ func returnsAreValid(list1 []TypeVal, list2 []TypeVal) bool {
 	return true
 }
 
-func (w *Walker) validateReturnValues(_return Returns, expectReturn Returns) string {
+func (w *Walker) validateReturnValues(_return Types, expectReturn Types) string {
 	returnValues, expectedReturnValues := _return, expectReturn
 	if len(returnValues) < len(expectedReturnValues) {
 		return "not enough return values given"
@@ -408,9 +410,6 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 	case ast.FieldExpr:
 		val = w.fieldExpr(&newNode, scope)
 		*node = newNode
-	case ast.TypeExpr:
-		val = w.typeExpr(&newNode)
-		*node = newNode
 	case ast.NewExpr:
 		val = w.newExpr(&newNode, scope)
 		*node = newNode
@@ -422,7 +421,7 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 		*node = newNode
 	default:
 		w.error(newNode.GetToken(), "Expected expression")
-		return Invalid{}
+		return &Invalid{}
 	}
 	return val
 }

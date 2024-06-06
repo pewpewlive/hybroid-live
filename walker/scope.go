@@ -8,10 +8,11 @@ import (
 type Context struct {
 	Node  ast.Node
 	Value Value
-	Ret   Returns
+	Ret   Types
 }
 
 type Environment struct {
+	Name         string
 	Ctx          Context
 	Scope        Scope
 	foreignTypes map[string]Value
@@ -27,8 +28,8 @@ func NewEnvironment() Environment {
 	global := Environment{
 		Ctx: Context{
 			Node:  ast.Improper{},
-			Value: Unknown{},
-			Ret:   Returns{},
+			Value: &Unknown{},
+			Ret:   Types{},
 		},
 		Scope:        scope,
 		foreignTypes: map[string]Value{},
@@ -60,7 +61,8 @@ const (
 )
 
 type ReturnableTag interface {
-	SetReturn(state bool, types ...ExitType) ScopeTag
+	ScopeTag
+	SetReturn(state bool, types ...ExitType) ReturnableTag
 }
 
 type ScopeTag interface {
@@ -92,14 +94,14 @@ func (et EntityTag) GetType() ScopeTagType {
 
 type FuncTag struct {
 	Returns    []bool
-	ReturnType Returns
+	ReturnType Types
 }
 
 func (et FuncTag) GetType() ScopeTagType {
 	return Func
 }
 
-func (et FuncTag) SetReturn(state bool, types ...ExitType) ScopeTag {
+func (et FuncTag) SetReturn(state bool, types ...ExitType) ReturnableTag {
 	et.Returns = append(et.Returns, state)
 	return et
 }
@@ -107,14 +109,14 @@ func (et FuncTag) SetReturn(state bool, types ...ExitType) ScopeTag {
 type MatchExprTag struct {
 	mpt         MultiPathTag
 	ArmsYielded int
-	YieldValues *Returns
+	YieldValues *Types
 }
 
 func (met MatchExprTag) GetType() ScopeTagType {
 	return MatchExpr
 }
 
-func (met MatchExprTag) SetReturn(state bool, types ...ExitType) ScopeTag {
+func (met MatchExprTag) SetReturn(state bool, types ...ExitType) ReturnableTag {
 	if state {
 		for _, v := range types {
 			if v == Yield {
@@ -138,7 +140,7 @@ func (mpt MultiPathTag) GetType() ScopeTagType {
 	return MultiPath
 }
 
-func (mpt MultiPathTag) SetReturn(state bool, types ...ExitType) ScopeTag {
+func (mpt MultiPathTag) SetReturn(state bool, types ...ExitType) ReturnableTag {
 	if state {
 		for _, v := range types {
 			if v == Yield {

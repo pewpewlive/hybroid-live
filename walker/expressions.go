@@ -8,9 +8,9 @@ import (
 	"hybroid/parser"
 )
 
-func (w *Walker) determineValueType(left TypeVal, right TypeVal) TypeVal {
+func (w *Walker) determineValueType(left Type, right Type) Type {
 	if left.Type == 0 || right.Type == 0 {
-		return TypeVal{Type: 0}
+		return Type{Type: 0}
 	}
 	if TypeEquals(&left, &right) {
 		return right
@@ -19,7 +19,7 @@ func (w *Walker) determineValueType(left TypeVal, right TypeVal) TypeVal {
 		return left
 	}
 
-	return TypeVal{Type: ast.Invalid}
+	return Type{Type: ast.Invalid}
 }
 
 func (w *Walker) binaryExpr(node *ast.BinaryExpr, scope *Scope) Value {
@@ -33,7 +33,7 @@ func (w *Walker) binaryExpr(node *ast.BinaryExpr, scope *Scope) Value {
 		if !TypeEquals(&leftType, &rightType) {
 			w.error(node.GetToken(), fmt.Sprintf("invalid comparison: types are not the same (left: %s, right: %s)", leftType.Type.ToString(), rightType.Type.ToString()))
 		} else {
-			return BoolVal{}
+			return &BoolVal{}
 		}
 	}
 	val := w.GetValueFromType(w.determineValueType(leftType, rightType))
@@ -50,25 +50,25 @@ func (w *Walker) literalExpr(node *ast.LiteralExpr) Value {
 
 	switch node.ValueType {
 	case ast.String:
-		return StringVal{}
+		return &StringVal{}
 	case ast.Fixed:
-		return FixedVal{
+		return &FixedVal{
 			ast.Fixed}
 	case ast.Radian:
-		return FixedVal{
+		return &FixedVal{
 			ast.Radian}
 	case ast.FixedPoint:
-		return FixedVal{
+		return &FixedVal{
 			ast.FixedPoint}
 	case ast.Degree:
-		return FixedVal{
+		return &FixedVal{
 			ast.Degree}
 	case ast.Bool:
-		return BoolVal{}
+		return &BoolVal{}
 	case ast.Number:
-		return NumberVal{}
+		return &NumberVal{}
 	default:
-		return Invalid{}
+		return &Invalid{}
 	}
 }
 
@@ -101,7 +101,7 @@ func (w *Walker) identifierExpr(node *ast.Node, scope *Scope) Value {
 		return newValue.Value
 	}
 
-	return Invalid{}
+	return &Invalid{}
 }
 
 func (w *Walker) groupingExpr(node *ast.GroupExpr, scope *Scope) Value {
@@ -118,7 +118,7 @@ func (w *Walker) listExpr(node *ast.ListExpr, scope *Scope) Value {
 		value.Values = append(value.Values, val)
 	}
 	value.ValueType = GetContentsValueType(value.Values)
-	return value
+	return &value
 }
 
 type ProcedureType int
@@ -136,7 +136,7 @@ func (w *Walker) determineCallTypeString(callType ProcedureType) string {
 	return "method"
 }
 
-func (w *Walker) validateArguments(args []TypeVal, params []TypeVal, callToken lexer.Token, typeCall string) bool {
+func (w *Walker) validateArguments(args []Type, params []Type, callToken lexer.Token, typeCall string) bool {
 	if len(params) < len(args) {
 		w.error(callToken, fmt.Sprintf("too many arguments given in %s call", typeCall))
 		return false
@@ -153,11 +153,11 @@ func (w *Walker) validateArguments(args []TypeVal, params []TypeVal, callToken l
 	return true
 }
 
-func (w *Walker) typeifyNodeList(nodes *[]ast.Node, scope *Scope) []TypeVal {
-	arguments := make([]TypeVal, 0)
+func (w *Walker) typeifyNodeList(nodes *[]ast.Node, scope *Scope) []Type {
+	arguments := make([]Type, 0)
 	for i := range *nodes {
 		val := w.GetNodeValue(&(*nodes)[i], scope)
-		if function, ok := val.(FunctionVal); ok {
+		if function, ok := val.(*FunctionVal); ok {
 			arguments = append(arguments, function.returnVal...)
 		} else {
 			arguments = append(arguments, val.GetType())
@@ -179,14 +179,14 @@ func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope, callType ProcedureTy
 		} else {
 			w.error(callerToken, fmt.Sprintf("unkown %s", typeCall))
 		}
-		return Invalid{}
+		return &Invalid{}
 	}
 
-	variable, it_is := val.(VariableVal)
+	variable, it_is := val.(*VariableVal)
 	if it_is {
 		val = variable.Value
 	}
-	fun, _ := val.(FunctionVal)
+	fun, _ := val.(*FunctionVal)
 
 	arguments := w.typeifyNodeList(&node.Args, scope)
 	w.validateArguments(arguments, fun.params, callerToken, typeCall)
@@ -194,7 +194,7 @@ func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope, callType ProcedureTy
 	if len(fun.returnVal) == 1 {
 		return w.GetValueFromType(fun.returnVal[0])
 	}
-	return CallVal{types: fun.returnVal}
+	return &fun.returnVal
 }
 
 func (w *Walker) methodCallExpr(node *ast.Node, scope *Scope) Value {
@@ -253,7 +253,7 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 
 		if !IsOfPrimitiveType(val, ast.Struct, ast.Entity, ast.Namespace) {
 			w.error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a struct, entity or namespace", node.Identifier.GetToken().Lexeme))
-			return Invalid{}
+			return &Invalid{}
 		}
 
 		var fieldVal Value
@@ -266,17 +266,16 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 		return fieldVal
 	}
 	owner := scope.Environment.Ctx.Value
-	variable := VariableVal{Value: Invalid{}}
-	if container := helpers.GetValOfInterface[Container](owner); container != nil {
-		container := *container
+	variable := &VariableVal{Value: &Invalid{}}
+	if container := owner.(Container); container != nil {
 		ident := node.Identifier.GetToken()
 		val, index, contains := container.Contains(ident.Lexeme)
 
 		if !contains {
 			w.error(ident, fmt.Sprintf("no field or method named '%s' in '%s'", ident.Lexeme, node.Owner.GetToken().Lexeme))
-			return Invalid{}
+			return &Invalid{}
 		} else {
-			variable = val.(VariableVal)
+			variable = val.(*VariableVal)
 			node.Index = index
 		}
 	}
@@ -297,7 +296,7 @@ func (w *Walker) mapExpr(node *ast.MapExpr, scope *Scope) Value {
 		mapVal.Members = append(mapVal.Members, val)
 	}
 	mapVal.MemberType = GetContentsValueType(mapVal.Members)
-	return mapVal
+	return &mapVal
 }
 
 func (w *Walker) unaryExpr(node *ast.UnaryExpr, scope *Scope) Value {
@@ -326,21 +325,21 @@ func (w *Walker) memberExpr(node *ast.MemberExpr, scope *Scope) Value {
 	if arrayType.Type == ast.Map {
 		if valType.Type != ast.String && valType.Type != 0 {
 			w.error(node.Identifier.GetToken(), "variable is not a string")
-			return Invalid{}
+			return &Invalid{}
 		}
 	} else if arrayType.Type == ast.List {
 		if valType.Type != ast.Number && valType.Type != 0 {
 			w.error(node.Identifier.GetToken(), "variable is not a number")
-			return Invalid{}
+			return &Invalid{}
 		}
 	}
 
 	if arrayType.Type != ast.List && arrayType.Type != ast.Map {
 		w.error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a list, or map", node.Identifier.GetToken().Lexeme))
-		return Invalid{}
+		return &Invalid{}
 	}
 
-	if variable, ok := array.(VariableVal); ok {
+	if variable, ok := array.(*VariableVal); ok {
 		array = variable.Value
 	}
 
@@ -356,7 +355,7 @@ func (w *Walker) memberExpr(node *ast.MemberExpr, scope *Scope) Value {
 	return wrappedVal
 }
 
-func (w *Walker) directiveExpr(node *ast.DirectiveExpr, scope *Scope) DirectiveVal {
+func (w *Walker) directiveExpr(node *ast.DirectiveExpr, scope *Scope) *DirectiveVal {
 
 	if node.Identifier.Lexeme != "Environment" {
 		variable := w.GetNodeValue(&node.Expr, scope)
@@ -397,26 +396,26 @@ func (w *Walker) directiveExpr(node *ast.DirectiveExpr, scope *Scope) DirectiveV
 			}
 		}
 	}
-	return DirectiveVal{}
+	return &DirectiveVal{}
 }
 
 func (w *Walker) selfExpr(self *ast.SelfExpr, scope *Scope) Value {
 	if !scope.Is(SelfAllowing) {
 		w.error(self.Token, "can't use self outside of struct/entity")
-		return Invalid{}
+		return &Invalid{}
 	}
 
 	sc, _, structTag := ResolveTagScope[StructTag](scope) // TODO: CHECK FOR ENTITY SCOPE
 
 	if sc != nil {
 		(*self).Type = ast.SelfStruct
-		return StructVal{Type: structTag.StructType}
+		return &StructVal{Type: structTag.StructType}
 	} else {
-		return Invalid{}
+		return &Invalid{}
 	}
 }
 
-func (w *Walker) newExpr(new *ast.NewExpr, scope *Scope) StructVal {
+func (w *Walker) newExpr(new *ast.NewExpr, scope *Scope) *StructVal {
 	resolved := scope.ResolveStructType(new.Type.Lexeme)
 
 	structTypeVal := resolved.GetStructType(resolved, new.Type.Lexeme)
@@ -424,12 +423,12 @@ func (w *Walker) newExpr(new *ast.NewExpr, scope *Scope) StructVal {
 	args := w.typeifyNodeList(&new.Args, scope)
 	w.validateArguments(args, structTypeVal.Params, new.Type, "new")
 
-	return StructVal{
+	return &StructVal{
 		Type: structTypeVal,
 	}
 }
 
-func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) FunctionVal {
+func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) *FunctionVal {
 	ret := EmptyReturn
 	for _, typee := range fn.Return {
 		ret = append(ret, w.typeExpr(&typee))
@@ -438,7 +437,7 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) FunctionVal {
 	fnScope := NewScope(scope, FuncTag{ReturnType: ret})
 	fnScope.Attributes.Add(ReturnAllowing)
 
-	params := make([]TypeVal, 0)
+	params := make([]Type, 0)
 	for i, param := range fn.Params {
 		params = append(params, w.typeExpr(&param.Type))
 		value := w.GetValueFromType(params[i])
@@ -449,25 +448,25 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) FunctionVal {
 		w.WalkNode(&node, &fnScope)
 	}
 
-	return FunctionVal{
+	return &FunctionVal{
 		params:    params,
 		returnVal: ret,
 	}
 }
 
-func (w *Walker) anonStructExpr(node *ast.AnonStructExpr, scope *Scope) AnonStructTypeVal {
+func (w *Walker) anonStructExpr(node *ast.AnonStructExpr, scope *Scope) *AnonStructTypeVal {
 	structTypeVal := AnonStructTypeVal{
 		Fields:       []VariableVal{},
 	}
 
 	for i := range node.Fields {
-		w.fieldDeclarationStmt(&node.Fields[i], structTypeVal, scope)
+		w.fieldDeclarationStmt(&node.Fields[i], &structTypeVal, scope)
 	}
 
-	return structTypeVal
+	return &structTypeVal
 }
 
-func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) Returns {
+func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) Types {
 	matchScope := NewScope(scope, MatchExprTag{})
 	matchScope.Attributes.Add(YieldAllowing)
 
@@ -529,23 +528,23 @@ func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) Returns {
 	return *matchTag.YieldValues
 }
 
-func (w *Walker) typeExpr(typee *ast.TypeExpr) TypeVal {
+func (w *Walker) typeExpr(typee *ast.TypeExpr) Type {
 	if typee == nil {
-		return TypeVal{Type: ast.Invalid}
+		return Type{Type: ast.Invalid}
 	}
-	var wrapped *TypeVal
+	var wrapped *Type
 	if typee.WrappedType != nil {
 		temp := w.typeExpr(typee.WrappedType)
 		wrapped = &temp
 	}
-	params := []TypeVal{}
+	params := []Type{}
 	if typee.Params != nil {
 		for _, v := range *typee.Params {
 			params = append(params, w.typeExpr(&v))
 		}
 	}
 
-	returns := []TypeVal{}
+	returns := []Type{}
 	for _, v := range typee.Returns {
 		returns = append(returns, w.typeExpr(&v))
 	}
@@ -560,7 +559,7 @@ func (w *Walker) typeExpr(typee *ast.TypeExpr) TypeVal {
 		w.error(typee.GetToken(), "invalid type")
 	}
 
-	return TypeVal{
+	return Type{
 		Name:        typ.ToString(),
 		Type:        typ,
 		WrappedType: wrapped,

@@ -9,7 +9,7 @@ import (
 )
 
 type Value interface {
-	GetType() TypeVal
+	GetType() Type
 	GetDefault() ast.LiteralExpr
 }
 
@@ -17,8 +17,8 @@ type Container interface {
 	Value
 	GetFields() map[string]VariableVal
 	GetMethods() map[string]VariableVal
-	AddField(variable VariableVal) Container
-	AddMethod(variable VariableVal) Container
+	AddField(variable VariableVal)
+	AddMethod(variable VariableVal)
 	Contains(name string) (Value, int, bool)
 }
 
@@ -30,24 +30,24 @@ type VariableVal struct {
 	Node    ast.Node
 }
 
-func (v VariableVal) GetType() TypeVal {
+func (v *VariableVal) GetType() Type {
 	return v.Value.GetType()
 }
 
-func (v VariableVal) GetDefault() ast.LiteralExpr {
+func (v *VariableVal) GetDefault() ast.LiteralExpr {
 	return v.Value.GetDefault()
 }
 
 type StructTypeVal struct {
 	Name         lexer.Token
-	Params       []TypeVal
+	Params       []Type
 	Fields       []VariableVal
 	FieldIndexes map[string]int
 	Methods      map[string]VariableVal
 	IsUsed       bool
 }
 
-func (st StructTypeVal) GetField(name string) (*VariableVal, bool) {
+func (st *StructTypeVal) GetField(name string) (*VariableVal, bool) {
 	if found, ok := FindFromList(st.Fields, name); ok {
 		return found, true
 	}
@@ -55,7 +55,7 @@ func (st StructTypeVal) GetField(name string) (*VariableVal, bool) {
 	return nil, false
 }
 
-func (st StructTypeVal) GetFields() map[string]VariableVal {
+func (st *StructTypeVal) GetFields() map[string]VariableVal {
 	fields := map[string]VariableVal{}
 
 	for _, v := range st.Fields {
@@ -65,25 +65,22 @@ func (st StructTypeVal) GetFields() map[string]VariableVal {
 	return fields
 }
 
-func (st StructTypeVal) GetMethods() map[string]VariableVal {
+func (st *StructTypeVal) GetMethods() map[string]VariableVal {
 	return st.Methods
 }
 
-func (st StructTypeVal) AddField(variable VariableVal) Container {
+func (st *StructTypeVal) AddField(variable VariableVal) {
 	st.Fields = append(st.Fields, variable)
 
 	index := 0
-	for _ = range st.FieldIndexes {
+	for range st.FieldIndexes {
 		index++
 	}
 	st.FieldIndexes[variable.Name] = index + 1
-
-	return st
 }
 
-func (st StructTypeVal) AddMethod(variable VariableVal) Container {
+func (st *StructTypeVal) AddMethod(variable VariableVal) {
 	st.Methods[variable.Name] = variable
-	return st
 }
 
 func FindFromList(list []VariableVal, name string) (*VariableVal, bool) {
@@ -95,23 +92,23 @@ func FindFromList(list []VariableVal, name string) (*VariableVal, bool) {
 	return nil, false
 }
 
-func (st StructTypeVal) Contains(name string) (Value, int, bool) {
+func (st *StructTypeVal) Contains(name string) (Value, int, bool) {
 	if variable, found := FindFromList(st.Fields, name); found {
-		return *variable, st.FieldIndexes[name], true
+		return variable, st.FieldIndexes[name], true
 	}
 
 	if variable, found := st.Methods[name]; found {
-		return variable, st.FieldIndexes[name], true
+		return &variable, st.FieldIndexes[name], true
 	}
 
 	return nil, -1, false
 }
 
-func (st StructTypeVal) GetType() TypeVal {
-	return TypeVal{Type: ast.Struct, Name: st.Name.Lexeme}
+func (st *StructTypeVal) GetType() Type {
+	return Type{Type: ast.Struct, Name: st.Name.Lexeme}
 }
 
-func (st StructTypeVal) GetDefault() ast.LiteralExpr {
+func (st *StructTypeVal) GetDefault() ast.LiteralExpr {
 	src := lua.StringBuilder{}
 
 	src.WriteString("{")
@@ -133,41 +130,39 @@ type StructVal struct {
 	Type *StructTypeVal
 }
 
-func (s StructVal) GetType() TypeVal {
+func (s *StructVal) GetType() Type {
 	return s.Type.GetType()
 }
 
-func (s StructVal) GetFields() map[string]VariableVal {
+func (s *StructVal) GetFields() map[string]VariableVal {
 	return s.Type.GetFields()
 }
 
-func (s StructVal) GetMethods() map[string]VariableVal {
+func (s *StructVal) GetMethods() map[string]VariableVal {
 	return s.Type.GetMethods()
 }
 
-func (s StructVal) Contains(name string) (Value, int, bool) {
+func (s *StructVal) Contains(name string) (Value, int, bool) {
 	return s.Type.Contains(name)
 }
 
-func (s StructVal) GetDefault() ast.LiteralExpr {
+func (s *StructVal) GetDefault() ast.LiteralExpr {
 	return s.Type.GetDefault()
 }
 
-func (s StructVal) AddField(variable VariableVal) Container {
-	s.AddField(variable)
-	return s
+func (s *StructVal) AddField(variable VariableVal) {
+	s.Type.AddField(variable)
 }
 
-func (s StructVal) AddMethod(variable VariableVal) Container {
-	s.AddMethod(variable)
-	return s
+func (s *StructVal) AddMethod(variable VariableVal) {
+	s.Type.AddMethod(variable)
 }
 
 type AnonStructTypeVal struct {
 	Fields []VariableVal
 }
 
-func (astv AnonStructTypeVal) GetField(name string) (*VariableVal, bool) {
+func (astv *AnonStructTypeVal) GetField(name string) (*VariableVal, bool) {
 	if found, ok := FindFromList(astv.Fields, name); ok {
 		return found, true
 	}
@@ -175,7 +170,7 @@ func (astv AnonStructTypeVal) GetField(name string) (*VariableVal, bool) {
 	return nil, false
 }
 
-func (astv AnonStructTypeVal) GetFields() map[string]VariableVal {
+func (astv *AnonStructTypeVal) GetFields() map[string]VariableVal {
 	fields := map[string]VariableVal{}
 
 	for _, v := range astv.Fields {
@@ -185,29 +180,27 @@ func (astv AnonStructTypeVal) GetFields() map[string]VariableVal {
 	return fields
 }
 
-func (astv AnonStructTypeVal) GetMethods() map[string]VariableVal {
+func (astv *AnonStructTypeVal) GetMethods() map[string]VariableVal {
 	return astv.GetFields()
 }
 
-func (astv AnonStructTypeVal) Contains(name string) (Value, int, bool) {
+func (astv *AnonStructTypeVal) Contains(name string) (Value, int, bool) {
 	if variable, found := FindFromList(astv.Fields, name); found {
-		return *variable, -1, true
+		return variable, -1, true
 	}
 
 	return nil, -1, false
 }
 
-func (astv AnonStructTypeVal) AddField(variable VariableVal) Container {
+func (astv *AnonStructTypeVal) AddField(variable VariableVal) {
 	astv.Fields = append(astv.Fields, variable)
-	return astv
 }
 
-func (astv AnonStructTypeVal) AddMethod(variable VariableVal) Container {
-	return astv
+func (astv *AnonStructTypeVal) AddMethod(variable VariableVal) {
 }
 
-func (astv AnonStructTypeVal) GetType() TypeVal {
-	types := make(map[string]TypeVal, len(astv.Fields))
+func (astv *AnonStructTypeVal) GetType() Type {
+	types := make(map[string]Type, len(astv.Fields))
 
 	for _, v := range astv.Fields {
 		types[v.Name] = v.GetType()
@@ -216,7 +209,7 @@ func (astv AnonStructTypeVal) GetType() TypeVal {
 	return TypeVal{Type: ast.AnonStruct, Fields: types}
 }
 
-func (astv AnonStructTypeVal) GetDefault() ast.LiteralExpr {
+func (astv *AnonStructTypeVal) GetDefault() ast.LiteralExpr {
 	src := lua.StringBuilder{}
 
 	src.WriteString("{")
@@ -242,31 +235,31 @@ type NamespaceVal struct {
 	FieldIndexes map[string]int
 }
 
-func (n NamespaceVal) GetType() TypeVal {
-	return TypeVal{Name: "namespace", Type: ast.Namespace}
+func (n *NamespaceVal) GetType() Type {
+	return Type{Name: "namespace", Type: ast.Namespace}
 }
 
-func (n NamespaceVal) GetFields() map[string]VariableVal {
+func (n *NamespaceVal) GetFields() map[string]VariableVal {
 	return n.Fields
 }
 
-func (n NamespaceVal) GetMethods() map[string]VariableVal {
+func (n *NamespaceVal) GetMethods() map[string]VariableVal {
 	return n.Methods
 }
 
-func (n NamespaceVal) Contains(name string) (Value, int, bool) {
+func (n *NamespaceVal) Contains(name string) (Value, int, bool) {
 	if variable, found := n.Fields[name]; found {
-		return variable, n.FieldIndexes[name], true
+		return &variable, n.FieldIndexes[name], true
 	}
 
 	if variable, found := n.Methods[name]; found {
-		return variable, n.FieldIndexes[name], true
+		return &variable, n.FieldIndexes[name], true
 	}
 
 	return nil, -1, false
 }
 
-func (n NamespaceVal) AddField(variable VariableVal) Container {
+func (n *NamespaceVal) AddField(variable VariableVal) {
 	n.Fields[variable.Name] = variable
 
 	index := 0
@@ -278,9 +271,8 @@ func (n NamespaceVal) AddField(variable VariableVal) Container {
 	return n
 }
 
-func (n NamespaceVal) AddMethod(variable VariableVal) Container {
+func (n *NamespaceVal) AddMethod(variable VariableVal) {
 	n.Methods[variable.Name] = variable
-	return n
 }
 
 func (n NamespaceVal) GetDefault() ast.LiteralExpr {
@@ -302,23 +294,23 @@ func (n NamespaceVal) GetDefault() ast.LiteralExpr {
 }
 
 type MapVal struct {
-	MemberType TypeVal
+	MemberType Type
 	Members    []Value
 }
 
-func (m MapVal) GetType() TypeVal {
-	return TypeVal{Name: "map", Type: ast.Map, WrappedType: &m.MemberType}
+func (m *MapVal) GetType() Type {
+	return Type{Name: "map", Type: ast.Map, WrappedType: &m.MemberType}
 }
 
-func (m MapVal) GetDefault() ast.LiteralExpr {
+func (m *MapVal) GetDefault() ast.LiteralExpr {
 	return ast.LiteralExpr{Value: "{}"}
 }
 
-func GetContentsValueType(values []Value) TypeVal {
-	valTypes := []TypeVal{}
+func GetContentsValueType(values []Value) Type {
+	valTypes := []Type{}
 	index := 0
 	if len(values) == 0 {
-		return TypeVal{Type: 0}
+		return Type{Type: 0}
 	}
 	for _, v := range values {
 		if index == 0 {
@@ -329,46 +321,46 @@ func GetContentsValueType(values []Value) TypeVal {
 		valTypes = append(valTypes, v.GetType())
 		prev, curr := index-1, len(valTypes)-1
 		if !(parser.IsFx(valTypes[prev].Type) && parser.IsFx(valTypes[curr].Type)) && valTypes[prev].Type != valTypes[curr].Type {
-			return TypeVal{Type: ast.Invalid}
+			return Type{Type: ast.Invalid}
 		}
 		index++
 	}
 	if parser.IsFx(valTypes[0].Type) {
-		return TypeVal{Type: ast.FixedPoint}
+		return Type{Type: ast.FixedPoint}
 	}
 	return valTypes[0]
 }
 
 type ListVal struct {
-	ValueType TypeVal
+	ValueType Type
 	Values    []Value
 }
 
-func (l ListVal) GetType() TypeVal {
-	return TypeVal{Name: "list", Type: ast.List, WrappedType: &l.ValueType}
+func (l *ListVal) GetType() Type {
+	return Type{Name: "list", Type: ast.List, WrappedType: &l.ValueType}
 }
 
-func (l ListVal) GetDefault() ast.LiteralExpr {
+func (l *ListVal) GetDefault() ast.LiteralExpr {
 	return ast.LiteralExpr{Value: "{}"}
 }
 
 type NumberVal struct{}
 
-func (n NumberVal) GetType() TypeVal {
-	return TypeVal{Type: ast.Number, Name: "number"}
+func (n *NumberVal) GetType() Type {
+	return Type{Type: ast.Number, Name: "number"}
 }
 
-func (n NumberVal) GetDefault() ast.LiteralExpr {
+func (n *NumberVal) GetDefault() ast.LiteralExpr {
 	return ast.LiteralExpr{Value: "0"}
 }
 
 type DirectiveVal struct{}
 
-func (d DirectiveVal) GetType() TypeVal {
-	return TypeVal{Type: 0, Name: "directive"}
+func (d *DirectiveVal) GetType() Type {
+	return Type{Type: 0, Name: "directive"}
 }
 
-func (d DirectiveVal) GetDefault() ast.LiteralExpr {
+func (d *DirectiveVal) GetDefault() ast.LiteralExpr {
 	return ast.LiteralExpr{Value: "DEFAULT_DIRECTIVE_CALL"}
 }
 
@@ -376,23 +368,27 @@ type FixedVal struct {
 	SpecificType ast.PrimitiveValueType
 }
 
-func (f FixedVal) GetType() TypeVal {
-	return TypeVal{Type: ast.FixedPoint, Name: "fixed"}
+func (f *FixedVal) GetType() Type {
+	return Type{Type: ast.FixedPoint, Name: "fixed"}
 }
 
-func (f FixedVal) GetDefault() ast.LiteralExpr {
+func (f *FixedVal) GetDefault() ast.LiteralExpr {
 	return ast.LiteralExpr{Value: "0fx"}
 }
 
-func (f FixedVal) GetSpecificType() ast.PrimitiveValueType {
+func (f *FixedVal) GetSpecificType() ast.PrimitiveValueType {
 	return f.SpecificType
 }
 
-var EmptyReturn = Returns{}
+var EmptyReturn = Types{}
 
-type Returns []TypeVal
+type Types []Type
 
-func (rt *Returns) Eq(otherRT *Returns) bool {
+func (ts *Types) GetType() Type {
+	return (*ts)[0]
+}
+
+func (rt *Types) Eq(otherRT *Types) bool {
 	typesSame := true
 	if len(*rt) == len(*otherRT) {
 		for i, v := range *rt {
@@ -407,21 +403,8 @@ func (rt *Returns) Eq(otherRT *Returns) bool {
 	return typesSame
 }
 
-func (n Returns) GetType() TypeVal {
-	if len(n) == 1 {
-		return n[0].GetType()
-	}
-
-	return TypeVal{Type: 0}
-}
-
-func (n Returns) GetDefault() ast.LiteralExpr {
-	typeVal := n.GetType()
-	return typeVal.GetDefault()
-}
-
-type TypeVal struct {
-	WrappedType *TypeVal
+type Type struct {
+	WrappedType *Type
 	Name        string
 	Type        ast.PrimitiveValueType
 	Params      []TypeVal
@@ -429,7 +412,7 @@ type TypeVal struct {
 	Fields      map[string]TypeVal
 }
 
-func TypeEquals(t *TypeVal, otherT *TypeVal) bool {
+func TypeEquals(t *Type, otherT *Type) bool {
 	if t == nil && otherT == nil {
 		return true
 	} else if t != nil && otherT != nil {
@@ -491,7 +474,7 @@ func TypeEquals(t *TypeVal, otherT *TypeVal) bool {
 	return true
 }
 
-func (t TypeVal) ToString() string {
+func (t *Type) ToString() string {
 	src := lua.StringBuilder{}
 
 	src.Append(t.Name)
@@ -525,28 +508,20 @@ func (t TypeVal) ToString() string {
 	return src.String()
 }
 
-func (t TypeVal) GetType() TypeVal {
-	return t
-}
-
-func (t TypeVal) GetDefault() ast.LiteralExpr {
-	return ast.LiteralExpr{Value: "DEFAULT_TYPE_VALUE"}
-}
-
 type FunctionVal struct {
-	params    []TypeVal
-	returnVal Returns
+	params    []Type
+	returnVal Types
 }
 
-func (f FunctionVal) GetType() TypeVal {
-	return TypeVal{Name: "function", Type: ast.Func, Params: f.params, Returns: f.returnVal}
+func (f *FunctionVal) GetType() Type {
+	return Type{Name: "function", Type: ast.Func, Params: f.params, Returns: f.returnVal}
 }
 
-func (f FunctionVal) GetReturns() Returns {
+func (f *FunctionVal) GetReturns() Types {
 	return f.returnVal
 }
 
-func (f FunctionVal) GetDefault() ast.LiteralExpr {
+func (f *FunctionVal) GetDefault() ast.LiteralExpr {
 	src := lua.StringBuilder{}
 	src.WriteString("function(")
 	for i := range f.params {
@@ -559,57 +534,42 @@ func (f FunctionVal) GetDefault() ast.LiteralExpr {
 	return ast.LiteralExpr{Value: src.String()}
 }
 
-type CallVal struct {
-	types Returns
-}
-
-func (f CallVal) GetType() TypeVal {
-	if len(f.types) == 1 {
-		return f.types[0]
-	}
-	return TypeVal{Name: "invalid", Type: ast.Invalid, Returns: f.types}
-}
-
-func (f CallVal) GetDefault() ast.LiteralExpr {
-	return ast.LiteralExpr{Value: "DEFAULT_CALL_VALUE"}
-}
-
 type BoolVal struct{}
 
-func (b BoolVal) GetType() TypeVal {
-	return TypeVal{Name: "bool", Type: ast.Bool}
+func (b *BoolVal) GetType() Type {
+	return Type{Name: "bool", Type: ast.Bool}
 }
 
-func (b BoolVal) GetDefault() ast.LiteralExpr {
+func (b *BoolVal) GetDefault() ast.LiteralExpr {
 	return ast.LiteralExpr{Value: "false"}
 }
 
 type StringVal struct{}
 
-func (s StringVal) GetType() TypeVal {
-	return TypeVal{Name: "string", Type: ast.String}
+func (s *StringVal) GetType() Type {
+	return Type{Name: "string", Type: ast.String}
 }
 
-func (s StringVal) GetDefault() ast.LiteralExpr {
+func (s *StringVal) GetDefault() ast.LiteralExpr {
 	return ast.LiteralExpr{Value: "\"\""}
 }
 
 type Invalid struct{}
 
-func (u Invalid) GetType() TypeVal {
-	return TypeVal{Name: "invalid", Type: ast.Invalid}
+func (u *Invalid) GetType() Type {
+	return Type{Name: "invalid", Type: ast.Invalid}
 }
 
-func (n Invalid) GetDefault() ast.LiteralExpr {
+func (n *Invalid) GetDefault() ast.LiteralExpr {
 	return ast.LiteralExpr{Value: "invalid"}
 }
 
 type Unknown struct{}
 
-func (u Unknown) GetType() TypeVal {
-	return TypeVal{Name: "unknown", Type: 0}
+func (u *Unknown) GetType() Type {
+	return Type{Name: "unknown", Type: 0}
 }
 
-func (u Unknown) GetDefault() ast.LiteralExpr {
+func (u *Unknown) GetDefault() ast.LiteralExpr {
 	return ast.LiteralExpr{Value: "unknown"}
 }
