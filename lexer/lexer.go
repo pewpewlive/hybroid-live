@@ -142,7 +142,11 @@ func (l *Lexer) scanToken() {
 	case ',':
 		l.addToken(Comma, "")
 	case ':':
-		l.addToken(Colon, "")
+		if l.matchChar(':') {
+			l.addToken(DoubleColon, "")
+		} else {
+			l.addToken(Colon, "")
+		}
 	case '@':
 		l.addToken(At, "")
 	case '|':

@@ -1,6 +1,8 @@
 package ast
 
-import "hybroid/lexer"
+import (
+	"hybroid/lexer"
+)
 
 type Accessor interface {
 	Node
@@ -9,6 +11,22 @@ type Accessor interface {
 	SetOwner(owner Accessor) Accessor
 	SetProperty(prop Node) Accessor
 	SetIdentifier(ident Node) Accessor
+}
+
+type EnvExpr struct {
+	Envs []lexer.Token
+}
+
+func (le EnvExpr) GetType() NodeType {
+	return EnvironmentExpression
+}
+
+func (le EnvExpr) GetToken() lexer.Token {
+	return le.Envs[0]
+}
+
+func (le EnvExpr) GetValueType() PrimitiveValueType {
+	return 0
 }
 
 type LiteralExpr struct {

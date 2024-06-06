@@ -1,10 +1,1 @@
-@Environment(Level)
-
-let a = struct {
-  a: 100f,
-  b: fn() {
-    let a = "lol"
-  }
-}
-
-let b = a.a  // fix me
+env Hybroid as Level

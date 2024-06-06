@@ -8,20 +8,20 @@ import (
 )
 
 type Walker struct {
-	Namespace *Namespace
-	nodes     *[]ast.Node
-	Errors    []ast.Error
-	Warnings  []ast.Warning
-	Context   ast.Node
+	Environment *Environment
+	nodes       *[]ast.Node
+	Errors      []ast.Error
+	Warnings    []ast.Warning
+	Context     ast.Node
 }
 
 func NewWalker() *Walker {
-	namespace := NewNamespace()
+	environment := NewEnvironment()
 	walker := Walker{
-		Namespace: &namespace,
-		nodes:     &[]ast.Node{},
-		Errors:    []ast.Error{},
-		Warnings:  []ast.Warning{},
+		Environment: &environment,
+		nodes:       &[]ast.Node{},
+		Errors:      []ast.Error{},
+		Warnings:    []ast.Warning{},
 	}
 	return &walker
 }
@@ -68,7 +68,7 @@ func (w *Walker) GetValueFromType(typee TypeVal) Value {
 	case 0:
 		return Unknown{}
 	case ast.Struct:
-		return w.Namespace.Scope.GetStructType(&w.Namespace.Scope, typee.Name)
+		return w.Environment.Scope.GetStructType(&w.Environment.Scope, typee.Name)
 	default:
 		return Invalid{}
 	}
@@ -95,13 +95,13 @@ func (s *Scope) GetVariableIndex(scope *Scope, name string) int {
 }
 
 func (s *Scope) GetStructType(scope *Scope, name string) *StructTypeVal {
-	structType := scope.Namespace.StructTypes[name]
+	structType := scope.Environment.StructTypes[name]
 
 	structType.IsUsed = true
 
-	scope.Namespace.StructTypes[name] = structType
+	scope.Environment.StructTypes[name] = structType
 
-	return scope.Namespace.StructTypes[name]
+	return scope.Environment.StructTypes[name]
 }
 
 func (s *Scope) AssignVariableByName(name string, value Value) (Value, *ast.Error) {
@@ -145,11 +145,11 @@ func (s *Scope) DeclareVariable(value VariableVal) (VariableVal, bool) {
 }
 
 func (s *Scope) DeclareStructType(structType *StructTypeVal) bool {
-	if _, found := s.Namespace.StructTypes[structType.Name.Lexeme]; found {
+	if _, found := s.Environment.StructTypes[structType.Name.Lexeme]; found {
 		return false
 	}
 
-	s.Namespace.StructTypes[structType.Name.Lexeme] = structType
+	s.Environment.StructTypes[structType.Name.Lexeme] = structType
 	return true
 }
 
@@ -166,7 +166,7 @@ func (s *Scope) ResolveVariable(name string) *Scope {
 }
 
 func (s *Scope) ResolveStructType(name string) *Scope {
-	if _, found := s.Namespace.StructTypes[name]; found {
+	if _, found := s.Environment.StructTypes[name]; found {
 		return s
 	}
 
@@ -205,7 +205,7 @@ func (sc *Scope) ResolveReturnable() (*Scope, *ReturnableTag) {
 	return sc.Parent.ResolveReturnable()
 }
 
-func (g *Namespace) GetForeignType(str string) Value {
+func (g *Environment) GetForeignType(str string) Value {
 	return g.foreignTypes[str]
 }
 
@@ -292,14 +292,14 @@ func (w *Walker) Stage1(nodes *[]ast.Node) []ast.Node {
 	newNodes := make([]ast.Node, 0)
 
 	for _, node := range *nodes {
-		w.WalkNode(&node, &w.Namespace.Scope)
+		w.WalkNode(&node, &w.Environment.Scope)
 		newNodes = append(newNodes, node)
 	}
 
 	return newNodes
 }
 
-func (w *Walker) Stage2(nodes *[]ast.Node, namespaces *map[string]*Namespace) []ast.Node {
+func (w *Walker) Stage2(nodes *[]ast.Node, namespaces *map[string]*Environment) []ast.Node {
 	return *nodes
 }
 

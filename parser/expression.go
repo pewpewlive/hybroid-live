@@ -102,7 +102,40 @@ func (p *Parser) unary() ast.Node {
 		right := p.unary()
 		return ast.UnaryExpr{Operator: operator, Value: right}
 	}
-	return p.accessorExprDepth2(nil, nil, 0)
+	return p.envExpr()
+}
+
+func (p *Parser) envExpr() ast.Node {
+	expr := p.accessorExprDepth2(nil, nil, 0) 
+
+	if p.match(lexer.DoubleColon) {
+		if expr.GetType() != ast.Identifier {
+			p.error(expr.GetToken(), "expected identifier in environment expression")
+			return ast.Improper{}
+		}
+		envExpr := ast.EnvExpr{
+			Envs: []lexer.Token{expr.GetToken()},
+		}
+
+		next := p.primary()
+		if next.GetType() != ast.Identifier {
+			p.error(expr.GetToken(), "expected identifier in environment expression")
+			return ast.Improper{}
+		}
+		envExpr.Envs = append(envExpr.Envs, next.GetToken())
+		for p.match(lexer.DoubleColon) {
+			next = p.primary()
+			if next.GetType() != ast.Identifier {
+				p.error(expr.GetToken(), "expected identifier in environment expression")
+				return ast.Improper{}
+			}
+			envExpr.Envs = append(envExpr.Envs, next.GetToken())
+		}
+
+		return envExpr
+	}
+
+	return expr
 }
 
 func (p *Parser) call(caller ast.Node) ast.Node {
@@ -212,7 +245,7 @@ func (p *Parser) accessorExprDepth2(owner ast.Accessor, ident ast.Node, nodeType
 	return accessorExpr
 }
 
-func (p *Parser) accessorExprDepth1(owner ast.Accessor, ident ast.Node, nodeType ast.NodeType) ast.Node { // fieldExpr and memberExpr
+func (p *Parser) accessorExprDepth1(owner ast.Accessor, ident ast.Node, nodeType ast.NodeType) ast.Node {
 	if ident == nil {
 		ident = p.matchExpr()
 	}
@@ -255,7 +288,7 @@ func (p *Parser) accessorExprDepth1(owner ast.Accessor, ident ast.Node, nodeType
 	var expr ast.Accessor
 	var prop ast.Node
 	var propIdent ast.Node
-	if nodeType == ast.FieldExpression { //var1[""]
+	if nodeType == ast.FieldExpression {
 		expr = ast.FieldExpr{
 			Owner:      owner,
 			Identifier: ident,

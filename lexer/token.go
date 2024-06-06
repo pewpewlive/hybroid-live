@@ -13,11 +13,12 @@ const (
 	LeftBracket                   // [
 	RightBracket                  // ]
 	Comma                         // ,
-	Colon                         // :
 	At                            // @
 	Pipe                          // |
 
 	// One or two character tokens
+	Colon        // :
+	DoubleColon  // ::
 	Dot          // .
 	Concat       // ..
 	Minus        // -
@@ -43,98 +44,98 @@ const (
 	ModuloEqual  // %=
 
 	// Literals
-	Identifier
-	String
-	Number
-	FixedPoint
 	Degree
-	Radian
 	Fixed
+	FixedPoint
+	Identifier
+	Number
+	Radian
+	String
 
 	// Keywords
-	By
 	Add
 	And
-	Or
-	True
-	False
-	Self
-	Fn
-	Tick
-	Repeat
-	For
-	While
-	If
-	Else
-	Return
-	Break
-	Continue
-	Yield
-	Let
-	Pub
-	Const
-	In
 	As
-	To
-	With
-	Enum
-	Use
-	Spawn
-	Trait
+	Break
+	By
+	Const
+	Continue
+	Else
 	Entity
+	Enum
+	Env
+	False
 	Find
-	Remove
-	Match
+	Fn
+	For
 	From
-	Struct
+	If
+	In
+	Let
+	Match
 	New
+	Or
+	Pub
+	Remove
+	Repeat
+	Return
+	Self
+	Spawn
+	Struct
+	Tick
+	To
+	True
+	Use
+	While
+	With
+	Yield
 
 	Eof // EOF (End of File)
 )
 
 var keywords = map[string]TokenType{
-	"by":       By,
 	"add":      Add,
 	"and":      And,
-	"or":       Or,
-	"true":     True,
-	"false":    False,
-	"self":     Self,
-	"fn":       Fn,
-	"tick":     Tick,
-	"repeat":   Repeat,
-	"for":      For,
-	"while":    While,
-	"if":       If,
-	"else":     Else,
-	"return":   Return,
-	"break":    Break,
-	"continue": Continue,
-	"yield":    Yield,
-	"let":      Let,
-	"pub":      Pub,
-	"const":    Const,
-	"in":       In,
 	"as":       As,
-	"to":       To,
-	"with":     With,
-	"enum":     Enum,
-	"use":      Use,
-	"spawn":    Spawn,
-	"trait":    Trait,
+	"break":    Break,
+	"by":       By,
+	"const":    Const,
+	"continue": Continue,
+	"else":     Else,
 	"entity":   Entity,
+	"enum":     Enum,
+	"env":      Env,
+	"false":    False,
 	"find":     Find,
-	"remove":   Remove,
-	"match":    Match,
+	"fn":       Fn,
+	"for":      For,
 	"from":     From,
-	"struct":   Struct,
+	"if":       If,
+	"in":       In,
+	"let":      Let,
+	"match":    Match,
 	"new":      New,
+	"or":       Or,
+	"pub":      Pub,
+	"remove":   Remove,
+	"repeat":   Repeat,
+	"return":   Return,
+	"self":     Self,
+	"spawn":    Spawn,
+	"struct":   Struct,
+	"tick":     Tick,
+	"to":       To,
+	"true":     True,
+	"use":      Use,
+	"while":    While,
+	"with":     With,
+	"yield":    Yield,
 }
 
+var tokens = [...]string{"LeftParen", "RightParen", "LeftBrace", "RightBrace", "LeftBracket", "RightBracket", "Comma", "At", "Pipe", "Colon", "DoubleColon", "Dot", "Concat", "Minus", "MinusEqual", "Plus", "PlusEqual", "Slash", "SlashEqual", "Star", "StarEqual", "Caret", "CaretEqual", "Bang", "BangEqual", "Equal", "EqualEqual", "FatArrow", "Greater", "GreaterEqual", "Less", "LessEqual", "Modulo", "ModuloEqual", "Degree", "Fixed", "FixedPoint", "Identifier", "Number", "Radian", "String", "Add", "And", "As", "Break", "By", "Const", "Continue", "Else", "Entity", "Enum", "Env", "False", "Find", "Fn", "For", "From", "If", "In", "Let", "Match", "New", "Or", "Pub", "Remove", "Repeat", "Return", "Self", "Spawn", "Struct", "Tick", "To", "True", "Use", "While", "With", "Yield", "Eof"}
+
 func (t TokenType) ToString() string {
-	return [...]string{
-		"LeftParen", "RightParen", "LeftBrace", "RightBrace", "LeftBracket", "RightBracket", "Comma", "Colon", "At", "Wall", "Dot", "Concat", "Minus", "MinusEqual", "Plus", "PlusEqual", "Slash", "SlashEqual", "Star", "StarEqual", "Caret", "CaretEqual", "Bang", "BangEqual", "Equal", "EqualEqual", "FatArrow", "Greater", "GreaterEqual", "Less", "LessEqual", "Identifier", "String", "Number", "FixedPoint", "Degree", "Radian", "Fixed", "By", "Add", "And", "Or", "True", "False", "Self", "Fn", "Tick", "Repeat", "For", "While", "If", "Else", "Return", "Break", "Continue", "Yield", "Let", "Pub", "Const", "In", "As", "To", "With", "Enum", "Use", "Spawn", "Trait", "Entity", "Find", "Remove", "Match", "From", "Struct", "New", "Eof",
-	}[t]
+	return tokens[t]
 }
 
 type TokenLocation struct {

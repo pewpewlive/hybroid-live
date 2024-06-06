@@ -11,20 +11,20 @@ type Context struct {
 	Ret   Returns
 }
 
-type Namespace struct {
+type Environment struct {
 	Ctx          Context
 	Scope        Scope
 	foreignTypes map[string]Value
 	StructTypes  map[string]*StructTypeVal
 }
 
-func NewNamespace() Namespace {
+func NewEnvironment() Environment {
 	scope := Scope{
 		Tag:             UntaggedTag{},
 		Variables:       map[string]VariableVal{},
 		VariableIndexes: map[string]int{},
 	}
-	global := Namespace{
+	global := Environment{
 		Ctx: Context{
 			Node:  ast.Improper{},
 			Value: Unknown{},
@@ -35,7 +35,7 @@ func NewNamespace() Namespace {
 		StructTypes:  map[string]*StructTypeVal{},
 	}
 
-	global.Scope.Namespace = &global
+	global.Scope.Environment = &global
 	return global
 }
 
@@ -183,8 +183,8 @@ func (sa *ScopeAttributes) Add(_type ScopeAttribute) {
 var EmptyAttributes = ScopeAttributes{}
 
 type Scope struct {
-	Namespace *Namespace
-	Parent    *Scope
+	Environment *Environment
+	Parent      *Scope
 
 	Tag        ScopeTag
 	Attributes ScopeAttributes
@@ -215,8 +215,8 @@ func NewScope(parent *Scope, tag ScopeTag) Scope {
 		attrs = parent.Attributes
 	}
 	return Scope{
-		Namespace: parent.Namespace,
-		Parent:    parent,
+		Environment: parent.Environment,
+		Parent:      parent,
 
 		Tag:        tag,
 		Attributes: attrs,

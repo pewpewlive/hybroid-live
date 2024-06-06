@@ -12,6 +12,7 @@ const (
 	MethodDeclarationStatement
 	ConstructorStatement
 
+	EnvironmentStatement
 	AssignmentStatement
 	RepeatStatement
 	ForStatement
@@ -26,8 +27,7 @@ const (
 	YieldStatement
 	MatchStatement
 
-	Progr
-
+	EnvironmentExpression
 	AnonymousFunctionExpression
 	AnonymousStructExpression
 	DirectiveExpression

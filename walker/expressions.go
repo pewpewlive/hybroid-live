@@ -260,12 +260,12 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 		if node.Property == nil {
 			return val
 		} else {
-			scope.Namespace.Ctx.Value = val
+			scope.Environment.Ctx.Value = val
 			fieldVal = w.GetNodeValue(&node.Property, scope)
 		}
 		return fieldVal
 	}
-	owner := scope.Namespace.Ctx.Value
+	owner := scope.Environment.Ctx.Value
 	variable := VariableVal{Value: Invalid{}}
 	if IsOfPrimitiveType(owner, ast.Struct, ast.Entity, ast.Namespace) {
 		if container := helpers.GetValOfInterface[Container](owner); container != nil {
@@ -284,7 +284,7 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 	}
 
 	if node.Property != nil {
-		scope.Namespace.Ctx.Value = variable.Value
+		scope.Environment.Ctx.Value = variable.Value
 		val := w.GetNodeValue(&node.Property, scope)
 		return val
 	}
@@ -314,7 +314,7 @@ func (w *Walker) memberExpr(node *ast.MemberExpr, scope *Scope) Value {
 		if node.Property == nil {
 			return val
 		} else {
-			scope.Namespace.Ctx.Value = val
+			scope.Environment.Ctx.Value = val
 			memberVal = w.GetNodeValue(&node.Property, scope)
 		}
 		return memberVal
@@ -322,7 +322,7 @@ func (w *Walker) memberExpr(node *ast.MemberExpr, scope *Scope) Value {
 
 	val := w.GetNodeValue(&node.Identifier, scope)
 	valType := val.GetType()
-	array := scope.Namespace.Ctx.Value
+	array := scope.Environment.Ctx.Value
 	arrayType := array.GetType()
 
 	if arrayType.Type == ast.Map {
@@ -351,7 +351,7 @@ func (w *Walker) memberExpr(node *ast.MemberExpr, scope *Scope) Value {
 	wrappedVal := w.GetValueFromType(wrappedValType)
 
 	if node.Property != nil {
-		scope.Namespace.Ctx.Value = wrappedVal
+		scope.Environment.Ctx.Value = wrappedVal
 		return w.GetNodeValue(&node.Property, scope)
 	}
 
@@ -556,7 +556,7 @@ func (w *Walker) typeExpr(typee *ast.TypeExpr) TypeVal {
 
 	typ := w.GetTypeFromString(typee.Name.Lexeme)
 	if typ == ast.Invalid {
-		if foreignType, ok := w.Namespace.foreignTypes[typee.Name.Lexeme]; ok {
+		if foreignType, ok := w.Environment.foreignTypes[typee.Name.Lexeme]; ok {
 			return foreignType.GetType()
 		}
 	}

@@ -52,7 +52,7 @@ func Build(ctx *cli.Context, files ...FileInformation) error {
 		}
 		os.WriteFile(cwd+outputDir+"/manifest.json", manifest, 0644)
 
-		namespaces := map[string]*walker.Namespace{}
+		namespaces := map[string]*walker.Environment{}
 
 		eval := evaluator.NewEvaluator(lua.Generator{Scope: lua.GenScope{Src: lua.StringBuilder{}}}, &namespaces)
 		var evalErr error = nil

@@ -38,6 +38,9 @@ func (p *Parser) statement() ast.Node {
 	}
 
 	switch token {
+	case lexer.Env:
+		p.advance()
+		return p.envStmt()
 	case lexer.Let, lexer.Pub, lexer.Const:
 		p.advance()
 		return p.variableDeclarationStmt()
@@ -122,6 +125,12 @@ func (p *Parser) getBody() *[]ast.Node {
 	}
 
 	return &body
+}
+
+func (p *Parser) envStmt() ast.Node { 
+	stmt := ast.EnvironmentStmt{}
+
+	return stmt
 }
 
 func (p *Parser) structDeclarationStatement() ast.Node {

@@ -478,7 +478,7 @@ func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *S
 	structTypeVal.Params = params
 
 	scope.DeclareStructType(&structTypeVal)
-	w.Namespace.foreignTypes[structTypeVal.Name.Lexeme] = &structTypeVal
+	w.Environment.foreignTypes[structTypeVal.Name.Lexeme] = &structTypeVal
 
 	funcDeclaration := ast.MethodDeclarationStmt{
 		Name:    node.Constructor.Token,

@@ -4,6 +4,32 @@ import (
 	"hybroid/lexer"
 )
 
+type EnvType int
+
+const (
+	Mesh EnvType = iota
+	Level
+	Shared
+	Sound
+)
+
+type EnvironmentStmt struct {
+	EnvType EnvType
+	Name    lexer.Token
+}
+
+func (as EnvironmentStmt) GetType() NodeType {
+	return EnvironmentStatement
+}
+
+func (as EnvironmentStmt) GetToken() lexer.Token {
+	return as.Name
+}
+
+func (as EnvironmentStmt) GetValueType() PrimitiveValueType {
+	return 0
+}
+
 type AssignmentStmt struct {
 	Values      []Node
 	Identifiers []Node
@@ -86,7 +112,6 @@ type FieldDeclarationStmt struct {
 	Identifiers []lexer.Token
 	Types       []*TypeExpr
 	Values      []Node
-	IsLocal     bool
 	Token       lexer.Token
 }
 

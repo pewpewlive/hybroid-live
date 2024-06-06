@@ -16,7 +16,7 @@ import (
 )
 
 type Evaluator struct {
-	namespaces *map[string]*walker.Namespace
+	namespaces *map[string]*walker.Environment
 	lexer      *lexer.Lexer
 	parser     *parser.Parser
 	walker     *walker.Walker
@@ -25,7 +25,7 @@ type Evaluator struct {
 	DstPath    string
 }
 
-func NewEvaluator(gen lua.Generator, namespaces *map[string]*walker.Namespace) Evaluator {
+func NewEvaluator(gen lua.Generator, namespaces *map[string]*walker.Environment) Evaluator {
 	return Evaluator{
 		namespaces: namespaces,
 		lexer:      lexer.NewLexer(),
@@ -37,7 +37,7 @@ func NewEvaluator(gen lua.Generator, namespaces *map[string]*walker.Namespace) E
 
 func (e *Evaluator) AssignFile(src string, dst string) {
 	e.SrcPath, e.DstPath = src, dst
-	(*e.namespaces)[dst] = e.walker.Namespace
+	(*e.namespaces)[dst] = e.walker.Environment
 }
 
 func (e *Evaluator) Action() error {
