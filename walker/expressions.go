@@ -267,19 +267,17 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 	}
 	owner := scope.Environment.Ctx.Value
 	variable := VariableVal{Value: Invalid{}}
-	if IsOfPrimitiveType(owner, ast.Struct, ast.Entity, ast.Namespace) {
-		if container := helpers.GetValOfInterface[Container](owner); container != nil {
-			container := *container
-			ident := node.Identifier.GetToken()
-			val, index, contains := container.Contains(ident.Lexeme)
+	if container := helpers.GetValOfInterface[Container](owner); container != nil {
+		container := *container
+		ident := node.Identifier.GetToken()
+		val, index, contains := container.Contains(ident.Lexeme)
 
-			if !contains {
-				w.error(ident, fmt.Sprintf("no field or method named '%s' in '%s'", ident.Lexeme, node.Owner.GetToken().Lexeme))
-				return Invalid{}
-			} else {
-				variable = val.(VariableVal)
-				node.Index = index
-			}
+		if !contains {
+			w.error(ident, fmt.Sprintf("no field or method named '%s' in '%s'", ident.Lexeme, node.Owner.GetToken().Lexeme))
+			return Invalid{}
+		} else {
+			variable = val.(VariableVal)
+			node.Index = index
 		}
 	}
 
@@ -460,12 +458,10 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) FunctionVal {
 func (w *Walker) anonStructExpr(node *ast.AnonStructExpr, scope *Scope) AnonStructTypeVal {
 	structTypeVal := AnonStructTypeVal{
 		Fields:       []VariableVal{},
-		FieldIndexes: map[string]int{},
 	}
 
-	for key, property := range node.Fields {
-		value := w.GetNodeValue(&property.Expr, scope)
-		structTypeVal.Fields = append(structTypeVal.Fields, VariableVal{Name: key.Lexeme, Value: value, Node: property.Expr})
+	for i := range node.Fields {
+		w.fieldDeclarationStmt(&node.Fields[i], structTypeVal, scope)
 	}
 
 	return structTypeVal

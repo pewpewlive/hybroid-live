@@ -67,13 +67,14 @@ const (
 	Func
 	Entity
 	Struct
+	AnonStruct
 	Ident
 	Namespace
 
 	Invalid
 )
 
-var stringifiedPTV = [...]string{"unknown", "number", "text", "bool", "fixed", "fixed", "fixed", "fixed", "list", "map", "nil", "func", "entity", "struct", "identifier", "namespace", "invalid"}
+var stringifiedPTV = [...]string{"unknown", "number", "text", "bool", "fixed", "fixed", "fixed", "fixed", "list", "map", "nil", "func", "entity", "struct", "anonymous struct", "identifier", "namespace", "invalid"}
 
 func (pvt PrimitiveValueType) ToString() string {
 	return stringifiedPTV[pvt]

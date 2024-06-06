@@ -133,7 +133,11 @@ func (gen *Generator) fieldExpr(node ast.FieldExpr, scope *GenScope) string {
 			src.Append(".", fmt.Sprintf("%v", node.Identifier), prop)
 			return src.String()
 		}
-		src.Append("[", fmt.Sprintf("%v", node.Index), "]", prop)
+		if node.Index == -1 {
+			src.Append("[", node.Identifier.GetToken().Lexeme, "]", prop)
+		}else {
+			src.Append("[", fmt.Sprintf("%v", node.Index), "]", prop)
+		}
 		return src.String()
 	} // Self.rect
 	src.Append(expr, prop)
@@ -199,22 +203,14 @@ func (gen *Generator) anonStructExpr(node ast.AnonStructExpr, scope *GenScope) s
 
 	src.WriteString("{\n")
 	TabsCount += 1
-	index := 0
-	for k, v := range node.Fields {
-		val := gen.GenerateExpr(v.Expr, scope)
+	for i, v := range node.Fields {
+		val := gen.GenerateExpr(v, scope)
 
-		ident := k.Lexeme
-
-		if k.Type == lexer.String {
-			ident = k.Literal
+		if i < len(node.Fields)-1 {
+			src.Append(val,",")
+		}else {
+			src.WriteString(val)
 		}
-
-		if index != len(node.Fields)-1 {
-			src.AppendTabbed(fmt.Sprintf("%s = %v,\n", ident, val))
-		} else {
-			src.AppendTabbed(fmt.Sprintf("%s = %v\n", ident, val))
-		}
-		index++
 	}
 	TabsCount -= 1
 	src.AppendTabbed("}")

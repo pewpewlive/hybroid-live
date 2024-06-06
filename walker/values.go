@@ -14,8 +14,11 @@ type Value interface {
 }
 
 type Container interface {
+	Value
 	GetFields() map[string]VariableVal
 	GetMethods() map[string]VariableVal
+	AddField(variable VariableVal) Container
+	AddMethod(variable VariableVal) Container
 	Contains(name string) (Value, int, bool)
 }
 
@@ -64,6 +67,23 @@ func (st StructTypeVal) GetFields() map[string]VariableVal {
 
 func (st StructTypeVal) GetMethods() map[string]VariableVal {
 	return st.Methods
+}
+
+func (st StructTypeVal) AddField(variable VariableVal) Container {
+	st.Fields = append(st.Fields, variable)
+
+	index := 0
+	for _ = range st.FieldIndexes {
+		index++
+	}
+	st.FieldIndexes[variable.Name] = index + 1
+
+	return st
+}
+
+func (st StructTypeVal) AddMethod(variable VariableVal) Container {
+	st.Methods[variable.Name] = variable
+	return st
 }
 
 func FindFromList(list []VariableVal, name string) (*VariableVal, bool) {
@@ -133,10 +153,18 @@ func (s StructVal) GetDefault() ast.LiteralExpr {
 	return s.Type.GetDefault()
 }
 
+func (s StructVal) AddField(variable VariableVal) Container {
+	s.AddField(variable)
+	return s
+}
+
+func (s StructVal) AddMethod(variable VariableVal) Container {
+	s.AddMethod(variable)
+	return s
+}
+
 type AnonStructTypeVal struct {
-	Fields       []VariableVal
-	FieldIndexes map[string]int
-	IsUsed       bool
+	Fields []VariableVal
 }
 
 func (astv AnonStructTypeVal) GetField(name string) (*VariableVal, bool) {
@@ -157,16 +185,35 @@ func (astv AnonStructTypeVal) GetFields() map[string]VariableVal {
 	return fields
 }
 
+func (astv AnonStructTypeVal) GetMethods() map[string]VariableVal {
+	return astv.GetFields()
+}
+
 func (astv AnonStructTypeVal) Contains(name string) (Value, int, bool) {
 	if variable, found := FindFromList(astv.Fields, name); found {
-		return *variable, astv.FieldIndexes[name], true
+		return *variable, -1, true
 	}
 
 	return nil, -1, false
 }
 
+func (astv AnonStructTypeVal) AddField(variable VariableVal) Container {
+	astv.Fields = append(astv.Fields, variable)
+	return astv
+}
+
+func (astv AnonStructTypeVal) AddMethod(variable VariableVal) Container {
+	return astv
+}
+
 func (astv AnonStructTypeVal) GetType() TypeVal {
-	return TypeVal{Type: ast.Struct}
+	types := make(map[string]TypeVal, len(astv.Fields))
+
+	for _, v := range astv.Fields {
+		types[v.Name] = v.GetType()
+	}
+
+	return TypeVal{Type: ast.AnonStruct, Fields: types}
 }
 
 func (astv AnonStructTypeVal) GetDefault() ast.LiteralExpr {
@@ -219,6 +266,23 @@ func (n NamespaceVal) Contains(name string) (Value, int, bool) {
 	return nil, -1, false
 }
 
+func (n NamespaceVal) AddField(variable VariableVal) Container {
+	n.Fields[variable.Name] = variable
+
+	index := 0
+	for _ = range n.FieldIndexes {
+		index++
+	}
+	n.FieldIndexes[variable.Name] = index + 1
+
+	return n
+}
+
+func (n NamespaceVal) AddMethod(variable VariableVal) Container {
+	n.Methods[variable.Name] = variable
+	return n
+}
+
 func (n NamespaceVal) GetDefault() ast.LiteralExpr {
 	src := lua.StringBuilder{}
 
@@ -240,7 +304,6 @@ func (n NamespaceVal) GetDefault() ast.LiteralExpr {
 type MapVal struct {
 	MemberType TypeVal
 	Members    []Value
-	// Keys       []string
 }
 
 func (m MapVal) GetType() TypeVal {
@@ -363,10 +426,10 @@ type TypeVal struct {
 	Type        ast.PrimitiveValueType
 	Params      []TypeVal
 	Returns     Returns
+	Fields      map[string]TypeVal
 }
 
 func TypeEquals(t *TypeVal, otherT *TypeVal) bool {
-
 	if t == nil && otherT == nil {
 		return true
 	} else if t != nil && otherT != nil {
@@ -404,11 +467,23 @@ func TypeEquals(t *TypeVal, otherT *TypeVal) bool {
 		}
 	}
 
+	// field checking
+	if len(t.Fields) != len(otherT.Fields) {
+		return false
+	}
+	for i, v := range t.Fields {
+		temp := otherT.Fields[i]
+		if !TypeEquals(&v, &temp) {
+			return false
+		}
+	}
+
 	// pvt checking
 	if t.Type != otherT.Type {
 		return false
 	}
 
+	// wrapped type checking
 	if !TypeEquals(t.WrappedType, otherT.WrappedType) {
 		return false
 	}

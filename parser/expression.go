@@ -508,7 +508,7 @@ func (p *Parser) parseMap() ast.Node {
 func (p *Parser) anonStruct() ast.Node {
 	anonStruct := ast.AnonStructExpr{
 		Token:  p.peek(-1),
-		Fields: make(map[lexer.Token]ast.Property),
+		Fields: make([]ast.FieldDeclarationStmt, 0),
 	}
 
 	_, ok := p.consume("expected opening brace in anonymous struct expression", lexer.LeftBrace)
@@ -518,34 +518,10 @@ func (p *Parser) anonStruct() ast.Node {
 
 	for !p.match(lexer.RightBrace) {
 		if p.check(lexer.Identifier) {
-			key := p.primary()
-
-			if _, ok := key.(ast.IdentifierExpr); !ok {
-				p.error(key.GetToken(), "expected an identifier in anonymous struct field declaration")
-				p.advance()
-				return ast.Improper{Token: p.peek(-1)}
+			field := p.fieldDeclarationStmt(true)
+			if field.GetType() != ast.NA {
+				anonStruct.Fields = append(anonStruct.Fields, field.(ast.FieldDeclarationStmt))
 			}
-
-			if _, ok := p.consume("expected ':' after struct field name", lexer.Colon); !ok {
-				return ast.Improper{Token: p.peek(-1)}
-			}
-
-			expr := p.expression()
-			if expr.GetType() == 0 {
-				p.error(p.peek(), "expected expression")
-			}
-
-			if p.peek().Type == lexer.RightBrace {
-				anonStruct.Fields[key.GetToken()] = ast.Property{Expr: expr, Type: expr.GetValueType()}
-				p.advance()
-				break
-			}
-
-			if _, ok := p.consume("expected ',' or '}' after expression", lexer.Comma, lexer.RightBrace); !ok {
-				return ast.Improper{Token: p.peek(-1)}
-			}
-
-			anonStruct.Fields[key.GetToken()] = ast.Property{Expr: expr, Type: expr.GetValueType()}
 		} else {
 			p.error(p.peek(), "unknown statement inside struct")
 		}

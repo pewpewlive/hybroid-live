@@ -489,7 +489,7 @@ func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *S
 	}
 
 	for i := range node.Fields {
-		w.fieldDeclarationStmt(&node.Fields[i], &structTypeVal, &structScope)
+		w.fieldDeclarationStmt(&node.Fields[i], structTypeVal, &structScope)
 	}
 
 	structTypeVal.FieldIndexes = structScope.VariableIndexes
@@ -523,7 +523,7 @@ func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *S
 	w.methodDeclarationStmt(&funcDeclaration, &structTypeVal, &structScope)
 }
 
-func (w *Walker) fieldDeclarationStmt(node *ast.FieldDeclarationStmt, structTypeVal *StructTypeVal, scope *Scope) {
+func (w *Walker) fieldDeclarationStmt(node *ast.FieldDeclarationStmt, container Container, scope *Scope) {
 	varDecl := ast.VariableDeclarationStmt{
 		Identifiers: node.Identifiers,
 		Types:       node.Types,
@@ -531,7 +531,7 @@ func (w *Walker) fieldDeclarationStmt(node *ast.FieldDeclarationStmt, structType
 		IsLocal:     true,
 		Token:       node.Token,
 	}
-	structType := structTypeVal.GetType()
+	structType := container.GetType()
 	if len(node.Types) != 0 {
 		for i := range node.Types {
 			explicitType := w.typeExpr(node.Types[i])
@@ -552,10 +552,12 @@ func (w *Walker) fieldDeclarationStmt(node *ast.FieldDeclarationStmt, structType
 
 	variables := w.variableDeclarationStmt(&varDecl, scope)
 	node.Values = varDecl.Values
-	structTypeVal.Fields = append(structTypeVal.Fields, variables...)
+	for i := range variables {
+		container = container.AddField(variables[i])
+	}
 }
 
-func (w *Walker) methodDeclarationStmt(node *ast.MethodDeclarationStmt, structType *StructTypeVal, scope *Scope) {
+func (w *Walker) methodDeclarationStmt(node *ast.MethodDeclarationStmt, container Container, scope *Scope) {
 	funcExpr := ast.FunctionDeclarationStmt{
 		Name:    node.Name,
 		Return:  node.Return,
@@ -566,7 +568,7 @@ func (w *Walker) methodDeclarationStmt(node *ast.MethodDeclarationStmt, structTy
 
 	variable := w.functionDeclarationStmt(&funcExpr, scope, Method)
 	node.Body = funcExpr.Body
-	structType.Methods[variable.Name] = variable
+	container = container.AddMethod(variable)
 }
 
 func (w *Walker) useStmt(node *ast.UseStmt, scope *Scope) {

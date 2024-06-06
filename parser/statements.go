@@ -127,7 +127,7 @@ func (p *Parser) getBody() *[]ast.Node {
 	return &body
 }
 
-func (p *Parser) envStmt() ast.Node { 
+func (p *Parser) envStmt() ast.Node {
 	stmt := ast.EnvironmentStmt{}
 
 	return stmt
@@ -198,8 +198,7 @@ func (p *Parser) constructorDeclarationStmt() ast.Node {
 
 func (p *Parser) fieldDeclarationStmt(isLocal bool) ast.Node {
 	stmt := ast.FieldDeclarationStmt{
-		IsLocal: isLocal,
-		Token:   p.peek(-1),
+		Token: p.peek(-1),
 	}
 
 	ident := p.peek(-1)

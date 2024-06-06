@@ -160,7 +160,7 @@ func (afe AnonFnExpr) GetValueType() PrimitiveValueType {
 
 type AnonStructExpr struct {
 	Token  lexer.Token
-	Fields map[lexer.Token]Property
+	Fields []FieldDeclarationStmt
 }
 
 func (ase AnonStructExpr) GetType() NodeType {
