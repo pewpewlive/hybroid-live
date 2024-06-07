@@ -307,59 +307,43 @@ func (w *Walker) Stage2(nodes *[]ast.Node, namespaces *map[string]*Environment) 
 
 func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 	switch newNode := (*node).(type) {
-	case ast.EnvironmentStmt:
-		w.envStmt(&newNode, scope)
-		*node = newNode
-	case ast.VariableDeclarationStmt:
-		w.variableDeclarationStmt(&newNode, scope)
-		*node = newNode
-	case ast.IfStmt:
-		w.ifStmt(&newNode, scope)
-		*node = newNode
-	case ast.AssignmentStmt:
-		w.assignmentStmt(&newNode, scope)
-		*node = newNode
-	case ast.FunctionDeclarationStmt:
-		w.functionDeclarationStmt(&newNode, scope, Function)
-		*node = newNode
-	case ast.ReturnStmt:
-		w.returnStmt(&newNode, scope)
-		*node = newNode
-	case ast.YieldStmt:
-		w.yieldStmt(&newNode, scope)
-		*node = newNode
-	case ast.BreakStmt:
-		w.breakStmt(&newNode, scope)
-		*node = newNode
-	case ast.ContinueStmt:
-		w.continueStmt(&newNode, scope)
-		*node = newNode
-	case ast.RepeatStmt:
-		w.repeatStmt(&newNode, scope)
-		*node = newNode
-	case ast.ForStmt:
-		w.forStmt(&newNode, scope)
-		*node = newNode
-	case ast.TickStmt:
-		w.tickStmt(&newNode, scope)
-		*node = newNode
-	case ast.CallExpr:
-		w.callExpr(&newNode, scope, Function)
-		*node = newNode
-	case ast.MethodCallExpr:
+	case *ast.EnvironmentStmt:
+		w.envStmt(newNode, scope)
+	case *ast.VariableDeclarationStmt:
+		w.variableDeclarationStmt(newNode, scope)
+	case *ast.IfStmt:
+		w.ifStmt(newNode, scope)
+	case *ast.AssignmentStmt:
+		w.assignmentStmt(newNode, scope)
+	case *ast.FunctionDeclarationStmt:
+		w.functionDeclarationStmt(newNode, scope, Function)
+	case *ast.ReturnStmt:
+		w.returnStmt(newNode, scope)
+	case *ast.YieldStmt:
+		w.yieldStmt(newNode, scope)
+	case *ast.BreakStmt:
+		w.breakStmt(newNode, scope)
+	case *ast.ContinueStmt:
+		w.continueStmt(newNode, scope)
+	case *ast.RepeatStmt:
+		w.repeatStmt(newNode, scope)
+	case *ast.ForStmt:
+		w.forStmt(newNode, scope)
+	case *ast.TickStmt:
+		w.tickStmt(newNode, scope)
+	case *ast.CallExpr:
+		w.callExpr(newNode, scope, Function)
+	case *ast.MethodCallExpr:
 		w.methodCallExpr(node, scope)
-	case ast.DirectiveExpr:
-		w.directiveExpr(&newNode, scope)
-		*node = newNode
-	case ast.UseStmt:
-		w.useStmt(&newNode, scope)
-		*node = newNode
-	case ast.StructDeclarationStmt:
-		w.structDeclarationStmt(&newNode, scope)
-	case ast.MatchStmt:
-		w.matchStmt(&newNode, false, scope)
-		*node = newNode
-	case ast.Improper:
+	case *ast.DirectiveExpr:
+		w.directiveExpr(newNode, scope)
+	case *ast.UseStmt:
+		w.useStmt(newNode, scope)
+	case *ast.StructDeclarationStmt:
+		w.structDeclarationStmt(newNode, scope)
+	case *ast.MatchStmt:
+		w.matchStmt(newNode, false, scope)
+	case *ast.Improper:
 		w.error(newNode.GetToken(), "Improper statement: parser fault")
 	default:
 		w.error(newNode.GetToken(), "Expected statement")
@@ -370,55 +354,40 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 	var val Value
 
 	switch newNode := (*node).(type) {
-	case ast.LiteralExpr:
-		val = w.literalExpr(&newNode)
-		*node = newNode
-	case ast.BinaryExpr:
-		val = w.binaryExpr(&newNode, scope)
-		*node = newNode
-	case ast.IdentifierExpr:
+	case *ast.LiteralExpr:
+		val = w.literalExpr(newNode)
+	case *ast.BinaryExpr:
+		val = w.binaryExpr(newNode, scope)
+	case *ast.IdentifierExpr:
 		val = w.identifierExpr(node, scope)
-	case ast.GroupExpr:
-		val = w.groupingExpr(&newNode, scope)
-		*node = newNode
-	case ast.ListExpr:
-		val = w.listExpr(&newNode, scope)
-		*node = newNode
-	case ast.UnaryExpr:
-		val = w.unaryExpr(&newNode, scope)
-		*node = newNode
-	case ast.CallExpr:
-		val = w.callExpr(&newNode, scope, Function)
-		*node = newNode
-	case ast.MapExpr:
-		val = w.mapExpr(&newNode, scope)
-		*node = newNode
-	case ast.DirectiveExpr:
-		val = w.directiveExpr(&newNode, scope)
-		*node = newNode
-	case ast.AnonFnExpr:
-		val = w.anonFnExpr(&newNode, scope)
-		*node = newNode
-	case ast.AnonStructExpr:
-		val = w.anonStructExpr(&newNode, scope)
-		*node = newNode
-	case ast.MethodCallExpr:
+	case *ast.GroupExpr:
+		val = w.groupingExpr(newNode, scope)
+	case *ast.ListExpr:
+		val = w.listExpr(newNode, scope)
+	case *ast.UnaryExpr:
+		val = w.unaryExpr(newNode, scope)
+	case *ast.CallExpr:
+		val = w.callExpr(newNode, scope, Function)
+	case *ast.MapExpr:
+		val = w.mapExpr(newNode, scope)
+	case *ast.DirectiveExpr:
+		val = w.directiveExpr(newNode, scope)
+	case *ast.AnonFnExpr:
+		val = w.anonFnExpr(newNode, scope)
+	case *ast.AnonStructExpr:
+		val = w.anonStructExpr(newNode, scope)
+	case *ast.MethodCallExpr:
 		val = w.methodCallExpr(node, scope)
-	case ast.MemberExpr:
-		val = w.memberExpr(&newNode, scope)
-		*node = newNode
-	case ast.FieldExpr:
-		val = w.fieldExpr(&newNode, scope)
-		*node = newNode
-	case ast.NewExpr:
-		val = w.newExpr(&newNode, scope)
-		*node = newNode
-	case ast.SelfExpr:
-		val = w.selfExpr(&newNode, scope)
-		*node = newNode
-	case ast.MatchExpr:
-		val = w.matchExpr(&newNode, scope)
-		*node = newNode
+	case *ast.MemberExpr:
+		val = w.memberExpr(newNode, scope)
+	case *ast.FieldExpr:
+		val = w.fieldExpr(newNode, scope)
+	case *ast.NewExpr:
+		val = w.newExpr(newNode, scope)
+	case *ast.SelfExpr:
+		val = w.selfExpr(newNode, scope)
+	case *ast.MatchExpr:
+		val = w.matchExpr(newNode, scope)
 	default:
 		w.error(newNode.GetToken(), "Expected expression")
 		return &Invalid{}

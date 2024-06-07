@@ -18,11 +18,15 @@ _Overview_
 
 ## `file1.go`
 
-`# file1.go`
+`## file1.go`
 
 Small description talking about what this file is useful for and what it contains.
 
 ### Types
+`### Types`
+
+#### *Title*
+`#### Title`
 
 _code snippet_
 _description (optional)_
@@ -31,11 +35,11 @@ _..._
 
 ### Interfaces
 
-`## Interfaces`
+`### Interfaces`
 
 #### **_Foobar:_**
 
-`### ***Foobar:***`
+`#### ***Foobar:***`
 
 ```go
 type Foobar interface {
@@ -44,16 +48,21 @@ type Foobar interface {
 }
 ```
 
-**Methods:**
+##### **Methods:**
+`##### **Methods:**`
 
 1. `foo(a int) -> bool` - returns a boolean, explain more about what the function does
 2. `bar(a bool) -> int` - returns an integer, same thing here
 
-**Implementations:**
+##### **Implementations:**
+`##### **Implementations:**`
 
 Here we don't need to enumerate through the implementations, we can just write the code snippet and explain more thoroughly wherever needed and so on.
 
 For Example:
+
+###### ExampleImplemntation
+`###### ExampleImplemntation`
 
 ```go
 type ExampleImplementation struct {
@@ -64,6 +73,8 @@ type ExampleImplementation struct {
 
 _description (optional)_
 
+###### ExampleImplemntation
+`###### ExampleImplemntation`
 ```go
 type ExampleImplementation2 struct {
     nums []int
@@ -72,26 +83,26 @@ type ExampleImplementation2 struct {
 
 _description (optional)_
 
-### **_Interface2:_**
+#### **_Interface2:_**
 
-`### ***Interface2:***`
+`#### ***Interface2:***`
 
 _..._
 
 If there are structures that don't implement any interface. You write them in the `Structures` section, the same way the interface section is written.
 
-## Structures
+### Structures
 
 `## Structures`
 
-### **_StructName:_**
+#### **_StructName:_**
 
 _code snippet_
 
-**Methods:**\
+##### **Methods:**\
 _list_
 
-**Associated Functions:**\
+##### **Associated Functions:**\
 _list_
 
 _..._

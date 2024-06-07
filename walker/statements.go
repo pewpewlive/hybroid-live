@@ -305,11 +305,11 @@ func (w *Walker) repeatStmt(node *ast.RepeatStmt, scope *Scope) {
 		}
 	}
 	if node.Start.GetType() == ast.NA {
-		node.Start = ast.LiteralExpr{Token: node.Start.GetToken(), ValueType: endType.Type, Value: "1"}
+		node.Start = &ast.LiteralExpr{Token: node.Start.GetToken(), ValueType: endType.Type, Value: "1"}
 	}
 	start := w.GetNodeValue(&node.Start, scope)
 	if node.Skip.GetType() == ast.NA {
-		node.Skip = ast.LiteralExpr{Token: node.Skip.GetToken(), ValueType: endType.Type, Value: "1"}
+		node.Skip = &ast.LiteralExpr{Token: node.Skip.GetToken(), ValueType: endType.Type, Value: "1"}
 	}
 	skip := w.GetNodeValue(&node.Skip, scope)
 
@@ -508,7 +508,7 @@ func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *S
 		variable := VariableVal{
 			Name:  (*node.Methods)[i].Name.Lexeme,
 			Value: &FunctionVal{params: params, returnVal: ret},
-			Node:  (*node.Methods)[i],
+			Node:  &(*node.Methods)[i],
 		}
 		if _, success := structScope.DeclareVariable(variable); !success {
 			w.error((*node.Methods)[i].Name, fmt.Sprintf("variable with name '%s' already exists", variable.Name))

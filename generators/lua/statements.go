@@ -192,7 +192,7 @@ func (gen *Generator) repeatStmt(node ast.RepeatStmt, scope *GenScope) {
 	start := gen.GenerateExpr(node.Start, scope)
 	skip := gen.GenerateExpr(node.Skip, scope)
 	if node.Variable.GetValueType() != 0 {
-		variable := gen.GenerateExpr(node.Variable, &repeatScope)
+		variable := gen.GenerateExpr(&node.Variable, &repeatScope)
 		repeatScope.Append(repeatTabs, "for ", variable, " = ", start, ", ", end, ", ", skip, " do\n")
 	} else {
 		repeatScope.Append(repeatTabs, "for _ = ", start, ", ", end, ", ", skip, " do\n")
@@ -224,11 +224,11 @@ func (gen *Generator) forStmt(node ast.ForStmt, scope *GenScope) {
 
 	iterator := gen.GenerateExpr(node.Iterator, scope)
 	if node.Key.GetValueType() != 0 && node.Value.GetValueType() != 0 {
-		key := gen.GenerateExpr(node.Key, &forScope)
-		value := gen.GenerateExpr(node.Value, &forScope)
+		key := gen.GenerateExpr(&node.Key, &forScope)
+		value := gen.GenerateExpr(&node.Value, &forScope)
 		forScope.Append(forTabs, "for ", key, ", ", value, " in ipairs(", iterator, ") do\n")
 	} else {
-		value := gen.GenerateExpr(node.Value, scope)
+		value := gen.GenerateExpr(&node.Value, scope)
 		forScope.Append(forTabs, "for _, ", value, " in ipairs(", iterator, ") do\n")
 	}
 
@@ -258,7 +258,7 @@ func (gen *Generator) tickStmt(node ast.TickStmt, scope *GenScope) {
 	TabsCount += 1
 
 	if node.Variable.GetValueType() != 0 {
-		variable := gen.GenerateExpr(node.Variable, scope)
+		variable := gen.GenerateExpr(&node.Variable, scope)
 		tickScope.Src.Append(tickTabs, "local ", variable, " = 0\n")
 		tickScope.Src.Append(tickTabs, "pewpew.add_update_callback(function()\n")
 		tickScope.Src.AppendTabbed(variable, " = ", variable, " + 1\n")
@@ -399,7 +399,7 @@ func (gen *Generator) useStmt(node ast.UseStmt, scope *GenScope) {
 
 func (gen *Generator) matchStmt(node ast.MatchStmt, scope *GenScope) {
 	ifStmt := ast.IfStmt{
-		BoolExpr: ast.BinaryExpr{Left: node.ExprToMatch, Operator: lexer.Token{Type: lexer.EqualEqual, Lexeme: "=="}, Right: node.Cases[0].Expression},
+		BoolExpr: &ast.BinaryExpr{Left: node.ExprToMatch, Operator: lexer.Token{Type: lexer.EqualEqual, Lexeme: "=="}, Right: node.Cases[0].Expression},
 		Body:     node.Cases[0].Body,
 	}
 	has_default := false
@@ -411,7 +411,7 @@ func (gen *Generator) matchStmt(node ast.MatchStmt, scope *GenScope) {
 			continue
 		}
 		elseIfStmt := ast.IfStmt{
-			BoolExpr: ast.BinaryExpr{Left: node.ExprToMatch, Operator: lexer.Token{Type: lexer.EqualEqual, Lexeme: "=="}, Right: node.Cases[i].Expression},
+			BoolExpr: &ast.BinaryExpr{Left: node.ExprToMatch, Operator: lexer.Token{Type: lexer.EqualEqual, Lexeme: "=="}, Right: node.Cases[i].Expression},
 			Body:     node.Cases[i].Body,
 		}
 		ifStmt.Elseifs = append(ifStmt.Elseifs, &elseIfStmt)

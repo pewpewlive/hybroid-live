@@ -74,7 +74,7 @@ func (w *Walker) literalExpr(node *ast.LiteralExpr) Value {
 
 func (w *Walker) identifierExpr(node *ast.Node, scope *Scope) Value {
 	valueNode := *node
-	ident := valueNode.(ast.IdentifierExpr)
+	ident := valueNode.(*ast.IdentifierExpr)
 
 	sc := scope.ResolveVariable(ident.Name.Lexeme)
 
@@ -83,14 +83,14 @@ func (w *Walker) identifierExpr(node *ast.Node, scope *Scope) Value {
 
 		if sc.Tag.GetType() == Struct {
 			varIndex := sc.GetVariableIndex(sc, ident.Name.Lexeme)
-			selfExpr := ast.FieldExpr{
-				Identifier: ast.SelfExpr{
+			selfExpr := &ast.FieldExpr{
+				Identifier: &ast.SelfExpr{
 					Token: valueNode.GetToken(),
 					Type:  ast.SelfStruct,
 				},
 			}
 
-			fieldExpr := ast.FieldExpr{
+			fieldExpr := &ast.FieldExpr{
 				Owner:      selfExpr,
 				Identifier: valueNode,
 				Index:      varIndex,
@@ -198,7 +198,7 @@ func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope, callType ProcedureTy
 }
 
 func (w *Walker) methodCallExpr(node *ast.Node, scope *Scope) Value {
-	method := (*node).(ast.MethodCallExpr)
+	method := (*node).(*ast.MethodCallExpr)
 
 	ownerVal := w.GetNodeValue(&method.Owner, scope)
 
@@ -214,7 +214,7 @@ func (w *Walker) methodCallExpr(node *ast.Node, scope *Scope) Value {
 					Token:      method.Token,
 				}
 				val := w.callExpr(&expr, scope, Function)
-				*node = expr
+				*node = &expr
 				return val
 			}
 		}
@@ -386,7 +386,7 @@ func (w *Walker) directiveExpr(node *ast.DirectiveExpr, scope *Scope) *Directive
 
 	} else {
 
-		ident, ok := node.Expr.(ast.IdentifierExpr)
+		ident, ok := node.Expr.(*ast.IdentifierExpr)
 		if !ok {
 			w.error(node.Expr.GetToken(), "expected an identifier in '@Environment' directive")
 		} else {

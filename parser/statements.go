@@ -61,10 +61,10 @@ func (p *Parser) statement() ast.Node {
 		return p.yieldStmt()
 	case lexer.Break:
 		p.advance()
-		return ast.BreakStmt{Token: p.peek(-1)}
+		return &ast.BreakStmt{Token: p.peek(-1)}
 	case lexer.Continue:
 		p.advance()
-		return ast.ContinueStmt{Token: p.peek(-1)}
+		return &ast.ContinueStmt{Token: p.peek(-1)}
 	case lexer.Identifier, lexer.Self:
 		return p.assignmentStmt()
 	case lexer.If:
@@ -133,31 +133,31 @@ func (p *Parser) envStmt() ast.Node {
 	expr := p.envExpr(true)
 
 	if expr.GetType() == ast.Identifier {
-		expr = ast.EnvExpr{
+		expr = &ast.EnvExpr{
 			Envs: []lexer.Token{expr.GetToken()},
 		}
 	}
 
 	if expr.GetType() != ast.EnvironmentExpression {
 		p.error(expr.GetToken(), "expected environment expression with no variable accessing")
-		return ast.Improper{Token: expr.GetToken()}
+		return &ast.Improper{Token: expr.GetToken()}
 	}
 
 	if _, ok := p.consume("expected keyword 'as' after envrionment expression", lexer.As); !ok {
-		return ast.Improper{Token: expr.GetToken()}
+		return &ast.Improper{Token: expr.GetToken()}
 	}
 
 	envTypeExpr := p.EnvType()
 
 	if envTypeExpr.Type == ast.InvalidEnv {
-		return ast.Improper{Token: envTypeExpr.GetToken()}
+		return &ast.Improper{Token: envTypeExpr.GetToken()}
 	}
 
-	envExpr := expr.(ast.EnvExpr)
+	envExpr := expr.(*ast.EnvExpr)
 	stmt.EnvType = envTypeExpr
-	stmt.Env = envExpr
+	stmt.Env = *envExpr
 
-	return stmt
+	return &stmt
 }
 
 func (p *Parser) structDeclarationStatement() ast.Node {
@@ -171,29 +171,29 @@ func (p *Parser) structDeclarationStatement() ast.Node {
 	if ok {
 		stmt.Name = name
 	} else {
-		return ast.Improper{Token: stmt.Token}
+		return &ast.Improper{Token: stmt.Token}
 	}
 
 	_, ok = p.consume("expected opening of the struct body", lexer.LeftBrace)
 	if !ok {
-		return ast.Improper{Token: stmt.Token}
+		return &ast.Improper{Token: stmt.Token}
 	}
 	stmt.Methods = &[]ast.MethodDeclarationStmt{}
 	for !p.match(lexer.RightBrace) {
 		if p.match(lexer.Fn) {
-			method, ok := p.methodDeclarationStmt(stmt.IsLocal).(ast.MethodDeclarationStmt)
+			method, ok := p.methodDeclarationStmt(stmt.IsLocal).(*ast.MethodDeclarationStmt)
 			if ok {
-				*stmt.Methods = append(*stmt.Methods, method)
+				*stmt.Methods = append(*stmt.Methods, *method)
 			}
 		} else if p.match(lexer.New) {
-			construct, ok := p.constructorDeclarationStmt().(ast.ConstructorStmt)
+			construct, ok := p.constructorDeclarationStmt().(*ast.ConstructorStmt)
 			if ok {
-				stmt.Constructor = &construct
+				stmt.Constructor = construct
 			}
 		} else if p.match(lexer.Identifier) {
 			field := p.fieldDeclarationStmt(stmt.IsLocal)
 			if field.GetType() != ast.NA {
-				stmt.Fields = append(stmt.Fields, field.(ast.FieldDeclarationStmt))
+				stmt.Fields = append(stmt.Fields, *field.(*ast.FieldDeclarationStmt))
 			}
 		} else {
 			p.error(p.peek(), "unknown statement inside struct")
@@ -206,7 +206,7 @@ func (p *Parser) structDeclarationStatement() ast.Node {
 		}
 	}
 
-	return stmt
+	return &stmt
 }
 
 func (p *Parser) constructorDeclarationStmt() ast.Node {
@@ -217,10 +217,10 @@ func (p *Parser) constructorDeclarationStmt() ast.Node {
 	stmt.Body = p.getBody()
 
 	if stmt.Body == nil {
-		return ast.Improper{Token: stmt.Token}
+		return &ast.Improper{Token: stmt.Token}
 	}
 
-	return stmt
+	return &stmt
 }
 
 func (p *Parser) fieldDeclarationStmt(isLocal bool) ast.Node {
@@ -234,7 +234,7 @@ func (p *Parser) fieldDeclarationStmt(isLocal bool) ast.Node {
 	if p.match(lexer.Colon) {
 		t := p.Type()
 		if t.GetType() == ast.NA {
-			return ast.Improper{Token: p.peek(-1)}
+			return &ast.Improper{Token: p.peek(-1)}
 		}
 
 		typeExpr = &t
@@ -244,13 +244,13 @@ func (p *Parser) fieldDeclarationStmt(isLocal bool) ast.Node {
 	for p.match(lexer.Comma) {
 		ident, identOk := p.consume("expected identifier in field declaration", lexer.Identifier)
 		if !identOk {
-			return ast.Improper{Token: p.peek(-1)}
+			return &ast.Improper{Token: p.peek(-1)}
 		}
 		typeExpr = nil
 		if p.match(lexer.Colon) {
 			typ := p.Type()
 			if typ.GetType() == ast.NA {
-				return ast.Improper{Token: p.peek(-1)}
+				return &ast.Improper{Token: p.peek(-1)}
 			}
 
 			typeExpr = &typ
@@ -265,7 +265,7 @@ func (p *Parser) fieldDeclarationStmt(isLocal bool) ast.Node {
 
 	if !p.match(lexer.Equal) {
 		stmt.Values = []ast.Node{}
-		return stmt
+		return &stmt
 	}
 
 	expr := p.expression()
@@ -283,7 +283,7 @@ func (p *Parser) fieldDeclarationStmt(isLocal bool) ast.Node {
 	}
 	stmt.Values = exprs
 
-	return stmt
+	return &stmt
 }
 
 func (p *Parser) methodDeclarationStmt(IsLocal bool) ast.Node {
@@ -293,7 +293,7 @@ func (p *Parser) methodDeclarationStmt(IsLocal bool) ast.Node {
 
 	ident, ok := p.consume("expected a function name", lexer.Identifier)
 	if !ok {
-		return fnDec
+		return &fnDec
 	}
 
 	fnDec.Name = ident
@@ -311,10 +311,10 @@ func (p *Parser) methodDeclarationStmt(IsLocal bool) ast.Node {
 	fnDec.Return = ret
 	fnDec.Body = *p.getBody()
 
-	return fnDec
+	return &fnDec
 }
 
-func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) ast.IfStmt {
+func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) *ast.IfStmt {
 	ifStm := ast.IfStmt{
 		Token: p.peek(-1),
 	}
@@ -337,24 +337,24 @@ func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) ast.IfSt
 	ifStm.BoolExpr = expr
 	ifStm.Body = *p.getBody()
 	if is_else || is_elseif {
-		return ifStm
+		return &ifStm
 	}
 	for p.match(lexer.Else) {
 		if else_exists {
 			p.error(p.peek(-1), "cannot have two else statements in an if statement")
 		}
-		var ifbody ast.IfStmt
+		var ifbody *ast.IfStmt
 		if p.match(lexer.If) {
 			ifbody = p.ifStmt(else_exists, false, true)
-			ifStm.Elseifs = append(ifStm.Elseifs, &ifbody)
+			ifStm.Elseifs = append(ifStm.Elseifs, ifbody)
 		} else {
 			else_exists = true
 			ifbody = p.ifStmt(else_exists, true, false)
-			ifStm.Else = &ifbody
+			ifStm.Else = ifbody
 		}
 	}
 
-	return ifStm
+	return &ifStm
 }
 
 func (p *Parser) assignmentStmt() ast.Node {
@@ -374,7 +374,7 @@ func (p *Parser) assignmentStmt() ast.Node {
 
 			values = append(values, expr2)
 		}
-		expr = ast.AssignmentStmt{Identifiers: idents, Values: values, Token: p.peek(-1)}
+		expr = &ast.AssignmentStmt{Identifiers: idents, Values: values, Token: p.peek(-1)}
 	} else if p.match(lexer.PlusEqual, lexer.MinusEqual, lexer.SlashEqual, lexer.StarEqual, lexer.CaretEqual, lexer.ModuloEqual) {
 		assignOp := p.peek(-1)
 		op := p.getOp(assignOp)
@@ -382,8 +382,8 @@ func (p *Parser) assignmentStmt() ast.Node {
 			p.error(assignOp, "cannot assign to multiple variables with this operator")
 		}
 		expr2 := p.term()
-		binExpr := p.createBinExpr(expr, op, op.Type, op.Lexeme, ast.GroupExpr{Expr: expr2, ValueType: expr2.GetValueType(), Token: expr2.GetToken()})
-		expr = ast.AssignmentStmt{Identifiers: idents, Values: []ast.Node{binExpr}, Token: assignOp}
+		binExpr := p.createBinExpr(expr, op, op.Type, op.Lexeme, &ast.GroupExpr{Expr: expr2, ValueType: expr2.GetValueType(), Token: expr2.GetToken()})
+		expr = &ast.AssignmentStmt{Identifiers: idents, Values: []ast.Node{binExpr}, Token: assignOp}
 	}
 
 	return expr
@@ -397,7 +397,7 @@ func (p *Parser) returnStmt() ast.Node {
 	args := []ast.Node{}
 	expr := p.expression()
 	if expr.GetType() == ast.NA {
-		return returnStmt
+		return &returnStmt
 	}
 	args = append(args, expr)
 	for p.match(lexer.Comma) {
@@ -409,7 +409,7 @@ func (p *Parser) returnStmt() ast.Node {
 	}
 	returnStmt.Args = args
 
-	return returnStmt
+	return &returnStmt
 }
 
 func (p *Parser) yieldStmt() ast.Node {
@@ -418,7 +418,7 @@ func (p *Parser) yieldStmt() ast.Node {
 	}
 
 	if p.peek().Type == lexer.RightBrace {
-		return yieldStmt
+		return &yieldStmt
 	}
 	args := []ast.Node{}
 	expr := p.expression()
@@ -432,7 +432,7 @@ func (p *Parser) yieldStmt() ast.Node {
 	}
 	yieldStmt.Args = args
 
-	return yieldStmt
+	return &yieldStmt
 }
 
 func (p *Parser) functionDeclarationStmt() ast.Node {
@@ -442,7 +442,7 @@ func (p *Parser) functionDeclarationStmt() ast.Node {
 
 	ident, ok := p.consume("expected a function name", lexer.Identifier)
 	if !ok {
-		return fnDec
+		return &fnDec
 	}
 
 	fnDec.Name = ident
@@ -451,7 +451,7 @@ func (p *Parser) functionDeclarationStmt() ast.Node {
 	fnDec.Return = p.returnings()
 	fnDec.Body = *p.getBody()
 
-	return fnDec
+	return &fnDec
 }
 
 func (p *Parser) returnings() []ast.TypeExpr {
@@ -478,14 +478,14 @@ func (p *Parser) addToStmt() ast.Node {
 	}
 
 	if _, ok := p.consume("expected keyword 'to' after expression in an 'add' statement", lexer.To); !ok {
-		return add
+		return &add
 	}
 
 	if ident, ok := p.consume("expected identifier after keyword 'to'", lexer.Identifier); ok {
 		add.Identifier = ident.Lexeme
 	}
 
-	return add
+	return &add
 }
 
 func (p *Parser) removeFromStmt() ast.Node {
@@ -499,14 +499,14 @@ func (p *Parser) removeFromStmt() ast.Node {
 	}
 
 	if _, ok := p.consume("expected keyword 'from' after expression in a 'remove' statement", lexer.From); !ok {
-		return remove
+		return &remove
 	}
 
 	if ident, ok := p.consume("expected identifier after keyword 'from'", lexer.Identifier); ok {
 		remove.Identifier = ident.Lexeme
 	}
 
-	return remove
+	return &remove
 }
 
 func (p *Parser) repeatStmt() ast.Node {
@@ -526,8 +526,8 @@ func (p *Parser) repeatStmt() ast.Node {
 		gotIterator = true
 	}
 
-	repeatStmt.Skip = ast.Improper{Token: repeatStmt.Token}
-	repeatStmt.Start = ast.Improper{Token: repeatStmt.Token}
+	repeatStmt.Skip = &ast.Improper{Token: repeatStmt.Token}
+	repeatStmt.Start = &ast.Improper{Token: repeatStmt.Token}
 
 	variableAssigned := false
 	iteratorAssgined := false
@@ -544,7 +544,7 @@ func (p *Parser) repeatStmt() ast.Node {
 			if identExpr.GetType() != ast.Identifier {
 				p.error(identExpr.GetToken(), "expected identifier expression after keyword 'with'")
 			} else {
-				repeatStmt.Variable = identExpr.(ast.IdentifierExpr)
+				repeatStmt.Variable = *identExpr.(*ast.IdentifierExpr)
 			}
 		} else if p.match(lexer.To) {
 			if iteratorAssgined {
@@ -582,12 +582,12 @@ func (p *Parser) repeatStmt() ast.Node {
 
 	if repeatStmt.Iterator == nil {
 		p.error(repeatStmt.Token, "no iterator provided in repeat statement")
-		repeatStmt.Iterator = ast.LiteralExpr{Token: repeatStmt.Token, Value: "1", ValueType: ast.Number}
+		repeatStmt.Iterator = &ast.LiteralExpr{Token: repeatStmt.Token, Value: "1", ValueType: ast.Number}
 	}
 
 	repeatStmt.Body = *p.getBody()
 
-	return repeatStmt
+	return &repeatStmt
 }
 
 func (p *Parser) forStmt() ast.Node {
@@ -601,21 +601,21 @@ func (p *Parser) forStmt() ast.Node {
 		if identExpr.GetType() != ast.Identifier {
 			p.error(identExpr.GetToken(), "expected identifier expression after keyword 'for'")
 		} else {
-			forStmt.Key = identExpr.(ast.IdentifierExpr)
+			forStmt.Key = *identExpr.(*ast.IdentifierExpr)
 		}
 		p.match(lexer.Comma)
 		identExpr = p.expression()
 		if identExpr.GetType() != ast.Identifier {
 			p.error(identExpr.GetToken(), "expected identifier expression after a comma")
 		} else {
-			forStmt.Value = identExpr.(ast.IdentifierExpr)
+			forStmt.Value = *identExpr.(*ast.IdentifierExpr)
 		}
 	} else {
 		identExpr := p.expression()
 		if identExpr.GetType() != ast.Identifier {
 			p.error(identExpr.GetToken(), "expected identifier expression after keyword 'for'")
 		} else {
-			forStmt.Value = identExpr.(ast.IdentifierExpr)
+			forStmt.Value = *identExpr.(*ast.IdentifierExpr)
 		}
 	}
 
@@ -625,12 +625,12 @@ func (p *Parser) forStmt() ast.Node {
 
 	if forStmt.Iterator == nil {
 		p.error(forStmt.Token, "no iterator provided in for loop statement")
-		forStmt.Iterator = ast.LiteralExpr{Token: forStmt.Token, Value: "[1]", ValueType: ast.List}
+		forStmt.Iterator = &ast.LiteralExpr{Token: forStmt.Token, Value: "[1]", ValueType: ast.List}
 	}
 
 	forStmt.Body = *p.getBody()
 
-	return forStmt
+	return &forStmt
 }
 
 func (p *Parser) tickStmt() ast.Node {
@@ -642,14 +642,14 @@ func (p *Parser) tickStmt() ast.Node {
 		identExpr := p.expression()
 		if identExpr.GetType() != ast.Identifier {
 			p.error(identExpr.GetToken(), "expected identifier expression after keyword 'with'")
-			return tickStmt
+			return &tickStmt
 		}
-		tickStmt.Variable = identExpr.(ast.IdentifierExpr)
+		tickStmt.Variable = *identExpr.(*ast.IdentifierExpr)
 	}
 
 	tickStmt.Body = *p.getBody()
 
-	return tickStmt
+	return &tickStmt
 }
 
 func (p *Parser) variableDeclarationStmt() ast.Node {
@@ -663,7 +663,7 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 	if p.match(lexer.Colon) {
 		typ := p.Type()
 		if typ.GetType() == ast.NA {
-			return ast.Improper{Token: p.peek(-1)}
+			return &ast.Improper{Token: p.peek(-1)}
 		}
 
 		typee = &typ
@@ -673,13 +673,13 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 	for p.match(lexer.Comma) {
 		ident, identOk := p.consume("expected identifier in variable declaration", lexer.Identifier)
 		if !identOk {
-			return ast.Improper{Token: p.peek(-1)}
+			return &ast.Improper{Token: p.peek(-1)}
 		}
 		typee = nil
 		if p.match(lexer.Colon) {
 			typ := p.Type()
 			if typ.GetType() == ast.NA {
-				return ast.Improper{Token: p.peek(-1)}
+				return &ast.Improper{Token: p.peek(-1)}
 			}
 
 			typee = &typ
@@ -694,7 +694,7 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 
 	if !p.match(lexer.Equal) {
 		variable.Values = []ast.Node{}
-		return variable
+		return &variable
 	}
 
 	expr := p.expression()
@@ -712,7 +712,7 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 	}
 	variable.Values = exprs
 
-	return variable
+	return &variable
 }
 
 func (p *Parser) useStmt() ast.Node {
@@ -725,20 +725,20 @@ func (p *Parser) useStmt() ast.Node {
 	useStmt.File = filepath.GetToken()
 
 	if _, ok := p.consume("expected keyword 'as' after filepath in a 'use' statement", lexer.As); !ok {
-		return useStmt
+		return &useStmt
 	}
 
 	identExpr := p.expression()
 	if identExpr.GetType() != ast.Identifier {
 		p.error(identExpr.GetToken(), "expected identifier after keyword 'as'")
-		return useStmt
+		return &useStmt
 	}
-	useStmt.Variable = identExpr.(ast.IdentifierExpr)
+	useStmt.Variable = *identExpr.(*ast.IdentifierExpr)
 
-	return useStmt
+	return &useStmt
 }
 
-func (p *Parser) matchStmt(isExpr bool) ast.MatchStmt {
+func (p *Parser) matchStmt(isExpr bool) *ast.MatchStmt {
 	matchStmt := ast.MatchStmt{}
 
 	matchStmt.ExprToMatch = p.expression()
@@ -754,7 +754,7 @@ func (p *Parser) matchStmt(isExpr bool) ast.MatchStmt {
 
 	p.consume("expected closing of the match body", lexer.RightBrace)
 
-	return matchStmt
+	return &matchStmt
 }
 
 func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
@@ -787,12 +787,12 @@ func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
 		var node ast.Node
 
 		if isExpr {
-			node = ast.YieldStmt{
+			node = &ast.YieldStmt{
 				Args:  []ast.Node{expr},
 				Token: expr.GetToken(),
 			}
 		} else {
-			node = ast.ReturnStmt{
+			node = &ast.ReturnStmt{
 				Args:  []ast.Node{expr},
 				Token: expr.GetToken(),
 			}

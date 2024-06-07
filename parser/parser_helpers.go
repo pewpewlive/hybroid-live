@@ -8,7 +8,7 @@ import (
 // Creates a BinaryExpr
 func (p *Parser) createBinExpr(left ast.Node, operator lexer.Token, tokenType lexer.TokenType, lexeme string, right ast.Node) ast.Node {
 	valueType := p.determineValueType(left, right)
-	return ast.BinaryExpr{
+	return &ast.BinaryExpr{
 		Left:      left,
 		Operator:  lexer.Token{Type: tokenType, Lexeme: lexeme, Literal: "", Location: operator.Location},
 		Right:     right,

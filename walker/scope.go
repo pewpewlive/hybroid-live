@@ -27,7 +27,7 @@ func NewEnvironment() Environment {
 	}
 	global := Environment{
 		Ctx: Context{
-			Node:  ast.Improper{},
+			Node:  &ast.Improper{},
 			Value: &Unknown{},
 			Ret:   Types{},
 		},

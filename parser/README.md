@@ -21,9 +21,9 @@ type Parser struct {
 }
 ```
 
-**Constructor:** `NewParser() -> *Parser` - Creates a new `Parser` with an empty list of tokens, errors, empty program and returns a pointer to it.
+#### **Constructor:** `NewParser() -> *Parser` - Creates a new `Parser` with an empty list of tokens, errors, empty program and returns a pointer to it.
 
-**Methods:**
+#### **Methods:**
 
 1. `AssignTokens(tokens []lexer.Token)` - Assigns a list of tokens (returned by the tokenizer) to be parsed.
 2. `error(token lexer.Token, msg string)` - Appends an error with the following `token` and `msg` to the parser list of errors.
@@ -40,11 +40,11 @@ type Parser struct {
 
 ## `parser_helpers.go`
 
-The file that holds all of the necessary helpers for the `Parser`. It makes the code less repetitive and easier to grasp.
+The file that holds all of the necessary helpers for the [Parser](https://github.com/pewpewlive/hybroid/blob/master/parser/README.md#parsergo). It makes the code less repetitive and easier to grasp.
 
-**Methods:**
+### **Methods:**
 
-(This file adds additional methods to the `Parser` type)
+(This file adds additional methods to [Parser](https://github.com/pewpewlive/hybroid/blob/master/parser/README.md#parsergo))
 
 1. `createBinExpr(left ast.Node, operator lexer.Token, tokenType lexer.TokenType, lexeme string, right ast.Node) -> ast.Node` - Evaluates the value type, creates a `BinaryExpr` with the respective parameters, and returns it.
 2.  `getOp(opEqual lexer.Token) -> lexer.Token` - Returns the respective operation when using assignment operators. For example: if given `lexer.MinusEqual` (`-=`), it returns `lexer.Minus`.
@@ -52,7 +52,7 @@ The file that holds all of the necessary helpers for the `Parser`. It makes the 
 4.  `parameters() -> []ast.Param` - Returns a list of `ast.Param`s. Uses `getParam()` under the hood to get all of the parameters. Note: throws errors if the expression is missing parentheses. <!-- FIXME: Think of a better description -->
 5.  `arguments() -> []ast.Node` - Returns a list of `ast.Param`s. Uses `getParam()` under the hood to get all of the parameters. Note: throws errors if the expression is missing parentheses. <!-- FIXME: Think of a better description -->
 
-**Extra functions:**
+### **Extra functions:**
 
 1. `IsFx(valueType ast.PrimitiveValueType) -> bool` - Checks if the `valueType` is expected to be a fixedpoint.
 
