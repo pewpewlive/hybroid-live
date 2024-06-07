@@ -3,13 +3,13 @@ env Hybroid::Test as Level
 
 let a = 1
 
-fn test(param number) bool {
+fn test(param number) bool, bool {
     if param < 0 {
-        return true
+        return true, false
     }else if param == 0 {
-        return false
+        return false, false
     }
-    return true
+    return true, true
 }
 
 struct StructTest {
@@ -20,6 +20,15 @@ struct StructTest {
             field1 = 100f
         }else {
             self.field1 = 9d
+        }
+    }
+
+    fn foo(param bool, param2 number) bool, bool {
+        return match param {
+            true => test(param2)
+            _ => {
+                yield true, true
+            }
         }
     }
 }

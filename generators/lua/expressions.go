@@ -50,11 +50,15 @@ func (gen *Generator) listExpr(node ast.ListExpr, scope *GenScope) string {
 	return src.String()
 }
 
-func (gen *Generator) callExpr(node ast.CallExpr, scope *GenScope) string {
+func (gen *Generator) callExpr(node ast.CallExpr, tabbed bool, scope *GenScope) string {
 	src := StringBuilder{}
 	fn := gen.GenerateExpr(node.Caller, scope)
 
-	src.AppendTabbed(fn, "(")
+	if tabbed {
+		src.AppendTabbed(fn, "(")
+	}else {
+		src.Append(fn, "(")
+	}
 	for i, arg := range node.Args {
 		src.WriteString(gen.GenerateExpr(arg, scope))
 		if i != len(node.Args)-1 {

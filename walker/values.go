@@ -206,7 +206,7 @@ func (astv *AnonStructTypeVal) GetType() Type {
 		types[v.Name] = v.GetType()
 	}
 
-	return TypeVal{Type: ast.AnonStruct, Fields: types}
+	return Type{Type: ast.AnonStruct, Fields: types}
 }
 
 func (astv *AnonStructTypeVal) GetDefault() ast.LiteralExpr {
@@ -227,7 +227,7 @@ func (astv *AnonStructTypeVal) GetDefault() ast.LiteralExpr {
 	return ast.LiteralExpr{Value: src.String()}
 }
 
-type NamespaceVal struct {
+type EnvironmentVal struct {
 	Path         string
 	Name         string
 	Fields       map[string]VariableVal
@@ -235,47 +235,11 @@ type NamespaceVal struct {
 	FieldIndexes map[string]int
 }
 
-func (n *NamespaceVal) GetType() Type {
+func (n *EnvironmentVal) GetType() Type {
 	return Type{Name: "namespace", Type: ast.Namespace}
 }
 
-func (n *NamespaceVal) GetFields() map[string]VariableVal {
-	return n.Fields
-}
-
-func (n *NamespaceVal) GetMethods() map[string]VariableVal {
-	return n.Methods
-}
-
-func (n *NamespaceVal) Contains(name string) (Value, int, bool) {
-	if variable, found := n.Fields[name]; found {
-		return &variable, n.FieldIndexes[name], true
-	}
-
-	if variable, found := n.Methods[name]; found {
-		return &variable, n.FieldIndexes[name], true
-	}
-
-	return nil, -1, false
-}
-
-func (n *NamespaceVal) AddField(variable VariableVal) {
-	n.Fields[variable.Name] = variable
-
-	index := 0
-	for _ = range n.FieldIndexes {
-		index++
-	}
-	n.FieldIndexes[variable.Name] = index + 1
-
-	return n
-}
-
-func (n *NamespaceVal) AddMethod(variable VariableVal) {
-	n.Methods[variable.Name] = variable
-}
-
-func (n NamespaceVal) GetDefault() ast.LiteralExpr {
+func (n EnvironmentVal) GetDefault() ast.LiteralExpr {
 	src := lua.StringBuilder{}
 
 	src.WriteString("{")
@@ -291,6 +255,11 @@ func (n NamespaceVal) GetDefault() ast.LiteralExpr {
 	src.WriteString("}")
 
 	return ast.LiteralExpr{Value: src.String()}
+}
+
+type PathVal struct {
+	Path string
+	Env  ast.EnvExpr
 }
 
 type MapVal struct {
@@ -385,7 +354,14 @@ var EmptyReturn = Types{}
 type Types []Type
 
 func (ts *Types) GetType() Type {
+	if len(*ts) == 0 {
+		return (&Invalid{}).GetType()
+	}
 	return (*ts)[0]
+}
+
+func (ts *Types) GetDefault() ast.LiteralExpr {
+	return ast.LiteralExpr{Value: "TYPES"}
 }
 
 func (rt *Types) Eq(otherRT *Types) bool {
@@ -407,9 +383,9 @@ type Type struct {
 	WrappedType *Type
 	Name        string
 	Type        ast.PrimitiveValueType
-	Params      []TypeVal
-	Returns     Returns
-	Fields      map[string]TypeVal
+	Params      []Type
+	Returns     Types
+	Fields      map[string]Type
 }
 
 func TypeEquals(t *Type, otherT *Type) bool {

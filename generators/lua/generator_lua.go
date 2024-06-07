@@ -263,7 +263,7 @@ func (gen *Generator) GenerateStmt(node ast.Node, scope *GenScope) {
 		val := gen.methodCallExpr(newNode, scope) // koocing
 		scope.WriteString(val)
 	case ast.CallExpr:
-		val := gen.callExpr(newNode, scope) // koocing
+		val := gen.callExpr(newNode, true, scope) // koocing
 		scope.WriteString(val)
 	case ast.FunctionDeclarationStmt:
 		gen.functionDeclarationStmt(newNode, scope)
@@ -287,7 +287,7 @@ func (gen *Generator) GenerateExpr(node ast.Node, scope *GenScope) string {
 	case ast.UnaryExpr:
 		return gen.unaryExpr(newNode, scope)
 	case ast.CallExpr:
-		return gen.callExpr(newNode, scope)
+		return gen.callExpr(newNode, false, scope)
 	case ast.MapExpr:
 		return gen.mapExpr(newNode, scope)
 	case ast.FieldExpr:

@@ -202,8 +202,8 @@ func (w *Walker) returnStmt(node *ast.ReturnStmt, scope *Scope) *Types {
 	for i := range node.Args {
 		val := w.GetNodeValue(&node.Args[i], scope)
 		valType := val.GetType()
-		if valType.Type == ast.Func {
-			ret = append(ret, valType.Returns...)
+		if types, ok := val.(*Types); ok {
+			ret = append(ret, *types...)
 		} else {
 			ret = append(ret, valType)
 		}
@@ -234,8 +234,8 @@ func (w *Walker) yieldStmt(node *ast.YieldStmt, scope *Scope) *Types {
 	for i := range node.Args {
 		val := w.GetNodeValue(&node.Args[i], scope)
 		valType := val.GetType()
-		if valType.Type == ast.Func {
-			ret = append(ret, valType.Returns...)
+		if types, ok := val.(*Types); ok {
+			ret = append(ret, *types...)
 		} else {
 			ret = append(ret, valType)
 		}
@@ -390,9 +390,9 @@ func (w *Walker) tickStmt(node *ast.TickStmt, scope *Scope) {
 	}
 }
 
-func (w *Walker) GetReturnVals(list *[]Value, ret Types) {
-	for _, returnVal := range ret {
-		val := w.GetValueFromType(returnVal)
+func (w *Walker) AddTypesToValues(list *[]Value, tys *Types) {
+	for _, typ := range *tys {
+		val := w.GetValueFromType(typ)
 		*list = append(*list, val)
 	}
 }
@@ -408,8 +408,8 @@ func (w *Walker) variableDeclarationStmt(declaration *ast.VariableDeclarationStm
 		if declaration.Values[i].GetType() == ast.SelfExpression {
 			w.error(declaration.Values[i].GetToken(), "cannot assign self to a variable")
 		}
-		if call, ok := exprValue.(*Types); ok {
-			w.GetReturnVals(&values, call.types) // ...
+		if types, ok := exprValue.(*Types); ok {
+			w.AddTypesToValues(&values, types)
 		} else {
 			values = append(values, exprValue)
 		}
@@ -572,7 +572,7 @@ func (w *Walker) methodDeclarationStmt(node *ast.MethodDeclarationStmt, containe
 }
 
 func (w *Walker) useStmt(node *ast.UseStmt, scope *Scope) {
-	variable := VariableVal{Name: node.Variable.Name.Lexeme, Value: &NamespaceVal{Name: node.Variable.Name.Lexeme}, Node: node}
+	variable := VariableVal{Name: node.Variable.Name.Lexeme, Value: &EnvironmentVal{Name: node.Variable.Name.Lexeme}, Node: node}
 
 	if _, success := scope.DeclareVariable(variable); !success {
 		w.error(node.Variable.Name, "cannot declare a value in the same scope twice")

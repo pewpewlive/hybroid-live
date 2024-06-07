@@ -4,9 +4,12 @@ import (
 	"hybroid/lexer"
 )
 
+type Paths []string
+
 type EnvironmentStmt struct {
 	EnvType EnvTypeExpr
 	Env     EnvExpr
+	Requirements Paths
 }
 
 func (as EnvironmentStmt) GetType() NodeType {

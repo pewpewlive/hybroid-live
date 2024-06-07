@@ -466,7 +466,7 @@ func (w *Walker) anonStructExpr(node *ast.AnonStructExpr, scope *Scope) *AnonStr
 	return &structTypeVal
 }
 
-func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) Types {
+func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) Value {
 	matchScope := NewScope(scope, MatchExprTag{})
 	matchScope.Attributes.Add(YieldAllowing)
 
@@ -501,7 +501,7 @@ func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) Types {
 	node.ReturnAmount = len(*matchTag.YieldValues)
 
 	if returnable == nil {
-		return *matchTag.YieldValues
+		return matchTag.YieldValues
 	}
 
 	if !has_default {
@@ -525,7 +525,7 @@ func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) Types {
 		scope.Tag = (*returnable).SetReturn(continues, Continue)
 	}
 
-	return *matchTag.YieldValues
+	return matchTag.YieldValues
 }
 
 func (w *Walker) typeExpr(typee *ast.TypeExpr) Type {
