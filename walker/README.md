@@ -19,13 +19,14 @@ type Value interface {
 
 It's used to abstract any kind of value, including numbers, booleans, nil, strings, structs, maps, lists, etc.
 
-**Methods:**
+##### **Methods:**
 
 1. `TypeVal GetType()` - returns the type of the value in the form of a TypeVal value
 2. `ast.LiteralExpr GetDefault()` - returns the default value in the form of a literal expression node
 
-**Implementations:**
+##### **Implementations:**
 
+###### VariableVal
 ```go
 type VariableVal struct {
   Name    string
@@ -35,25 +36,7 @@ type VariableVal struct {
   Node    ast.Node
 }
 ```
-
-```go
-type TypeVal struct {
-  WrappedType *TypeVal
-  Name        string
-  Type        ast.PrimitiveValueType
-  Params      []TypeVal
-  Returns     Returns
-}
-```
-
-**Extra methods:**
-
-1. `ToString() -> string` - returns a stringified version of the TypeVal.
-
-**Associated Functions:**
-
-1. `TypeEquals(t TypeVal, otherT TypeVal) -> bool` - returns true if the given TypeVal is the same with the other TypeVal.
-
+###### StructTypeVal
 ```go
 type StructTypeVal struct {
   Name         lexer.Token
@@ -69,6 +52,7 @@ type StructTypeVal struct {
 
 Some nodes such as field expressions are associated with a struct type. This struct type is pretty much the `StructTypeVal`. When declaring a struct, you also declare its body, with all its methods and fields. You pretty much declare a `StructTypeVal`, which gets added into the `StructTypes` of the [Namespace](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#namespace).
 
+###### StructVal
 ```go
 type StructVal struct {
   Type *StructTypeVal
@@ -76,16 +60,17 @@ type StructVal struct {
 ```
 
 `StructVal` is a struct value and it contains the type of the struct (i.e `StructTypeVal`).
-
+###### EnvironmentVal
 ```go
-type NamespaceVal struct {
-  Name         string
-  Fields       map[string]VariableVal
-  Methods      map[string]VariableVal
-  FieldIndexes map[string]int
+type EnvironmentVal struct {
+	Path         string
+	Name         string
+	Fields       map[string]VariableVal
+	Methods      map[string]VariableVal
+	FieldIndexes map[string]int
 }
 ```
-
+###### MapVal
 ```go
 type MapVal struct {
   MemberType TypeVal
@@ -97,6 +82,7 @@ type MapVal struct {
 
 1. `GetContentsValueType() -> TypeVal` - checks the contents of the `MapVal` and, if all the values have the same type, returns the `TypeVal` that they all share. If they don't have the same value type it returns `Invalid`.
 
+###### ListVal
 ```go
 type ListVal struct {
   ValueType TypeVal
@@ -108,49 +94,44 @@ type ListVal struct {
 
 1. a `GetContentsValueType() -> TypeVal` - same with `MapVal`'s method
 
+###### NumberVal
 ```go
 type NumberVal struct{}
 ```
-
+###### DirectiveVal
 ```go
 type DirectiveVal struct{}
 ```
-
+###### FixedVal
 ```go
 type FixedVal struct {
   SpecificType ast.PrimitiveValueType
 }
 ```
-
+###### FunctionVal
 ```go
 type FunctionVal struct {
   params    Returns
   returnVal Returns
 }
 ```
-
-```go
-type CallVal struct {
-  types Returns
-}
-```
-
+###### BoolVal
 ```go
 type BoolVal struct{}
 ```
-
+###### StringVal
 ```go
 type StringVal struct{}
 ```
-
+###### NilVal
 ```go
 type NilVal struct{}
 ```
-
+###### Invalid
 ```go
 type Invalid struct{}
 ```
-
+###### Unknown
 ```go
 type Unknown struct{}
 ```
@@ -167,25 +148,26 @@ type Container interface {
 
 Used to abstract any kind of value that contains fields and methods (struct, entity, namespace).
 
-**Methods:**
+##### **Methods:**
 
 1. `GetFields() -> map[string]VariableVal` - returns a map of its fields.
 2. `GetMethods() -> map[string]VariableVal` - returns a map of its methods.
 3. `Contains(name string) -> (Value, int, bool)` - checks if any of its fields or methods contain _name_ and gives the value of it along with its index in the list. The boolean determines the success.
 
-**Implementations:**
+##### **Implementations:**
 
 Only `Value`s implement `Container`, specifically:
 
-1. `StructTypeVal`
-2. `StructVal`
-3. `NamespaceVal`
-4. `EntityVal` (doesn't exist yet)
+###### [StructTypeVal](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#structtypeval)
+###### [StructVal](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#structval)
+###### [EnvironmentVal](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#environmentval)
+###### [EntityVal](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#entityval)
 
 ### Types
 
+#### Types
 ```go
-type Returns []TypeVal
+type Types []Type
 ```
 
 ## `scope.go`
@@ -206,32 +188,33 @@ type ScopeTag interface {
 
 _When creating a new scope, the tag of the parent scope does not get carried onto the new one._
 
-**Implementations:**
+##### **Implementations:**
 
+###### UntaggedTag
 ```go
 type UntaggedTag struct{}
 ```
-
+###### StructTag
 ```go
 type StructTag struct {
   StructType *StructTypeVal
 }
 ```
-
+###### EntityTag
 ```go
 //to be used
 type EntityTag struct {
   //EntityType *StructTypeVal
 }
 ```
-
+###### FuncTag
 ```go
 type FuncTag struct {
   Returns    []bool
   ReturnType Returns
 }
 ```
-
+###### MatchExprTag
 ```go
 type MatchExprTag struct {
   mpt         MultiPathTag
@@ -239,7 +222,7 @@ type MatchExprTag struct {
   YieldValues *Returns
 }
 ```
-
+###### MultiPathTag
 ```go
 type MultiPathTag struct {
   ReturnAmount   []bool
@@ -255,25 +238,26 @@ The values here express how many times the `Scope` (i.e. the body) has returned,
 
 Here are the fundamental structs that are extremely important for the walking process:
 
-#### **_Namespace:_**
+#### **_Environment:_**
 
 ```go
-type Namespace struct {
-  Ctx          Context
-  Scope        Scope
-  foreignTypes map[string]Value
-  StructTypes  map[string]*StructTypeVal
+type Environment struct {
+	Name         string
+	Ctx          Context
+	Scope        Scope
+	foreignTypes map[string]Value
+	StructTypes  map[string]*StructTypeVal
 }
 ```
 
-**Constructor:**
-`NewNamespace() Namespace`
+##### **Constructor:**
+`NewEnvironment() Environment`
 
 #### **_Scope:_**
 
 ```go
 type Scope struct {
-  Namespace *Namespace
+  Environment *Environment
   Parent *Scope
 
   Tag        ScopeTag
@@ -289,17 +273,18 @@ type Scope struct {
 **Constructor:**
 `NewScope(parent *Scope, tag ScopeTag) -> Scope` - returns a new scope with its parent being the _parent_ parameter and its tag the _tag_ param.
 
-**Methods:**
+##### **Methods:**
 
 1. `Is(types ...ScopeAttribute) bool` - checks whether the scope contains the given scope attributes.
 
 ### Types
 
+#### ScopeAttributes
 ```go
 type ScopeAttributes []ScopeAttribute
 ```
 
-**Constructor:**
+##### **Constructor:**
 `NewScopeAttributes(types ...ScopeAttribute) -> ScopeAttributes`
 
 ### Enums
