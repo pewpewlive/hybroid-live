@@ -13,12 +13,12 @@ func (p *Parser) expression() ast.Node {
 
 func (p *Parser) fn() ast.Node {
 	if p.match(lexer.Fn) {
-		fn := ast.AnonFnExpr{
+		fn := &ast.AnonFnExpr{
 			Token: p.peek(-1),
 		}
 		fn.Params = p.parameters()
 
-		ret := make([]ast.TypeExpr, 0)
+		ret := make([]*ast.TypeExpr, 0)
 		for p.check(lexer.Identifier) {
 			ret = append(ret, p.Type())
 			if !p.check(lexer.Comma) {
@@ -30,7 +30,7 @@ func (p *Parser) fn() ast.Node {
 
 		fn.Return = ret
 		fn.Body = *p.getBody()
-		return &fn
+		return fn
 	} else {
 		return p.multiComparison()
 	}
@@ -512,7 +512,7 @@ func (p *Parser) parseMap() ast.Node {
 func (p *Parser) anonStruct() ast.Node {
 	anonStruct := ast.AnonStructExpr{
 		Token:  p.peek(-1),
-		Fields: make([]ast.FieldDeclarationStmt, 0),
+		Fields: make([]*ast.FieldDeclarationStmt, 0),
 	}
 
 	_, ok := p.consume("expected opening brace in anonymous struct expression", lexer.LeftBrace)
@@ -522,9 +522,9 @@ func (p *Parser) anonStruct() ast.Node {
 
 	for !p.match(lexer.RightBrace) {
 		if p.check(lexer.Identifier) {
-			field := p.fieldDeclarationStmt(true)
+			field := p.fieldDeclarationStmt()
 			if field.GetType() != ast.NA {
-				anonStruct.Fields = append(anonStruct.Fields, *field.(*ast.FieldDeclarationStmt))
+				anonStruct.Fields = append(anonStruct.Fields, field.(*ast.FieldDeclarationStmt))
 			}
 		} else {
 			p.error(p.peek(), "unknown statement inside struct")
@@ -541,14 +541,14 @@ func (p *Parser) WrappedType() *ast.TypeExpr {
 		return &typee
 	}
 	expr2 := p.Type()
-	return &expr2
+	return expr2
 }
 
-func (p *Parser) Type() ast.TypeExpr {
+func (p *Parser) Type() *ast.TypeExpr {
 	expr := p.primary()
 
 	if expr.GetType() == ast.Identifier {
-		typee := ast.TypeExpr{}
+		typee := &ast.TypeExpr{}
 
 		if p.match(lexer.Less) {
 			typee.WrappedType = p.WrappedType()
@@ -557,11 +557,11 @@ func (p *Parser) Type() ast.TypeExpr {
 		typee.Name = expr.GetToken()
 		return typee
 	} else if expr.GetToken().Type == lexer.Fn {
-		typee := ast.TypeExpr{}
+		typee := &ast.TypeExpr{}
 
 		p.advance()
-		params := make([]ast.TypeExpr, 0)
-		typee.Returns = make([]ast.TypeExpr, 0)
+		params := make([]*ast.TypeExpr, 0)
+		typee.Returns = make([]*ast.TypeExpr, 0)
 		if p.match(lexer.LeftParen) {
 			params = append(params, p.Type())
 
@@ -585,7 +585,7 @@ func (p *Parser) Type() ast.TypeExpr {
 	} else {
 		p.error(expr.GetToken(), "Expected an identifier for a type")
 		p.advance()
-		return ast.TypeExpr{Name: expr.GetToken()}
+		return &ast.TypeExpr{Name: expr.GetToken()}
 	}
 }
 

@@ -41,12 +41,14 @@ func (p *Parser) getOp(opEqual lexer.Token) lexer.Token {
 }
 
 func (p *Parser) getParam() ast.Param {
-	paramName := p.expression()
-	paramType := p.Type()
-	if paramName.GetType() != ast.Identifier {
-		p.error(paramName.GetToken(), "expected an identifier in parameter")
+	typ, ide := p.TypeWithVar()
+	if ide.GetType() != ast.Identifier {
+		p.error(ide.GetToken(), "expected identifier as parameter")
 	}
-	return ast.Param{Type: paramType, Name: paramName.GetToken()}
+	if typ == nil {
+		p.error(ide.GetToken(), "parameters need to be declared with a type before the name")
+	}
+	return ast.Param{Type: typ, Name: ide.GetToken()}
 }
 
 func (p *Parser) parameters() []ast.Param {
@@ -87,4 +89,47 @@ func (p *Parser) arguments() []ast.Node {
 	}
 
 	return args
+}
+
+func (p *Parser) returnings() []*ast.TypeExpr {
+	ret := make([]*ast.TypeExpr, 0)
+	for p.check(lexer.Identifier) {
+		ret = append(ret, p.Type())
+		if !p.check(lexer.Comma) {
+			break
+		} else {
+			p.advance()
+		}
+	}
+	return ret
+}
+
+func (p *Parser) TypeWasVar(typ *ast.TypeExpr) *ast.IdentifierExpr {
+	if typ.WrappedType != nil {
+		return nil
+	}
+	if typ.Params != nil {
+		return nil
+	}
+	if typ.Returns != nil {
+		return nil
+	}
+	return &ast.IdentifierExpr{Name:typ.Name, ValueType: 0}
+}
+
+func (p *Parser) TypeWithVar() (*ast.TypeExpr, ast.Node) {
+	typ := p.Type()
+
+	node := p.primary()
+
+	if node.GetType() != ast.Identifier {
+		if ident := p.TypeWasVar(typ); ident != nil {
+			return nil, ident
+		} else {
+			return typ, node
+		}
+	}
+	ident := node.(*ast.IdentifierExpr)
+
+	return typ, ident
 }

@@ -190,13 +190,13 @@ func (p *Parser) structDeclarationStatement() ast.Node {
 			if ok {
 				stmt.Constructor = construct
 			}
-		} else if p.match(lexer.Identifier) {
-			field := p.fieldDeclarationStmt(stmt.IsLocal)
+		}else {
+			field := p.fieldDeclarationStmt()
 			if field.GetType() != ast.NA {
 				stmt.Fields = append(stmt.Fields, *field.(*ast.FieldDeclarationStmt))
+			}else {
+				p.error(p.peek(), "unknown statement inside struct")
 			}
-		} else {
-			p.error(p.peek(), "unknown statement inside struct")
 		}
 	}
 
@@ -223,41 +223,24 @@ func (p *Parser) constructorDeclarationStmt() ast.Node {
 	return &stmt
 }
 
-func (p *Parser) fieldDeclarationStmt(isLocal bool) ast.Node {
-	stmt := ast.FieldDeclarationStmt{
-		Token: p.peek(-1),
+func (p *Parser) fieldDeclarationStmt() ast.Node {
+	stmt := ast.FieldDeclarationStmt{}
+
+	typ, ident := p.TypeWithVar()
+	if ident.GetType() != ast.Identifier {
+		return &ast.Improper{}
 	}
 
-	ident := p.peek(-1)
-
-	var typeExpr *ast.TypeExpr
-	if p.match(lexer.Colon) {
-		t := p.Type()
-		if t.GetType() == ast.NA {
-			return &ast.Improper{Token: p.peek(-1)}
-		}
-
-		typeExpr = &t
-	}
-	idents := []lexer.Token{ident}
-	types := []*ast.TypeExpr{typeExpr}
+	idents := []lexer.Token{ident.GetToken()}
+	types := []*ast.TypeExpr{typ}
 	for p.match(lexer.Comma) {
-		ident, identOk := p.consume("expected identifier in field declaration", lexer.Identifier)
-		if !identOk {
-			return &ast.Improper{Token: p.peek(-1)}
-		}
-		typeExpr = nil
-		if p.match(lexer.Colon) {
-			typ := p.Type()
-			if typ.GetType() == ast.NA {
-				return &ast.Improper{Token: p.peek(-1)}
-			}
-
-			typeExpr = &typ
+		typ, ident := p.TypeWithVar()
+		if ident.GetType() != ast.Identifier {
+			return &ast.Improper{}
 		}
 
-		idents = append(idents, ident)
-		types = append(types, typeExpr)
+		idents = append(idents, ident.GetToken())
+		types = append(types, typ)
 	}
 
 	stmt.Identifiers = idents
@@ -299,7 +282,7 @@ func (p *Parser) methodDeclarationStmt(IsLocal bool) ast.Node {
 	fnDec.Name = ident
 	fnDec.Params = p.parameters()
 
-	ret := make([]ast.TypeExpr, 0)
+	ret := make([]*ast.TypeExpr, 0)
 	for p.check(lexer.Identifier) {
 		ret = append(ret, p.Type())
 		if !p.check(lexer.Comma) {
@@ -452,19 +435,6 @@ func (p *Parser) functionDeclarationStmt() ast.Node {
 	fnDec.Body = *p.getBody()
 
 	return &fnDec
-}
-
-func (p *Parser) returnings() []ast.TypeExpr {
-	ret := make([]ast.TypeExpr, 0)
-	for p.check(lexer.Identifier) {
-		ret = append(ret, p.Type())
-		if !p.check(lexer.Comma) {
-			break
-		} else {
-			p.advance()
-		}
-	}
-	return ret
 }
 
 func (p *Parser) addToStmt() ast.Node {
@@ -658,35 +628,23 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 		IsLocal: p.peek(-1).Type == lexer.Let,
 	}
 
-	ident, _ := p.consume("expected identifier in variable declaration", lexer.Identifier)
-	var typee *ast.TypeExpr
-	if p.match(lexer.Colon) {
-		typ := p.Type()
-		if typ.GetType() == ast.NA {
-			return &ast.Improper{Token: p.peek(-1)}
-		}
-
-		typee = &typ
+	typ, ide := p.TypeWithVar()
+	if ide.GetType() != ast.Identifier {
+		p.error(ide.GetToken(), "expected identifier in variable declaration")
+		return &ast.Improper{}
 	}
-	idents := []lexer.Token{ident}
-	types := []*ast.TypeExpr{typee}
+
+	idents := []lexer.Token{ide.GetToken()}
+	types := []*ast.TypeExpr{typ}
 	for p.match(lexer.Comma) {
-		ident, identOk := p.consume("expected identifier in variable declaration", lexer.Identifier)
-		if !identOk {
-			return &ast.Improper{Token: p.peek(-1)}
-		}
-		typee = nil
-		if p.match(lexer.Colon) {
-			typ := p.Type()
-			if typ.GetType() == ast.NA {
-				return &ast.Improper{Token: p.peek(-1)}
-			}
-
-			typee = &typ
+		typ, ide = p.TypeWithVar()
+		if ide.GetType() != ast.Identifier {
+			p.error(ide.GetToken(), "expected identifier in variable declaration")
+			return &ast.Improper{}
 		}
 
-		idents = append(idents, ident)
-		types = append(types, typee)
+		idents = append(idents, ide.GetToken())
+		types = append(types, typ)
 	}
 
 	variable.Identifiers = idents

@@ -208,7 +208,7 @@ func (gen *Generator) anonStructExpr(node ast.AnonStructExpr, scope *GenScope) s
 	src.WriteString("{\n")
 	TabsCount += 1
 	for i, v := range node.Fields {
-		val := gen.GenerateExpr(&v, scope)
+		val := gen.GenerateExpr(v, scope)
 
 		if i < len(node.Fields)-1 {
 			src.Append(val,",")

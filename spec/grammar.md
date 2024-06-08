@@ -1,6 +1,6 @@
 # Hybroid grammar (LaTeX)
 
-A _program_ is made up of _statements_. _Statements_ are: variable declarations, function definitions, if statements, directive and use statements.
+A _program_ is made up of _statements_. _Statements_ are: variable declarations, function definitions, if statements, directive declarations, use statements as well as environment statement.
 
 _Expressions_ are made up of several sub-expression types. There are: binary, literal, unary, group and identifier expressions. Each have different use cases.
 
@@ -10,8 +10,8 @@ $$
 \begin{align}
     [prog] &\to
         \begin{cases}
-            \text{fn} \\
-            \text{env}
+            \text{stmt} \\
+            ...
         \end{cases} \\
     [stmt] &\to
         \begin{cases}

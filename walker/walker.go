@@ -9,14 +9,15 @@ import (
 
 type Walker struct {
 	Environment *Environment
+	Walkers     *map[string]*Walker
 	nodes       *[]ast.Node
 	Errors      []ast.Error
 	Warnings    []ast.Warning
 	Context     ast.Node
 }
 
-func NewWalker() *Walker {
-	environment := NewEnvironment()
+func NewWalker(path string) *Walker {
+	environment := NewEnvironment(path)
 	walker := Walker{
 		Environment: &environment,
 		nodes:       &[]ast.Node{},
@@ -191,17 +192,17 @@ func ResolveTagScope[T ScopeTag](sc *Scope) (*Scope, *ScopeTag, *T) {
 	return ResolveTagScope[T](sc.Parent)
 }
 
-func (sc *Scope) ResolveReturnable() (*Scope, *ReturnableTag) {
+func (sc *Scope) ResolveReturnable() *ExitableTag {
 	if sc.Parent == nil {
-		return nil, nil
+		return nil
 	}
 
-	if returnable := helpers.GetValOfInterface[ReturnableTag](sc.Tag); returnable != nil {
-		return sc, returnable
+	if returnable := helpers.GetValOfInterface[ExitableTag](sc.Tag); returnable != nil {
+		return returnable
 	}
 
 	if helpers.IsZero(sc.Tag) {
-		return nil, nil
+		return nil
 	}
 
 	return sc.Parent.ResolveReturnable()
@@ -288,7 +289,8 @@ func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
 	}
 }
 
-func (w *Walker) Stage1(nodes *[]ast.Node) []ast.Node {
+func (w *Walker) Pass1(nodes *[]ast.Node, wlkrs *map[string]*Walker) []ast.Node {
+	w.Walkers = wlkrs
 	w.nodes = nodes
 
 	newNodes := make([]ast.Node, 0)
@@ -301,9 +303,32 @@ func (w *Walker) Stage1(nodes *[]ast.Node) []ast.Node {
 	return newNodes
 }
 
-func (w *Walker) Stage2(nodes *[]ast.Node, namespaces *map[string]*Environment) []ast.Node {
-	return *nodes
-}
+// func (w *Walker) Pass1(nodes *[]ast.Node) []ast.Node {
+// 	w.nodes = nodes
+
+// 	newNodes := make([]ast.Node, 0)
+
+// 	scope := &w.Environment.Scope
+// 	for _, node := range *nodes {
+// 		switch newNode := node.(type) {
+// 		case *ast.EnvironmentStmt:
+// 			w.envStmt(newNode, scope)
+// 		case *ast.VariableDeclarationStmt:
+// 			w.variableDeclarationStmt(newNode, scope)
+// 		case *ast.FunctionDeclarationStmt:
+// 			w.functionDeclarationStmt(newNode, scope, Function)
+// 		case *ast.StructDeclarationStmt:
+// 			w.structDeclarationStmt(newNode, scope)
+// 		case *ast.Improper:
+// 			w.error(newNode.GetToken(), "Improper statement: parser fault")
+// 		default:
+// 			w.error(newNode.GetToken(), "Expected statement")
+// 		}
+// 		newNodes = append(newNodes, node)
+// 	}
+
+// 	return newNodes
+// }
 
 func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 	switch newNode := (*node).(type) {

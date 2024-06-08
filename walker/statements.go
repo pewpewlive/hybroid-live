@@ -10,8 +10,8 @@ import (
 )
 
 func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
-	multiPathScope := NewScope(scope, MultiPathTag{})
-	ifScope := NewScope(&multiPathScope, UntaggedTag{})
+	multiPathScope := NewScope(scope, &MultiPathTag{})
+	ifScope := NewScope(&multiPathScope, &UntaggedTag{})
 	boolExpr := w.GetNodeValue(&node.BoolExpr, scope)
 	if boolExpr.GetType().Type != ast.Bool {
 		w.error(node.BoolExpr.GetToken(), "if condition is not a comparison")
@@ -26,7 +26,7 @@ func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
 		if boolExpr.GetType().Type != ast.Bool {
 			w.error(node.Elseifs[i].BoolExpr.GetToken(), "if condition is not a comparison")
 		}
-		ifScope := NewScope(&multiPathScope, UntaggedTag{})
+		ifScope := NewScope(&multiPathScope, &UntaggedTag{})
 		for j := range node.Elseifs[i].Body {
 			w.WalkNode(&node.Elseifs[i].Body[j], &ifScope)
 		}
@@ -34,38 +34,41 @@ func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
 
 	has_else := false
 	if node.Else != nil {
-		elseScope := NewScope(&multiPathScope, UntaggedTag{})
+		elseScope := NewScope(&multiPathScope, &UntaggedTag{})
 		for i := range node.Else.Body {
 			w.WalkNode(&node.Else.Body[i], &elseScope) //lol
 		}
 		has_else = true
 	}
 
-	mpTag := helpers.GetValOfInterface[MultiPathTag](multiPathScope.Tag)
+	mpTag := multiPathScope.Tag.(*MultiPathTag)
 
-	rsc, returnable := scope.ResolveReturnable()
+	returnabl := scope.ResolveReturnable()
 
-	if rsc == nil {
+	if returnabl == nil {
 		return
 	}
-	ifsLength := 2 + len(node.Elseifs)
+	returnable := *returnabl
 	if has_else {
-		SetReturnIfTrue(mpTag.Returns, ifsLength, returnable, rsc, Return)
-		SetReturnIfTrue(mpTag.Breaks, ifsLength, returnable, rsc, Break)
-		SetReturnIfTrue(mpTag.Continues, ifsLength, returnable, rsc, Continue)
-		SetReturnIfTrue(mpTag.Yields, ifsLength, returnable, rsc, Yield)
+		returnable.SetExit(mpTag.GetIfExits(Return), Return)
+		returnable.SetExit(mpTag.GetIfExits(Yield), Yield)
+		returnable.SetExit(mpTag.GetIfExits(Break), Break)
+		returnable.SetExit(mpTag.GetIfExits(Continue), Continue)
 
-		if len(mpTag.Returns)+len(mpTag.Breaks)+len(mpTag.Continues)+len(mpTag.Yields) > 1 {
-			rsc.Tag = (*returnable).SetReturn(false, Return)
-		}
+		// if len(mpTag.Returns)+len(mpTag.Breaks)+len(mpTag.Continues)+len(mpTag.Yields) > 1 {
+		// 	returnable.SetExit(false, Return)
+		// }
+	}else {
+		returnable.SetExit(false, Return)
+		returnable.SetExit(false, Yield)
+		returnable.SetExit(false, Break)
+		returnable.SetExit(false, Return)
 	}
 }
 
-func SetReturnIfTrue(exits []bool, length int, returnable *ReturnableTag, rsc *Scope, gt ExitType) {
+func SetReturnIfTrue(exits []bool, length int, returnable ExitableTag, gt ExitType) {
 	if len(exits) == length {
-		temp := (*returnable).SetReturn(true, gt)
-		rsc.Tag = temp
-		*returnable = temp
+		returnable.SetExit(true, gt)
 	}
 }
 
@@ -118,16 +121,16 @@ func (w *Walker) assignmentStmt(assignStmt *ast.AssignmentStmt, scope *Scope) {
 func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scope *Scope, procType ProcedureType) VariableVal {
 	ret := EmptyReturn
 	for _, typee := range node.Return {
-		ret = append(ret, w.typeExpr(&typee))
+		ret = append(ret, w.typeExpr(typee))
 		//fmt.Printf("%s\n", ret.values[len(ret.values)-1].Type.ToString())
 	}
 
-	fnScope := NewScope(scope, FuncTag{ReturnType: ret})
+	fnScope := NewScope(scope, &FuncTag{ReturnType: ret})
 	fnScope.Attributes.Add(ReturnAllowing)
 
 	params := make([]Type, 0)
 	for i, param := range node.Params {
-		params = append(params, w.typeExpr(&param.Type))
+		params = append(params, w.typeExpr(param.Type))
 		value := w.GetValueFromType(params[i])
 		fnScope.DeclareVariable(VariableVal{Name: param.Name.Lexeme, Value: value, Node: node})
 	}
@@ -149,13 +152,11 @@ func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scop
 
 	endIndex := -1
 	for i := range node.Body {
-		if funcTag, ok := fnScope.Tag.(FuncTag); ok {
-			if len(funcTag.Returns) != 0 {
-				if funcTag.Returns[len(funcTag.Returns)-1] {
-					w.warn(node.Body[i].GetToken(), "unreachable code detected")
-					endIndex = i
-					break
-				}
+		if funcTag, ok := fnScope.Tag.(*FuncTag); ok {
+			if funcTag.GetIfExits(Return) {
+				w.warn(node.Body[i].GetToken(), "unreachable code detected")
+				endIndex = i
+				break
 			}
 		}
 		w.WalkNode(&node.Body[i], &fnScope)
@@ -164,25 +165,13 @@ func (w *Walker) functionDeclarationStmt(node *ast.FunctionDeclarationStmt, scop
 		node.Body = node.Body[:endIndex]
 	}
 
-	if funcTag, ok := fnScope.Tag.(FuncTag); ok {
-		if !CheckReturns(funcTag.Returns) && !ret.Eq(&EmptyReturn) {
+	if funcTag, ok := fnScope.Tag.(*FuncTag); ok {
+		if !funcTag.GetIfExits(Return) && !ret.Eq(&EmptyReturn) {
 			w.error(node.GetToken(), "not all code paths return a value")
 		}
 	}
 
 	return variable
-}
-
-func CheckReturns(returns []bool) bool {
-	if len(returns) == 0 {
-		return false
-	}
-	for i := range returns {
-		if returns[i] {
-			return true
-		}
-	}
-	return false
 }
 
 func HasContents[T any](contents ...[]T) bool {
@@ -208,16 +197,16 @@ func (w *Walker) returnStmt(node *ast.ReturnStmt, scope *Scope) *Types {
 			ret = append(ret, valType)
 		}
 	}
-	sc, _, funcTag := ResolveTagScope[FuncTag](scope)
+	sc, _, funcTag := ResolveTagScope[*FuncTag](scope)
 	if sc == nil {
 		return &ret
 	}
 
-	if sc, returnable := scope.ResolveReturnable(); returnable != nil {
-		sc.Tag = (*returnable).SetReturn(true, Return)
+	if returnable := scope.ResolveReturnable(); returnable != nil {
+		(*returnable).SetExit(true, Return)
 	}
 
-	errorMsg := w.validateReturnValues(ret, funcTag.ReturnType)
+	errorMsg := w.validateReturnValues(ret, (*funcTag).ReturnType)
 	if errorMsg != "" {
 		w.error(node.GetToken(), errorMsg)
 	}
@@ -241,11 +230,13 @@ func (w *Walker) yieldStmt(node *ast.YieldStmt, scope *Scope) *Types {
 		}
 	}
 
-	sc, tag, matchExprTag := ResolveTagScope[MatchExprTag](scope)
+	sc, _, matchExprT := ResolveTagScope[*MatchExprTag](scope)
 
 	if sc == nil {
 		return &ret
 	}
+
+	matchExprTag := *matchExprT
 
 	if matchExprTag.YieldValues == nil {
 		matchExprTag.YieldValues = &ret
@@ -257,10 +248,8 @@ func (w *Walker) yieldStmt(node *ast.YieldStmt, scope *Scope) *Types {
 		}
 	}
 
-	*tag = *matchExprTag
-
-	if rsc, returnable := scope.ResolveReturnable(); returnable != nil {
-		rsc.Tag = (*returnable).SetReturn(true, Yield)
+	if returnable := scope.ResolveReturnable(); returnable != nil {
+		(*returnable).SetExit(true, Yield)
 	}
 
 	return &ret
@@ -271,8 +260,8 @@ func (w *Walker) breakStmt(node *ast.BreakStmt, scope *Scope) {
 		w.error(node.GetToken(), "cannot use break outside of loops")
 	}
 
-	if rsc, returnable := scope.ResolveReturnable(); rsc != nil {
-		rsc.Tag = (*returnable).SetReturn(true, Break)
+	if returnable := scope.ResolveReturnable(); returnable != nil {
+		(*returnable).SetExit(true, Break)
 	}
 }
 
@@ -281,13 +270,13 @@ func (w *Walker) continueStmt(node *ast.ContinueStmt, scope *Scope) {
 		w.error(node.GetToken(), "cannot use break outside of loops")
 	}
 
-	if rsc, returnable := scope.ResolveReturnable(); rsc != nil {
-		rsc.Tag = (*returnable).SetReturn(true, Continue)
+	if returnable := scope.ResolveReturnable(); returnable != nil {
+		(*returnable).SetExit(true, Continue)
 	}
 }
 
 func (w *Walker) repeatStmt(node *ast.RepeatStmt, scope *Scope) {
-	repeatScope := NewScope(scope, MultiPathTag{})
+	repeatScope := NewScope(scope, &MultiPathTag{})
 	repeatScope.Attributes.Add(BreakAllowing)
 	repeatScope.Attributes.Add(ContinueAllowing)
 
@@ -340,23 +329,22 @@ func (w *Walker) repeatStmt(node *ast.RepeatStmt, scope *Scope) {
 		node.Body = node.Body[:endIndex]
 	}
 
-	rsc, returnable := repeatScope.Parent.ResolveReturnable()
+	returnabl := repeatScope.Parent.ResolveReturnable()
 	loopTag := helpers.GetValOfInterface[MultiPathTag](repeatScope.Tag)
 
-	if rsc == nil || returnable == nil {
+	if returnabl == nil {
 		return
 	}
+	returnable := *returnabl
 
-	if CheckReturns(loopTag.Returns) {
-		rsc.Tag = (*returnable).SetReturn(true, Return)
-	}
-	if CheckReturns(loopTag.Yields) {
-		rsc.Tag = (*returnable).SetReturn(true, Yield)
-	}
+	returnable.SetExit(loopTag.GetIfExits(Return), Return)
+	returnable.SetExit(loopTag.GetIfExits(Yield), Yield)
+	returnable.SetExit(loopTag.GetIfExits(Break), Break)
+	returnable.SetExit(loopTag.GetIfExits(Continue), Continue)
 }
 
 func (w *Walker) forStmt(node *ast.ForStmt, scope *Scope) {
-	forScope := NewScope(scope, UntaggedTag{})
+	forScope := NewScope(scope, &UntaggedTag{})
 	forScope.Attributes.Add(BreakAllowing)
 	forScope.Attributes.Add(ContinueAllowing)
 
@@ -379,7 +367,7 @@ func (w *Walker) forStmt(node *ast.ForStmt, scope *Scope) {
 }
 
 func (w *Walker) tickStmt(node *ast.TickStmt, scope *Scope) {
-	tickScope := NewScope(scope, UntaggedTag{})
+	tickScope := NewScope(scope, &UntaggedTag{})
 
 	if node.Variable.GetValueType() != 0 {
 		tickScope.DeclareVariable(VariableVal{Name: node.Variable.Name.Lexeme, Value: &NumberVal{}})
@@ -468,12 +456,12 @@ func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *S
 		FieldIndexes: map[string]int{},
 	}
 
-	structScope := NewScope(scope, StructTag{StructType: &structTypeVal})
+	structScope := NewScope(scope, &StructTag{StructType: &structTypeVal})
 	structScope.Attributes.Add(SelfAllowing)
 
 	params := make([]Type, 0)
 	for _, param := range node.Constructor.Params {
-		params = append(params, w.typeExpr(&param.Type))
+		params = append(params, w.typeExpr(param.Type))
 	}
 	structTypeVal.Params = params
 
@@ -497,12 +485,12 @@ func (w *Walker) structDeclarationStmt(node *ast.StructDeclarationStmt, scope *S
 	for i := range *node.Methods {
 		params := make([]Type, 0)
 		for _, param := range (*node.Methods)[i].Params {
-			params = append(params, w.typeExpr(&param.Type))
+			params = append(params, w.typeExpr(param.Type))
 		}
 
 		ret := EmptyReturn
 		for _, typee := range (*node.Methods)[i].Return {
-			ret = append(ret, w.typeExpr(&typee))
+			ret = append(ret, w.typeExpr(typee))
 			//fmt.Printf("%s\n", ret.values[len(ret.values)-1].Type.ToString())
 		}
 		variable := VariableVal{
@@ -583,11 +571,11 @@ func (w *Walker) matchStmt(node *ast.MatchStmt, isExpr bool, scope *Scope) {
 	val := w.GetNodeValue(&node.ExprToMatch, scope)
 	valType := val.GetType()
 
-	multiPathScope := NewScope(scope, MultiPathTag{})
+	multiPathScope := NewScope(scope, &MultiPathTag{})
 
 	var has_default bool
 	for _, matchCase := range node.Cases {
-		caseScope := NewScope(&multiPathScope, UntaggedTag{})
+		caseScope := NewScope(&multiPathScope, &UntaggedTag{})
 
 		if matchCase.Expression.GetToken().Lexeme == "_" {
 			has_default = true
@@ -623,30 +611,38 @@ func (w *Walker) matchStmt(node *ast.MatchStmt, isExpr bool, scope *Scope) {
 		return
 	}
 
-	rsc, returnable := scope.ResolveReturnable()
+	returnabl := scope.ResolveReturnable()
 
-	if returnable == nil {
+	if returnabl == nil {
 		return
 	}
 
-	mpTag := multiPathScope.Tag.(MultiPathTag)
+	returnable := *returnabl
+
+	mpTag := multiPathScope.Tag.(*MultiPathTag)
 
 	if has_default {
-		caseLength := len(node.Cases)
-		SetReturnIfTrue(mpTag.Returns, caseLength, returnable, rsc, Return)
-		SetReturnIfTrue(mpTag.Breaks, caseLength, returnable, rsc, Break)
-		SetReturnIfTrue(mpTag.Continues, caseLength, returnable, rsc, Continue)
+		returnable.SetExit(mpTag.GetIfExits(Yield), Yield)
+		returnable.SetExit(mpTag.GetIfExits(Return), Yield)
+		returnable.SetExit(mpTag.GetIfExits(Break), Yield)
+		returnable.SetExit(mpTag.GetIfExits(Continue), Yield)
 
-		if (len(mpTag.Returns) + len(mpTag.Breaks) +
-			len(mpTag.Continues) + len(mpTag.Yields)) > 1 {
-			rsc.Tag = (*returnable).SetReturn(false, Return)
-		}
+		// if (len(mpTag.Returns) + len(mpTag.Breaks) +
+		// 	len(mpTag.Continues) + len(mpTag.Yields)) > 1 {
+		// 	returnable.SetExit(false, Return)
+		// }
+	}else {
+		returnable.SetExit(false, Return)
+		returnable.SetExit(false, Yield)
+		returnable.SetExit(false, Break)
+		returnable.SetExit(false, Continue)
 	}
 }
 
 func (w *Walker) envStmt(node *ast.EnvironmentStmt, scope *Scope) {
 	if scope.Environment.Name != "" {
 		w.error(node.GetToken(), "can't have more than one environment statement in a file")
+		return
 	}
 
 	for i, v := range node.Env.Envs {
@@ -656,4 +652,11 @@ func (w *Walker) envStmt(node *ast.EnvironmentStmt, scope *Scope) {
 			scope.Environment.Name += v.Lexeme
 		}
 	}
+	 
+	if wlkr, found := (*w.Walkers)[w.Environment.Name]; found {
+		w.error(node.GetToken(), fmt.Sprintf("cannot have two environments with the same name, path: %s",wlkr.Environment.Path))
+		return
+	}
+
+	(*w.Walkers)[w.Environment.Name] = w
 }

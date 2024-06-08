@@ -16,7 +16,7 @@ import (
 )
 
 type Evaluator struct {
-	environments *map[string]*walker.Environment
+	walkers *map[string]*walker.Walker
 	lexer      *lexer.Lexer
 	parser     *parser.Parser
 	walker     *walker.Walker
@@ -25,19 +25,18 @@ type Evaluator struct {
 	DstPath    string
 }
 
-func NewEvaluator(gen lua.Generator, environments *map[string]*walker.Environment) Evaluator {
+func NewEvaluator(gen lua.Generator, walkers *map[string]*walker.Walker) Evaluator {
 	return Evaluator{
-		environments: environments,
+		walkers: walkers,
 		lexer:      lexer.NewLexer(),
 		parser:     parser.NewParser(),
-		walker:     walker.NewWalker(),
 		gen:        gen,
 	}
 }
 
 func (e *Evaluator) AssignFile(src string, dst string) {
 	e.SrcPath, e.DstPath = src, dst
-	(*e.environments)[dst] = e.walker.Environment
+	e.walker = walker.NewWalker(e.SrcPath)
 }
 
 func (e *Evaluator) Action() error {
@@ -79,7 +78,7 @@ func (e *Evaluator) Action() error {
 
 	fmt.Println("Walking through the nodes...")
 
-	prog = e.walker.Stage1(&prog)
+	prog = e.walker.Pass1(&prog, e.walkers)
 	if len(e.walker.Errors) != 0 {
 		colorstring.Println("[red]Failed walking:")
 		for _, err := range e.walker.Errors {

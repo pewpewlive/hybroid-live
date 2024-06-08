@@ -1,9 +1,9 @@
-env Hybroid::Test as Level
+env Huh as Level
 // hello
 
-let a = 1
+let number a = 1
 
-fn test(param number) bool, bool {
+fn test(number param) bool, bool {
     if param < 0 {
         return true, false
     }else if param == 0 {
@@ -12,10 +12,14 @@ fn test(param number) bool, bool {
     return true, true
 }
 
-struct StructTest {
-    field1 = 0f
+let uh = fn() fixed {
+    return 1f
+}
 
-    new(param fixed) {
+struct StructTest {
+    fixed field1 = 0f
+
+    new(fixed param) {
         if param == 0f {
             field1 = 100f
         }else {
@@ -23,7 +27,7 @@ struct StructTest {
         }
     }
 
-    fn foo(param bool, param2 number) bool, bool {
+    fn foo(bool param, number param2) bool, bool {
         return match param {
             true => test(param2)
             _ => {

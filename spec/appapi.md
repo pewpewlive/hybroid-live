@@ -45,7 +45,7 @@ A spawnable player entity.
 Example:
 
 ```rust
-let playerShip = spawn Ship(100f, 100f, 0, {weaponType: Double, WeaponFreq: Hz10})
+let playerShip = spawn Ship(100f, 100f, 0, {WeaponType: Double, WeaponFreq: Hz10})
 Print(@MapToStr(playerShip.GetConfig()))
 ```
 

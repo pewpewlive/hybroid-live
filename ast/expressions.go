@@ -95,8 +95,8 @@ func (ue *UnaryExpr) GetValueType() PrimitiveValueType {
 type TypeExpr struct {
 	WrappedType *TypeExpr
 	Name        lexer.Token
-	Params      *[]TypeExpr
-	Returns     []TypeExpr
+	Params      *[]*TypeExpr
+	Returns     []*TypeExpr
 }
 
 func (te *TypeExpr) GetType() NodeType {
@@ -168,7 +168,7 @@ func (ce *CallExpr) GetValueType() PrimitiveValueType {
 
 type AnonFnExpr struct {
 	Token  lexer.Token
-	Return []TypeExpr
+	Return []*TypeExpr
 	Params []Param
 	Body   []Node
 }
@@ -187,7 +187,7 @@ func (afe *AnonFnExpr) GetValueType() PrimitiveValueType {
 
 type AnonStructExpr struct {
 	Token  lexer.Token
-	Fields []FieldDeclarationStmt
+	Fields []*FieldDeclarationStmt
 }
 
 func (ase *AnonStructExpr) GetType() NodeType {

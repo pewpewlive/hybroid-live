@@ -405,11 +405,11 @@ func (w *Walker) selfExpr(self *ast.SelfExpr, scope *Scope) Value {
 		return &Invalid{}
 	}
 
-	sc, _, structTag := ResolveTagScope[StructTag](scope) // TODO: CHECK FOR ENTITY SCOPE
+	sc, _, structTag := ResolveTagScope[*StructTag](scope) // TODO: CHECK FOR ENTITY SCOPE
 
 	if sc != nil {
 		(*self).Type = ast.SelfStruct
-		return &StructVal{Type: structTag.StructType}
+		return &StructVal{Type: (*structTag).StructType}
 	} else {
 		return &Invalid{}
 	}
@@ -431,21 +431,26 @@ func (w *Walker) newExpr(new *ast.NewExpr, scope *Scope) *StructVal {
 func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) *FunctionVal {
 	ret := EmptyReturn
 	for _, typee := range fn.Return {
-		ret = append(ret, w.typeExpr(&typee))
+		ret = append(ret, w.typeExpr(typee))
 	}
 
-	fnScope := NewScope(scope, FuncTag{ReturnType: ret})
+	fnScope := NewScope(scope, &FuncTag{ReturnType: ret})
 	fnScope.Attributes.Add(ReturnAllowing)
 
 	params := make([]Type, 0)
 	for i, param := range fn.Params {
-		params = append(params, w.typeExpr(&param.Type))
+		params = append(params, w.typeExpr(param.Type))
 		value := w.GetValueFromType(params[i])
 		fnScope.DeclareVariable(VariableVal{Name: param.Name.Lexeme, Value: value, Node: fn})
 	}
 
 	for _, node := range fn.Body {
 		w.WalkNode(&node, &fnScope)
+	}
+
+	funcTag := fnScope.Tag.(*FuncTag)
+	if !funcTag.GetIfExits(Return) && !ret.Eq(&EmptyReturn) {
+		w.error(fn.GetToken(), "not all code paths return a value")
 	}
 
 	return &FunctionVal{
@@ -460,14 +465,14 @@ func (w *Walker) anonStructExpr(node *ast.AnonStructExpr, scope *Scope) *AnonStr
 	}
 
 	for i := range node.Fields {
-		w.fieldDeclarationStmt(&node.Fields[i], &structTypeVal, scope)
+		w.fieldDeclarationStmt(node.Fields[i], &structTypeVal, scope)
 	}
 
 	return &structTypeVal
 }
 
 func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) Value {
-	matchScope := NewScope(scope, MatchExprTag{})
+	matchScope := NewScope(scope, &MatchExprTag{})
 	matchScope.Attributes.Add(YieldAllowing)
 
 	w.matchStmt(&node.MatchStmt, true, scope)
@@ -476,12 +481,13 @@ func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) Value {
 		if node.MatchStmt.Cases[i].Expression.GetToken().Lexeme == "_" {
 			has_default = true
 		}
-		caseScope := NewScope(&matchScope, UntaggedTag{})
+		caseScope := NewScope(&matchScope, &UntaggedTag{})
 
 		endIndex := -1
 		for j := range node.MatchStmt.Cases[i].Body {
-			matchTag, _ := matchScope.Tag.(MatchExprTag)
-			if matchTag.ArmsYielded == i+1 {
+			matchTag, _ := matchScope.Tag.(*MatchExprTag)
+			yieldLength := len(matchTag.mpt.Yields)
+			if yieldLength-1 == i && matchTag.mpt.Yields[i] {
 				w.warn(node.MatchStmt.Cases[i].Body[j].GetToken(), "unreachable code detected")
 				endIndex = j
 				break
@@ -492,9 +498,9 @@ func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) Value {
 			node.MatchStmt.Cases[i].Body = node.MatchStmt.Cases[i].Body[:endIndex]
 		}
 	}
-	returnable := helpers.GetValOfInterface[ReturnableTag](scope.Tag)
+	returnable := helpers.GetValOfInterface[ExitableTag](scope.Tag)
 
-	matchTag, _ := matchScope.Tag.(MatchExprTag)
+	matchTag, _ := matchScope.Tag.(*MatchExprTag)
 	if matchTag.YieldValues == nil {
 		matchTag.YieldValues = &EmptyReturn
 	}
@@ -506,26 +512,35 @@ func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) Value {
 
 	if !has_default {
 		w.error(node.MatchStmt.GetToken(), "not all arms yield a value")
-		scope.Tag = (*returnable).SetReturn(false, Return)
+		(*returnable).SetExit(false, Return)
+		(*returnable).SetExit(false, Yield)
+		(*returnable).SetExit(false, Break)
+		(*returnable).SetExit(false, Continue)
 	} else {
-		caseLength := len(node.MatchStmt.Cases)
-		yields := caseLength == matchTag.ArmsYielded
-		scope.Tag = (*returnable).SetReturn(yields, Yield)
-		if !yields {
-			w.error(node.MatchStmt.GetToken(), "not all arms yield a value")
+		casesLength := len(node.MatchStmt.Cases)
+		if !matchTag.CheckIfCasesExit(casesLength, *returnable, Yield) {
+			w.error(node.MatchStmt.GetToken(), "not all cases yield")
 		}
-		returns := caseLength == len(matchTag.mpt.Returns)
-		yieldss := caseLength == len(matchTag.mpt.Yields)
-		breaks := caseLength == len(matchTag.mpt.Breaks)
-		continues := caseLength == len(matchTag.mpt.Continues)
-
-		scope.Tag = (*returnable).SetReturn(returns, Return)
-		scope.Tag = (*returnable).SetReturn(yieldss, Yield)
-		scope.Tag = (*returnable).SetReturn(breaks, Break)
-		scope.Tag = (*returnable).SetReturn(continues, Continue)
+		matchTag.CheckIfCasesExit(casesLength, *returnable, Return)
+		matchTag.CheckIfCasesExit(casesLength, *returnable, Break)
+		matchTag.CheckIfCasesExit(casesLength, *returnable, Continue)
 	}
 
 	return matchTag.YieldValues
+}
+
+func (mt *MatchExprTag) CheckIfCasesExit(casesLength int, exitable ExitableTag, et ExitType) bool {
+	yields := mt.GetIfExits(Yield)
+	if !yields {
+		return false
+	}else {
+		if len(mt.mpt.Yields) != casesLength {
+			return true
+		}else {
+			exitable.SetExit(true, et)
+			return true
+		}
+	}
 }
 
 func (w *Walker) typeExpr(typee *ast.TypeExpr) Type {
@@ -540,13 +555,13 @@ func (w *Walker) typeExpr(typee *ast.TypeExpr) Type {
 	params := []Type{}
 	if typee.Params != nil {
 		for _, v := range *typee.Params {
-			params = append(params, w.typeExpr(&v))
+			params = append(params, w.typeExpr(v))
 		}
 	}
 
 	returns := []Type{}
 	for _, v := range typee.Returns {
-		returns = append(returns, w.typeExpr(&v))
+		returns = append(returns, w.typeExpr(v))
 	}
 
 	typ := w.GetTypeFromString(typee.Name.Lexeme)

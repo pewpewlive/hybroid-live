@@ -13,15 +13,16 @@ type Context struct {
 
 type Environment struct {
 	Name         string
+	Path         string
 	Ctx          Context
 	Scope        Scope
 	foreignTypes map[string]Value
 	StructTypes  map[string]*StructTypeVal
 }
 
-func NewEnvironment() Environment {
+func NewEnvironment(path string) Environment {
 	scope := Scope{
-		Tag:             UntaggedTag{},
+		Tag:             &UntaggedTag{},
 		Variables:       map[string]VariableVal{},
 		VariableIndexes: map[string]int{},
 	}
@@ -60,9 +61,10 @@ const (
 	Break
 )
 
-type ReturnableTag interface {
+type ExitableTag interface {
 	ScopeTag
-	SetReturn(state bool, types ...ExitType) ReturnableTag
+	SetExit(state bool, types ...ExitType)
+	GetIfExits(typ ExitType) bool
 }
 
 type ScopeTag interface {
@@ -71,7 +73,7 @@ type ScopeTag interface {
 
 type UntaggedTag struct{}
 
-func (ut UntaggedTag) GetType() ScopeTagType {
+func (ut *UntaggedTag) GetType() ScopeTagType {
 	return Untagged
 }
 
@@ -79,7 +81,7 @@ type StructTag struct {
 	StructType *StructTypeVal
 }
 
-func (st StructTag) GetType() ScopeTagType {
+func (st *StructTag) GetType() ScopeTagType {
 	return Struct
 }
 
@@ -88,7 +90,7 @@ type EntityTag struct {
 	//EntityType *StructTypeVal
 }
 
-func (et EntityTag) GetType() ScopeTagType {
+func (et *EntityTag) GetType() ScopeTagType {
 	return Entity
 }
 
@@ -97,36 +99,46 @@ type FuncTag struct {
 	ReturnType Types
 }
 
-func (et FuncTag) GetType() ScopeTagType {
+func (et *FuncTag) GetType() ScopeTagType {
 	return Func
 }
 
-func (et FuncTag) SetReturn(state bool, types ...ExitType) ReturnableTag {
+func (et *FuncTag) SetExit(state bool, types ...ExitType) {
 	et.Returns = append(et.Returns, state)
-	return et
+}
+
+func (self *FuncTag) GetIfExits(et ExitType) bool {
+	if et != Return {
+		return false
+	}
+	if len(self.Returns) == 0 {
+		return false
+	}
+
+	for _, v := range self.Returns {
+		if v == true {
+			return true
+		}
+	}
+
+	return false
 }
 
 type MatchExprTag struct {
 	mpt         MultiPathTag
-	ArmsYielded int
 	YieldValues *Types
 }
 
-func (met MatchExprTag) GetType() ScopeTagType {
+func (met *MatchExprTag) GetType() ScopeTagType {
 	return MatchExpr
 }
 
-func (met MatchExprTag) SetReturn(state bool, types ...ExitType) ReturnableTag {
-	if state {
-		for _, v := range types {
-			if v == Yield {
-				met.ArmsYielded++
-			} else {
-				met.mpt.SetReturn(state, types...)
-			}
-		}
-	}
-	return met
+func (met *MatchExprTag) SetExit(state bool, types ...ExitType) {
+	met.mpt.SetExit(state, types...)
+}
+
+func (self *MatchExprTag) GetIfExits(et ExitType) bool {
+	return self.mpt.GetIfExits(et)
 }
 
 type MultiPathTag struct {
@@ -136,11 +148,11 @@ type MultiPathTag struct {
 	Breaks    []bool
 }
 
-func (mpt MultiPathTag) GetType() ScopeTagType {
+func (mpt *MultiPathTag) GetType() ScopeTagType {
 	return MultiPath
 }
 
-func (mpt MultiPathTag) SetReturn(state bool, types ...ExitType) ReturnableTag {
+func (mpt *MultiPathTag) SetExit(state bool, types ...ExitType) {
 	if state {
 		for _, v := range types {
 			if v == Yield {
@@ -154,7 +166,29 @@ func (mpt MultiPathTag) SetReturn(state bool, types ...ExitType) ReturnableTag {
 			}
 		}
 	}
-	return mpt
+}
+
+func (self *MultiPathTag) GetIfExits(et ExitType) bool {
+	bools := self.Returns
+	if et == Yield {
+		bools = self.Yields
+	}else if et == Continue {
+		bools = self.Continues
+	}else if et == Break {
+		bools = self.Breaks
+	}
+
+	if len(bools) == 0 {
+		return false
+	}
+
+	for _, v := range bools {
+		if !v {
+			return false
+		}
+	}
+
+	return true
 }
 
 type ScopeAttribute int

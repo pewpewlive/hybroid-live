@@ -86,7 +86,7 @@ func (sds *StructDeclarationStmt) GetValueType() PrimitiveValueType {
 type ConstructorStmt struct {
 	Token  lexer.Token
 	Body   *[]Node
-	Return []TypeExpr
+	Return []*TypeExpr
 	Params []Param
 }
 
@@ -122,13 +122,13 @@ func (fds *FieldDeclarationStmt) GetValueType() PrimitiveValueType {
 }
 
 type Param struct {
-	Type TypeExpr
+	Type *TypeExpr
 	Name lexer.Token
 }
 
 type FunctionDeclarationStmt struct {
 	Name    lexer.Token
-	Return  []TypeExpr
+	Return  []*TypeExpr
 	Params  []Param
 	IsLocal bool
 	Body    []Node
@@ -149,7 +149,7 @@ func (fds *FunctionDeclarationStmt) GetValueType() PrimitiveValueType {
 type MethodDeclarationStmt struct {
 	Owner   lexer.Token
 	Name    lexer.Token
-	Return  []TypeExpr
+	Return  []*TypeExpr
 	Params  []Param
 	IsLocal bool
 	Body    []Node
