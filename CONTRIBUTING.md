@@ -99,10 +99,10 @@ If there are structures that don't implement any interface. You write them in th
 
 _code snippet_
 
-##### **Methods:**\
+##### **Methods:**
 _list_
 
-##### **Associated Functions:**\
+##### **Associated Functions:**
 _list_
 
 _..._
@@ -124,10 +124,11 @@ Here are all the **sub-sections**, ordered by their precedence:
 1. _Name_ (interfaces only)
 2. _Code Snippet_ (not written as a distinct subsection)
 3. _Description_ (not a distinct subsection)
-4. Methods
-5. Extra Methods (interfaces only)
-6. Associated Functions
-7. Implementations (interfaces only)
+4. Constructor
+5. Methods
+6. Extra Methods (interfaces only)
+7. Associated Functions
+8. Implementations (interfaces only)
 
 It is noteworthy to say that functions, structures and any other value in the codebase may or may not have small helpful comments above them.
 

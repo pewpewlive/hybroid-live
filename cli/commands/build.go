@@ -52,9 +52,9 @@ func Build(ctx *cli.Context, files ...FileInformation) error {
 		}
 		os.WriteFile(cwd+outputDir+"/manifest.json", manifest, 0644)
 
-		namespaces := map[string]*walker.Environment{}
+		envs := map[string]*walker.Environment{}
 
-		eval := evaluator.NewEvaluator(lua.Generator{Scope: lua.GenScope{Src: lua.StringBuilder{}}}, &namespaces)
+		eval := evaluator.NewEvaluator(lua.Generator{Scope: lua.GenScope{Src: lua.StringBuilder{}}}, &envs)
 		var evalErr error = nil
 		if len(files) == 0 {
 			eval.AssignFile(cwd+entryPoint, cwd+outputDir+"/"+strings.Replace(entryPoint, ".hyb", ".lua", -1))
