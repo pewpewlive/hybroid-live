@@ -260,12 +260,12 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 		if node.Property == nil {
 			return val
 		} else {
-			scope.Environment.Ctx.Value = val
+			w.Context.Value = val
 			fieldVal = w.GetNodeValue(&node.Property, scope)
 		}
 		return fieldVal
 	}
-	owner := scope.Environment.Ctx.Value
+	owner := w.Context.Value
 	variable := &VariableVal{Value: &Invalid{}}
 	if container := owner.(Container); container != nil {
 		ident := node.Identifier.GetToken()
@@ -281,7 +281,7 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 	}
 
 	if node.Property != nil {
-		scope.Environment.Ctx.Value = variable.Value
+		w.Context.Value = variable.Value
 		val := w.GetNodeValue(&node.Property, scope)
 		return val
 	}
@@ -311,7 +311,7 @@ func (w *Walker) memberExpr(node *ast.MemberExpr, scope *Scope) Value {
 		if node.Property == nil {
 			return val
 		} else {
-			scope.Environment.Ctx.Value = val
+			w.Context.Value = val
 			memberVal = w.GetNodeValue(&node.Property, scope)
 		}
 		return memberVal
@@ -319,7 +319,7 @@ func (w *Walker) memberExpr(node *ast.MemberExpr, scope *Scope) Value {
 
 	val := w.GetNodeValue(&node.Identifier, scope)
 	valType := val.GetType()
-	array := scope.Environment.Ctx.Value
+	array := w.Context.Value
 	arrayType := array.GetType()
 
 	if arrayType.Type == ast.Map {
@@ -348,7 +348,7 @@ func (w *Walker) memberExpr(node *ast.MemberExpr, scope *Scope) Value {
 	wrappedVal := w.GetValueFromType(wrappedValType)
 
 	if node.Property != nil {
-		scope.Environment.Ctx.Value = wrappedVal
+		w.Context.Value = wrappedVal
 		return w.GetNodeValue(&node.Property, scope)
 	}
 
@@ -434,7 +434,8 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) *FunctionVal {
 		ret = append(ret, w.typeExpr(typee))
 	}
 
-	fnScope := NewScope(scope, &FuncTag{ReturnType: ret})
+	funcTag := &FuncTag{ReturnType: ret}
+	fnScope := NewScope(scope, funcTag)
 	fnScope.Attributes.Add(ReturnAllowing)
 
 	params := make([]Type, 0)
@@ -448,7 +449,6 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) *FunctionVal {
 		w.WalkNode(&node, &fnScope)
 	}
 
-	funcTag := fnScope.Tag.(*FuncTag)
 	if !funcTag.GetIfExits(Return) && !ret.Eq(&EmptyReturn) {
 		w.error(fn.GetToken(), "not all code paths return a value")
 	}
@@ -465,29 +465,29 @@ func (w *Walker) anonStructExpr(node *ast.AnonStructExpr, scope *Scope) *AnonStr
 	}
 
 	for i := range node.Fields {
-		w.fieldDeclarationStmt(node.Fields[i], &structTypeVal, scope)
+		w.fieldDeclaration(node.Fields[i], &structTypeVal, scope)
 	}
 
 	return &structTypeVal
 }
 
 func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) Value {
+	casesLength := len(node.MatchStmt.Cases)+1
+	if node.MatchStmt.HasDefault {
+		casesLength--
+	}
 	matchScope := NewScope(scope, &MatchExprTag{})
 	matchScope.Attributes.Add(YieldAllowing)
+	mtt := &MatchExprTag{mpt:NewMultiPathTag(casesLength, matchScope.Attributes...)}
+	matchScope.Tag = mtt
 
-	w.matchStmt(&node.MatchStmt, true, scope)
-	has_default := false
+	w.match(&node.MatchStmt, true, scope)
 	for i := range node.MatchStmt.Cases {
-		if node.MatchStmt.Cases[i].Expression.GetToken().Lexeme == "_" {
-			has_default = true
-		}
 		caseScope := NewScope(&matchScope, &UntaggedTag{})
 
 		endIndex := -1
 		for j := range node.MatchStmt.Cases[i].Body {
-			matchTag, _ := matchScope.Tag.(*MatchExprTag)
-			yieldLength := len(matchTag.mpt.Yields)
-			if yieldLength-1 == i && matchTag.mpt.Yields[i] {
+			if mtt.GetIfExits(All) {
 				w.warn(node.MatchStmt.Cases[i].Body[j].GetToken(), "unreachable code detected")
 				endIndex = j
 				break
@@ -510,43 +510,17 @@ func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) Value {
 		return matchTag.YieldValues
 	}
 
-	if !has_default {
-		w.error(node.MatchStmt.GetToken(), "not all arms yield a value")
-		(*returnable).SetExit(false, Return)
-		if scope.ResolveReturnable() != nil {
-			(*returnable).SetExit(false, Yield)
-		}
-		(*returnable).SetExit(false, Break)
-		(*returnable).SetExit(false, Continue)
-	} else {
-		casesLength := len(node.MatchStmt.Cases)
-		if !matchTag.CheckIfCasesExit(matchTag.mpt.Yields, casesLength, nil, Yield) {
-			w.error(node.MatchStmt.GetToken(), "not all cases yield")
-		}else if _, _, met := ResolveTagScope[*MatchExprTag](scope); met != nil {
-			(*returnable).SetExit(true, Yield)
-		}
-		matchTag.CheckIfCasesExit(matchTag.mpt.Returns, casesLength, returnable, Return)
-		matchTag.CheckIfCasesExit(matchTag.mpt.Breaks, casesLength, returnable, Break)
-		matchTag.CheckIfCasesExit(matchTag.mpt.Continues, casesLength, returnable, Continue)
+	if !matchTag.GetIfExits(Yield) {
+		w.error(node.MatchStmt.GetToken(), "not all cases yield")
+		(*returnable).SetExit(false, Yield)
+	}else {
+		(*returnable).SetExit(true, Yield)
 	}
+	(*returnable).SetExit(matchTag.GetIfExits(Return), Return)
+	(*returnable).SetExit(matchTag.GetIfExits(Break), Break)
+	(*returnable).SetExit(matchTag.GetIfExits(Continue), Continue)
 
 	return matchTag.YieldValues
-}
-
-func (mt *MatchExprTag) CheckIfCasesExit(bools []bool, casesLength int, exitable *ExitableTag, et ExitType) bool {
-	exits := mt.GetIfExits(Yield)
-	if !exits {
-		return false
-	}else {
-		if len(bools) != casesLength {
-			return false
-		}else {
-			if exitable != nil {
-				(*exitable).SetExit(true, et)
-			}
-			return true
-		}
-	}
 }
 
 func (w *Walker) typeExpr(typee *ast.TypeExpr) Type {
@@ -572,7 +546,7 @@ func (w *Walker) typeExpr(typee *ast.TypeExpr) Type {
 
 	typ := w.GetTypeFromString(typee.Name.Lexeme)
 	if typ == ast.Invalid {
-		if foreignType, ok := w.Environment.foreignTypes[typee.Name.Lexeme]; ok {
+		if foreignType, ok := w.Environment.StructTypes[typee.Name.Lexeme]; ok {
 			return foreignType.GetType()
 		}
 	}

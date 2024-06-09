@@ -707,6 +707,11 @@ func (p *Parser) matchStmt(isExpr bool) *ast.MatchStmt {
 	for !stop {
 		matchStmt.Cases = append(matchStmt.Cases, caseStmts...)
 		caseStmts, stop = p.caseStmt(isExpr)
+		for i := range caseStmts {
+			if caseStmts[i].Expression.GetToken().Lexeme == "_" {
+				matchStmt.HasDefault = true
+			}
+		}
 	}
 	matchStmt.Cases = append(matchStmt.Cases, caseStmts...)
 

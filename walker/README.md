@@ -1,6 +1,6 @@
 # Walker
 
-The walker walks through all the nodes in the AST (Abstract Syntax Tree), verifies their legitimacy and/or changes them.
+The walker walks through all the nodes in the AST (Abstract Syntax Tree), verifying their legitimacy and/or changing them.
 
 ## `values.go`
 
@@ -8,11 +8,11 @@ This section covers all the structs and interfaces used for abstracting values.
 
 ### Interfaces
 
-#### **_Value:_**
+#### **_Value_**
 
 ```go
 type Value interface {
-  GetType() TypeVal
+  GetType() Type
   GetDefault() ast.LiteralExpr
 }
 ```
@@ -21,7 +21,7 @@ It's used to abstract any kind of value, including numbers, booleans, nil, strin
 
 ##### **Methods:**
 
-1. `TypeVal GetType()` - returns the type of the value in the form of a TypeVal value
+1. `Type GetType()` - returns the type of the value in the form of a Type value
 2. `ast.LiteralExpr GetDefault()` - returns the default value in the form of a literal expression node
 
 ##### **Implementations:**
@@ -40,7 +40,7 @@ type VariableVal struct {
 ```go
 type StructTypeVal struct {
   Name         lexer.Token
-  Params       []TypeVal
+  Params       []Type
   Fields       []VariableVal
   FieldIndexes map[string]int
   Methods      map[string]VariableVal
@@ -48,14 +48,14 @@ type StructTypeVal struct {
 }
 ```
 
-`StructTypeVal` is a TypeVal specifically for structs. It's used in the [Namespace](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#namespace) struct as `StructTypes`.
+`StructTypeVal` is a value that contains all the data of a struct type. It's used in the [environment](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#environment) struct as `StructTypes`.
 
-Some nodes such as field expressions are associated with a struct type. This struct type is pretty much the `StructTypeVal`. When declaring a struct, you also declare its body, with all its methods and fields. You pretty much declare a `StructTypeVal`, which gets added into the `StructTypes` of the [Namespace](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#namespace).
+Some nodes such as field expressions are associated with a struct type. This struct type is pretty much the `StructTypeVal`. When declaring a struct, you also declare its body, with all its methods and fields. You pretty much declare a `StructTypeVal`, which gets added into the `StructTypes` of the [Environment](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#environment).
 
 ###### StructVal
 ```go
 type StructVal struct {
-  Type *StructTypeVal
+  Type *StructEnvironment
 }
 ```
 
@@ -73,26 +73,36 @@ type EnvironmentVal struct {
 ###### MapVal
 ```go
 type MapVal struct {
-  MemberType TypeVal
+  MemberType Type
   Members    map[string]VariableVal
 }
 ```
 
 **Extra methods:**
 
-1. `GetContentsValueType() -> TypeVal` - checks the contents of the `MapVal` and, if all the values have the same type, returns the `TypeVal` that they all share. If they don't have the same value type it returns `Invalid`.
+1. `GetContentsValueType() -> Type` - checks the contents of the `MapVal` and, if all the values have the same type, returns the `Type` that they all share. If they don't have the same value type it returns `Invalid`.
 
 ###### ListVal
 ```go
 type ListVal struct {
-  ValueType TypeVal
+  ValueType Type
   Values    []Value
 }
 ```
 
 **Extra methods:**
 
-1. a `GetContentsValueType() -> TypeVal` - same with `MapVal`'s method
+1. a `GetContentsValueType() -> Type` - same with `MapVal`'s method
+
+###### Types
+
+```go
+type Types []Type
+```
+
+It is important to note here that if it contains more than 1 type, `GetType` returns invalid, otherwise it returns the only type it has.
+
+`GetDefault` just returns a literal expression with a value of "TYPES".
 
 ###### NumberVal
 ```go
@@ -136,38 +146,41 @@ type Invalid struct{}
 type Unknown struct{}
 ```
 
-#### **_Container:_**
+#### **_Container_**
 
 ```go
 type Container interface {
-  GetFields() map[string]VariableVal
-  GetMethods() map[string]VariableVal
-  Contains(name string) (Value, int, bool)
+	Value
+	GetFields() map[string]VariableVal
+	GetMethods() map[string]VariableVal
+	AddField(variable VariableVal)
+	AddMethod(variable VariableVal)
+	Contains(name string) (Value, int, bool)
 }
 ```
 
-Used to abstract any kind of value that contains fields and methods (struct, entity, namespace).
+Used to abstract any kind of value that contains fields and methods (struct, entity). Extends [Value](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#value).
 
 ##### **Methods:**
 
 1. `GetFields() -> map[string]VariableVal` - returns a map of its fields.
 2. `GetMethods() -> map[string]VariableVal` - returns a map of its methods.
-3. `Contains(name string) -> (Value, int, bool)` - checks if any of its fields or methods contain _name_ and gives the value of it along with its index in the list. The boolean determines the success.
+3. `AddField(variable VariableVal)` - adds a fields to its fields
+4. `AddMethod(variable VariableVal)` - adds a method to its methods 
+5. `Contains(name string) -> (Value, int, bool)` - checks if any of its fields or methods contain _name_ and gives the value of it along with its index in the list. The boolean determines the success.
 
 ##### **Implementations:**
-
-Only `Value`s implement `Container`, specifically:
 
 ###### [StructTypeVal](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#structtypeval)
 ###### [StructVal](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#structval)
 ###### [EnvironmentVal](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#environmentval)
 ###### [EntityVal](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#entityval)
 
-### Types
+### Global variables
 
-#### Types
+#### **_EmptyReturn_**
 ```go
-type Types []Type
+var EmptyReturn = Types{}
 ```
 
 ## `scope.go`
@@ -176,7 +189,7 @@ This section covers all the interfaces and structs used to make walking the node
 
 ### Interfaces
 
-#### **_ScopeTag:_**
+#### **_ScopeTag_**
 
 ```go
 type ScopeTag interface {
@@ -234,26 +247,67 @@ type MultiPathTag struct {
 
 The values here express how many times the `Scope` (i.e. the body) has returned, yielded, continued and breaked. These values are used by many nodes (usually statements like `IfStmt`) and then evaluated.
 
+#### **_ExitableTag_**
+
+```go
+type ExitableTag interface {
+	ScopeTag
+	SetExit(state bool, _type ExitType)
+	GetIfExits(_type ExitType) bool
+}
+```
+
+ExitableTag extends [ScopeTag](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#scopetag).
+
+##### **Methods:**
+
+1. `SetExit(state bool, _type ExitType)` - appends to `state` to a list of booleans. The list to be used for the append depends on the ExitType. For example the `[]bool` named `Returns` would be used in this case if `_type` is `Return`.
+2. `GetIfExits(_type ExitType) -> bool` - evaluates the list of booleans corresponding to the `_type` and returns true if it does exit.
+
+##### **Implementations:**
+
+###### [FuncTag](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#functag)
+###### [MatchTag](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#matchtag)
+###### [MultiPathTag](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#multipathtag)
+
 ### Structures
 
 Here are the fundamental structs that are extremely important for the walking process:
 
-#### **_Environment:_**
+#### **_Environment_**
 
 ```go
 type Environment struct {
 	Name         string
+  Path         string
 	Ctx          Context
 	Scope        Scope
-	foreignTypes map[string]Value
 	StructTypes  map[string]*StructTypeVal
 }
 ```
 
+The Environment is like the Global scope of the file. The `Name` of it is provided through the EnvStmt (CITATION NEEDED).
+
+`Path` is the hybroid path.
+
 ##### **Constructor:**
 `NewEnvironment() Environment`
 
-#### **_Scope:_**
+#### **_Context_**
+
+```go
+type Context struct {
+	Node  ast.Node
+	Value Value
+	Ret   Types
+}
+```
+
+`Context` provides info about the previous node and only the previous node. Thus, it is short-sighted but quite useful for some cases (see fieldExpr (CITATION NEED) and memberExpr (CITATION NEEDED) walker methods).
+
+It is possible that this struct might get removed later, as it might not be needed, but that's up to debate.
+
+#### **_Scope_**
 
 ```go
 type Scope struct {
@@ -289,7 +343,7 @@ type ScopeAttributes []ScopeAttribute
 
 ### Enums
 
-#### **_ScopeAttribute:_**
+#### **_ScopeAttribute_**
 
 ```go
 type ScopeAttribute int
@@ -307,7 +361,7 @@ const (
 
 _It is important to note that, when creating a new scope, the attributes of the parent scope are carried onto the new scope._
 
-#### **_ExitType:_**
+#### **_ExitType_**
 
 ```go
 type ExitType int
@@ -322,7 +376,7 @@ const (
 
 Expresses how the body is exiting (yielding, returning, continuing or breaking?).
 
-#### **_ScopeTagType:_**
+#### **_ScopeTagType_**
 
 ```go
 type ScopeTagType int
@@ -340,3 +394,4 @@ const (
 `ScopeTagType` is the identity of the [ScopeTag](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#scopetag).
 
 ### `statements.go`
+

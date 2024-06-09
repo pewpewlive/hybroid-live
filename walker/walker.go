@@ -13,7 +13,7 @@ type Walker struct {
 	nodes       *[]ast.Node
 	Errors      []ast.Error
 	Warnings    []ast.Warning
-	Context     ast.Node
+	Context     Context
 }
 
 func NewWalker(path string) *Walker {
@@ -23,6 +23,11 @@ func NewWalker(path string) *Walker {
 		nodes:       &[]ast.Node{},
 		Errors:      []ast.Error{},
 		Warnings:    []ast.Warning{},
+		Context: 	 Context{
+			Node:  &ast.Improper{},
+			Value: &Unknown{},
+			Ret:   Types{},
+		},
 	}
 	return &walker
 }
@@ -208,10 +213,6 @@ func (sc *Scope) ResolveReturnable() *ExitableTag {
 	return sc.Parent.ResolveReturnable()
 }
 
-func (g *Environment) GetForeignType(str string) Value {
-	return g.foreignTypes[str]
-}
-
 func (w *Walker) validateArithmeticOperands(left Type, right Type, expr ast.BinaryExpr) bool {
 	//fmt.Printf("Validating operands: %v (%v) and %v (%v)\n", left.Val, left.Type, right.Val, right.Type)
 	if left.Type == ast.Invalid {
@@ -333,15 +334,15 @@ func (w *Walker) Pass1(nodes *[]ast.Node, wlkrs *map[string]*Walker) []ast.Node 
 func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 	switch newNode := (*node).(type) {
 	case *ast.EnvironmentStmt:
-		w.envStmt(newNode, scope)
+		w.env(newNode, scope)
 	case *ast.VariableDeclarationStmt:
-		w.variableDeclarationStmt(newNode, scope)
+		w.variableDeclaration(newNode, scope)
 	case *ast.IfStmt:
 		w.ifStmt(newNode, scope)
 	case *ast.AssignmentStmt:
-		w.assignmentStmt(newNode, scope)
+		w.assignment(newNode, scope)
 	case *ast.FunctionDeclarationStmt:
-		w.functionDeclarationStmt(newNode, scope, Function)
+		w.functionDeclaration(newNode, scope, Function)
 	case *ast.ReturnStmt:
 		w.returnStmt(newNode, scope)
 	case *ast.YieldStmt:
@@ -351,11 +352,11 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 	case *ast.ContinueStmt:
 		w.continueStmt(newNode, scope)
 	case *ast.RepeatStmt:
-		w.repeatStmt(newNode, scope)
+		w.repeat(newNode, scope)
 	case *ast.ForStmt:
-		w.forStmt(newNode, scope)
+		w.forloop(newNode, scope)
 	case *ast.TickStmt:
-		w.tickStmt(newNode, scope)
+		w.tick(newNode, scope)
 	case *ast.CallExpr:
 		w.callExpr(newNode, scope, Function)
 	case *ast.MethodCallExpr:
@@ -363,11 +364,11 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 	case *ast.DirectiveExpr:
 		w.directiveExpr(newNode, scope)
 	case *ast.UseStmt:
-		w.useStmt(newNode, scope)
+		w.use(newNode, scope)
 	case *ast.StructDeclarationStmt:
-		w.structDeclarationStmt(newNode, scope)
+		w.structDeclaration(newNode, scope)
 	case *ast.MatchStmt:
-		w.matchStmt(newNode, false, scope)
+		w.match(newNode, false, scope)
 	case *ast.Improper:
 		w.error(newNode.GetToken(), "Improper statement: parser fault")
 	default:

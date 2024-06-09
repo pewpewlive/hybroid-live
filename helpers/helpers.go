@@ -35,3 +35,11 @@ func XORNIL[T any](a, b *T) bool {
 
 	return false
 }
+
+func HasContents[T any](contents ...[]T) bool {
+	sumContents := make([]T, 0)
+	for _, v := range contents {
+		sumContents = append(sumContents, v...)
+	}
+	return len(sumContents) != 0
+}

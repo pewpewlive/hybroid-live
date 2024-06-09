@@ -190,6 +190,7 @@ func (is *IfStmt) GetValueType() PrimitiveValueType {
 type MatchStmt struct {
 	ExprToMatch Node
 	Cases       []CaseStmt
+	HasDefault  bool
 }
 
 type CaseStmt struct {

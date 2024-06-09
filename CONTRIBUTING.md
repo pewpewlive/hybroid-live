@@ -37,9 +37,9 @@ _..._
 
 `### Interfaces`
 
-#### **_Foobar:_**
+#### **_Foobar_**
 
-`#### ***Foobar:***`
+`#### ***Foobar***`
 
 ```go
 type Foobar interface {
@@ -83,9 +83,9 @@ type ExampleImplementation2 struct {
 
 _description (optional)_
 
-#### **_Interface2:_**
+#### **_Interface2_**
 
-`#### ***Interface2:***`
+`#### ***Interface2***`
 
 _..._
 
@@ -95,7 +95,7 @@ If there are structures that don't implement any interface. You write them in th
 
 `## Structures`
 
-#### **_StructName:_**
+#### **_StructName_**
 
 _code snippet_
 
