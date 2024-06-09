@@ -513,31 +513,37 @@ func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) Value {
 	if !has_default {
 		w.error(node.MatchStmt.GetToken(), "not all arms yield a value")
 		(*returnable).SetExit(false, Return)
-		(*returnable).SetExit(false, Yield)
+		if scope.ResolveReturnable() != nil {
+			(*returnable).SetExit(false, Yield)
+		}
 		(*returnable).SetExit(false, Break)
 		(*returnable).SetExit(false, Continue)
 	} else {
 		casesLength := len(node.MatchStmt.Cases)
-		if !matchTag.CheckIfCasesExit(casesLength, *returnable, Yield) {
+		if !matchTag.CheckIfCasesExit(matchTag.mpt.Yields, casesLength, nil, Yield) {
 			w.error(node.MatchStmt.GetToken(), "not all cases yield")
+		}else if _, _, met := ResolveTagScope[*MatchExprTag](scope); met != nil {
+			(*returnable).SetExit(true, Yield)
 		}
-		matchTag.CheckIfCasesExit(casesLength, *returnable, Return)
-		matchTag.CheckIfCasesExit(casesLength, *returnable, Break)
-		matchTag.CheckIfCasesExit(casesLength, *returnable, Continue)
+		matchTag.CheckIfCasesExit(matchTag.mpt.Returns, casesLength, returnable, Return)
+		matchTag.CheckIfCasesExit(matchTag.mpt.Breaks, casesLength, returnable, Break)
+		matchTag.CheckIfCasesExit(matchTag.mpt.Continues, casesLength, returnable, Continue)
 	}
 
 	return matchTag.YieldValues
 }
 
-func (mt *MatchExprTag) CheckIfCasesExit(casesLength int, exitable ExitableTag, et ExitType) bool {
-	yields := mt.GetIfExits(Yield)
-	if !yields {
+func (mt *MatchExprTag) CheckIfCasesExit(bools []bool, casesLength int, exitable *ExitableTag, et ExitType) bool {
+	exits := mt.GetIfExits(Yield)
+	if !exits {
 		return false
 	}else {
-		if len(mt.mpt.Yields) != casesLength {
-			return true
+		if len(bools) != casesLength {
+			return false
 		}else {
-			exitable.SetExit(true, et)
+			if exitable != nil {
+				(*exitable).SetExit(true, et)
+			}
 			return true
 		}
 	}

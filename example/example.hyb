@@ -9,6 +9,13 @@ fn test(number param) bool, bool {
     }else if param == 0 {
         return false, false
     }
+
+    match number {
+        0 => {
+            return false, false
+        }
+    }
+
     return true, true
 }
 

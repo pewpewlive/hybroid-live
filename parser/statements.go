@@ -741,17 +741,27 @@ func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
 		}
 	} else {
 		expr := p.expression()
+		if expr.GetType() == ast.NA {
+			p.error(expr.GetToken(), "expected expression or '{' after fat arrow")
+		}
+		args := []ast.Node{expr}
+		for p.match(lexer.Comma) {
+			expr = p.expression()
+			if expr.GetType() == ast.NA {
+				p.error(expr.GetToken(), "expected expression")
+			}
+			args = append(args, expr)
+		}
 
 		var node ast.Node
-
 		if isExpr {
 			node = &ast.YieldStmt{
-				Args:  []ast.Node{expr},
+				Args:  args,
 				Token: expr.GetToken(),
 			}
 		} else {
 			node = &ast.ReturnStmt{
-				Args:  []ast.Node{expr},
+				Args:  args,
 				Token: expr.GetToken(),
 			}
 		}

@@ -318,7 +318,7 @@ func (w *Walker) repeatStmt(node *ast.RepeatStmt, scope *Scope) {
 
 	endIndex := -1
 	for i := range node.Body {
-		loopTag := helpers.GetValOfInterface[MultiPathTag](repeatScope.Tag)
+		loopTag := *helpers.GetValOfInterface[*MultiPathTag](repeatScope.Tag)
 		if HasContents(loopTag.Breaks, loopTag.Returns, loopTag.Continues, loopTag.Yields) {
 			w.warn(node.Body[i].GetToken(), "unreachable code detected")
 			endIndex = i
@@ -330,7 +330,7 @@ func (w *Walker) repeatStmt(node *ast.RepeatStmt, scope *Scope) {
 	}
 
 	returnabl := repeatScope.Parent.ResolveReturnable()
-	loopTag := helpers.GetValOfInterface[MultiPathTag](repeatScope.Tag)
+	loopTag := *helpers.GetValOfInterface[*MultiPathTag](repeatScope.Tag)
 
 	if returnabl == nil {
 		return
