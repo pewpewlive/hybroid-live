@@ -445,9 +445,7 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) *FunctionVal {
 		fnScope.DeclareVariable(VariableVal{Name: param.Name.Lexeme, Value: value, Node: fn})
 	}
 
-	for _, node := range fn.Body {
-		w.WalkNode(&node, &fnScope)
-	}
+	w.WalkBody(&fn.Body, funcTag, &fnScope)
 
 	if !funcTag.GetIfExits(Return) && !ret.Eq(&EmptyReturn) {
 		w.error(fn.GetToken(), "not all code paths return a value")
@@ -484,21 +482,9 @@ func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) Value {
 	w.match(&node.MatchStmt, true, scope)
 	for i := range node.MatchStmt.Cases {
 		caseScope := NewScope(&matchScope, &UntaggedTag{})
-
-		endIndex := -1
-		for j := range node.MatchStmt.Cases[i].Body {
-			if mtt.GetIfExits(All) {
-				w.warn(node.MatchStmt.Cases[i].Body[j].GetToken(), "unreachable code detected")
-				endIndex = j
-				break
-			}
-			w.WalkNode(&node.MatchStmt.Cases[i].Body[j], &caseScope)
-		}
-		if endIndex != -1 {
-			node.MatchStmt.Cases[i].Body = node.MatchStmt.Cases[i].Body[:endIndex]
-		}
+		w.WalkBody(&node.MatchStmt.Cases[i].Body, mtt, &caseScope)
 	}
-	returnable := helpers.GetValOfInterface[ExitableTag](scope.Tag)
+	returnable := scope.ResolveReturnable()
 
 	matchTag, _ := matchScope.Tag.(*MatchExprTag)
 	if matchTag.YieldValues == nil {

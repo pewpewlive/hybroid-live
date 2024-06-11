@@ -331,6 +331,37 @@ func (w *Walker) Pass1(nodes *[]ast.Node, wlkrs *map[string]*Walker) []ast.Node 
 // 	return newNodes
 // }
 
+func (w *Walker) ReportExits(sender ExitableTag, scope *Scope) {
+	receiver_ := scope.ResolveReturnable()
+
+	if receiver_ == nil {
+		return
+	}
+
+	receiver := *receiver_
+
+	receiver.SetExit(sender.GetIfExits(Yield), Yield)
+	receiver.SetExit(sender.GetIfExits(Return), Return)
+	receiver.SetExit(sender.GetIfExits(Break), Break)
+	receiver.SetExit(sender.GetIfExits(Continue), Continue)
+	receiver.SetExit(sender.GetIfExits(Yield), All)
+} 
+
+func (w *Walker) WalkBody(body *[]ast.Node, tag ExitableTag, scope *Scope) {
+	endIndex := -1
+	for i := range *body {
+		if tag.GetIfExits(Return) {
+			w.warn((*body)[i].GetToken(), "unreachable code detected")
+			endIndex = i
+			break
+		}
+		w.WalkNode(&(*body)[i], scope)
+	}
+	if endIndex != -1 {
+		*body = (*body)[:endIndex]
+	}
+}
+
 func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 	switch newNode := (*node).(type) {
 	case *ast.EnvironmentStmt:

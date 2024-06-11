@@ -17,10 +17,7 @@ func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
 	if boolExpr.GetType().Type != ast.Bool {
 		w.error(node.BoolExpr.GetToken(), "if condition is not a comparison")
 	}
-	for i := range node.Body {
-
-		w.WalkNode(&node.Body[i], &ifScope)
-	}
+	w.WalkBody(&node.Body, mpt, &ifScope)
 
 	for i := range node.Elseifs {
 		boolExpr := w.GetNodeValue(&node.Elseifs[i].BoolExpr, scope)
@@ -28,17 +25,13 @@ func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
 			w.error(node.Elseifs[i].BoolExpr.GetToken(), "if condition is not a comparison")
 		}
 		ifScope := NewScope(&multiPathScope, &UntaggedTag{})
-		for j := range node.Elseifs[i].Body {
-			w.WalkNode(&node.Elseifs[i].Body[j], &ifScope)
-		}
+		w.WalkBody(&node.Elseifs[i].Body, mpt, &ifScope)
 	}
 
 	
 	if node.Else != nil {
 		elseScope := NewScope(&multiPathScope, &UntaggedTag{})
-		for i := range node.Else.Body {
-			w.WalkNode(&node.Else.Body[i], &elseScope) //lol
-		}
+		w.WalkBody(&node.Else.Body, mpt, &elseScope)
 	}
 
 	returnabl := scope.ResolveReturnable()
@@ -133,18 +126,7 @@ func (w *Walker) functionDeclaration(node *ast.FunctionDeclarationStmt, scope *S
 		w.error(node.GetToken(), "cannot declare a global function inside a local block")
 	}
 
-	endIndex := -1
-	for i := range node.Body {
-		if funcTag.GetIfExits(Return) {
-			w.warn(node.Body[i].GetToken(), "unreachable code detected")
-			endIndex = i
-			break
-		}
-		w.WalkNode(&node.Body[i], &fnScope)
-	}
-	if endIndex != -1 {
-		node.Body = node.Body[:endIndex]
-	}
+	w.WalkBody(&node.Body, funcTag, &fnScope)
 
 	if funcTag, ok := fnScope.Tag.(*FuncTag); ok {
 		if !funcTag.GetIfExits(Return) && !ret.Eq(&EmptyReturn) {
@@ -291,30 +273,9 @@ func (w *Walker) repeat(node *ast.RepeatStmt, scope *Scope) {
 			DeclareVariable(VariableVal{Name: node.Variable.Name.Lexeme, Value: w.GetNodeValue(&node.Start, scope), Node: node})
 	}
 
-	endIndex := -1
-	for i := range node.Body {
-		if lt.GetIfExits(All) {
-			w.warn(node.Body[i].GetToken(), "unreachable code detected")
-			endIndex = i
-		}
-		w.WalkNode(&node.Body[i], &repeatScope)
-	}
-	if endIndex != -1 {
-		node.Body = node.Body[:endIndex]
-	}
+	w.WalkBody(&node.Body, lt, &repeatScope)
 
-	returnabl := scope.ResolveReturnable()
-
-	if returnabl == nil {
-		return
-	}
-
-	returnable := *returnabl
-
-	returnable.SetExit(lt.GetIfExits(Return), Return)
-	returnable.SetExit(lt.GetIfExits(Yield), Yield)
-	returnable.SetExit(lt.GetIfExits(Break), Break)
-	returnable.SetExit(lt.GetIfExits(Continue), Continue)
+	w.ReportExits(lt, scope)
 }
 
 func (w *Walker) forloop(node *ast.ForStmt, scope *Scope) {
@@ -337,30 +298,9 @@ func (w *Walker) forloop(node *ast.ForStmt, scope *Scope) {
 		w.error(node.Iterator.GetToken(), "iterator must be of type map or list")
 	}
 
-	endIndex := -1
-	for i := range node.Body {
-		if lt.GetIfExits(All) {
-			w.warn(node.Body[i].GetToken(), "unreachable code detected")
-			endIndex = i
-		}
-		w.WalkNode(&node.Body[i], &forScope)
-	}
-	if endIndex != -1 {
-		node.Body = node.Body[:endIndex]
-	}
+	w.WalkBody(&node.Body, lt, &forScope)
 
-	returnabl := scope.ResolveReturnable()
-
-	if returnabl == nil {
-		return
-	}
-
-	returnable := *returnabl
-
-	returnable.SetExit(lt.GetIfExits(Return), Return)
-	returnable.SetExit(lt.GetIfExits(Yield), Yield)
-	returnable.SetExit(lt.GetIfExits(Break), Break)
-	returnable.SetExit(lt.GetIfExits(Continue), Continue)
+	w.ReportExits(lt, scope)
 }
 
 func (w *Walker) tick(node *ast.TickStmt, scope *Scope) {
@@ -578,7 +518,7 @@ func (w *Walker) match(node *ast.MatchStmt, isExpr bool, scope *Scope) {
 	multiPathScope := NewScope(scope, mpt)
 
 	var has_default bool
-	for _, matchCase := range node.Cases {
+	for i, matchCase := range node.Cases {
 		caseScope := NewScope(&multiPathScope, &UntaggedTag{})
 
 		if matchCase.Expression.GetToken().Lexeme == "_" {
@@ -586,18 +526,7 @@ func (w *Walker) match(node *ast.MatchStmt, isExpr bool, scope *Scope) {
 		}
 
 		if !isExpr {
-			endIndex := -1
-			for i := range matchCase.Body {
-				if mpt.GetIfExits(All) {
-					endIndex = i
-					w.warn(matchCase.Body[i].GetToken(), "unreachable code detected")
-					break
-				}
-				w.WalkNode(&matchCase.Body[i], &caseScope)
-			}
-			if endIndex != -1 {
-				matchCase.Body = matchCase.Body[:endIndex]
-			}
+			w.WalkBody(&node.Cases[i].Body, mpt, &caseScope)
 		}
 		if caseScope.Tag.GetType() == Untagged {
 			continue
@@ -624,19 +553,7 @@ func (w *Walker) match(node *ast.MatchStmt, isExpr bool, scope *Scope) {
 		return
 	}
 
-	returnabl := scope.ResolveReturnable()
-
-	if returnabl == nil {
-		return
-	}
-
-	returnable := *returnabl
-
-	returnable.SetExit(mpt.GetIfExits(Yield), Yield)
-	returnable.SetExit(mpt.GetIfExits(Return), Yield)
-	returnable.SetExit(mpt.GetIfExits(Break), Yield)
-	returnable.SetExit(mpt.GetIfExits(Continue), Yield)
-	returnable.SetExit(mpt.GetIfExits(All), All)
+	w.ReportExits(mpt, scope)
 }
 
 func (w *Walker) env(node *ast.EnvironmentStmt, scope *Scope) {
