@@ -8,7 +8,7 @@ import (
 )
 
 type Walker struct {
-	Environment *Environment
+	Environment *EnvironmentVal
 	Walkers     *map[string]*Walker
 	nodes       *[]ast.Node
 	Errors      []ast.Error
@@ -44,42 +44,6 @@ func (w *Walker) addError(err ast.Error) {
 	w.Errors = append(w.Errors, err)
 }
 
-func (w *Walker) GetValueFromType(typee Type) Value {
-	switch typee.Type {
-	case ast.Number:
-		return &NumberVal{}
-	case ast.FixedPoint, ast.Fixed, ast.Radian, ast.Degree:
-		return &FixedVal{
-			SpecificType: typee.Type,
-		}
-	case ast.Bool:
-		return &BoolVal{}
-	case ast.List:
-		return &ListVal{
-			ValueType: *typee.WrappedType,
-		}
-	case ast.Map:
-		return &MapVal{
-			MemberType: *typee.WrappedType,
-		}
-	case ast.Func:
-		return &FunctionVal{
-			params:    typee.Params,
-			returnVal: typee.Returns,
-		}
-	case ast.String:
-		return &StringVal{}
-	case ast.Invalid:
-		return &Invalid{}
-	case 0:
-		return &Unknown{}
-	case ast.Struct:
-		return w.Environment.Scope.GetStructType(&w.Environment.Scope, typee.Name)
-	default:
-		return &Invalid{}
-	}
-}
-
 func (s *Scope) GetVariable(scope *Scope, name string) VariableVal {
 	variable := scope.Variables[name]
 
@@ -100,14 +64,15 @@ func (s *Scope) GetVariableIndex(scope *Scope, name string) int {
 	return scope.VariableIndexes[name]
 }
 
-func (s *Scope) GetStructType(scope *Scope, name string) *StructTypeVal {
-	structType := scope.Environment.StructTypes[name]
+/// ONLY CALL WHEN 100% SURE YOU'RE GONNA GET A STRUCT BACK
+func (w *Walker) GetStruct(name string) *StructVal {
+	structType := w.Environment.StructTypes[name]
 
-	structType.IsUsed = true
+	structType.Type.IsUsed = true
 
-	scope.Environment.StructTypes[name] = structType
+	w.Environment.StructTypes[name] = structType
 
-	return scope.Environment.StructTypes[name]
+	return &structType
 }
 
 func (s *Scope) AssignVariableByName(name string, value Value) (Value, *ast.Error) {
@@ -152,12 +117,12 @@ func (s *Scope) DeclareVariable(value VariableVal) (VariableVal, bool) {
 	return value, true
 }
 
-func (s *Scope) DeclareStructType(structType *StructTypeVal) bool {
-	if _, found := s.Environment.StructTypes[structType.Name.Lexeme]; found {
+func (w *Walker) DeclareStruct(structVal StructVal) bool {
+	if _, found := w.Environment.StructTypes[structVal.Type.Name]; found {
 		return false
 	}
 
-	s.Environment.StructTypes[structType.Name.Lexeme] = structType
+	w.Environment.StructTypes[structVal.Type.Name] = structVal
 	return true
 }
 
@@ -171,18 +136,6 @@ func (s *Scope) ResolveVariable(name string) *Scope {
 	}
 
 	return s.Parent.ResolveVariable(name)
-}
-
-func (s *Scope) ResolveStructType(name string) *Scope {
-	if _, found := s.Environment.StructTypes[name]; found {
-		return s
-	}
-
-	if s.Parent == nil {
-		return nil
-	}
-
-	return s.Parent.ResolveStructType(name)
 }
 
 func ResolveTagScope[T ScopeTag](sc *Scope) (*Scope, *ScopeTag, *T) {
@@ -215,23 +168,23 @@ func (sc *Scope) ResolveReturnable() *ExitableTag {
 
 func (w *Walker) validateArithmeticOperands(left Type, right Type, expr ast.BinaryExpr) bool {
 	//fmt.Printf("Validating operands: %v (%v) and %v (%v)\n", left.Val, left.Type, right.Val, right.Type)
-	if left.Type == ast.Invalid {
+	if left.PVT() == ast.Invalid {
 		w.error(expr.Left.GetToken(), "cannot perform arithmetic on Invalid value")
 		return false
 	}
 
-	if right.Type == ast.Invalid {
+	if right.PVT() == ast.Invalid {
 		w.error(expr.Right.GetToken(), "cannot perform arithmetic on Invalid value")
 		return false
 	}
 
-	switch left.Type {
+	switch left.PVT() {
 	case ast.List, ast.Map, ast.String, ast.Bool, ast.Entity, ast.Struct:
 		w.error(expr.Left.GetToken(), "cannot perform arithmetic on a non-number value")
 		return false
 	}
 
-	switch right.Type {
+	switch right.PVT() {
 	case ast.List, ast.Map, ast.String, ast.Bool, ast.Entity, ast.Struct:
 		w.error(expr.Right.GetToken(), "cannot perform arithmetic on a non-number value")
 		return false
@@ -247,9 +200,7 @@ func returnsAreValid(list1 []Type, list2 []Type) bool {
 
 	for i, v := range list1 {
 		fmt.Printf("%s compared to %s\n", list1[i].ToString(), list2[i].ToString())
-		if !((list2[i].WrappedType != nil && list2[i].WrappedType.Type == 0) ||
-			(v.WrappedType != nil && v.WrappedType.Type == 0)) &&
-			!TypeEquals(&list2[i], &v) {
+		if !TypeEquals(v, list2[i]) {
 			return false
 		}
 	}
@@ -269,6 +220,33 @@ func (w *Walker) validateReturnValues(_return Types, expectReturn Types) string 
 	return ""
 }
 
+func (w *Walker) TypeToValue(_type Type) Value {
+	switch _type.PVT() {
+	case ast.Radian, ast.Fixed, ast.FixedPoint, ast.Degree:
+		return &FixedVal{SpecificType: _type.PVT()}
+	case ast.Bool:
+		return &BoolVal{}
+	case ast.String:
+		return &StringVal{}
+	case ast.Number:
+		return &NumberVal{}
+	case ast.List:
+		return &ListVal{
+			ValueType: _type.(*WrapperType).WrappedType,
+		}
+	case ast.Map:
+		return &MapVal{
+			MemberType: _type.(*WrapperType).WrappedType,
+		}
+	case ast.Struct:
+		return w.GetStruct(_type.ToString())
+	case ast.Environment:
+		return (*w.Walkers)[_type.(*EnvironmentType).Name].Environment
+	default:
+		return &Invalid{}
+	}
+}
+
 func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
 	switch str {
 	case "number":
@@ -285,6 +263,8 @@ func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
 		return ast.Func
 	case "bool":
 		return ast.Bool
+	case "struct":
+		return ast.AnonStruct
 	default:
 		return ast.Invalid
 	}

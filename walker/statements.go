@@ -14,14 +14,14 @@ func (w *Walker) ifStmt(node *ast.IfStmt, scope *Scope) {
 	multiPathScope := NewScope(scope, mpt)
 	ifScope := NewScope(&multiPathScope, &UntaggedTag{})
 	boolExpr := w.GetNodeValue(&node.BoolExpr, scope)
-	if boolExpr.GetType().Type != ast.Bool {
+	if boolExpr.GetType().PVT() != ast.Bool {
 		w.error(node.BoolExpr.GetToken(), "if condition is not a comparison")
 	}
 	w.WalkBody(&node.Body, mpt, &ifScope)
 
 	for i := range node.Elseifs {
 		boolExpr := w.GetNodeValue(&node.Elseifs[i].BoolExpr, scope)
-		if boolExpr.GetType().Type != ast.Bool {
+		if boolExpr.GetType().PVT() != ast.Bool {
 			w.error(node.Elseifs[i].BoolExpr.GetToken(), "if condition is not a comparison")
 		}
 		ifScope := NewScope(&multiPathScope, &UntaggedTag{})
@@ -66,12 +66,12 @@ func (w *Walker) assignment(assignStmt *ast.AssignmentStmt, scope *Scope) {
 		}
 		variableType := wIdents[i].GetType()
 		valueType := value.GetType()
-		if variableType.Type == ast.Invalid {
+		if variableType.PVT() == ast.Invalid {
 			w.error(assignStmt.Identifiers[i].GetToken(), "cannot assign a value to an undeclared variable")
 			continue
 		}
 
-		if !TypeEquals(&variableType, &valueType) {
+		if !TypeEquals(variableType, valueType) {
 			w.error(assignStmt.Values[i].GetToken(), fmt.Sprintf("mismatched types: variable has a type of %s, but a value of %s was given to it.", variableType.ToString(), valueType.ToString()))
 		}
 
@@ -79,7 +79,7 @@ func (w *Walker) assignment(assignStmt *ast.AssignmentStmt, scope *Scope) {
 
 		if ok {
 			if _, err := scope.AssignVariable(*variable, value); err != nil {
-				err.Token = variable.Node.GetToken()
+				err.Token = variable.Token
 				w.addError(*err)
 			}
 		}
@@ -107,14 +107,14 @@ func (w *Walker) functionDeclaration(node *ast.FunctionDeclarationStmt, scope *S
 	params := make([]Type, 0)
 	for i, param := range node.Params {
 		params = append(params, w.typeExpr(param.Type))
-		value := w.GetValueFromType(params[i])
-		fnScope.DeclareVariable(VariableVal{Name: param.Name.Lexeme, Value: value, Node: node})
+		value := w.TypeToValue(params[i])
+		fnScope.DeclareVariable(VariableVal{Name: param.Name.Lexeme, Value: value, Token: node.GetToken()})
 	}
 
 	variable := VariableVal{
 		Name:  node.Name.Lexeme,
-		Value: &FunctionVal{params: params, returnVal: ret},
-		Node:  node,
+		Value: &FunctionVal{params: params, returns: ret},
+		Token:  node.GetToken(),
 	}
 	if procType == Function {
 		if _, success := scope.DeclareVariable(variable); !success {
@@ -239,29 +239,29 @@ func (w *Walker) repeat(node *ast.RepeatStmt, scope *Scope) {
 
 	end := w.GetNodeValue(&node.Iterator, scope)
 	endType := end.GetType()
-	if !parser.IsFx(endType.Type) && endType.Type != ast.Number {
+	if !parser.IsFx(endType.PVT()) && endType.PVT() != ast.Number {
 		w.error(node.Iterator.GetToken(), "invalid value type of iterator")
 	} else if variable, ok := end.(*VariableVal); ok {
 		if fixedpoint, ok := variable.Value.(*FixedVal); ok {
-			endType = Type{Type: fixedpoint.SpecificType}
+			endType = NewBasicType(fixedpoint.SpecificType)
 		}
 	} else {
 		if fixedpoint, ok := end.(*FixedVal); ok {
-			endType = Type{Type: fixedpoint.SpecificType}
+			endType = NewBasicType(fixedpoint.SpecificType)
 		}
 	}
 	if node.Start.GetType() == ast.NA {
-		node.Start = &ast.LiteralExpr{Token: node.Start.GetToken(), ValueType: endType.Type, Value: "1"}
+		node.Start = &ast.LiteralExpr{Token: node.Start.GetToken(), ValueType: endType.PVT(), Value: "1"}
 	}
 	start := w.GetNodeValue(&node.Start, scope)
 	if node.Skip.GetType() == ast.NA {
-		node.Skip = &ast.LiteralExpr{Token: node.Skip.GetToken(), ValueType: endType.Type, Value: "1"}
+		node.Skip = &ast.LiteralExpr{Token: node.Skip.GetToken(), ValueType: endType.PVT(), Value: "1"}
 	}
 	skip := w.GetNodeValue(&node.Skip, scope)
 
-	repeatType := end.GetType().Type
-	startType := start.GetType().Type
-	skipType := skip.GetType().Type
+	repeatType := end.GetType().PVT()
+	startType := start.GetType().PVT()
+	skipType := skip.GetType().PVT()
 
 	if (repeatType != startType || startType == 0) &&
 		(repeatType != skipType || skipType == 0) {
@@ -270,7 +270,7 @@ func (w *Walker) repeat(node *ast.RepeatStmt, scope *Scope) {
 
 	if node.Variable.GetValueType() != 0 {
 		repeatScope.
-			DeclareVariable(VariableVal{Name: node.Variable.Name.Lexeme, Value: w.GetNodeValue(&node.Start, scope), Node: node})
+			DeclareVariable(VariableVal{Name: node.Variable.Name.Lexeme, Value: w.GetNodeValue(&node.Start, scope), Token: node.GetToken()})
 	}
 
 	w.WalkBody(&node.Body, lt, &repeatScope)
@@ -290,10 +290,10 @@ func (w *Walker) forloop(node *ast.ForStmt, scope *Scope) {
 	}
 
 	if node.Value.GetValueType() != 0 {
-		forScope.DeclareVariable(VariableVal{Name: node.Value.Name.Lexeme, Value: w.GetValueFromType(*w.GetNodeValue(&node.Iterator, scope).GetType().WrappedType)})
+		forScope.DeclareVariable(VariableVal{Name: node.Value.Name.Lexeme, Value: w.TypeToValue(w.GetNodeValue(&node.Iterator, scope).GetType().(*WrapperType).WrappedType)})
 	}
 
-	iteratorType := w.GetNodeValue(&node.Iterator, scope).GetType().Type
+	iteratorType := w.GetNodeValue(&node.Iterator, scope).GetType().PVT()
 	if iteratorType != ast.List && iteratorType != ast.Map {
 		w.error(node.Iterator.GetToken(), "iterator must be of type map or list")
 	}
@@ -317,7 +317,7 @@ func (w *Walker) tick(node *ast.TickStmt, scope *Scope) {
 
 func (w *Walker) AddTypesToValues(list *[]Value, tys *Types) {
 	for _, typ := range *tys {
-		val := w.GetValueFromType(typ)
+		val := w.TypeToValue(typ)
 		*list = append(*list, val)
 	}
 }
@@ -325,7 +325,18 @@ func (w *Walker) AddTypesToValues(list *[]Value, tys *Types) {
 func (w *Walker) variableDeclaration(declaration *ast.VariableDeclarationStmt, scope *Scope) []VariableVal {
 	declaredVariables := []VariableVal{}
 
-	var values []Value
+	idents := len(declaration.Identifiers)
+	values := make([]Value, idents)
+
+	for i := range values {
+		values[i] = &Invalid{}
+	}
+
+	valuesLength := len(declaration.Values)
+	if valuesLength > idents {
+		w.error(declaration.Token, "too many values provided in declaration")
+		return declaredVariables
+	}
 
 	for i := range declaration.Values {
 
@@ -333,20 +344,16 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDeclarationStmt, s
 		if declaration.Values[i].GetType() == ast.SelfExpression {
 			w.error(declaration.Values[i].GetToken(), "cannot assign self to a variable")
 		}
-		if types, ok := exprValue.(*Types); ok {
+		if types, ok := exprValue.(*Types); ok { // i want to make it so that when you dont supply a variable with a value
+			temp := values[i:] // it will get the default value if it was given an explicit type
+			values = values[:i] // but shit doesnt want to shit
 			w.AddTypesToValues(&values, types)
+			values = append(values, temp...) // what are they?
 		} else {
-			values = append(values, exprValue)
+			values[i] = exprValue
 		}
 	}
-	valuesLength := len(values)
-	if valuesLength > len(declaration.Identifiers) {
-		w.error(declaration.Token, "too many values provided in declaration")
-		return declaredVariables
-	} else if valuesLength < len(declaration.Identifiers) {
-		w.error(declaration.Token, "too few values provided in declaration")
-		return declaredVariables
-	}
+
 
 	if !declaration.IsLocal {
 		w.error(declaration.Token, "cannot declare a global variable inside a local block")
@@ -363,8 +370,12 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDeclarationStmt, s
 		valType := values[i].GetType()
 
 		if declaration.Types[i] != nil {
-			if explicitType := w.typeExpr(declaration.Types[i]); !TypeEquals(&valType, &explicitType) {
-				w.error(declaration.Token, fmt.Sprintf("mismatched types: explict type (%s) not the same with value type (%s)",
+			explicitType := w.typeExpr(declaration.Types[i])
+			if valType == InvalidType && explicitType != InvalidType {
+				values[i] = w.TypeToValue(explicitType)
+				declaration.Values = append(declaration.Values, values[i].GetDefault())
+			} else if !TypeEquals(valType, explicitType) {
+				w.error(declaration.Token, fmt.Sprintf("mismatched types: value type (%s) not the same with explict type (%s)",
 					valType.ToString(),
 					explicitType.ToString()))
 			}
@@ -373,7 +384,7 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDeclarationStmt, s
 		variable := VariableVal{
 			Value: values[i],
 			Name:  ident.Lexeme,
-			Node:  declaration,
+			Token:  ident,
 		}
 		declaredVariables = append(declaredVariables, variable)
 		if _, success := scope.DeclareVariable(variable); !success {
@@ -386,24 +397,24 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDeclarationStmt, s
 }
 
 func (w *Walker) structDeclaration(node *ast.StructDeclarationStmt, scope *Scope) {
-	structTypeVal := StructTypeVal{
-		Name:         node.Name,
-		Methods:      map[string]VariableVal{},
-		Fields:       []VariableVal{},
+	structVal := &StructVal{
+		Type: *NewNamedType(node.Name.Lexeme),
+		Fields: make([]VariableVal, 0),
 		FieldIndexes: map[string]int{},
+		Methods: map[string]VariableVal{},
+		Params: Types{},
 	}
 
-	structScope := NewScope(scope, &StructTag{StructType: &structTypeVal})
+	structScope := NewScope(scope, &StructTag{StructVal: structVal})
 	structScope.Attributes.Add(SelfAllowing)
 
 	params := make([]Type, 0)
 	for _, param := range node.Constructor.Params {
 		params = append(params, w.typeExpr(param.Type))
 	}
-	structTypeVal.Params = params
+	structVal.Params = params
 
-	scope.DeclareStructType(&structTypeVal)
-	w.Environment.StructTypes[structTypeVal.Name.Lexeme] = &structTypeVal
+	w.DeclareStruct(*structVal)
 
 	funcDeclaration := ast.MethodDeclarationStmt{
 		Name:    node.Constructor.Token,
@@ -414,10 +425,10 @@ func (w *Walker) structDeclaration(node *ast.StructDeclarationStmt, scope *Scope
 	}
 
 	for i := range node.Fields {
-		w.fieldDeclaration(&node.Fields[i], &structTypeVal, &structScope)
+		w.fieldDeclaration(&node.Fields[i], structVal, &structScope)
 	}
 
-	structTypeVal.FieldIndexes = structScope.VariableIndexes
+	structVal.FieldIndexes = structScope.VariableIndexes
 
 	for i := range *node.Methods {
 		params := make([]Type, 0)
@@ -432,23 +443,23 @@ func (w *Walker) structDeclaration(node *ast.StructDeclarationStmt, scope *Scope
 		}
 		variable := VariableVal{
 			Name:  (*node.Methods)[i].Name.Lexeme,
-			Value: &FunctionVal{params: params, returnVal: ret},
-			Node:  &(*node.Methods)[i],
+			Value: &FunctionVal{params: params, returns: ret},
+			Token:  (*node.Methods)[i].GetToken(),
 		}
 		if _, success := structScope.DeclareVariable(variable); !success {
 			w.error((*node.Methods)[i].Name, fmt.Sprintf("variable with name '%s' already exists", variable.Name))
 		}
-		structTypeVal.Methods[variable.Name] = variable
+		structVal.Methods[variable.Name] = variable
 	}
 
 	for i := range *node.Methods {
-		w.methodDeclaration(&(*node.Methods)[i], &structTypeVal, &structScope)
+		w.methodDeclaration(&(*node.Methods)[i], structVal, &structScope)
 	}
 
-	w.methodDeclaration(&funcDeclaration, &structTypeVal, &structScope)
+	w.methodDeclaration(&funcDeclaration, structVal, &structScope)
 }
 
-func (w *Walker) fieldDeclaration(node *ast.FieldDeclarationStmt, container Container, scope *Scope) {
+func (w *Walker) fieldDeclaration(node *ast.FieldDeclarationStmt, container FieldContainer, scope *Scope) {
 	varDecl := ast.VariableDeclarationStmt{
 		Identifiers: node.Identifiers,
 		Types:       node.Types,
@@ -460,7 +471,7 @@ func (w *Walker) fieldDeclaration(node *ast.FieldDeclarationStmt, container Cont
 	if len(node.Types) != 0 {
 		for i := range node.Types {
 			explicitType := w.typeExpr(node.Types[i])
-			if TypeEquals(&explicitType, &structType) {
+			if TypeEquals(explicitType, structType) {
 				w.error(node.Types[i].GetToken(), "cannot have a field with a value type of its struct")
 				return
 			}
@@ -468,7 +479,7 @@ func (w *Walker) fieldDeclaration(node *ast.FieldDeclarationStmt, container Cont
 	} else if len(node.Types) != 0 {
 		for i := range node.Values {
 			valType := w.GetNodeValue(&node.Values[i], scope).GetType()
-			if TypeEquals(&valType, &structType) {
+			if TypeEquals(valType, structType) {
 				w.error(node.Types[i].GetToken(), "cannot have a field with a value type of its struct")
 				return
 			}
@@ -482,7 +493,7 @@ func (w *Walker) fieldDeclaration(node *ast.FieldDeclarationStmt, container Cont
 	}
 }
 
-func (w *Walker) methodDeclaration(node *ast.MethodDeclarationStmt, container Container, scope *Scope) {
+func (w *Walker) methodDeclaration(node *ast.MethodDeclarationStmt, container MethodContainer, scope *Scope) {
 	funcExpr := ast.FunctionDeclarationStmt{
 		Name:    node.Name,
 		Return:  node.Return,
@@ -497,7 +508,7 @@ func (w *Walker) methodDeclaration(node *ast.MethodDeclarationStmt, container Co
 }
 
 func (w *Walker) use(node *ast.UseStmt, scope *Scope) {
-	variable := VariableVal{Name: node.Variable.Name.Lexeme, Value: &EnvironmentVal{Name: node.Variable.Name.Lexeme}, Node: node}
+	variable := VariableVal{Name: node.Variable.Name.Lexeme, Value: &EnvironmentVal{Name: node.Variable.Name.Lexeme}, Token: node.GetToken()}
 
 	if _, success := scope.DeclareVariable(variable); !success {
 		w.error(node.Variable.Name, "cannot declare a value in the same scope twice")
@@ -506,7 +517,7 @@ func (w *Walker) use(node *ast.UseStmt, scope *Scope) {
 
 func (w *Walker) match(node *ast.MatchStmt, isExpr bool, scope *Scope) {
 	val := w.GetNodeValue(&node.ExprToMatch, scope)
-	if val.GetType().Type == ast.Invalid {
+	if val.GetType().PVT() == ast.Invalid {
 		w.error(node.ExprToMatch.GetToken(), "variable is of type invalid")
 	}
 	valType := val.GetType()
@@ -532,7 +543,7 @@ func (w *Walker) match(node *ast.MatchStmt, isExpr bool, scope *Scope) {
 			continue
 		}
 		caseValType := w.GetNodeValue(&matchCase.Expression, scope).GetType()
-		if !TypeEquals(&valType, &caseValType) {
+		if !TypeEquals(valType, caseValType) {
 			w.error(
 				matchCase.Expression.GetToken(),
 				fmt.Sprintf("mismatched types: arm expression (%s) and match expression (%s)",

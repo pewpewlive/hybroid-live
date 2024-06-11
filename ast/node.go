@@ -69,7 +69,7 @@ const (
 	Struct
 	AnonStruct
 	Ident
-	Namespace
+	Environment
 
 	Invalid
 )

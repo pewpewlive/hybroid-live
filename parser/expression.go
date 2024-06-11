@@ -16,7 +16,7 @@ func (p *Parser) fn() ast.Node {
 		fn := &ast.AnonFnExpr{
 			Token: p.peek(-1),
 		}
-		fn.Params = p.parameters()
+		fn.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
 
 		ret := make([]*ast.TypeExpr, 0)
 		for p.check(lexer.Identifier) {
@@ -521,13 +521,19 @@ func (p *Parser) anonStruct() ast.Node {
 	}
 
 	for !p.match(lexer.RightBrace) {
-		if p.check(lexer.Identifier) {
+		field := p.fieldDeclarationStmt()
+		if field.GetType() != ast.NA {
+			anonStruct.Fields = append(anonStruct.Fields, field.(*ast.FieldDeclarationStmt))
+		}else {
+			p.error(field.GetToken(), "expected field declaration inside anonymous struct")
+		}
+		for p.match(lexer.Comma) {
 			field := p.fieldDeclarationStmt()
 			if field.GetType() != ast.NA {
 				anonStruct.Fields = append(anonStruct.Fields, field.(*ast.FieldDeclarationStmt))
+			}else {
+				p.error(field.GetToken(), "expected field declaration inside anonymous struct")
 			}
-		} else {
-			p.error(p.peek(), "unknown statement inside struct")
 		}
 	}
 
@@ -545,18 +551,19 @@ func (p *Parser) WrappedType() *ast.TypeExpr {
 }
 
 func (p *Parser) Type() *ast.TypeExpr {
-	expr := p.primary()
+	exprToken := p.advance()
 
-	if expr.GetType() == ast.Identifier {
+	switch exprToken.Type {
+	case lexer.Identifier:
 		typee := &ast.TypeExpr{}
 
 		if p.match(lexer.Less) {
 			typee.WrappedType = p.WrappedType()
 			p.consume("expected '>'", lexer.Greater)
 		}
-		typee.Name = expr.GetToken()
+		typee.Name = exprToken
 		return typee
-	} else if expr.GetToken().Type == lexer.Fn {
+	case lexer.Fn:
 		typee := &ast.TypeExpr{}
 
 		p.advance()
@@ -570,7 +577,7 @@ func (p *Parser) Type() *ast.TypeExpr {
 			}
 			p.consume("expected closing parenthesis in 'fn(...'", lexer.RightParen)
 		}
-		typee.Params = &params
+		typee.Params = params
 
 		if p.check(lexer.Identifier) {
 			typee.Returns = append(typee.Returns, p.Type())
@@ -580,12 +587,15 @@ func (p *Parser) Type() *ast.TypeExpr {
 			}
 		}
 
-		typee.Name = expr.GetToken()
+		typee.Name = exprToken
 		return typee
-	} else {
-		p.error(expr.GetToken(), "Expected an identifier for a type")
+	case lexer.Struct:
+		fields := p.parameters(lexer.LeftBrace, lexer.RightBrace)
+		return &ast.TypeExpr{Name:exprToken,Fields: fields}
+	default:
+		p.error(exprToken, "Expected an identifier for a type")
 		p.advance()
-		return &ast.TypeExpr{Name: expr.GetToken()}
+		return &ast.TypeExpr{Name: exprToken}
 	}
 }
 

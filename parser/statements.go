@@ -212,7 +212,7 @@ func (p *Parser) structDeclarationStatement() ast.Node {
 func (p *Parser) constructorDeclarationStmt() ast.Node {
 	stmt := ast.ConstructorStmt{Token: p.peek(-1)}
 
-	stmt.Params = p.parameters()
+	stmt.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
 
 	stmt.Body = p.getBody()
 
@@ -259,7 +259,7 @@ func (p *Parser) fieldDeclarationStmt() ast.Node {
 	exprs := []ast.Node{expr}
 	for p.match(lexer.Comma) {
 		expr = p.expression()
-		if expr.GetType() == 0 {
+		if expr.GetType() == ast.NA {
 			p.error(p.peek(), "expected expression")
 		}
 		exprs = append(exprs, expr)
@@ -280,7 +280,7 @@ func (p *Parser) methodDeclarationStmt(IsLocal bool) ast.Node {
 	}
 
 	fnDec.Name = ident
-	fnDec.Params = p.parameters()
+	fnDec.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
 
 	ret := make([]*ast.TypeExpr, 0)
 	for p.check(lexer.Identifier) {
@@ -429,7 +429,7 @@ func (p *Parser) functionDeclarationStmt() ast.Node {
 	}
 
 	fnDec.Name = ident
-	fnDec.Params = p.parameters()
+	fnDec.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
 
 	fnDec.Return = p.returnings()
 	fnDec.Body = *p.getBody()

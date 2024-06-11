@@ -41,6 +41,15 @@ let uh = fn() fixed {
     return 1f
 }
 
+let tesst = struct{
+    number Field1 = 10
+    Field2 = true
+}
+
+fn anonStructTest(struct{number Field1, bool Field2} uh) bool {
+    return true
+} 
+
 struct StructTest {
     fixed field1 = 0f
 

@@ -95,8 +95,9 @@ func (ue *UnaryExpr) GetValueType() PrimitiveValueType {
 type TypeExpr struct {
 	WrappedType *TypeExpr
 	Name        lexer.Token
-	Params      *[]*TypeExpr
+	Params      []*TypeExpr
 	Returns     []*TypeExpr
+	Fields      []Param
 }
 
 func (te *TypeExpr) GetType() NodeType {

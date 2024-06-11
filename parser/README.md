@@ -59,3 +59,8 @@ The file that holds all of the necessary helpers for the [Parser](https://github
 
 ## `statements.go`
 
+### **Methods:**
+
+`statement() -> ast.Node` - Switches on tokens to get into correct function for handling the token, if this function gets an error it will try to synchronize to find as much errors as possible.
+
+`envStmt() -> ast.Node` - Parses `env` keyword

@@ -39,10 +39,10 @@ func (e *Evaluator) AssignFile(src string, dst string) {
 	e.walker = walker.NewWalker(e.SrcPath)
 }
 
-func (e *Evaluator) Action() error {
+func (e *Evaluator) Action(writeEnabled bool) (string, error) {
 	sourceFile, err := os.ReadFile(e.SrcPath)
 	if err != nil {
-		return fmt.Errorf("failed to read source file: %v", err)
+		return "", fmt.Errorf("failed to read source file: %v", err)
 	}
 
 	fmt.Printf("Tokenizing %v characters\n", len(sourceFile))
@@ -55,7 +55,7 @@ func (e *Evaluator) Action() error {
 		for _, err := range e.lexer.Errors {
 			colorstring.Printf("[red]Error: %v\n", err)
 		}
-		return fmt.Errorf("failed to tokenize source file")
+		return "", fmt.Errorf("failed to tokenize source file")
 	}
 
 	fmt.Printf("Tokenizing time: %v seconds\n\n", time.Since(start).Seconds())
@@ -71,7 +71,7 @@ func (e *Evaluator) Action() error {
 			e.writeSyntaxAlert(string(sourceFile), err)
 			//colorstring.Printf("[red]Error: %+v\n", err)
 		}
-		return fmt.Errorf("failed to parse source file")
+		return "", fmt.Errorf("failed to parse source file")
 	}
 	fmt.Printf("Parsing time: %v seconds\n\n", time.Since(start).Seconds())
 	start = time.Now()
@@ -84,7 +84,7 @@ func (e *Evaluator) Action() error {
 		for _, err := range e.walker.Errors {
 			colorstring.Printf("[red]Error: %+v\n", err)
 		}
-		return fmt.Errorf("failed to walk through the nodes")
+		return "", fmt.Errorf("failed to walk through the nodes")
 	}
 	if len(e.walker.Warnings) != 0 {
 		for _, err := range e.walker.Warnings {
@@ -107,12 +107,15 @@ func (e *Evaluator) Action() error {
 	}
 	fmt.Printf("Generating time: %v seconds\n", time.Since(start).Seconds())
 
+	if !writeEnabled {
+		return e.gen.GetSrc(), nil
+	}
 	err = os.WriteFile(e.DstPath, []byte(e.gen.GetSrc()), 0644)
 	if err != nil {
-		return fmt.Errorf("failed to write transpiled file to destination: %v", err)
+		return "", fmt.Errorf("failed to write transpiled file to destination: %v", err)
 	}
 
-	return nil
+	return e.gen.GetSrc(), nil
 }
 
 func (e *Evaluator) writeSyntaxAlert(source string, errMsg ast.Alert) {

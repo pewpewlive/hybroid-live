@@ -58,13 +58,13 @@ func Build(ctx *cli.Context, files ...FileInformation) error {
 		var evalErr error = nil
 		if len(files) == 0 {
 			eval.AssignFile(cwd+entryPoint, cwd+outputDir+"/"+strings.Replace(entryPoint, ".hyb", ".lua", -1))
-			evalErr = eval.Action()
+			_, evalErr = eval.Action(true)
 		} else {
 			for _, file := range files {
 				sourceFilePath := file.Path()
 				outputFilePath := file.NewPath(outputDir, ".lua")
 				eval.AssignFile(cwd+sourceFilePath, cwd+outputFilePath)
-				evalErr = eval.Action()
+				_, evalErr = eval.Action(true)
 			}
 		}
 		err <- evalErr

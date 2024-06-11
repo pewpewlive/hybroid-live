@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"hybroid/ast"
 	"hybroid/lexer"
 )
@@ -51,8 +52,8 @@ func (p *Parser) getParam() ast.Param {
 	return ast.Param{Type: typ, Name: ide.GetToken()}
 }
 
-func (p *Parser) parameters() []ast.Param {
-	if _, ok := p.consume("expected opening paren after an identifier", lexer.LeftParen); !ok {
+func (p *Parser) parameters(opening lexer.TokenType, closing lexer.TokenType) []ast.Param {
+	if _, ok := p.consume(fmt.Sprintf("expected %s", opening.ToString()), opening); !ok {
 		return nil
 	}
 
@@ -64,7 +65,7 @@ func (p *Parser) parameters() []ast.Param {
 		for p.match(lexer.Comma) {
 			args = append(args, p.getParam())
 		}
-		p.consume("expected closing paren after parameters", lexer.RightParen)
+		p.consume(fmt.Sprintf("expected %s after an identifier", closing.ToString()), closing)
 	}
 
 	return args

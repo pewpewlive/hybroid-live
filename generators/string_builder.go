@@ -89,6 +89,15 @@ func (b *BetterBuilder) Grow(n int) {
 
 */
 
+func (b *BetterBuilder) Append(strs ...string) (int, error) {
+	b.copyCheck()
+	for i := range strs {
+		b.buf = append(b.buf, strs[i]...)
+	}
+
+	return len(strs), nil
+}
+
 // Write appends the contents of p to b's buffer.
 // Write always returns len(p), nil.
 func (b *BetterBuilder) Write(p []byte) (int, error) {

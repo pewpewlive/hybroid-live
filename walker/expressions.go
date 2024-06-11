@@ -9,17 +9,17 @@ import (
 )
 
 func (w *Walker) determineValueType(left Type, right Type) Type {
-	if left.Type == 0 || right.Type == 0 {
-		return Type{Type: 0}
+	if left.PVT() == 0 || right.PVT() == 0 {
+		return NAType
 	}
-	if TypeEquals(&left, &right) {
+	if TypeEquals(left, right) {
 		return right
 	}
-	if parser.IsFx(left.Type) && parser.IsFx(right.Type) {
+	if parser.IsFx(left.PVT()) && parser.IsFx(right.PVT()) {
 		return left
 	}
 
-	return Type{Type: ast.Invalid}
+	return InvalidType
 }
 
 func (w *Walker) binaryExpr(node *ast.BinaryExpr, scope *Scope) Value {
@@ -30,16 +30,16 @@ func (w *Walker) binaryExpr(node *ast.BinaryExpr, scope *Scope) Value {
 	case lexer.Plus, lexer.Minus, lexer.Caret, lexer.Star, lexer.Slash, lexer.Modulo:
 		w.validateArithmeticOperands(leftType, rightType, *node)
 	default:
-		if !TypeEquals(&leftType, &rightType) {
-			w.error(node.GetToken(), fmt.Sprintf("invalid comparison: types are not the same (left: %s, right: %s)", leftType.Type.ToString(), rightType.Type.ToString()))
+		if !TypeEquals(leftType, rightType) {
+			w.error(node.GetToken(), fmt.Sprintf("invalid comparison: types are not the same (left: %s, right: %s)",leftType.ToString(), rightType.ToString()))
 		} else {
 			return &BoolVal{}
 		}
 	}
-	val := w.GetValueFromType(w.determineValueType(leftType, rightType))
+	val := w.TypeToValue(w.determineValueType(leftType, rightType))
 
-	if val.GetType().Type == ast.Invalid {
-		w.error(node.GetToken(), fmt.Sprintf("invalid binary expression (left: %s, right: %s)", leftType.Type.ToString(), rightType.Type.ToString()))
+	if val.GetType().PVT() == ast.Invalid {
+		w.error(node.GetToken(), fmt.Sprintf("invalid binary expression (left: %s, right: %s)",leftType.ToString(), rightType.ToString()))
 		return val
 	} else {
 		return val
@@ -112,7 +112,7 @@ func (w *Walker) listExpr(node *ast.ListExpr, scope *Scope) Value {
 	var value ListVal
 	for i := range node.List {
 		val := w.GetNodeValue(&node.List[i], scope)
-		if val.GetType().Type == ast.Invalid {
+		if val.GetType().PVT() == ast.Invalid {
 			w.error(node.List[i].GetToken(), fmt.Sprintf("variable '%s' inside list is invalid", node.List[i].GetToken().Lexeme))
 		}
 		value.Values = append(value.Values, val)
@@ -146,7 +146,7 @@ func (w *Walker) validateArguments(args []Type, params []Type, callToken lexer.T
 		return false
 	}
 	for i, typeVal := range args {
-		if !TypeEquals(&typeVal, &params[i]) {
+		if !TypeEquals(typeVal, params[i]) {
 			return false
 		}
 	}
@@ -158,7 +158,7 @@ func (w *Walker) typeifyNodeList(nodes *[]ast.Node, scope *Scope) []Type {
 	for i := range *nodes {
 		val := w.GetNodeValue(&(*nodes)[i], scope)
 		if function, ok := val.(*FunctionVal); ok {
-			arguments = append(arguments, function.returnVal...)
+			arguments = append(arguments, function.returns...)
 		} else {
 			arguments = append(arguments, val.GetType())
 		}
@@ -172,10 +172,10 @@ func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope, callType ProcedureTy
 	callerToken := node.Caller.GetToken()
 	val := w.GetNodeValue(&node.Caller, scope)
 
-	valType := val.GetType().Type
+	valType := val.GetType().PVT()
 	if valType != ast.Func {
 		if valType != ast.Invalid {
-			w.error(callerToken, fmt.Sprintf("variable used as if it's a %s (type: %s)", typeCall, val.GetType().Type.ToString()))
+			w.error(callerToken, fmt.Sprintf("variable used as if it's a %s (type: %s)", typeCall, valType.ToString()))
 		} else {
 			w.error(callerToken, fmt.Sprintf("unkown %s", typeCall))
 		}
@@ -191,10 +191,10 @@ func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope, callType ProcedureTy
 	arguments := w.typeifyNodeList(&node.Args, scope)
 	w.validateArguments(arguments, fun.params, callerToken, typeCall)
 
-	if len(fun.returnVal) == 1 {
-		return w.GetValueFromType(fun.returnVal[0])
+	if len(fun.returns) == 1 {
+		return w.TypeToValue(fun.returns[0])
 	}
-	return &fun.returnVal
+	return &fun.returns
 }
 
 func (w *Walker) methodCallExpr(node *ast.Node, scope *Scope) Value {
@@ -204,23 +204,20 @@ func (w *Walker) methodCallExpr(node *ast.Node, scope *Scope) Value {
 
 	if container := helpers.GetValOfInterface[Container](ownerVal); container != nil {
 		container := *container
-		fields := container.GetFields()
-		for _, value := range fields {
-			if value.Name == method.MethodName {
-				expr := ast.CallExpr{
-					Identifier: method.MethodName,
-					Caller:     method.Call,
-					Args:       method.Args,
-					Token:      method.Token,
-				}
-				val := w.callExpr(&expr, scope, Function)
-				*node = &expr
-				return val
+		if _, _, contains := container.ContainsField(method.MethodName); contains {
+			expr := ast.CallExpr{
+				Identifier: method.MethodName,
+				Caller:     method.Call,
+				Args:       method.Args,
+				Token:      method.Token,
 			}
+			val := w.callExpr(&expr, scope, Function)
+			*node = &expr
+			return val
 		}
 	}
 
-	method.TypeName = ownerVal.GetType().Name
+	method.TypeName = ownerVal.GetType().(*NamedType).Name
 	*node = method
 
 	callExpr := ast.CallExpr{
@@ -237,7 +234,7 @@ func IsOfPrimitiveType(value Value, types ...ast.PrimitiveValueType) bool {
 	if types == nil {
 		return false
 	}
-	valType := value.GetType().Type
+	valType := value.GetType().PVT()
 	for _, prim := range types {
 		if valType == prim {
 			return true
@@ -251,8 +248,8 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 	if node.Owner == nil {
 		val := w.GetNodeValue(&node.Identifier, scope)
 
-		if !IsOfPrimitiveType(val, ast.Struct, ast.Entity, ast.Namespace) {
-			w.error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a struct, entity or namespace", node.Identifier.GetToken().Lexeme))
+		if !IsOfPrimitiveType(val, ast.Struct, ast.Entity) {
+			w.error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a struct, entity", node.Identifier.GetToken().Lexeme))
 			return &Invalid{}
 		}
 
@@ -269,14 +266,21 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 	variable := &VariableVal{Value: &Invalid{}}
 	if container := owner.(Container); container != nil {
 		ident := node.Identifier.GetToken()
-		val, index, contains := container.Contains(ident.Lexeme)
+		field, index, containsField := container.ContainsField(ident.Lexeme)
+		method, containsMethod := container.ContainsMethod(ident.Lexeme)
 
-		if !contains {
+		if !containsField && !containsMethod {
 			w.error(ident, fmt.Sprintf("no field or method named '%s' in '%s'", ident.Lexeme, node.Owner.GetToken().Lexeme))
 			return &Invalid{}
 		} else {
+			var val Value
+			if containsField {
+				val = field
+				node.Index = index
+			}else {
+				val = method
+			}
 			variable = val.(*VariableVal)
-			node.Index = index
 		}
 	}
 
@@ -318,23 +322,23 @@ func (w *Walker) memberExpr(node *ast.MemberExpr, scope *Scope) Value {
 	}
 
 	val := w.GetNodeValue(&node.Identifier, scope)
-	valType := val.GetType()
+	valType := val.GetType().PVT()
 	array := w.Context.Value
-	arrayType := array.GetType()
+	arrayType := array.GetType().PVT()
 
-	if arrayType.Type == ast.Map {
-		if valType.Type != ast.String && valType.Type != 0 {
+	if arrayType == ast.Map {
+		if valType != ast.String && valType != 0 {
 			w.error(node.Identifier.GetToken(), "variable is not a string")
 			return &Invalid{}
 		}
-	} else if arrayType.Type == ast.List {
-		if valType.Type != ast.Number && valType.Type != 0 {
+	} else if arrayType == ast.List {
+		if valType != ast.Number && valType != 0 {
 			w.error(node.Identifier.GetToken(), "variable is not a number")
 			return &Invalid{}
 		}
 	}
 
-	if arrayType.Type != ast.List && arrayType.Type != ast.Map {
+	if arrayType != ast.List && arrayType != ast.Map {
 		w.error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a list, or map", node.Identifier.GetToken().Lexeme))
 		return &Invalid{}
 	}
@@ -343,9 +347,8 @@ func (w *Walker) memberExpr(node *ast.MemberExpr, scope *Scope) Value {
 		array = variable.Value
 	}
 
-	wrappedValType := *array.GetType().WrappedType
-
-	wrappedVal := w.GetValueFromType(wrappedValType)
+	wrappedValType := array.GetType().(*WrapperType).WrappedType
+	wrappedVal := w.TypeToValue(wrappedValType)
 
 	if node.Property != nil {
 		w.Context.Value = wrappedVal
@@ -361,7 +364,7 @@ func (w *Walker) directiveExpr(node *ast.DirectiveExpr, scope *Scope) *Directive
 		variable := w.GetNodeValue(&node.Expr, scope)
 		variableToken := node.Expr.GetToken()
 
-		variableType := variable.GetType().Type
+		variableType := variable.GetType().PVT()
 		switch node.Identifier.Lexeme {
 		case "Len":
 			node.ValueType = ast.Number
@@ -409,23 +412,19 @@ func (w *Walker) selfExpr(self *ast.SelfExpr, scope *Scope) Value {
 
 	if sc != nil {
 		(*self).Type = ast.SelfStruct
-		return &StructVal{Type: (*structTag).StructType}
+		return (*structTag).StructVal
 	} else {
 		return &Invalid{}
 	}
 }
 
 func (w *Walker) newExpr(new *ast.NewExpr, scope *Scope) *StructVal {
-	resolved := scope.ResolveStructType(new.Type.Lexeme)
-
-	structTypeVal := resolved.GetStructType(resolved, new.Type.Lexeme)
+	structVal := w.GetStruct(new.Type.Lexeme)
 
 	args := w.typeifyNodeList(&new.Args, scope)
-	w.validateArguments(args, structTypeVal.Params, new.Type, "new")
+	w.validateArguments(args, structVal.Params, new.Type, "new")
 
-	return &StructVal{
-		Type: structTypeVal,
-	}
+	return structVal
 }
 
 func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) *FunctionVal {
@@ -441,8 +440,8 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) *FunctionVal {
 	params := make([]Type, 0)
 	for i, param := range fn.Params {
 		params = append(params, w.typeExpr(param.Type))
-		value := w.GetValueFromType(params[i])
-		fnScope.DeclareVariable(VariableVal{Name: param.Name.Lexeme, Value: value, Node: fn})
+		value := w.TypeToValue(params[i])
+		fnScope.DeclareVariable(VariableVal{Name: param.Name.Lexeme, Value: value, Token: param.Name})
 	}
 
 	w.WalkBody(&fn.Body, funcTag, &fnScope)
@@ -453,20 +452,20 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) *FunctionVal {
 
 	return &FunctionVal{
 		params:    params,
-		returnVal: ret,
+		returns: ret,
 	}
 }
 
-func (w *Walker) anonStructExpr(node *ast.AnonStructExpr, scope *Scope) *AnonStructTypeVal {
-	structTypeVal := AnonStructTypeVal{
-		Fields:       []VariableVal{},
+func (w *Walker) anonStructExpr(node *ast.AnonStructExpr, scope *Scope) *AnonStructVal {
+	structTypeVal := &AnonStructVal{// t
+		Fields:       map[string]VariableVal{},
 	}
 
 	for i := range node.Fields {
-		w.fieldDeclaration(node.Fields[i], &structTypeVal, scope)
+		w.fieldDeclaration(node.Fields[i], structTypeVal, scope)
 	}
 
-	return &structTypeVal
+	return structTypeVal
 }
 
 func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) Value {
@@ -511,40 +510,46 @@ func (w *Walker) matchExpr(node *ast.MatchExpr, scope *Scope) Value {
 
 func (w *Walker) typeExpr(typee *ast.TypeExpr) Type {
 	if typee == nil {
-		return Type{Type: ast.Invalid}
+		return InvalidType
 	}
-	var wrapped *Type
-	if typee.WrappedType != nil {
-		temp := w.typeExpr(typee.WrappedType)
-		wrapped = &temp
-	}
-	params := []Type{}
-	if typee.Params != nil {
-		for _, v := range *typee.Params {
+	pvt := w.GetTypeFromString(typee.Name.Lexeme)
+	switch pvt {
+	case ast.Bool, ast.String, ast.Number, ast.Fixed, ast.FixedPoint, ast.Radian, ast.Degree:
+		return NewBasicType(pvt)
+	case ast.AnonStruct:
+		fields := map[string]VariableVal{}
+
+		for _, v := range typee.Fields {
+			fields[v.Name.Lexeme] = VariableVal{
+				Name: v.Name.Lexeme,
+				Value: w.TypeToValue(w.typeExpr(v.Type)),
+				Token: v.Name,
+			}
+		}
+
+		return &AnonStructType{
+			Fields: fields,
+		}
+	case ast.Func:
+		params := Types{}
+
+		for _, v := range typee.Params {
 			params = append(params, w.typeExpr(v))
 		}
-	}
 
-	returns := []Type{}
-	for _, v := range typee.Returns {
-		returns = append(returns, w.typeExpr(v))
-	}
-
-	typ := w.GetTypeFromString(typee.Name.Lexeme)
-	if typ == ast.Invalid {
-		if foreignType, ok := w.Environment.StructTypes[typee.Name.Lexeme]; ok {
-			return foreignType.GetType()
+		returns := Types{}
+		for _, v := range typee.Returns {
+			returns = append(returns, w.typeExpr(v))
 		}
-	}
-	if typ == ast.Invalid {
-		w.error(typee.GetToken(), "invalid type")
-	}
 
-	return Type{
-		Name:        typ.ToString(),
-		Type:        typ,
-		WrappedType: wrapped,
-		Params:      params,
-		Returns:     returns,
+		return &FunctionType{
+			Params: params,
+			Returns: returns,
+		}
+	default:
+		if structVal, found := w.Environment.StructTypes[typee.Name.Lexeme]; found {
+			return structVal.GetType()
+		}
+		return InvalidType
 	}
 }

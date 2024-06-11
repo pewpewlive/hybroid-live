@@ -11,22 +11,15 @@ type Context struct {
 	Ret   Types
 }
 
-type Environment struct {
-	Name         string
-	Path         string
-	Scope        Scope
-	StructTypes  map[string]*StructTypeVal
-}
-
-func NewEnvironment(path string) Environment {
+func NewEnvironment(path string) EnvironmentVal {
 	scope := Scope{
 		Tag:             &UntaggedTag{},
 		Variables:       map[string]VariableVal{},
 		VariableIndexes: map[string]int{},
 	}
-	global := Environment{
+	global := EnvironmentVal{
 		Scope:        scope,
-		StructTypes:  map[string]*StructTypeVal{},
+		StructTypes:  map[string]StructVal{},
 	}
 
 	global.Scope.Environment = &global
@@ -72,7 +65,7 @@ func (ut *UntaggedTag) GetType() ScopeTagType {
 }
 
 type StructTag struct {
-	StructType *StructTypeVal
+	StructVal *StructVal
 }
 
 func (st *StructTag) GetType() ScopeTagType {
@@ -289,7 +282,7 @@ func (sa *ScopeAttributes) Add(_type ScopeAttribute) {
 var EmptyAttributes = ScopeAttributes{}
 
 type Scope struct {
-	Environment *Environment
+	Environment *EnvironmentVal
 	Parent      *Scope
 
 	Tag        ScopeTag

@@ -367,6 +367,19 @@ func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, Struc
 	scope.Write(constructorScope.Src)
 }
 
+func (gen *Generator) fieldDeclarationStmt(node ast.FieldDeclarationStmt, scope *GenScope) string {
+	src := StringBuilder{}
+
+	for i,v := range node.Identifiers {
+		src.Append(v.Lexeme, " = ", gen.GenerateExpr(node.Values[i], scope))
+		if i != len(node.Identifiers)-1 {
+			src.WriteString(", ")
+		}
+	}
+
+	return src.String()
+}
+
 func (gen *Generator) methodDeclarationStmt(node ast.MethodDeclarationStmt, Struct ast.StructDeclarationStmt, scope *GenScope) {
 	methodScope := NewGenScope(scope)
 
