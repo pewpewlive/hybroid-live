@@ -1,7 +1,7 @@
 env Huh as Level
 // hello
 
-let number a = 1
+// let number a = 1
 
 fn test(number param) bool, bool {
     // if param < 0 {
@@ -47,8 +47,13 @@ let tesst = struct{
 }
 
 fn anonStructTest(struct{number Field1, bool Field2} uh) bool {
+    if uh.Field1 == 10 {
+        return false
+    }
     return true
 } 
+
+anonStructTest(tesst)
 
 struct StructTest {
     fixed field1 = 0f
@@ -70,3 +75,9 @@ struct StructTest {
         }
     }
 }
+
+let p = new StructTest(10f)
+
+p.field1 = 1f
+
+let b, a = p.foo(true, 1)

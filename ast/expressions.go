@@ -8,9 +8,10 @@ type Accessor interface {
 	Node
 	GetOwner() *Accessor
 	GetProperty() *Node
-	SetOwner(owner Accessor) Accessor
-	SetProperty(prop Node) Accessor
-	SetIdentifier(ident Node) Accessor
+	SetOwner(owner Accessor)
+	SetProperty(prop Node)
+	SetIdentifier(ident Node)
+	DeepCopy() Accessor
 }
 
 type EnvType int
@@ -302,9 +303,8 @@ func (fe *FieldExpr) GetValueType() PrimitiveValueType {
 	return 0
 }
 
-func (fe *FieldExpr) SetProperty(prop Node) Accessor {
+func (fe *FieldExpr) SetProperty(prop Node) {
 	fe.Property = prop
-	return fe
 }
 
 func (fe *FieldExpr) GetProperty() *Node {
@@ -315,14 +315,17 @@ func (fe *FieldExpr) GetOwner() *Accessor {
 	return &fe.Owner
 }
 
-func (fe *FieldExpr) SetIdentifier(ident Node) Accessor {
+func (fe *FieldExpr) SetIdentifier(ident Node) {
 	fe.Identifier = ident
-	return fe
 }
 
-func (fe *FieldExpr) SetOwner(owner Accessor) Accessor {
+func (fe *FieldExpr) SetOwner(owner Accessor) {
 	fe.Owner = owner
-	return fe
+}
+
+func (fe *FieldExpr) DeepCopy() Accessor {
+	copy := *fe
+	return &copy
 }
 
 type MemberExpr struct {
@@ -344,9 +347,8 @@ func (me *MemberExpr) GetValueType() PrimitiveValueType {
 	return 0
 }
 
-func (me *MemberExpr) SetProperty(prop Node) Accessor {
+func (me *MemberExpr) SetProperty(prop Node) {
 	me.Property = prop
-	return me
 }
 
 func (me *MemberExpr) GetProperty() *Node {
@@ -357,15 +359,19 @@ func (me *MemberExpr) GetOwner() *Accessor {
 	return &me.Owner
 }
 
-func (me *MemberExpr) SetIdentifier(ident Node) Accessor {
+func (me *MemberExpr) SetIdentifier(ident Node) {
 	me.Identifier = ident
-	return me
 }
 
-func (me *MemberExpr) SetOwner(owner Accessor) Accessor {
+func (me *MemberExpr) SetOwner(owner Accessor) {
 	me.Owner = owner
-	return me
 }
+
+func (me *MemberExpr) DeepCopy() Accessor {
+	copy := *me
+	return &copy
+}
+
 
 type Property struct {
 	Expr Node

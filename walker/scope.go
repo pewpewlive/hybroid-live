@@ -19,7 +19,7 @@ func NewEnvironment(path string) EnvironmentVal {
 	}
 	global := EnvironmentVal{
 		Scope:        scope,
-		StructTypes:  map[string]StructVal{},
+		StructTypes:  map[string]*StructVal{},
 	}
 
 	global.Scope.Environment = &global

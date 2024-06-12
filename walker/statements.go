@@ -414,7 +414,7 @@ func (w *Walker) structDeclaration(node *ast.StructDeclarationStmt, scope *Scope
 	}
 	structVal.Params = params
 
-	w.DeclareStruct(*structVal)
+	w.DeclareStruct(structVal)
 
 	funcDeclaration := ast.MethodDeclarationStmt{
 		Name:    node.Constructor.Token,

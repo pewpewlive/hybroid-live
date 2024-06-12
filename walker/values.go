@@ -14,22 +14,16 @@ type Value interface {
 	GetDefault() *ast.LiteralExpr
 }
 
-type Container interface {
-	Value
-	FieldContainer
-	MethodContainer
-}
-
 type FieldContainer interface {
 	Value
 	AddField(variable VariableVal)
-	ContainsField(name string) (Value, int, bool)
+	ContainsField(name string) (*VariableVal, int, bool)
 }
 
 type MethodContainer interface {
 	Value
 	AddMethod(variable VariableVal)
-	ContainsMethod(name string) (Value, bool)
+	ContainsMethod(name string) (*VariableVal, bool)
 }
 
 type VariableVal struct {
@@ -89,7 +83,7 @@ func (self *AnonStructVal) AddField(variable VariableVal) {
 	self.Fields[variable.Name] = variable
 }
 
-func (self *AnonStructVal) ContainsField(name string) (Value, int, bool) {
+func (self *AnonStructVal) ContainsField(name string) (*VariableVal, int, bool) {
 	if variable, found := self.Fields[name]; found {
 		return &variable, -1, true
 	}
@@ -141,7 +135,7 @@ func (self *StructVal) AddMethod(variable VariableVal) {
 	self.Methods[variable.Name] = variable
 }
 
-func (self *StructVal) ContainsField(name string) (Value, int, bool) {
+func (self *StructVal) ContainsField(name string) (*VariableVal, int, bool) {
 	if variable, found := FindFromList(self.Fields, name); found {
 		return variable, self.FieldIndexes[variable.Name], true
 	}
@@ -149,7 +143,7 @@ func (self *StructVal) ContainsField(name string) (Value, int, bool) {
 	return nil, -1, false
 }
 
-func (self *StructVal) ContainsMethod(name string) (Value, bool) {
+func (self *StructVal) ContainsMethod(name string) (*VariableVal, bool) {
 	if variable, found := self.Methods[name]; found {
 		return &variable, true
 	}
@@ -162,7 +156,7 @@ type EnvironmentVal struct {
 	Path string
 	Scope     Scope
 	Variables map[string]VariableVal
-	StructTypes map[string]StructVal
+	StructTypes map[string]*StructVal
 }
 
 func (n *EnvironmentVal) GetType() Type {

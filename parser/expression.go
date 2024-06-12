@@ -181,7 +181,7 @@ func (p *Parser) resolveProperty(node *ast.Node) ast.Accessor {
 	propAccessor := (*prop).(ast.Accessor)
 
 	if *propAccessor.GetProperty() == nil {
-		accessor = accessor.SetProperty(nil)
+		accessor.SetProperty(nil)
 		*node = accessor
 		return propAccessor
 	}
@@ -208,9 +208,10 @@ func (p *Parser) accessorExprDepth2(owner ast.Accessor, ident ast.Node, nodeType
 	if !p.check(lexer.LeftParen) {
 		return expr
 	}
-
+	
+	acesss := expr.(ast.Accessor)
 	args := p.arguments()
-	beforeExpr := expr
+	beforeExpr := acesss.DeepCopy()
 	last := p.resolveProperty(&expr)
 	if last.GetType() == ast.FieldExpression {
 		expr = &ast.MethodCallExpr{
@@ -311,7 +312,7 @@ func (p *Parser) accessorExprDepth1(owner ast.Accessor, ident ast.Node, nodeType
 	}
 	prop = p.accessorExprDepth1(expr, propIdent, propNodeType)
 
-	expr = expr.SetProperty(prop)
+	expr.SetProperty(prop)
 
 	return expr
 }

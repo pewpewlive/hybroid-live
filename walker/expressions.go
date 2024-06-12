@@ -202,7 +202,7 @@ func (w *Walker) methodCallExpr(node *ast.Node, scope *Scope) Value {
 
 	ownerVal := w.GetNodeValue(&method.Owner, scope)
 
-	if container := helpers.GetValOfInterface[Container](ownerVal); container != nil {
+	if container := helpers.GetValOfInterface[FieldContainer](ownerVal); container != nil {
 		container := *container
 		if _, _, contains := container.ContainsField(method.MethodName); contains {
 			expr := ast.CallExpr{
@@ -248,8 +248,8 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 	if node.Owner == nil {
 		val := w.GetNodeValue(&node.Identifier, scope)
 
-		if !IsOfPrimitiveType(val, ast.Struct, ast.Entity) {
-			w.error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a struct, entity", node.Identifier.GetToken().Lexeme))
+		if !IsOfPrimitiveType(val, ast.Struct, ast.Entity, ast.AnonStruct) {
+			w.error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a struct, entity or anonymous struct", node.Identifier.GetToken().Lexeme))
 			return &Invalid{}
 		}
 
@@ -264,24 +264,26 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 	}
 	owner := w.Context.Value
 	variable := &VariableVal{Value: &Invalid{}}
-	if container := owner.(Container); container != nil {
-		ident := node.Identifier.GetToken()
+	ident := node.Identifier.GetToken()
+	var isField, isMethod bool
+	if container, is := owner.(FieldContainer); is {
 		field, index, containsField := container.ContainsField(ident.Lexeme)
-		method, containsMethod := container.ContainsMethod(ident.Lexeme)
-
-		if !containsField && !containsMethod {
-			w.error(ident, fmt.Sprintf("no field or method named '%s' in '%s'", ident.Lexeme, node.Owner.GetToken().Lexeme))
-			return &Invalid{}
-		} else {
-			var val Value
-			if containsField {
-				val = field
-				node.Index = index
-			}else {
-				val = method
-			}
-			variable = val.(*VariableVal)
+		isField = containsField
+		if containsField {
+			node.Index = index
+			variable = field
 		}
+	}
+	if container, is := owner.(MethodContainer); is && !isField {
+		method, containsMethod := container.ContainsMethod(ident.Lexeme)
+		isMethod = containsMethod
+		if isMethod {
+			node.Index = -1
+			variable = method
+		}
+	}
+	if !isField && !isMethod {
+		w.error(ident, fmt.Sprintf("variable %s does not contain %s", variable.Name, ident.Lexeme))
 	}
 
 	if node.Property != nil {

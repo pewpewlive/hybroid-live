@@ -1,7 +1,6 @@
 package walker
 
 import (
-	"fmt"
 	"hybroid/ast"
 	"hybroid/helpers"
 	"hybroid/lexer"
@@ -64,7 +63,7 @@ func (s *Scope) GetVariableIndex(scope *Scope, name string) int {
 	return scope.VariableIndexes[name]
 }
 
-/// ONLY CALL WHEN 100% SURE YOU'RE GONNA GET A STRUCT BACK
+// ONLY CALL WHEN 100% SURE YOU'RE GONNA GET A STRUCT BACK
 func (w *Walker) GetStruct(name string) *StructVal {
 	structType := w.Environment.StructTypes[name]
 
@@ -72,7 +71,7 @@ func (w *Walker) GetStruct(name string) *StructVal {
 
 	w.Environment.StructTypes[name] = structType
 
-	return &structType
+	return structType
 }
 
 func (s *Scope) AssignVariableByName(name string, value Value) (Value, *ast.Error) {
@@ -117,7 +116,7 @@ func (s *Scope) DeclareVariable(value VariableVal) (VariableVal, bool) {
 	return value, true
 }
 
-func (w *Walker) DeclareStruct(structVal StructVal) bool {
+func (w *Walker) DeclareStruct(structVal *StructVal) bool {
 	if _, found := w.Environment.StructTypes[structVal.Type.Name]; found {
 		return false
 	}
@@ -199,7 +198,7 @@ func returnsAreValid(list1 []Type, list2 []Type) bool {
 	}
 
 	for i, v := range list1 {
-		fmt.Printf("%s compared to %s\n", list1[i].ToString(), list2[i].ToString())
+		//fmt.Printf("%s compared to %s\n", list1[i].ToString(), list2[i].ToString())
 		if !TypeEquals(v, list2[i]) {
 			return false
 		}
@@ -240,6 +239,10 @@ func (w *Walker) TypeToValue(_type Type) Value {
 		}
 	case ast.Struct:
 		return w.GetStruct(_type.ToString())
+	case ast.AnonStruct:
+		return &AnonStructVal{
+			Fields: _type.(*AnonStructType).Fields,
+		}
 	case ast.Environment:
 		return (*w.Walkers)[_type.(*EnvironmentType).Name].Environment
 	default:

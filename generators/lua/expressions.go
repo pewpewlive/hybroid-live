@@ -138,7 +138,7 @@ func (gen *Generator) fieldExpr(node ast.FieldExpr, scope *GenScope) string {
 			return src.String()
 		}
 		if node.Index == -1 {
-			src.Append("[", node.Identifier.GetToken().Lexeme, "]", prop)
+			src.Append(".", node.Identifier.GetToken().Lexeme, prop)
 		}else {
 			src.Append("[", fmt.Sprintf("%v", node.Index), "]", prop)
 		}
