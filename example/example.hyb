@@ -4,34 +4,16 @@ env Huh as Level
 // let number a = 1
 
 fn test(number param) bool, bool {
-    // if param < 0 {
-    //     return true, false
-    // }else if param == 0 {
-    //     return false, false
-    // }
-
-    // match param {
-    //     0 => {
-    //         return false, false
-    //     }
-    // }
-
-    if true {
-        if false {
-            return false, true
-        }else {
-        }
-    }else {
-        return true, true
+    if param < 0 {
+        return true, false
+    }else if param == 0 {
+        return false, false
     }
 
-    repeat 10 with i {
-        if true {
-            continue
-        }else {
-            return true, false
+    match param {
+        0 => {
+            return false
         }
-        continue
     }
 
     return true, true

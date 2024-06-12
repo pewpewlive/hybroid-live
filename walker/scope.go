@@ -11,21 +11,6 @@ type Context struct {
 	Ret   Types
 }
 
-func NewEnvironment(path string) EnvironmentVal {
-	scope := Scope{
-		Tag:             &UntaggedTag{},
-		Variables:       map[string]VariableVal{},
-		VariableIndexes: map[string]int{},
-	}
-	global := EnvironmentVal{
-		Scope:        scope,
-		StructTypes:  map[string]*StructVal{},
-	}
-
-	global.Scope.Environment = &global
-	return global
-}
-
 type ScopeTagType int
 
 const (
@@ -150,7 +135,7 @@ func (et *FuncTag) SetExit(state bool, etype ExitType) {
 }
 
 func (self *FuncTag) GetIfExits(et ExitType) bool {
-	if et != Return {
+	if et != Return && et != All {
 		return false
 	}
 	if len(self.Returns) == 0 {
@@ -288,8 +273,7 @@ type Scope struct {
 	Tag        ScopeTag
 	Attributes ScopeAttributes
 
-	Variables       map[string]VariableVal
-	VariableIndexes map[string]int
+	Variables       map[string]*VariableVal
 }
 
 func (sc *Scope) Is(types ...ScopeAttribute) bool {
@@ -306,12 +290,15 @@ func (sc *Scope) Is(types ...ScopeAttribute) bool {
 	return true
 }
 
-func NewScope(parent *Scope, tag ScopeTag) Scope {
+func NewScope(parent *Scope, tag ScopeTag, extraAttrs ...ScopeAttribute) Scope {
 	var attrs ScopeAttributes
 	if parent == nil {
 		attrs = EmptyAttributes
 	} else {
 		attrs = parent.Attributes
+	}
+	for _, v := range extraAttrs {
+		attrs.Add(v)
 	}
 	return Scope{
 		Environment: parent.Environment,
@@ -320,7 +307,6 @@ func NewScope(parent *Scope, tag ScopeTag) Scope {
 		Tag:        tag,
 		Attributes: attrs,
 
-		Variables:       map[string]VariableVal{},
-		VariableIndexes: map[string]int{},
+		Variables:       map[string]*VariableVal{},
 	}
 }

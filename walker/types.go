@@ -119,10 +119,10 @@ func (self *BasicType) ToString() string {
 }
 
 type AnonStructType struct {
-	Fields map[string]VariableVal
+	Fields map[string]*VariableVal
 }
 
-func NewAnonStructType(fields map[string]VariableVal) *AnonStructType {
+func NewAnonStructType(fields map[string]*VariableVal) *AnonStructType {
 	return &AnonStructType{
 		Fields: fields,
 	}
@@ -196,6 +196,7 @@ func (self *NamedType) ToString() string {
 
 type EnvironmentType struct {
 	Name         string
+	Path         string
 }
 
 func NewEnvType(name string) *EnvironmentType {

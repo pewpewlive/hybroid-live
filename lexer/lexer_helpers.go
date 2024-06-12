@@ -8,6 +8,19 @@ type LexerError struct {
 	Message   string
 }
 
+func (self LexerError) GetToken() Token {
+	return Token{Type:self.TokenType, Location: self.Location}
+}
+
+func (self LexerError) GetHeader() string {
+	return "[red]Error"
+}
+
+func (self LexerError) GetMessage() string {
+	return self.Message
+}
+
+
 func (l *Lexer) lexerError(message string) {
 	l.Errors = append(l.Errors, LexerError{Eof, TokenLocation{LineStart: l.line, LineEnd: l.line, ColStart: l.columnStart, ColEnd: l.columnCurrent}, message})
 }

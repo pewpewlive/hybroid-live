@@ -78,7 +78,7 @@ func (w *Walker) assignment(assignStmt *ast.AssignmentStmt, scope *Scope) {
 		variable, ok := wIdents[i].(*VariableVal)
 
 		if ok {
-			if _, err := scope.AssignVariable(*variable, value); err != nil {
+			if _, err := scope.AssignVariable(variable, value); err != nil {
 				err.Token = variable.Token
 				w.addError(*err)
 			}
@@ -94,24 +94,23 @@ func (w *Walker) assignment(assignStmt *ast.AssignmentStmt, scope *Scope) {
 	}
 }
 
-func (w *Walker) functionDeclaration(node *ast.FunctionDeclarationStmt, scope *Scope, procType ProcedureType) VariableVal {
+func (w *Walker) functionDeclaration(node *ast.FunctionDeclarationStmt, scope *Scope, procType ProcedureType) *VariableVal {
 	ret := EmptyReturn
 	for _, typee := range node.Return {
 		ret = append(ret, w.typeExpr(typee))
 		//fmt.Printf("%s\n", ret.values[len(ret.values)-1].Type.ToString())
 	}
 	funcTag := &FuncTag{ReturnType: ret}
-	fnScope := NewScope(scope, funcTag)
-	fnScope.Attributes.Add(ReturnAllowing)
+	fnScope := NewScope(scope, funcTag, ReturnAllowing)
 
 	params := make([]Type, 0)
 	for i, param := range node.Params {
 		params = append(params, w.typeExpr(param.Type))
 		value := w.TypeToValue(params[i])
-		fnScope.DeclareVariable(VariableVal{Name: param.Name.Lexeme, Value: value, Token: node.GetToken()})
+		fnScope.DeclareVariable(&VariableVal{Name: param.Name.Lexeme, Value: value, Token: node.GetToken()})
 	}
 
-	variable := VariableVal{
+	variable := &VariableVal{
 		Name:  node.Name.Lexeme,
 		Value: &FunctionVal{params: params, returns: ret},
 		Token:  node.GetToken(),
@@ -231,9 +230,7 @@ func (w *Walker) continueStmt(node *ast.ContinueStmt, scope *Scope) {
 }
 
 func (w *Walker) repeat(node *ast.RepeatStmt, scope *Scope) {
-	repeatScope := NewScope(scope, &LoopTag{})
-	repeatScope.Attributes.Add(BreakAllowing)
-	repeatScope.Attributes.Add(ContinueAllowing)
+	repeatScope := NewScope(scope, &LoopTag{}, BreakAllowing, ContinueAllowing)
 	lt := NewLoopTag(repeatScope.Attributes...)
 	repeatScope.Tag = lt
 
@@ -270,7 +267,7 @@ func (w *Walker) repeat(node *ast.RepeatStmt, scope *Scope) {
 
 	if node.Variable.GetValueType() != 0 {
 		repeatScope.
-			DeclareVariable(VariableVal{Name: node.Variable.Name.Lexeme, Value: w.GetNodeValue(&node.Start, scope), Token: node.GetToken()})
+			DeclareVariable(&VariableVal{Name: node.Variable.Name.Lexeme, Value: w.GetNodeValue(&node.Start, scope), Token: node.GetToken()})
 	}
 
 	w.WalkBody(&node.Body, lt, &repeatScope)
@@ -279,18 +276,16 @@ func (w *Walker) repeat(node *ast.RepeatStmt, scope *Scope) {
 }
 
 func (w *Walker) forloop(node *ast.ForStmt, scope *Scope) {
-	forScope := NewScope(scope, &LoopTag{})
-	forScope.Attributes.Add(BreakAllowing)
-	forScope.Attributes.Add(ContinueAllowing)
+	forScope := NewScope(scope, &LoopTag{}, BreakAllowing, ContinueAllowing)
 	lt := NewLoopTag(forScope.Attributes...)
 	forScope.Tag = lt
 
 	if node.Key.GetValueType() != 0 {
-		forScope.DeclareVariable(VariableVal{Name: node.Key.Name.Lexeme, Value: &NumberVal{}})
+		forScope.DeclareVariable(&VariableVal{Name: node.Key.Name.Lexeme, Value: &NumberVal{}})
 	}
 
 	if node.Value.GetValueType() != 0 {
-		forScope.DeclareVariable(VariableVal{Name: node.Value.Name.Lexeme, Value: w.TypeToValue(w.GetNodeValue(&node.Iterator, scope).GetType().(*WrapperType).WrappedType)})
+		forScope.DeclareVariable(&VariableVal{Name: node.Value.Name.Lexeme, Value: w.TypeToValue(w.GetNodeValue(&node.Iterator, scope).GetType().(*WrapperType).WrappedType)})
 	}
 
 	iteratorType := w.GetNodeValue(&node.Iterator, scope).GetType().PVT()
@@ -307,7 +302,7 @@ func (w *Walker) tick(node *ast.TickStmt, scope *Scope) {
 	tickScope := NewScope(scope, &UntaggedTag{})
 
 	if node.Variable.GetValueType() != 0 {
-		tickScope.DeclareVariable(VariableVal{Name: node.Variable.Name.Lexeme, Value: &NumberVal{}})
+		tickScope.DeclareVariable(&VariableVal{Name: node.Variable.Name.Lexeme, Value: &NumberVal{}})
 	}
 
 	for i := range node.Body {
@@ -322,8 +317,8 @@ func (w *Walker) AddTypesToValues(list *[]Value, tys *Types) {
 	}
 }
 
-func (w *Walker) variableDeclaration(declaration *ast.VariableDeclarationStmt, scope *Scope) []VariableVal {
-	declaredVariables := []VariableVal{}
+func (w *Walker) variableDeclaration(declaration *ast.VariableDeclarationStmt, scope *Scope) []*VariableVal {
+	declaredVariables := []*VariableVal{}
 
 	idents := len(declaration.Identifiers)
 	values := make([]Value, idents)
@@ -381,7 +376,7 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDeclarationStmt, s
 			}
 		}
 
-		variable := VariableVal{
+		variable := &VariableVal{
 			Value: values[i],
 			Name:  ident.Lexeme,
 			Token:  ident,
@@ -399,14 +394,13 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDeclarationStmt, s
 func (w *Walker) structDeclaration(node *ast.StructDeclarationStmt, scope *Scope) {
 	structVal := &StructVal{
 		Type: *NewNamedType(node.Name.Lexeme),
-		Fields: make([]VariableVal, 0),
+		Fields: make([]*VariableVal, 0),
 		FieldIndexes: map[string]int{},
-		Methods: map[string]VariableVal{},
+		Methods: map[string]*VariableVal{},
 		Params: Types{},
 	}
 
-	structScope := NewScope(scope, &StructTag{StructVal: structVal})
-	structScope.Attributes.Add(SelfAllowing)
+	structScope := NewScope(scope, &StructTag{StructVal: structVal}, SelfAllowing)
 
 	params := make([]Type, 0)
 	for _, param := range node.Constructor.Params {
@@ -428,8 +422,6 @@ func (w *Walker) structDeclaration(node *ast.StructDeclarationStmt, scope *Scope
 		w.fieldDeclaration(&node.Fields[i], structVal, &structScope)
 	}
 
-	structVal.FieldIndexes = structScope.VariableIndexes
-
 	for i := range *node.Methods {
 		params := make([]Type, 0)
 		for _, param := range (*node.Methods)[i].Params {
@@ -441,7 +433,7 @@ func (w *Walker) structDeclaration(node *ast.StructDeclarationStmt, scope *Scope
 			ret = append(ret, w.typeExpr(typee))
 			//fmt.Printf("%s\n", ret.values[len(ret.values)-1].Type.ToString())
 		}
-		variable := VariableVal{
+		variable := &VariableVal{
 			Name:  (*node.Methods)[i].Name.Lexeme,
 			Value: &FunctionVal{params: params, returns: ret},
 			Token:  (*node.Methods)[i].GetToken(),
@@ -508,7 +500,15 @@ func (w *Walker) methodDeclaration(node *ast.MethodDeclarationStmt, container Me
 }
 
 func (w *Walker) use(node *ast.UseStmt, scope *Scope) {
-	variable := VariableVal{Name: node.Variable.Name.Lexeme, Value: &EnvironmentVal{Name: node.Variable.Name.Lexeme}, Token: node.GetToken()}
+	variable := &VariableVal{
+		Name: node.Variable.Name.Lexeme, 
+		Value: &EnvironmentVal{
+			Type:&EnvironmentType{
+				Name: node.Variable.Name.Lexeme,
+			},
+		},
+		Token: node.GetToken(),
+	}
 
 	if _, success := scope.DeclareVariable(variable); !success {
 		w.error(node.Variable.Name, "cannot declare a value in the same scope twice")
@@ -568,23 +568,23 @@ func (w *Walker) match(node *ast.MatchStmt, isExpr bool, scope *Scope) {
 }
 
 func (w *Walker) env(node *ast.EnvironmentStmt, scope *Scope) {
-	if scope.Environment.Name != "" {
+	if scope.Environment.Type.Name != "" {
 		w.error(node.GetToken(), "can't have more than one environment statement in a file")
 		return
 	}
 
 	for i, v := range node.Env.Envs {
 		if i < len(node.Env.Envs)-1 {
-			scope.Environment.Name += v.Lexeme + "::"
+			scope.Environment.Type.Name += v.Lexeme + "::"
 		}else {
-			scope.Environment.Name += v.Lexeme
+			scope.Environment.Type.Name += v.Lexeme
 		}
 	}
 	 
-	if wlkr, found := (*w.Walkers)[w.Environment.Name]; found {
-		w.error(node.GetToken(), fmt.Sprintf("cannot have two environments with the same name, path: %s",wlkr.Environment.Path))
+	if wlkr, found := (*w.Walkers)[w.Environment.Type.Name]; found {
+		w.error(node.GetToken(), fmt.Sprintf("cannot have two environments with the same name, path: %s",wlkr.Environment.Type.Path))
 		return
 	}
 
-	(*w.Walkers)[w.Environment.Name] = w
+	(*w.Walkers)[w.Environment.Type.Name] = w
 }

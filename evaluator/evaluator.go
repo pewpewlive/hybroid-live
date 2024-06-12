@@ -52,9 +52,7 @@ func (e *Evaluator) Action(writeEnabled bool) (string, error) {
 	e.lexer.Tokenize()
 	if len(e.lexer.Errors) != 0 {
 		fmt.Println("[red]Failed tokenizing:")
-		for _, err := range e.lexer.Errors {
-			colorstring.Printf("[red]Error: %v\n", err)
-		}
+		printAlerts(e.lexer.Errors)
 		return "", fmt.Errorf("failed to tokenize source file")
 	}
 
@@ -81,15 +79,11 @@ func (e *Evaluator) Action(writeEnabled bool) (string, error) {
 	prog = e.walker.Pass1(&prog, e.walkers)
 	if len(e.walker.Errors) != 0 {
 		colorstring.Println("[red]Failed walking:")
-		for _, err := range e.walker.Errors {
-			colorstring.Printf("[red]Error: %+v\n", err)
-		}
+		printAlerts(e.walker.Errors)
 		return "", fmt.Errorf("failed to walk through the nodes")
 	}
 	if len(e.walker.Warnings) != 0 {
-		for _, err := range e.walker.Warnings {
-			colorstring.Printf("[yellow]Warning: %+v\n", err)
-		}
+		printAlerts(e.walker.Warnings)
 	}
 
 	fmt.Printf("Walking time: %v seconds\n\n", time.Since(start).Seconds())
@@ -101,9 +95,7 @@ func (e *Evaluator) Action(writeEnabled bool) (string, error) {
 	e.gen.Generate(prog)
 	if len(e.gen.Errors) != 0 {
 		colorstring.Println("[red]Failed generating:")
-		for _, err := range e.gen.GetErrors() {
-			colorstring.Printf("[red]Error: %+v\n", err)
-		}
+		printAlerts(e.gen.GetErrors())
 	}
 	fmt.Printf("Generating time: %v seconds\n", time.Since(start).Seconds())
 
@@ -117,6 +109,19 @@ func (e *Evaluator) Action(writeEnabled bool) (string, error) {
 
 	return e.gen.GetSrc(), nil
 }
+
+func printAlerts[T ast.Alert](errs []T) {
+	for _, err := range errs {
+		tokenLocation := err.GetToken().Location
+		str := fmt.Sprintf("%v at %v:%v-%v: %s\n", 
+			err.GetHeader(),
+			tokenLocation.LineStart, 
+			tokenLocation.ColStart, 
+			tokenLocation.ColEnd, 
+			err.GetMessage())
+		fmt.Print(colorstring.Color(str))
+	}
+} 
 
 func (e *Evaluator) writeSyntaxAlert(source string, errMsg ast.Alert) {
 	token := errMsg.GetToken()

@@ -104,7 +104,6 @@ func (p *Parser) getBody() *[]ast.Node {
 		return &body
 	}
 
-	hasReturn := false
 	for !p.match(lexer.RightBrace) {
 		if p.peek().Type == lexer.Eof {
 			p.error(p.peek(), "expected body closure")
@@ -112,15 +111,8 @@ func (p *Parser) getBody() *[]ast.Node {
 		}
 
 		statement := p.statement()
-		if statement != nil {
-			if hasReturn {
-				continue
-			}
-
+		if statement.GetType() != ast.NA {
 			body = append(body, statement)
-			if statement.GetType() == ast.ReturnStatement {
-				hasReturn = true
-			}
 		}
 	}
 

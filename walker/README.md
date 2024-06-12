@@ -22,7 +22,7 @@ It's used to abstract any kind of value, including numbers, booleans, nil, strin
 ##### **Methods:**
 
 1. `Type GetType()` - returns the type of the value in the form of a Type value
-2. `ast.LiteralExpr GetDefault()` - returns the default value in the form of a literal expression node
+2. `GetDefault() ast.LiteralExpr` - returns the default value in the form of a literal expression node
 
 ##### **Implementations:**
 
@@ -36,30 +36,22 @@ type VariableVal struct {
   Node    ast.Node
 }
 ```
-###### StructTypeVal
+###### StructVal
 ```go
-type StructTypeVal struct {
-  Name         lexer.Token
-  Params       []Type
-  Fields       []VariableVal
+type StructVal struct {
+  Type         *NamedType
+  Params       []Type // of the constructor
+  Fields       []*VariableVal
   FieldIndexes map[string]int
-  Methods      map[string]VariableVal
+  Methods      map[string]*VariableVal
   IsUsed       bool
 }
 ```
 
-`StructTypeVal` is a value that contains all the data of a struct type. It's used in the [environment](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#environment) struct as `StructTypes`.
+`StructVal` is a value that contains all the data of a struct type. It's used in the [Environment](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#environment) struct as `Structs`.
 
-Some nodes such as field expressions are associated with a struct type. This struct type is pretty much the `StructTypeVal`. When declaring a struct, you also declare its body, with all its methods and fields. You pretty much declare a `StructTypeVal`, which gets added into the `StructTypes` of the [Environment](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#environment).
+Some nodes such as field expressions are associated with a struct type, which is associated with a struct. This struct is pretty much the `StructVal`. When declaring a struct type, you also declare its body, with all its methods and fields. You pretty much declare a `StructVal`, which gets added into the `Structs` of the [Environment](https://github.com/pewpewlive/hybroid/blob/master/walker/README.md#environment).
 
-###### StructVal
-```go
-type StructVal struct {
-  Type *StructEnvironment
-}
-```
-
-`StructVal` is a struct value and it contains the type of the struct (i.e `StructTypeVal`).
 ###### EnvironmentVal
 ```go
 type EnvironmentVal struct {
@@ -70,17 +62,37 @@ type EnvironmentVal struct {
 	FieldIndexes map[string]int
 }
 ```
+
+###### **_Environment_**
+
+```go
+type EnvironmentVal struct {
+	Name         string
+  Path         string
+	Ctx          Context
+	Scope        Scope
+	StructTypes  map[string]*StructVal
+}
+```
+
+The Environment is like the Global scope of the file. The `Name` of it is provided through the EnvStmt (CITATION NEEDED).
+
+`Path` is the hybroid path.
+
+**Constructor:**
+`NewEnvironment() EnvironmentVal`
+
 ###### MapVal
 ```go
 type MapVal struct {
   MemberType Type
-  Members    map[string]VariableVal
+  Members    map[string]Value
 }
 ```
 
 **Extra methods:**
 
-1. `GetContentsValueType() -> Type` - checks the contents of the `MapVal` and, if all the values have the same type, returns the `Type` that they all share. If they don't have the same value type it returns `Invalid`.
+1. `GetContentsValueType() -> Type` - Checks the contents of the `MapVal` and, if all the values have the same type, returns the `Type` that they all share. If they don't have the same value type it returns `Invalid`.
 
 ###### ListVal
 ```go
@@ -92,7 +104,7 @@ type ListVal struct {
 
 **Extra methods:**
 
-1. a `GetContentsValueType() -> Type` - same with `MapVal`'s method
+1. a `GetContentsValueType() -> Type` - Same with `MapVal`'s method
 
 ###### Types
 
@@ -274,25 +286,6 @@ ExitableTag extends [ScopeTag](https://github.com/pewpewlive/hybroid/blob/master
 
 Here are the fundamental structs that are extremely important for the walking process:
 
-#### **_Environment_**
-
-```go
-type Environment struct {
-	Name         string
-  Path         string
-	Ctx          Context
-	Scope        Scope
-	StructTypes  map[string]*StructTypeVal
-}
-```
-
-The Environment is like the Global scope of the file. The `Name` of it is provided through the EnvStmt (CITATION NEEDED).
-
-`Path` is the hybroid path.
-
-##### **Constructor:**
-`NewEnvironment() Environment`
-
 #### **_Context_**
 
 ```go
@@ -317,7 +310,7 @@ type Scope struct {
   Tag        ScopeTag
   Attributes ScopeAttributes
 
-  Variables       map[string]VariableVal
+  Variables       map[string]*VariableVal
   VariableIndexes map[string]int
 }
 ```
@@ -325,11 +318,11 @@ type Scope struct {
 `Scope` is essentially a body that contains variables and has a tag and attributes. A scope has a parent which it stems from.
 
 **Constructor:**
-`NewScope(parent *Scope, tag ScopeTag) -> Scope` - returns a new scope with its parent being the _parent_ parameter and its tag the _tag_ param.
+`NewScope(parent *Scope, tag ScopeTag, attrs ...ScopeAttribute) -> Scope` - Returns a new scope with its parent being the _parent_ parameter, its tag the _tag_ param. The attributes of the _parent_ get passed onto the new scope plus any extra attributes defined (_attrs_).
 
 ##### **Methods:**
 
-1. `Is(types ...ScopeAttribute) bool` - checks whether the scope contains the given scope attributes.
+1. `Is(types ...ScopeAttribute) bool` - Checks whether the scope contains the given scope attributes.
 
 ### Types
 
@@ -340,6 +333,10 @@ type ScopeAttributes []ScopeAttribute
 
 ##### **Constructor:**
 `NewScopeAttributes(types ...ScopeAttribute) -> ScopeAttributes`
+
+##### **Methods:**
+
+1. `Add(attr ScopeAttribute)` - Adds the _attr_ into the _ScopeAttributes_ if it doesn't exist.
 
 ### Enums
 
@@ -371,10 +368,13 @@ const (
   Return
   Continue
   Break
+  All
 )
 ```
 
-Expresses how the body is exiting (yielding, returning, continuing or breaking?).
+Expresses how the body is exiting (yielding, returning, continuing or breaking?). 
+
+`All` is used for unreachable code detection. When we check if a scope exits, _All_ allows us to check if it exits through _All_ its paths that it could have, regardless of *how* it exits. Whether it does exit on all paths or not it still gets passed onto the parent scope tag.
 
 #### **_ScopeTagType_**
 
@@ -388,6 +388,7 @@ const (
   Func
   MultiPath
   MatchExpr
+  Loop
 )
 ```
 

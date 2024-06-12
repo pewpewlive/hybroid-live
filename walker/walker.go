@@ -43,7 +43,7 @@ func (w *Walker) addError(err ast.Error) {
 	w.Errors = append(w.Errors, err)
 }
 
-func (s *Scope) GetVariable(scope *Scope, name string) VariableVal {
+func (s *Scope) GetVariable(scope *Scope, name string) *VariableVal {
 	variable := scope.Variables[name]
 
 	variable.IsUsed = true
@@ -53,25 +53,19 @@ func (s *Scope) GetVariable(scope *Scope, name string) VariableVal {
 	return scope.Variables[name]
 }
 
-func (s *Scope) GetVariableIndex(scope *Scope, name string) int {
-	//variable := scope.Variables[name]
-
-	//variable.IsUsed = true
-
-	//scope.Variables[name] = variable
-
-	return scope.VariableIndexes[name]
-}
-
 // ONLY CALL WHEN 100% SURE YOU'RE GONNA GET A STRUCT BACK
-func (w *Walker) GetStruct(name string) *StructVal {
-	structType := w.Environment.StructTypes[name]
+func (w *Walker) GetStruct(name string) (Value, bool) {
+	structType, found := w.Environment.Structs[name]
+	if !found {
+		//w.error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s", name, " exists"))
+		return nil, false
+	}
 
 	structType.Type.IsUsed = true
 
-	w.Environment.StructTypes[name] = structType
+	w.Environment.Structs[name] = structType
 
-	return structType
+	return structType, true
 }
 
 func (s *Scope) AssignVariableByName(name string, value Value) (Value, *ast.Error) {
@@ -92,36 +86,34 @@ func (s *Scope) AssignVariableByName(name string, value Value) (Value, *ast.Erro
 
 	temp := scope.Variables[name]
 
-	return &temp, nil
+	return temp, nil
 }
 
-func (s *Scope) AssignVariable(variable VariableVal, value Value) (Value, *ast.Error) {
+func (s *Scope) AssignVariable(variable *VariableVal, value Value) (Value, *ast.Error) {
 	if variable.IsConst {
 		return &Invalid{}, &ast.Error{Message: "cannot assign to a constant variable"}
 	}
 
 	variable.Value = value
 
-	return &variable, nil
+	return variable, nil
 }
 
-func (s *Scope) DeclareVariable(value VariableVal) (VariableVal, bool) {
+func (s *Scope) DeclareVariable(value *VariableVal) (*VariableVal, bool) {
 	if _, found := s.Variables[value.Name]; found {
-		return VariableVal{}, false
+		return &VariableVal{}, false
 	}
 
 	s.Variables[value.Name] = value
-	s.VariableIndexes[value.Name] = len(s.VariableIndexes) + 1
-
 	return value, true
 }
 
 func (w *Walker) DeclareStruct(structVal *StructVal) bool {
-	if _, found := w.Environment.StructTypes[structVal.Type.Name]; found {
+	if _, found := w.Environment.Structs[structVal.Type.Name]; found {
 		return false
 	}
 
-	w.Environment.StructTypes[structVal.Type.Name] = structVal
+	w.Environment.Structs[structVal.Type.Name] = structVal
 	return true
 }
 
@@ -238,7 +230,8 @@ func (w *Walker) TypeToValue(_type Type) Value {
 			MemberType: _type.(*WrapperType).WrappedType,
 		}
 	case ast.Struct:
-		return w.GetStruct(_type.ToString())
+		val, _ := w.GetStruct(_type.ToString())
+		return val
 	case ast.AnonStruct:
 		return &AnonStructVal{
 			Fields: _type.(*AnonStructType).Fields,
@@ -333,7 +326,7 @@ func (w *Walker) ReportExits(sender ExitableTag, scope *Scope) {
 func (w *Walker) WalkBody(body *[]ast.Node, tag ExitableTag, scope *Scope) {
 	endIndex := -1
 	for i := range *body {
-		if tag.GetIfExits(Return) {
+		if tag.GetIfExits(All) {
 			w.warn((*body)[i].GetToken(), "unreachable code detected")
 			endIndex = i
 			break

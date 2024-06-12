@@ -36,13 +36,13 @@ func (w *Walker) binaryExpr(node *ast.BinaryExpr, scope *Scope) Value {
 			return &BoolVal{}
 		}
 	}
-	val := w.TypeToValue(w.determineValueType(leftType, rightType))
+	typ := w.determineValueType(leftType, rightType)
 
-	if val.GetType().PVT() == ast.Invalid {
+	if typ.PVT() == ast.Invalid {
 		w.error(node.GetToken(), fmt.Sprintf("invalid binary expression (left: %s, right: %s)",leftType.ToString(), rightType.ToString()))
-		return val
+		return &Invalid{}
 	} else {
-		return val
+		return &BoolVal{}
 	}
 }
 
@@ -77,31 +77,32 @@ func (w *Walker) identifierExpr(node *ast.Node, scope *Scope) Value {
 	ident := valueNode.(*ast.IdentifierExpr)
 
 	sc := scope.ResolveVariable(ident.Name.Lexeme)
-
-	if sc != nil {
-		newValue := sc.GetVariable(sc, ident.Name.Lexeme)
-
-		if sc.Tag.GetType() == Struct {
-			varIndex := sc.GetVariableIndex(sc, ident.Name.Lexeme)
-			selfExpr := &ast.FieldExpr{
-				Identifier: &ast.SelfExpr{
-					Token: valueNode.GetToken(),
-					Type:  ast.SelfStruct,
-				},
-			}
-
-			fieldExpr := &ast.FieldExpr{
-				Owner:      selfExpr,
-				Identifier: valueNode,
-				Index:      varIndex,
-			}
-			selfExpr.Property = fieldExpr
-			*node = selfExpr
-		}
-		return newValue.Value
+	if sc == nil {
+		return &Invalid{}
 	}
 
-	return &Invalid{}
+	variable := sc.GetVariable(sc, ident.Name.Lexeme)
+
+	if sc.Tag.GetType() == Struct {
+		_struct := sc.Tag.(*StructTag).StructVal
+		_, index, _ := _struct.ContainsField(variable.Name)
+		selfExpr := &ast.FieldExpr{
+			Identifier: &ast.SelfExpr{
+				Token: valueNode.GetToken(),
+				Type:  ast.SelfStruct,
+			},
+		}
+
+		fieldExpr := &ast.FieldExpr{
+			Owner:      selfExpr,
+			Identifier: valueNode,
+			Index:      index,
+		}
+		selfExpr.Property = fieldExpr
+		*node = selfExpr
+	}
+	variable.IsUsed = true
+	return variable.Value
 }
 
 func (w *Walker) groupingExpr(node *ast.GroupExpr, scope *Scope) Value {
@@ -420,8 +421,13 @@ func (w *Walker) selfExpr(self *ast.SelfExpr, scope *Scope) Value {
 	}
 }
 
-func (w *Walker) newExpr(new *ast.NewExpr, scope *Scope) *StructVal {
-	structVal := w.GetStruct(new.Type.Lexeme)
+func (w *Walker) newExpr(new *ast.NewExpr, scope *Scope) Value {
+	w.Context.Node = new
+	val, found := w.GetStruct(new.Type.Lexeme)
+	if !found {
+		return val
+	}
+	structVal := val.(*StructVal)
 
 	args := w.typeifyNodeList(&new.Args, scope)
 	w.validateArguments(args, structVal.Params, new.Type, "new")
@@ -443,7 +449,7 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) *FunctionVal {
 	for i, param := range fn.Params {
 		params = append(params, w.typeExpr(param.Type))
 		value := w.TypeToValue(params[i])
-		fnScope.DeclareVariable(VariableVal{Name: param.Name.Lexeme, Value: value, Token: param.Name})
+		fnScope.DeclareVariable(&VariableVal{Name: param.Name.Lexeme, Value: value, Token: param.Name})
 	}
 
 	w.WalkBody(&fn.Body, funcTag, &fnScope)
@@ -460,7 +466,7 @@ func (w *Walker) anonFnExpr(fn *ast.AnonFnExpr, scope *Scope) *FunctionVal {
 
 func (w *Walker) anonStructExpr(node *ast.AnonStructExpr, scope *Scope) *AnonStructVal {
 	structTypeVal := &AnonStructVal{// t
-		Fields:       map[string]VariableVal{},
+		Fields:       map[string]*VariableVal{},
 	}
 
 	for i := range node.Fields {
@@ -519,10 +525,10 @@ func (w *Walker) typeExpr(typee *ast.TypeExpr) Type {
 	case ast.Bool, ast.String, ast.Number, ast.Fixed, ast.FixedPoint, ast.Radian, ast.Degree:
 		return NewBasicType(pvt)
 	case ast.AnonStruct:
-		fields := map[string]VariableVal{}
+		fields := map[string]*VariableVal{}
 
 		for _, v := range typee.Fields {
-			fields[v.Name.Lexeme] = VariableVal{
+			fields[v.Name.Lexeme] = &VariableVal{
 				Name: v.Name.Lexeme,
 				Value: w.TypeToValue(w.typeExpr(v.Type)),
 				Token: v.Name,
@@ -549,7 +555,7 @@ func (w *Walker) typeExpr(typee *ast.TypeExpr) Type {
 			Returns: returns,
 		}
 	default:
-		if structVal, found := w.Environment.StructTypes[typee.Name.Lexeme]; found {
+		if structVal, found := w.Environment.Structs[typee.Name.Lexeme]; found {
 			return structVal.GetType()
 		}
 		return InvalidType
