@@ -164,6 +164,7 @@ func NewEnvironment(path string) EnvironmentVal {
 		Variables:       map[string]*VariableVal{},
 	}
 	global := EnvironmentVal{
+		Type: NewEnvType("UNKNOWN"),
 		Scope:        scope,
 		Structs:  map[string]*StructVal{},
 	}

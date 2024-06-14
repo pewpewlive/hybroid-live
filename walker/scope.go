@@ -189,21 +189,6 @@ func (mpt *MultiPathTag) SetExit(state bool, typ ExitType) {
 }
 
 func (mpt *MultiPathTag) GetIfExits(et ExitType) bool {
-	if et == All {
-		exitTimes := 0
-		for k := range mpt.Exits {
-			if k == All {
-				continue
-			}
-
-			for _, v := range mpt.Exits[k] {
-				if v {
-					exitTimes++
-				}
-			} 
-		}
-		return exitTimes == len(mpt.Exits[All])
-	}
 	exits := mpt.Exits[et]
 
 	if len(exits) == 0 {

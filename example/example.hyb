@@ -12,7 +12,7 @@ fn test(number param) bool, bool {
 
     match param {
         0 => {
-            return false
+            return false, true
         }
     }
 
@@ -63,3 +63,22 @@ let p = new StructTest(10f)
 p.field1 = 1f
 
 let b, a = p.foo(true, 1)
+
+while true {
+    if false {
+        yield
+    }
+    let a = 1
+}
+
+let testmap = {a = 2, b = 3}
+
+for k, v in testmap {
+
+}
+
+let list = [1,2,3]
+
+for i, v in a {
+
+}

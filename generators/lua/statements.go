@@ -9,27 +9,23 @@ import (
 
 func (gen *Generator) ifStmt(node ast.IfStmt, scope *GenScope) {
 	ifScope := NewGenScope(scope)
-	ifTabs := getTabs()
 
-	TabsCount += 1
+	ifScope.AppendTabbed("if ", gen.GenerateExpr(node.BoolExpr, scope), " then\n")
 
-	ifScope.Append(ifTabs, "if ", gen.GenerateExpr(node.BoolExpr, scope), " then\n")
-
-	gen.GenerateString(node.Body, &ifScope)
+	gen.GenerateBody(node.Body, &ifScope)
 	for _, elseif := range node.Elseifs {
-		ifScope.Append(ifTabs, "elseif ", gen.GenerateExpr(elseif.BoolExpr, scope), " then\n")
-		gen.GenerateString(elseif.Body, &ifScope)
+		ifScope.AppendTabbed("elseif ", gen.GenerateExpr(elseif.BoolExpr, scope), " then\n")
+		gen.GenerateBody(elseif.Body, &ifScope)
 	}
 	if node.Else != nil {
-		ifScope.Append(ifTabs, "else \n")
-		gen.GenerateString(node.Else.Body, &ifScope)
+		ifScope.AppendTabbed("else \n")
+		gen.GenerateBody(node.Else.Body, &ifScope)
 	}
 
-	ifScope.Append(ifTabs, "end\n")
+	ifScope.AppendTabbed("end\n")
 
-	ifScope.ReplaceAll(ifScope.ReplaceSettings)
+	ifScope.ReplaceAll()
 
-	TabsCount -= 1
 	scope.Write(ifScope.Src)
 }
 
@@ -66,14 +62,11 @@ func (gen *Generator) assignmentStmt(assginStmt ast.AssignmentStmt, scope *GenSc
 
 func (gen *Generator) functionDeclarationStmt(node ast.FunctionDeclarationStmt, scope *GenScope) {
 	fnScope := NewGenScope(scope)
-	fnTabs := getTabs()
-
-	TabsCount += 1
 
 	if node.IsLocal {
-		fnScope.Append(fnTabs, "local ")
+		fnScope.AppendTabbed("local ")
 	} else {
-		fnScope.Append(fnTabs)
+		fnScope.AppendTabbed()
 	}
 
 	fnScope.Append("function ", "V", node.Name.Lexeme, "(")
@@ -105,11 +98,9 @@ func (gen *Generator) functionDeclarationStmt(node ast.FunctionDeclarationStmt, 
 
 	*/
 
-	gen.GenerateString(node.Body, &fnScope)
+	gen.GenerateBody(node.Body, &fnScope)
 
-	fnScope.Append(fnTabs + "end")
-
-	TabsCount -= 1
+	fnScope.AppendTabbed("end")
 
 	scope.Write(fnScope.Src)
 }
@@ -198,64 +189,83 @@ func (gen *Generator) repeatStmt(node ast.RepeatStmt, scope *GenScope) {
 		repeatScope.Append(repeatTabs, "for _ = ", start, ", ", end, ", ", skip, " do\n")
 	}
 
-	gotoLabel := "hgtl" + GenerateVar()
+	gotoLabel := GenerateVar(hyGTL)
 	repeatScope.ReplaceSettings = map[ReplaceType]string{
 		ContinueReplacement: "goto " + gotoLabel,
 	}
 
-	gen.GenerateString(node.Body, &repeatScope)
+	gen.GenerateBody(node.Body, &repeatScope)
 
-	repeatScope.ReplaceAll(repeatScope.ReplaceSettings)
+	repeatScope.ReplaceAll()
 
 	scope.Write(repeatScope.Src)
 
-	scope.AppendTabbed("::" + gotoLabel + "::\n")
+	scope.AppendETabbed("::" + gotoLabel + "::\n")
 
 	TabsCount -= 1
 
 	scope.Append(repeatTabs, "end")
 }
 
-func (gen *Generator) forStmt(node ast.ForStmt, scope *GenScope) {
-	forScope := NewGenScope(scope)
-	forTabs := getTabs()
+func (gen *Generator) whileStmt(node ast.WhileStmt, scope *GenScope) {
+	whileScope := NewGenScope(scope)
+	whileScope.AppendTabbed("while ", gen.GenerateExpr(node.Condtion, &whileScope), " do\n")
 
-	TabsCount += 1
-
-	iterator := gen.GenerateExpr(node.Iterator, scope)
-	if node.Key.GetValueType() != 0 && node.Value.GetValueType() != 0 {
-		key := gen.GenerateExpr(&node.Key, &forScope)
-		value := gen.GenerateExpr(&node.Value, &forScope)
-		forScope.Append(forTabs, "for ", key, ", ", value, " in ipairs(", iterator, ") do\n")
-	} else {
-		value := gen.GenerateExpr(&node.Value, scope)
-		forScope.Append(forTabs, "for _, ", value, " in ipairs(", iterator, ") do\n")
+	gotoLabel := GenerateVar(hyGTL)
+	whileScope.ReplaceSettings = map[ReplaceType]string{
+		ContinueReplacement: "goto " + gotoLabel,
 	}
 
-	gotoLabel := "hgtl" + GenerateVar()
+	gen.GenerateBody(node.Body, &whileScope)
+
+	whileScope.ReplaceAll()
+
+	scope.Write(whileScope.Src)
+	scope.AppendETabbed("::" + gotoLabel + "::\n")
+
+	scope.AppendTabbed("end")
+}
+
+func (gen *Generator) forStmt(node ast.ForStmt, scope *GenScope) {
+	forScope := NewGenScope(scope)
+
+	forScope.AppendTabbed("for ")
+
+	pairs := "pairs"
+	if node.OrderedIteration {
+		pairs = "ipairs"
+	}
+	iterator := gen.GenerateExpr(node.Iterator, scope)
+	if len(node.KeyValuePair) == 1 {
+		key := gen.GenerateExpr(node.KeyValuePair[0], &forScope)
+		forScope.Append(key, ", _ in  ", pairs, " (", iterator, ") do\n")
+	}else if len(node.KeyValuePair) == 2 {
+		key := gen.GenerateExpr(node.KeyValuePair[0], &forScope)
+		value := gen.GenerateExpr(node.KeyValuePair[1], &forScope)
+		forScope.Append(key, ", ", value, " in ", pairs, "(", iterator, ") do\n")
+	}else {
+		forScope.Append("_, _ in ", pairs, "(", iterator, ") do\n")
+	}
+	gotoLabel := GenerateVar(hyGTL)
 	forScope.ReplaceSettings = map[ReplaceType]string{
 		ContinueReplacement: "goto " + gotoLabel,
 	}
 
-	gen.GenerateString(node.Body, &forScope)
+	gen.GenerateBody(node.Body, &forScope)
 
-	forScope.ReplaceAll(forScope.ReplaceSettings)
+	forScope.ReplaceAll()
 
 	scope.Write(forScope.Src)
 
-	scope.AppendTabbed("::" + gotoLabel + "::\n")
+	scope.AppendETabbed("::" + gotoLabel + "::\n")
 
-	TabsCount -= 1
-
-	scope.Append(forTabs, "end")
+	scope.AppendTabbed("end")
 }
 
 func (gen *Generator) tickStmt(node ast.TickStmt, scope *GenScope) {
 	tickTabs := getTabs()
 
 	tickScope := GenScope{Src: StringBuilder{}, Parent: scope}
-
-	TabsCount += 1
 
 	if node.Variable.GetValueType() != 0 {
 		variable := gen.GenerateExpr(&node.Variable, scope)
@@ -266,11 +276,9 @@ func (gen *Generator) tickStmt(node ast.TickStmt, scope *GenScope) {
 		tickScope.Src.Append(tickTabs, "pewpew.add_update_callback(function()\n")
 	}
 
-	gen.GenerateString(node.Body, &tickScope)
+	gen.GenerateBody(node.Body, &tickScope)
 
 	tickScope.Src.Append(tickTabs, "end)")
-
-	TabsCount -= 1
 
 	scope.Write(tickScope.Src)
 }
@@ -336,8 +344,6 @@ func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, Struc
 
 	constructorScope.Append("function Hybroid_", Struct.Name.Lexeme, "_New(")
 
-	TabsCount += 1
-
 	for i, param := range node.Params {
 		constructorScope.Append("V", param.Name.Lexeme)
 		if i != len(node.Params)-1 {
@@ -346,6 +352,7 @@ func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, Struc
 	}
 	constructorScope.Append(")\n")
 
+	TabsCount++
 	src.AppendTabbed("local Self = {")
 	for i, field := range Struct.Fields {
 		for j, value := range field.Values {
@@ -358,10 +365,11 @@ func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, Struc
 	}
 	src.WriteString("}\n")
 	constructorScope.Write(src)
-
-	gen.GenerateString(*node.Body, &constructorScope)
+	TabsCount--
+	gen.GenerateBody(node.Body, &constructorScope)
+	TabsCount++
 	constructorScope.AppendTabbed("return Self\n")
-	TabsCount -= 1
+	TabsCount--
 	constructorScope.AppendTabbed("end\n")
 
 	scope.Write(constructorScope.Src)
@@ -394,11 +402,7 @@ func (gen *Generator) methodDeclarationStmt(node ast.MethodDeclarationStmt, Stru
 	}
 	methodScope.Append(")\n")
 
-	TabsCount += 1
-
-	gen.GenerateString(node.Body, &methodScope) // its constructor
-
-	TabsCount -= 1
+	gen.GenerateBody(node.Body, &methodScope) // its constructor
 
 	methodScope.AppendTabbed("end\n")
 

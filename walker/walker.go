@@ -360,6 +360,8 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 		w.continueStmt(newNode, scope)
 	case *ast.RepeatStmt:
 		w.repeat(newNode, scope)
+	case *ast.WhileStmt:
+		w.while(newNode, scope)
 	case *ast.ForStmt:
 		w.forloop(newNode, scope)
 	case *ast.TickStmt:

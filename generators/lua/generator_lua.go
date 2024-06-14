@@ -39,6 +39,9 @@ var charset = []byte("_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTU
 var charsetLength = len(charset)
 var varCounter = 0
 
+var hyGTL = "GL"
+var HyVar = "H"
+
 func ResolveVarCounter(varname *StringBuilder, counter int) {
 	if counter > charsetLength-1 {
 		newCounter := counter - charsetLength
@@ -49,9 +52,9 @@ func ResolveVarCounter(varname *StringBuilder, counter int) {
 	}
 }
 
-func GenerateVar() string {
+func GenerateVar(prefix string) string {
 	varName := StringBuilder{}
-	varName.WriteByte('H')
+	varName.WriteString(prefix)
 	ResolveVarCounter(&varName, varCounter)
 	varCounter++
 	return varName.String()
@@ -122,7 +125,7 @@ func ResolveReplacement(rType ReplaceType, scope *GenScope) string {
 	return ResolveReplacement(rType, scope.Parent)
 }
 
-func (gs *GenScope) ReplaceAll(replacement ReplaceSettings) {
+func (gs *GenScope) ReplaceAll() {
 	lengthBefore := gs.Src.Len()
 
 	for i := len(gs.Replacements) - 1; i >= 0; i-- {
@@ -163,7 +166,13 @@ func (gs *GenScope) Append(strs ...string) {
 	gs.Src.Append(strs...)
 }
 
-func (gs *GenScope) AppendTabbed(strs ...string) {
+func (gs *GenScope) AppendETabbed(strs ...string) {
+	TabsCount++
+	gs.Src.AppendTabbed(strs...)
+	TabsCount--
+}
+
+func (gs *GenScope) AppendTabbed( strs ...string) {
 	gs.Src.AppendTabbed(strs...)
 }
 
@@ -196,11 +205,13 @@ func (gen *Generator) Generate(program []ast.Node) {
 	}
 }
 
-func (gen *Generator) GenerateString(program []ast.Node, scope *GenScope) {
+func (gen *Generator) GenerateBody(program []ast.Node, scope *GenScope) {
+	TabsCount += 1
 	for _, node := range program {
 		gen.GenerateStmt(node, scope)
 		scope.Src.WriteString("\n")
 	}
+	TabsCount -= 1
 }
 
 func fixedToFx(floatstr string) string {
@@ -251,6 +262,8 @@ func (gen *Generator) GenerateStmt(node ast.Node, scope *GenScope) {
 		gen.ifStmt(*newNode, scope)
 	case *ast.RepeatStmt:
 		gen.repeatStmt(*newNode, scope)
+	case *ast.WhileStmt:
+		gen.whileStmt(*newNode, scope)
 	case *ast.ForStmt:
 		gen.forStmt(*newNode, scope)
 	case *ast.TickStmt:

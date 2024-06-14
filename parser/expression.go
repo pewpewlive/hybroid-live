@@ -29,7 +29,7 @@ func (p *Parser) fn() ast.Node {
 		}
 
 		fn.Return = ret
-		fn.Body = *p.getBody()
+		fn.Body = p.getBody()
 		return fn
 	} else {
 		return p.multiComparison()
@@ -474,18 +474,18 @@ func (p *Parser) parseMap() ast.Node {
 		switch key := key.(type) {
 		case *ast.IdentifierExpr:
 			newKey = key.GetToken()
-		case *ast.LiteralExpr:
-			if key.GetValueType() != ast.String {
-				p.error(key.GetToken(), "expected a string in map initialization")
-			}
-			newKey = key.GetToken()
+		// case *ast.LiteralExpr:
+		// 	if key.GetValueType() != ast.String {
+		// 		p.error(key.GetToken(), "expected a string in map initialization")
+		// 	}
+		// 	newKey = key.GetToken()
 		default:
 			p.error(key.GetToken(), "expected either string or an identifier in map initialization")
 			p.advance()
 			return &ast.Improper{Token: p.peek(-1)}
 		}
 
-		if _, ok := p.consume("expected ':' after map key", lexer.Colon); !ok {
+		if _, ok := p.consume("expected '=' after map key", lexer.Equal); !ok {
 			return &ast.Improper{Token: p.peek(-1)}
 		}
 

@@ -85,6 +85,9 @@ func (p *Parser) statement() ast.Node {
 	case lexer.Struct:
 		p.advance()
 		return p.structDeclarationStatement()
+	case lexer.While:
+		p.advance()
+		return p.whileStmt()
 	case lexer.Match:
 		p.advance()
 		return p.matchStmt(false)
@@ -98,10 +101,10 @@ func (p *Parser) statement() ast.Node {
 	return expr
 }
 
-func (p *Parser) getBody() *[]ast.Node {
+func (p *Parser) getBody() []ast.Node {
 	body := make([]ast.Node, 0)
 	if _, success := p.consume("expected opening of the body", lexer.LeftBrace); !success {
-		return &body
+		return body
 	}
 
 	for !p.match(lexer.RightBrace) {
@@ -116,7 +119,7 @@ func (p *Parser) getBody() *[]ast.Node {
 		}
 	}
 
-	return &body
+	return body
 }
 
 func (p *Parser) envStmt() ast.Node {
@@ -284,7 +287,7 @@ func (p *Parser) methodDeclarationStmt(IsLocal bool) ast.Node {
 		}
 	}
 	fnDec.Return = ret
-	fnDec.Body = *p.getBody()
+	fnDec.Body = p.getBody()
 
 	return &fnDec
 }
@@ -310,7 +313,7 @@ func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) *ast.IfS
 		// }
 	}
 	ifStm.BoolExpr = expr
-	ifStm.Body = *p.getBody()
+	ifStm.Body = p.getBody()
 	if is_else || is_elseif {
 		return &ifStm
 	}
@@ -424,7 +427,7 @@ func (p *Parser) functionDeclarationStmt() ast.Node {
 	fnDec.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
 
 	fnDec.Return = p.returnings()
-	fnDec.Body = *p.getBody()
+	fnDec.Body = p.getBody()
 
 	return &fnDec
 }
@@ -547,9 +550,26 @@ func (p *Parser) repeatStmt() ast.Node {
 		repeatStmt.Iterator = &ast.LiteralExpr{Token: repeatStmt.Token, Value: "1", ValueType: ast.Number}
 	}
 
-	repeatStmt.Body = *p.getBody()
+	repeatStmt.Body = p.getBody()
 
 	return &repeatStmt
+}
+
+func (p *Parser) whileStmt() ast.Node {
+	whileStmt := &ast.WhileStmt{}
+
+	condtion := p.expression()
+
+	if condtion.GetType() == ast.NA {
+		p.error(condtion.GetToken(), "Expected an expressions after 'while'")
+		return &ast.Improper{}
+	}
+
+	whileStmt.Condtion = condtion
+
+	whileStmt.Body = p.getBody()
+
+	return whileStmt
 }
 
 func (p *Parser) forStmt() ast.Node {
@@ -563,21 +583,21 @@ func (p *Parser) forStmt() ast.Node {
 		if identExpr.GetType() != ast.Identifier {
 			p.error(identExpr.GetToken(), "expected identifier expression after keyword 'for'")
 		} else {
-			forStmt.Key = *identExpr.(*ast.IdentifierExpr)
+			forStmt.KeyValuePair[0] = identExpr.(*ast.IdentifierExpr)
 		}
 		p.match(lexer.Comma)
 		identExpr = p.expression()
 		if identExpr.GetType() != ast.Identifier {
 			p.error(identExpr.GetToken(), "expected identifier expression after a comma")
 		} else {
-			forStmt.Value = *identExpr.(*ast.IdentifierExpr)
+			forStmt.KeyValuePair[1] = identExpr.(*ast.IdentifierExpr)
 		}
 	} else {
 		identExpr := p.expression()
 		if identExpr.GetType() != ast.Identifier {
 			p.error(identExpr.GetToken(), "expected identifier expression after keyword 'for'")
 		} else {
-			forStmt.Value = *identExpr.(*ast.IdentifierExpr)
+			forStmt.KeyValuePair[0] = identExpr.(*ast.IdentifierExpr)
 		}
 	}
 
@@ -590,7 +610,7 @@ func (p *Parser) forStmt() ast.Node {
 		forStmt.Iterator = &ast.LiteralExpr{Token: forStmt.Token, Value: "[1]", ValueType: ast.List}
 	}
 
-	forStmt.Body = *p.getBody()
+	forStmt.Body = p.getBody()
 
 	return &forStmt
 }
@@ -609,7 +629,7 @@ func (p *Parser) tickStmt() ast.Node {
 		tickStmt.Variable = *identExpr.(*ast.IdentifierExpr)
 	}
 
-	tickStmt.Body = *p.getBody()
+	tickStmt.Body = p.getBody()
 
 	return &tickStmt
 }
@@ -732,7 +752,7 @@ func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
 	p.consume("expected fat arrow after expression in case", lexer.FatArrow)
 
 	if p.check(lexer.LeftBrace) {
-		body := *p.getBody()
+		body := p.getBody()
 		for i := range caseStmts {
 			caseStmts[i].Body = body
 		}

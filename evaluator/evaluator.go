@@ -113,11 +113,9 @@ func (e *Evaluator) Action(writeEnabled bool) (string, error) {
 func printAlerts[T ast.Alert](errs []T) {
 	for _, err := range errs {
 		tokenLocation := err.GetToken().Location
-		str := fmt.Sprintf("%v at %v:%v-%v: %s\n", 
+		str := fmt.Sprintf("%s at line %v: %s\n", 
 			err.GetHeader(),
 			tokenLocation.LineStart, 
-			tokenLocation.ColStart, 
-			tokenLocation.ColEnd, 
 			err.GetMessage())
 		fmt.Print(colorstring.Color(str))
 	}

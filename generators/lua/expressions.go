@@ -182,8 +182,6 @@ func (gen *Generator) directiveExpr(node ast.DirectiveExpr, scope *GenScope) str
 func (gen *Generator) anonFnExpr(fn ast.AnonFnExpr, scope *GenScope) string {
 	fnScope := NewGenScope(scope)
 
-	TabsCount += 1
-
 	fnScope.WriteString("function (")
 	for i, param := range fn.Params {
 		fnScope.Append(param.Name.Lexeme)
@@ -193,9 +191,7 @@ func (gen *Generator) anonFnExpr(fn ast.AnonFnExpr, scope *GenScope) string {
 	}
 	fnScope.Append(")\n")
 
-	gen.GenerateString(fn.Body, &fnScope)
-
-	TabsCount -= 1
+	gen.GenerateBody(fn.Body, &fnScope)
 
 	fnScope.AppendTabbed("end")
 
@@ -245,10 +241,10 @@ func (gen *Generator) newExpr(new ast.NewExpr, scope *GenScope) string {
 func (gen *Generator) matchExpr(match ast.MatchExpr, scope *GenScope) string {
 	vars := StringBuilder{}
 
-	gotoLabel := GenerateVar()
+	gotoLabel := GenerateVar(hyGTL)
 
 	for i := 0; i < match.ReturnAmount; i++ {
-		helperVarName := GenerateVar()
+		helperVarName := GenerateVar(HyVar)
 		if i == 0 {
 			scope.Src.AppendTabbed("local ", helperVarName)
 			vars.WriteString(helperVarName)
@@ -273,8 +269,6 @@ func (gen *Generator) matchExpr(match ast.MatchExpr, scope *GenScope) string {
 			scope.AppendTabbed("elseif ", toMatch, " == ", gen.GenerateExpr(matchCase.Expression, scope), " then\n")
 		}
 
-		TabsCount += 1
-
 		caseScope := NewGenScope(scope)
 
 		caseScope.ReplaceSettings = map[ReplaceType]string{
@@ -282,13 +276,12 @@ func (gen *Generator) matchExpr(match ast.MatchExpr, scope *GenScope) string {
 			GotoReplacement:  "goto " + gotoLabel,
 		}
 
-		gen.GenerateString(matchCase.Body, &caseScope)
+		gen.GenerateBody(matchCase.Body, &caseScope)
 
-		caseScope.ReplaceAll(caseScope.ReplaceSettings)
+		caseScope.ReplaceAll()
 
 		scope.Write(caseScope.Src)
 
-		TabsCount -= 1
 	}
 
 	scope.AppendTabbed("end\n")

@@ -85,7 +85,7 @@ func (sds *StructDeclarationStmt) GetValueType() PrimitiveValueType {
 
 type ConstructorStmt struct {
 	Token  lexer.Token
-	Body   *[]Node
+	Body   []Node
 	Return []*TypeExpr
 	Params []Param
 }
@@ -231,10 +231,29 @@ func (rs *RepeatStmt) GetValueType() PrimitiveValueType {
 	return 0
 }
 
+type WhileStmt struct {
+	Condtion Node
+	Body []Node
+	Token lexer.Token
+}
+
+func (fs *WhileStmt) GetType() NodeType {
+	return WhileStatement
+}
+
+func (fs *WhileStmt) GetToken() lexer.Token {
+	return fs.Token
+}
+
+func (fs *WhileStmt) GetValueType() PrimitiveValueType {
+	return 0
+}
+
+
 type ForStmt struct {
 	Iterator Node
-	Value    IdentifierExpr
-	Key      IdentifierExpr
+	KeyValuePair [2]*IdentifierExpr
+	OrderedIteration bool
 	Body     []Node
 	Token    lexer.Token
 }

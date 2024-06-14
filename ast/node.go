@@ -15,6 +15,7 @@ const (
 	EnvironmentStatement
 	AssignmentStatement
 	RepeatStatement
+	WhileStatement
 	ForStatement
 	TickStatement
 	IfStatement

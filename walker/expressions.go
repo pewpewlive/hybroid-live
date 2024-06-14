@@ -47,22 +47,17 @@ func (w *Walker) binaryExpr(node *ast.BinaryExpr, scope *Scope) Value {
 }
 
 func (w *Walker) literalExpr(node *ast.LiteralExpr) Value {
-
 	switch node.ValueType {
 	case ast.String:
 		return &StringVal{}
 	case ast.Fixed:
-		return &FixedVal{
-			ast.Fixed}
+		return &FixedVal{ast.Fixed}
 	case ast.Radian:
-		return &FixedVal{
-			ast.Radian}
+		return &FixedVal{ast.Radian}
 	case ast.FixedPoint:
-		return &FixedVal{
-			ast.FixedPoint}
+		return &FixedVal{ast.FixedPoint}
 	case ast.Degree:
-		return &FixedVal{
-			ast.Degree}
+		return &FixedVal{ast.Degree}
 	case ast.Bool:
 		return &BoolVal{}
 	case ast.Number:

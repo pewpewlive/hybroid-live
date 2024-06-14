@@ -158,6 +158,7 @@ func (w *Walker) returnStmt(node *ast.ReturnStmt, scope *Scope) *Types {
 
 	if returnable := scope.ResolveReturnable(); returnable != nil {
 		(*returnable).SetExit(true, Return)
+		(*returnable).SetExit(true, All)
 	}
 
 	errorMsg := w.validateReturnValues(ret, (*funcTag).ReturnType)
@@ -204,6 +205,7 @@ func (w *Walker) yieldStmt(node *ast.YieldStmt, scope *Scope) *Types {
 
 	if returnable := scope.ResolveReturnable(); returnable != nil {
 		(*returnable).SetExit(true, Yield)
+		(*returnable).SetExit(true, All)
 	}
 
 	return &ret
@@ -216,6 +218,7 @@ func (w *Walker) breakStmt(node *ast.BreakStmt, scope *Scope) {
 
 	if returnable := scope.ResolveReturnable(); returnable != nil {
 		(*returnable).SetExit(true, Break)
+		(*returnable).SetExit(true, All)
 	}
 }
 
@@ -226,6 +229,7 @@ func (w *Walker) continueStmt(node *ast.ContinueStmt, scope *Scope) {
 
 	if returnable := scope.ResolveReturnable(); returnable != nil {
 		(*returnable).SetExit(true, Continue)
+		(*returnable).SetExit(true, All)
 	}
 }
 
@@ -275,22 +279,31 @@ func (w *Walker) repeat(node *ast.RepeatStmt, scope *Scope) {
 	w.ReportExits(lt, scope)
 }
 
+func (w *Walker) while(node *ast.WhileStmt, scope *Scope) {
+	whileScope := NewScope(scope, &LoopTag{}, BreakAllowing, ContinueAllowing)
+	lt := NewLoopTag(whileScope.Attributes...)
+	whileScope.Tag = lt
+
+	_ = w.GetNodeValue(&node.Condtion, scope)
+
+	w.WalkBody(&node.Body, lt, &whileScope)
+}
+
 func (w *Walker) forloop(node *ast.ForStmt, scope *Scope) {
 	forScope := NewScope(scope, &LoopTag{}, BreakAllowing, ContinueAllowing)
 	lt := NewLoopTag(forScope.Attributes...)
 	forScope.Tag = lt
 
-	if node.Key.GetValueType() != 0 {
-		forScope.DeclareVariable(&VariableVal{Name: node.Key.Name.Lexeme, Value: &NumberVal{}})
+	if len(node.KeyValuePair) != 0 {
+		forScope.DeclareVariable(&VariableVal{Name: node.KeyValuePair[0].Name.Lexeme, Value: &NumberVal{}})
 	}
-
-	if node.Value.GetValueType() != 0 {
-		forScope.DeclareVariable(&VariableVal{Name: node.Value.Name.Lexeme, Value: w.TypeToValue(w.GetNodeValue(&node.Iterator, scope).GetType().(*WrapperType).WrappedType)})
-	}
-
-	iteratorType := w.GetNodeValue(&node.Iterator, scope).GetType().PVT()
-	if iteratorType != ast.List && iteratorType != ast.Map {
+	valType := w.GetNodeValue(&node.Iterator, scope).GetType()
+	wrapper, ok := valType.(*WrapperType)
+	if !ok {
 		w.error(node.Iterator.GetToken(), "iterator must be of type map or list")
+	}else if len(node.KeyValuePair) == 2 {
+		node.OrderedIteration = wrapper.PVT() == ast.List
+		forScope.DeclareVariable(&VariableVal{Name: node.KeyValuePair[1].Name.Lexeme, Value: w.TypeToValue(wrapper.WrappedType)})
 	}
 
 	w.WalkBody(&node.Body, lt, &forScope)
@@ -415,7 +428,7 @@ func (w *Walker) structDeclaration(node *ast.StructDeclarationStmt, scope *Scope
 		Params:  node.Constructor.Params,
 		Return:  node.Constructor.Return,
 		IsLocal: true,
-		Body:    *node.Constructor.Body,
+		Body:    node.Constructor.Body,
 	}
 
 	for i := range node.Fields {
@@ -568,7 +581,7 @@ func (w *Walker) match(node *ast.MatchStmt, isExpr bool, scope *Scope) {
 }
 
 func (w *Walker) env(node *ast.EnvironmentStmt, scope *Scope) {
-	if scope.Environment.Type.Name != "" {
+	if scope.Environment.Type.Name != "UNKNOWN" {
 		w.error(node.GetToken(), "can't have more than one environment statement in a file")
 		return
 	}
