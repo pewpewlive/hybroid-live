@@ -42,13 +42,13 @@ func (v *VariableVal) GetDefault() *ast.LiteralExpr {
 	return v.Value.GetDefault()
 }
 
-func FindFromList(list []*VariableVal, name string) (*VariableVal, bool) {
-	for _, v := range list {
+func FindFromList(list []*VariableVal, name string) (*VariableVal, int, bool) {
+	for i, v := range list {
 		if v.Name == name {
-			return v, true
+			return v, i+1, true
 		}
 	}
-	return nil, false
+	return nil, -1, false
 }
 
 type AnonStructVal struct {
@@ -91,10 +91,38 @@ func (self *AnonStructVal) ContainsField(name string) (*VariableVal, int, bool) 
 	return nil, -1, false
 }
 
+type EnumVal struct {
+	Name string
+	Fields []*VariableVal
+}
+
+func (self *EnumVal) GetType() Type {
+	return NewBasicType(ast.Enum)
+}
+
+func (self *EnumVal) GetDefault() *ast.LiteralExpr {
+	src := generators.BetterBuilder{}
+
+	src.Append(self.Name,"[1]")
+
+	return &ast.LiteralExpr{Value: src.String()}
+}
+
+func (self *EnumVal) AddField(variable *VariableVal) {
+	self.Fields = append(self.Fields, variable)
+}
+
+func (self *EnumVal) ContainsField(name string) (*VariableVal, int, bool) {
+	if variable, ind, found := FindFromList(self.Fields, name); found {
+		return variable, ind, true
+	}
+
+	return nil, -1, false
+}
+
 type StructVal struct {
 	Type         NamedType
 	Fields       []*VariableVal
-	FieldIndexes map[string]int
 	Methods      map[string]*VariableVal
 	Params       Types
 }
@@ -123,12 +151,6 @@ func (self *StructVal) GetDefault() *ast.LiteralExpr {
 // Container
 func (self *StructVal) AddField(variable *VariableVal) {
 	self.Fields = append(self.Fields, variable)
-
-	index := 0
-	for range self.FieldIndexes {
-		index++
-	}
-	self.FieldIndexes[variable.Name] = index + 1
 }
 
 func (self *StructVal) AddMethod(variable *VariableVal) {
@@ -136,8 +158,8 @@ func (self *StructVal) AddMethod(variable *VariableVal) {
 }
 
 func (self *StructVal) ContainsField(name string) (*VariableVal, int, bool) {
-	if variable, found := FindFromList(self.Fields, name); found {
-		return variable, self.FieldIndexes[variable.Name], true
+	if variable, ind, found := FindFromList(self.Fields, name); found {
+		return variable, ind, true
 	}
 
 	return nil, -1, false

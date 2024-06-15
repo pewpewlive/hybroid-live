@@ -29,7 +29,11 @@ func (p *Parser) statement() ast.Node {
 		case lexer.Struct:
 			p.advance()
 			p.advance()
-			return p.structDeclarationStatement()
+			return p.structDeclarationStmt()
+		case lexer.Enum:
+			p.advance()
+			p.advance()
+			return p.enumDeclarationStmt(false)
 		}
 	}
 
@@ -82,9 +86,12 @@ func (p *Parser) statement() ast.Node {
 	case lexer.Use:
 		p.advance()
 		return p.useStmt()
+	case lexer.Enum:
+		p.advance()
+		return p.enumDeclarationStmt(true)
 	case lexer.Struct:
 		p.advance()
-		return p.structDeclarationStatement()
+		return p.structDeclarationStmt()
 	case lexer.While:
 		p.advance()
 		return p.whileStmt()
@@ -155,7 +162,48 @@ func (p *Parser) envStmt() ast.Node {
 	return &stmt
 }
 
-func (p *Parser) structDeclarationStatement() ast.Node {
+func (p *Parser) enumDeclarationStmt(local bool) ast.Node {
+	enumStmt := &ast.EnumDeclarationStmt{
+		IsLocal: local,
+	}
+
+	ident := p.expression()
+
+	if ident.GetType() != ast.Identifier {
+		p.error(ident.GetToken(), "expected identifier after 'enum' in enum declaration")
+		return &ast.Improper{Token: ident.GetToken()}
+	}
+
+	enumStmt.Name = ident.GetToken()
+
+	p.consume("expected opening of a body", lexer.LeftBrace)
+
+	expr := p.expression()
+	if expr.GetType() != ast.Identifier {
+		p.error(expr.GetToken(), "expected identifier in enum declaration")
+		return &ast.Improper{Token: expr.GetToken()}
+	}
+	fields := []lexer.Token{expr.GetToken()}
+	for p.match(lexer.Comma) {
+		if p.check(lexer.RightBrace) {
+			break
+		}
+		expr = p.expression()
+		if expr.GetType() != ast.Identifier {
+			p.error(expr.GetToken(), "expected identifier in enum declaration")
+			return &ast.Improper{Token: expr.GetToken()}
+		}
+		fields = append(fields, expr.GetToken())
+	}
+
+	enumStmt.Fields = fields
+
+	p.consume("expected body closure", lexer.RightBrace)
+
+	return enumStmt
+}
+
+func (p *Parser) structDeclarationStmt() ast.Node {
 	stmt := ast.StructDeclarationStmt{
 		IsLocal: p.peek(-1).Type != lexer.Pub,
 	}

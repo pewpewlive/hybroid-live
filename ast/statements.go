@@ -83,6 +83,24 @@ func (sds *StructDeclarationStmt) GetValueType() PrimitiveValueType {
 	return 0
 }
 
+type EnumDeclarationStmt struct {
+	Name lexer.Token
+	Fields []lexer.Token
+	IsLocal bool
+}
+
+func (sds *EnumDeclarationStmt) GetType() NodeType {
+	return StructureDeclarationStatement
+}
+
+func (sds *EnumDeclarationStmt) GetToken() lexer.Token {
+	return sds.Name
+}
+
+func (sds *EnumDeclarationStmt) GetValueType() PrimitiveValueType {
+	return 0
+}
+
 type ConstructorStmt struct {
 	Token  lexer.Token
 	Body   []Node

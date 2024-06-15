@@ -10,8 +10,9 @@ const (
 	StructureDeclarationStatement
 	FieldDeclarationStatement
 	MethodDeclarationStatement
-	ConstructorStatement
+	EnumDeclarationStatement
 
+	ConstructorStatement
 	EnvironmentStatement
 	AssignmentStatement
 	RepeatStatement
@@ -71,11 +72,12 @@ const (
 	AnonStruct
 	Ident
 	Environment
+	Enum
 
 	Invalid
 )
 
-var stringifiedPTV = [...]string{"unknown", "number", "text", "bool", "fixed", "fixed", "fixed", "fixed", "list", "map", "func", "entity", "struct", "anonymous struct", "identifier", "namespace", "invalid"}
+var stringifiedPTV = [...]string{"unknown", "number", "text", "bool", "fixed", "fixed", "fixed", "fixed", "list", "map", "func", "entity", "struct", "anonymous struct", "identifier", "environment", "enum", "invalid"}
 
 func (pvt PrimitiveValueType) ToString() string {
 	return stringifiedPTV[pvt]

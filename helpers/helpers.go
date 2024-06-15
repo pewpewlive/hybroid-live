@@ -57,19 +57,3 @@ func ListsAreSame[T comparable](list1 []T, list2 []T) bool {
 
 	return true
 }
-
-func MapsAreSame[T comparable, E comparable](map1 map[E]T, map2 map[E]T) bool {
-	if len(map1) != len(map2) {
-		return false
-	}
-
-	for k1 := range map1 {
-		if v, found := map2[k1]; !found {
-			return false
-		}else if v != map1[k1] {
-			return false
-		}
-	}
-
-	return true
-}

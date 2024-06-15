@@ -76,7 +76,7 @@ func (w *Walker) identifierExpr(node *ast.Node, scope *Scope) Value {
 		return &Invalid{}
 	}
 
-	variable := sc.GetVariable(sc, ident.Name.Lexeme)
+	variable := sc.GetVariable(ident.Name.Lexeme)
 
 	if sc.Tag.GetType() == Struct {
 		_struct := sc.Tag.(*StructTag).StructVal
@@ -132,21 +132,21 @@ func (w *Walker) determineCallTypeString(callType ProcedureType) string {
 	return "method"
 }
 
-func (w *Walker) validateArguments(args []Type, params []Type, callToken lexer.Token, typeCall string) bool {
+func (w *Walker) validateArguments(args []Type, params []Type, callToken lexer.Token, typeCall string) (int, bool) {
 	if len(params) < len(args) {
 		w.error(callToken, fmt.Sprintf("too many arguments given in %s call", typeCall))
-		return false
+		return -1, true
 	}
 	if len(params) > len(args) {
 		w.error(callToken, fmt.Sprintf("too few arguments given in %s call", typeCall))
-		return false
+		return -1, true
 	}
 	for i, typeVal := range args {
 		if !TypeEquals(typeVal, params[i]) {
-			return false
+			return i, false
 		}
 	}
-	return true
+	return -1, true
 }
 
 func (w *Walker) typeifyNodeList(nodes *[]ast.Node, scope *Scope) []Type {
@@ -185,7 +185,11 @@ func (w *Walker) callExpr(node *ast.CallExpr, scope *Scope, callType ProcedureTy
 	fun, _ := val.(*FunctionVal)
 
 	arguments := w.typeifyNodeList(&node.Args, scope)
-	w.validateArguments(arguments, fun.params, callerToken, typeCall)
+	index, failed := w.validateArguments(arguments, fun.params, callerToken, typeCall)
+	if !failed {
+		argToken := node.Args[index].GetToken()
+		w.error(argToken, fmt.Sprintf("mismatched types: argument '%s' is not of expected type %s", argToken.Lexeme, fun.params[index].ToString()))
+	}
 
 	if len(fun.returns) == 1 {
 		return w.TypeToValue(fun.returns[0])
@@ -244,8 +248,8 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 	if node.Owner == nil {
 		val := w.GetNodeValue(&node.Identifier, scope)
 
-		if !IsOfPrimitiveType(val, ast.Struct, ast.Entity, ast.AnonStruct) {
-			w.error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a struct, entity or anonymous struct", node.Identifier.GetToken().Lexeme))
+		if !IsOfPrimitiveType(val, ast.Struct, ast.Entity, ast.AnonStruct, ast.Enum) {
+			w.error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a struct, entity, enum or anonymous struct", node.Identifier.GetToken().Lexeme))
 			return &Invalid{}
 		}
 
@@ -279,7 +283,7 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 		}
 	}
 	if !isField && !isMethod {
-		w.error(ident, fmt.Sprintf("variable %s does not contain %s", variable.Name, ident.Lexeme))
+		w.error(ident, fmt.Sprintf("variable '%s' does not contain '%s'", variable.Name, ident.Lexeme))
 	}
 
 	if node.Property != nil {
@@ -425,7 +429,11 @@ func (w *Walker) newExpr(new *ast.NewExpr, scope *Scope) Value {
 	structVal := val.(*StructVal)
 
 	args := w.typeifyNodeList(&new.Args, scope)
-	w.validateArguments(args, structVal.Params, new.Type, "new")
+	index, failed := w.validateArguments(args, structVal.Params, new.Type, "new")
+	if !failed {
+		argToken := new.Args[index].GetToken()
+		w.error(argToken, fmt.Sprintf("mismatched types: argument '%s' is not of expected type %s", argToken.Lexeme, structVal.Params[index].ToString()))
+	}
 
 	return structVal
 }
@@ -519,6 +527,8 @@ func (w *Walker) typeExpr(typee *ast.TypeExpr) Type {
 	switch pvt {
 	case ast.Bool, ast.String, ast.Number, ast.Fixed, ast.FixedPoint, ast.Radian, ast.Degree:
 		return NewBasicType(pvt)
+	case ast.Enum:
+		return NewBasicType(ast.Enum)
 	case ast.AnonStruct:
 		fields := map[string]*VariableVal{}
 
@@ -552,6 +562,11 @@ func (w *Walker) typeExpr(typee *ast.TypeExpr) Type {
 	default:
 		if structVal, found := w.Environment.Structs[typee.Name.Lexeme]; found {
 			return structVal.GetType()
+		}
+		if val := w.Environment.Scope.GetVariable(typee.Name.Lexeme); val != nil {
+			if val.GetType().PVT() == ast.Enum {
+				return val.GetType()
+			}
 		}
 		return InvalidType
 	}

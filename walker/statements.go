@@ -404,11 +404,35 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDeclarationStmt, s
 	return declaredVariables
 }
 
+func (w *Walker) enumDeclarationStmt(node *ast.EnumDeclarationStmt, scope *Scope) {
+	enumVal := &EnumVal{
+		Name:node.Name.Lexeme,
+	}
+
+	for _, v := range node.Fields {
+		variable := &VariableVal{
+			Name: v.Lexeme,
+			Value: &NumberVal{},
+			IsConst: true,
+		}
+		enumVal.AddField(variable)
+	}
+
+	enumVar := &VariableVal{
+		Name: enumVal.Name,
+		Value: enumVal,
+		IsConst: true,
+	}
+
+	if _, ok := scope.DeclareVariable(enumVar); !ok {
+		w.error(node.GetToken(), "cannot declare an enum with the same name as another variable")
+	}
+}
+
 func (w *Walker) structDeclaration(node *ast.StructDeclarationStmt, scope *Scope) {
 	structVal := &StructVal{
 		Type: *NewNamedType(node.Name.Lexeme),
 		Fields: make([]*VariableVal, 0),
-		FieldIndexes: map[string]int{},
 		Methods: map[string]*VariableVal{},
 		Params: Types{},
 	}

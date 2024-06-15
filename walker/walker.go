@@ -43,14 +43,14 @@ func (w *Walker) addError(err ast.Error) {
 	w.Errors = append(w.Errors, err)
 }
 
-func (s *Scope) GetVariable(scope *Scope, name string) *VariableVal {
-	variable := scope.Variables[name]
+func (s *Scope) GetVariable( name string) *VariableVal {
+	variable := s.Variables[name]
 
 	variable.IsUsed = true
 
-	scope.Variables[name] = variable
+	s.Variables[name] = variable
 
-	return scope.Variables[name]
+	return s.Variables[name]
 }
 
 // ONLY CALL WHEN 100% SURE YOU'RE GONNA GET A STRUCT BACK
@@ -100,8 +100,8 @@ func (s *Scope) AssignVariable(variable *VariableVal, value Value) (Value, *ast.
 }
 
 func (s *Scope) DeclareVariable(value *VariableVal) (*VariableVal, bool) {
-	if _, found := s.Variables[value.Name]; found {
-		return &VariableVal{}, false
+	if varFound, found := s.Variables[value.Name]; found {
+		return varFound, false
 	}
 
 	s.Variables[value.Name] = value
@@ -374,6 +374,8 @@ func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 		w.directiveExpr(newNode, scope)
 	case *ast.UseStmt:
 		w.use(newNode, scope)
+	case *ast.EnumDeclarationStmt:
+		w.enumDeclarationStmt(newNode, scope)
 	case *ast.StructDeclarationStmt:
 		w.structDeclaration(newNode, scope)
 	case *ast.MatchStmt:

@@ -9,7 +9,8 @@ import (
 type Type interface {
 	PVT() ast.PrimitiveValueType
 	GetType() TypeType
-	eq(other Type) bool
+	//DO NOT USE ON ITS OWN, USE TypeEquals() INSTEAD
+	_eq(other Type) bool
 	ToString() string
 }
 
@@ -23,6 +24,7 @@ const (
 	PewpewEntity
 	Wrapper
 	Env
+	Enum
 	NA
 )
 
@@ -47,7 +49,7 @@ func (self *FunctionType) GetType() TypeType {
 	return Fn
 }
 
-func (self *FunctionType) eq(other Type) bool {
+func (self *FunctionType) _eq(other Type) bool {
 	ft := other.(*FunctionType)
 	if !helpers.ListsAreSame(self.Params, ft.Params) {
 		return false
@@ -110,8 +112,14 @@ func (self *BasicType) GetType() TypeType {
 	return Basic
 }
 
-func (self *BasicType) eq(other Type) bool {
-	return self.PrimitiveType == other.(*BasicType).PrimitiveType
+func (self *BasicType) _eq(other Type) bool {
+	basic := other.(*BasicType)
+	if self.PrimitiveType == ast.Number && basic.PrimitiveType == ast.Enum {
+		return true
+	}else if basic.PrimitiveType == ast.Enum && self.PrimitiveType == ast.Number {
+		return true
+	}
+	return self.PrimitiveType == basic.PrimitiveType
 }
 
 func (self *BasicType) ToString() string {
@@ -136,8 +144,22 @@ func (self *AnonStructType) GetType() TypeType {
 	return AnonStruct
 }
 
-func (self *AnonStructType) eq(other Type) bool {
-	return helpers.MapsAreSame(self.Fields, other.(*AnonStructType).Fields)
+func (self *AnonStructType) _eq(other Type) bool {
+	map1 := self.Fields
+	map2 := other.(*AnonStructType).Fields
+
+	for k, v := range map1 {
+		containsK := false
+		for k2, v2 := range map2 {
+			if k == k2 && TypeEquals(v.GetType(), v2.GetType()) {
+				containsK = true
+			}
+		}
+		if !containsK {
+			return false
+		}
+	}
+	return true
 }
 
 func (self *AnonStructType) ToString() string {
@@ -181,7 +203,7 @@ func (self *NamedType) GetType() TypeType {
 	return Structure
 }
 
-func (self *NamedType) eq(othr Type) bool {
+func (self *NamedType) _eq(othr Type) bool {
 	other := othr.(*NamedType)
 	if self.Name != other.Name {
 		return false
@@ -214,7 +236,7 @@ func (self *EnvironmentType) GetType() TypeType {
 	return Wrapper
 }
 
-func (self *EnvironmentType) eq(othr Type) bool {
+func (self *EnvironmentType) _eq(othr Type) bool {
 	other := othr.(*EnvironmentType)
 	if self.Name != other.Name {
 		return false
@@ -224,6 +246,27 @@ func (self *EnvironmentType) eq(othr Type) bool {
 }
 
 func (self *EnvironmentType) ToString() string {
+	return self.Name
+}
+
+type EnumType struct {
+	Name string
+	IsUsed bool
+}
+
+func (self *EnumType) PVT() ast.PrimitiveValueType {
+	return ast.Enum
+}
+
+func (self *EnumType) GetType() TypeType {
+	return Enum
+}
+
+func (self *EnumType) _eq(other Type) bool {
+	return self.Name == other.(*EnumType).Name
+}
+
+func (self *EnumType) ToString() string {
 	return self.Name
 }
 
@@ -248,7 +291,7 @@ func (self *WrapperType) GetType() TypeType {
 	return Wrapper
 }
 
-func (self *WrapperType) eq(othr Type) bool {
+func (self *WrapperType) _eq(othr Type) bool {
 	other := othr.(*WrapperType)
 	if self.Type.GetType() != other.Type.GetType() {
 		return false
@@ -258,11 +301,11 @@ func (self *WrapperType) eq(othr Type) bool {
 		return false
 	}
 
-	if !self.Type.eq(other.Type) {
+	if !self.Type._eq(other.Type) {
 		return false
 	}
 
-	if !self.WrappedType.eq(other.WrappedType) {
+	if !self.WrappedType._eq(other.WrappedType) {
 		return false
 	}
 
@@ -286,7 +329,7 @@ func (self *NotAnyType) GetType() TypeType {
 	return NA
 }
 
-func (self *NotAnyType) eq(_ Type) bool {
+func (self *NotAnyType) _eq(_ Type) bool {
 	return false
 }
 
@@ -294,14 +337,12 @@ func (self *NotAnyType) ToString() string {
 	return "NotAnyType"
 }
 
-// ASSOCIATED FUNCTIONS OF TYPE 
 func TypeEquals(t Type, other Type) bool {
 	if t.GetType() != other.GetType() {
 		return false
 	}
 
-	return t.eq(other)
+	return t._eq(other)
 }
 
-// GLOBAL VARIABLES
 var InvalidType = NewBasicType(ast.Invalid)

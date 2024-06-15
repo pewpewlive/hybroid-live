@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hybroid/ast"
 	"hybroid/lexer"
+	"strconv"
 	"strings"
 )
 
@@ -319,6 +320,26 @@ func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclaratio
 	src.Append(src2.String(), "\n")
 
 	scope.Write(src)
+}
+
+func (gen *Generator) enumDeclarationStmt(node ast.EnumDeclarationStmt, scope *GenScope) {
+	if node.IsLocal {
+		scope.AppendTabbed("local ")
+	}else {
+		scope.AppendTabbed()
+	}
+
+	scope.Append(node.Name.Lexeme, " = {\n")
+
+	length := len(node.Fields) 
+	for i := range node.Fields {
+		if i == length-1 {
+			scope.AppendETabbed(strconv.Itoa(i), "\n")
+		}else {
+			scope.AppendETabbed(strconv.Itoa(i), ", \n")
+		}
+	}
+	scope.AppendTabbed("}")
 }
 
 func (gen *Generator) structDeclarationStmt(node ast.StructDeclarationStmt, scope *GenScope) {

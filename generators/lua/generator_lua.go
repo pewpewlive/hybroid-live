@@ -166,13 +166,15 @@ func (gs *GenScope) Append(strs ...string) {
 	gs.Src.Append(strs...)
 }
 
+// Appends the given strings with one tab above the current identation
 func (gs *GenScope) AppendETabbed(strs ...string) {
 	TabsCount++
 	gs.Src.AppendTabbed(strs...)
 	TabsCount--
 }
 
-func (gs *GenScope) AppendTabbed( strs ...string) {
+// Appends the given strings with identation
+func (gs *GenScope) AppendTabbed(strs ...string) {
 	gs.Src.AppendTabbed(strs...)
 }
 
@@ -280,6 +282,8 @@ func (gen *Generator) GenerateStmt(node ast.Node, scope *GenScope) {
 		scope.WriteString(val)
 	case *ast.FunctionDeclarationStmt:
 		gen.functionDeclarationStmt(*newNode, scope)
+	case *ast.EnumDeclarationStmt:
+		gen.enumDeclarationStmt(*newNode, scope)
 	case *ast.StructDeclarationStmt:
 		gen.structDeclarationStmt(*newNode, scope)
 	}

@@ -66,7 +66,6 @@ let b, a = p.foo(true, 1)
 
 while true {
     if false {
-        yield
     }
     let a = 1
 }
@@ -79,6 +78,20 @@ for k, v in testmap {
 
 let list = [1,2,3]
 
-for i, v in a {
+for i, v in list {
 
 }
+
+enum TestEnum {
+    One,
+    Two,
+    Three
+}
+
+let number uhhh = TestEnum.One
+
+fn test2(TestEnum param1) {
+
+}
+
+test2(uhhh)
