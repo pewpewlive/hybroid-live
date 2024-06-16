@@ -329,7 +329,7 @@ func (gen *Generator) enumDeclarationStmt(node ast.EnumDeclarationStmt, scope *G
 		scope.AppendTabbed()
 	}
 
-	scope.Append(node.Name.Lexeme, " = {\n")
+	scope.Append("V", node.Name.Lexeme, " = {\n")
 
 	length := len(node.Fields) 
 	for i := range node.Fields {
@@ -445,7 +445,7 @@ func (gen *Generator) matchStmt(node ast.MatchStmt, scope *GenScope) {
 		if node.Cases[i].Expression.GetToken().Lexeme == "_" {
 			has_default = true
 		}
-		if i == 0 || i == len(node.Cases)-1 {
+		if i == 0 || (i == len(node.Cases)-1 && has_default) {
 			continue
 		}
 		elseIfStmt := ast.IfStmt{

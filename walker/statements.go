@@ -406,20 +406,23 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDeclarationStmt, s
 
 func (w *Walker) enumDeclarationStmt(node *ast.EnumDeclarationStmt, scope *Scope) {
 	enumVal := &EnumVal{
-		Name:node.Name.Lexeme,
+		Type:NewEnumType(node.Name.Lexeme),
 	}
 
+	if len(node.Fields) == 0 {
+		w.error(node.GetToken(), "can't declare an enum with no fields")
+	}
 	for _, v := range node.Fields {
 		variable := &VariableVal{
 			Name: v.Lexeme,
-			Value: &NumberVal{},
+			Value: &EnumFieldVal{Type:enumVal.Type},
 			IsConst: true,
 		}
 		enumVal.AddField(variable)
 	}
 
 	enumVar := &VariableVal{
-		Name: enumVal.Name,
+		Name: enumVal.Type.Name,
 		Value: enumVal,
 		IsConst: true,
 	}
@@ -566,23 +569,22 @@ func (w *Walker) match(node *ast.MatchStmt, isExpr bool, scope *Scope) {
 	multiPathScope := NewScope(scope, mpt)
 
 	var has_default bool
-	for i, matchCase := range node.Cases {
+	for i := range node.Cases {
 		caseScope := NewScope(&multiPathScope, &UntaggedTag{})
-
-		if matchCase.Expression.GetToken().Lexeme == "_" {
-			has_default = true
-		}
 
 		if !isExpr {
 			w.WalkBody(&node.Cases[i].Body, mpt, &caseScope)
 		}
-		if caseScope.Tag.GetType() == Untagged {
+
+		if node.Cases[i].Expression.GetToken().Lexeme == "_" {
+			has_default = true
 			continue
 		}
-		caseValType := w.GetNodeValue(&matchCase.Expression, scope).GetType()
+
+		caseValType := w.GetNodeValue(&node.Cases[i].Expression, scope).GetType()
 		if !TypeEquals(valType, caseValType) {
 			w.error(
-				matchCase.Expression.GetToken(),
+				node.Cases[i].Expression.GetToken(),
 				fmt.Sprintf("mismatched types: arm expression (%s) and match expression (%s)",
 					caseValType.ToString(),
 					valType.ToString()))

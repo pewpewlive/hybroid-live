@@ -73,25 +73,38 @@ while true {
 let testmap = {a = 2, b = 3}
 
 for k, v in testmap {
-
+    break
 }
 
 let list = [1,2,3]
 
 for i, v in list {
-
+    if i == 2 {
+        continue
+    }
+    match v {
+        0 => {
+            continue
+        }
+    }
 }
 
 enum TestEnum {
     One,
     Two,
-    Three
+    Three,
+    NA
 }
 
-let number uhhh = TestEnum.One
+let TestEnum uhhh = TestEnum.Three
 
-fn test2(TestEnum param1) {
-
+fn test2(TestEnum param1) TestEnum {
+    match param1 {
+        TestEnum.One => TestEnum.Two
+        TestEnum.Two => TestEnum.Three
+        TestEnum.Three => TestEnum.One
+    }
+    return TestEnum.NA
 }
 
 test2(uhhh)

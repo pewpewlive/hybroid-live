@@ -258,6 +258,7 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 			return val
 		} else {
 			w.Context.Value = val
+			w.Context.Node = node.Identifier
 			fieldVal = w.GetNodeValue(&node.Property, scope)
 		}
 		return fieldVal
@@ -283,7 +284,7 @@ func (w *Walker) fieldExpr(node *ast.FieldExpr, scope *Scope) Value {
 		}
 	}
 	if !isField && !isMethod {
-		w.error(ident, fmt.Sprintf("variable '%s' does not contain '%s'", variable.Name, ident.Lexeme))
+		w.error(ident, fmt.Sprintf("variable '%s' does not contain '%s'", w.Context.Node.GetToken().Lexeme, ident.Lexeme))
 	}
 
 	if node.Property != nil {

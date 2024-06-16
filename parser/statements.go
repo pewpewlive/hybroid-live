@@ -178,6 +178,11 @@ func (p *Parser) enumDeclarationStmt(local bool) ast.Node {
 
 	p.consume("expected opening of a body", lexer.LeftBrace)
 
+	if p.match(lexer.RightBrace) {
+		enumStmt.Fields = make([]lexer.Token, 0)
+		return enumStmt
+	}
+
 	expr := p.expression()
 	if expr.GetType() != ast.Identifier {
 		p.error(expr.GetToken(), "expected identifier in enum declaration")

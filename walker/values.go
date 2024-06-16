@@ -92,18 +92,18 @@ func (self *AnonStructVal) ContainsField(name string) (*VariableVal, int, bool) 
 }
 
 type EnumVal struct {
-	Name string
+	Type *EnumType
 	Fields []*VariableVal
 }
 
 func (self *EnumVal) GetType() Type {
-	return NewBasicType(ast.Enum)
+	return self.Type
 }
 
 func (self *EnumVal) GetDefault() *ast.LiteralExpr {
 	src := generators.BetterBuilder{}
 
-	src.Append(self.Name,"[1]")
+	src.Append(self.Type.Name,"[1]")
 
 	return &ast.LiteralExpr{Value: src.String()}
 }
@@ -118,6 +118,18 @@ func (self *EnumVal) ContainsField(name string) (*VariableVal, int, bool) {
 	}
 
 	return nil, -1, false
+}
+
+type EnumFieldVal struct {
+	Type *EnumType
+}
+
+func (self *EnumFieldVal) GetType() Type {
+	return self.Type
+}
+
+func (self *EnumFieldVal) GetDefault() *ast.LiteralExpr {
+	return &ast.LiteralExpr{Value: "ENUM_FIELD_VAL"}
 }
 
 type StructVal struct {

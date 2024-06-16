@@ -238,6 +238,8 @@ func (w *Walker) TypeToValue(_type Type) Value {
 		}
 	case ast.Environment:
 		return (*w.Walkers)[_type.(*EnvironmentType).Name].Environment
+	case ast.Enum:
+		return w.Environment.Scope.GetVariable(_type.(*EnumType).Name)
 	default:
 		return &Invalid{}
 	}

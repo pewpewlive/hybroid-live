@@ -114,11 +114,6 @@ func (self *BasicType) GetType() TypeType {
 
 func (self *BasicType) _eq(other Type) bool {
 	basic := other.(*BasicType)
-	if self.PrimitiveType == ast.Number && basic.PrimitiveType == ast.Enum {
-		return true
-	}else if basic.PrimitiveType == ast.Enum && self.PrimitiveType == ast.Number {
-		return true
-	}
 	return self.PrimitiveType == basic.PrimitiveType
 }
 
@@ -254,6 +249,12 @@ type EnumType struct {
 	IsUsed bool
 }
 
+func NewEnumType(name string) *EnumType {
+	return &EnumType{
+		Name:name,
+	}
+}
+
 func (self *EnumType) PVT() ast.PrimitiveValueType {
 	return ast.Enum
 }
@@ -338,6 +339,24 @@ func (self *NotAnyType) ToString() string {
 }
 
 func TypeEquals(t Type, other Type) bool {
+	// Adds support for manipulation between Enums and numbers, there might be complications with this however
+	// tIsEnum := t.PVT() == ast.Enum
+	// otherTIsEnum := other.PVT() == ast.Enum
+
+	// if !(tIsEnum && otherTIsEnum) && !(!tIsEnum && !otherTIsEnum) {
+	// 	var underlyingType Type
+	// 	var notEnum Type
+	// 	if tIsEnum {
+	// 		underlyingType = t.(*EnumType).UnderlyingType
+	// 		notEnum = other
+	// 	}else {
+	// 		underlyingType = other.(*EnumType).UnderlyingType
+	// 		notEnum = t
+	// 	}
+
+	// 	return TypeEquals(underlyingType,notEnum)
+	// }
+
 	if t.GetType() != other.GetType() {
 		return false
 	}
