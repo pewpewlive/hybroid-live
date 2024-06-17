@@ -152,7 +152,7 @@ func (self *FuncTag) GetIfExits(et ExitType) bool {
 }
 
 type MatchExprTag struct {
-	mpt         *MultiPathTag
+	Mpt         *MultiPathTag
 	YieldValues *Types
 }
 
@@ -161,11 +161,11 @@ func (met *MatchExprTag) GetType() ScopeTagType {
 }
 
 func (met *MatchExprTag) SetExit(state bool, typ ExitType) {
-	met.mpt.SetExit(state, typ)
+	met.Mpt.SetExit(state, typ)
 }
 
 func (self *MatchExprTag) GetIfExits(et ExitType) bool {
-	return self.mpt.GetIfExits(et)
+	return self.Mpt.GetIfExits(et)
 }
 
 type MultiPathTag struct {
@@ -254,6 +254,7 @@ var EmptyAttributes = ScopeAttributes{}
 type Scope struct {
 	Environment *EnvironmentVal
 	Parent      *Scope
+	Child       *Scope
 
 	Tag        ScopeTag
 	Attributes ScopeAttributes
@@ -285,7 +286,7 @@ func NewScope(parent *Scope, tag ScopeTag, extraAttrs ...ScopeAttribute) Scope {
 	for _, v := range extraAttrs {
 		attrs.Add(v)
 	}
-	return Scope{
+	scope := Scope{
 		Environment: parent.Environment,
 		Parent:      parent,
 
@@ -294,4 +295,6 @@ func NewScope(parent *Scope, tag ScopeTag, extraAttrs ...ScopeAttribute) Scope {
 
 		Variables:       map[string]*VariableVal{},
 	}
+	parent.Child = &scope
+	return scope
 }

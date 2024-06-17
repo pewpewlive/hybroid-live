@@ -74,10 +74,11 @@ const (
 	Environment
 	Enum
 
+	Unresolved
 	Invalid
 )
 
-var stringifiedPTV = [...]string{"unknown", "number", "text", "bool", "fixed", "fixed", "fixed", "fixed", "list", "map", "func", "entity", "struct", "anonymous struct", "identifier", "environment", "enum", "invalid"}
+var stringifiedPTV = [...]string{"unknown", "number", "text", "bool", "fixed", "fixed", "fixed", "fixed", "list", "map", "func", "entity", "struct", "anonymous struct", "identifier", "environment", "enum", "unresolved", "invalid"}
 
 func (pvt PrimitiveValueType) ToString() string {
 	return stringifiedPTV[pvt]

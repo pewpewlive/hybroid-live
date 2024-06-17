@@ -26,6 +26,18 @@ type MethodContainer interface {
 	ContainsMethod(name string) (*VariableVal, bool)
 }
 
+type UnresolvedVal struct {
+	EnvAccess ast.EnvExpr
+}
+
+func (uv *UnresolvedVal) GetType() Type {
+	return NewBasicType(ast.Unresolved)
+}
+
+func (v *UnresolvedVal) GetDefault() *ast.LiteralExpr {
+	return &ast.LiteralExpr{Value:"UNRESOLVED"}
+}
+
 type VariableVal struct {
 	Name    string
 	Value   Value
@@ -333,24 +345,24 @@ func (rt *Types) Eq(otherRT *Types) bool {
 }
 
 type FunctionVal struct {
-	params    Types
-	returns   Types
+	Params    Types
+	Returns   Types
 }
 
 func (f *FunctionVal) GetType() Type {
-	return NewFunctionType(f.params, f.returns)
+	return NewFunctionType(f.Params, f.Returns)
 }
 
 func (f *FunctionVal) GetReturns() Types {
-	return f.returns
+	return f.Returns
 }
 
 func (f *FunctionVal) GetDefault() *ast.LiteralExpr {
 	src := lua.StringBuilder{}
 	src.WriteString("function(")
-	for i := range f.params {
+	for i := range f.Params {
 		src.WriteString(fmt.Sprintf("param%v", i))
-		if i != len(f.params)-1 {
+		if i != len(f.Params)-1 {
 			src.WriteString(", ")
 		}
 	}

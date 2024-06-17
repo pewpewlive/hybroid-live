@@ -1,6 +1,7 @@
 package walker
 
 import (
+	"fmt"
 	"hybroid/ast"
 	"hybroid/helpers"
 	"hybroid/lexer"
@@ -31,11 +32,11 @@ func NewWalker(path string) *Walker {
 	return &walker
 }
 
-func (w *Walker) error(token lexer.Token, msg string) {
+func (w *Walker) Error(token lexer.Token, msg string) {
 	w.Errors = append(w.Errors, ast.Error{Token: token, Message: msg})
 }
 
-func (w *Walker) warn(token lexer.Token, msg string) {
+func (w *Walker) Warn(token lexer.Token, msg string) {
 	w.Warnings = append(w.Warnings, ast.Warning{Token: token, Message: msg})
 }
 
@@ -57,7 +58,7 @@ func (s *Scope) GetVariable( name string) *VariableVal {
 func (w *Walker) GetStruct(name string) (Value, bool) {
 	structType, found := w.Environment.Structs[name]
 	if !found {
-		//w.error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s", name, " exists"))
+		//w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s", name, " exists"))
 		return nil, false
 	}
 
@@ -99,8 +100,9 @@ func (s *Scope) AssignVariable(variable *VariableVal, value Value) (Value, *ast.
 	return variable, nil
 }
 
-func (s *Scope) DeclareVariable(value *VariableVal) (*VariableVal, bool) {
+func (w *Walker) DeclareVariable(s *Scope, value *VariableVal, token lexer.Token) (*VariableVal, bool) {
 	if varFound, found := s.Variables[value.Name]; found {
+		w.Error(token, fmt.Sprintf("variable with name '%s' already exists", varFound.Name))
 		return varFound, false
 	}
 
@@ -160,24 +162,24 @@ func (sc *Scope) ResolveReturnable() *ExitableTag {
 func (w *Walker) validateArithmeticOperands(left Type, right Type, expr ast.BinaryExpr) bool {
 	//fmt.Printf("Validating operands: %v (%v) and %v (%v)\n", left.Val, left.Type, right.Val, right.Type)
 	if left.PVT() == ast.Invalid {
-		w.error(expr.Left.GetToken(), "cannot perform arithmetic on Invalid value")
+		w.Error(expr.Left.GetToken(), "cannot perform arithmetic on Invalid value")
 		return false
 	}
 
 	if right.PVT() == ast.Invalid {
-		w.error(expr.Right.GetToken(), "cannot perform arithmetic on Invalid value")
+		w.Error(expr.Right.GetToken(), "cannot perform arithmetic on Invalid value")
 		return false
 	}
 
 	switch left.PVT() {
 	case ast.List, ast.Map, ast.String, ast.Bool, ast.Entity, ast.Struct:
-		w.error(expr.Left.GetToken(), "cannot perform arithmetic on a non-number value")
+		w.Error(expr.Left.GetToken(), "cannot perform arithmetic on a non-number value")
 		return false
 	}
 
 	switch right.PVT() {
 	case ast.List, ast.Map, ast.String, ast.Bool, ast.Entity, ast.Struct:
-		w.error(expr.Right.GetToken(), "cannot perform arithmetic on a non-number value")
+		w.Error(expr.Right.GetToken(), "cannot perform arithmetic on a non-number value")
 		return false
 	}
 
@@ -274,8 +276,25 @@ func (w *Walker) Pass1(nodes *[]ast.Node, wlkrs *map[string]*Walker) []ast.Node 
 
 	newNodes := make([]ast.Node, 0)
 
+	scope := &w.Environment.Scope
 	for _, node := range *nodes {
-		w.WalkNode(&node, &w.Environment.Scope)
+		switch newNode := node.(type) {
+		case *ast.EnvironmentStmt:
+			w.EnvStmt(newNode, scope)
+		case *ast.VariableDeclarationStmt:
+			w.VariableDeclaration(newNode, scope)
+		case *ast.FunctionDeclarationStmt:
+			w.FunctionDeclaration(newNode, scope, Function)
+		case *ast.StructDeclarationStmt:
+			w.StructDeclaration(newNode, scope)
+		case *ast.EnumDeclarationStmt:
+			w.EnumDeclarationStmt(newNode, scope)
+		case *ast.Improper:
+			w.Error(newNode.GetToken(), "Improper statement: parser fault")
+		default:
+			w.Error(newNode.GetToken(), "Expected statement")
+		}
+	
 		newNodes = append(newNodes, node)
 	}
 
@@ -299,9 +318,9 @@ func (w *Walker) Pass1(nodes *[]ast.Node, wlkrs *map[string]*Walker) []ast.Node 
 // 		case *ast.StructDeclarationStmt:
 // 			w.structDeclarationStmt(newNode, scope)
 // 		case *ast.Improper:
-// 			w.error(newNode.GetToken(), "Improper statement: parser fault")
+// 			w.Error(newNode.GetToken(), "Improper statement: parser fault")
 // 		default:
-// 			w.error(newNode.GetToken(), "Expected statement")
+// 			w.Error(newNode.GetToken(), "Expected statement")
 // 		}
 // 		newNodes = append(newNodes, node)
 // 	}
@@ -329,7 +348,7 @@ func (w *Walker) WalkBody(body *[]ast.Node, tag ExitableTag, scope *Scope) {
 	endIndex := -1
 	for i := range *body {
 		if tag.GetIfExits(All) {
-			w.warn((*body)[i].GetToken(), "unreachable code detected")
+			w.Warn((*body)[i].GetToken(), "unreachable code detected")
 			endIndex = i
 			break
 		}
@@ -343,49 +362,49 @@ func (w *Walker) WalkBody(body *[]ast.Node, tag ExitableTag, scope *Scope) {
 func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
 	switch newNode := (*node).(type) {
 	case *ast.EnvironmentStmt:
-		w.env(newNode, scope)
+		w.EnvStmt(newNode, scope)
 	case *ast.VariableDeclarationStmt:
-		w.variableDeclaration(newNode, scope)
+		w.VariableDeclaration(newNode, scope)
 	case *ast.IfStmt:
-		w.ifStmt(newNode, scope)
+		w.IfStmt(newNode, scope)
 	case *ast.AssignmentStmt:
-		w.assignment(newNode, scope)
+		w.Assignment(newNode, scope)
 	case *ast.FunctionDeclarationStmt:
-		w.functionDeclaration(newNode, scope, Function)
+		w.FunctionDeclaration(newNode, scope, Function)
 	case *ast.ReturnStmt:
-		w.returnStmt(newNode, scope)
+		w.ReturnStmt(newNode, scope)
 	case *ast.YieldStmt:
-		w.yieldStmt(newNode, scope)
+		w.YieldStmt(newNode, scope)
 	case *ast.BreakStmt:
-		w.breakStmt(newNode, scope)
+		w.BreakStmt(newNode, scope)
 	case *ast.ContinueStmt:
-		w.continueStmt(newNode, scope)
+		w.ContinueStmt(newNode, scope)
 	case *ast.RepeatStmt:
-		w.repeat(newNode, scope)
+		w.Repeat(newNode, scope)
 	case *ast.WhileStmt:
-		w.while(newNode, scope)
+		w.While(newNode, scope)
 	case *ast.ForStmt:
-		w.forloop(newNode, scope)
+		w.Forloop(newNode, scope)
 	case *ast.TickStmt:
-		w.tick(newNode, scope)
+		w.Tick(newNode, scope)
 	case *ast.CallExpr:
-		w.callExpr(newNode, scope, Function)
+		w.CallExpr(newNode, scope, Function)
 	case *ast.MethodCallExpr:
-		w.methodCallExpr(node, scope)
+		w.MethodCallExpr(node, scope)
 	case *ast.DirectiveExpr:
-		w.directiveExpr(newNode, scope)
+		w.DirectiveExpr(newNode, scope)
 	case *ast.UseStmt:
-		w.use(newNode, scope)
+		w.Use(newNode, scope)
 	case *ast.EnumDeclarationStmt:
-		w.enumDeclarationStmt(newNode, scope)
+		w.EnumDeclarationStmt(newNode, scope)
 	case *ast.StructDeclarationStmt:
-		w.structDeclaration(newNode, scope)
+		w.StructDeclaration(newNode, scope)
 	case *ast.MatchStmt:
-		w.match(newNode, false, scope)
+		w.Match(newNode, false, scope)
 	case *ast.Improper:
-		w.error(newNode.GetToken(), "Improper statement: parser fault")
+		w.Error(newNode.GetToken(), "Improper statement: parser fault")
 	default:
-		w.error(newNode.GetToken(), "Expected statement")
+		w.Error(newNode.GetToken(), "Expected statement")
 	}
 }
 
@@ -394,41 +413,41 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 
 	switch newNode := (*node).(type) {
 	case *ast.LiteralExpr:
-		val = w.literalExpr(newNode)
+		val = w.LiteralExpr(newNode)
 	case *ast.BinaryExpr:
-		val = w.binaryExpr(newNode, scope)
+		val = w.BinaryExpr(newNode, scope)
 	case *ast.IdentifierExpr:
-		val = w.identifierExpr(node, scope)
+		val = w.IdentifierExpr(node, scope)
 	case *ast.GroupExpr:
-		val = w.groupingExpr(newNode, scope)
+		val = w.GroupingExpr(newNode, scope)
 	case *ast.ListExpr:
-		val = w.listExpr(newNode, scope)
+		val = w.ListExpr(newNode, scope)
 	case *ast.UnaryExpr:
-		val = w.unaryExpr(newNode, scope)
+		val = w.UnaryExpr(newNode, scope)
 	case *ast.CallExpr:
-		val = w.callExpr(newNode, scope, Function)
+		val = w.CallExpr(newNode, scope, Function)
 	case *ast.MapExpr:
-		val = w.mapExpr(newNode, scope)
+		val = w.MapExpr(newNode, scope)
 	case *ast.DirectiveExpr:
-		val = w.directiveExpr(newNode, scope)
+		val = w.DirectiveExpr(newNode, scope)
 	case *ast.AnonFnExpr:
-		val = w.anonFnExpr(newNode, scope)
+		val = w.AnonFnExpr(newNode, scope)
 	case *ast.AnonStructExpr:
-		val = w.anonStructExpr(newNode, scope)
+		val = w.AnonStructExpr(newNode, scope)
 	case *ast.MethodCallExpr:
-		val = w.methodCallExpr(node, scope)
+		val = w.MethodCallExpr(node, scope)
 	case *ast.MemberExpr:
-		val = w.memberExpr(newNode, scope)
+		val = w.MemberExpr(newNode, scope)
 	case *ast.FieldExpr:
-		val = w.fieldExpr(newNode, scope)
+		val = w.FieldExpr(newNode, scope)
 	case *ast.NewExpr:
-		val = w.newExpr(newNode, scope)
+		val = w.NewExpr(newNode, scope)
 	case *ast.SelfExpr:
-		val = w.selfExpr(newNode, scope)
+		val = w.SelfExpr(newNode, scope)
 	case *ast.MatchExpr:
-		val = w.matchExpr(newNode, scope)
+		val = w.MatchExpr(newNode, scope)
 	default:
-		w.error(newNode.GetToken(), "Expected expression")
+		w.Error(newNode.GetToken(), "Expected expression")
 		return &Invalid{}
 	}
 	return val
