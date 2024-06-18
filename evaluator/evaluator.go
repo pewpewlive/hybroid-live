@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hybroid/ast"
 	"hybroid/walker"
+	"hybroid/walker/pass1"
 	"strings"
 	"time"
 
@@ -17,20 +18,23 @@ import (
 
 type Evaluator struct {
 	walkers *map[string]*walker.Walker
-	lexer      *lexer.Lexer
-	parser     *parser.Parser
-	walker     *walker.Walker
-	gen        lua.Generator
-	SrcPath    string
-	DstPath    string
+
+	// Evaluator
+	lexer   *lexer.Lexer
+	parser  *parser.Parser
+	walker  *walker.Walker
+	gen     lua.Generator
+	
+	SrcPath string
+	DstPath string
 }
 
 func NewEvaluator(gen lua.Generator, walkers *map[string]*walker.Walker) Evaluator {
 	return Evaluator{
 		walkers: walkers,
-		lexer:      lexer.NewLexer(),
-		parser:     parser.NewParser(),
-		gen:        gen,
+		lexer:   lexer.NewLexer(),
+		parser:  parser.NewParser(),
+		gen:     gen,
 	}
 }
 
@@ -76,7 +80,7 @@ func (e *Evaluator) Action(writeEnabled bool) (string, error) {
 
 	fmt.Println("Walking through the nodes...")
 
-	prog = e.walker.Pass1(&prog, e.walkers)
+	prog = pass1.Action(e.walker, &prog, e.walkers)
 	if len(e.walker.Errors) != 0 {
 		colorstring.Println("[red]Failed walking:")
 		printAlerts(e.walker.Errors)
@@ -113,13 +117,13 @@ func (e *Evaluator) Action(writeEnabled bool) (string, error) {
 func printAlerts[T ast.Alert](errs []T) {
 	for _, err := range errs {
 		tokenLocation := err.GetToken().Location
-		str := fmt.Sprintf("%s at line %v: %s\n", 
+		str := fmt.Sprintf("%s at line %v: %s\n",
 			err.GetHeader(),
-			tokenLocation.LineStart, 
+			tokenLocation.LineStart,
 			err.GetMessage())
 		fmt.Print(colorstring.Color(str))
 	}
-} 
+}
 
 func (e *Evaluator) writeSyntaxAlert(source string, errMsg ast.Alert) {
 	token := errMsg.GetToken()

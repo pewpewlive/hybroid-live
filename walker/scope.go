@@ -236,30 +236,51 @@ const (
 
 type ScopeAttributes []ScopeAttribute
 
-func NewScopeAttributes(types ...ScopeAttribute) ScopeAttributes {
-	return types
-}
-
-func (sa *ScopeAttributes) Add(_type ScopeAttribute) {
+func (sa *ScopeAttributes) Add(attribute ScopeAttribute) {
 	for i := range *sa {
-		if (*sa)[i] == _type {
+		if (*sa)[i] == attribute {
 			return
 		}
 	}
-	*sa = append(*sa, _type)
+	*sa = append(*sa, attribute)
 }
 
 var EmptyAttributes = ScopeAttributes{}
 
+
+/*
+fn ... {}
+
+fn .. {}
+
+struct Type {
+	let a = fn () { }
+
+
+	new() {
+		match a { }
+	}
+}
+----------------------------
+EnvironmentScope
+|      |    | 
+FnScope|   StructScope
+	   FnScope |  |
+	   		   |  ConstructScope
+			   AnonFn   |
+						MatchScope
+*/
+
 type Scope struct {
 	Environment *EnvironmentVal
 	Parent      *Scope
-	Child       *Scope
+	Children    []*Scope
 
 	Tag        ScopeTag
 	Attributes ScopeAttributes
 
 	Variables       map[string]*VariableVal
+	currentChildIndex int
 }
 
 func (sc *Scope) Is(types ...ScopeAttribute) bool {
@@ -289,12 +310,13 @@ func NewScope(parent *Scope, tag ScopeTag, extraAttrs ...ScopeAttribute) Scope {
 	scope := Scope{
 		Environment: parent.Environment,
 		Parent:      parent,
+		Children: make([]*Scope, 0),
 
 		Tag:        tag,
 		Attributes: attrs,
 
 		Variables:       map[string]*VariableVal{},
 	}
-	parent.Child = &scope
+	parent.Children = append(parent.Children, &scope)
 	return scope
 }

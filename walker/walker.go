@@ -10,7 +10,7 @@ import (
 type Walker struct {
 	Environment *EnvironmentVal
 	Walkers     *map[string]*Walker
-	nodes       *[]ast.Node
+	Nodes       *[]ast.Node
 	Errors      []ast.Error
 	Warnings    []ast.Warning
 	Context     Context
@@ -20,7 +20,7 @@ func NewWalker(path string) *Walker {
 	environment := NewEnvironment(path)
 	walker := Walker{
 		Environment: &environment,
-		nodes:       &[]ast.Node{},
+		Nodes:       &[]ast.Node{},
 		Errors:      []ast.Error{},
 		Warnings:    []ast.Warning{},
 		Context: 	 Context{
@@ -40,7 +40,7 @@ func (w *Walker) Warn(token lexer.Token, msg string) {
 	w.Warnings = append(w.Warnings, ast.Warning{Token: token, Message: msg})
 }
 
-func (w *Walker) addError(err ast.Error) {
+func (w *Walker) AddError(err ast.Error) {
 	w.Errors = append(w.Errors, err)
 }
 
@@ -159,7 +159,7 @@ func (sc *Scope) ResolveReturnable() *ExitableTag {
 	return sc.Parent.ResolveReturnable()
 }
 
-func (w *Walker) validateArithmeticOperands(left Type, right Type, expr ast.BinaryExpr) bool {
+func (w *Walker) ValidateArithmeticOperands(left Type, right Type, expr ast.BinaryExpr) bool {
 	//fmt.Printf("Validating operands: %v (%v) and %v (%v)\n", left.Val, left.Type, right.Val, right.Type)
 	if left.PVT() == ast.Invalid {
 		w.Error(expr.Left.GetToken(), "cannot perform arithmetic on Invalid value")
@@ -200,7 +200,7 @@ func returnsAreValid(list1 []Type, list2 []Type) bool {
 	return true
 }
 
-func (w *Walker) validateReturnValues(_return Types, expectReturn Types) string {
+func (w *Walker) ValidateReturnValues(_return Types, expectReturn Types) string {
 	returnValues, expectedReturnValues := _return, expectReturn
 	if len(returnValues) < len(expectedReturnValues) {
 		return "not enough return values given"
@@ -247,6 +247,13 @@ func (w *Walker) TypeToValue(_type Type) Value {
 	}
 }
 
+func (w *Walker) AddTypesToValues(list *[]Value, tys *Types) {
+	for _, typ := range *tys {
+		val := w.TypeToValue(typ)
+		*list = append(*list, val)
+	}
+}
+
 func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
 	switch str {
 	case "number":
@@ -270,64 +277,6 @@ func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
 	}
 }
 
-func (w *Walker) Pass1(nodes *[]ast.Node, wlkrs *map[string]*Walker) []ast.Node {
-	w.Walkers = wlkrs
-	w.nodes = nodes
-
-	newNodes := make([]ast.Node, 0)
-
-	scope := &w.Environment.Scope
-	for _, node := range *nodes {
-		switch newNode := node.(type) {
-		case *ast.EnvironmentStmt:
-			w.EnvStmt(newNode, scope)
-		case *ast.VariableDeclarationStmt:
-			w.VariableDeclaration(newNode, scope)
-		case *ast.FunctionDeclarationStmt:
-			w.FunctionDeclaration(newNode, scope, Function)
-		case *ast.StructDeclarationStmt:
-			w.StructDeclaration(newNode, scope)
-		case *ast.EnumDeclarationStmt:
-			w.EnumDeclarationStmt(newNode, scope)
-		case *ast.Improper:
-			w.Error(newNode.GetToken(), "Improper statement: parser fault")
-		default:
-			w.Error(newNode.GetToken(), "Expected statement")
-		}
-	
-		newNodes = append(newNodes, node)
-	}
-
-	return newNodes
-}
-
-// func (w *Walker) Pass1(nodes *[]ast.Node) []ast.Node {
-// 	w.nodes = nodes
-
-// 	newNodes := make([]ast.Node, 0)
-
-// 	scope := &w.Environment.Scope
-// 	for _, node := range *nodes {
-// 		switch newNode := node.(type) {
-// 		case *ast.EnvironmentStmt:
-// 			w.envStmt(newNode, scope)
-// 		case *ast.VariableDeclarationStmt:
-// 			w.variableDeclarationStmt(newNode, scope)
-// 		case *ast.FunctionDeclarationStmt:
-// 			w.functionDeclarationStmt(newNode, scope, Function)
-// 		case *ast.StructDeclarationStmt:
-// 			w.structDeclarationStmt(newNode, scope)
-// 		case *ast.Improper:
-// 			w.Error(newNode.GetToken(), "Improper statement: parser fault")
-// 		default:
-// 			w.Error(newNode.GetToken(), "Expected statement")
-// 		}
-// 		newNodes = append(newNodes, node)
-// 	}
-
-// 	return newNodes
-// }
-
 func (w *Walker) ReportExits(sender ExitableTag, scope *Scope) {
 	receiver_ := scope.ResolveReturnable()
 
@@ -344,111 +293,3 @@ func (w *Walker) ReportExits(sender ExitableTag, scope *Scope) {
 	receiver.SetExit(sender.GetIfExits(Yield), All)
 } 
 
-func (w *Walker) WalkBody(body *[]ast.Node, tag ExitableTag, scope *Scope) {
-	endIndex := -1
-	for i := range *body {
-		if tag.GetIfExits(All) {
-			w.Warn((*body)[i].GetToken(), "unreachable code detected")
-			endIndex = i
-			break
-		}
-		w.WalkNode(&(*body)[i], scope)
-	}
-	if endIndex != -1 {
-		*body = (*body)[:endIndex]
-	}
-}
-
-func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
-	switch newNode := (*node).(type) {
-	case *ast.EnvironmentStmt:
-		w.EnvStmt(newNode, scope)
-	case *ast.VariableDeclarationStmt:
-		w.VariableDeclaration(newNode, scope)
-	case *ast.IfStmt:
-		w.IfStmt(newNode, scope)
-	case *ast.AssignmentStmt:
-		w.Assignment(newNode, scope)
-	case *ast.FunctionDeclarationStmt:
-		w.FunctionDeclaration(newNode, scope, Function)
-	case *ast.ReturnStmt:
-		w.ReturnStmt(newNode, scope)
-	case *ast.YieldStmt:
-		w.YieldStmt(newNode, scope)
-	case *ast.BreakStmt:
-		w.BreakStmt(newNode, scope)
-	case *ast.ContinueStmt:
-		w.ContinueStmt(newNode, scope)
-	case *ast.RepeatStmt:
-		w.Repeat(newNode, scope)
-	case *ast.WhileStmt:
-		w.While(newNode, scope)
-	case *ast.ForStmt:
-		w.Forloop(newNode, scope)
-	case *ast.TickStmt:
-		w.Tick(newNode, scope)
-	case *ast.CallExpr:
-		w.CallExpr(newNode, scope, Function)
-	case *ast.MethodCallExpr:
-		w.MethodCallExpr(node, scope)
-	case *ast.DirectiveExpr:
-		w.DirectiveExpr(newNode, scope)
-	case *ast.UseStmt:
-		w.Use(newNode, scope)
-	case *ast.EnumDeclarationStmt:
-		w.EnumDeclarationStmt(newNode, scope)
-	case *ast.StructDeclarationStmt:
-		w.StructDeclaration(newNode, scope)
-	case *ast.MatchStmt:
-		w.Match(newNode, false, scope)
-	case *ast.Improper:
-		w.Error(newNode.GetToken(), "Improper statement: parser fault")
-	default:
-		w.Error(newNode.GetToken(), "Expected statement")
-	}
-}
-
-func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
-	var val Value
-
-	switch newNode := (*node).(type) {
-	case *ast.LiteralExpr:
-		val = w.LiteralExpr(newNode)
-	case *ast.BinaryExpr:
-		val = w.BinaryExpr(newNode, scope)
-	case *ast.IdentifierExpr:
-		val = w.IdentifierExpr(node, scope)
-	case *ast.GroupExpr:
-		val = w.GroupingExpr(newNode, scope)
-	case *ast.ListExpr:
-		val = w.ListExpr(newNode, scope)
-	case *ast.UnaryExpr:
-		val = w.UnaryExpr(newNode, scope)
-	case *ast.CallExpr:
-		val = w.CallExpr(newNode, scope, Function)
-	case *ast.MapExpr:
-		val = w.MapExpr(newNode, scope)
-	case *ast.DirectiveExpr:
-		val = w.DirectiveExpr(newNode, scope)
-	case *ast.AnonFnExpr:
-		val = w.AnonFnExpr(newNode, scope)
-	case *ast.AnonStructExpr:
-		val = w.AnonStructExpr(newNode, scope)
-	case *ast.MethodCallExpr:
-		val = w.MethodCallExpr(node, scope)
-	case *ast.MemberExpr:
-		val = w.MemberExpr(newNode, scope)
-	case *ast.FieldExpr:
-		val = w.FieldExpr(newNode, scope)
-	case *ast.NewExpr:
-		val = w.NewExpr(newNode, scope)
-	case *ast.SelfExpr:
-		val = w.SelfExpr(newNode, scope)
-	case *ast.MatchExpr:
-		val = w.MatchExpr(newNode, scope)
-	default:
-		w.Error(newNode.GetToken(), "Expected expression")
-		return &Invalid{}
-	}
-	return val
-}

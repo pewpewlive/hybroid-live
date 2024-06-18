@@ -356,6 +356,20 @@ func TypeEquals(t Type, other Type) bool {
 
 	// 	return TypeEquals(underlyingType,notEnum)
 	// }
+	tpvt := t.PVT()
+	otherpvt := other.PVT()
+
+	if tpvt == 0 {
+		return true
+	}else if otherpvt == 0 {
+		return true
+	}
+
+	if tpvt == ast.Unresolved || tpvt == 0 {
+		return true
+	}else if otherpvt == ast.Unresolved {
+		return true
+	}
 
 	if t.GetType() != other.GetType() {
 		return false

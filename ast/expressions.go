@@ -92,8 +92,15 @@ func (ue *UnaryExpr) GetToken() lexer.Token {
 func (ue *UnaryExpr) GetValueType() PrimitiveValueType {
 	return ue.ValueType
 }
+/*
+Walker:
+	
 
-type TypeExpr struct {
+use Math
+
+let Vec2 a = new Vec2()
+*/
+type TypeExpr struct { // fn test(Env2::Type param1) 
 	WrappedType *TypeExpr
 	Name        lexer.Token
 	Params      []*TypeExpr

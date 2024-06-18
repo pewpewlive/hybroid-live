@@ -26,15 +26,19 @@ type MethodContainer interface {
 	ContainsMethod(name string) (*VariableVal, bool)
 }
 
-type UnresolvedVal struct {
-	EnvAccess ast.EnvExpr
+type Expr interface {
+  ast.EnvExpr | ast.IdentifierExpr
 }
 
-func (uv *UnresolvedVal) GetType() Type {
+type UnresolvedVal[T Expr] struct {
+	EnvAccess T
+} 
+
+func (uv *UnresolvedVal[T]) GetType() Type {
 	return NewBasicType(ast.Unresolved)
 }
 
-func (v *UnresolvedVal) GetDefault() *ast.LiteralExpr {
+func (v *UnresolvedVal[T]) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value:"UNRESOLVED"}
 }
 
@@ -206,6 +210,8 @@ type EnvironmentVal struct {
 
 func NewEnvironment(path string) EnvironmentVal {
 	scope := Scope{
+		Children: make([]*Scope, 0),
+
 		Tag:             &UntaggedTag{},
 		Variables:       map[string]*VariableVal{},
 	}

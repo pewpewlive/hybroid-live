@@ -7,6 +7,7 @@ import (
 	"hybroid/generators/lua"
 	"hybroid/walker"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/pelletier/go-toml/v2"

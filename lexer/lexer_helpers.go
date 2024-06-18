@@ -33,7 +33,7 @@ func (l *Lexer) advance() byte {
 }
 
 func (l *Lexer) isAtEnd() bool {
-	return l.current >= len(l.source)
+	return l.current >= len(l.source.)
 }
 
 func (l *Lexer) isAtEndNext() bool {

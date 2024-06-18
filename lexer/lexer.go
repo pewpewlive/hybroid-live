@@ -1,23 +1,21 @@
 package lexer
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 )
 
 type Lexer struct {
 	Tokens []Token
-	source []byte
+	source *bufio.Scanner
 	Errors []LexerError
 
 	start, current, line, columnStart, columnCurrent int
 }
 
-func NewLexer() *Lexer {
-	return &Lexer{make([]Token, 0), make([]byte, 0), make([]LexerError, 0), 0, 0, 1, 0, 0}
-}
-
-func (l *Lexer) AssignSource(src []byte) {
-	l.source = src
+func NewLexer(r io.Reader) *Lexer {
+	return &Lexer{make([]Token, 0), bufio.NewScanner(r), make([]LexerError, 0), 0, 0, 1, 0, 0}
 }
 
 func (l *Lexer) handleString() {
