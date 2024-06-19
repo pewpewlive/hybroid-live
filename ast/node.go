@@ -2,87 +2,81 @@ package ast
 
 import "hybroid/lexer"
 
-type NodeType int
+type NodeType string
 
 const (
-	VariableDeclarationStatement NodeType = iota + 1
-	FunctionDeclarationStatement
-	StructureDeclarationStatement
-	FieldDeclarationStatement
-	MethodDeclarationStatement
-	EnumDeclarationStatement
+	VariableDeclarationStatement  NodeType = "variableDeclarationStatement"
+	FunctionDeclarationStatement  NodeType = "functionDeclarationStatement"
+	StructureDeclarationStatement NodeType = "structureDeclarationStatement"
+	FieldDeclarationStatement     NodeType = "fieldDeclarationStatement"
+	MethodDeclarationStatement    NodeType = "methodDeclarationStatement"
+	EnumDeclarationStatement      NodeType = "enumDeclarationStatement"
 
-	ConstructorStatement
-	EnvironmentStatement
-	AssignmentStatement
-	RepeatStatement
-	WhileStatement
-	ForStatement
-	TickStatement
-	IfStatement
-	UseStatement
-	AddStatement
-	RemoveStatement
-	BreakStatement
-	ContinueStatement
-	ReturnStatement
-	YieldStatement
-	MatchStatement
+	ConstructorStatement NodeType = "constructorStatement"
+	EnvironmentStatement NodeType = "environmentStatement"
+	AssignmentStatement  NodeType = "assignmentStatement"
+	RepeatStatement      NodeType = "repeatStatement"
+	WhileStatement       NodeType = "whileStatement"
+	ForStatement         NodeType = "forStatement"
+	TickStatement        NodeType = "tickStatement"
+	IfStatement          NodeType = "ifStatement"
+	UseStatement         NodeType = "useStatement"
+	AddStatement         NodeType = "addStatement"
+	RemoveStatement      NodeType = "removeStatement"
+	BreakStatement       NodeType = "breakStatement"
+	ContinueStatement    NodeType = "continueStatement"
+	ReturnStatement      NodeType = "returnStatement"
+	YieldStatement       NodeType = "yieldStatement"
+	MatchStatement       NodeType = "matchStatement"
 
-	EnvironmentExpression
-	AnonymousFunctionExpression
-	AnonymousStructExpression
-	DirectiveExpression
-	LiteralExpression
-	UnaryExpression
-	BinaryExpression
-	GroupingExpression
-	ListExpression
-	MapExpression
-	CallExpression
-	MethodCallExpression
-	MatchExpression
-	FieldExpression
-	MemberExpression
-	ParentExpression
-	TypeExpression
-	SelfExpression
-	NewExpession
+	EnvironmentExpression       NodeType = "environmentExpression"
+	AnonymousFunctionExpression NodeType = "anonymousFunctionExpression"
+	AnonymousStructExpression   NodeType = "anonymousStructExpression"
+	DirectiveExpression         NodeType = "directiveExpression"
+	LiteralExpression           NodeType = "literalExpression"
+	UnaryExpression             NodeType = "unaryExpression"
+	BinaryExpression            NodeType = "binaryExpression"
+	GroupingExpression          NodeType = "groupingExpression"
+	ListExpression              NodeType = "listExpression"
+	MapExpression               NodeType = "mapExpression"
+	CallExpression              NodeType = "callExpression"
+	MethodCallExpression        NodeType = "methodCallExpression"
+	MatchExpression             NodeType = "matchExpression"
+	FieldExpression             NodeType = "fieldExpression"
+	MemberExpression            NodeType = "memberExpression"
+	ParentExpression            NodeType = "parentExpression"
+	TypeExpression              NodeType = "typeExpression"
+	SelfExpression              NodeType = "selfExpression"
+	NewExpession                NodeType = "newExpession"
 
-	Identifier
+	Identifier NodeType = "identifier"
 
-	NA
+	NA NodeType = "notAssessed"
 )
 
-type PrimitiveValueType int
+type PrimitiveValueType string
 
 const (
-	Number PrimitiveValueType = iota + 1
-	String
-	Bool
-	FixedPoint
-	Fixed
-	Radian
-	Degree
-	List
-	Map
-	Func
-	Entity
-	Struct
-	AnonStruct
-	Ident
-	Environment
-	Enum
-
-	Unresolved
-	Invalid
+	Unknown     PrimitiveValueType = "unknown"
+	Number      PrimitiveValueType = "number"
+	String      PrimitiveValueType = "string"
+	Bool        PrimitiveValueType = "bool"
+	FixedPoint  PrimitiveValueType = "fixedPoint"
+	Fixed       PrimitiveValueType = "fixed"
+	Radian      PrimitiveValueType = "radian"
+	Degree      PrimitiveValueType = "degree"
+	List        PrimitiveValueType = "list"
+	Map         PrimitiveValueType = "map"
+	Func        PrimitiveValueType = "func"
+	Entity      PrimitiveValueType = "entity"
+	Struct      PrimitiveValueType = "struct"
+	AnonStruct  PrimitiveValueType = "anonStruct"
+	Ident       PrimitiveValueType = "ident"
+	Environment PrimitiveValueType = "environment"
+	Enum        PrimitiveValueType = "enum"
+	Unresolved  PrimitiveValueType = "unresolved"
+	Invalid     PrimitiveValueType = "invalid"
 )
-
-var stringifiedPTV = [...]string{"unknown", "number", "text", "bool", "fixed", "fixed", "fixed", "fixed", "list", "map", "func", "entity", "struct", "anonymous struct", "identifier", "environment", "enum", "unresolved", "invalid"}
-
-func (pvt PrimitiveValueType) ToString() string {
-	return stringifiedPTV[pvt]
-}
 
 type Node interface {
 	GetType() NodeType

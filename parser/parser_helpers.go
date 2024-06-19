@@ -53,7 +53,7 @@ func (p *Parser) getParam() ast.Param {
 }
 
 func (p *Parser) parameters(opening lexer.TokenType, closing lexer.TokenType) []ast.Param {
-	if _, ok := p.consume(fmt.Sprintf("expected %s", opening.ToString()), opening); !ok {
+	if _, ok := p.consume(fmt.Sprintf("expected %s", string(opening)), opening); !ok {
 		return nil
 	}
 
@@ -65,7 +65,7 @@ func (p *Parser) parameters(opening lexer.TokenType, closing lexer.TokenType) []
 		for p.match(lexer.Comma) {
 			args = append(args, p.getParam())
 		}
-		p.consume(fmt.Sprintf("expected %s after an identifier", closing.ToString()), closing)
+		p.consume(fmt.Sprintf("expected %s after an identifier", string(closing)), closing)
 	}
 
 	return args
@@ -115,7 +115,7 @@ func (p *Parser) TypeWasVar(typ *ast.TypeExpr) *ast.IdentifierExpr {
 	if typ.Returns != nil {
 		return nil
 	}
-	return &ast.IdentifierExpr{Name:typ.Name, ValueType: 0}
+	return &ast.IdentifierExpr{Name: typ.Name.GetToken(), ValueType: ast.Unknown}
 }
 
 func (p *Parser) TypeWithVar() (*ast.TypeExpr, ast.Node) {

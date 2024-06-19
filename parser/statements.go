@@ -238,11 +238,11 @@ func (p *Parser) structDeclarationStmt() ast.Node {
 			if ok {
 				stmt.Constructor = construct
 			}
-		}else {
+		} else {
 			field := p.fieldDeclarationStmt()
 			if field.GetType() != ast.NA {
 				stmt.Fields = append(stmt.Fields, *field.(*ast.FieldDeclarationStmt))
-			}else {
+			} else {
 				p.error(p.peek(), "unknown statement inside struct")
 			}
 		}
@@ -300,7 +300,7 @@ func (p *Parser) fieldDeclarationStmt() ast.Node {
 	}
 
 	expr := p.expression()
-	if expr.GetType() == 0 {
+	if expr.GetType() == ast.NA {
 		p.error(p.peek(), "expected expression")
 	}
 
@@ -433,7 +433,7 @@ func (p *Parser) returnStmt() ast.Node {
 	args = append(args, expr)
 	for p.match(lexer.Comma) {
 		expr = p.expression()
-		if expr.GetType() == 0 {
+		if expr.GetType() == ast.NA {
 			p.error(p.peek(), "expected expression")
 		}
 		args = append(args, expr)
@@ -456,7 +456,7 @@ func (p *Parser) yieldStmt() ast.Node {
 	args = append(args, expr)
 	for p.match(lexer.Comma) {
 		expr = p.expression()
-		if expr.GetType() == 0 {
+		if expr.GetType() == ast.NA {
 			p.error(p.peek(), "expected expression")
 		}
 		args = append(args, expr)
@@ -491,7 +491,7 @@ func (p *Parser) addToStmt() ast.Node {
 	}
 
 	add.Value = p.expression()
-	if add.GetType() == 0 {
+	if add.GetType() == ast.NA {
 		p.error(p.peek(), "expected expression")
 	}
 
@@ -512,7 +512,7 @@ func (p *Parser) removeFromStmt() ast.Node {
 	}
 
 	remove.Value = p.expression()
-	if remove.GetType() == 0 {
+	if remove.GetType() == ast.NA {
 		p.error(p.peek(), "expected expression")
 	}
 
@@ -721,14 +721,14 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 	}
 
 	expr := p.expression()
-	if expr.GetType() == 0 {
+	if expr.GetType() == ast.NA {
 		p.error(p.peek(), "expected expression")
 	}
 
 	exprs := []ast.Node{expr}
 	for p.match(lexer.Comma) {
 		expr = p.expression()
-		if expr.GetType() == 0 {
+		if expr.GetType() == ast.NA {
 			p.error(p.peek(), "expected expression")
 		}
 		exprs = append(exprs, expr)
@@ -742,7 +742,7 @@ func (p *Parser) useStmt() ast.Node {
 	useStmt := ast.UseStmt{}
 
 	filepath := p.expression()
-	if filepath.GetType() == 0 || filepath.GetType() == ast.NA {
+	if filepath.GetType() == ast.NA {
 		p.error(p.peek(), "expected filepath")
 	}
 	useStmt.File = filepath.GetToken()

@@ -7,8 +7,8 @@ import (
 type Paths []string
 
 type EnvironmentStmt struct {
-	EnvType EnvTypeExpr
-	Env     EnvExpr
+	EnvType      EnvTypeExpr
+	Env          EnvExpr
 	Requirements Paths
 }
 
@@ -21,7 +21,7 @@ func (as *EnvironmentStmt) GetToken() lexer.Token {
 }
 
 func (as *EnvironmentStmt) GetValueType() PrimitiveValueType {
-	return 0
+	return Unknown
 }
 
 type AssignmentStmt struct {
@@ -39,7 +39,7 @@ func (as *AssignmentStmt) GetToken() lexer.Token {
 }
 
 func (as *AssignmentStmt) GetValueType() PrimitiveValueType {
-	return 0
+	return Unknown
 }
 
 type VariableDeclarationStmt struct {
@@ -59,7 +59,7 @@ func (vds *VariableDeclarationStmt) GetToken() lexer.Token {
 }
 
 func (vds *VariableDeclarationStmt) GetValueType() PrimitiveValueType {
-	return 0
+	return Unknown
 }
 
 type StructDeclarationStmt struct {
@@ -80,12 +80,12 @@ func (sds *StructDeclarationStmt) GetToken() lexer.Token {
 }
 
 func (sds *StructDeclarationStmt) GetValueType() PrimitiveValueType {
-	return 0
+	return Unknown
 }
 
 type EnumDeclarationStmt struct {
-	Name lexer.Token
-	Fields []lexer.Token
+	Name    lexer.Token
+	Fields  []lexer.Token
 	IsLocal bool
 }
 
@@ -98,7 +98,7 @@ func (sds *EnumDeclarationStmt) GetToken() lexer.Token {
 }
 
 func (sds *EnumDeclarationStmt) GetValueType() PrimitiveValueType {
-	return 0
+	return Unknown
 }
 
 type ConstructorStmt struct {
@@ -117,7 +117,7 @@ func (cs *ConstructorStmt) GetToken() lexer.Token {
 }
 
 func (cs *ConstructorStmt) GetValueType() PrimitiveValueType {
-	return 0
+	return Unknown
 }
 
 type FieldDeclarationStmt struct {
@@ -136,7 +136,7 @@ func (fds *FieldDeclarationStmt) GetToken() lexer.Token {
 }
 
 func (fds *FieldDeclarationStmt) GetValueType() PrimitiveValueType {
-	return 0
+	return Unknown
 }
 
 type Param struct {
@@ -161,7 +161,7 @@ func (fds *FunctionDeclarationStmt) GetToken() lexer.Token {
 }
 
 func (fds *FunctionDeclarationStmt) GetValueType() PrimitiveValueType {
-	return 0
+	return Unknown
 }
 
 type MethodDeclarationStmt struct {
@@ -182,7 +182,7 @@ func (mds *MethodDeclarationStmt) GetToken() lexer.Token {
 }
 
 func (mds *MethodDeclarationStmt) GetValueType() PrimitiveValueType {
-	return 0
+	return Unknown
 }
 
 type IfStmt struct {
@@ -202,7 +202,7 @@ func (is *IfStmt) GetToken() lexer.Token {
 }
 
 func (is *IfStmt) GetValueType() PrimitiveValueType {
-	return 0
+	return Unknown
 }
 
 type MatchStmt struct {
@@ -221,7 +221,7 @@ func (ms *MatchStmt) GetType() NodeType {
 }
 
 func (ms *MatchStmt) GetValueType() PrimitiveValueType {
-	return 0
+	return Unknown
 }
 
 func (ms *MatchStmt) GetToken() lexer.Token {
@@ -246,13 +246,13 @@ func (rs *RepeatStmt) GetToken() lexer.Token {
 }
 
 func (rs *RepeatStmt) GetValueType() PrimitiveValueType {
-	return 0
+	return Unknown
 }
 
 type WhileStmt struct {
 	Condtion Node
-	Body []Node
-	Token lexer.Token
+	Body     []Node
+	Token    lexer.Token
 }
 
 func (fs *WhileStmt) GetType() NodeType {
@@ -264,16 +264,15 @@ func (fs *WhileStmt) GetToken() lexer.Token {
 }
 
 func (fs *WhileStmt) GetValueType() PrimitiveValueType {
-	return 0
+	return Unknown
 }
 
-
 type ForStmt struct {
-	Iterator Node
-	KeyValuePair [2]*IdentifierExpr
+	Iterator         Node
+	KeyValuePair     [2]*IdentifierExpr
 	OrderedIteration bool
-	Body     []Node
-	Token    lexer.Token
+	Body             []Node
+	Token            lexer.Token
 }
 
 func (fs *ForStmt) GetType() NodeType {
@@ -285,7 +284,7 @@ func (fs *ForStmt) GetToken() lexer.Token {
 }
 
 func (fs *ForStmt) GetValueType() PrimitiveValueType {
-	return 0
+	return Unknown
 }
 
 type TickStmt struct {
@@ -303,7 +302,7 @@ func (ts *TickStmt) GetToken() lexer.Token {
 }
 
 func (ts *TickStmt) GetValueType() PrimitiveValueType {
-	return 0
+	return Unknown
 }
 
 type ReturnStmt struct {
@@ -320,7 +319,7 @@ func (rs *ReturnStmt) GetToken() lexer.Token {
 }
 
 func (rs *ReturnStmt) GetValueType() PrimitiveValueType {
-	return 0
+	return Unknown
 }
 
 type YieldStmt struct {
@@ -337,7 +336,7 @@ func (ys *YieldStmt) GetToken() lexer.Token {
 }
 
 func (ys *YieldStmt) GetValueType() PrimitiveValueType {
-	return 0
+	return Unknown
 }
 
 type BreakStmt struct {
@@ -353,7 +352,7 @@ func (bs *BreakStmt) GetToken() lexer.Token {
 }
 
 func (bs *BreakStmt) GetValueType() PrimitiveValueType {
-	return 0
+	return Unknown
 }
 
 type ContinueStmt struct {
@@ -369,7 +368,7 @@ func (cs *ContinueStmt) GetToken() lexer.Token {
 }
 
 func (cs *ContinueStmt) GetValueType() PrimitiveValueType {
-	return 0
+	return Unknown
 }
 
 type AddStmt struct {
@@ -387,7 +386,7 @@ func (as *AddStmt) GetToken() lexer.Token {
 }
 
 func (as *AddStmt) GetValueType() PrimitiveValueType {
-	return 0
+	return Unknown
 }
 
 type RemoveStmt struct {
@@ -405,7 +404,7 @@ func (rs *RemoveStmt) GetType() NodeType {
 }
 
 func (rs *RemoveStmt) GetValueType() PrimitiveValueType {
-	return 0
+	return Unknown
 }
 
 type UseStmt struct {
@@ -422,5 +421,5 @@ func (us *UseStmt) GetType() NodeType {
 }
 
 func (us *UseStmt) GetValueType() PrimitiveValueType {
-	return 0
+	return Unknown
 }

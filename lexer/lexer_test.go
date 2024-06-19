@@ -33,7 +33,7 @@ func readFile(fileName string, t *testing.T) []byte {
 
 func printTokens(lexer *Lexer) {
 	for _, token := range lexer.Tokens {
-		fmt.Printf("{%v, \"%v\", \"%v\", %v, %v, %v},\n", token.Type.ToString(), token.Lexeme, token.Literal, token.Location.LineStart, token.Location.ColStart, token.Location.ColEnd)
+		fmt.Printf("{%v, \"%v\", \"%v\", %v, %v, %v},\n", string(token.Type), token.Lexeme, token.Literal, token.Location.LineStart, token.Location.ColStart, token.Location.ColEnd)
 	}
 }
 

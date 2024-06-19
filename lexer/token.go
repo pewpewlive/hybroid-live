@@ -2,95 +2,96 @@ package lexer
 
 import "fmt"
 
-type TokenType int
+type TokenType string
 
 const (
-	// Single character tokens
-	LeftParen    TokenType = iota // (
-	RightParen                    // )
-	LeftBrace                     // {
-	RightBrace                    // }
-	LeftBracket                   // [
-	RightBracket                  // ]
-	Comma                         // ,
-	At                            // @
-	Pipe                          // |
+	// Tokens
 
-	// One or two character tokens
-	Colon        // :
-	DoubleColon  // ::
-	Dot          // .
-	Concat       // ..
-	Minus        // -
-	MinusEqual   // -=
-	Plus         // +
-	PlusEqual    // +=
-	Slash        // /
-	SlashEqual   // /=
-	Star         // *
-	StarEqual    // *=
-	Caret        // ^
-	CaretEqual   // ^=
-	Bang         // !
-	BangEqual    // !=
-	Equal        // =
-	EqualEqual   // ==
-	FatArrow     // =>
-	Greater      // >
-	GreaterEqual // >=
-	Less         // <
-	LessEqual    // <=
-	Modulo       // %
-	ModuloEqual  // %=
+	LeftParen    TokenType = "leftParen"    // (
+	RightParen   TokenType = "rightParen"   // )
+	LeftBrace    TokenType = "leftBrace"    // {
+	RightBrace   TokenType = "rightBrace"   // }
+	LeftBracket  TokenType = "leftBracket"  // [
+	RightBracket TokenType = "rightBracket" // ]
+	Comma        TokenType = "comma"        // ,
+	At           TokenType = "at"           // @
+	Pipe         TokenType = "pipe"         // |
+	Colon        TokenType = "colon"        // :
+	DoubleColon  TokenType = "doubleColon"  // ::
+	Dot          TokenType = "dot"          // .
+	Concat       TokenType = "concat"       // ..
+	Minus        TokenType = "minus"        // -
+	MinusEqual   TokenType = "minusEqual"   // -=
+	Plus         TokenType = "plus"         // +
+	PlusEqual    TokenType = "plusEqual"    // +=
+	Slash        TokenType = "slash"        // /
+	SlashEqual   TokenType = "slashEqual"   // /=
+	Star         TokenType = "star"         // *
+	StarEqual    TokenType = "starEqual"    // *=
+	Caret        TokenType = "caret"        // ^
+	CaretEqual   TokenType = "caretEqual"   // ^=
+	Bang         TokenType = "bang"         // !
+	BangEqual    TokenType = "bangEqual"    // !=
+	Equal        TokenType = "equal"        // =
+	EqualEqual   TokenType = "equalEqual"   // ==
+	FatArrow     TokenType = "fatArrow"     // =>
+	Greater      TokenType = "greater"      // >
+	GreaterEqual TokenType = "greaterEqual" // >=
+	Less         TokenType = "less"         // <
+	LessEqual    TokenType = "lessEqual"    // <=
+	Modulo       TokenType = "modulo"       // %
+	ModuloEqual  TokenType = "moduloEqual"  // %=
 
 	// Literals
-	Degree
-	Fixed
-	FixedPoint
-	Identifier
-	Number
-	Radian
-	String
+
+	Degree     TokenType = "degree"
+	Fixed      TokenType = "fixed"
+	FixedPoint TokenType = "fixedPoint"
+	Identifier TokenType = "identifier"
+	Number     TokenType = "number"
+	Radian     TokenType = "radian"
+	String     TokenType = "string"
 
 	// Keywords
-	Add
-	And
-	As
-	Break
-	By
-	Const
-	Continue
-	Else
-	Entity
-	Enum
-	Env
-	False
-	Find
-	Fn
-	For
-	From
-	If
-	In
-	Let
-	Match
-	New
-	Or
-	Pub
-	Remove
-	Repeat
-	Return
-	Self
-	Spawn
-	Struct
-	Tick
-	To
-	True
-	Use
-	While
-	With
-	Yield
 
-	Eof // EOF (End of File)
+	Add      TokenType = "add"
+	And      TokenType = "and"
+	As       TokenType = "as"
+	Break    TokenType = "break"
+	By       TokenType = "by"
+	Const    TokenType = "const"
+	Continue TokenType = "continue"
+	Else     TokenType = "else"
+	Entity   TokenType = "entity"
+	Enum     TokenType = "enum"
+	Env      TokenType = "env"
+	False    TokenType = "false"
+	Find     TokenType = "find"
+	Fn       TokenType = "fn"
+	For      TokenType = "for"
+	From     TokenType = "from"
+	If       TokenType = "if"
+	In       TokenType = "in"
+	Let      TokenType = "let"
+	Match    TokenType = "match"
+	New      TokenType = "new"
+	Or       TokenType = "or"
+	Pub      TokenType = "pub"
+	Remove   TokenType = "remove"
+	Repeat   TokenType = "repeat"
+	Return   TokenType = "return"
+	Self     TokenType = "self"
+	Spawn    TokenType = "spawn"
+	Struct   TokenType = "struct"
+	Tick     TokenType = "tick"
+	To       TokenType = "to"
+	True     TokenType = "true"
+	Use      TokenType = "use"
+	While    TokenType = "while"
+	With     TokenType = "with"
+	Yield    TokenType = "yield"
+
+	Eof TokenType = "eof" // EOF (End of File)
 )
 
 var keywords = map[string]TokenType{
@@ -132,12 +133,6 @@ var keywords = map[string]TokenType{
 	"yield":    Yield,
 }
 
-var tokens = [...]string{"LeftParen", "RightParen", "LeftBrace", "RightBrace", "LeftBracket", "RightBracket", "Comma", "At", "Pipe", "Colon", "DoubleColon", "Dot", "Concat", "Minus", "MinusEqual", "Plus", "PlusEqual", "Slash", "SlashEqual", "Star", "StarEqual", "Caret", "CaretEqual", "Bang", "BangEqual", "Equal", "EqualEqual", "FatArrow", "Greater", "GreaterEqual", "Less", "LessEqual", "Modulo", "ModuloEqual", "Degree", "Fixed", "FixedPoint", "Identifier", "Number", "Radian", "String", "Add", "And", "As", "Break", "By", "Const", "Continue", "Else", "Entity", "Enum", "Env", "False", "Find", "Fn", "For", "From", "If", "In", "Let", "Match", "New", "Or", "Pub", "Remove", "Repeat", "Return", "Self", "Spawn", "Struct", "Tick", "To", "True", "Use", "While", "With", "Yield", "Eof"}
-
-func (t TokenType) ToString() string {
-	return tokens[t]
-}
-
 type TokenLocation struct {
 	LineStart int
 	ColStart  int
@@ -153,11 +148,11 @@ type Token struct {
 }
 
 func (t Token) ToString() string {
-	return fmt.Sprintf("Token (%v), Lex: '%v', Lit: '%v', Ln: %v, ColStart: %v, ColEnd: %v", t.Type.ToString(), t.Lexeme, t.Literal, t.Location.LineStart, t.Location.ColStart, t.Location.ColEnd)
+	return fmt.Sprintf("Token (%v), Lex: '%v', Lit: '%v', Ln: %v, ColStart: %v, ColEnd: %v", string(t.Type), t.Lexeme, t.Literal, t.Location.LineStart, t.Location.ColStart, t.Location.ColEnd)
 }
 
 func KeywordToToken(keyword string) (TokenType, bool) {
-	token, ok := keywords[keyword]
+	token := TokenType(keyword)
 
-	return token, ok
+	return token, string(token) == keyword
 }

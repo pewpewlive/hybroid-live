@@ -106,7 +106,7 @@ func (p *Parser) unary() ast.Node {
 }
 
 func (p *Parser) envExpr(pathOnly bool) ast.Node {
-	expr := p.accessorExprDepth2(nil, nil, 0)
+	expr := p.accessorExprDepth2(nil, nil, ast.NA)
 
 	if p.match(lexer.DoubleColon) {
 		if expr.GetType() != ast.Identifier {
@@ -117,7 +117,7 @@ func (p *Parser) envExpr(pathOnly bool) ast.Node {
 			Envs: []lexer.Token{expr.GetToken()},
 		}
 
-		next := p.accessorExprDepth2(nil, nil, 0)
+		next := p.accessorExprDepth2(nil, nil, ast.NA)
 		if next.GetType() != ast.Identifier {
 			p.error(next.GetToken(), "expected identifier in environment expression")
 			return &ast.Improper{Token: next.GetToken()}
@@ -128,7 +128,7 @@ func (p *Parser) envExpr(pathOnly bool) ast.Node {
 				p.error(next.GetToken(), "expected identifier in environment expression")
 				return &ast.Improper{Token: next.GetToken()}
 			}
-			next = p.accessorExprDepth2(nil, nil, 0)
+			next = p.accessorExprDepth2(nil, nil, ast.NA)
 			if pathOnly && next.GetType() != ast.Identifier {
 				p.error(next.GetToken(), "expected identifier in environment expression")
 				return &ast.Improper{Token: next.GetToken()}
@@ -286,7 +286,7 @@ func (p *Parser) accessorExprDepth1(owner ast.Accessor, ident ast.Node, nodeType
 	} else {
 		propNodeType = ast.MemberExpression
 	}
-	if nodeType == 0 {
+	if nodeType == ast.NA {
 		nodeType = propNodeType
 	}
 
@@ -429,7 +429,7 @@ func (p *Parser) primary() ast.Node {
 	if p.match(lexer.LeftParen) {
 		token := p.peek(-1)
 		expr := p.expression()
-		if expr.GetType() == 0 {
+		if expr.GetType() == ast.NA {
 			p.error(p.peek(), "expected expression")
 		}
 		p.consume("expected ')' after expression", lexer.RightParen)
@@ -490,7 +490,7 @@ func (p *Parser) parseMap() ast.Node {
 		}
 
 		expr := p.expression()
-		if expr.GetType() == 0 {
+		if expr.GetType() == ast.NA {
 			p.error(p.peek(), "expected expression")
 		}
 
@@ -525,14 +525,14 @@ func (p *Parser) anonStruct() ast.Node {
 		field := p.fieldDeclarationStmt()
 		if field.GetType() != ast.NA {
 			anonStruct.Fields = append(anonStruct.Fields, field.(*ast.FieldDeclarationStmt))
-		}else {
+		} else {
 			p.error(field.GetToken(), "expected field declaration inside anonymous struct")
 		}
 		for p.match(lexer.Comma) {
 			field := p.fieldDeclarationStmt()
 			if field.GetType() != ast.NA {
 				anonStruct.Fields = append(anonStruct.Fields, field.(*ast.FieldDeclarationStmt))
-			}else {
+			} else {
 				p.error(field.GetToken(), "expected field declaration inside anonymous struct")
 			}
 		}
