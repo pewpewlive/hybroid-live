@@ -74,7 +74,7 @@ func NewLoopTag(attrs ...ScopeAttribute) *LoopTag {
 	exits := map[ExitType][]bool{
 		All: make([]bool, 0),
 	}
-	
+
 	for _, v := range attrs {
 		switch v {
 		case YieldAllowing:
@@ -88,7 +88,7 @@ func NewLoopTag(attrs ...ScopeAttribute) *LoopTag {
 		}
 	}
 	return &LoopTag{
-		Exits:exits,
+		Exits: exits,
 	}
 }
 
@@ -247,30 +247,6 @@ func (sa *ScopeAttributes) Add(attribute ScopeAttribute) {
 
 var EmptyAttributes = ScopeAttributes{}
 
-
-/*
-fn ... {}
-
-fn .. {}
-
-struct Type {
-	let a = fn () { }
-
-
-	new() {
-		match a { }
-	}
-}
-----------------------------
-EnvironmentScope
-|      |    | 
-FnScope|   StructScope
-	   FnScope |  |
-	   		   |  ConstructScope
-			   AnonFn   |
-						MatchScope
-*/
-
 type Scope struct {
 	Environment *EnvironmentVal
 	Parent      *Scope
@@ -279,8 +255,10 @@ type Scope struct {
 	Tag        ScopeTag
 	Attributes ScopeAttributes
 
-	Variables       map[string]*VariableVal
+	Variables         map[string]*VariableVal
 	currentChildIndex int
+
+	Body *[]*ast.Node
 }
 
 func (sc *Scope) Is(types ...ScopeAttribute) bool {
@@ -297,6 +275,11 @@ func (sc *Scope) Is(types ...ScopeAttribute) bool {
 	return true
 }
 
+func (sc *Scope) AccessChild() *Scope {
+	defer func() { sc.currentChildIndex++ }()
+	return sc.Children[sc.currentChildIndex]
+}
+
 func NewScope(parent *Scope, tag ScopeTag, extraAttrs ...ScopeAttribute) Scope {
 	var attrs ScopeAttributes
 	if parent == nil {
@@ -310,12 +293,12 @@ func NewScope(parent *Scope, tag ScopeTag, extraAttrs ...ScopeAttribute) Scope {
 	scope := Scope{
 		Environment: parent.Environment,
 		Parent:      parent,
-		Children: make([]*Scope, 0),
+		Children:    make([]*Scope, 0),
 
 		Tag:        tag,
 		Attributes: attrs,
 
-		Variables:       map[string]*VariableVal{},
+		Variables: map[string]*VariableVal{},
 	}
 	parent.Children = append(parent.Children, &scope)
 	return scope

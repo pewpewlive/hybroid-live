@@ -1,4 +1,4 @@
-package pass1
+package pass3
 
 import (
 	"fmt"
@@ -7,11 +7,24 @@ import (
 	"hybroid/lexer"
 	"hybroid/parser"
 	wkr "hybroid/walker"
+	"hybroid/walker/pass1"
 )
+
+func AnonFnExpr(w *wkr.Walker, fn *ast.AnonFnExpr, scope *wkr.Scope) wkr.Value {
+	fnScope := scope.AccessChild()
+	funcTag := fnScope.Tag.(*wkr.FuncTag)
+	WalkBody(w, &fn.Body, funcTag, fnScope)
+
+	if !funcTag.GetIfExits(wkr.Return) && !funcTag.ReturnType.Eq(&wkr.EmptyReturn) {
+		w.Error(fn.GetToken(), "not all code paths return a value")
+	}
+
+	return &funcTag.ReturnType
+}
 
 func AnonStructExpr(w *wkr.Walker, node *ast.AnonStructExpr, scope *wkr.Scope) *wkr.AnonStructVal {
 	structTypeVal := &wkr.AnonStructVal{
-		Fields: map[string]*wkr.VariableVal{},
+		Fields: make(map[string]*wkr.VariableVal),
 	}
 
 	for i := range node.Fields {
@@ -21,44 +34,13 @@ func AnonStructExpr(w *wkr.Walker, node *ast.AnonStructExpr, scope *wkr.Scope) *
 	return structTypeVal
 }
 
-func AnonFnExpr(w *wkr.Walker, fn *ast.AnonFnExpr, scope *wkr.Scope) *wkr.FunctionVal {
-	ret := wkr.EmptyReturn
-	for _, typee := range fn.Return {
-		ret = append(ret, TypeExpr(w, typee))
-	}
-
-	funcTag := &wkr.FuncTag{ReturnType: ret}
-	fnScope := wkr.NewScope(scope, funcTag)
-	fnScope.Attributes.Add(wkr.ReturnAllowing)
-
-	params := make([]wkr.Type, 0)
-	for i, param := range fn.Params {
-		params = append(params, TypeExpr(w, param.Type))
-		value := w.TypeToValue(params[i])
-		w.DeclareVariable(&fnScope, &wkr.VariableVal{Name: param.Name.Lexeme, Value: value, Token: param.Name}, param.Name)
-	}
-
-	WalkBody(w, &fn.Body, &fnScope)
-
-	return &wkr.FunctionVal{
-		Params:  params,
-		Returns: ret,
-	}
-}
-
 func MatchExpr(w *wkr.Walker, node *ast.MatchExpr, scope *wkr.Scope) wkr.Value {
-	casesLength := len(node.MatchStmt.Cases) + 1
-	if node.MatchStmt.HasDefault {
-		casesLength--
-	}
-	matchScope := wkr.NewScope(scope, &wkr.MatchExprTag{})
-	matchScope.Attributes.Add(wkr.YieldAllowing)
-	mtt := &wkr.MatchExprTag{Mpt: wkr.NewMultiPathTag(casesLength, matchScope.Attributes...)}
-	matchScope.Tag = mtt
+	matchScope := scope.AccessChild()
+	mtt := matchScope.Tag.(*wkr.MatchExprTag)
 
 	for i := range node.MatchStmt.Cases {
-		caseScope := wkr.NewScope(&matchScope, &wkr.UntaggedTag{})
-		WalkBody(w, &node.MatchStmt.Cases[i].Body, &caseScope)
+		caseScope := matchScope.AccessChild()
+		WalkBody(w, &node.MatchStmt.Cases[i].Body, mtt, caseScope)
 	}
 
 	return mtt.YieldValues
@@ -129,11 +111,6 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 
 	sc := scope.ResolveVariable(ident.Name.Lexeme)
 	if sc == nil {
-		for i := range w.UsedEnvs {
-			if variable, found := w.UsedEnvs[i].Scope.Variables[ident.Name.Lexeme]; found {
-				return variable.Value
-			}
-		}
 		return &wkr.Invalid{}
 	}
 
@@ -200,7 +177,7 @@ func CallExpr(w *wkr.Walker, node *ast.CallExpr, scope *wkr.Scope, callType wkr.
 	}
 	fun, _ := val.(*wkr.FunctionVal)
 
-	arguments := TypeifyNodeList(w, &node.Args, scope)
+	arguments := pass1.TypeifyNodeList(w, &node.Args, scope)
 	index, failed := w.ValidateArguments(arguments, fun.Params, callerToken, typeCall)
 	if !failed {
 		argToken := node.Args[index].GetToken()
@@ -431,7 +408,7 @@ func NewExpr(w *wkr.Walker, new *ast.NewExpr, scope *wkr.Scope) wkr.Value {
 	}
 	structVal := val.(*wkr.StructVal)
 
-	args := TypeifyNodeList(w, &new.Args, scope)
+	args := pass1.TypeifyNodeList(w, &new.Args, scope)
 	index, failed := w.ValidateArguments(args, structVal.Params, new.Type, "new")
 	if !failed {
 		argToken := new.Args[index].GetToken()
@@ -441,61 +418,56 @@ func NewExpr(w *wkr.Walker, new *ast.NewExpr, scope *wkr.Scope) wkr.Value {
 	return structVal
 }
 
-func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr) wkr.Type {
-	if typee == nil {
-		return wkr.InvalidType
-	}
-	if typee.Name.GetType() == ast.EnvironmentExpression {
-		return &wkr.UnresolvedType{
-			Expr: typee.Name.(*ast.EnvExpr),
-		}
-	}
+// lets keep it for now in the back of our mind
+// func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr) wkr.Type {
+// 	if typee == nil {
+// 		return wkr.InvalidType
+// 	}
+// 	pvt := w.GetTypeFromString(typee.Name.GetToken().Lexeme)
+// 	switch pvt {
+// 	case ast.Bool, ast.String, ast.Number, ast.Fixed, ast.FixedPoint, ast.Radian, ast.Degree:
+// 		return wkr.NewBasicType(pvt)
+// 	case ast.Enum:
+// 		return wkr.NewBasicType(ast.Enum)
+// 	case ast.AnonStruct:
+// 		fields := map[string]*wkr.VariableVal{}
 
-	pvt := w.GetTypeFromString(typee.Name.GetToken().Lexeme)
-	switch pvt {
-	case ast.Bool, ast.String, ast.Number, ast.Fixed, ast.FixedPoint, ast.Radian, ast.Degree:
-		return wkr.NewBasicType(pvt)
-	case ast.Enum:
-		return wkr.NewBasicType(ast.Enum)
-	case ast.AnonStruct:
-		fields := map[string]*wkr.VariableVal{}
+// 		for _, v := range typee.Fields {
+// 			fields[v.Name.Lexeme] = &wkr.VariableVal{
+// 				Name:  v.Name.Lexeme,
+// 				Value: w.TypeToValue(TypeExpr(w, v.Type)),
+// 				Token: v.Name,
+// 			}
+// 		}
 
-		for _, v := range typee.Fields {
-			fields[v.Name.Lexeme] = &wkr.VariableVal{
-				Name:  v.Name.Lexeme,
-				Value: w.TypeToValue(TypeExpr(w, v.Type)),
-				Token: v.Name,
-			}
-		}
+// 		return &wkr.AnonStructType{
+// 			Fields: fields,
+// 		}
+// 	case ast.Func:
+// 		params := wkr.Types{}
 
-		return &wkr.AnonStructType{
-			Fields: fields,
-		}
-	case ast.Func:
-		params := wkr.Types{}
+// 		for _, v := range typee.Params {
+// 			params = append(params, TypeExpr(w, v))
+// 		}
 
-		for _, v := range typee.Params {
-			params = append(params, TypeExpr(w, v))
-		}
+// 		returns := wkr.Types{}
+// 		for _, v := range typee.Returns {
+// 			returns = append(returns, TypeExpr(w, v))
+// 		}
 
-		returns := wkr.Types{}
-		for _, v := range typee.Returns {
-			returns = append(returns, TypeExpr(w, v))
-		}
-
-		return &wkr.FunctionType{
-			Params:  params,
-			Returns: returns,
-		}
-	default:
-		if structVal, found := w.Environment.Structs[typee.Name.GetToken().Lexeme]; found {
-			return structVal.GetType()
-		}
-		if val := w.Environment.Scope.GetVariable(typee.Name.GetToken().Lexeme); val != nil {
-			if val.GetType().PVT() == ast.Enum {
-				return val.GetType()
-			}
-		}
-		return wkr.InvalidType
-	}
-}
+// 		return &wkr.FunctionType{
+// 			Params:  params,
+// 			Returns: returns,
+// 		}
+// 	default:
+// 		if structVal, found := w.Environment.Structs[typee.Name.GetToken().Lexeme]; found {
+// 			return structVal.GetType()
+// 		}
+// 		if val := w.Environment.Scope.GetVariable(typee.Name.GetToken().Lexeme); val != nil {
+// 			if val.GetType().PVT() == ast.Enum {
+// 				return val.GetType()
+// 			}
+// 		}
+// 		return wkr.InvalidType
+// 	}
+// }

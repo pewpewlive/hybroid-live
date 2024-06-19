@@ -10,6 +10,7 @@ import (
 type Walker struct {
 	Environment *EnvironmentVal
 	Walkers     *map[string]*Walker
+	UsedEnvs    []*EnvironmentVal
 	Nodes       *[]ast.Node
 	Errors      []ast.Error
 	Warnings    []ast.Warning
@@ -19,11 +20,11 @@ type Walker struct {
 func NewWalker(path string) *Walker {
 	environment := NewEnvironment(path)
 	walker := Walker{
-		Environment: &environment,
+		Environment: environment,
 		Nodes:       &[]ast.Node{},
 		Errors:      []ast.Error{},
 		Warnings:    []ast.Warning{},
-		Context: 	 Context{
+		Context: Context{
 			Node:  &ast.Improper{},
 			Value: &Unknown{},
 			Ret:   Types{},
@@ -44,7 +45,7 @@ func (w *Walker) AddError(err ast.Error) {
 	w.Errors = append(w.Errors, err)
 }
 
-func (s *Scope) GetVariable( name string) *VariableVal {
+func (s *Scope) GetVariable(name string) *VariableVal {
 	variable := s.Variables[name]
 
 	variable.IsUsed = true
@@ -157,6 +158,23 @@ func (sc *Scope) ResolveReturnable() *ExitableTag {
 	}
 
 	return sc.Parent.ResolveReturnable()
+}
+
+func (w *Walker) ValidateArguments(args []Type, params []Type, callToken lexer.Token, typeCall string) (int, bool) {
+	if len(params) < len(args) {
+		w.Error(callToken, fmt.Sprintf("too many arguments given in %s call", typeCall))
+		return -1, true
+	}
+	if len(params) > len(args) {
+		w.Error(callToken, fmt.Sprintf("too few arguments given in %s call", typeCall))
+		return -1, true
+	}
+	for i, typeVal := range args {
+		if !TypeEquals(typeVal, params[i]) {
+			return i, false
+		}
+	}
+	return -1, true
 }
 
 func (w *Walker) ValidateArithmeticOperands(left Type, right Type, expr ast.BinaryExpr) bool {
@@ -291,5 +309,33 @@ func (w *Walker) ReportExits(sender ExitableTag, scope *Scope) {
 	receiver.SetExit(sender.GetIfExits(Break), Break)
 	receiver.SetExit(sender.GetIfExits(Continue), Continue)
 	receiver.SetExit(sender.GetIfExits(Yield), All)
-} 
+}
 
+type ProcedureType int
+
+const (
+	Function ProcedureType = iota
+	Method
+)
+
+func IsOfPrimitiveType(value Value, types ...ast.PrimitiveValueType) bool {
+	if types == nil {
+		return false
+	}
+	valType := value.GetType().PVT()
+	for _, prim := range types {
+		if valType == prim {
+			return true
+		}
+	}
+
+	return false
+}
+
+func DetermineCallTypeString(callType ProcedureType) string {
+	if callType == Function {
+		return "function"
+	}
+
+	return "method"
+}

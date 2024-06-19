@@ -3,6 +3,7 @@ package pass1
 import (
 	"hybroid/ast"
 	"hybroid/walker"
+	wkr "hybroid/walker"
 )
 
 func Action(w *walker.Walker, nodes *[]ast.Node, wlkrs *map[string]*walker.Walker) []ast.Node {
@@ -14,28 +15,35 @@ func Action(w *walker.Walker, nodes *[]ast.Node, wlkrs *map[string]*walker.Walke
 	scope := &w.Environment.Scope
 	for _, node := range *nodes {
 		WalkNode(w, &node, scope)
-	
+
 		newNodes = append(newNodes, node)
 	}
 
 	return newNodes
 }
 
-
 func WalkNode(w *walker.Walker, node *ast.Node, scope *walker.Scope) {
 	switch newNode := (*node).(type) {
 	case *ast.EnvironmentStmt:
 		EnvStmt(w, newNode, scope)
 	case *ast.VariableDeclarationStmt:
-		VariableDeclaration(w, newNode, scope)
+		VariableDeclarationStmt(w, newNode, scope)
 	case *ast.FunctionDeclarationStmt:
-		FunctionDeclaration(w, newNode, scope, walker.Function)
+		FunctionDeclarationStmt(w, newNode, scope, wkr.Function)
 	case *ast.StructDeclarationStmt:
-		StructDeclaration(w, newNode, scope)
+		StructDeclarationStmt(w, newNode, scope)
 	case *ast.EnumDeclarationStmt:
-		EnumDeclaration(w, newNode, scope)
+		EnumDeclarationStmt(w, newNode, scope)
+	case *ast.ContinueStmt:
+		ContinueStmt(w, newNode, scope)
+	case *ast.ReturnStmt:
+		ReturnStmt(w, newNode, scope)
+	case *ast.BreakStmt:
+		BreakStmt(w, newNode, scope)
+	case *ast.YieldStmt:
+		YieldStmt(w, newNode, scope)
 	case *ast.Improper:
-		w.Error(newNode.GetToken(), "Improper statement: parser fault")
+		//w.Error(newNode.GetToken(), "Improper statement: parser fault")
 	default:
 		w.Error(newNode.GetToken(), "Expected statement")
 	}
@@ -46,37 +54,37 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 
 	switch newNode := (*node).(type) {
 	case *ast.LiteralExpr:
-		val = w.LiteralExpr(newNode)
+		val = LiteralExpr(w, newNode)
 	case *ast.BinaryExpr:
-		val = w.BinaryExpr(newNode, scope)
+		val = BinaryExpr(w, newNode, scope)
 	case *ast.IdentifierExpr:
-		val = w.IdentifierExpr(node, scope)
+		val = IdentifierExpr(w, node, scope)
 	case *ast.GroupExpr:
-		val = w.GroupingExpr(newNode, scope)
+		val = GroupingExpr(w, newNode, scope)
 	case *ast.ListExpr:
-		val = w.ListExpr(newNode, scope)
+		val = ListExpr(w, newNode, scope)
 	case *ast.UnaryExpr:
-		val = w.UnaryExpr(newNode, scope)
+		val = UnaryExpr(w, newNode, scope)
 	case *ast.CallExpr:
-		val = w.CallExpr(newNode, scope, walker.Function)
+		val = CallExpr(w, newNode, scope, wkr.Function)
 	case *ast.MapExpr:
-		val = w.MapExpr(newNode, scope)
+		val = MapExpr(w, newNode, scope)
 	case *ast.DirectiveExpr:
-		val = w.DirectiveExpr(newNode, scope)
+		val = DirectiveExpr(w, newNode, scope)
 	case *ast.AnonFnExpr:
-		val = AnonFnExprPass1(w, newNode, scope)
+		val = AnonFnExpr(w, newNode, scope)
 	case *ast.AnonStructExpr:
-		val = AnonStructExprPass1(w,newNode, scope)
+		val = AnonStructExpr(w, newNode, scope)
 	case *ast.MethodCallExpr:
-		val = w.MethodCallExpr(node, scope)
+		val = MethodCallExpr(w, node, scope)
 	case *ast.MemberExpr:
-		val = w.MemberExpr(newNode, scope)
+		val = MemberExpr(w, newNode, scope)
 	case *ast.FieldExpr:
-		val = w.FieldExpr(newNode, scope)
+		val = FieldExpr(w, newNode, scope)
 	case *ast.NewExpr:
-		val = w.NewExpr(newNode, scope)
+		val = NewExpr(w, newNode, scope)
 	case *ast.SelfExpr:
-		val = w.SelfExpr(newNode, scope)
+		val = SelfExpr(w, newNode, scope)
 	case *ast.MatchExpr:
 		val = MatchExpr(w, newNode, scope)
 	case *ast.EnvExpr:
@@ -88,17 +96,21 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 	return val
 }
 
-func WalkBody(w *walker.Walker, body *[]ast.Node, tag walker.ExitableTag, scope *walker.Scope) {
-	endIndex := -1
+func WalkBody(w *walker.Walker, body *[]ast.Node, scope *walker.Scope) {
 	for i := range *body {
-		if tag.GetIfExits(walker.All) {
-			w.Warn((*body)[i].GetToken(), "unreachable code detected")
-			endIndex = i
-			break
-		}
 		WalkNode(w, &(*body)[i], scope)
 	}
-	if endIndex != -1 {
-		*body = (*body)[:endIndex]
+}
+
+func TypeifyNodeList(w *wkr.Walker, nodes *[]ast.Node, scope *wkr.Scope) []wkr.Type {
+	arguments := make([]wkr.Type, 0)
+	for i := range *nodes {
+		val := GetNodeValue(w, &(*nodes)[i], scope)
+		if function, ok := val.(*wkr.FunctionVal); ok {
+			arguments = append(arguments, function.Returns...)
+		} else {
+			arguments = append(arguments, val.GetType())
+		}
 	}
+	return arguments
 }

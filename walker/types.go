@@ -2,7 +2,7 @@ package walker
 
 import (
 	"hybroid/ast"
-	"hybroid/generators"
+	"hybroid/generators/lua"
 	"hybroid/helpers"
 )
 
@@ -25,6 +25,7 @@ const (
 	Wrapper
 	Env
 	Enum
+	Unresolved
 	NA
 )
 
@@ -40,7 +41,6 @@ func NewFunctionType(params Types, returns Types) *FunctionType {
 	}
 }
 
-//Type
 func (self *FunctionType) PVT() ast.PrimitiveValueType {
 	return ast.Func
 }
@@ -62,7 +62,7 @@ func (self *FunctionType) _eq(other Type) bool {
 }
 
 func (self *FunctionType) ToString() string {
-	src := generators.BetterBuilder{}
+	src := lua.StringBuilder{}
 
 	src.WriteString("fn(")
 
@@ -70,13 +70,13 @@ func (self *FunctionType) ToString() string {
 	for i := range self.Params {
 		if i == length-1 {
 			src.WriteString(self.Params[i].ToString())
-		}else {
+		} else {
 			src.Append(self.Params[i].ToString(), ", ")
 		}
 	}
 	src.WriteString(")")
 
-	if len(self.Returns) == 0{
+	if len(self.Returns) == 0 {
 		return src.String()
 	}
 
@@ -85,7 +85,7 @@ func (self *FunctionType) ToString() string {
 	for i := range self.Returns {
 		if i == length-1 {
 			src.WriteString(self.Returns[i].ToString())
-		}else {
+		} else {
 			src.Append(self.Returns[i].ToString(), ", ")
 		}
 	}
@@ -118,7 +118,7 @@ func (self *BasicType) _eq(other Type) bool {
 }
 
 func (self *BasicType) ToString() string {
-	return self.PrimitiveType.ToString()
+	return string(self.PrimitiveType)
 }
 
 type AnonStructType struct {
@@ -158,16 +158,16 @@ func (self *AnonStructType) _eq(other Type) bool {
 }
 
 func (self *AnonStructType) ToString() string {
-	src := generators.BetterBuilder{}
+	src := lua.StringBuilder{}
 
 	src.WriteString("struct{")
-	length := len(self.Fields)-1
+	length := len(self.Fields) - 1
 	index := 0
 	for k, v := range self.Fields {
 		if index == length {
 			_type := v.Value.GetType()
 			src.Append(_type.ToString(), " ", k)
-		}else {
+		} else {
 			_type := v.Value.GetType()
 			src.Append(_type.ToString(), " ", k, ", ")
 		}
@@ -179,8 +179,8 @@ func (self *AnonStructType) ToString() string {
 }
 
 type NamedType struct {
-	Name         string
-	IsUsed       bool
+	Name   string
+	IsUsed bool
 }
 
 func NewNamedType(name string) *NamedType {
@@ -211,9 +211,34 @@ func (self *NamedType) ToString() string {
 	return self.Name
 }
 
+type UnresolvedType struct {
+	Expr *ast.EnvExpr
+}
+
+func (self *UnresolvedType) PVT() ast.PrimitiveValueType {
+	return ast.Unresolved
+}
+
+func (self *UnresolvedType) GetType() TypeType {
+	return Unresolved
+}
+
+func (self *UnresolvedType) _eq(othr Type) bool {
+	other := othr.(*UnresolvedType)
+	if self.Expr != other.Expr {
+		return false
+	}
+
+	return true
+}
+
+func (self *UnresolvedType) ToString() string {
+	return "unresolved"
+}
+
 type EnvironmentType struct {
-	Name         string
-	Path         string
+	Name string
+	Path string
 }
 
 func NewEnvType(name string) *EnvironmentType {
@@ -245,13 +270,13 @@ func (self *EnvironmentType) ToString() string {
 }
 
 type EnumType struct {
-	Name string
+	Name   string
 	IsUsed bool
 }
 
 func NewEnumType(name string) *EnumType {
 	return &EnumType{
-		Name:name,
+		Name: name,
 	}
 }
 
@@ -317,7 +342,7 @@ func (self *WrapperType) ToString() string {
 	return self.Type.ToString() + "<" + self.WrappedType.ToString() + ">"
 }
 
-type NotAnyType struct {}
+type NotAnyType struct{}
 
 var NAType = &NotAnyType{}
 
@@ -359,15 +384,15 @@ func TypeEquals(t Type, other Type) bool {
 	tpvt := t.PVT()
 	otherpvt := other.PVT()
 
-	if tpvt == 0 {
+	if tpvt == ast.Unknown {
 		return true
-	}else if otherpvt == 0 {
+	} else if otherpvt == ast.Unknown {
 		return true
 	}
 
-	if tpvt == ast.Unresolved || tpvt == 0 {
+	if tpvt == ast.Unresolved || tpvt == ast.Unknown {
 		return true
-	}else if otherpvt == ast.Unresolved {
+	} else if otherpvt == ast.Unresolved {
 		return true
 	}
 

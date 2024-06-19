@@ -3,7 +3,6 @@ package walker
 import (
 	"fmt"
 	"hybroid/ast"
-	"hybroid/generators"
 	"hybroid/generators/lua"
 	"hybroid/lexer"
 	"hybroid/parser"
@@ -26,20 +25,22 @@ type MethodContainer interface {
 	ContainsMethod(name string) (*VariableVal, bool)
 }
 
-type Expr interface {
-  ast.EnvExpr | ast.IdentifierExpr
+type UnresolvedVal struct {
+	Expr *ast.EnvExpr
 }
 
-type UnresolvedVal[T Expr] struct {
-	EnvAccess T
-} 
+func NewUnresolvedVal(expr *ast.EnvExpr) *UnresolvedVal {
+	return &UnresolvedVal{
+		Expr: expr,
+	}
+}
 
-func (uv *UnresolvedVal[T]) GetType() Type {
+func (uv *UnresolvedVal) GetType() Type {
 	return NewBasicType(ast.Unresolved)
 }
 
-func (v *UnresolvedVal[T]) GetDefault() *ast.LiteralExpr {
-	return &ast.LiteralExpr{Value:"UNRESOLVED"}
+func (v *UnresolvedVal) GetDefault() *ast.LiteralExpr {
+	return &ast.LiteralExpr{Value: "UNRESOLVED"}
 }
 
 type VariableVal struct {
@@ -47,6 +48,7 @@ type VariableVal struct {
 	Value   Value
 	IsUsed  bool
 	IsConst bool
+	IsLocal bool
 	Token   lexer.Token
 }
 
@@ -61,7 +63,7 @@ func (v *VariableVal) GetDefault() *ast.LiteralExpr {
 func FindFromList(list []*VariableVal, name string) (*VariableVal, int, bool) {
 	for i, v := range list {
 		if v.Name == name {
-			return v, i+1, true
+			return v, i + 1, true
 		}
 	}
 	return nil, -1, false
@@ -76,15 +78,15 @@ func (self *AnonStructVal) GetType() Type {
 }
 
 func (self *AnonStructVal) GetDefault() *ast.LiteralExpr {
-	src := generators.BetterBuilder{}
+	src := lua.StringBuilder{}
 
 	src.WriteString("{")
-	length := len(self.Fields)-1
+	length := len(self.Fields) - 1
 	index := 0
 	for k, v := range self.Fields {
 		if index == length {
 			src.Append(k, " = ", v.GetDefault().Value)
-		}else {
+		} else {
 			src.Append(k, " = ", v.GetDefault().Value, ", ")
 		}
 		index++
@@ -94,7 +96,6 @@ func (self *AnonStructVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: src.String()}
 }
 
-//FieldContainer
 func (self *AnonStructVal) AddField(variable *VariableVal) {
 	self.Fields[variable.Name] = variable
 }
@@ -108,7 +109,7 @@ func (self *AnonStructVal) ContainsField(name string) (*VariableVal, int, bool) 
 }
 
 type EnumVal struct {
-	Type *EnumType
+	Type   *EnumType
 	Fields []*VariableVal
 }
 
@@ -117,9 +118,9 @@ func (self *EnumVal) GetType() Type {
 }
 
 func (self *EnumVal) GetDefault() *ast.LiteralExpr {
-	src := generators.BetterBuilder{}
+	src := lua.StringBuilder{}
 
-	src.Append(self.Type.Name,"[1]")
+	src.Append(self.Type.Name, "[1]")
 
 	return &ast.LiteralExpr{Value: src.String()}
 }
@@ -149,10 +150,10 @@ func (self *EnumFieldVal) GetDefault() *ast.LiteralExpr {
 }
 
 type StructVal struct {
-	Type         NamedType
-	Fields       []*VariableVal
-	Methods      map[string]*VariableVal
-	Params       Types
+	Type    NamedType
+	Fields  []*VariableVal
+	Methods map[string]*VariableVal
+	Params  Types
 }
 
 func (self *StructVal) GetType() Type {
@@ -160,14 +161,14 @@ func (self *StructVal) GetType() Type {
 }
 
 func (self *StructVal) GetDefault() *ast.LiteralExpr {
-	src := generators.BetterBuilder{}
+	src := lua.StringBuilder{}
 
 	src.WriteString("{")
-	length := len(self.Fields)-1
+	length := len(self.Fields) - 1
 	for i, v := range self.Fields {
 		if i == length {
 			src.Append(v.GetDefault().Value)
-		}else {
+		} else {
 			src.Append(v.GetDefault().Value, ", ")
 		}
 	}
@@ -204,24 +205,25 @@ func (self *StructVal) ContainsMethod(name string) (*VariableVal, bool) {
 type EnvironmentVal struct {
 	Type      *EnvironmentType
 	Scope     Scope
+	Childern  map[string]*Walker
 	Variables map[string]*VariableVal
-	Structs map[string]*StructVal
+	Structs   map[string]*StructVal
 }
 
-func NewEnvironment(path string) EnvironmentVal {
+func NewEnvironment(path string) *EnvironmentVal {
 	scope := Scope{
 		Children: make([]*Scope, 0),
 
-		Tag:             &UntaggedTag{},
-		Variables:       map[string]*VariableVal{},
+		Tag:       &UntaggedTag{},
+		Variables: map[string]*VariableVal{},
 	}
-	global := EnvironmentVal{
-		Type: NewEnvType("UNKNOWN"),
-		Scope:        scope,
-		Structs:  map[string]*StructVal{},
+	global := &EnvironmentVal{
+		Type:    NewEnvType("UNKNOWN"),
+		Scope:   scope,
+		Structs: map[string]*StructVal{},
 	}
 
-	global.Scope.Environment = &global
+	global.Scope.Environment = global
 	return global
 }
 
@@ -230,7 +232,7 @@ func (n *EnvironmentVal) GetType() Type {
 }
 
 func (n EnvironmentVal) GetDefault() *ast.LiteralExpr {
-	return &ast.LiteralExpr{Value:"DEFAULT_ENV"}
+	return &ast.LiteralExpr{Value: "DEFAULT_ENV"}
 }
 
 type MapVal struct {
@@ -297,7 +299,7 @@ func (n *NumberVal) GetDefault() *ast.LiteralExpr {
 type DirectiveVal struct{}
 
 func (d *DirectiveVal) GetType() Type {
-	return NewBasicType(0)
+	return NewBasicType(ast.Unknown)
 }
 
 func (d *DirectiveVal) GetDefault() *ast.LiteralExpr {
@@ -351,8 +353,8 @@ func (rt *Types) Eq(otherRT *Types) bool {
 }
 
 type FunctionVal struct {
-	Params    Types
-	Returns   Types
+	Params  Types
+	Returns Types
 }
 
 func (f *FunctionVal) GetType() Type {
