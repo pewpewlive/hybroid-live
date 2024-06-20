@@ -1,75 +1,83 @@
-env Huh as Level
-// hello
+env HybroidLevel as Level
 
-// let number a = 1
+// Hi!
 
-fn test(number param) bool, bool {
-    if param < 0 {
-        return true, false
-    }else if param == 0 {
-        return false, false
-    }
+/*
+  This
+  Is
+  HYBROID!!
+*/
 
-    match param {
-        0 => {
-            return false, true
-        }
-    }
+let a = 100
+let text b = "Hello"
+let c = {banana = 1, apple = 2, pear = 3}
+let d = [1.5f, 2.2048fx, 90d, 3.14r]
 
-    return true, true
+a = c["banana"]
+a += 1337
+
+if d[1] == 2.2048fx {
+  d[2] = d[1]
+} else if false {
+  d[1] = d[2]
+} else {
+  d[1] = 180d
 }
 
-let uh = fn() fixed {
-    return 1f
+fn Abs(number a) number {
+  if a >= 0 {
+    return a
+  }
+  return -a
 }
 
-let tesst = struct{
-    number Field1 = 10
-    Field2 = true
+a = Abs(a)
+
+Abs(a)
+
+fn MatchShow(text test) text {
+  return match test {
+    "Hello" => "Hi"
+    "Goodbye" => "Bye"
+    "See you later" => "Cya"
+    _ => "Wrong input"
+  }
 }
 
-fn anonStructTest(struct{number Field1, bool Field2} uh) bool {
-    if uh.Field1 == 10 {
-        return false
-    }
-    return true
-} 
+MatchShow("Hello")
+MatchShow("Hybroid")
 
-anonStructTest(tesst)
-
-struct StructTest {
-    fixed field1 = 0f
-
-    new(fixed param) {
-        if param == 0f {
-            field1 = 100f
-        }else {
-            self.field1 = 9d
-        }
-    }
-
-    fn foo(bool param, number param2) bool, bool {
-        return match param {
-            true => test(param2)
-            _ => {
-                if asdojasd {
-                    yield true, true
-                }
-            }
-        }
-    }
+repeat 10 with i {
+  if i == 1 {
+    continue
+  }
+  
+  if i / a > 1 {
+    break
+  }
 }
 
-let p = new StructTest(10f)
+repeat from 10 to -10 by -1 with i { }
+while false { }
+for i, v in d { }
 
-p.field1 = 1f
+struct Foo {
+  number foo, bar = 100, 90
+  number foobar
+  
+  new(number foo, number bar) {
+    self.foo = foo
+    self.bar = bar
+    foobar = self.foo + self.bar
+  }
 
-let b, a = p.foo(true, 1)
+  fn Foo() number {
+    return foo
+  }
 
-while true {
-    if false {
-    }
-    let a = 1
+  fn Foobar() number {
+    return self.foobar
+  }
 }
 
 let testmap = {a = 2, b = 3}
@@ -82,13 +90,13 @@ let list = [1,2,3]
 
 for i, v in list {
     if i == 2 {
-        goto asdas
+        continue
     }
-    let a = match v {
-        0 => "asd"
+    match v {
+        0 => {
+            continue
+        }
     }
-
-    ::asdas::
 }
 
 enum TestEnum {
@@ -98,15 +106,17 @@ enum TestEnum {
     NA
 }
 
-let TestEnum uhhh = TestEnum.Three
+let error = Error.SyntaxError
 
-fn test2(TestEnum param1) TestEnum {
-    match param1 {
-        TestEnum.One => TestEnum.Two
-        TestEnum.Two => TestEnum.Three
-        TestEnum.Three => TestEnum.One
+fn PrintError(Error error) text {
+  match error {
+    Error.SyntaxError, Error.ParserError, Error.WalkerError => {
+      return "Syntax, Parser or Walker Error"
     }
-    return TestEnum.NA
+    _ => {
+      return "Invalid error type!"
+    }
+  } 
 }
 
-test2(uhhh)
+PrintError(error)
