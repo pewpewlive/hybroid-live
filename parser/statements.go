@@ -136,7 +136,7 @@ func (p *Parser) envStmt() ast.Node {
 
 	if expr.GetType() == ast.Identifier {
 		expr = &ast.EnvExpr{
-			Envs: []lexer.Token{expr.GetToken()},
+			SubEnvs: []ast.Node{expr},
 		}
 	}
 
@@ -157,7 +157,7 @@ func (p *Parser) envStmt() ast.Node {
 
 	envExpr := expr.(*ast.EnvExpr)
 	stmt.EnvType = envTypeExpr
-	stmt.Env = *envExpr
+	stmt.Env = envExpr
 
 	return &stmt
 }

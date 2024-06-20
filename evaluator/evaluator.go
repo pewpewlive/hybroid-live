@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"hybroid/ast"
 	"hybroid/walker"
-	"hybroid/walker/pass1"
 	"strings"
 	"time"
 
@@ -20,11 +19,11 @@ type Evaluator struct {
 	walkers *map[string]*walker.Walker
 
 	// Evaluator
-	lexer   *lexer.Lexer
-	parser  *parser.Parser
-	walker  *walker.Walker
-	gen     lua.Generator
-	
+	lexer  *lexer.Lexer
+	parser *parser.Parser
+	walker *walker.Walker
+	gen    lua.Generator
+
 	SrcPath string
 	DstPath string
 }
@@ -44,15 +43,16 @@ func (e *Evaluator) AssignFile(src string, dst string) {
 }
 
 func (e *Evaluator) Action(writeEnabled bool) (string, error) {
-	sourceFile, err := os.ReadFile(e.SrcPath)
+	sourceFile, err := os.Open(e.SrcPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to read source file: %v", err)
 	}
 
-	fmt.Printf("Tokenizing %v characters\n", len(sourceFile))
+	sourceFileStats, _ := sourceFile.Stat()
+	fmt.Printf("Tokenizing %v characters\n", sourceFileStats.Size())
 	start := time.Now()
 
-	e.lexer.AssignSource(sourceFile)
+	e.lexer.AssignReader(sourceFile)
 	e.lexer.Tokenize()
 	if len(e.lexer.Errors) != 0 {
 		fmt.Println("[red]Failed tokenizing:")
@@ -69,10 +69,10 @@ func (e *Evaluator) Action(writeEnabled bool) (string, error) {
 	prog := e.parser.ParseTokens()
 	if len(e.parser.Errors) != 0 {
 		colorstring.Println("[red]Syntax error found:")
-		for _, err := range e.parser.Errors {
-			e.writeSyntaxAlert(string(sourceFile), err)
-			//colorstring.Printf("[red]Error: %+v\n", err)
-		}
+		// for _, err := range e.parser.Errors {
+		// 	e.writeSyntaxAlert(string(sourceFile), err)
+		// 	//colorstring.Printf("[red]Error: %+v\n", err)
+		// }
 		return "", fmt.Errorf("failed to parse source file")
 	}
 	fmt.Printf("Parsing time: %v seconds\n\n", time.Since(start).Seconds())

@@ -1,126 +1,32 @@
-package pass1
+package pass2
 
 import (
 	"fmt"
 	"hybroid/ast"
 	"hybroid/helpers"
-	"hybroid/lexer"
-	"hybroid/parser"
 	wkr "hybroid/walker"
 )
 
-func AnonStructExpr(w *wkr.Walker, node *ast.AnonStructExpr, scope *wkr.Scope) *wkr.AnonStructVal {
-	structTypeVal := &wkr.AnonStructVal{
-		Fields: map[string]*wkr.VariableVal{},
-	}
+func AnonStructExpr(w *wkr.Walker, node *ast.AnonStructExpr, scope *wkr.Scope) {
 
-	for i := range node.Fields {
-		FieldDeclarationStmt(w, node.Fields[i], structTypeVal, scope)
-	}
-
-	return structTypeVal
 }
 
-func AnonFnExpr(w *wkr.Walker, fn *ast.AnonFnExpr, scope *wkr.Scope) *wkr.FunctionVal {
-	ret := wkr.EmptyReturn
-	for _, typee := range fn.Return {
-		ret = append(ret, TypeExpr(w, typee))
-	}
+func AnonFnExpr(w *wkr.Walker, fn *ast.AnonFnExpr, scope *wkr.Scope) {
 
-	funcTag := &wkr.FuncTag{ReturnType: ret}
-	fnScope := wkr.NewScope(scope, funcTag)
-	fnScope.Attributes.Add(wkr.ReturnAllowing)
-
-	params := make([]wkr.Type, 0)
-	for i, param := range fn.Params {
-		params = append(params, TypeExpr(w, param.Type))
-		value := w.TypeToValue(params[i])
-		w.DeclareVariable(&fnScope, &wkr.VariableVal{Name: param.Name.Lexeme, Value: value, Token: param.Name}, param.Name)
-	}
-
-	WalkBody(w, &fn.Body, &fnScope)
-
-	return &wkr.FunctionVal{
-		Params:  params,
-		Returns: ret,
-	}
 }
 
-func MatchExpr(w *wkr.Walker, node *ast.MatchExpr, scope *wkr.Scope) wkr.Value {
-	casesLength := len(node.MatchStmt.Cases) + 1
-	if node.MatchStmt.HasDefault {
-		casesLength--
-	}
-	matchScope := wkr.NewScope(scope, &wkr.MatchExprTag{})
-	matchScope.Attributes.Add(wkr.YieldAllowing)
-	mtt := &wkr.MatchExprTag{Mpt: wkr.NewMultiPathTag(casesLength, matchScope.Attributes...)}
-	matchScope.Tag = mtt
+func MatchExpr(w *wkr.Walker, node *ast.MatchExpr, scope *wkr.Scope) {
 
-	for i := range node.MatchStmt.Cases {
-		caseScope := wkr.NewScope(&matchScope, &wkr.UntaggedTag{})
-		WalkBody(w, &node.MatchStmt.Cases[i].Body, &caseScope)
-	}
-
-	return mtt.YieldValues
 }
 
-func BinaryExpr(w *wkr.Walker, node *ast.BinaryExpr, scope *wkr.Scope) wkr.Value {
-	left, right := GetNodeValue(w, &node.Left, scope), GetNodeValue(w, &node.Right, scope)
-	leftType, rightType := left.GetType(), right.GetType()
-	op := node.Operator
-	switch op.Type {
-	case lexer.Plus, lexer.Minus, lexer.Caret, lexer.Star, lexer.Slash, lexer.Modulo:
-		w.ValidateArithmeticOperands(leftType, rightType, *node)
-	default:
-		if !wkr.TypeEquals(leftType, rightType) {
-			w.Error(node.GetToken(), fmt.Sprintf("invalid comparison: types are not the same (left: %s, right: %s)", leftType.ToString(), rightType.ToString()))
-		} else {
-			return &wkr.BoolVal{}
-		}
-	}
-	typ := DetermineValueType(w, leftType, rightType)
+func BinaryExpr(w *wkr.Walker, node *ast.BinaryExpr, scope *wkr.Scope) {
 
-	if typ.PVT() == ast.Invalid {
-		w.Error(node.GetToken(), fmt.Sprintf("invalid binary expression (left: %s, right: %s)", leftType.ToString(), rightType.ToString()))
-		return &wkr.Invalid{}
-	} else {
-		return &wkr.BoolVal{}
-	}
 }
 
-func EnvExpr(w *wkr.Walker, node *ast.EnvExpr, scope *wkr.Scope) wkr.Value {
-	return &wkr.UnresolvedVal{
-		Expr: node,
-	}
+func EnvExpr(w *wkr.Walker, node *ast.EnvExpr, scope *wkr.Scope) {
 }
 
-func DetermineValueType(w *wkr.Walker, left wkr.Type, right wkr.Type) wkr.Type {
-	if left.PVT() == ast.Unknown || right.PVT() == ast.Unknown {
-		return wkr.NAType
-	}
-	if wkr.TypeEquals(left, right) {
-		return right
-	}
-	if parser.IsFx(left.PVT()) && parser.IsFx(right.PVT()) {
-		return left
-	}
-
-	return wkr.InvalidType
-}
-
-func LiteralExpr(w *wkr.Walker, node *ast.LiteralExpr) wkr.Value {
-	switch node.ValueType {
-	case ast.String:
-		return &wkr.StringVal{}
-	case ast.Fixed, ast.Radian, ast.FixedPoint, ast.Degree:
-		return &wkr.FixedVal{SpecificType: node.ValueType}
-	case ast.Bool:
-		return &wkr.BoolVal{}
-	case ast.Number:
-		return &wkr.NumberVal{}
-	default:
-		return &wkr.Invalid{}
-	}
+func LiteralExpr(w *wkr.Walker, node *ast.LiteralExpr) {
 }
 
 func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {

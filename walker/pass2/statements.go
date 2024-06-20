@@ -1,4 +1,4 @@
-package pass1
+package pass2
 
 import (
 	"fmt"

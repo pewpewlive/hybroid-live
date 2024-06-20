@@ -7,8 +7,8 @@ import (
 type Paths []string
 
 type EnvironmentStmt struct {
-	EnvType      EnvTypeExpr
-	Env          EnvExpr
+	EnvType      *EnvTypeExpr
+	Env          *EnvExpr
 	Requirements Paths
 }
 

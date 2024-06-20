@@ -42,7 +42,7 @@ func (le *EnvTypeExpr) GetValueType() PrimitiveValueType {
 }
 
 type EnvExpr struct {
-	Envs []Node
+	SubEnvs []Node
 }
 
 func (le *EnvExpr) GetType() NodeType {
@@ -50,7 +50,7 @@ func (le *EnvExpr) GetType() NodeType {
 }
 
 func (le *EnvExpr) GetToken() lexer.Token {
-	return le.Envs[0].GetToken()
+	return le.SubEnvs[0].GetToken()
 }
 
 func (le *EnvExpr) GetValueType() PrimitiveValueType {

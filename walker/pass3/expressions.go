@@ -7,7 +7,6 @@ import (
 	"hybroid/lexer"
 	"hybroid/parser"
 	wkr "hybroid/walker"
-	"hybroid/walker/pass1"
 )
 
 func AnonFnExpr(w *wkr.Walker, fn *ast.AnonFnExpr, scope *wkr.Scope) wkr.Value {

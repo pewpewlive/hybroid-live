@@ -114,15 +114,11 @@ func (p *Parser) envExpr(pathOnly bool) ast.Node {
 			return &ast.Improper{Token: expr.GetToken()}
 		}
 		envExpr := ast.EnvExpr{
-			Envs: []lexer.Token{expr.GetToken()},
+			SubEnvs: []ast.Node{expr},
 		}
 
 		next := p.accessorExprDepth2(nil, nil, ast.NA)
-		if next.GetType() != ast.Identifier {
-			p.error(next.GetToken(), "expected identifier in environment expression")
-			return &ast.Improper{Token: next.GetToken()}
-		}
-		envExpr.Envs = append(envExpr.Envs, next.GetToken())
+		envExpr.SubEnvs = append(envExpr.SubEnvs, next)
 		for p.match(lexer.DoubleColon) {
 			if !pathOnly && next.GetType() != ast.Identifier {
 				p.error(next.GetToken(), "expected identifier in environment expression")
@@ -133,7 +129,7 @@ func (p *Parser) envExpr(pathOnly bool) ast.Node {
 				p.error(next.GetToken(), "expected identifier in environment expression")
 				return &ast.Improper{Token: next.GetToken()}
 			}
-			envExpr.Envs = append(envExpr.Envs, next.GetToken())
+			envExpr.SubEnvs = append(envExpr.SubEnvs, next)
 		}
 
 		return &envExpr
@@ -208,7 +204,7 @@ func (p *Parser) accessorExprDepth2(owner ast.Accessor, ident ast.Node, nodeType
 	if !p.check(lexer.LeftParen) {
 		return expr
 	}
-	
+
 	acesss := expr.(ast.Accessor)
 	args := p.arguments()
 	beforeExpr := acesss.DeepCopy()
@@ -552,17 +548,22 @@ func (p *Parser) WrappedType() *ast.TypeExpr {
 }
 
 func (p *Parser) Type() *ast.TypeExpr {
-	exprToken := p.advance()
+	expr := p.envExpr(false)
+	exprToken := expr.GetToken()
+
+	if expr.GetType() == ast.EnvironmentExpression {
+		return &ast.TypeExpr{Name: expr}
+	}
 
 	switch exprToken.Type {
 	case lexer.Identifier:
 		typee := &ast.TypeExpr{}
 
-		if p.match(lexer.Less) {
+		if p.match(lexer.Less) { // map<number>
 			typee.WrappedType = p.WrappedType()
 			p.consume("expected '>'", lexer.Greater)
 		}
-		typee.Name = exprToken
+		typee.Name = expr
 		return typee
 	case lexer.Fn:
 		typee := &ast.TypeExpr{}
@@ -578,6 +579,7 @@ func (p *Parser) Type() *ast.TypeExpr {
 			}
 			p.consume("expected closing parenthesis in 'fn(...'", lexer.RightParen)
 		}
+
 		typee.Params = params
 
 		if p.check(lexer.Identifier) {
@@ -588,15 +590,15 @@ func (p *Parser) Type() *ast.TypeExpr {
 			}
 		}
 
-		typee.Name = exprToken
+		typee.Name = expr
 		return typee
 	case lexer.Struct:
 		fields := p.parameters(lexer.LeftBrace, lexer.RightBrace)
-		return &ast.TypeExpr{Name:exprToken,Fields: fields}
+		return &ast.TypeExpr{Name: expr, Fields: fields}
 	default:
 		p.error(exprToken, "Expected an identifier for a type")
 		p.advance()
-		return &ast.TypeExpr{Name: exprToken}
+		return &ast.TypeExpr{Name: expr}
 	}
 }
 
@@ -615,11 +617,11 @@ func StringToEnvType(name string) ast.EnvType {
 	}
 }
 
-func (p *Parser) EnvType() ast.EnvTypeExpr {
+func (p *Parser) EnvType() *ast.EnvTypeExpr {
 	name, ok := p.consume("expected identifier for a environment type expr", lexer.Identifier)
 
 	if !ok {
-		return ast.EnvTypeExpr{Type: ast.InvalidEnv, Token: name}
+		return &ast.EnvTypeExpr{Type: ast.InvalidEnv, Token: name}
 	}
 
 	envType := StringToEnvType(name.Lexeme)
@@ -628,5 +630,5 @@ func (p *Parser) EnvType() ast.EnvTypeExpr {
 		p.error(name, "expected 'Level', 'Shared', 'Mesh' or 'Sound' as environment type")
 	}
 
-	return ast.EnvTypeExpr{Type: envType, Token: name}
+	return &ast.EnvTypeExpr{Type: envType, Token: name}
 }

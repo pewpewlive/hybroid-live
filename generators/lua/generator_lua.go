@@ -3,10 +3,10 @@ package lua
 import (
 	"fmt"
 	"hybroid/ast"
-	"hybroid/generators"
 	"hybroid/lexer"
 	"math"
 	"strconv"
+	"strings"
 )
 
 // func (ge *GenError) generatorError() string {
@@ -18,7 +18,7 @@ func (gen *Generator) error(token lexer.Token, message string) {
 }
 
 type StringBuilder struct {
-	generators.BetterBuilder
+	strings.Builder
 }
 
 func (sb *StringBuilder) Append(chunks ...string) {
@@ -33,6 +33,12 @@ func (sb *StringBuilder) AppendTabbed(chunks ...string) {
 	for _, chunk := range chunks {
 		sb.WriteString(chunk)
 	}
+}
+
+func (sb *StringBuilder) ReplaceRange(str string, replaceRange Range) {
+	buffer := sb.String()
+	sb.Reset()
+	sb.Append(buffer[:replaceRange.Start], str, buffer[replaceRange.End:])
 }
 
 var charset = []byte("_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -69,18 +75,6 @@ const (
 	GotoReplacement
 	ContinueReplacement
 )
-
-func (sb *StringBuilder) ReplaceRange(str string, _range Range) {
-	buf := sb.GetBuf()
-
-	endSlice := make([]byte, len(*buf)-_range.End)
-
-	copy(endSlice, (*buf)[_range.End:len(*buf)])
-	*buf = (*buf)[:_range.Start]
-
-	sb.WriteString(str)
-	sb.Write(endSlice)
-}
 
 type Range struct {
 	Start int

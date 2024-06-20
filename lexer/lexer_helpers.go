@@ -8,40 +8,39 @@ type LexerError struct {
 	Message   string
 }
 
-func (self LexerError) GetToken() Token {
-	return Token{Type:self.TokenType, Location: self.Location}
+func (le LexerError) GetToken() Token {
+	return Token{Type: le.TokenType, Location: le.Location}
 }
 
-func (self LexerError) GetHeader() string {
+func (le LexerError) GetHeader() string {
 	return "[red]Error"
 }
 
-func (self LexerError) GetMessage() string {
-	return self.Message
+func (le LexerError) GetMessage() string {
+	return le.Message
 }
-
 
 func (l *Lexer) lexerError(message string) {
 	l.Errors = append(l.Errors, LexerError{Eof, TokenLocation{LineStart: l.line, LineEnd: l.line, ColStart: l.columnStart, ColEnd: l.columnCurrent}, message})
 }
 
 func (l *Lexer) advance() byte {
-	t := l.source[l.current]
+	t := l.source.Text()[l.current]
 	l.current++
 	l.columnCurrent++
 	return t
 }
 
 func (l *Lexer) isAtEnd() bool {
-	return l.current >= len(l.source.)
+	return l.current >= len(l.source.Text())
 }
 
 func (l *Lexer) isAtEndNext() bool {
-	return l.current+1 >= len(l.source)
+	return l.current+1 >= len(l.source.Text())
 }
 
 func (l *Lexer) addToken(token TokenType, literal string) {
-	text := string(l.source)[l.start:l.current]
+	text := l.source.Text()[l.start:l.current]
 	l.Tokens = append(l.Tokens, Token{token, text, literal, TokenLocation{LineStart: l.line, LineEnd: l.line, ColStart: l.columnStart + 1, ColEnd: l.columnCurrent + 1}})
 }
 
@@ -49,7 +48,7 @@ func (l *Lexer) matchChar(expected byte) bool {
 	if l.isAtEnd() {
 		return false
 	}
-	if l.source[l.current] != expected {
+	if l.source.Text()[l.current] != expected {
 		return false
 	}
 
@@ -63,7 +62,7 @@ func (l *Lexer) peek() byte {
 		return '\f'
 	}
 
-	return l.source[l.current]
+	return l.source.Text()[l.current]
 }
 
 func (l *Lexer) peekNext() byte {
@@ -71,7 +70,7 @@ func (l *Lexer) peekNext() byte {
 		return '0'
 	}
 
-	return l.source[l.current+1]
+	return l.source.Text()[l.current+1]
 }
 
 func isDigit(c byte) bool {

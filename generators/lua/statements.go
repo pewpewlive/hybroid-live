@@ -183,7 +183,7 @@ func (gen *Generator) repeatStmt(node ast.RepeatStmt, scope *GenScope) {
 	end := gen.GenerateExpr(node.Iterator, scope)
 	start := gen.GenerateExpr(node.Start, scope)
 	skip := gen.GenerateExpr(node.Skip, scope)
-	if node.Variable.GetValueType() != 0 {
+	if node.Variable.GetValueType() != ast.Unknown {
 		variable := gen.GenerateExpr(&node.Variable, &repeatScope)
 		repeatScope.Append(repeatTabs, "for ", variable, " = ", start, ", ", end, ", ", skip, " do\n")
 	} else {
@@ -240,11 +240,11 @@ func (gen *Generator) forStmt(node ast.ForStmt, scope *GenScope) {
 	if len(node.KeyValuePair) == 1 {
 		key := gen.GenerateExpr(node.KeyValuePair[0], &forScope)
 		forScope.Append(key, ", _ in  ", pairs, " (", iterator, ") do\n")
-	}else if len(node.KeyValuePair) == 2 {
+	} else if len(node.KeyValuePair) == 2 {
 		key := gen.GenerateExpr(node.KeyValuePair[0], &forScope)
 		value := gen.GenerateExpr(node.KeyValuePair[1], &forScope)
 		forScope.Append(key, ", ", value, " in ", pairs, "(", iterator, ") do\n")
-	}else {
+	} else {
 		forScope.Append("_, _ in ", pairs, "(", iterator, ") do\n")
 	}
 	gotoLabel := GenerateVar(hyGTL)
@@ -268,7 +268,7 @@ func (gen *Generator) tickStmt(node ast.TickStmt, scope *GenScope) {
 
 	tickScope := GenScope{Src: StringBuilder{}, Parent: scope}
 
-	if node.Variable.GetValueType() != 0 {
+	if node.Variable.GetValueType() != ast.Unknown {
 		variable := gen.GenerateExpr(&node.Variable, scope)
 		tickScope.Src.Append(tickTabs, "local ", variable, " = 0\n")
 		tickScope.Src.Append(tickTabs, "pewpew.add_update_callback(function()\n")
@@ -325,17 +325,17 @@ func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclaratio
 func (gen *Generator) enumDeclarationStmt(node ast.EnumDeclarationStmt, scope *GenScope) {
 	if node.IsLocal {
 		scope.AppendTabbed("local ")
-	}else {
+	} else {
 		scope.AppendTabbed()
 	}
 
 	scope.Append("V", node.Name.Lexeme, " = {\n")
 
-	length := len(node.Fields) 
+	length := len(node.Fields)
 	for i := range node.Fields {
 		if i == length-1 {
 			scope.AppendETabbed(strconv.Itoa(i), "\n")
-		}else {
+		} else {
 			scope.AppendETabbed(strconv.Itoa(i), ", \n")
 		}
 	}
@@ -399,7 +399,7 @@ func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, Struc
 func (gen *Generator) fieldDeclarationStmt(node ast.FieldDeclarationStmt, scope *GenScope) string {
 	src := StringBuilder{}
 
-	for i,v := range node.Identifiers {
+	for i, v := range node.Identifiers {
 		src.Append(v.Lexeme, " = ", gen.GenerateExpr(node.Values[i], scope))
 		if i != len(node.Identifiers)-1 {
 			src.WriteString(", ")

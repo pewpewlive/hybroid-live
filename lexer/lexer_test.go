@@ -2,6 +2,7 @@ package lexer
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"testing"
 )
@@ -22,11 +23,12 @@ func (tc TestCheck) ToString() string {
 	return Token{tc.tokenType, tc.lexeme, tc.literal, TokenLocation{LineStart: tc.line, ColStart: tc.columnStart, ColEnd: tc.columnEnd}}.ToString()
 }
 
-func readFile(fileName string, t *testing.T) []byte {
-	file, err := os.ReadFile(fileName)
+func readFile(fileName string, t *testing.T) io.Reader {
+	file, err := os.Open(fileName)
 	if err != nil {
 		t.Errorf("Test failed reading file: %s\n", err.Error())
 	}
+	defer file.Close()
 
 	return file
 }
@@ -39,7 +41,7 @@ func printTokens(lexer *Lexer) {
 
 func TestBasic(t *testing.T) {
 	lexer := NewLexer()
-	lexer.AssignSource(readFile("./tests/test_basic.hyb", t))
+	lexer.AssignReader(readFile("./tests/test_basic.hyb", t))
 
 	lexer.Tokenize()
 	for _, err := range lexer.Errors {
@@ -66,7 +68,7 @@ func TestBasic(t *testing.T) {
 
 func TestTickBlocks(t *testing.T) {
 	lexer := NewLexer()
-	lexer.AssignSource(readFile("./tests/test_tick_blocks.hyb", t))
+	lexer.AssignReader(readFile("./tests/test_tick_blocks.hyb", t))
 
 	lexer.Tokenize()
 	for _, err := range lexer.Errors {
@@ -101,7 +103,7 @@ func TestTickBlocks(t *testing.T) {
 
 func TestMatchStatement(t *testing.T) {
 	lexer := NewLexer()
-	lexer.AssignSource(readFile("./tests/test_match_statement.hyb", t))
+	lexer.AssignReader(readFile("./tests/test_match_statement.hyb", t))
 
 	lexer.Tokenize()
 	for _, err := range lexer.Errors {
@@ -160,7 +162,7 @@ func TestMatchStatement(t *testing.T) {
 
 func TestNumberLiterals(t *testing.T) {
 	lexer := NewLexer()
-	lexer.AssignSource(readFile("./tests/test_number_literals.hyb", t))
+	lexer.AssignReader(readFile("./tests/test_number_literals.hyb", t))
 
 	lexer.Tokenize()
 	for _, err := range lexer.Errors {
@@ -230,7 +232,7 @@ func TestNumberLiterals(t *testing.T) {
 
 func TestStringLiterals(t *testing.T) {
 	lexer := NewLexer()
-	lexer.AssignSource(readFile("./tests/test_string_literals.hyb", t))
+	lexer.AssignReader(readFile("./tests/test_string_literals.hyb", t))
 
 	lexer.Tokenize()
 	for _, err := range lexer.Errors {

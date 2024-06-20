@@ -52,7 +52,9 @@ struct StructTest {
         return match param {
             true => test(param2)
             _ => {
-                yield true, true
+                if asdojasd {
+                    yield true, true
+                }
             }
         }
     }
@@ -80,13 +82,13 @@ let list = [1,2,3]
 
 for i, v in list {
     if i == 2 {
-        continue
+        goto asdas
     }
-    match v {
-        0 => {
-            continue
-        }
+    let a = match v {
+        0 => "asd"
     }
+
+    ::asdas::
 }
 
 enum TestEnum {
