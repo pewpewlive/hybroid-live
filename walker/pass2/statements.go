@@ -331,6 +331,23 @@ func ReturnStmt(w *wkr.Walker, node *ast.ReturnStmt, scope *wkr.Scope) *wkr.Type
 	return &ret
 }
 
+/*
+
+pub a = 1
+
+pub b = Env2::i
+
+pub c = fn()
+
+pub d = match a {
+
+	1 => Env3::u,
+	else => {
+	
+	}
+}
+*/
+
 func YieldStmt(w *wkr.Walker, node *ast.YieldStmt, scope *wkr.Scope) *wkr.Types {
 	if !scope.Is(wkr.YieldAllowing) {
 		w.Error(node.GetToken(), "cannot use yield outside of statement expressions") // wut

@@ -30,30 +30,47 @@ type EnvTypeExpr struct {
 }
 
 func (le *EnvTypeExpr) GetType() NodeType {
-	return EnvironmentExpression
+	return EnvironmentTypeExpression
 }
 
 func (le *EnvTypeExpr) GetToken() lexer.Token {
 	return le.Token
 }
 
-func (le *EnvTypeExpr) GetValueType() PrimitiveValueType {
+func (le *EnvTypeExpr) GetValueType() PrimitiveValueType { // env1::thing::type
 	return Unknown
 }
 
-type EnvExpr struct {
-	SubEnvs []Node
+type EnvPathExpr struct {
+	SubPaths []string
 }
 
-func (le *EnvExpr) GetType() NodeType {
-	return EnvironmentExpression
+func (le *EnvPathExpr) GetType() NodeType {
+	return EnvironmentPathExpression
 }
 
-func (le *EnvExpr) GetToken() lexer.Token {
-	return le.SubEnvs[0].GetToken()
+func (le *EnvPathExpr) GetToken() lexer.Token {
+	return lexer.Token{Lexeme: le.SubPaths[0]}
 }
 
-func (le *EnvExpr) GetValueType() PrimitiveValueType {
+func (le *EnvPathExpr) GetValueType() PrimitiveValueType {
+	return Unknown
+}
+
+type EnvAccessExpr struct {
+	PathExpr    *EnvPathExpr
+	Accessed    Node
+}
+
+func (le *EnvAccessExpr) GetType() NodeType {
+	return EnvironmentAccessExpression
+}
+
+func (le *EnvAccessExpr) GetToken() lexer.Token {
+	return le.Accessed.GetToken()
+}
+
+func (le *EnvAccessExpr) GetValueType() PrimitiveValueType {
 	return Unknown
 }
 

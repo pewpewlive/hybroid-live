@@ -132,16 +132,9 @@ func (p *Parser) getBody() []ast.Node {
 func (p *Parser) envStmt() ast.Node {
 	stmt := ast.EnvironmentStmt{}
 
-	expr := p.envExpr(true)
-
-	if expr.GetType() == ast.Identifier {
-		expr = &ast.EnvExpr{
-			SubEnvs: []ast.Node{expr},
-		}
-	}
-
-	if expr.GetType() != ast.EnvironmentExpression {
-		p.error(expr.GetToken(), "expected environment expression with no variable accessing")
+	expr := p.EnvPathExpr()
+	if expr.GetType() != ast.EnvironmentPathExpression {
+		p.error(expr.GetToken(), "expected environment path expression")
 		return &ast.Improper{Token: expr.GetToken()}
 	}
 
@@ -155,9 +148,9 @@ func (p *Parser) envStmt() ast.Node {
 		return &ast.Improper{Token: envTypeExpr.GetToken()}
 	}
 
-	envExpr := expr.(*ast.EnvExpr)
+	envPathExpr, _ := expr.(*ast.EnvPathExpr)
 	stmt.EnvType = envTypeExpr
-	stmt.Env = envExpr
+	stmt.Env = envPathExpr
 
 	return &stmt
 }

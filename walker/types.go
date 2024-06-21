@@ -236,39 +236,6 @@ func (self *UnresolvedType) ToString() string {
 	return "unresolved"
 }
 
-type EnvironmentType struct {
-	Name string
-	Path string
-}
-
-func NewEnvType(name string) *EnvironmentType {
-	return &EnvironmentType{
-		Name: name,
-	}
-}
-
-// Type
-func (self *EnvironmentType) PVT() ast.PrimitiveValueType {
-	return ast.Environment
-}
-
-func (self *EnvironmentType) GetType() TypeType {
-	return Wrapper
-}
-
-func (self *EnvironmentType) _eq(othr Type) bool {
-	other := othr.(*EnvironmentType)
-	if self.Name != other.Name {
-		return false
-	}
-
-	return true
-}
-
-func (self *EnvironmentType) ToString() string {
-	return self.Name
-}
-
 type EnumType struct {
 	Name   string
 	IsUsed bool

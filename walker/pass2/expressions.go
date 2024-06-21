@@ -29,42 +29,102 @@ func EnvExpr(w *wkr.Walker, node *ast.EnvExpr, scope *wkr.Scope) {
 func LiteralExpr(w *wkr.Walker, node *ast.LiteralExpr) {
 }
 
+/*
+e2:
+pub b = e1::a
+
+e1:
+pub a = match variable {
+	100 => e2::b,
+	else => e2::b
+}
+
+Pass2:
+pub a = 1
+
+pub b = e2::a
+
+
+Pass3:
+let localVariable = 9
+pub globalVariable = localVariable
+
+pub a = 1 // RESOLVED
+
+pub b = e2::a // UNRESOLVE, NOW RESOLVED with e2::a = e3::c = 9
+
+env e2 as Shared:
+
+pyb a = e3::c // UNRESOLVED, NOW RESOLVED with e3::c = 9
+
+env e3 as Shared:
+pub c = 9 // RESOLVED
+
+pub fixed b = 100f
+
+fn test(number param) {
+
+	return 
+}
+
+level.hyb:
+use Gameplay
+use Tools
+
+tick {
+	Update() // from Gameplay
+}
+
+gameplay.hyb
+env Gameplay as Shared
+
+Tools::a = 2
+
+pub b = 1
+
+pub fn Update() {
+}
+
+tools.hyb
+env Tools as Shared
+
+pub a = 0
+
+Environment:
+UsedEnvs []*wkr.Environment
+
+pub {
+	enemy Quadro {
+
+	}
+
+	enemy QuadroAdditional {
+	
+	}
+}
+
+env Quadro as Shared
+
+pub 
+
+
+let internalVariable = Gameplay::b
+
+gameplay.lua
+let a = require("tools")
+
+tools.lua
+let a = require("gameplay")
+
+level.lua
+require("Tools")
+require("Gameplay")
+
+// and yeah stuff
+
+*/
+
 func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
-	valueNode := *node
-	ident := valueNode.(*ast.IdentifierExpr)
-
-	sc := scope.ResolveVariable(ident.Name.Lexeme)
-	if sc == nil {
-		for i := range w.UsedEnvs {
-			if variable, found := w.UsedEnvs[i].Scope.Variables[ident.Name.Lexeme]; found {
-				return variable.Value
-			}
-		}
-		return &wkr.Invalid{}
-	}
-
-	variable := sc.GetVariable(ident.Name.Lexeme)
-
-	if sc.Tag.GetType() == wkr.Struct {
-		_struct := sc.Tag.(*wkr.StructTag).StructVal
-		_, index, _ := _struct.ContainsField(variable.Name)
-		selfExpr := &ast.FieldExpr{
-			Identifier: &ast.SelfExpr{
-				Token: valueNode.GetToken(),
-				Type:  ast.SelfStruct,
-			},
-		}
-
-		fieldExpr := &ast.FieldExpr{
-			Owner:      selfExpr,
-			Identifier: valueNode,
-			Index:      index,
-		}
-		selfExpr.Property = fieldExpr
-		*node = selfExpr
-	}
-	variable.IsUsed = true
-	return variable.Value
 }
 
 func GroupingExpr(w *wkr.Walker, node *ast.GroupExpr, scope *wkr.Scope) wkr.Value {

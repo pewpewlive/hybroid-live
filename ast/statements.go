@@ -8,7 +8,7 @@ type Paths []string
 
 type EnvironmentStmt struct {
 	EnvType      *EnvTypeExpr
-	Env          *EnvExpr
+	Env          *EnvPathExpr
 	Requirements Paths
 }
 

@@ -8,9 +8,9 @@ import (
 )
 
 type Walker struct {
-	Environment *EnvironmentVal
+	Environment *Environment
 	Walkers     *map[string]*Walker
-	UsedEnvs    []*EnvironmentVal
+	UsedEnvs    []*Environment
 	Nodes       *[]ast.Node
 	Errors      []ast.Error
 	Warnings    []ast.Warning
@@ -256,8 +256,6 @@ func (w *Walker) TypeToValue(_type Type) Value {
 		return &AnonStructVal{
 			Fields: _type.(*AnonStructType).Fields,
 		}
-	case ast.Environment:
-		return (*w.Walkers)[_type.(*EnvironmentType).Name].Environment
 	case ast.Enum:
 		return w.Environment.Scope.GetVariable(_type.(*EnumType).Name)
 	default:

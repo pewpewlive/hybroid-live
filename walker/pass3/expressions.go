@@ -418,55 +418,55 @@ func NewExpr(w *wkr.Walker, new *ast.NewExpr, scope *wkr.Scope) wkr.Value {
 }
 
 // lets keep it for now in the back of our mind
-// func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr) wkr.Type {
-// 	if typee == nil {
-// 		return wkr.InvalidType
-// 	}
-// 	pvt := w.GetTypeFromString(typee.Name.GetToken().Lexeme)
-// 	switch pvt {
-// 	case ast.Bool, ast.String, ast.Number, ast.Fixed, ast.FixedPoint, ast.Radian, ast.Degree:
-// 		return wkr.NewBasicType(pvt)
-// 	case ast.Enum:
-// 		return wkr.NewBasicType(ast.Enum)
-// 	case ast.AnonStruct:
-// 		fields := map[string]*wkr.VariableVal{}
+func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr) wkr.Type {
+	if typee == nil {
+		return wkr.InvalidType
+	}
+	pvt := w.GetTypeFromString(typee.Name.GetToken().Lexeme)
+	switch pvt {
+	case ast.Bool, ast.String, ast.Number, ast.Fixed, ast.FixedPoint, ast.Radian, ast.Degree:
+		return wkr.NewBasicType(pvt)
+	case ast.Enum:
+		return wkr.NewBasicType(ast.Enum)
+	case ast.AnonStruct:
+		fields := map[string]*wkr.VariableVal{}
 
-// 		for _, v := range typee.Fields {
-// 			fields[v.Name.Lexeme] = &wkr.VariableVal{
-// 				Name:  v.Name.Lexeme,
-// 				Value: w.TypeToValue(TypeExpr(w, v.Type)),
-// 				Token: v.Name,
-// 			}
-// 		}
+		for _, v := range typee.Fields {
+			fields[v.Name.Lexeme] = &wkr.VariableVal{
+				Name:  v.Name.Lexeme,
+				Value: w.TypeToValue(TypeExpr(w, v.Type)),
+				Token: v.Name,
+			}
+		}
 
-// 		return &wkr.AnonStructType{
-// 			Fields: fields,
-// 		}
-// 	case ast.Func:
-// 		params := wkr.Types{}
+		return &wkr.AnonStructType{
+			Fields: fields,
+		}
+	case ast.Func:
+		params := wkr.Types{}
 
-// 		for _, v := range typee.Params {
-// 			params = append(params, TypeExpr(w, v))
-// 		}
+		for _, v := range typee.Params {
+			params = append(params, TypeExpr(w, v))
+		}
 
-// 		returns := wkr.Types{}
-// 		for _, v := range typee.Returns {
-// 			returns = append(returns, TypeExpr(w, v))
-// 		}
+		returns := wkr.Types{}
+		for _, v := range typee.Returns {
+			returns = append(returns, TypeExpr(w, v))
+		}
 
-// 		return &wkr.FunctionType{
-// 			Params:  params,
-// 			Returns: returns,
-// 		}
-// 	default:
-// 		if structVal, found := w.Environment.Structs[typee.Name.GetToken().Lexeme]; found {
-// 			return structVal.GetType()
-// 		}
-// 		if val := w.Environment.Scope.GetVariable(typee.Name.GetToken().Lexeme); val != nil {
-// 			if val.GetType().PVT() == ast.Enum {
-// 				return val.GetType()
-// 			}
-// 		}
-// 		return wkr.InvalidType
-// 	}
-// }
+		return &wkr.FunctionType{
+			Params:  params,
+			Returns: returns,
+		}
+	default:
+		if structVal, found := w.Environment.Structs[typee.Name.GetToken().Lexeme]; found {
+			return structVal.GetType()
+		}
+		if val := w.Environment.Scope.GetVariable(typee.Name.GetToken().Lexeme); val != nil {
+			if val.GetType().PVT() == ast.Enum {
+				return val.GetType()
+			}
+		}
+		return wkr.InvalidType
+	}
+}

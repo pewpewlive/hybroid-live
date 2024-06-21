@@ -202,37 +202,29 @@ func (self *StructVal) ContainsMethod(name string) (*VariableVal, bool) {
 	return nil, false
 }
 
-type EnvironmentVal struct {
-	Type      *EnvironmentType
+type Environment struct {
+	Name      string
+	Path      string
 	Scope     Scope
-	Childern  map[string]*Walker
 	Variables map[string]*VariableVal
 	Structs   map[string]*StructVal
 }
 
-func NewEnvironment(path string) *EnvironmentVal {
+func NewEnvironment(path string) *Environment {
 	scope := Scope{
 		Children: make([]*Scope, 0),
 
 		Tag:       &UntaggedTag{},
 		Variables: map[string]*VariableVal{},
 	}
-	global := &EnvironmentVal{
-		Type:    NewEnvType("UNKNOWN"),
+	global := &Environment{
+		Path:    path,
 		Scope:   scope,
 		Structs: map[string]*StructVal{},
 	}
 
 	global.Scope.Environment = global
 	return global
-}
-
-func (n *EnvironmentVal) GetType() Type {
-	return n.Type
-}
-
-func (n EnvironmentVal) GetDefault() *ast.LiteralExpr {
-	return &ast.LiteralExpr{Value: "DEFAULT_ENV"}
 }
 
 type MapVal struct {
