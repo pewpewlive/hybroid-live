@@ -2,6 +2,7 @@ package ast
 
 import (
 	"hybroid/lexer"
+	"strings"
 )
 
 type Accessor interface {
@@ -55,6 +56,10 @@ func (le *EnvPathExpr) GetToken() lexer.Token {
 
 func (le *EnvPathExpr) GetValueType() PrimitiveValueType {
 	return Unknown
+}
+
+func (self *EnvPathExpr) Nameify() string {
+	return strings.Join(self.SubPaths, "::")
 }
 
 type EnvAccessExpr struct {

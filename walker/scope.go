@@ -120,7 +120,7 @@ func (lt *LoopTag) GetIfExits(et ExitType) bool {
 
 type FuncTag struct {
 	Returns    []bool
-	ReturnType Types
+	ReturnTypes Types
 }
 
 func (et *FuncTag) GetType() ScopeTagType {
@@ -248,7 +248,7 @@ func (sa *ScopeAttributes) Add(attribute ScopeAttribute) {
 var EmptyAttributes = ScopeAttributes{}
 
 type Scope struct {
-	Environment *EnvironmentVal
+	Environment *Environment
 	Parent      *Scope
 	Children    []*Scope
 

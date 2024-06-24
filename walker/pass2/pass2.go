@@ -24,8 +24,6 @@ func Action(w *walker.Walker, nodes *[]ast.Node, wlkrs *map[string]*walker.Walke
 
 func WalkNode(w *walker.Walker, node *ast.Node, scope *walker.Scope) {
 	switch newNode := (*node).(type) {
-	case *ast.EnvironmentStmt:
-		EnvStmt(w, newNode, scope)
 	case *ast.VariableDeclarationStmt:
 		VariableDeclarationStmt(w, newNode, scope)
 	case *ast.FunctionDeclarationStmt:
@@ -34,12 +32,8 @@ func WalkNode(w *walker.Walker, node *ast.Node, scope *walker.Scope) {
 		StructDeclarationStmt(w, newNode, scope)
 	case *ast.EnumDeclarationStmt:
 		EnumDeclarationStmt(w, newNode, scope)
-	case *ast.ContinueStmt:
-		ContinueStmt(w, newNode, scope)
 	case *ast.ReturnStmt:
 		ReturnStmt(w, newNode, scope)
-	case *ast.BreakStmt:
-		BreakStmt(w, newNode, scope)
 	case *ast.YieldStmt:
 		YieldStmt(w, newNode, scope)
 	case *ast.Improper:
@@ -87,8 +81,8 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 		val = SelfExpr(w, newNode, scope)
 	case *ast.MatchExpr:
 		val = MatchExpr(w, newNode, scope)
-	case *ast.EnvExpr:
-		val = EnvExpr(w, newNode, scope)
+	case *ast.EnvAccessExpr:
+		val = EnvAccessExpr(w, newNode, scope)
 	default:
 		w.Error(newNode.GetToken(), "Expected expression")
 		return &walker.Invalid{}

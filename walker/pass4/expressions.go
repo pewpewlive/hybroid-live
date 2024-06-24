@@ -1,12 +1,25 @@
-package pass2
+package pass3
 
 import (
 	"fmt"
 	"hybroid/ast"
 	"hybroid/helpers"
 	"hybroid/lexer"
+	"hybroid/parser"
 	wkr "hybroid/walker"
 )
+
+func AnonFnExpr(w *wkr.Walker, fn *ast.AnonFnExpr, scope *wkr.Scope) wkr.Value {
+	fnScope := scope.AccessChild()
+	funcTag := fnScope.Tag.(*wkr.FuncTag)
+	WalkBody(w, &fn.Body, funcTag, fnScope)
+
+	if !funcTag.GetIfExits(wkr.Return) && !funcTag.ReturnTypes.Eq(&wkr.EmptyReturn) {
+		w.Error(fn.GetToken(), "not all code paths return a value")
+	}
+
+	return &funcTag.ReturnTypes
+}
 
 func AnonStructExpr(w *wkr.Walker, node *ast.AnonStructExpr, scope *wkr.Scope) *wkr.AnonStructVal {
 	structTypeVal := &wkr.AnonStructVal{
@@ -20,26 +33,13 @@ func AnonStructExpr(w *wkr.Walker, node *ast.AnonStructExpr, scope *wkr.Scope) *
 	return structTypeVal
 }
 
-func AnonFnExpr(w *wkr.Walker, fn *ast.AnonFnExpr, scope *wkr.Scope) wkr.Value {
-	returnTypes := wkr.EmptyReturn
-	for i := range fn.Return {
-		returnTypes =  append(returnTypes, TypeExpr(w, fn.Return[i]))
-	}
-	funcTag :=  &wkr.FuncTag{ReturnTypes: returnTypes}
-	fnScope := wkr.NewScope(scope, funcTag, wkr.ReturnAllowing)
-
-	WalkBody(w, &fn.Body, &fnScope)
-
-	return &funcTag.ReturnTypes
-}
-
 func MatchExpr(w *wkr.Walker, node *ast.MatchExpr, scope *wkr.Scope) wkr.Value {
-	mtt := &wkr.MatchExprTag{}
-	matchScope := wkr.NewScope(scope, mtt, wkr.YieldAllowing)
+	matchScope := scope.AccessChild()
+	mtt := matchScope.Tag.(*wkr.MatchExprTag)
 
 	for i := range node.MatchStmt.Cases {
 		caseScope := matchScope.AccessChild()
-		WalkBody(w, &node.MatchStmt.Cases[i].Body, caseScope)
+		WalkBody(w, &node.MatchStmt.Cases[i].Body, mtt, caseScope)
 	}
 
 	return mtt.YieldValues
@@ -54,33 +54,47 @@ func BinaryExpr(w *wkr.Walker, node *ast.BinaryExpr, scope *wkr.Scope) wkr.Value
 		w.ValidateArithmeticOperands(leftType, rightType, *node)
 	default:
 		if !wkr.TypeEquals(leftType, rightType) {
-			w.Error(node.GetToken(), fmt.Sprintf("invalid comparison: types are not the same (left: %s, right: %s)",leftType.ToString(), rightType.ToString()))
+			w.Error(node.GetToken(), fmt.Sprintf("invalid comparison: types are not the same (left: %s, right: %s)", leftType.ToString(), rightType.ToString()))
 		} else {
 			return &wkr.BoolVal{}
 		}
 	}
-	typ := w.DetermineValueType(leftType, rightType)
+	typ := DetermineValueType(w, leftType, rightType)
 
 	if typ.PVT() == ast.Invalid {
-		w.Error(node.GetToken(), fmt.Sprintf("invalid binary expression (left: %s, right: %s)",leftType.ToString(), rightType.ToString()))
+		w.Error(node.GetToken(), fmt.Sprintf("invalid binary expression (left: %s, right: %s)", leftType.ToString(), rightType.ToString()))
 		return &wkr.Invalid{}
 	} else {
 		return &wkr.BoolVal{}
 	}
 }
 
+func EnvExpr(w *wkr.Walker, node *ast.EnvExpr, scope *wkr.Scope) wkr.Value {
+	return &wkr.UnresolvedVal{
+		Expr: node,
+	}
+}
+
+func DetermineValueType(w *wkr.Walker, left wkr.Type, right wkr.Type) wkr.Type {
+	if left.PVT() == ast.Unknown || right.PVT() == ast.Unknown {
+		return wkr.NAType
+	}
+	if wkr.TypeEquals(left, right) {
+		return right
+	}
+	if parser.IsFx(left.PVT()) && parser.IsFx(right.PVT()) {
+		return left
+	}
+
+	return wkr.InvalidType
+}
+
 func LiteralExpr(w *wkr.Walker, node *ast.LiteralExpr) wkr.Value {
 	switch node.ValueType {
 	case ast.String:
 		return &wkr.StringVal{}
-	case ast.Fixed:
-		return &wkr.FixedVal{SpecificType:ast.Fixed}
-	case ast.Radian:
-		return &wkr.FixedVal{SpecificType:ast.Radian}
-	case ast.FixedPoint:
-		return &wkr.FixedVal{SpecificType:ast.FixedPoint}
-	case ast.Degree:
-		return &wkr.FixedVal{SpecificType:ast.Degree}
+	case ast.Fixed, ast.Radian, ast.FixedPoint, ast.Degree:
+		return &wkr.FixedVal{SpecificType: node.ValueType}
 	case ast.Bool:
 		return &wkr.BoolVal{}
 	case ast.Number:
@@ -123,15 +137,6 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 	return variable.Value
 }
 
-func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr, scope *wkr.Scope) wkr.Value {
-	if w.Environment.Name == node.PathExpr.Nameify() {
-		w.Error(node.GetToken(), "variables being accessed in the environment from the environment")
-		return &wkr.Invalid{}
-	}
-
-	return wkr.NewUnresolvedVal(node)
-}
-
 func GroupingExpr(w *wkr.Walker, node *ast.GroupExpr, scope *wkr.Scope) wkr.Value {
 	return GetNodeValue(w, &node.Expr, scope)
 }
@@ -171,7 +176,7 @@ func CallExpr(w *wkr.Walker, node *ast.CallExpr, scope *wkr.Scope, callType wkr.
 	}
 	fun, _ := val.(*wkr.FunctionVal)
 
-	arguments := TypeifyNodeList(w, &node.Args, scope)
+	arguments := pass1.TypeifyNodeList(w, &node.Args, scope)
 	index, failed := w.ValidateArguments(arguments, fun.Params, callerToken, typeCall)
 	if !failed {
 		argToken := node.Args[index].GetToken()
@@ -336,7 +341,35 @@ func MemberExpr(w *wkr.Walker, node *ast.MemberExpr, scope *wkr.Scope) wkr.Value
 
 func DirectiveExpr(w *wkr.Walker, node *ast.DirectiveExpr, scope *wkr.Scope) *wkr.DirectiveVal {
 
-	if node.Identifier.Lexeme == "Environment" {
+	if node.Identifier.Lexeme != "Environment" {
+		variable := GetNodeValue(w, &node.Expr, scope)
+		variableToken := node.Expr.GetToken()
+
+		variableType := variable.GetType().PVT()
+		switch node.Identifier.Lexeme {
+		case "Len":
+			node.ValueType = ast.Number
+			if variableType != ast.Map && variableType != ast.List && variableType != ast.String {
+				w.Error(variableToken, "invalid expression in '@Len' directive")
+			}
+		case "MapToStr":
+			node.ValueType = ast.String
+			if variableType != ast.Map {
+				w.Error(variableToken, "expected a map in '@MapToStr' directive")
+			}
+		case "ListToStr":
+			node.ValueType = ast.List
+			if variableType != ast.List {
+				w.Error(variableToken, "expected a list in '@ListToStr' directive")
+			}
+		default:
+			// TODO: Implement custom directives
+
+			w.Error(node.Token, "unknown directive")
+		}
+
+	} else {
+
 		ident, ok := node.Expr.(*ast.IdentifierExpr)
 		if !ok {
 			w.Error(node.Expr.GetToken(), "expected an identifier in '@Environment' directive")
@@ -374,7 +407,7 @@ func NewExpr(w *wkr.Walker, new *ast.NewExpr, scope *wkr.Scope) wkr.Value {
 	}
 	structVal := val.(*wkr.StructVal)
 
-	args := TypeifyNodeList(w, &new.Args, scope)
+	args := pass1.TypeifyNodeList(w, &new.Args, scope)
 	index, failed := w.ValidateArguments(args, structVal.Params, new.Type, "new")
 	if !failed {
 		argToken := new.Args[index].GetToken()
@@ -384,17 +417,11 @@ func NewExpr(w *wkr.Walker, new *ast.NewExpr, scope *wkr.Scope) wkr.Value {
 	return structVal
 }
 
+// lets keep it for now in the back of our mind
 func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr) wkr.Type {
 	if typee == nil {
 		return wkr.InvalidType
 	}
-	if typee.Name.GetType() == ast.EnvironmentAccessExpression {
-		expr, _ := typee.Name.(*ast.EnvAccessExpr)
-		return &wkr.UnresolvedType{
-			Expr: expr,
-		}
-	}
-
 	pvt := w.GetTypeFromString(typee.Name.GetToken().Lexeme)
 	switch pvt {
 	case ast.Bool, ast.String, ast.Number, ast.Fixed, ast.FixedPoint, ast.Radian, ast.Degree:

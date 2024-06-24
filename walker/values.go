@@ -26,17 +26,19 @@ type MethodContainer interface {
 }
 
 type UnresolvedVal struct {
-	Expr *ast.EnvExpr
+	Expr *ast.EnvAccessExpr
 }
 
-func NewUnresolvedVal(expr *ast.EnvExpr) *UnresolvedVal {
+func NewUnresolvedVal(expr *ast.EnvAccessExpr) *UnresolvedVal {
 	return &UnresolvedVal{
 		Expr: expr,
 	}
 }
 
 func (uv *UnresolvedVal) GetType() Type {
-	return NewBasicType(ast.Unresolved)
+	return &UnresolvedType{
+		Expr: uv.Expr,
+	}
 }
 
 func (v *UnresolvedVal) GetDefault() *ast.LiteralExpr {

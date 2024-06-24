@@ -8,80 +8,6 @@ import (
 	"strings"
 )
 
-func EnvStmt(w *wkr.Walker, node *ast.EnvironmentStmt, scope *wkr.Scope) {
-	if scope.Environment.Type.Name != "UNKNOWN" {
-		w.Error(node.GetToken(), "can't have more than one environment statement in a file")
-		return
-	}
-
-	envLength := len(node.Env.Envs)
-	if envLength > 1 {
-		var env *wkr.EnvironmentVal
-		for i, v := range node.Env.Envs {
-			if i == envLength-1 {
-				if existingEnv, exists := env.Childern[v.GetToken().Lexeme]; exists {
-					w = existingEnv
-				} else {
-					env.Childern[v.GetToken().Lexeme] = w
-				}
-			} else {
-				if existingEnv, exists := (*w.Walkers)[v.GetToken().Lexeme]; exists {
-					env = existingEnv.Environment
-				} else {
-					env = wkr.NewEnvironment(w.Environment.Type.Path)
-				}
-			}
-		}
-	} else {
-		scope.Environment.Type.Name = node.Env.Envs[0].GetToken().Lexeme
-	}
-
-	if wlkr, found := (*w.Walkers)[w.Environment.Type.Name]; found {
-		w.Error(node.GetToken(), fmt.Sprintf("cannot have two environments with the same name, path: %s", wlkr.Environment.Type.Path))
-		return
-	}
-
-	if wkr, found := (*w.Walkers)[w.Environment.Type.Name]; found {
-		w.Environment = wkr.Environment
-	} else {
-		(*w.Walkers)[w.Environment.Type.Name] = w
-	}
-}
-
-func FieldDeclarationStmt(w *wkr.Walker, node *ast.FieldDeclarationStmt, container wkr.FieldContainer, scope *wkr.Scope) {
-	varDecl := ast.VariableDeclarationStmt{
-		Identifiers: node.Identifiers,
-		Types:       node.Types,
-		Values:      node.Values,
-		IsLocal:     true,
-		Token:       node.Token,
-	}
-	structType := container.GetType()
-	if len(node.Types) != 0 {
-		for i := range node.Types {
-			explicitType := TypeExpr(w, node.Types[i])
-			if wkr.TypeEquals(explicitType, structType) {
-				w.Error(node.Types[i].GetToken(), "cannot have a field with a value type of its struct")
-				return
-			}
-		}
-	} else if len(node.Types) != 0 {
-		for i := range node.Values {
-			valType := GetNodeValue(w, &node.Values[i], scope).GetType()
-			if wkr.TypeEquals(valType, structType) {
-				w.Error(node.Types[i].GetToken(), "cannot have a field with a value type of its struct")
-				return
-			}
-		}
-	}
-
-	variables := VariableDeclarationStmt(w, &varDecl, scope)
-	node.Values = varDecl.Values
-	for i := range variables {
-		container.AddField(variables[i])
-	}
-}
-
 func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope *wkr.Scope) {
 	structVal := &wkr.StructVal{
 		Type:    *wkr.NewNamedType(node.Name.Lexeme),
@@ -140,6 +66,40 @@ func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope
 	MethodDeclarationStmt(w, &funcDeclaration, structVal, &structScope)
 }
 
+func FieldDeclarationStmt(w *wkr.Walker, node *ast.FieldDeclarationStmt, container wkr.FieldContainer, scope *wkr.Scope) {
+	varDecl := ast.VariableDeclarationStmt{
+		Identifiers: node.Identifiers,
+		Types:       node.Types,
+		Values:      node.Values,
+		IsLocal:     true,
+		Token:       node.Token,
+	}
+	structType := container.GetType()
+	if len(node.Types) != 0 {
+		for i := range node.Types {
+			explicitType := TypeExpr(w, node.Types[i])
+			if wkr.TypeEquals(explicitType, structType) {
+				w.Error(node.Types[i].GetToken(), "cannot have a field with a value type of its struct")
+				return
+			}
+		}
+	} else if len(node.Types) != 0 {
+		for i := range node.Values {
+			valType := GetNodeValue(w, &node.Values[i], scope).GetType()
+			if wkr.TypeEquals(valType, structType) {
+				w.Error(node.Types[i].GetToken(), "cannot have a field with a value type of its struct")
+				return
+			}
+		}
+	}
+
+	variables := VariableDeclarationStmt(w, &varDecl, scope)
+	node.Values = varDecl.Values
+	for i := range variables {
+		container.AddField(variables[i])
+	}
+}
+
 func MethodDeclarationStmt(w *wkr.Walker, node *ast.MethodDeclarationStmt, container wkr.MethodContainer, scope *wkr.Scope) {
 	funcExpr := ast.FunctionDeclarationStmt{
 		Name:    node.Name,
@@ -158,9 +118,8 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, s
 	ret := wkr.EmptyReturn
 	for _, typee := range node.Return {
 		ret = append(ret, TypeExpr(w, typee))
-		//fmt.Printf("%s\n", ret.values[len(ret.values)-1].Type.ToString())
 	}
-	funcTag := &wkr.FuncTag{ReturnType: ret}
+	funcTag := &wkr.FuncTag{ReturnTypes: ret}
 	fnScope := wkr.NewScope(scope, funcTag, wkr.ReturnAllowing)
 
 	params := make([]wkr.Type, 0)
@@ -186,14 +145,6 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, s
 
 	if scope.Parent != nil && !node.IsLocal {
 		w.Error(node.GetToken(), "cannot declare a global function inside a local block")
-	}
-
-	WalkBody(w, &node.Body, &fnScope)
-
-	if funcTag, ok := fnScope.Tag.(*wkr.FuncTag); ok {
-		if !funcTag.GetIfExits(wkr.Return) && !ret.Eq(&wkr.EmptyReturn) {
-			w.Error(node.GetToken(), "not all code paths return a value")
-		}
 	}
 
 	return variable
@@ -323,30 +274,13 @@ func ReturnStmt(w *wkr.Walker, node *ast.ReturnStmt, scope *wkr.Scope) *wkr.Type
 		(*returnable).SetExit(true, wkr.All)
 	}
 
-	errorMsg := w.ValidateReturnValues(ret, (*funcTag).ReturnType)
+	errorMsg := w.ValidateReturnValues(ret, (*funcTag).ReturnTypes)
 	if errorMsg != "" {
 		w.Error(node.GetToken(), errorMsg)
 	}
 
 	return &ret
 }
-
-/*
-
-pub a = 1
-
-pub b = Env2::i
-
-pub c = fn()
-
-pub d = match a {
-
-	1 => Env3::u,
-	else => {
-	
-	}
-}
-*/
 
 func YieldStmt(w *wkr.Walker, node *ast.YieldStmt, scope *wkr.Scope) *wkr.Types {
 	if !scope.Is(wkr.YieldAllowing) {
@@ -388,26 +322,4 @@ func YieldStmt(w *wkr.Walker, node *ast.YieldStmt, scope *wkr.Scope) *wkr.Types 
 	}
 
 	return &ret
-}
-
-func BreakStmt(w *wkr.Walker, node *ast.BreakStmt, scope *wkr.Scope) {
-	if !scope.Is(wkr.BreakAllowing) {
-		w.Error(node.GetToken(), "cannot use break outside of loops")
-	}
-
-	if returnable := scope.ResolveReturnable(); returnable != nil {
-		(*returnable).SetExit(true, wkr.Break)
-		(*returnable).SetExit(true, wkr.All)
-	}
-}
-
-func ContinueStmt(w *wkr.Walker, node *ast.ContinueStmt, scope *wkr.Scope) {
-	if !scope.Is(wkr.ContinueAllowing) {
-		w.Error(node.GetToken(), "cannot use break outside of loops")
-	}
-
-	if returnable := scope.ResolveReturnable(); returnable != nil {
-		(*returnable).SetExit(true, wkr.Continue)
-		(*returnable).SetExit(true, wkr.All)
-	}
 }
