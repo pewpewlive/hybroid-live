@@ -339,12 +339,7 @@ func (p *Parser) new() ast.Node {
 			Token: p.peek(-1),
 		}
 
-		typee, ok := p.consume("expected type after new keyword", lexer.Identifier)
-
-		if ok {
-			expr.Type = typee
-		}
-
+		expr.Type = p.Type()
 		expr.Args = p.arguments()
 
 		return &expr

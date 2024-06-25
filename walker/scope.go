@@ -280,7 +280,7 @@ func (sc *Scope) AccessChild() *Scope {
 	return sc.Children[sc.currentChildIndex]
 }
 
-func NewScope(parent *Scope, tag ScopeTag, extraAttrs ...ScopeAttribute) Scope {
+func NewScope(parent *Scope, tag ScopeTag, extraAttrs ...ScopeAttribute) *Scope {
 	var attrs ScopeAttributes
 	if parent == nil {
 		attrs = EmptyAttributes
@@ -301,5 +301,5 @@ func NewScope(parent *Scope, tag ScopeTag, extraAttrs ...ScopeAttribute) Scope {
 		Variables: map[string]*VariableVal{},
 	}
 	parent.Children = append(parent.Children, &scope)
-	return scope
+	return &scope
 }

@@ -10,7 +10,7 @@ import (
 type Walker struct {
 	Environment *Environment
 	Walkers     *map[string]*Walker
-	UsedEnvs    []*Environment
+	UsedWalkers    []*Walker
 	Nodes       *[]ast.Node
 	Errors      []ast.Error
 	Warnings    []ast.Warning
@@ -55,8 +55,7 @@ func (s *Scope) GetVariable(name string) *VariableVal {
 	return s.Variables[name]
 }
 
-// ONLY CALL WHEN 100% SURE YOU'RE GONNA GET A STRUCT BACK
-func (w *Walker) GetStruct(name string) (Value, bool) {
+func (w *Walker) GetStruct(name string) (*StructVal, bool) {
 	structType, found := w.Environment.Structs[name]
 	if !found {
 		//w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s", name, " exists"))

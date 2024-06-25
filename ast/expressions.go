@@ -289,7 +289,7 @@ func (mce *MethodCallExpr) GetValueType() PrimitiveValueType {
 }
 
 type NewExpr struct {
-	Type  lexer.Token
+	Type  Node
 	Args  []Node
 	Token lexer.Token
 }

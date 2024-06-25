@@ -9,7 +9,10 @@ import (
 )
 
 func (w *Walker) DetermineValueType(left Type, right Type) Type {
-	if left.PVT() == 0 || right.PVT() == 0 {
+	if left.PVT() == ast.Unknown || right.PVT() == ast.Unknown {
+		return NAType
+	}
+	if left.PVT() == ast.Unresolved || right.PVT() == ast.Unresolved {
 		return NAType
 	}
 	if TypeEquals(left, right) {
@@ -98,6 +101,17 @@ func (w *Walker) IdentifierExpr(node *ast.Node, scope *Scope) Value {
 	}
 	variable.IsUsed = true
 	return variable.Value
+}
+
+func (w *Walker) EnvPathExpr(node *ast.EnvPathExpr) (*Walker, bool) {
+	name := node.Nameify()
+
+	if w, found := (*w.Walkers)[name]; found {
+		return w, true
+	}else {
+		w.Error(node.GetToken(), fmt.Sprintf("Environment '%s' does  not exist", name))
+		return nil, false
+	}
 }
 
 func (w *Walker) GroupingExpr(node *ast.GroupExpr, scope *Scope) Value {

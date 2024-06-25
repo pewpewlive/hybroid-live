@@ -153,6 +153,7 @@ func (self *EnumFieldVal) GetDefault() *ast.LiteralExpr {
 
 type StructVal struct {
 	Type    NamedType
+	IsLocal bool
 	Fields  []*VariableVal
 	Methods map[string]*VariableVal
 	Params  Types

@@ -11,6 +11,7 @@ import (
 func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope *wkr.Scope) {
 	structVal := &wkr.StructVal{
 		Type:    *wkr.NewNamedType(node.Name.Lexeme),
+		IsLocal: node.IsLocal,
 		Fields:  make([]*wkr.VariableVal, 0),
 		Methods: map[string]*wkr.VariableVal{},
 		Params:  wkr.Types{},
@@ -35,7 +36,7 @@ func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope
 	}
 
 	for i := range node.Fields {
-		FieldDeclarationStmt(w, &node.Fields[i], structVal, &structScope)
+		FieldDeclarationStmt(w, &node.Fields[i], structVal, structScope)
 	}
 
 	for i := range *node.Methods {
@@ -55,15 +56,15 @@ func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope
 			IsLocal: node.IsLocal,
 			Token:   (*node.Methods)[i].GetToken(),
 		}
-		w.DeclareVariable(&structScope, variable, (*node.Methods)[i].Name)
+		w.DeclareVariable(structScope, variable, (*node.Methods)[i].Name)
 		structVal.Methods[variable.Name] = variable
 	}
 
 	for i := range *node.Methods {
-		MethodDeclarationStmt(w, &(*node.Methods)[i], structVal, &structScope)
+		MethodDeclarationStmt(w, &(*node.Methods)[i], structVal, structScope)
 	}
 
-	MethodDeclarationStmt(w, &funcDeclaration, structVal, &structScope)
+	MethodDeclarationStmt(w, &funcDeclaration, structVal, structScope)
 }
 
 func FieldDeclarationStmt(w *wkr.Walker, node *ast.FieldDeclarationStmt, container wkr.FieldContainer, scope *wkr.Scope) {
@@ -126,7 +127,7 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, s
 	for i, param := range node.Params {
 		params = append(params, TypeExpr(w, param.Type))
 		value := w.TypeToValue(params[i])
-		w.DeclareVariable(&fnScope, &wkr.VariableVal{
+		w.DeclareVariable(fnScope, &wkr.VariableVal{
 			Name:    param.Name.Lexeme,
 			Value:   value,
 			IsLocal: node.IsLocal,
