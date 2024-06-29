@@ -5,31 +5,32 @@ import (
 	"hybroid/ast"
 	"hybroid/parser"
 	wkr "hybroid/walker"
+	"strings"
 )
 
 func IfStmt(w *wkr.Walker, node *ast.IfStmt, scope *wkr.Scope) {
 	length := len(node.Elseifs) + 2
 	mpt := wkr.NewMultiPathTag(length, scope.Attributes...)
 	multiPathScope := wkr.NewScope(scope, mpt)
-	ifScope := wkr.NewScope(&multiPathScope, &wkr.UntaggedTag{})
+	ifScope := wkr.NewScope(multiPathScope, &wkr.UntaggedTag{})
 	boolExpr := GetNodeValue(w, &node.BoolExpr, scope)
 	if boolExpr.GetType().PVT() != ast.Bool {
 		w.Error(node.BoolExpr.GetToken(), "if condition is not a comparison")
 	}
-	WalkBody(w, &node.Body, mpt, &ifScope)
+	WalkBody(w, &node.Body, mpt, ifScope)
 
 	for i := range node.Elseifs {
 		boolExpr := GetNodeValue(w, &node.Elseifs[i].BoolExpr, scope)
 		if boolExpr.GetType().PVT() != ast.Bool {
 			w.Error(node.Elseifs[i].BoolExpr.GetToken(), "if condition is not a comparison")
 		}
-		ifScope := wkr.NewScope(&multiPathScope, &wkr.UntaggedTag{})
-		WalkBody(w, &node.Elseifs[i].Body, mpt, &ifScope)
+		ifScope := wkr.NewScope(multiPathScope, &wkr.UntaggedTag{})
+		WalkBody(w, &node.Elseifs[i].Body, mpt, ifScope)
 	}
 
 	if node.Else != nil {
-		elseScope := wkr.NewScope(&multiPathScope, &wkr.UntaggedTag{})
-		WalkBody(w, &node.Else.Body, mpt, &elseScope)
+		elseScope := wkr.NewScope(multiPathScope, &wkr.UntaggedTag{})
+		WalkBody(w, &node.Else.Body, mpt, elseScope)
 	}
 
 	returnabl := scope.ResolveReturnable()
@@ -138,7 +139,7 @@ func WhileStmt(w *wkr.Walker, node *ast.WhileStmt, scope *wkr.Scope) {
 
 	_ = GetNodeValue(w, &node.Condtion, scope)
 
-	WalkBody(w, &node.Body, lt, &whileScope)
+	WalkBody(w, &node.Body, lt, whileScope)
 }
 
 func ForloopStmt(w *wkr.Walker, node *ast.ForStmt, scope *wkr.Scope) {
@@ -207,18 +208,13 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 	return declaredVariables
 }
 
-func UseStmt(w *wkr.Walker, node *ast.UseStmt, scope *wkr.Scope) {
-	variable := &wkr.VariableVal{
-		Name: node.Variable.Name.Lexeme,
-		Value: &wkr.Environment{
-			Type: &wkr.EnvironmentType{
-				Name: node.Variable.Name.Lexeme,
-			},
-		},
-		Token: node.GetToken(),
+func UseStmt(w *wkr.Walker, node *ast.UseStmt, scope *wkr.Scope) {// use Env1::Blah
+	walker, found := (*w.Walkers)[node.Path.Nameify()]
+	if !found {
+		w.Error(node.GetToken(), "use statement contains invalid environment path")
+		return;
 	}
-
-	w.DeclareVariable(scope, variable, node.Variable.Name)
+	w.UsedWalkers = append(w.UsedWalkers, walker)
 }
 
 func MatchStmt(w *wkr.Walker, node *ast.MatchStmt, isExpr bool, scope *wkr.Scope) {
@@ -236,10 +232,10 @@ func MatchStmt(w *wkr.Walker, node *ast.MatchStmt, isExpr bool, scope *wkr.Scope
 
 	var has_default bool
 	for i := range node.Cases {
-		caseScope := wkr.NewScope(&multiPathScope, &wkr.UntaggedTag{})
+		caseScope := wkr.NewScope(multiPathScope, &wkr.UntaggedTag{})
 
 		if !isExpr {
-			WalkBody(w, &node.Cases[i].Body, mpt, &caseScope)
+			WalkBody(w, &node.Cases[i].Body, mpt, caseScope)
 		}
 
 		if node.Cases[i].Expression.GetToken().Lexeme == "_" {
@@ -278,14 +274,14 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, s
 		ret = append(ret, TypeExpr(w, typee))
 		//fmt.Printf("%s\n", ret.values[len(ret.values)-1].Type.ToString())
 	}
-	funcTag := &wkr.FuncTag{ReturnType: ret}
+	funcTag := &wkr.FuncTag{ReturnTypes: ret}
 	fnScope := wkr.NewScope(scope, funcTag, wkr.ReturnAllowing)
 
 	params := make([]wkr.Type, 0)
 	for i, param := range node.Params {
 		params = append(params, TypeExpr(w, param.Type))
 		value := w.TypeToValue(params[i])
-		w.DeclareVariable(&fnScope, &wkr.VariableVal{Name: param.Name.Lexeme, Value: value, Token: node.GetToken()}, node.Params[i].Name)
+		w.DeclareVariable(fnScope, &wkr.VariableVal{Name: param.Name.Lexeme, Value: value, Token: node.GetToken()}, node.Params[i].Name)
 	}
 
 	variable := &wkr.VariableVal{
@@ -301,7 +297,7 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, s
 		w.Error(node.GetToken(), "cannot declare a global function inside a local block")
 	}
 
-	WalkBody(w, &node.Body, funcTag, &fnScope)
+	WalkBody(w, &node.Body, funcTag, fnScope)
 
 	if funcTag, ok := fnScope.Tag.(*wkr.FuncTag); ok {
 		if !funcTag.GetIfExits(wkr.Return) && !ret.Eq(&wkr.EmptyReturn) {
@@ -373,7 +369,7 @@ func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope
 	}
 
 	for i := range node.Fields {
-		FieldDeclarationStmt(w, &node.Fields[i], structVal, &structScope)
+		FieldDeclarationStmt(w, &node.Fields[i], structVal, structScope)
 	}
 
 	for i := range *node.Methods {
@@ -393,15 +389,15 @@ func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope
 			IsLocal: node.IsLocal,
 			Token:   (*node.Methods)[i].GetToken(),
 		}
-		w.DeclareVariable(&structScope, variable, (*node.Methods)[i].Name)
+		w.DeclareVariable(structScope, variable, (*node.Methods)[i].Name)
 		structVal.Methods[variable.Name] = variable
 	}
 
 	for i := range *node.Methods {
-		MethodDeclarationStmt(w, &(*node.Methods)[i], structVal, &structScope)
+		MethodDeclarationStmt(w, &(*node.Methods)[i], structVal, structScope)
 	}
 
-	MethodDeclarationStmt(w, &funcDeclaration, structVal, &structScope)
+	MethodDeclarationStmt(w, &funcDeclaration, structVal, structScope)
 }
 
 func MethodDeclarationStmt(w *wkr.Walker, node *ast.MethodDeclarationStmt, container wkr.MethodContainer, scope *wkr.Scope) {
@@ -416,4 +412,79 @@ func MethodDeclarationStmt(w *wkr.Walker, node *ast.MethodDeclarationStmt, conta
 	variable := FunctionDeclarationStmt(w, &funcExpr, scope, wkr.Method)
 	node.Body = funcExpr.Body
 	container.AddMethod(variable)
+}
+
+func ReturnStmt(w *wkr.Walker, node *ast.ReturnStmt, scope *wkr.Scope) *wkr.Types {
+	if !scope.Is(wkr.ReturnAllowing) {
+		w.Error(node.GetToken(), "can't have a return statement outside of a function or method")
+	}
+
+	ret := wkr.EmptyReturn
+	for i := range node.Args {
+		val := GetNodeValue(w, &node.Args[i], scope)
+		valType := val.GetType()
+		if types, ok := val.(*wkr.Types); ok {
+			ret = append(ret, *types...)
+		} else {
+			ret = append(ret, valType)
+		}
+	}
+	sc, _, funcTag := wkr.ResolveTagScope[*wkr.FuncTag](scope)
+	if sc == nil {
+		return &ret
+	}
+
+	if returnable := scope.ResolveReturnable(); returnable != nil {
+		(*returnable).SetExit(true, wkr.Return)
+		(*returnable).SetExit(true, wkr.All)
+	}
+
+	errorMsg := w.ValidateReturnValues(ret, (*funcTag).ReturnTypes)
+	if errorMsg != "" {
+		w.Error(node.GetToken(), errorMsg)
+	}
+
+	return &ret
+}
+
+func YieldStmt(w *wkr.Walker, node *ast.YieldStmt, scope *wkr.Scope) *wkr.Types {
+	if !scope.Is(wkr.YieldAllowing) {
+		w.Error(node.GetToken(), "cannot use yield outside of statement expressions") // wut
+	}
+
+	ret := wkr.EmptyReturn
+	for i := range node.Args {
+		val := GetNodeValue(w, &node.Args[i], scope)
+		valType := val.GetType()
+		if types, ok := val.(*wkr.Types); ok {
+			ret = append(ret, *types...)
+		} else {
+			ret = append(ret, valType)
+		}
+	}
+
+	sc, _, matchExprT := wkr.ResolveTagScope[*wkr.MatchExprTag](scope)
+
+	if sc == nil {
+		return &ret
+	}
+
+	matchExprTag := *matchExprT
+
+	if matchExprTag.YieldValues == nil {
+		matchExprTag.YieldValues = &ret
+	} else {
+		errorMsg := w.ValidateReturnValues(ret, *matchExprTag.YieldValues)
+		if errorMsg != "" {
+			errorMsg = strings.Replace(errorMsg, "return", "yield", -1)
+			w.Error(node.GetToken(), errorMsg)
+		}
+	}
+
+	if returnable := scope.ResolveReturnable(); returnable != nil {
+		(*returnable).SetExit(true, wkr.Yield)
+		(*returnable).SetExit(true, wkr.All)
+	}
+
+	return &ret
 }

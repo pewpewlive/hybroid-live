@@ -20,7 +20,6 @@ const (
 	Func
 	MultiPath
 	MatchExpr
-	Loop
 )
 
 type ExitType int
@@ -64,58 +63,6 @@ type EntityTag struct {
 
 func (et *EntityTag) GetType() ScopeTagType {
 	return Entity
-}
-
-type LoopTag struct {
-	Exits map[ExitType][]bool
-}
-
-func NewLoopTag(attrs ...ScopeAttribute) *LoopTag {
-	exits := map[ExitType][]bool{
-		All: make([]bool, 0),
-	}
-
-	for _, v := range attrs {
-		switch v {
-		case YieldAllowing:
-			exits[Yield] = make([]bool, 0)
-		case BreakAllowing:
-			exits[Break] = make([]bool, 0)
-		case ContinueAllowing:
-			exits[Continue] = make([]bool, 0)
-		case ReturnAllowing:
-			exits[Return] = make([]bool, 0)
-		}
-	}
-	return &LoopTag{
-		Exits: exits,
-	}
-}
-
-func (lt *LoopTag) GetType() ScopeTagType {
-	return Loop
-}
-
-func (lt *LoopTag) SetExit(state bool, typ ExitType) {
-	if _, found := lt.Exits[typ]; !found {
-		return
-	}
-	lt.Exits[typ] = append(lt.Exits[typ], state)
-}
-
-func (lt *LoopTag) GetIfExits(et ExitType) bool {
-	if _, found := lt.Exits[et]; !found {
-		return false
-	}
-	exits := lt.Exits[et]
-
-	for _, v := range exits {
-		if v {
-			return true
-		}
-	}
-
-	return false
 }
 
 type FuncTag struct {

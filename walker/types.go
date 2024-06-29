@@ -8,22 +8,21 @@ import (
 
 type Type interface {
 	PVT() ast.PrimitiveValueType
-	GetType() TypeType
+	GetType() ValueType
 	//DO NOT USE ON ITS OWN, USE TypeEquals() INSTEAD
 	_eq(other Type) bool
 	ToString() string
 }
 
-type TypeType int
+type ValueType int
 
 const (
-	Basic TypeType = iota
+	Basic ValueType = iota
 	Fn
 	AnonStruct
 	Structure
 	PewpewEntity
-	Wrapper
-	Env
+	Wrapper // List or Map
 	Enum
 	Unresolved
 	NA
@@ -45,7 +44,7 @@ func (self *FunctionType) PVT() ast.PrimitiveValueType {
 	return ast.Func
 }
 
-func (self *FunctionType) GetType() TypeType {
+func (self *FunctionType) GetType() ValueType {
 	return Fn
 }
 
@@ -108,7 +107,7 @@ func (self *BasicType) PVT() ast.PrimitiveValueType {
 	return self.PrimitiveType
 }
 
-func (self *BasicType) GetType() TypeType {
+func (self *BasicType) GetType() ValueType {
 	return Basic
 }
 
@@ -135,7 +134,7 @@ func (self *AnonStructType) PVT() ast.PrimitiveValueType {
 	return ast.AnonStruct
 }
 
-func (self *AnonStructType) GetType() TypeType {
+func (self *AnonStructType) GetType() ValueType {
 	return AnonStruct
 }
 
@@ -194,7 +193,7 @@ func (self *NamedType) PVT() ast.PrimitiveValueType {
 	return ast.Struct
 }
 
-func (self *NamedType) GetType() TypeType {
+func (self *NamedType) GetType() ValueType {
 	return Structure
 }
 
@@ -219,7 +218,7 @@ func (self *UnresolvedType) PVT() ast.PrimitiveValueType {
 	return ast.Unresolved
 }
 
-func (self *UnresolvedType) GetType() TypeType {
+func (self *UnresolvedType) GetType() ValueType {
 	return Unresolved
 }
 
@@ -251,7 +250,7 @@ func (self *EnumType) PVT() ast.PrimitiveValueType {
 	return ast.Enum
 }
 
-func (self *EnumType) GetType() TypeType {
+func (self *EnumType) GetType() ValueType {
 	return Enum
 }
 
@@ -280,7 +279,7 @@ func (self *WrapperType) PVT() ast.PrimitiveValueType {
 	return self.Type.PVT()
 }
 
-func (self *WrapperType) GetType() TypeType {
+func (self *WrapperType) GetType() ValueType {
 	return Wrapper
 }
 
@@ -318,7 +317,7 @@ func (self *NotAnyType) PVT() ast.PrimitiveValueType {
 	return ast.Invalid
 }
 
-func (self *NotAnyType) GetType() TypeType {
+func (self *NotAnyType) GetType() ValueType {
 	return NA
 }
 

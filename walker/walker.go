@@ -7,6 +7,31 @@ import (
 	"hybroid/lexer"
 )
 
+type Environment struct {
+	Name      string
+	Path      string
+	Scope     Scope
+	Variables map[string]*VariableVal
+	Structs   map[string]*StructVal
+}
+
+func NewEnvironment(path string) *Environment {
+	scope := Scope{
+		Children: make([]*Scope, 0),
+
+		Tag:       &UntaggedTag{},
+		Variables: map[string]*VariableVal{},
+	}
+	global := &Environment{
+		Path:    path,
+		Scope:   scope,
+		Structs: map[string]*StructVal{},
+	}
+
+	global.Scope.Environment = global
+	return global
+}
+
 type Walker struct {
 	Environment *Environment
 	Walkers     *map[string]*Walker

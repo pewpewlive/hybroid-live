@@ -63,8 +63,6 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 		val = CallExpr(w, newNode, scope, wkr.Function)
 	case *ast.MapExpr:
 		val = MapExpr(w, newNode, scope)
-	case *ast.DirectiveExpr:
-		val = DirectiveExpr(w, newNode, scope)
 	case *ast.AnonFnExpr:
 		val = AnonFnExpr(w, newNode, scope)
 	case *ast.AnonStructExpr:

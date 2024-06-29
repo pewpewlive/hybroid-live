@@ -17,7 +17,6 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 		VariableDeclarationStmt(w, newNode, scope)
 	case *ast.IfStmt:
 		IfStmt(w, newNode, scope)
-
 	case *ast.FunctionDeclarationStmt:
 		FunctionDeclarationStmt(w, newNode, scope, wkr.Function)
 	case *ast.ReturnStmt:
@@ -36,8 +35,6 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 		CallExpr(w, newNode, scope, wkr.Function)
 	case *ast.MethodCallExpr:
 		MethodCallExpr(w, node, scope)
-	case *ast.DirectiveExpr:
-		DirectiveExpr(w, newNode, scope)
 	case *ast.UseStmt:
 		UseStmt(w, newNode, scope)
 	case *ast.StructDeclarationStmt:
@@ -58,8 +55,6 @@ func GetNodeValue(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 	switch newNode := (*node).(type) {
 	case *ast.CallExpr:
 		val = CallExpr(w, newNode, scope, wkr.Function)
-	case *ast.DirectiveExpr:
-		val = DirectiveExpr(w, newNode, scope)
 	case *ast.AnonFnExpr:
 		val = AnonFnExpr(w, newNode, scope)
 	case *ast.AnonStructExpr:

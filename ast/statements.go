@@ -408,12 +408,11 @@ func (rs *RemoveStmt) GetValueType() PrimitiveValueType {
 }
 
 type UseStmt struct {
-	File     lexer.Token
-	Variable IdentifierExpr
+	Path     EnvPathExpr
 }
 
 func (us *UseStmt) GetToken() lexer.Token {
-	return us.File
+	return us.Path.GetToken()
 }
 
 func (us *UseStmt) GetType() NodeType {

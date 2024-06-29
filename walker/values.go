@@ -205,31 +205,6 @@ func (self *StructVal) ContainsMethod(name string) (*VariableVal, bool) {
 	return nil, false
 }
 
-type Environment struct {
-	Name      string
-	Path      string
-	Scope     Scope
-	Variables map[string]*VariableVal
-	Structs   map[string]*StructVal
-}
-
-func NewEnvironment(path string) *Environment {
-	scope := Scope{
-		Children: make([]*Scope, 0),
-
-		Tag:       &UntaggedTag{},
-		Variables: map[string]*VariableVal{},
-	}
-	global := &Environment{
-		Path:    path,
-		Scope:   scope,
-		Structs: map[string]*StructVal{},
-	}
-
-	global.Scope.Environment = global
-	return global
-}
-
 type MapVal struct {
 	MemberType Type
 	Members    []Value
@@ -289,16 +264,6 @@ func (n *NumberVal) GetType() Type {
 
 func (n *NumberVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "0"}
-}
-
-type DirectiveVal struct{}
-
-func (d *DirectiveVal) GetType() Type {
-	return NewBasicType(ast.Unknown)
-}
-
-func (d *DirectiveVal) GetDefault() *ast.LiteralExpr {
-	return &ast.LiteralExpr{Value: "DEFAULT_DIRECTIVE_CALL"}
 }
 
 type FixedVal struct {

@@ -370,10 +370,6 @@ func MemberExpr(w *wkr.Walker, node *ast.MemberExpr, scope *wkr.Scope) wkr.Value
 	return wrappedVal
 }
 
-func DirectiveExpr(w *wkr.Walker, node *ast.DirectiveExpr, scope *wkr.Scope) *wkr.DirectiveVal {
-	return &wkr.DirectiveVal{}
-}
-
 func SelfExpr(w *wkr.Walker, self *ast.SelfExpr, scope *wkr.Scope) wkr.Value {
 	if !scope.Is(wkr.SelfAllowing) {
 		w.Error(self.Token, "can't use self outside of struct/entity")

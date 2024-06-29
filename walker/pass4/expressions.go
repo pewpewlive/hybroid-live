@@ -5,7 +5,6 @@ import (
 	"hybroid/ast"
 	"hybroid/helpers"
 	"hybroid/lexer"
-	"hybroid/parser"
 	wkr "hybroid/walker"
 )
 
@@ -59,7 +58,7 @@ func BinaryExpr(w *wkr.Walker, node *ast.BinaryExpr, scope *wkr.Scope) wkr.Value
 			return &wkr.BoolVal{}
 		}
 	}
-	typ := DetermineValueType(w, leftType, rightType)
+	typ := w.DetermineValueType(leftType, rightType)
 
 	if typ.PVT() == ast.Invalid {
 		w.Error(node.GetToken(), fmt.Sprintf("invalid binary expression (left: %s, right: %s)", leftType.ToString(), rightType.ToString()))
@@ -69,24 +68,51 @@ func BinaryExpr(w *wkr.Walker, node *ast.BinaryExpr, scope *wkr.Scope) wkr.Value
 	}
 }
 
-func EnvExpr(w *wkr.Walker, node *ast.EnvExpr, scope *wkr.Scope) wkr.Value {
-	return &wkr.UnresolvedVal{
-		Expr: node,
-	}
-}
-
-func DetermineValueType(w *wkr.Walker, left wkr.Type, right wkr.Type) wkr.Type {
-	if left.PVT() == ast.Unknown || right.PVT() == ast.Unknown {
-		return wkr.NAType
-	}
-	if wkr.TypeEquals(left, right) {
-		return right
-	}
-	if parser.IsFx(left.PVT()) && parser.IsFx(right.PVT()) {
-		return left
+func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr, scope *wkr.Scope, findType bool) wkr.Value {
+	usedW, found := w.EnvPathExpr(node.PathExpr)
+	if !found {
+		return &wkr.Invalid{}
 	}
 
-	return wkr.InvalidType
+	if !helpers.Contains(w.UsedWalkers, usedW) {
+		if helpers.Contains(usedW.UsedWalkers, w) {
+			return &wkr.Invalid{}
+		}
+	}
+
+	access := node.GetToken().Lexeme
+	if findType {
+		if node.Accessed.GetType() != ast.Identifier {
+			w.Error(node.Accessed.GetToken(), "Expected an identifier for a type")
+			return &wkr.Invalid{}
+		}
+		if structVal, found := usedW.Environment.Structs[access]; found {
+			if structVal.IsLocal {
+				w.Error(node.Accessed.GetToken(), "Cannot access a local variable of an environment")
+			}
+			return structVal
+		}
+
+		if variable, found := usedW.Environment.Variables[access]; found && variable.GetType().PVT() == ast.Enum {
+			if variable.IsLocal {
+				w.Error(node.Accessed.GetToken(), "Cannot access a local variable of an environment")
+			}
+			return variable
+		}
+		return &wkr.Invalid{}
+	}
+	if variable, found := usedW.Environment.Variables[access]; found && variable.GetType().PVT() != ast.Enum {
+		if variable.IsLocal {
+			w.Error(node.Accessed.GetToken(), "Cannot access a local variable of an environment")
+		}
+		if variable.GetType().PVT() == ast.Unresolved {
+			unresolvedVal := variable.Value.(*wkr.UnresolvedVal)
+			EnvAccessExpr(usedW, unresolvedVal.Expr, &usedW.Environment.Scope, false)
+		}
+		return variable
+	}
+
+	return &wkr.Invalid{}
 }
 
 func LiteralExpr(w *wkr.Walker, node *ast.LiteralExpr) wkr.Value {
@@ -176,7 +202,7 @@ func CallExpr(w *wkr.Walker, node *ast.CallExpr, scope *wkr.Scope, callType wkr.
 	}
 	fun, _ := val.(*wkr.FunctionVal)
 
-	arguments := pass1.TypeifyNodeList(w, &node.Args, scope)
+	arguments := w.TypeifyNodeList(&node.Args, scope)
 	index, failed := w.ValidateArguments(arguments, fun.Params, callerToken, typeCall)
 	if !failed {
 		argToken := node.Args[index].GetToken()
@@ -339,50 +365,6 @@ func MemberExpr(w *wkr.Walker, node *ast.MemberExpr, scope *wkr.Scope) wkr.Value
 	return wrappedVal
 }
 
-func DirectiveExpr(w *wkr.Walker, node *ast.DirectiveExpr, scope *wkr.Scope) *wkr.DirectiveVal {
-
-	if node.Identifier.Lexeme != "Environment" {
-		variable := GetNodeValue(w, &node.Expr, scope)
-		variableToken := node.Expr.GetToken()
-
-		variableType := variable.GetType().PVT()
-		switch node.Identifier.Lexeme {
-		case "Len":
-			node.ValueType = ast.Number
-			if variableType != ast.Map && variableType != ast.List && variableType != ast.String {
-				w.Error(variableToken, "invalid expression in '@Len' directive")
-			}
-		case "MapToStr":
-			node.ValueType = ast.String
-			if variableType != ast.Map {
-				w.Error(variableToken, "expected a map in '@MapToStr' directive")
-			}
-		case "ListToStr":
-			node.ValueType = ast.List
-			if variableType != ast.List {
-				w.Error(variableToken, "expected a list in '@ListToStr' directive")
-			}
-		default:
-			// TODO: Implement custom directives
-
-			w.Error(node.Token, "unknown directive")
-		}
-
-	} else {
-
-		ident, ok := node.Expr.(*ast.IdentifierExpr)
-		if !ok {
-			w.Error(node.Expr.GetToken(), "expected an identifier in '@Environment' directive")
-		} else {
-			name := ident.Name.Lexeme
-			if name != "Level" && name != "Mesh" && name != "Sound" && name != "Shared" && name != "LuaGeneric" {
-				w.Error(node.Expr.GetToken(), "invalid identifier in '@Environment' directive")
-			}
-		}
-	}
-	return &wkr.DirectiveVal{}
-}
-
 func SelfExpr(w *wkr.Walker, self *ast.SelfExpr, scope *wkr.Scope) wkr.Value {
 	if !scope.Is(wkr.SelfAllowing) {
 		w.Error(self.Token, "can't use self outside of struct/entity")
@@ -401,14 +383,12 @@ func SelfExpr(w *wkr.Walker, self *ast.SelfExpr, scope *wkr.Scope) wkr.Value {
 
 func NewExpr(w *wkr.Walker, new *ast.NewExpr, scope *wkr.Scope) wkr.Value {
 	w.Context.Node = new
-	val, found := w.GetStruct(new.Type.Lexeme)
+	structVal, found := w.GetStruct(new.Type.GetToken().Lexeme)
 	if !found {
-		return val
+		return structVal
 	}
-	structVal := val.(*wkr.StructVal)
-
-	args := pass1.TypeifyNodeList(w, &new.Args, scope)
-	index, failed := w.ValidateArguments(args, structVal.Params, new.Type, "new")
+	args := w.TypeifyNodeList(&new.Args, scope)
+	index, failed := w.ValidateArguments(args, structVal.Params, new.Type.GetToken(), "new")
 	if !failed {
 		argToken := new.Args[index].GetToken()
 		w.Error(argToken, fmt.Sprintf("mismatched types: argument '%s' is not of expected type %s", argToken.Lexeme, structVal.Params[index].ToString()))
@@ -417,7 +397,6 @@ func NewExpr(w *wkr.Walker, new *ast.NewExpr, scope *wkr.Scope) wkr.Value {
 	return structVal
 }
 
-// lets keep it for now in the back of our mind
 func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr) wkr.Type {
 	if typee == nil {
 		return wkr.InvalidType
