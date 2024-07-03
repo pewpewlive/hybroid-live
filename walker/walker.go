@@ -317,6 +317,14 @@ func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
 	}
 }
 
+func (w *Walker) DetermineCallTypeString(callType ProcedureType) string {
+	if callType == Function {
+		return "function"
+	}
+
+	return "method"
+}
+
 func (w *Walker) ReportExits(sender ExitableTag, scope *Scope) {
 	receiver_ := scope.ResolveReturnable()
 

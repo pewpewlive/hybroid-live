@@ -28,7 +28,7 @@ func AnonFnExpr(w *wkr.Walker, fn *ast.AnonFnExpr, scope *wkr.Scope) wkr.Value {
 	funcTag :=  &wkr.FuncTag{ReturnTypes: returnTypes}
 	fnScope := wkr.NewScope(scope, funcTag, wkr.ReturnAllowing)
 
-	WalkBody(w, &fn.Body, fnScope)
+	WalkBody(w, &fn.Body, funcTag, fnScope)
 
 	return &funcTag.ReturnTypes
 }
@@ -40,7 +40,7 @@ func MatchExpr(w *wkr.Walker, node *ast.MatchExpr, scope *wkr.Scope) wkr.Value {
 
 	for i := range node.MatchStmt.Cases {
 		caseScope := wkr.NewScope(matchScope, mpt)
-		WalkBody(w, &node.MatchStmt.Cases[i].Body, caseScope)
+		WalkBody(w, &node.MatchStmt.Cases[i].Body, mpt, caseScope)
 	}
 
 	return mtt.YieldValues
@@ -111,24 +111,6 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 }
 
 func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr, scope *wkr.Scope) wkr.Value {
-	if w.Environment.Name == node.PathExpr.Nameify() {
-		w.Error(node.GetToken(), "variables being accessed in the environment from the environment")
-		return &wkr.Invalid{}
-	}
-
-	usedW, found := w.EnvPathExpr(node.PathExpr)
-	if !found {
-		return &wkr.Invalid{}
-	}
-
-	if !helpers.Contains(w.UsedWalkers, usedW) {
-		if helpers.Contains(usedW.UsedWalkers, w) {
-			w.Error(node.GetToken(), "Cannot have environments use each other")
-			return &wkr.Invalid{}
-		}
-		w.UsedWalkers = append(w.UsedWalkers, usedW)
-	}
-
 	return wkr.NewUnresolvedVal(node)
 }
 

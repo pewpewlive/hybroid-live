@@ -1,4 +1,4 @@
-package pass3
+package pass1
 
 import (
 	"fmt"
@@ -25,48 +25,34 @@ func AnonFnExpr(w *wkr.Walker, fn *ast.AnonFnExpr, scope *wkr.Scope) wkr.Value {
 	for i := range fn.Return {
 		returnTypes =  append(returnTypes, TypeExpr(w, fn.Return[i]))
 	}
-	fnScope := scope.AccessChild()
-	funcTag := fnScope.Tag.(*wkr.FuncTag)
+	funcTag :=  &wkr.FuncTag{ReturnTypes: returnTypes}
+	fnScope := wkr.NewScope(scope, funcTag, wkr.ReturnAllowing)
 
-	WalkBody(w, &fn.Body, fnScope)
+	WalkBody(w, &fn.Body, funcTag, fnScope)
 
 	return &funcTag.ReturnTypes
 }
 
 func MatchExpr(w *wkr.Walker, node *ast.MatchExpr, scope *wkr.Scope) wkr.Value {
-	matchScope := scope.AccessChild()
-	mtt := matchScope.Tag.(*wkr.MatchExprTag)
+	mtt := &wkr.MatchExprTag{}
+	matchScope := wkr.NewScope(scope, mtt, wkr.YieldAllowing)
+	mpt := wkr.NewMultiPathTag(len(node.MatchStmt.Cases))
 
 	for i := range node.MatchStmt.Cases {
-		caseScope := matchScope.AccessChild()
-		WalkBody(w, &node.MatchStmt.Cases[i].Body, caseScope)
+		caseScope := wkr.NewScope(matchScope, mpt)
+		WalkBody(w, &node.MatchStmt.Cases[i].Body, mpt, caseScope)
 	}
 
 	return mtt.YieldValues
 }
 
 func BinaryExpr(w *wkr.Walker, node *ast.BinaryExpr, scope *wkr.Scope) wkr.Value {
-	left, right := GetNodeValue(w, &node.Left, scope), GetNodeValue(w, &node.Right, scope)
-	leftType, rightType := left.GetType(), right.GetType()
 	op := node.Operator
 	switch op.Type {
 	case lexer.Plus, lexer.Minus, lexer.Caret, lexer.Star, lexer.Slash, lexer.Modulo:
-		w.ValidateArithmeticOperands(leftType, rightType, *node)
-	default:
-		if !wkr.TypeEquals(leftType, rightType) {
-			w.Error(node.GetToken(), fmt.Sprintf("invalid comparison: types are not the same (left: %s, right: %s)",leftType.ToString(), rightType.ToString()))
-			return &wkr.Invalid{}
-		} else {
-			return &wkr.BoolVal{}
-		}
-	}
-	typ := w.DetermineValueType(leftType, rightType)
-
-	if typ.PVT() == ast.Invalid {
-		w.Error(node.GetToken(), fmt.Sprintf("invalid binary expression (left: %s, right: %s)",leftType.ToString(), rightType.ToString()))
-		return &wkr.Invalid{}
-	} else {
 		return &wkr.NumberVal{}
+	default:
+		return &wkr.BoolVal{}
 	}
 }
 
@@ -124,51 +110,8 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 	return variable.Value
 }
 
-func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr, scope *wkr.Scope, findType bool) wkr.Value {
-	usedW, found := w.EnvPathExpr(node.PathExpr)
-	if !found {
-		return &wkr.Invalid{}
-	}
-
-	if !helpers.Contains(w.UsedWalkers, usedW) {
-		if helpers.Contains(usedW.UsedWalkers, w) {
-			return &wkr.Invalid{}
-		}
-	}
-
-	access := node.GetToken().Lexeme
-	if findType {
-		if node.Accessed.GetType() != ast.Identifier {
-			w.Error(node.Accessed.GetToken(), "Expected an identifier for a type")
-			return &wkr.Invalid{}
-		}
-		if structVal, found := usedW.Environment.Structs[access]; found {
-			if structVal.IsLocal {
-				w.Error(node.Accessed.GetToken(), "Cannot access a local variable of an environment")
-			}
-			return structVal
-		}
-
-		if variable, found := usedW.Environment.Variables[access]; found && variable.GetType().PVT() == ast.Enum {
-			if variable.IsLocal {
-				w.Error(node.Accessed.GetToken(), "Cannot access a local variable of an environment")
-			}
-			return variable
-		}
-		return &wkr.Invalid{}
-	}
-	if variable, found := usedW.Environment.Variables[access]; found && variable.GetType().PVT() != ast.Enum {
-		if variable.IsLocal {
-			w.Error(node.Accessed.GetToken(), "Cannot access a local variable of an environment")
-		}
-		if variable.GetType().PVT() == ast.Unresolved {
-			unresolvedVal := variable.Value.(*wkr.UnresolvedVal)
-			EnvAccessExpr(usedW, unresolvedVal.Expr, &usedW.Environment.Scope, false)
-		}
-		return variable
-	}
-
-	return &wkr.Invalid{}
+func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr, scope *wkr.Scope) wkr.Value {
+	return wkr.NewUnresolvedVal(node)
 }
 
 func GroupingExpr(w *wkr.Walker, node *ast.GroupExpr, scope *wkr.Scope) wkr.Value {
@@ -189,19 +132,11 @@ func ListExpr(w *wkr.Walker, node *ast.ListExpr, scope *wkr.Scope) wkr.Value {
 }
 
 func CallExpr(w *wkr.Walker, node *ast.CallExpr, scope *wkr.Scope, callType wkr.ProcedureType) wkr.Value {
-	typeCall := wkr.DetermineCallTypeString(callType)
-
-	callerToken := node.Caller.GetToken()
 	val := GetNodeValue(w, &node.Caller, scope)
 
 	valType := val.GetType().PVT()
 	if valType != ast.Func {
-		if valType != ast.Invalid {
-			w.Error(callerToken, fmt.Sprintf("variable used as if it's a %s (type: %s)", typeCall, valType))
-		} else {
-			w.Error(callerToken, fmt.Sprintf("unkown %s", typeCall))
-		}
-		return &wkr.Invalid{}
+		return &wkr.Unknown{}
 	}
 
 	variable, it_is := val.(*wkr.VariableVal)
@@ -209,13 +144,6 @@ func CallExpr(w *wkr.Walker, node *ast.CallExpr, scope *wkr.Scope, callType wkr.
 		val = variable.Value
 	}
 	fun, _ := val.(*wkr.FunctionVal)
-
-	arguments := TypeifyNodeList(w, &node.Args, scope)
-	index, failed := w.ValidateArguments(arguments, fun.Params, callerToken, typeCall)
-	if !failed {
-		argToken := node.Args[index].GetToken()
-		w.Error(argToken, fmt.Sprintf("mismatched types: argument '%s' is not of expected type %s", argToken.Lexeme, fun.Params[index].ToString()))
-	}
 
 	if len(fun.Returns) == 1 {
 		return w.TypeToValue(fun.Returns[0])
@@ -259,6 +187,10 @@ func MethodCallExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {
 	if node.Owner == nil {
 		val := GetNodeValue(w, &node.Identifier, scope)
+
+		if val.GetType().PVT() == ast.Unresolved {
+			return &wkr.Unknown{}
+		}
 
 		if !wkr.IsOfPrimitiveType(val, ast.Struct, ast.Entity, ast.AnonStruct, ast.Enum) {
 			w.Error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a struct, entity, enum or anonymous struct", node.Identifier.GetToken().Lexeme))
@@ -326,6 +258,10 @@ func MemberExpr(w *wkr.Walker, node *ast.MemberExpr, scope *wkr.Scope) wkr.Value
 	if node.Owner == nil {
 		val := GetNodeValue(w, &node.Identifier, scope)
 
+		if val.GetType().PVT() == ast.Unresolved {
+			return &wkr.Unknown{}
+		}
+
 		var memberVal wkr.Value
 		if node.Property == nil {
 			return val
@@ -343,15 +279,18 @@ func MemberExpr(w *wkr.Walker, node *ast.MemberExpr, scope *wkr.Scope) wkr.Value
 
 	if arrayType == ast.Map {
 		if valType != ast.String && valType != ast.Unknown {
+			w.Error(node.Identifier.GetToken(), "variable is not a string")
 			return &wkr.Invalid{}
 		}
 	} else if arrayType == ast.List {
 		if valType != ast.Number && valType != ast.Unknown {
+			w.Error(node.Identifier.GetToken(), "variable is not a number")
 			return &wkr.Invalid{}
 		}
 	}
 
 	if arrayType != ast.List && arrayType != ast.Map {
+		w.Error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a list, or map", node.Identifier.GetToken().Lexeme))
 		return &wkr.Invalid{}
 	}
 
@@ -393,17 +332,12 @@ func NewExpr(w *wkr.Walker, new *ast.NewExpr, scope *wkr.Scope) wkr.Value {
 	if new.Type.GetType() == ast.Identifier {
 		val, found = w.GetStruct(new.Type.GetToken().Lexeme)
 	}else {
-		foundVal, ok := GetNodeValue(w, &new.Type, scope).(*wkr.StructVal)
-		if ok {
-			val = foundVal
-			found = true
-		}
+		return &wkr.Unknown{}
 	}
 	if !found {
-		w.Error(new.Type.GetToken(), "Couldn't find struct type")
 		return &wkr.Invalid{}
 	}
-	
+
 	return val
 }
 
@@ -411,12 +345,14 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr) wkr.Type {
 	if typee == nil {
 		return wkr.InvalidType
 	}
-
 	if typee.Name.GetType() == ast.EnvironmentAccessExpression {
-		return EnvAccessExpr(w, typee.Name.(*ast.EnvAccessExpr), &w.Environment.Scope, true).GetType()
+		expr, _ := typee.Name.(*ast.EnvAccessExpr)
+		return &wkr.UnresolvedType{
+			Expr: expr,
+		}
 	}
 
-	var pvt ast.PrimitiveValueType =  w.GetTypeFromString(typee.Name.GetToken().Lexeme)
+	pvt := w.GetTypeFromString(typee.Name.GetToken().Lexeme)
 	switch pvt {
 	case ast.Bool, ast.String, ast.Number, ast.Fixed, ast.FixedPoint, ast.Radian, ast.Degree:
 		return wkr.NewBasicType(pvt)

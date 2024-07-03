@@ -131,13 +131,7 @@ func (w *Walker) ListExpr(node *ast.ListExpr, scope *Scope) Value {
 	return &value
 }
 
-func (w *Walker) DetermineCallTypeString(callType ProcedureType) string {
-	if callType == Function {
-		return "function"
-	}
 
-	return "method"
-}
 
 func (w *Walker) TypeifyNodeList(nodes *[]ast.Node, scope *Scope) []Type {
 	arguments := make([]Type, 0)
