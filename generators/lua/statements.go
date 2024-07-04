@@ -5,7 +5,6 @@ import (
 	"hybroid/ast"
 	"hybroid/lexer"
 	"strconv"
-	"strings"
 )
 
 func (gen *Generator) ifStmt(node ast.IfStmt, scope *GenScope) {
@@ -431,8 +430,8 @@ func (gen *Generator) methodDeclarationStmt(node ast.MethodDeclarationStmt, Stru
 }
 
 func (gen *Generator) useStmt(node ast.UseStmt, scope *GenScope) {
-	fileName := strings.Replace(node.File.Literal, ".hyb", ".lua", 1)
-	scope.Append("local ", node.Variable.Name.Lexeme, " = require(\"/dynamic/", fileName, "\")")
+	// fileName := strings.Replace(node.File.Literal, ".hyb", ".lua", 1)
+	// scope.Append("local ", node.Variable.Name.Lexeme, " = require(\"/dynamic/", fileName, "\")")
 }
 
 func (gen *Generator) matchStmt(node ast.MatchStmt, scope *GenScope) {

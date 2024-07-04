@@ -15,17 +15,28 @@ import (
 	"github.com/mitchellh/colorstring"
 )
 
+type Path struct {
+	SrcPath string
+	DstPath string
+}
+
+func NewPath(srcPath, dstPath string) Path {
+	return Path{
+		SrcPath: srcPath,
+		DstPath: dstPath,
+	}
+}
+
 type Evaluator struct {
 	walkers *map[string]*walker.Walker
 
-	// Evaluator
+	// Toolset
 	lexer  *lexer.Lexer
 	parser *parser.Parser
 	walker *walker.Walker
 	gen    lua.Generator
 
-	SrcPath string
-	DstPath string
+	Paths []Path
 }
 
 func NewEvaluator(gen lua.Generator, walkers *map[string]*walker.Walker) Evaluator {
@@ -38,8 +49,7 @@ func NewEvaluator(gen lua.Generator, walkers *map[string]*walker.Walker) Evaluat
 }
 
 func (e *Evaluator) AssignFile(src string, dst string) {
-	e.SrcPath, e.DstPath = src, dst
-	e.walker = walker.NewWalker(e.SrcPath)
+	e.Paths = append(e.Paths, NewPath(src, dst))
 }
 
 func (e *Evaluator) Action(writeEnabled bool) (string, error) {

@@ -111,7 +111,7 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 	case *ast.MatchExpr:
 		val = MatchExpr(w, newNode, scope)
 	case *ast.EnvAccessExpr:
-		val = EnvAccessExpr(w, newNode, scope)
+		val = EnvAccessExpr(w, newNode)
 	default:
 		w.Error(newNode.GetToken(), "Expected expression")
 		return &walker.Invalid{}

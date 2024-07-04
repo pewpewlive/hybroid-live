@@ -22,7 +22,7 @@ func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope
 
 	params := make([]wkr.Type, 0)
 	for _, param := range node.Constructor.Params {
-		params = append(params, TypeExpr(w, param.Type))
+		params = append(params, TypeExpr(w, param.Type, w.Environment))
 	}
 	structVal.Params = params
 
@@ -43,12 +43,12 @@ func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope
 	for i := range *node.Methods {
 		params := make([]wkr.Type, 0)
 		for _, param := range (*node.Methods)[i].Params {
-			params = append(params, TypeExpr(w, param.Type))
+			params = append(params, TypeExpr(w, param.Type, w.Environment))
 		}
 
 		ret := wkr.EmptyReturn
 		for _, typee := range (*node.Methods)[i].Return {
-			ret = append(ret, TypeExpr(w, typee))
+			ret = append(ret, TypeExpr(w, typee, w.Environment))
 			//fmt.Printf("%s\n", ret.values[len(ret.values)-1].Type.ToString())
 		}
 		variable := &wkr.VariableVal{
@@ -79,7 +79,7 @@ func FieldDeclarationStmt(w *wkr.Walker, node *ast.FieldDeclarationStmt, contain
 	structType := container.GetType()
 	if len(node.Types) != 0 {
 		for i := range node.Types {
-			explicitType := TypeExpr(w, node.Types[i])
+			explicitType := TypeExpr(w, node.Types[i], w.Environment)
 			if wkr.TypeEquals(explicitType, structType) {
 				w.Error(node.Types[i].GetToken(), "cannot have a field with a value type of its struct")
 				return
@@ -119,14 +119,14 @@ func MethodDeclarationStmt(w *wkr.Walker, node *ast.MethodDeclarationStmt, conta
 func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, scope *wkr.Scope, procType wkr.ProcedureType) *wkr.VariableVal {
 	ret := wkr.EmptyReturn
 	for _, typee := range node.Return {
-		ret = append(ret, TypeExpr(w, typee))
+		ret = append(ret, TypeExpr(w, typee, w.Environment))
 	}
 	funcTag := &wkr.FuncTag{ReturnTypes: ret}
 	fnScope := wkr.NewScope(scope, funcTag, wkr.ReturnAllowing)
 
 	params := make([]wkr.Type, 0)
 	for i, param := range node.Params {
-		params = append(params, TypeExpr(w, param.Type))
+		params = append(params, TypeExpr(w, param.Type, w.Environment))
 		value := w.TypeToValue(params[i])
 		w.DeclareVariable(fnScope, &wkr.VariableVal{
 			Name:    param.Name.Lexeme,
@@ -227,7 +227,7 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 		valType := values[i].GetType()
 
 		if declaration.Types[i] != nil {
-			explicitType := TypeExpr(w, declaration.Types[i])
+			explicitType := TypeExpr(w, declaration.Types[i], w.Environment)
 			if valType == wkr.InvalidType && explicitType != wkr.InvalidType {
 				values[i] = w.TypeToValue(explicitType)
 				declaration.Values = append(declaration.Values, values[i].GetDefault())

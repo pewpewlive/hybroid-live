@@ -226,7 +226,7 @@ func (gen *Generator) selfExpr(self ast.SelfExpr, _ *GenScope) string {
 func (gen *Generator) newExpr(new ast.NewExpr, scope *GenScope) string {
 	src := StringBuilder{}
 
-	src.Append("Hybroid_", new.Type.Lexeme, "_New(")
+	src.Append("Hybroid_", gen.GenerateExpr(new.Type, scope), "_New(")
 	for i, arg := range new.Args {
 		src.WriteString(gen.GenerateExpr(arg, scope))
 		if i != len(new.Args)-1 {

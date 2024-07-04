@@ -734,22 +734,12 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 func (p *Parser) useStmt() ast.Node {
 	useStmt := ast.UseStmt{}
 
-	filepath := p.expression()
-	if filepath.GetType() == ast.NA {
+	filepath := p.EnvPathExpr()
+	if filepath.GetType() != ast.EnvironmentPathExpression {
 		p.error(p.peek(), "expected filepath")
+		return &ast.Improper{}
 	}
-	useStmt.File = filepath.GetToken()
-
-	if _, ok := p.consume("expected keyword 'as' after filepath in a 'use' statement", lexer.As); !ok {
-		return &useStmt
-	}
-
-	identExpr := p.expression()
-	if identExpr.GetType() != ast.Identifier {
-		p.error(identExpr.GetToken(), "expected identifier after keyword 'as'")
-		return &useStmt
-	}
-	useStmt.Variable = *identExpr.(*ast.IdentifierExpr)
+	useStmt.Path = filepath.(*ast.EnvPathExpr)
 
 	return &useStmt
 }

@@ -1,7 +1,6 @@
 package pass1
 
 import (
-	"fmt"
 	"hybroid/ast"
 	"hybroid/helpers"
 	"hybroid/lexer"
@@ -73,7 +72,7 @@ func LiteralExpr(w *wkr.Walker, node *ast.LiteralExpr) wkr.Value {
 	case ast.Number:
 		return &wkr.NumberVal{}
 	default:
-		return &wkr.Invalid{}
+		return &wkr.Unknown{}
 	}
 }
 
@@ -83,7 +82,7 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 
 	sc := scope.ResolveVariable(ident.Name.Lexeme)
 	if sc == nil {
-		return &wkr.Invalid{}
+		return &wkr.Unknown{}
 	}
 
 	variable := sc.GetVariable(ident.Name.Lexeme)
@@ -122,9 +121,9 @@ func ListExpr(w *wkr.Walker, node *ast.ListExpr, scope *wkr.Scope) wkr.Value {
 	var value wkr.ListVal
 	for i := range node.List {
 		val := GetNodeValue(w, &node.List[i], scope)
-		if val.GetType().PVT() == ast.Invalid {
-			w.Error(node.List[i].GetToken(), fmt.Sprintf("variable '%s' inside list is invalid", node.List[i].GetToken().Lexeme))
-		}
+		// if val.GetType().PVT() == ast.Invalid {
+		// 	w.Error(node.List[i].GetToken(), fmt.Sprintf("variable '%s' inside list is invalid", node.List[i].GetToken().Lexeme))
+		// }
 		value.Values = append(value.Values, val)
 	}
 	value.ValueType = wkr.GetContentsValueType(value.Values)
@@ -193,8 +192,8 @@ func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {
 		}
 
 		if !wkr.IsOfPrimitiveType(val, ast.Struct, ast.Entity, ast.AnonStruct, ast.Enum) {
-			w.Error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a struct, entity, enum or anonymous struct", node.Identifier.GetToken().Lexeme))
-			return &wkr.Invalid{}
+			//w.Error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a struct, entity, enum or anonymous struct", node.Identifier.GetToken().Lexeme))
+			return &wkr.Unknown{}
 		}
 
 		var fieldVal wkr.Value
@@ -227,9 +226,9 @@ func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {
 			variable = method
 		}
 	}
-	if !isField && !isMethod {
-		w.Error(ident, fmt.Sprintf("variable '%s' does not contain '%s'", w.Context.Node.GetToken().Lexeme, ident.Lexeme))
-	}
+	// if !isField && !isMethod {
+	// 	w.Error(ident, fmt.Sprintf("variable '%s' does not contain '%s'", w.Context.Node.GetToken().Lexeme, ident.Lexeme))
+	// }
 
 	if node.Property != nil {
 		w.Context.Value = variable.Value
@@ -272,47 +271,48 @@ func MemberExpr(w *wkr.Walker, node *ast.MemberExpr, scope *wkr.Scope) wkr.Value
 		return memberVal
 	}
 
-	val := GetNodeValue(w, &node.Identifier, scope)
-	valType := val.GetType().PVT()
-	array := w.Context.Value
-	arrayType := array.GetType().PVT()
+	//val := GetNodeValue(w, &node.Identifier, scope)
+	//valType := val.GetType().PVT()
+	//array := w.Context.Value
+	//arrayType := array.GetType().PVT()
 
-	if arrayType == ast.Map {
-		if valType != ast.String && valType != ast.Unknown {
-			w.Error(node.Identifier.GetToken(), "variable is not a string")
-			return &wkr.Invalid{}
-		}
-	} else if arrayType == ast.List {
-		if valType != ast.Number && valType != ast.Unknown {
-			w.Error(node.Identifier.GetToken(), "variable is not a number")
-			return &wkr.Invalid{}
-		}
-	}
+	// if arrayType == ast.Map {
+	// 	if valType != ast.String && valType != ast.Unknown {
+	// 		w.Error(node.Identifier.GetToken(), "variable is not a string")
+	// 		return &wkr.Invalid{}
+	// 	}
+	// } else if arrayType == ast.List {
+	// 	if valType != ast.Number && valType != ast.Unknown {
+	// 		w.Error(node.Identifier.GetToken(), "variable is not a number")
+	// 		return &wkr.Invalid{}
+	// 	}
+	// }
 
-	if arrayType != ast.List && arrayType != ast.Map {
-		w.Error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a list, or map", node.Identifier.GetToken().Lexeme))
-		return &wkr.Invalid{}
-	}
+	// if arrayType != ast.List && arrayType != ast.Map {
+	// 	w.Error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a list, or map", node.Identifier.GetToken().Lexeme))
+	// 	return &wkr.Invalid{}
+	// }
 
-	if variable, ok := array.(*wkr.VariableVal); ok {
-		array = variable.Value
-	}
+	// if variable, ok := array.(*wkr.VariableVal); ok {
+	// 	array = variable.Value
+	// }
 
-	wrappedValType := array.GetType().(*wkr.WrapperType).WrappedType
-	wrappedVal := w.TypeToValue(wrappedValType)
+	//wrappedValType := array.GetType().(*wkr.WrapperType).WrappedType
+	//wrappedVal := w.TypeToValue(wrappedValType)
 
-	if node.Property != nil {
-		w.Context.Value = wrappedVal
-		return GetNodeValue(w, &node.Property, scope)
-	}
+	// if node.Property != nil {
+	// 	w.Context.Value = wrappedVal
+	// 	return GetNodeValue(w, &node.Property, scope)
+	// }
 
-	return wrappedVal
+	//return wrappedVal
+	return &wkr.Unknown{}
 }
 
 func SelfExpr(w *wkr.Walker, self *ast.SelfExpr, scope *wkr.Scope) wkr.Value {
 	if !scope.Is(wkr.SelfAllowing) {
 		w.Error(self.Token, "can't use self outside of struct/entity")
-		return &wkr.Invalid{}
+		return &wkr.Unknown{}
 	}
 
 	sc, _, structTag := wkr.ResolveTagScope[*wkr.StructTag](scope) // TODO: CHECK FOR ENTITY SCOPE
@@ -321,7 +321,7 @@ func SelfExpr(w *wkr.Walker, self *ast.SelfExpr, scope *wkr.Scope) wkr.Value {
 		(*self).Type = ast.SelfStruct
 		return (*structTag).StructVal
 	} else {
-		return &wkr.Invalid{}
+		return &wkr.Unknown{}
 	}
 }
 
@@ -335,7 +335,7 @@ func NewExpr(w *wkr.Walker, new *ast.NewExpr, scope *wkr.Scope) wkr.Value {
 		return &wkr.Unknown{}
 	}
 	if !found {
-		return &wkr.Invalid{}
+		return &wkr.Unknown{}
 	}
 
 	return val

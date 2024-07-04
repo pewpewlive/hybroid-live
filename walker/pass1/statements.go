@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"hybroid/ast"
 	"hybroid/lexer"
-	"hybroid/parser"
 	wkr "hybroid/walker"
 	"strings"
 )
@@ -76,24 +75,24 @@ func FieldDeclarationStmt(w *wkr.Walker, node *ast.FieldDeclarationStmt, contain
 		IsLocal:     true,
 		Token:       node.Token,
 	}
-	structType := container.GetType()
-	if len(node.Types) != 0 {
-		for i := range node.Types {
-			explicitType := TypeExpr(w, node.Types[i])
-			if wkr.TypeEquals(explicitType, structType) {
-				w.Error(node.Types[i].GetToken(), "cannot have a field with a value type of its struct")
-				return
-			}
-		}
-	} else if len(node.Types) != 0 {
-		for i := range node.Values {
-			valType := GetNodeValue(w, &node.Values[i], scope).GetType()
-			if wkr.TypeEquals(valType, structType) {
-				w.Error(node.Types[i].GetToken(), "cannot have a field with a value type of its struct")
-				return
-			}
-		}
-	}
+	// structType := container.GetType()
+	// if len(node.Types) != 0 {
+	// 	for i := range node.Types {
+	// 		explicitType := TypeExpr(w, node.Types[i])
+	// 		if wkr.TypeEquals(explicitType, structType) {
+	// 			w.Error(node.Types[i].GetToken(), "cannot have a field with a value type of its struct")
+	// 			return
+	// 		}
+	// 	}
+	// } else if len(node.Types) != 0 {
+	// 	for i := range node.Values {
+	// 		valType := GetNodeValue(w, &node.Values[i], scope).GetType()
+	// 		if wkr.TypeEquals(valType, structType) {
+	// 			w.Error(node.Types[i].GetToken(), "cannot have a field with a value type of its struct")
+	// 			return
+	// 		}
+	// 	}
+	// }
 
 	variables := VariableDeclarationStmt(w, &varDecl, scope)
 	node.Values = varDecl.Values
@@ -190,11 +189,11 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 		values[i] = &wkr.Invalid{}
 	}
 
-	valuesLength := len(declaration.Values)
-	if valuesLength > idents {
-		w.Error(declaration.Token, "too many values provided in declaration")
-		return declaredVariables
-	}
+	// valuesLength := len(declaration.Values)
+	// if valuesLength > idents {
+	// 	w.Error(declaration.Token, "too many values provided in declaration")
+	// 	return declaredVariables
+	// }
 
 	for i := range declaration.Values {
 
@@ -231,11 +230,11 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 			if valType == wkr.InvalidType && explicitType != wkr.InvalidType {
 				values[i] = w.TypeToValue(explicitType)
 				declaration.Values = append(declaration.Values, values[i].GetDefault())
-			} else if !wkr.TypeEquals(valType, explicitType) {
-				w.Error(declaration.Token, fmt.Sprintf("mismatched types: value type (%s) not the same with explict type (%s)",
-					valType.ToString(),
-					explicitType.ToString()))
-			}
+			} //else if !wkr.TypeEquals(valType, explicitType) {
+			// 	w.Error(declaration.Token, fmt.Sprintf("mismatched types: value type (%s) not the same with explict type (%s)",
+			// 		valType.ToString(),
+			// 		explicitType.ToString()))
+			// }
 		}
 
 		variable := &wkr.VariableVal{
@@ -255,17 +254,17 @@ func IfStmt(w *wkr.Walker, node *ast.IfStmt, scope *wkr.Scope) {
 	mpt := wkr.NewMultiPathTag(length, scope.Attributes...)
 	multiPathScope := wkr.NewScope(scope, mpt)
 	ifScope := wkr.NewScope(multiPathScope, &wkr.UntaggedTag{})
-	boolExpr := GetNodeValue(w, &node.BoolExpr, scope)
-	if boolExpr.GetType().PVT() != ast.Bool {
-		w.Error(node.BoolExpr.GetToken(), "if condition is not a comparison")
-	}
+	// boolExpr := GetNodeValue(w, &node.BoolExpr, scope)
+	// if boolExpr.GetType().PVT() != ast.Bool {
+	// 	w.Error(node.BoolExpr.GetToken(), "if condition is not a comparison")
+	// }
 	WalkBody(w, &node.Body, mpt, ifScope)
 
 	for i := range node.Elseifs {
-		boolExpr := GetNodeValue(w, &node.Elseifs[i].BoolExpr, scope)
-		if boolExpr.GetType().PVT() != ast.Bool {
-			w.Error(node.Elseifs[i].BoolExpr.GetToken(), "if condition is not a comparison")
-		}
+		// boolExpr := GetNodeValue(w, &node.Elseifs[i].BoolExpr, scope)
+		// if boolExpr.GetType().PVT() != ast.Bool {
+		// 	w.Error(node.Elseifs[i].BoolExpr.GetToken(), "if condition is not a comparison")
+		// }
 		ifScope := wkr.NewScope(multiPathScope, &wkr.UntaggedTag{})
 		WalkBody(w, &node.Elseifs[i].Body, mpt, ifScope)
 	}
@@ -290,7 +289,7 @@ func IfStmt(w *wkr.Walker, node *ast.IfStmt, scope *wkr.Scope) {
 }
 
 func AssignmentStmt(w *wkr.Walker, assignStmt *ast.AssignmentStmt, scope *wkr.Scope) {
-	hasFuncs := false
+	//hasFuncs := false
 
 	wIdents := []wkr.Value{}
 	for i := range assignStmt.Identifiers {
@@ -298,23 +297,23 @@ func AssignmentStmt(w *wkr.Walker, assignStmt *ast.AssignmentStmt, scope *wkr.Sc
 	}
 
 	for i := range assignStmt.Values {
-		if assignStmt.Values[i].GetType() == ast.CallExpression {
-			hasFuncs = true
-		}
+		// if assignStmt.Values[i].GetType() == ast.CallExpression {
+		// 	hasFuncs = true
+		// }
 		value := GetNodeValue(w, &assignStmt.Values[i], scope)
 		if i > len(wIdents)-1 {
 			break
 		}
-		variableType := wIdents[i].GetType()
-		valueType := value.GetType()
-		if variableType.PVT() == ast.Invalid {
-			w.Error(assignStmt.Identifiers[i].GetToken(), "cannot assign a value to an undeclared variable")
-			continue
-		}
+		// variableType := wIdents[i].GetType()
+		// valueType := value.GetType()
+		// if variableType.PVT() == ast.Invalid {
+		// 	w.Error(assignStmt.Identifiers[i].GetToken(), "cannot assign a value to an undeclared variable")
+		// 	continue
+		// }
 
-		if !wkr.TypeEquals(variableType, valueType) {
-			w.Error(assignStmt.Values[i].GetToken(), fmt.Sprintf("mismatched types: variable has a type of %s, but a value of %s was given to it.", variableType.ToString(), valueType.ToString()))
-		}
+		// if !wkr.TypeEquals(variableType, valueType) {
+		// 	w.Error(assignStmt.Values[i].GetToken(), fmt.Sprintf("mismatched types: variable has a type of %s, but a value of %s was given to it.", variableType.ToString(), valueType.ToString()))
+		// }
 
 		variable, ok := wIdents[i].(*wkr.VariableVal)
 
@@ -326,13 +325,11 @@ func AssignmentStmt(w *wkr.Walker, assignStmt *ast.AssignmentStmt, scope *wkr.Sc
 		}
 	}
 
-	if hasFuncs {
-		w.Error(assignStmt.GetToken(), "cannot have a function call in assignment")
-	} else if len(assignStmt.Values) < len(assignStmt.Identifiers) {
-		w.Error(assignStmt.Values[len(assignStmt.Values)-1].GetToken(), "not enough values provided in assignment")
-	} else if len(assignStmt.Values) > len(assignStmt.Identifiers) {
-		w.Error(assignStmt.Values[len(assignStmt.Values)-1].GetToken(), "too many values provided in assignment")
-	}
+	// if len(assignStmt.Values) < len(assignStmt.Identifiers) {
+	// 	w.Error(assignStmt.Values[len(assignStmt.Values)-1].GetToken(), "not enough values provided in assignment")
+	// } else if len(assignStmt.Values) > len(assignStmt.Identifiers) {
+	// 	w.Error(assignStmt.Values[len(assignStmt.Values)-1].GetToken(), "too many values provided in assignment")
+	// }
 }
 
 func RepeatStmt(w *wkr.Walker, node *ast.RepeatStmt, scope *wkr.Scope) {
@@ -341,9 +338,9 @@ func RepeatStmt(w *wkr.Walker, node *ast.RepeatStmt, scope *wkr.Scope) {
 
 	end := GetNodeValue(w, &node.Iterator, scope)
 	endType := end.GetType()
-	if !parser.IsFx(endType.PVT()) && endType.PVT() != ast.Number {
+	/*if !parser.IsFx(endType.PVT()) && endType.PVT() != ast.Number {
 		w.Error(node.Iterator.GetToken(), "invalid value type of iterator")
-	} else if variable, ok := end.(*wkr.VariableVal); ok {
+	} else*/ if variable, ok := end.(*wkr.VariableVal); ok {
 		if fixedpoint, ok := variable.Value.(*wkr.FixedVal); ok {
 			endType = wkr.NewBasicType(fixedpoint.SpecificType)
 		}
@@ -393,16 +390,16 @@ func ForloopStmt(w *wkr.Walker, node *ast.ForStmt, scope *wkr.Scope) {
 			&wkr.VariableVal{Name: node.KeyValuePair[0].Name.Lexeme, Value: &wkr.NumberVal{}},
 			node.KeyValuePair[0].Name)
 	}
-	valType := GetNodeValue(w, &node.Iterator, scope).GetType()
-	wrapper, ok := valType.(*wkr.WrapperType)
-	if !ok {
-		w.Error(node.Iterator.GetToken(), "iterator must be of type map or list")
-	} else if len(node.KeyValuePair) == 2 {
-		node.OrderedIteration = wrapper.PVT() == ast.List
-		w.DeclareVariable(forScope,
-			&wkr.VariableVal{Name: node.KeyValuePair[1].Name.Lexeme, Value: w.TypeToValue(wrapper.WrappedType)},
-			node.KeyValuePair[1].Name)
-	}
+	// valType := GetNodeValue(w, &node.Iterator, scope).GetType()
+	// wrapper, ok := valType.(*wkr.WrapperType)
+	// if !ok {
+	// 	w.Error(node.Iterator.GetToken(), "iterator must be of type map or list")
+	// } else if len(node.KeyValuePair) == 2 {
+	// 	node.OrderedIteration = wrapper.PVT() == ast.List
+	// 	w.DeclareVariable(forScope,
+	// 		&wkr.VariableVal{Name: node.KeyValuePair[1].Name.Lexeme, Value: w.TypeToValue(wrapper.WrappedType)},
+	// 		node.KeyValuePair[1].Name)
+	// }
 
 	WalkBody(w, &node.Body, lt, forScope)
 
@@ -422,11 +419,11 @@ func TickStmt(w *wkr.Walker, node *ast.TickStmt, scope *wkr.Scope) {
 }
 
 func MatchStmt(w *wkr.Walker, node *ast.MatchStmt, isExpr bool, scope *wkr.Scope) {
-	val := GetNodeValue(w, &node.ExprToMatch, scope)
-	if val.GetType().PVT() == ast.Invalid {
-		w.Error(node.ExprToMatch.GetToken(), "variable is of type invalid")
-	}
-	valType := val.GetType()
+	// val := GetNodeValue(w, &node.ExprToMatch, scope)
+	// if val.GetType().PVT() == ast.Invalid {
+	// 	w.Error(node.ExprToMatch.GetToken(), "variable is of type invalid")
+	// }
+	// valType := val.GetType()
 	casesLength := len(node.Cases) + 1
 	if node.HasDefault {
 		casesLength--
@@ -434,7 +431,7 @@ func MatchStmt(w *wkr.Walker, node *ast.MatchStmt, isExpr bool, scope *wkr.Scope
 	mpt := wkr.NewMultiPathTag(casesLength, scope.Attributes...)
 	multiPathScope := wkr.NewScope(scope, mpt)
 
-	var has_default bool
+	// var has_default bool
 	for i := range node.Cases {
 		caseScope := wkr.NewScope(multiPathScope, &wkr.UntaggedTag{})
 
@@ -443,27 +440,27 @@ func MatchStmt(w *wkr.Walker, node *ast.MatchStmt, isExpr bool, scope *wkr.Scope
 		}
 
 		if node.Cases[i].Expression.GetToken().Lexeme == "_" {
-			has_default = true
+			// has_default = true
 			continue
 		}
 
-		caseValType := GetNodeValue(w, &node.Cases[i].Expression, scope).GetType()
-		if !wkr.TypeEquals(valType, caseValType) {
-			w.Error(
-				node.Cases[i].Expression.GetToken(),
-				fmt.Sprintf("mismatched types: arm expression (%s) and match expression (%s)",
-					caseValType.ToString(),
-					valType.ToString()))
-		}
+		// caseValType := GetNodeValue(w, &node.Cases[i].Expression, scope).GetType()
+		// if !wkr.TypeEquals(valType, caseValType) {
+		// 	w.Error(
+		// 		node.Cases[i].Expression.GetToken(),
+		// 		fmt.Sprintf("mismatched types: arm expression (%s) and match expression (%s)",
+		// 			caseValType.ToString(),
+		// 			valType.ToString()))
+		// }
 	}
 
-	if has_default && len(node.Cases) == 1 {
-		w.Error(node.Cases[0].Expression.GetToken(), "cannot have a match statement/expression with one arm that is default")
-	}
+	// if has_default && len(node.Cases) == 1 {
+	// 	w.Error(node.Cases[0].Expression.GetToken(), "cannot have a match statement/expression with one arm that is default")
+	// }
 
-	if !has_default && isExpr {
-		w.Error(node.GetToken(), "match expression has no default arm")
-	}
+	// if !has_default && isExpr {
+	// 	w.Error(node.GetToken(), "match expression has no default arm")
+	// }
 
 	if isExpr {
 		return

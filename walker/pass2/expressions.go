@@ -23,7 +23,7 @@ func AnonStructExpr(w *wkr.Walker, node *ast.AnonStructExpr, scope *wkr.Scope) *
 func AnonFnExpr(w *wkr.Walker, fn *ast.AnonFnExpr, scope *wkr.Scope) wkr.Value {
 	returnTypes := wkr.EmptyReturn
 	for i := range fn.Return {
-		returnTypes =  append(returnTypes, TypeExpr(w, fn.Return[i]))
+		returnTypes =  append(returnTypes, TypeExpr(w, fn.Return[i], w.Environment))
 	}
 	funcTag :=  &wkr.FuncTag{ReturnTypes: returnTypes}
 	fnScope := wkr.NewScope(scope, funcTag, wkr.ReturnAllowing)
@@ -110,8 +110,16 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 	return variable.Value
 }
 
-func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr, scope *wkr.Scope) wkr.Value {
-	return wkr.NewUnresolvedVal(node)
+func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr) wkr.Value {
+	path := node.PathExpr.Nameify()
+
+	walker, found := (*w.Walkers)[path]
+	if !found {
+		w.Error(node.PathExpr.GetToken(), "Environment name so doesn't exist")
+		return &wkr.Invalid{}
+	}
+	
+	return GetNodeValue(w, &node.Accessed, &walker.Environment.Scope)
 }
 
 func GroupingExpr(w *wkr.Walker, node *ast.GroupExpr, scope *wkr.Scope) wkr.Value {
@@ -341,15 +349,20 @@ func NewExpr(w *wkr.Walker, new *ast.NewExpr, scope *wkr.Scope) wkr.Value {
 	return val
 }
 
-func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr) wkr.Type {
+func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, env *wkr.Environment) wkr.Type {
 	if typee == nil {
 		return wkr.InvalidType
 	}
 	if typee.Name.GetType() == ast.EnvironmentAccessExpression {
 		expr, _ := typee.Name.(*ast.EnvAccessExpr)
-		return &wkr.UnresolvedType{
-			Expr: expr,
+		path := expr.PathExpr.Nameify()
+
+		walker, found := (*w.Walkers)[path]
+		if !found {
+			w.Error(expr.PathExpr.GetToken(), "Environment name so doesn't exist")
+			return wkr.InvalidType
 		}
+		return TypeExpr(w, &ast.TypeExpr{Name:expr.Accessed}, walker.Environment)
 	}
 
 	pvt := w.GetTypeFromString(typee.Name.GetToken().Lexeme)
@@ -364,7 +377,7 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr) wkr.Type {
 		for _, v := range typee.Fields {
 			fields[v.Name.Lexeme] = &wkr.VariableVal{
 				Name:  v.Name.Lexeme,
-				Value: w.TypeToValue(TypeExpr(w, v.Type)),
+				Value: w.TypeToValue(TypeExpr(w, v.Type, env)),
 				Token: v.Name,
 			}
 		}
@@ -376,12 +389,12 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr) wkr.Type {
 		params := wkr.Types{}
 
 		for _, v := range typee.Params {
-			params = append(params, TypeExpr(w, v))
+			params = append(params, TypeExpr(w, v, env))
 		}
 
 		returns := wkr.Types{}
 		for _, v := range typee.Returns {
-			returns = append(returns, TypeExpr(w, v))
+			returns = append(returns, TypeExpr(w, v, env))
 		}
 
 		return &wkr.FunctionType{
@@ -389,10 +402,10 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr) wkr.Type {
 			Returns: returns,
 		}
 	default:
-		if structVal, found := w.Environment.Structs[typee.Name.GetToken().Lexeme]; found {
+		if structVal, found := env.Structs[typee.Name.GetToken().Lexeme]; found {
 			return structVal.GetType()
 		}
-		if val := w.Environment.Scope.GetVariable(typee.Name.GetToken().Lexeme); val != nil {
+		if val := env.Scope.GetVariable(typee.Name.GetToken().Lexeme); val != nil {
 			if val.GetType().PVT() == ast.Enum {
 				return val.GetType()
 			}

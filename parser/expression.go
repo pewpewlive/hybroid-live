@@ -102,10 +102,10 @@ func (p *Parser) unary() ast.Node {
 		right := p.unary()
 		return &ast.UnaryExpr{Operator: operator, Value: right}
 	}
-	return p.envAccessExpr(false)
+	return p.envAccessExpr()
 }
 
-func (p *Parser) envAccessExpr(pathOnly bool) ast.Node {
+func (p *Parser) envAccessExpr() ast.Node {
 	expr := p.accessorExprDepth2(nil, nil, ast.NA)
 
 	if p.match(lexer.DoubleColon) {
@@ -129,10 +129,6 @@ func (p *Parser) envAccessExpr(pathOnly bool) ast.Node {
 				return &ast.Improper{Token: next.GetToken()}
 			}
 			next = p.accessorExprDepth2(nil, nil, ast.NA)
-			if pathOnly && next.GetType() != ast.Identifier {
-				p.error(next.GetToken(), "expected identifier in environment expression")
-				return &ast.Improper{Token: next.GetToken()}
-			}
 		}
 		envExpr.Accessed = next
 
@@ -547,10 +543,14 @@ func (p *Parser) WrappedType() *ast.TypeExpr {
 }
 
 func (p *Parser) Type() *ast.TypeExpr {
-	expr := p.envAccessExpr(false)
+	expr := p.envAccessExpr()
 	exprToken := expr.GetToken()
 
 	if expr.GetType() == ast.EnvironmentAccessExpression {
+		envAccess := expr.(*ast.EnvAccessExpr)
+		if envAccess.Accessed.GetType() != ast.Identifier {
+			p.error(envAccess.Accessed.GetToken(), "accessed type must be an identifier")
+		}
 		return &ast.TypeExpr{Name: expr}
 	}
 

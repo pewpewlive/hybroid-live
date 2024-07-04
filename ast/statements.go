@@ -408,7 +408,7 @@ func (rs *RemoveStmt) GetValueType() PrimitiveValueType {
 }
 
 type UseStmt struct {
-	Path     EnvPathExpr
+	Path     *EnvPathExpr
 }
 
 func (us *UseStmt) GetToken() lexer.Token {
