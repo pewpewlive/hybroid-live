@@ -1,11 +1,9 @@
 package pass2
 
 import (
-	"fmt"
 	"hybroid/ast"
 	"hybroid/walker"
 	wkr "hybroid/walker"
-	"strings"
 )
 
 func Action(w *walker.Walker, wlkrs *map[string]*walker.Walker) []ast.Node {
@@ -26,16 +24,7 @@ func Action(w *walker.Walker, wlkrs *map[string]*walker.Walker) []ast.Node {
 func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 	switch newNode := (*node).(type) {
 	case *ast.EnvironmentStmt:
-		if w.Environment.Name != "" {
-			w.Error(newNode.GetToken(), "cannot have 2 environment declaration statements in one file")
-		}
-
-		w.Environment.Name = strings.Join(newNode.Env.SubPaths, "::")
-		for k, v := range (*w.Walkers) {
-			if k == w.Environment.Name {
-				w.Error(newNode.GetToken(), fmt.Sprintf("duplicate names found between %s and %s", w.Environment.Path, v.Environment.Path))
-			}
-		}
+		
 	case *ast.VariableDeclarationStmt:
 		VariableDeclarationStmt(w, newNode, scope)
 	case *ast.IfStmt:
@@ -64,8 +53,13 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 		MethodCallExpr(w, node, scope)
 	case *ast.StructDeclarationStmt:
 		StructDeclarationStmt(w, newNode, scope)
+	case *ast.EnumDeclarationStmt:
+		EnumDeclarationStmt(w, newNode, scope)
 	case *ast.MatchStmt:
 		MatchStmt(w, newNode, false, scope)
+	case *ast.AssignmentStmt:
+		AssignmentStmt(w, newNode, scope)
+	case *ast.UseStmt:
 	case *ast.Improper:
 		w.Error(newNode.GetToken(), "Improper statement: parser fault")
 	default:
@@ -118,26 +112,26 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 	return val
 }
 
-// func WalkBody(w *walker.Walker, body *[]ast.Node, scope *walker.Scope) {
-// 	for i := range *body {
-// 		WalkNode(w, &(*body)[i], scope)
-// 	}
-// }
-
-func WalkBody(w *wkr.Walker, body *[]ast.Node, tag wkr.ExitableTag, scope *wkr.Scope) {
-	endIndex := -1
+func WalkBody(w *walker.Walker, body *[]ast.Node, scope *walker.Scope) {
 	for i := range *body {
-		if tag.GetIfExits(wkr.All) {
-			w.Warn((*body)[i].GetToken(), "unreachable code detected")
-			endIndex = i
-			break
-		}
 		WalkNode(w, &(*body)[i], scope)
 	}
-	if endIndex != -1 {
-		*body = (*body)[:endIndex]
-	}
 }
+
+// func WalkBody(w *wkr.Walker, body *[]ast.Node, tag wkr.ExitableTag, scope *wkr.Scope) {
+// 	endIndex := -1
+// 	for i := range *body {
+// 		if tag.GetIfExits(wkr.All) {
+// 			w.Warn((*body)[i].GetToken(), "unreachable code detected")
+// 			endIndex = i
+// 			break
+// 		}
+// 		WalkNode(w, &(*body)[i], scope)
+// 	}
+// 	if endIndex != -1 {
+// 		*body = (*body)[:endIndex]
+// 	}
+// }
 
 
 func TypeifyNodeList(w *wkr.Walker, nodes *[]ast.Node, scope *wkr.Scope) []wkr.Type {

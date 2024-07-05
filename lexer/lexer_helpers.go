@@ -41,7 +41,7 @@ func (l *Lexer) isAtEndNext() bool {
 
 func (l *Lexer) addToken(token TokenType, literal string) {
 	text := string(l.source)[l.start:l.current]
-	l.Tokens = append(l.Tokens, Token{token, text, literal, TokenLocation{LineStart: l.line, LineEnd: l.line, ColStart: l.columnStart + 1, ColEnd: l.columnCurrent + 1}})
+	l.Tokens = append(l.Tokens, Token{Type: token, Lexeme: text, Literal: literal, Location: TokenLocation{LineStart: l.line, LineEnd: l.line, ColStart: l.columnStart + 1, ColEnd: l.columnCurrent + 1}})
 }
 
 func (l *Lexer) matchChar(expected byte) bool {

@@ -10,23 +10,15 @@ import (
 )
 
 func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope *wkr.Scope) {
-	structVal := &wkr.StructVal{
-		Type:    *wkr.NewNamedType(node.Name.Lexeme),
-		IsLocal: node.IsLocal,
-		Fields:  make([]*wkr.VariableVal, 0),
-		Methods: map[string]*wkr.VariableVal{},
-		Params:  wkr.Types{},
-	}
+	structScope := scope.AccessChild()
 
-	structScope := wkr.NewScope(scope, &wkr.StructTag{StructVal: structVal}, wkr.SelfAllowing)
+	structVal := scope.Tag.(*wkr.StructTag).StructVal
 
 	params := make([]wkr.Type, 0)
 	for _, param := range node.Constructor.Params {
 		params = append(params, TypeExpr(w, param.Type, w.Environment))
 	}
 	structVal.Params = params
-
-	w.DeclareStruct(structVal)
 
 	funcDeclaration := ast.MethodDeclarationStmt{
 		Name:    node.Constructor.Token,
@@ -57,8 +49,7 @@ func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope
 			IsLocal: node.IsLocal,
 			Token:   (*node.Methods)[i].GetToken(),
 		}
-		w.DeclareVariable(structScope, variable, (*node.Methods)[i].Name)
-		structVal.Methods[variable.Name] = variable
+		*structScope.GetVariable(variable.Name) = *variable
 	}
 
 	for i := range *node.Methods {
@@ -224,42 +215,19 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 			continue
 		}
 
-		valType := values[i].GetType()
-
-		if declaration.Types[i] != nil {
-			explicitType := TypeExpr(w, declaration.Types[i], w.Environment)
-			if valType == wkr.InvalidType && explicitType != wkr.InvalidType {
-				values[i] = w.TypeToValue(explicitType)
-				declaration.Values = append(declaration.Values, values[i].GetDefault())
-			} else if !wkr.TypeEquals(valType, explicitType) {
-				w.Error(declaration.Token, fmt.Sprintf("mismatched types: value type (%s) not the same with explict type (%s)",
-					valType.ToString(),
-					explicitType.ToString()))
-			}
-		}
-
-		variable := &wkr.VariableVal{
-			Value:   values[i],
-			Name:    ident.Lexeme,
-			IsLocal: declaration.IsLocal,
-			Token:   ident,
-		}
-		declaredVariables = append(declaredVariables, variable)
-		w.DeclareVariable(scope, variable, lexer.Token{Lexeme: ident.Lexeme, Location: declaration.Token.Location})
+		scope.GetVariable(ident.Lexeme).Value = values[i]
 	}
 
 	return declaredVariables
 }
 func IfStmt(w *wkr.Walker, node *ast.IfStmt, scope *wkr.Scope) {
-	length := len(node.Elseifs) + 2
-	mpt := wkr.NewMultiPathTag(length, scope.Attributes...)
-	multiPathScope := wkr.NewScope(scope, mpt)
+	multiPathScope := scope.AccessChild()
 	ifScope := wkr.NewScope(multiPathScope, &wkr.UntaggedTag{})
 	boolExpr := GetNodeValue(w, &node.BoolExpr, scope)
 	if boolExpr.GetType().PVT() != ast.Bool {
 		w.Error(node.BoolExpr.GetToken(), "if condition is not a comparison")
 	}
-	WalkBody(w, &node.Body, mpt, ifScope)
+	WalkBody(w, &node.Body, ifScope)
 
 	for i := range node.Elseifs {
 		boolExpr := GetNodeValue(w, &node.Elseifs[i].BoolExpr, scope)
@@ -267,26 +235,13 @@ func IfStmt(w *wkr.Walker, node *ast.IfStmt, scope *wkr.Scope) {
 			w.Error(node.Elseifs[i].BoolExpr.GetToken(), "if condition is not a comparison")
 		}
 		ifScope := wkr.NewScope(multiPathScope, &wkr.UntaggedTag{})
-		WalkBody(w, &node.Elseifs[i].Body, mpt, ifScope)
+		WalkBody(w, &node.Elseifs[i].Body, ifScope)
 	}
 
 	if node.Else != nil {
 		elseScope := wkr.NewScope(multiPathScope, &wkr.UntaggedTag{})
-		WalkBody(w, &node.Else.Body, mpt, elseScope)
+		WalkBody(w, &node.Else.Body, elseScope)
 	}
-
-	returnabl := scope.ResolveReturnable()
-
-	if returnabl == nil {
-		return
-	}
-	returnable := *returnabl
-
-	returnable.SetExit(mpt.GetIfExits(wkr.Return), wkr.Return)
-	returnable.SetExit(mpt.GetIfExits(wkr.Yield), wkr.Yield)
-	returnable.SetExit(mpt.GetIfExits(wkr.Break), wkr.Break)
-	returnable.SetExit(mpt.GetIfExits(wkr.Continue), wkr.Continue)
-	returnable.SetExit(mpt.GetIfExits(wkr.All), wkr.All)
 }
 
 func AssignmentStmt(w *wkr.Walker, assignStmt *ast.AssignmentStmt, scope *wkr.Scope) {
@@ -369,7 +324,7 @@ func RepeatStmt(w *wkr.Walker, node *ast.RepeatStmt, scope *wkr.Scope) {
 		w.Error(node.Start.GetToken(), fmt.Sprintf("all value types must be the same (iter:%s, start:%s, by:%s)", repeatType, startType, skipType))
 	}
 
-	WalkBody(w, &node.Body, lt, repeatScope)
+	WalkBody(w, &node.Body, repeatScope)
 
 	w.ReportExits(lt, scope)
 }
@@ -381,7 +336,7 @@ func WhileStmt(w *wkr.Walker, node *ast.WhileStmt, scope *wkr.Scope) {
 
 	_ = GetNodeValue(w, &node.Condtion, scope)
 
-	WalkBody(w, &node.Body, lt, whileScope)
+	WalkBody(w, &node.Body, whileScope)
 }
 
 func ForloopStmt(w *wkr.Walker, node *ast.ForStmt, scope *wkr.Scope) {
@@ -404,7 +359,7 @@ func ForloopStmt(w *wkr.Walker, node *ast.ForStmt, scope *wkr.Scope) {
 			node.KeyValuePair[1].Name)
 	}
 
-	WalkBody(w, &node.Body, lt, forScope)
+	WalkBody(w, &node.Body, forScope)
 
 	w.ReportExits(lt, scope)
 }
@@ -418,7 +373,7 @@ func TickStmt(w *wkr.Walker, node *ast.TickStmt, scope *wkr.Scope) {
 		w.DeclareVariable(tickScope, &wkr.VariableVal{Name: node.Variable.Name.Lexeme, Value: &wkr.NumberVal{}}, node.Token)
 	}
 
-	WalkBody(w, &node.Body, funcTag, tickScope)
+	WalkBody(w, &node.Body, tickScope)
 }
 
 func MatchStmt(w *wkr.Walker, node *ast.MatchStmt, isExpr bool, scope *wkr.Scope) {
@@ -439,7 +394,7 @@ func MatchStmt(w *wkr.Walker, node *ast.MatchStmt, isExpr bool, scope *wkr.Scope
 		caseScope := wkr.NewScope(multiPathScope, &wkr.UntaggedTag{})
 
 		if !isExpr {
-			WalkBody(w, &node.Cases[i].Body, mpt, caseScope)
+			WalkBody(w, &node.Cases[i].Body, caseScope)
 		}
 
 		if node.Cases[i].Expression.GetToken().Lexeme == "_" {

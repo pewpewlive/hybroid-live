@@ -152,7 +152,6 @@ func (t Token) ToString() string {
 }
 
 func KeywordToToken(keyword string) (TokenType, bool) {
-	token := TokenType(keyword)
-
-	return token, string(token) == keyword
+	v, found := keywords[keyword]
+	return v, found
 }

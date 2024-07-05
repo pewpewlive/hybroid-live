@@ -78,6 +78,10 @@ func (w *Walker) AddError(err ast.Error) {
 func (s *Scope) GetVariable(name string) *VariableVal {
 	variable := s.Variables[name]
 
+	if variable == nil {
+		return nil
+	}
+
 	variable.IsUsed = true
 
 	s.Variables[name] = variable

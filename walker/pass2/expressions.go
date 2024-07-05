@@ -28,7 +28,7 @@ func AnonFnExpr(w *wkr.Walker, fn *ast.AnonFnExpr, scope *wkr.Scope) wkr.Value {
 	funcTag :=  &wkr.FuncTag{ReturnTypes: returnTypes}
 	fnScope := wkr.NewScope(scope, funcTag, wkr.ReturnAllowing)
 
-	WalkBody(w, &fn.Body, funcTag, fnScope)
+	WalkBody(w, &fn.Body, fnScope)
 
 	return &funcTag.ReturnTypes
 }
@@ -40,7 +40,7 @@ func MatchExpr(w *wkr.Walker, node *ast.MatchExpr, scope *wkr.Scope) wkr.Value {
 
 	for i := range node.MatchStmt.Cases {
 		caseScope := wkr.NewScope(matchScope, mpt)
-		WalkBody(w, &node.MatchStmt.Cases[i].Body, mpt, caseScope)
+		WalkBody(w, &node.MatchStmt.Cases[i].Body, caseScope)
 	}
 
 	return mtt.YieldValues

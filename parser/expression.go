@@ -365,38 +365,41 @@ func (p *Parser) primary() ast.Node {
 	if p.match(lexer.Number, lexer.Fixed, lexer.FixedPoint, lexer.Degree, lexer.Radian, lexer.String) {
 		literal := p.peek(-1)
 		var valueType ast.PrimitiveValueType
-		envType := p.program[0].(*ast.EnvironmentStmt).EnvType.Type
-		allowFX := envType == ast.Level || envType == ast.Shared
-
-		switch literal.Type {
-		case lexer.Number:
-			if allowFX && strings.ContainsRune(literal.Lexeme, '.') {
-				p.error(literal, "cannot have a float in a level or shared environment")
+		env, ok := p.program[0].(*ast.EnvironmentStmt)
+		if ok {
+			envType := env.EnvType.Type
+			allowFX := envType == ast.Level || envType == ast.Shared
+			switch literal.Type {
+			case lexer.Number:
+				if allowFX && strings.ContainsRune(literal.Lexeme, '.') {
+					p.error(literal, "cannot have a float in a level or shared environment")
+				}
+				valueType = ast.Number
+			case lexer.Fixed:
+				if !allowFX {
+					p.error(literal, "cannot have a fixed in a mesh, sound or luageneric environment")
+				}
+				valueType = ast.Fixed
+			case lexer.FixedPoint:
+				if !allowFX {
+					p.error(literal, "cannot have a fixedpoint in a mesh, sound or luageneric environment")
+				}
+				valueType = ast.FixedPoint
+			case lexer.Degree:
+				if !allowFX {
+					p.error(literal, "cannot have a degree, sound or luageneric environment")
+				}
+				valueType = ast.Degree
+			case lexer.Radian:
+				if !allowFX {
+					p.error(literal, "cannot have a radian in a mesh, sound or luageneric environment")
+				}
+				valueType = ast.Radian
+			case lexer.String:
+				valueType = ast.String
 			}
-			valueType = ast.Number
-		case lexer.Fixed:
-			if !allowFX {
-				p.error(literal, "cannot have a fixed in a mesh, sound or luageneric environment")
-			}
-			valueType = ast.Fixed
-		case lexer.FixedPoint:
-			if !allowFX {
-				p.error(literal, "cannot have a fixedpoint in a mesh, sound or luageneric environment")
-			}
-			valueType = ast.FixedPoint
-		case lexer.Degree:
-			if !allowFX {
-				p.error(literal, "cannot have a degree, sound or luageneric environment")
-			}
-			valueType = ast.Degree
-		case lexer.Radian:
-			if !allowFX {
-				p.error(literal, "cannot have a radian in a mesh, sound or luageneric environment")
-			}
-			valueType = ast.Radian
-		case lexer.String:
-			valueType = ast.String
 		}
+
 		return &ast.LiteralExpr{Value: literal.Literal, ValueType: valueType, Token: literal}
 	}
 
@@ -645,6 +648,9 @@ func (p *Parser) EnvPathExpr() ast.Node {
 
 	for p.match(lexer.DoubleColon) {
 		ident, ok = p.consume("expected identifier in environment path", lexer.Identifier)
+		if !ok {
+			return &ast.Improper{Token:ident}
+		}
 		envPath.SubPaths = append(envPath.SubPaths, ident.Lexeme)
 	}
 

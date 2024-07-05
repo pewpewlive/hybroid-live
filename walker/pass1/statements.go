@@ -1,7 +1,6 @@
 package pass1
 
 import (
-	"fmt"
 	"hybroid/ast"
 	"hybroid/lexer"
 	wkr "hybroid/walker"
@@ -336,35 +335,35 @@ func RepeatStmt(w *wkr.Walker, node *ast.RepeatStmt, scope *wkr.Scope) {
 	repeatScope := wkr.NewScope(scope, &wkr.MultiPathTag{}, wkr.BreakAllowing, wkr.ContinueAllowing)
 	lt := wkr.NewMultiPathTag(1, repeatScope.Attributes...)
 
-	end := GetNodeValue(w, &node.Iterator, scope)
-	endType := end.GetType()
-	/*if !parser.IsFx(endType.PVT()) && endType.PVT() != ast.Number {
-		w.Error(node.Iterator.GetToken(), "invalid value type of iterator")
-	} else*/ if variable, ok := end.(*wkr.VariableVal); ok {
-		if fixedpoint, ok := variable.Value.(*wkr.FixedVal); ok {
-			endType = wkr.NewBasicType(fixedpoint.SpecificType)
-		}
-	} else {
-		if fixedpoint, ok := end.(*wkr.FixedVal); ok {
-			endType = wkr.NewBasicType(fixedpoint.SpecificType)
-		}
-	}
-	if node.Start.GetType() == ast.NA {
-		node.Start = &ast.LiteralExpr{Token: node.Start.GetToken(), ValueType: endType.PVT(), Value: "1"}
-	}
-	start := GetNodeValue(w, &node.Start, scope)
-	if node.Skip.GetType() == ast.NA {
-		node.Skip = &ast.LiteralExpr{Token: node.Skip.GetToken(), ValueType: endType.PVT(), Value: "1"}
-	}
-	skip := GetNodeValue(w, &node.Skip, scope)
+	// end := GetNodeValue(w, &node.Iterator, scope)
+	// endType := end.GetType()
+	// /*if !parser.IsFx(endType.PVT()) && endType.PVT() != ast.Number {
+	// 	w.Error(node.Iterator.GetToken(), "invalid value type of iterator")
+	// } else*/ if variable, ok := end.(*wkr.VariableVal); ok {
+	// 	if fixedpoint, ok := variable.Value.(*wkr.FixedVal); ok {
+	// 		endType = wkr.NewBasicType(fixedpoint.SpecificType)
+	// 	}
+	// } else {
+	// 	if fixedpoint, ok := end.(*wkr.FixedVal); ok {
+	// 		endType = wkr.NewBasicType(fixedpoint.SpecificType)
+	// 	}
+	// }
+	// if node.Start.GetType() == ast.NA {
+	// 	node.Start = &ast.LiteralExpr{Token: node.Start.GetToken(), ValueType: endType.PVT(), Value: "1"}
+	// }
+	// start := GetNodeValue(w, &node.Start, scope)
+	// if node.Skip.GetType() == ast.NA {
+	// 	node.Skip = &ast.LiteralExpr{Token: node.Skip.GetToken(), ValueType: endType.PVT(), Value: "1"}
+	// }
+	// skip := GetNodeValue(w, &node.Skip, scope)
 
-	repeatType := end.GetType()
-	startType := start.GetType()
-	skipType := skip.GetType()
+	// repeatType := end.GetType()
+	// startType := start.GetType()
+	// skipType := skip.GetType()
 
-	if wkr.TypeEquals(repeatType, startType) && wkr.TypeEquals(startType, skipType) {
-		w.Error(node.Start.GetToken(), fmt.Sprintf("all value types must be the same (iter:%s, start:%s, by:%s)", repeatType, startType, skipType))
-	}
+	// if wkr.TypeEquals(repeatType, startType) && wkr.TypeEquals(startType, skipType) {
+	// 	w.Error(node.Start.GetToken(), fmt.Sprintf("all value types must be the same (iter:%s, start:%s, by:%s)", repeatType, startType, skipType))
+	// }
 
 	WalkBody(w, &node.Body, lt, repeatScope)
 

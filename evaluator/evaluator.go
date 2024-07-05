@@ -104,7 +104,7 @@ func (e *Evaluator) Action() error {
 
 	for i := range e.walkerList {
 		start := time.Now()
-		fmt.Println("[Pass 1] Walking through the nodes...")
+		fmt.Println("[Pass 2] Walking through the nodes...")
 
 		pass2.Action(&e.walkerList[i], &e.walkers)
 		if len(e.walkerList[i].Errors) != 0 {
