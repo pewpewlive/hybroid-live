@@ -8,14 +8,13 @@ import (
 	"strings"
 )
 
-func Action(w *walker.Walker, nodes *[]ast.Node, wlkrs *map[string]*walker.Walker) []ast.Node {
+func Action(w *walker.Walker, wlkrs *map[string]*walker.Walker) []ast.Node {
 	w.Walkers = wlkrs
-	w.Nodes = nodes
 
 	newNodes := make([]ast.Node, 0)
 
 	scope := &w.Environment.Scope
-	for _, node := range *nodes {
+	for _, node := range w.Nodes {
 		WalkNode(w, &node, scope)
 
 		newNodes = append(newNodes, node)

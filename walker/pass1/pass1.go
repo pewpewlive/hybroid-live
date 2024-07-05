@@ -8,20 +8,14 @@ import (
 	"strings"
 )
 
-func Action(w *walker.Walker, nodes *[]ast.Node, wlkrs *map[string]*walker.Walker) []ast.Node {
+func Action(w *walker.Walker, nodes []ast.Node, wlkrs *map[string]*walker.Walker) {
 	w.Walkers = wlkrs
 	w.Nodes = nodes
 
-	newNodes := make([]ast.Node, 0)
-
 	scope := &w.Environment.Scope
-	for _, node := range *nodes {
-		WalkNode(w, &node, scope)
-
-		newNodes = append(newNodes, node)
+	for i := range nodes {
+		WalkNode(w, &nodes[i], scope)
 	}
-
-	return newNodes
 }
 
 func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
@@ -37,6 +31,8 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 				w.Error(newNode.GetToken(), fmt.Sprintf("duplicate names found between %s and %s", w.Environment.Path, v.Environment.Path))
 			}
 		}
+
+		(*w.Walkers)[w.Environment.Name] = w
 	case *ast.VariableDeclarationStmt:
 		VariableDeclarationStmt(w, newNode, scope)
 	case *ast.IfStmt:

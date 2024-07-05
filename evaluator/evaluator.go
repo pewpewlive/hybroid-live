@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"hybroid/ast"
 	"hybroid/walker"
+	"hybroid/walker/pass1"
+	"hybroid/walker/pass2"
 	"strings"
 	"time"
 
@@ -15,33 +17,29 @@ import (
 	"github.com/mitchellh/colorstring"
 )
 
-type Path struct {
-	SrcPath string
-	DstPath string
-}
-
-func NewPath(srcPath, dstPath string) Path {
-	return Path{
-		SrcPath: srcPath,
-		DstPath: dstPath,
+func NewPath(srcPath, dstPath string) walker.Path {
+	return walker.Path{
+		Src: srcPath,
+		Dst: dstPath,
 	}
 }
 
 type Evaluator struct {
-	walkers *map[string]*walker.Walker
+	walkers map[string]*walker.Walker
+	walkerList []walker.Walker
 
 	// Toolset
 	lexer  *lexer.Lexer
 	parser *parser.Parser
-	walker *walker.Walker
 	gen    lua.Generator
 
-	Paths []Path
+	Paths []walker.Path
 }
 
-func NewEvaluator(gen lua.Generator, walkers *map[string]*walker.Walker) Evaluator {
+func NewEvaluator(gen lua.Generator) Evaluator {
 	return Evaluator{
-		walkers: walkers,
+		walkers: make(map[string]*walker.Walker),
+		walkerList: make([]walker.Walker, 0),
 		lexer:   lexer.NewLexer(),
 		parser:  parser.NewParser(),
 		gen:     gen,
@@ -50,78 +48,97 @@ func NewEvaluator(gen lua.Generator, walkers *map[string]*walker.Walker) Evaluat
 
 func (e *Evaluator) AssignFile(src string, dst string) {
 	e.Paths = append(e.Paths, NewPath(src, dst))
+	e.walkerList = append(e.walkerList, *walker.NewWalker(e.Paths[len(e.Paths)-1]))
 }
 
-func (e *Evaluator) Action(writeEnabled bool) (string, error) {
-	sourceFile, err := os.Open(e.SrcPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to read source file: %v", err)
+func (e *Evaluator) Action() error {
+	for i := range e.walkerList {
+		sourceFile, err := os.Open(e.Paths[i].Src)
+		if err != nil {
+			return fmt.Errorf("failed to read source file: %v", err)
+		}
+	
+		sourceFileStats, _ := sourceFile.Stat()
+		fmt.Printf("Tokenizing %v characters\n", sourceFileStats.Size())
+		start := time.Now()
+	
+		e.lexer.AssignReader(sourceFile)
+		e.lexer.Tokenize()
+		if len(e.lexer.Errors) != 0 {
+			fmt.Println("[red]Failed tokenizing:")
+			printAlerts(e.lexer.Errors)
+			return fmt.Errorf("failed to tokenize source file")
+		}
+	
+		fmt.Printf("Tokenizing time: %v seconds\n\n", time.Since(start).Seconds())
+		start = time.Now()
+
+		fmt.Printf("Parsing %v tokens\n", len(e.lexer.Tokens))
+
+		e.parser.AssignTokens(e.lexer.Tokens)
+		prog := e.parser.ParseTokens()
+		if len(e.parser.Errors) != 0 {
+			colorstring.Println("[red]Syntax error found:")
+			// for _, err := range e.parser.Errors {
+			// 	e.writeSyntaxAlert(string(sourceFile), err)
+			// 	colorstring.Printf("[red]Error: %+v\n", err)
+			// }
+			return fmt.Errorf("failed to parse source file")
+		}
+		fmt.Printf("Parsing time: %v seconds\n\n", time.Since(start).Seconds())
+
+		start = time.Now()
+		fmt.Println("[Pass 1] Walking through the nodes...")
+
+		pass1.Action(&e.walkerList[i], prog, &e.walkers)
+		if len(e.walkerList[i].Errors) != 0 {
+			colorstring.Println("[red]Failed pass 1:")
+			printAlerts(e.walkerList[i].Errors)
+			return fmt.Errorf("failed to walk through the nodes (Pass 1)")
+		}
+		if len(e.walkerList[i].Warnings) != 0 {
+			printAlerts(e.walkerList[i].Warnings)
+		}
+	
+		fmt.Printf("Pass 1 time: %v seconds\n\n", time.Since(start).Seconds())
 	}
 
-	sourceFileStats, _ := sourceFile.Stat()
-	fmt.Printf("Tokenizing %v characters\n", sourceFileStats.Size())
-	start := time.Now()
+	for i := range e.walkerList {
+		start := time.Now()
+		fmt.Println("[Pass 1] Walking through the nodes...")
 
-	e.lexer.AssignReader(sourceFile)
-	e.lexer.Tokenize()
-	if len(e.lexer.Errors) != 0 {
-		fmt.Println("[red]Failed tokenizing:")
-		printAlerts(e.lexer.Errors)
-		return "", fmt.Errorf("failed to tokenize source file")
+		pass2.Action(&e.walkerList[i], &e.walkers)
+		if len(e.walkerList[i].Errors) != 0 {
+			colorstring.Println("[red]Failed pass 2:")
+			printAlerts(e.walkerList[i].Errors)
+			return fmt.Errorf("failed to walk through the nodes (Pass 2)")
+		}
+		if len(e.walkerList[i].Warnings) != 0 {
+			printAlerts(e.walkerList[i].Warnings)
+		}
+	
+		fmt.Printf("Pass 2 time: %v seconds\n\n", time.Since(start).Seconds())
 	}
 
-	fmt.Printf("Tokenizing time: %v seconds\n\n", time.Since(start).Seconds())
-	start = time.Now()
+	for i := range e.walkerList {
+		start := time.Now()
+		fmt.Println("Generating the lua code...")
 
-	fmt.Printf("Parsing %v tokens\n", len(e.lexer.Tokens))
-
-	e.parser.AssignTokens(e.lexer.Tokens)
-	prog := e.parser.ParseTokens()
-	if len(e.parser.Errors) != 0 {
-		colorstring.Println("[red]Syntax error found:")
-		// for _, err := range e.parser.Errors {
-		// 	e.writeSyntaxAlert(string(sourceFile), err)
-		// 	//colorstring.Printf("[red]Error: %+v\n", err)
-		// }
-		return "", fmt.Errorf("failed to parse source file")
-	}
-	fmt.Printf("Parsing time: %v seconds\n\n", time.Since(start).Seconds())
-	start = time.Now()
-
-	fmt.Println("Walking through the nodes...")
-
-	prog = pass1.Action(e.walker, &prog, e.walkers)
-	if len(e.walker.Errors) != 0 {
-		colorstring.Println("[red]Failed walking:")
-		printAlerts(e.walker.Errors)
-		return "", fmt.Errorf("failed to walk through the nodes")
-	}
-	if len(e.walker.Warnings) != 0 {
-		printAlerts(e.walker.Warnings)
+		//e.gen.Scope.Src.Grow(len(sourceFile))
+		e.gen.Generate(e.walkerList[i].Nodes)
+		if len(e.gen.Errors) != 0 {
+			colorstring.Println("[red]Failed generating:")
+			printAlerts(e.gen.GetErrors())
+		}
+		fmt.Printf("Generating time: %v seconds\n", time.Since(start).Seconds())
+	
+		err := os.WriteFile(e.Paths[i].Dst, []byte(e.gen.GetSrc()), 0644)
+		if err != nil {
+			return fmt.Errorf("failed to write transpiled file to destination: %v", err)
+		}
 	}
 
-	fmt.Printf("Walking time: %v seconds\n\n", time.Since(start).Seconds())
-	start = time.Now()
-
-	fmt.Println("Generating the lua code...")
-
-	//e.gen.Scope.Src.Grow(len(sourceFile))
-	e.gen.Generate(prog)
-	if len(e.gen.Errors) != 0 {
-		colorstring.Println("[red]Failed generating:")
-		printAlerts(e.gen.GetErrors())
-	}
-	fmt.Printf("Generating time: %v seconds\n", time.Since(start).Seconds())
-
-	if !writeEnabled {
-		return e.gen.GetSrc(), nil
-	}
-	err = os.WriteFile(e.DstPath, []byte(e.gen.GetSrc()), 0644)
-	if err != nil {
-		return "", fmt.Errorf("failed to write transpiled file to destination: %v", err)
-	}
-
-	return e.gen.GetSrc(), nil
+	return nil
 }
 
 func printAlerts[T ast.Alert](errs []T) {
