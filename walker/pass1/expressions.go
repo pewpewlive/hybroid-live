@@ -8,12 +8,13 @@ import (
 )
 
 func AnonStructExpr(w *wkr.Walker, node *ast.AnonStructExpr, scope *wkr.Scope) *wkr.AnonStructVal {
+	anonStructScope := wkr.NewScope(scope, &wkr.UntaggedTag{})
 	structTypeVal := &wkr.AnonStructVal{
 		Fields: make(map[string]*wkr.VariableVal),
 	}
 
 	for i := range node.Fields {
-		FieldDeclarationStmt(w, node.Fields[i], structTypeVal, scope)
+		FieldDeclarationStmt(w, node.Fields[i], structTypeVal, anonStructScope)
 	}
 
 	return structTypeVal

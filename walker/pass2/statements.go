@@ -3,7 +3,6 @@ package pass2
 import (
 	"fmt"
 	"hybroid/ast"
-	"hybroid/lexer"
 	"hybroid/parser"
 	wkr "hybroid/walker"
 	"strings"
@@ -12,7 +11,7 @@ import (
 func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope *wkr.Scope) {
 	structScope := scope.AccessChild()
 
-	structVal := scope.Tag.(*wkr.StructTag).StructVal
+	structVal := structScope.Tag.(*wkr.StructTag).StructVal
 
 	params := make([]wkr.Type, 0)
 	for _, param := range node.Constructor.Params {
@@ -67,29 +66,34 @@ func FieldDeclarationStmt(w *wkr.Walker, node *ast.FieldDeclarationStmt, contain
 		IsLocal:     true,
 		Token:       node.Token,
 	}
-	structType := container.GetType()
-	if len(node.Types) != 0 {
-		for i := range node.Types {
-			explicitType := TypeExpr(w, node.Types[i], w.Environment)
-			if wkr.TypeEquals(explicitType, structType) {
-				w.Error(node.Types[i].GetToken(), "cannot have a field with a value type of its struct")
-				return
-			}
-		}
-	} else if len(node.Types) != 0 {
-		for i := range node.Values {
-			valType := GetNodeValue(w, &node.Values[i], scope).GetType()
-			if wkr.TypeEquals(valType, structType) {
-				w.Error(node.Types[i].GetToken(), "cannot have a field with a value type of its struct")
-				return
-			}
-		}
-	}
+	// structType := container.GetType()
+	// if len(node.Types) != 0 {
+	// 	for i := range node.Types {
+	// 		explicitType := TypeExpr(w, node.Types[i], w.Environment)
+	// 		if wkr.TypeEquals(explicitType, structType) {
+	// 			w.Error(node.Types[i].GetToken(), "cannot have a field with a value type of its struct")
+	// 			return
+	// 		}
+	// 	}
+	// } else if len(node.Types) != 0 {
+	// 	for i := range node.Values {
+	// 		valType := GetNodeValue(w, &node.Values[i], scope).GetType()
+	// 		if wkr.TypeEquals(valType, structType) {
+	// 			w.Error(node.Types[i].GetToken(), "cannot have a field with a value type of its struct")
+	// 			return
+	// 		}
+	// 	}
+	// }
 
 	variables := VariableDeclarationStmt(w, &varDecl, scope)
 	node.Values = varDecl.Values
 	for i := range variables {
-		container.AddField(variables[i])
+		variable, _, found:= container.ContainsField(variables[i].Name)
+		if found {
+			*variable = *variables[i]
+		}else {
+			container.AddField(variables[i])
+		}
 	}
 }
 
@@ -104,7 +108,8 @@ func MethodDeclarationStmt(w *wkr.Walker, node *ast.MethodDeclarationStmt, conta
 
 	variable := FunctionDeclarationStmt(w, &funcExpr, scope, wkr.Method)
 	node.Body = funcExpr.Body
-	container.AddMethod(variable)
+	method, _ := container.ContainsMethod(variable.Name)
+	*method = *variable
 }
 
 func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, scope *wkr.Scope, procType wkr.ProcedureType) *wkr.VariableVal {
@@ -112,19 +117,14 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, s
 	for _, typee := range node.Return {
 		ret = append(ret, TypeExpr(w, typee, w.Environment))
 	}
-	funcTag := &wkr.FuncTag{ReturnTypes: ret}
-	fnScope := wkr.NewScope(scope, funcTag, wkr.ReturnAllowing)
+	fnScope := scope.AccessChild()
+	funcTag := fnScope.Tag.(*wkr.FuncTag)
+	funcTag.ReturnTypes = ret
 
 	params := make([]wkr.Type, 0)
 	for i, param := range node.Params {
 		params = append(params, TypeExpr(w, param.Type, w.Environment))
-		value := w.TypeToValue(params[i])
-		w.DeclareVariable(fnScope, &wkr.VariableVal{
-			Name:    param.Name.Lexeme,
-			Value:   value,
-			IsLocal: node.IsLocal,
-			Token:   node.GetToken(),
-		}, node.Params[i].Name)
+		fnScope.GetVariable(param.Name.Lexeme).Value = w.TypeToValue(params[i])
 	}
 
 	variable := &wkr.VariableVal{
@@ -133,24 +133,15 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, s
 		Token: node.GetToken(),
 	}
 	if procType == wkr.Function {
-		w.DeclareVariable(scope, variable, node.Name)
-	}
-
-	if scope.Parent != nil && !node.IsLocal {
-		w.Error(node.GetToken(), "cannot declare a global function inside a local block")
+		*scope.GetVariable(variable.Name) = *variable
 	}
 
 	return variable
 }
 
 func EnumDeclarationStmt(w *wkr.Walker, node *ast.EnumDeclarationStmt, scope *wkr.Scope) {
-	enumVal := &wkr.EnumVal{
-		Type: wkr.NewEnumType(node.Name.Lexeme),
-	}
+	enumVal := scope.GetVariable(node.Name.Lexeme).Value.(*wkr.EnumVal)
 
-	if len(node.Fields) == 0 {
-		w.Error(node.GetToken(), "can't declare an enum with no fields")
-	}
 	for _, v := range node.Fields {
 		variable := &wkr.VariableVal{
 			Name:    v.Lexeme,
@@ -158,7 +149,8 @@ func EnumDeclarationStmt(w *wkr.Walker, node *ast.EnumDeclarationStmt, scope *wk
 			IsLocal: node.IsLocal,
 			IsConst: true,
 		}
-		enumVal.AddField(variable)
+		field, _, _ := enumVal.ContainsField(variable.Name)
+		*field = *variable
 	}
 
 	enumVar := &wkr.VariableVal{
@@ -168,11 +160,11 @@ func EnumDeclarationStmt(w *wkr.Walker, node *ast.EnumDeclarationStmt, scope *wk
 		IsConst: true,
 	}
 
-	w.DeclareVariable(scope, enumVar, node.GetToken())
+	*scope.GetVariable(enumVar.Name) = *enumVar
 }
 
 func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclarationStmt, scope *wkr.Scope) []*wkr.VariableVal {
-	declaredVariables := []*wkr.VariableVal{}
+	variables := []*wkr.VariableVal{}
 
 	idents := len(declaration.Identifiers)
 	values := make([]wkr.Value, idents)
@@ -184,7 +176,7 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 	valuesLength := len(declaration.Values)
 	if valuesLength > idents {
 		w.Error(declaration.Token, "too many values provided in declaration")
-		return declaredVariables
+		return variables
 	}
 
 	for i := range declaration.Values {
@@ -203,26 +195,20 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 		}
 	}
 
-	if !declaration.IsLocal {
-		w.Error(declaration.Token, "cannot declare a global variable inside a local block")
-	}
-	if declaration.Token.Type == lexer.Const && scope.Parent != nil {
-		w.Error(declaration.Token, "cannot declare a global constant inside a local block")
-	}
-
 	for i, ident := range declaration.Identifiers {
 		if ident.Lexeme == "_" {
 			continue
 		}
-
-		scope.GetVariable(ident.Lexeme).Value = values[i]
+		_var := scope.GetVariable(ident.Lexeme)
+		_var.Value = values[i]
+		variables = append(variables, _var)
 	}
 
-	return declaredVariables
+	return variables
 }
 func IfStmt(w *wkr.Walker, node *ast.IfStmt, scope *wkr.Scope) {
 	multiPathScope := scope.AccessChild()
-	ifScope := wkr.NewScope(multiPathScope, &wkr.UntaggedTag{})
+	ifScope := multiPathScope.AccessChild()
 	boolExpr := GetNodeValue(w, &node.BoolExpr, scope)
 	if boolExpr.GetType().PVT() != ast.Bool {
 		w.Error(node.BoolExpr.GetToken(), "if condition is not a comparison")
@@ -234,18 +220,17 @@ func IfStmt(w *wkr.Walker, node *ast.IfStmt, scope *wkr.Scope) {
 		if boolExpr.GetType().PVT() != ast.Bool {
 			w.Error(node.Elseifs[i].BoolExpr.GetToken(), "if condition is not a comparison")
 		}
-		ifScope := wkr.NewScope(multiPathScope, &wkr.UntaggedTag{})
+		ifScope := multiPathScope.AccessChild()
 		WalkBody(w, &node.Elseifs[i].Body, ifScope)
 	}
 
 	if node.Else != nil {
-		elseScope := wkr.NewScope(multiPathScope, &wkr.UntaggedTag{})
+		elseScope := multiPathScope.AccessChild()
 		WalkBody(w, &node.Else.Body, elseScope)
 	}
 }
 
 func AssignmentStmt(w *wkr.Walker, assignStmt *ast.AssignmentStmt, scope *wkr.Scope) {
-	hasFuncs := false
 
 	wIdents := []wkr.Value{}
 	for i := range assignStmt.Identifiers {
@@ -253,9 +238,6 @@ func AssignmentStmt(w *wkr.Walker, assignStmt *ast.AssignmentStmt, scope *wkr.Sc
 	}
 
 	for i := range assignStmt.Values {
-		if assignStmt.Values[i].GetType() == ast.CallExpression {
-			hasFuncs = true
-		}
 		value := GetNodeValue(w, &assignStmt.Values[i], scope)
 		if i > len(wIdents)-1 {
 			break
@@ -281,9 +263,7 @@ func AssignmentStmt(w *wkr.Walker, assignStmt *ast.AssignmentStmt, scope *wkr.Sc
 		}
 	}
 
-	if hasFuncs {
-		w.Error(assignStmt.GetToken(), "cannot have a function call in assignment")
-	} else if len(assignStmt.Values) < len(assignStmt.Identifiers) {
+	if len(assignStmt.Values) < len(assignStmt.Identifiers) {
 		w.Error(assignStmt.Values[len(assignStmt.Values)-1].GetToken(), "not enough values provided in assignment")
 	} else if len(assignStmt.Values) > len(assignStmt.Identifiers) {
 		w.Error(assignStmt.Values[len(assignStmt.Values)-1].GetToken(), "too many values provided in assignment")
@@ -291,8 +271,7 @@ func AssignmentStmt(w *wkr.Walker, assignStmt *ast.AssignmentStmt, scope *wkr.Sc
 }
 
 func RepeatStmt(w *wkr.Walker, node *ast.RepeatStmt, scope *wkr.Scope) {
-	repeatScope := wkr.NewScope(scope, &wkr.MultiPathTag{}, wkr.BreakAllowing, wkr.ContinueAllowing)
-	lt := wkr.NewMultiPathTag(1, repeatScope.Attributes...)
+	repeatScope := scope.AccessChild()
 
 	end := GetNodeValue(w, &node.Iterator, scope)
 	endType := end.GetType()
@@ -320,19 +299,15 @@ func RepeatStmt(w *wkr.Walker, node *ast.RepeatStmt, scope *wkr.Scope) {
 	startType := start.GetType()
 	skipType := skip.GetType()
 
-	if wkr.TypeEquals(repeatType, startType) && wkr.TypeEquals(startType, skipType) {
-		w.Error(node.Start.GetToken(), fmt.Sprintf("all value types must be the same (iter:%s, start:%s, by:%s)", repeatType, startType, skipType))
+	if !(wkr.TypeEquals(repeatType, startType) && wkr.TypeEquals(startType, skipType)) {
+		w.Error(node.Start.GetToken(), fmt.Sprintf("all value types must be the same (iter:%s, start:%s, by:%s)", repeatType.ToString(), startType.ToString(), skipType.ToString()))
 	}
 
 	WalkBody(w, &node.Body, repeatScope)
-
-	w.ReportExits(lt, scope)
 }
 
 func WhileStmt(w *wkr.Walker, node *ast.WhileStmt, scope *wkr.Scope) {
-	whileScope := wkr.NewScope(scope, &wkr.MultiPathTag{}, wkr.BreakAllowing, wkr.ContinueAllowing)
-	lt := wkr.NewMultiPathTag(1, whileScope.Attributes...)
-	whileScope.Tag = lt
+	whileScope := scope.AccessChild()
 
 	_ = GetNodeValue(w, &node.Condtion, scope)
 
@@ -340,13 +315,10 @@ func WhileStmt(w *wkr.Walker, node *ast.WhileStmt, scope *wkr.Scope) {
 }
 
 func ForloopStmt(w *wkr.Walker, node *ast.ForStmt, scope *wkr.Scope) {
-	forScope := wkr.NewScope(scope, &wkr.MultiPathTag{}, wkr.BreakAllowing, wkr.ContinueAllowing)
-	lt := wkr.NewMultiPathTag(1, forScope.Attributes...)
+	forScope := scope.AccessChild()
 
 	if len(node.KeyValuePair) != 0 {
-		w.DeclareVariable(forScope,
-			&wkr.VariableVal{Name: node.KeyValuePair[0].Name.Lexeme, Value: &wkr.NumberVal{}},
-			node.KeyValuePair[0].Name)
+		forScope.GetVariable(node.KeyValuePair[0].Name.Lexeme).Value = &wkr.NumberVal{}
 	}
 	valType := GetNodeValue(w, &node.Iterator, scope).GetType()
 	wrapper, ok := valType.(*wkr.WrapperType)
@@ -354,24 +326,14 @@ func ForloopStmt(w *wkr.Walker, node *ast.ForStmt, scope *wkr.Scope) {
 		w.Error(node.Iterator.GetToken(), "iterator must be of type map or list")
 	} else if len(node.KeyValuePair) == 2 {
 		node.OrderedIteration = wrapper.PVT() == ast.List
-		w.DeclareVariable(forScope,
-			&wkr.VariableVal{Name: node.KeyValuePair[1].Name.Lexeme, Value: w.TypeToValue(wrapper.WrappedType)},
-			node.KeyValuePair[1].Name)
+		forScope.GetVariable(node.KeyValuePair[1].Name.Lexeme).Value = w.TypeToValue(wrapper.WrappedType)
 	}
 
 	WalkBody(w, &node.Body, forScope)
-
-	w.ReportExits(lt, scope)
 }
 
 func TickStmt(w *wkr.Walker, node *ast.TickStmt, scope *wkr.Scope) {
-	funcTag := &wkr.FuncTag{ReturnTypes: wkr.EmptyReturn}
-	tickScope := wkr.NewScope(scope, funcTag, wkr.ReturnAllowing)
-	
-
-	if node.Variable.GetValueType() != ast.Unknown {
-		w.DeclareVariable(tickScope, &wkr.VariableVal{Name: node.Variable.Name.Lexeme, Value: &wkr.NumberVal{}}, node.Token)
-	}
+	tickScope := scope.AccessChild()
 
 	WalkBody(w, &node.Body, tickScope)
 }
@@ -382,23 +344,16 @@ func MatchStmt(w *wkr.Walker, node *ast.MatchStmt, isExpr bool, scope *wkr.Scope
 		w.Error(node.ExprToMatch.GetToken(), "variable is of type invalid")
 	}
 	valType := val.GetType()
-	casesLength := len(node.Cases) + 1
-	if node.HasDefault {
-		casesLength--
-	}
-	mpt := wkr.NewMultiPathTag(casesLength, scope.Attributes...)
-	multiPathScope := wkr.NewScope(scope, mpt)
+	multiPathScope := scope.AccessChild()
 
-	var has_default bool
 	for i := range node.Cases {
-		caseScope := wkr.NewScope(multiPathScope, &wkr.UntaggedTag{})
+		caseScope := multiPathScope.AccessChild()
 
 		if !isExpr {
 			WalkBody(w, &node.Cases[i].Body, caseScope)
 		}
 
 		if node.Cases[i].Expression.GetToken().Lexeme == "_" {
-			has_default = true
 			continue
 		}
 
@@ -411,41 +366,17 @@ func MatchStmt(w *wkr.Walker, node *ast.MatchStmt, isExpr bool, scope *wkr.Scope
 					valType.ToString()))
 		}
 	}
-
-	if has_default && len(node.Cases) == 1 {
-		w.Error(node.Cases[0].Expression.GetToken(), "cannot have a match statement/expression with one arm that is default")
-	}
-
-	if !has_default && isExpr {
-		w.Error(node.GetToken(), "match expression has no default arm")
-	}
-
-	if isExpr {
-		return
-	}
-
-	w.ReportExits(mpt, scope)
 }
 
 func BreakStmt(w *wkr.Walker, node *ast.BreakStmt, scope *wkr.Scope) {
 	if !scope.Is(wkr.BreakAllowing) {
 		w.Error(node.GetToken(), "cannot use break outside of loops")
 	}
-
-	if returnable := scope.ResolveReturnable(); returnable != nil {
-		(*returnable).SetExit(true, wkr.Break)
-		(*returnable).SetExit(true, wkr.All)
-	}
 }
 
 func ContinueStmt(w *wkr.Walker, node *ast.ContinueStmt, scope *wkr.Scope) {
 	if !scope.Is(wkr.ContinueAllowing) {
 		w.Error(node.GetToken(), "cannot use break outside of loops")
-	}
-
-	if returnable := scope.ResolveReturnable(); returnable != nil {
-		(*returnable).SetExit(true, wkr.Continue)
-		(*returnable).SetExit(true, wkr.All)
 	}
 }
 
@@ -467,11 +398,6 @@ func ReturnStmt(w *wkr.Walker, node *ast.ReturnStmt, scope *wkr.Scope) *wkr.Type
 	sc, _, funcTag := wkr.ResolveTagScope[*wkr.FuncTag](scope)
 	if sc == nil {
 		return &ret
-	}
-
-	if returnable := scope.ResolveReturnable(); returnable != nil {
-		(*returnable).SetExit(true, wkr.Return)
-		(*returnable).SetExit(true, wkr.All)
 	}
 
 	errorMsg := w.ValidateReturnValues(ret, (*funcTag).ReturnTypes)
@@ -514,11 +440,6 @@ func YieldStmt(w *wkr.Walker, node *ast.YieldStmt, scope *wkr.Scope) *wkr.Types 
 			errorMsg = strings.Replace(errorMsg, "return", "yield", -1)
 			w.Error(node.GetToken(), errorMsg)
 		}
-	}
-
-	if returnable := scope.ResolveReturnable(); returnable != nil {
-		(*returnable).SetExit(true, wkr.Yield)
-		(*returnable).SetExit(true, wkr.All)
 	}
 
 	return &ret

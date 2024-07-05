@@ -9,12 +9,13 @@ import (
 )
 
 func AnonStructExpr(w *wkr.Walker, node *ast.AnonStructExpr, scope *wkr.Scope) *wkr.AnonStructVal {
+	anonStructScope := scope.AccessChild()
 	structTypeVal := &wkr.AnonStructVal{
 		Fields: make(map[string]*wkr.VariableVal),
 	}
 
 	for i := range node.Fields {
-		FieldDeclarationStmt(w, node.Fields[i], structTypeVal, scope)
+		FieldDeclarationStmt(w, node.Fields[i], structTypeVal, anonStructScope)
 	}
 
 	return structTypeVal
@@ -25,25 +26,22 @@ func AnonFnExpr(w *wkr.Walker, fn *ast.AnonFnExpr, scope *wkr.Scope) wkr.Value {
 	for i := range fn.Return {
 		returnTypes =  append(returnTypes, TypeExpr(w, fn.Return[i], w.Environment))
 	}
-	funcTag :=  &wkr.FuncTag{ReturnTypes: returnTypes}
-	fnScope := wkr.NewScope(scope, funcTag, wkr.ReturnAllowing)
+	fnScope := scope.AccessChild()
 
 	WalkBody(w, &fn.Body, fnScope)
 
-	return &funcTag.ReturnTypes
+	return &fnScope.Tag.(*wkr.FuncTag).ReturnTypes
 }
 
 func MatchExpr(w *wkr.Walker, node *ast.MatchExpr, scope *wkr.Scope) wkr.Value {
-	mtt := &wkr.MatchExprTag{}
-	matchScope := wkr.NewScope(scope, mtt, wkr.YieldAllowing)
-	mpt := wkr.NewMultiPathTag(len(node.MatchStmt.Cases))
+	matchScope := scope.AccessChild()
 
 	for i := range node.MatchStmt.Cases {
-		caseScope := wkr.NewScope(matchScope, mpt)
+		caseScope := matchScope.AccessChild()
 		WalkBody(w, &node.MatchStmt.Cases[i].Body, caseScope)
 	}
 
-	return mtt.YieldValues
+	return matchScope.Tag.(*wkr.MatchExprTag).YieldValues
 }
 
 func BinaryExpr(w *wkr.Walker, node *ast.BinaryExpr, scope *wkr.Scope) wkr.Value {

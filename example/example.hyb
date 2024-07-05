@@ -106,6 +106,12 @@ enum TestEnum {
     NA
 }
 
+enum Error {
+  SyntaxError,
+  ParserError,
+  WalkerError
+}
+
 let error = Error.SyntaxError
 
 fn PrintError(Error error) text {

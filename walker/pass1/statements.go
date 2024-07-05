@@ -389,16 +389,11 @@ func ForloopStmt(w *wkr.Walker, node *ast.ForStmt, scope *wkr.Scope) {
 			&wkr.VariableVal{Name: node.KeyValuePair[0].Name.Lexeme, Value: &wkr.NumberVal{}},
 			node.KeyValuePair[0].Name)
 	}
-	// valType := GetNodeValue(w, &node.Iterator, scope).GetType()
-	// wrapper, ok := valType.(*wkr.WrapperType)
-	// if !ok {
-	// 	w.Error(node.Iterator.GetToken(), "iterator must be of type map or list")
-	// } else if len(node.KeyValuePair) == 2 {
-	// 	node.OrderedIteration = wrapper.PVT() == ast.List
-	// 	w.DeclareVariable(forScope,
-	// 		&wkr.VariableVal{Name: node.KeyValuePair[1].Name.Lexeme, Value: w.TypeToValue(wrapper.WrappedType)},
-	// 		node.KeyValuePair[1].Name)
-	// }
+	if len(node.KeyValuePair) == 2 {
+		w.DeclareVariable(forScope,
+			&wkr.VariableVal{Name: node.KeyValuePair[1].Name.Lexeme, Value: &wkr.Unknown{}},
+			node.KeyValuePair[1].Name)
+	}
 
 	WalkBody(w, &node.Body, lt, forScope)
 
