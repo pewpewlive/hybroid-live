@@ -25,7 +25,7 @@ func NewPath(srcPath, dstPath string) walker.Path {
 }
 
 type Evaluator struct {
-	walkers map[string]*walker.Walker
+	walkers    map[string]*walker.Walker
 	walkerList []walker.Walker
 
 	// Toolset
@@ -38,11 +38,11 @@ type Evaluator struct {
 
 func NewEvaluator(gen lua.Generator) Evaluator {
 	return Evaluator{
-		walkers: make(map[string]*walker.Walker),
+		walkers:    make(map[string]*walker.Walker),
 		walkerList: make([]walker.Walker, 0),
-		lexer:   lexer.NewLexer(),
-		parser:  parser.NewParser(),
-		gen:     gen,
+		lexer:      lexer.NewLexer(),
+		parser:     parser.NewParser(),
+		gen:        gen,
 	}
 }
 
@@ -53,23 +53,22 @@ func (e *Evaluator) AssignFile(src string, dst string) {
 
 func (e *Evaluator) Action() error {
 	for i := range e.walkerList {
-		sourceFile, err := os.Open(e.Paths[i].Src)
+		sourceFile, err := os.ReadFile(e.Paths[i].Src)
 		if err != nil {
 			return fmt.Errorf("failed to read source file: %v", err)
 		}
-	
-		sourceFileStats, _ := sourceFile.Stat()
-		fmt.Printf("Tokenizing %v characters\n", sourceFileStats.Size())
+
+		fmt.Printf("Tokenizing %v characters\n", len(sourceFile))
 		start := time.Now()
-	
-		e.lexer.AssignReader(sourceFile)
+
+		e.lexer.AssignSource(sourceFile)
 		e.lexer.Tokenize()
 		if len(e.lexer.Errors) != 0 {
 			fmt.Println("[red]Failed tokenizing:")
 			printAlerts(e.lexer.Errors)
 			return fmt.Errorf("failed to tokenize source file")
 		}
-	
+
 		fmt.Printf("Tokenizing time: %v seconds\n\n", time.Since(start).Seconds())
 		start = time.Now()
 
@@ -99,7 +98,7 @@ func (e *Evaluator) Action() error {
 		if len(e.walkerList[i].Warnings) != 0 {
 			printAlerts(e.walkerList[i].Warnings)
 		}
-	
+
 		fmt.Printf("Pass 1 time: %v seconds\n\n", time.Since(start).Seconds())
 	}
 
@@ -116,7 +115,7 @@ func (e *Evaluator) Action() error {
 		if len(e.walkerList[i].Warnings) != 0 {
 			printAlerts(e.walkerList[i].Warnings)
 		}
-	
+
 		fmt.Printf("Pass 2 time: %v seconds\n\n", time.Since(start).Seconds())
 	}
 
@@ -131,7 +130,7 @@ func (e *Evaluator) Action() error {
 			printAlerts(e.gen.GetErrors())
 		}
 		fmt.Printf("Generating time: %v seconds\n", time.Since(start).Seconds())
-	
+
 		err := os.WriteFile(e.Paths[i].Dst, []byte(e.gen.GetSrc()), 0644)
 		if err != nil {
 			return fmt.Errorf("failed to write transpiled file to destination: %v", err)

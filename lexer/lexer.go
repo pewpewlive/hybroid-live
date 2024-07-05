@@ -1,26 +1,23 @@
 package lexer
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 )
 
 type Lexer struct {
 	Tokens []Token
-	source *bufio.Scanner
+	source []byte
 	Errors []LexerError
 
 	start, current, line, columnStart, columnCurrent int
 }
 
 func NewLexer() *Lexer {
-	return &Lexer{make([]Token, 0), nil, make([]LexerError, 0), 0, 0, 1, 0, 0}
+	return &Lexer{make([]Token, 0), make([]byte, 0), make([]LexerError, 0), 0, 0, 1, 0, 0}
 }
 
-func (l *Lexer) AssignReader(r io.Reader) {
-	l.source = bufio.NewScanner(r)
-	l.source.Split(bufio.ScanBytes)
+func (l *Lexer) AssignSource(src []byte) {
+	l.source = src
 }
 
 func (l *Lexer) handleString() {
@@ -45,7 +42,7 @@ func (l *Lexer) handleString() {
 
 	l.advance()
 
-	value := l.source.Text()
+	value := string(l.source)[l.start+1 : l.current-1]
 	l.addToken(String, value)
 }
 
@@ -58,7 +55,7 @@ func (l *Lexer) handleNumber() {
 			l.advance()
 		}
 
-		l.addToken(Number, l.source.Text())
+		l.addToken(Number, string(l.source[l.start:l.current]))
 
 		return
 	}
@@ -77,7 +74,7 @@ func (l *Lexer) handleNumber() {
 
 	// Parse a number to see if its a valid number
 
-	strNum := l.source.Text()
+	strNum := string(l.source[l.start:l.current])
 	if !tryParseNum(strNum) {
 		l.lexerError(fmt.Sprintf("invalid number `%s`", strNum))
 		return
@@ -91,7 +88,7 @@ func (l *Lexer) handleNumber() {
 		l.advance()
 	}
 
-	postfix = l.source.Text()[postfixStart:l.current]
+	postfix = string(l.source[postfixStart:l.current])
 	switch postfix {
 
 	case "f":
@@ -114,7 +111,7 @@ func (l *Lexer) handleIdentifier() {
 		l.advance()
 	}
 
-	text := l.source.Text()[l.start:l.current]
+	text := string(l.source)[l.start:l.current]
 
 	val, ok := KeywordToToken(text)
 	if ok {

@@ -25,22 +25,22 @@ func (l *Lexer) lexerError(message string) {
 }
 
 func (l *Lexer) advance() byte {
-	t := l.source.Text()[l.current]
+	t := l.source[l.current]
 	l.current++
 	l.columnCurrent++
 	return t
 }
 
 func (l *Lexer) isAtEnd() bool {
-	return l.current >= len(l.source.Text())
+	return l.current >= len(l.source)
 }
 
 func (l *Lexer) isAtEndNext() bool {
-	return l.current+1 >= len(l.source.Text())
+	return l.current+1 >= len(l.source)
 }
 
 func (l *Lexer) addToken(token TokenType, literal string) {
-	text := l.source.Text()[l.start:l.current]
+	text := string(l.source)[l.start:l.current]
 	l.Tokens = append(l.Tokens, Token{token, text, literal, TokenLocation{LineStart: l.line, LineEnd: l.line, ColStart: l.columnStart + 1, ColEnd: l.columnCurrent + 1}})
 }
 
@@ -48,7 +48,7 @@ func (l *Lexer) matchChar(expected byte) bool {
 	if l.isAtEnd() {
 		return false
 	}
-	if l.source.Text()[l.current] != expected {
+	if l.source[l.current] != expected {
 		return false
 	}
 
@@ -62,7 +62,7 @@ func (l *Lexer) peek() byte {
 		return '\f'
 	}
 
-	return l.source.Text()[l.current]
+	return l.source[l.current]
 }
 
 func (l *Lexer) peekNext() byte {
@@ -70,7 +70,7 @@ func (l *Lexer) peekNext() byte {
 		return '0'
 	}
 
-	return l.source.Text()[l.current+1]
+	return l.source[l.current+1]
 }
 
 func isDigit(c byte) bool {
