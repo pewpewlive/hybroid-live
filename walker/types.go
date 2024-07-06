@@ -26,6 +26,7 @@ const (
 	Enum
 	Unresolved
 	NA
+	NotKnown
 )
 
 type FunctionType struct {

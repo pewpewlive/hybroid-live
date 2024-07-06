@@ -555,7 +555,7 @@ func (p *Parser) repeatStmt() ast.Node {
 			if identExpr.GetType() != ast.Identifier {
 				p.error(identExpr.GetToken(), "expected identifier expression after keyword 'with'")
 			} else {
-				repeatStmt.Variable = *identExpr.(*ast.IdentifierExpr)
+				repeatStmt.Variable = identExpr.(*ast.IdentifierExpr)
 			}
 		} else if p.match(lexer.To) {
 			if iteratorAssgined {

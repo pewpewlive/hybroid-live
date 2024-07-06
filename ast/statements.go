@@ -232,7 +232,7 @@ type RepeatStmt struct {
 	Iterator Node
 	Skip     Node
 	Start    Node
-	Variable IdentifierExpr
+	Variable *IdentifierExpr
 	Body     []Node
 	Token    lexer.Token
 }

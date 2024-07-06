@@ -5,6 +5,7 @@ import (
 	"hybroid/ast"
 	"hybroid/helpers"
 	"hybroid/lexer"
+	"hybroid/parser"
 )
 
 type Path struct {
@@ -210,7 +211,22 @@ func (w *Walker) ValidateArguments(args []Type, params []Type, callToken lexer.T
 	return -1, true
 }
 
-func (w *Walker) ValidateArithmeticOperands(left Type, right Type, expr ast.BinaryExpr) bool {
+func (w *Walker) DetermineValueType(left Type, right Type) Type {
+	if left.PVT() == ast.Unknown || right.PVT() == ast.Unknown {
+		return NAType
+	}
+	if TypeEquals(left, right) {
+		return right
+	}
+	if parser.IsFx(left.PVT()) && parser.IsFx(right.PVT()) {
+		return left
+	}
+
+	return InvalidType
+}
+
+
+func (w *Walker) ValidateArithmeticOperands(left Type, right Type, expr *ast.BinaryExpr) bool {
 	//fmt.Printf("Validating operands: %v (%v) and %v (%v)\n", left.Val, left.Type, right.Val, right.Type)
 	if left.PVT() == ast.Invalid {
 		w.Error(expr.Left.GetToken(), "cannot perform arithmetic on Invalid value")

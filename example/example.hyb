@@ -44,7 +44,7 @@ fn MatchShow(text test) text {
   }
 }
 
-MatchShow("Hello")
+MatchShow("Hello")//
 MatchShow("Hybroid")
 
 repeat 10 with i {

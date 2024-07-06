@@ -6,19 +6,13 @@ import (
 	wkr "hybroid/walker"
 )
 
-func Action(w *walker.Walker, wlkrs *map[string]*walker.Walker) []ast.Node {
+func Action(w *walker.Walker, wlkrs *map[string]*walker.Walker) {
 	w.Walkers = wlkrs
 
-	newNodes := make([]ast.Node, 0)
-
 	scope := &w.Environment.Scope
-	for _, node := range w.Nodes {
-		WalkNode(w, &node, scope)
-
-		newNodes = append(newNodes, node)
+	for i := range w.Nodes {
+		WalkNode(w, &w.Nodes[i], scope)
 	}
-
-	return newNodes
 }
 
 func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {

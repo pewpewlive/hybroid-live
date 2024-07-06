@@ -4,7 +4,6 @@ import (
 	"hybroid/ast"
 	"hybroid/lexer"
 	wkr "hybroid/walker"
-	"strings"
 )
 
 func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope *wkr.Scope) {
@@ -147,6 +146,8 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, s
 		w.Error(node.GetToken(), "cannot declare a global function inside a local block")
 	}
 
+	WalkBody(w, &node.Body, funcTag, fnScope)
+
 	return variable
 }
 
@@ -188,12 +189,6 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 		values[i] = &wkr.Invalid{}
 	}
 
-	// valuesLength := len(declaration.Values)
-	// if valuesLength > idents {
-	// 	w.Error(declaration.Token, "too many values provided in declaration")
-	// 	return declaredVariables
-	// }
-
 	for i := range declaration.Values {
 
 		exprValue := GetNodeValue(w, &declaration.Values[i], scope)
@@ -222,20 +217,6 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 			continue
 		}
 
-		valType := values[i].GetType()
-
-		if declaration.Types[i] != nil {
-			explicitType := TypeExpr(w, declaration.Types[i])
-			if valType == wkr.InvalidType && explicitType != wkr.InvalidType {
-				values[i] = w.TypeToValue(explicitType)
-				declaration.Values = append(declaration.Values, values[i].GetDefault())
-			} //else if !wkr.TypeEquals(valType, explicitType) {
-			// 	w.Error(declaration.Token, fmt.Sprintf("mismatched types: value type (%s) not the same with explict type (%s)",
-			// 		valType.ToString(),
-			// 		explicitType.ToString()))
-			// }
-		}
-
 		variable := &wkr.VariableVal{
 			Value:   values[i],
 			Name:    ident.Lexeme,
@@ -243,7 +224,7 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 			Token:   ident,
 		}
 		declaredVariables = append(declaredVariables, variable)
-		w.DeclareVariable(scope, variable, lexer.Token{Lexeme: ident.Lexeme, Location: declaration.Token.Location})
+		w.DeclareVariable(scope, variable, ident)
 	}
 
 	return declaredVariables
@@ -364,6 +345,10 @@ func RepeatStmt(w *wkr.Walker, node *ast.RepeatStmt, scope *wkr.Scope) {
 	// if wkr.TypeEquals(repeatType, startType) && wkr.TypeEquals(startType, skipType) {
 	// 	w.Error(node.Start.GetToken(), fmt.Sprintf("all value types must be the same (iter:%s, start:%s, by:%s)", repeatType, startType, skipType))
 	// }
+
+	if node.Variable != nil {
+		w.DeclareVariable(repeatScope, &wkr.VariableVal{Name: node.Variable.Name.Lexeme, Value: &wkr.Invalid{}, IsLocal: true}, node.Variable.Name)
+	}
 
 	WalkBody(w, &node.Body, lt, repeatScope)
 
@@ -500,7 +485,7 @@ func ReturnStmt(w *wkr.Walker, node *ast.ReturnStmt, scope *wkr.Scope) *wkr.Type
 			ret = append(ret, valType)
 		}
 	}
-	sc, _, funcTag := wkr.ResolveTagScope[*wkr.FuncTag](scope)
+	sc, _, _ := wkr.ResolveTagScope[*wkr.FuncTag](scope)
 	if sc == nil {
 		return &ret
 	}
@@ -508,11 +493,6 @@ func ReturnStmt(w *wkr.Walker, node *ast.ReturnStmt, scope *wkr.Scope) *wkr.Type
 	if returnable := scope.ResolveReturnable(); returnable != nil {
 		(*returnable).SetExit(true, wkr.Return)
 		(*returnable).SetExit(true, wkr.All)
-	}
-
-	errorMsg := w.ValidateReturnValues(ret, (*funcTag).ReturnTypes)
-	if errorMsg != "" {
-		w.Error(node.GetToken(), errorMsg)
 	}
 
 	return &ret
@@ -544,13 +524,7 @@ func YieldStmt(w *wkr.Walker, node *ast.YieldStmt, scope *wkr.Scope) *wkr.Types 
 
 	if matchExprTag.YieldValues == nil {
 		matchExprTag.YieldValues = &ret
-	} else {
-		errorMsg := w.ValidateReturnValues(ret, *matchExprTag.YieldValues)
-		if errorMsg != "" {
-			errorMsg = strings.Replace(errorMsg, "return", "yield", -1)
-			w.Error(node.GetToken(), errorMsg)
-		}
-	}
+	} 
 
 	if returnable := scope.ResolveReturnable(); returnable != nil {
 		(*returnable).SetExit(true, wkr.Yield)

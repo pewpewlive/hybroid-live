@@ -41,17 +41,35 @@ func MatchExpr(w *wkr.Walker, node *ast.MatchExpr, scope *wkr.Scope) wkr.Value {
 		WalkBody(w, &node.MatchStmt.Cases[i].Body, caseScope)
 	}
 
-	return matchScope.Tag.(*wkr.MatchExprTag).YieldValues
+	yieldValues := matchScope.Tag.(*wkr.MatchExprTag).YieldValues
+
+	node.ReturnAmount = len(*yieldValues)
+
+	return yieldValues
 }
 
 func BinaryExpr(w *wkr.Walker, node *ast.BinaryExpr, scope *wkr.Scope) wkr.Value {
+	left, right := GetNodeValue(w, &node.Left, scope), GetNodeValue(w, &node.Right, scope)
+	leftType, rightType := left.GetType(), right.GetType()
 	op := node.Operator
 	switch op.Type {
 	case lexer.Plus, lexer.Minus, lexer.Caret, lexer.Star, lexer.Slash, lexer.Modulo:
+		w.ValidateArithmeticOperands(leftType, rightType, node)
+		typ := w.DetermineValueType(leftType, rightType)
+
+		if typ.PVT() == ast.Invalid {
+			w.Error(node.GetToken(), fmt.Sprintf("invalid binary expression (left: %s, right: %s)",leftType.ToString(), rightType.ToString()))
+			return &wkr.Invalid{}
+		}
 		return &wkr.NumberVal{}
 	default:
+		if !wkr.TypeEquals(leftType, rightType) {
+			w.Error(node.GetToken(), fmt.Sprintf("invalid comparison: types are not the same (left: %s, right: %s)",leftType.ToString(), rightType.ToString()))
+			return &wkr.Invalid{}
+		} 
 		return &wkr.BoolVal{}
 	}
+	
 }
 
 func LiteralExpr(w *wkr.Walker, node *ast.LiteralExpr) wkr.Value {

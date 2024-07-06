@@ -90,7 +90,7 @@ func FieldDeclarationStmt(w *wkr.Walker, node *ast.FieldDeclarationStmt, contain
 	for i := range variables {
 		variable, _, found:= container.ContainsField(variables[i].Name)
 		if found {
-			*variable = *variables[i]
+			variable.Value = variables[i].Value
 		}else {
 			container.AddField(variables[i])
 		}
@@ -136,6 +136,8 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, s
 		*scope.GetVariable(variable.Name) = *variable
 	}
 
+	WalkBody(w, &node.Body, fnScope)
+
 	return variable
 }
 
@@ -170,7 +172,7 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 	values := make([]wkr.Value, idents)
 
 	for i := range values {
-		values[i] = &wkr.Invalid{}
+		values[i] = &wkr.Unknown{}
 	}
 
 	valuesLength := len(declaration.Values)
@@ -180,7 +182,6 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 	}
 
 	for i := range declaration.Values {
-
 		exprValue := GetNodeValue(w, &declaration.Values[i], scope)
 		if declaration.Values[i].GetType() == ast.SelfExpression {
 			w.Error(declaration.Values[i].GetToken(), "cannot assign self to a variable")
@@ -198,6 +199,10 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 	for i, ident := range declaration.Identifiers {
 		if ident.Lexeme == "_" {
 			continue
+		}
+		if declaration.Types[i] != nil && values[i].GetType().PVT() == ast.Unknown {
+			values[i] = w.TypeToValue(TypeExpr(w, declaration.Types[i], w.Environment))
+			declaration.Values = append(declaration.Values, values[i].GetDefault())
 		}
 		_var := scope.GetVariable(ident.Lexeme)
 		_var.Value = values[i]
@@ -301,6 +306,8 @@ func RepeatStmt(w *wkr.Walker, node *ast.RepeatStmt, scope *wkr.Scope) {
 
 	if !(wkr.TypeEquals(repeatType, startType) && wkr.TypeEquals(startType, skipType)) {
 		w.Error(node.Start.GetToken(), fmt.Sprintf("all value types must be the same (iter:%s, start:%s, by:%s)", repeatType.ToString(), startType.ToString(), skipType.ToString()))
+	}else {
+		repeatScope.GetVariable(node.Variable.Name.Lexeme).Value = w.TypeToValue(repeatType)
 	}
 
 	WalkBody(w, &node.Body, repeatScope)

@@ -174,19 +174,15 @@ func (gen *Generator) continueStmt(_ ast.ContinueStmt, scope *GenScope) {
 
 func (gen *Generator) repeatStmt(node ast.RepeatStmt, scope *GenScope) {
 	repeatScope := NewGenScope(scope)
-	repeatTabs := getTabs()
-
-	TabsCount += 1
-	//tabs := getTabs()
 
 	end := gen.GenerateExpr(node.Iterator, scope)
 	start := gen.GenerateExpr(node.Start, scope)
 	skip := gen.GenerateExpr(node.Skip, scope)
 	if node.Variable.GetValueType() != ast.Unknown {
-		variable := gen.GenerateExpr(&node.Variable, &repeatScope)
-		repeatScope.Append(repeatTabs, "for ", variable, " = ", start, ", ", end, ", ", skip, " do\n")
+		variable := gen.GenerateExpr(node.Variable, &repeatScope)
+		repeatScope.AppendTabbed("for ", variable, " = ", start, ", ", end, ", ", skip, " do\n")
 	} else {
-		repeatScope.Append(repeatTabs, "for _ = ", start, ", ", end, ", ", skip, " do\n")
+		repeatScope.AppendTabbed("for _ = ", start, ", ", end, ", ", skip, " do\n")
 	}
 
 	gotoLabel := GenerateVar(hyGTL)
@@ -198,13 +194,11 @@ func (gen *Generator) repeatStmt(node ast.RepeatStmt, scope *GenScope) {
 
 	repeatScope.ReplaceAll()
 
+	repeatScope.AppendETabbed("::" + gotoLabel + "::\n")
+
+	repeatScope.Append("end")
+
 	scope.Write(repeatScope.Src)
-
-	scope.AppendETabbed("::" + gotoLabel + "::\n")
-
-	TabsCount -= 1
-
-	scope.Append(repeatTabs, "end")
 }
 
 func (gen *Generator) whileStmt(node ast.WhileStmt, scope *GenScope) {
@@ -255,11 +249,12 @@ func (gen *Generator) forStmt(node ast.ForStmt, scope *GenScope) {
 
 	forScope.ReplaceAll()
 
+
+	forScope.AppendETabbed("::" + gotoLabel + "::\n")
+
+	forScope.AppendTabbed("end")
+
 	scope.Write(forScope.Src)
-
-	scope.AppendETabbed("::" + gotoLabel + "::\n")
-
-	scope.AppendTabbed("end")
 }
 
 func (gen *Generator) tickStmt(node ast.TickStmt, scope *GenScope) {
