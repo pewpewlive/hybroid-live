@@ -62,12 +62,11 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 	case *ast.StructDeclarationStmt:
 		StructDeclarationStmt(w, newNode, scope)
 	case *ast.MatchStmt:
-		MatchStmt(w, newNode, false, scope)
+		MatchStmt(w, newNode, scope)
 	case *ast.EnumDeclarationStmt:
 		EnumDeclarationStmt(w, newNode, scope)
 	case *ast.UseStmt:
 	case *ast.AssignmentStmt:
-		AssignmentStmt(w, newNode, scope)
 	default:
 		w.Error(newNode.GetToken(), "Expected statement")
 	}

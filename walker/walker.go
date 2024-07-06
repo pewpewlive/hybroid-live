@@ -363,7 +363,7 @@ func (w *Walker) ReportExits(sender ExitableTag, scope *Scope) {
 	receiver.SetExit(sender.GetIfExits(Return), Return)
 	receiver.SetExit(sender.GetIfExits(Break), Break)
 	receiver.SetExit(sender.GetIfExits(Continue), Continue)
-	receiver.SetExit(sender.GetIfExits(Yield), All)
+	receiver.SetExit(sender.GetIfExits(All), All)
 }
 
 type ProcedureType int

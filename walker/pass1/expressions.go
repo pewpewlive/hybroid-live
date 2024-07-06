@@ -35,8 +35,13 @@ func AnonFnExpr(w *wkr.Walker, fn *ast.AnonFnExpr, scope *wkr.Scope) wkr.Value {
 
 func MatchExpr(w *wkr.Walker, node *ast.MatchExpr, scope *wkr.Scope) wkr.Value {
 	mtt := &wkr.MatchExprTag{}
+
 	matchScope := wkr.NewScope(scope, mtt, wkr.YieldAllowing)
-	mpt := wkr.NewMultiPathTag(len(node.MatchStmt.Cases))
+	casesLength := len(node.MatchStmt.Cases) + 1
+	if node.MatchStmt.HasDefault {
+		casesLength--
+	}
+	mpt := wkr.NewMultiPathTag(casesLength)
 
 	for i := range node.MatchStmt.Cases {
 		caseScope := wkr.NewScope(matchScope, mpt)
