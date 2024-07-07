@@ -84,13 +84,25 @@ func (p *Parser) term() ast.Node {
 }
 
 func (p *Parser) factor() ast.Node {
-	expr := p.unary()
+	expr := p.concat()
 
 	if p.match(lexer.Star, lexer.Slash, lexer.Caret, lexer.Modulo) {
 		operator := p.peek(-1)
 		right := p.factor()
 
 		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: p.determineValueType(expr, right)}
+	}
+
+	return expr
+}
+
+func (p *Parser) concat() ast.Node {
+	expr := p.unary()
+
+	if p.match(lexer.Concat) {
+		operator := p.peek(-1)
+		right := p.concat()
+		return &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: p.determineValueType(expr, right)}
 	}
 
 	return expr
@@ -114,11 +126,9 @@ func (p *Parser) envAccessExpr() ast.Node {
 			return &ast.Improper{Token: expr.GetToken()}
 		}
 		envPath := &ast.EnvPathExpr{
-			SubPaths: make([]string, 0),
-		}
-
-		envExpr := &ast.EnvAccessExpr{
-			PathExpr: envPath,
+			SubPaths: []string{
+				expr.GetToken().Lexeme,
+			},
 		}
 
 		next := p.accessorExprDepth2(nil, nil, ast.NA)
@@ -129,6 +139,9 @@ func (p *Parser) envAccessExpr() ast.Node {
 				return &ast.Improper{Token: next.GetToken()}
 			}
 			next = p.accessorExprDepth2(nil, nil, ast.NA)
+		}
+		envExpr := &ast.EnvAccessExpr{
+			PathExpr: envPath,
 		}
 		envExpr.Accessed = next
 

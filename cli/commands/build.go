@@ -6,11 +6,86 @@ import (
 	"hybroid/evaluator"
 	"hybroid/generators/lua"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/pelletier/go-toml/v2"
 	"github.com/urfave/cli/v2"
 )
+
+// func GetDirFiles(cwd string, dir string) ([]FileInformation, error) {
+// 	dirEntries, err := os.ReadDir(cwd+dir)
+// 	files := make([]FileInformation, 0)
+
+// 	if err != nil { return files, err }
+
+// 	for _, dirEntry := range dirEntries {
+// 		info, err := dirEntry.Info()
+// 		if err != nil { return files, err }
+
+// 		if info.IsDir() {
+// 			//fmt.Println(cwd+info.Name())
+// 			subfiles, err := GetDirFiles(cwd, dir+info.Name())
+// 			if err != nil { return files, err }
+
+// 			files = append(files, subfiles...)
+// 		}else {
+// 			fmt.Printf("Dir: %s, Info: %s \n", dir, info.Name())
+// 			pathFile, err := filepath.Rel(cwd, cwd+"/"+dir+"/"+info.Name())
+// 			fmt.Println(pathFile)
+// 			if err != nil { return files, err }
+
+// 			ext := filepath.Ext(pathFile)
+// 			if ext != ".hyb" {
+// 				continue
+// 			}
+// 			files = append(files, FileInformation{
+// 				DirectoryPath: dir,
+// 				FileName: strings.Replace(info.Name(),".hyb", "", -1),
+// 				FileExtension: ext,
+// 			})
+// 		}
+// 	}
+
+// 	return files, nil
+// }
+
+func Accumulate(cwd string, dir string) ([]FileInformation, error) {
+	dirEntries, err := os.ReadDir(cwd+dir)
+	files := make([]FileInformation, 0)
+
+	if err != nil { return files, err }
+
+	for _, dirEntry := range dirEntries {
+		info, err := dirEntry.Info()
+		if err != nil { return files, err }
+
+		if info.IsDir() {
+			//fmt.Println(cwd+info.Name())
+			subfiles, err := GetDirFiles(cwd, dir+info.Name())
+			if err != nil { return files, err }
+
+			files = append(files, subfiles...)
+		}else {
+			fmt.Printf("Dir: %s, Info: %s \n", dir, info.Name())
+			pathFile, err := filepath.Rel(cwd, cwd+"/"+dir+"/"+info.Name())
+			fmt.Println(pathFile)
+			if err != nil { return files, err }
+
+			ext := filepath.Ext(pathFile)
+			if ext != ".hyb" {
+				continue
+			}
+			files = append(files, FileInformation{
+				DirectoryPath: dir,
+				FileName: strings.Replace(info.Name(),".hyb", "", -1),
+				FileExtension: ext,
+			})
+		}
+	}
+
+	return files, nil
+}
 
 func Build(ctx *cli.Context, files ...FileInformation) error {
 	cwd, err := os.Getwd()
@@ -52,19 +127,28 @@ func Build(ctx *cli.Context, files ...FileInformation) error {
 		os.WriteFile(cwd+outputDir+"/manifest.json", manifest, 0644)
 
 		eval := evaluator.NewEvaluator(lua.Generator{Scope: lua.GenScope{Src: lua.StringBuilder{}}})
-		var evalErr error = nil
+
 		if len(files) == 0 {
+			var filesErr error
+			files, filesErr = GetDirFiles(cwd, "")
+			if filesErr != nil {
+				err <- filesErr
+				return
+			}
+			fmt.Printf("Files:\n %v", files)
+		}
+
+		if len(files) == 0 {			
 			eval.AssignFile(cwd+entryPoint, cwd+outputDir+"/"+strings.Replace(entryPoint, ".hyb", ".lua", -1))
-			evalErr = eval.Action()
+			err <- eval.Action()
 		} else {
 			for _, file := range files {
-				sourceFilePath := file.Path()
-				outputFilePath := file.NewPath(outputDir, ".lua")
-				eval.AssignFile(cwd+sourceFilePath, cwd+outputFilePath)
+				sourceFilePath := cwd+file.Path()
+				outputFilePath := cwd+file.NewPath(outputDir, ".lua")
+				eval.AssignFile(sourceFilePath, outputFilePath)
 			}
-			evalErr = eval.Action()
+			err <- eval.Action()
 		}
-		err <- evalErr
 	}(evalError)
 	if err = <-evalError; err != nil {
 		return fmt.Errorf("failed evaluation: %v", err)

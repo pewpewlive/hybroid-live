@@ -1,4 +1,7 @@
-@Environment(Level)
+env Test as Shared
 
 let life = "Hybroid"
 Print("The meaning of life is " .. life) 
+// Print(String.Concat("bluah", life))
+
+pub a = 1

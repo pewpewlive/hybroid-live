@@ -1,5 +1,4 @@
 env HybroidLevel as Level
-
 // Hi!
 
 /*
@@ -131,3 +130,5 @@ fn PrintError(Error error) text {
 }
 
 PrintError(error)
+
+Test::a = 23232

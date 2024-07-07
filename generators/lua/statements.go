@@ -69,9 +69,9 @@ func (gen *Generator) functionDeclarationStmt(node ast.FunctionDeclarationStmt, 
 		fnScope.AppendTabbed()
 	}
 
-	fnScope.Append("function ", "V", node.Name.Lexeme, "(")
+	fnScope.Append("function ", gen.WriteVar(node.Name.Lexeme), "(")
 	for i, param := range node.Params {
-		fnScope.Append("V", param.Name.Lexeme)
+		fnScope.Append(gen.WriteVar(param.Name.Lexeme))
 		if i != len(node.Params)-1 {
 			fnScope.Append(", ")
 		}
@@ -295,11 +295,11 @@ func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclaratio
 	}
 	for i, ident := range declaration.Identifiers {
 		if i == len(declaration.Identifiers)-1 && len(values) != 0 {
-			src.Append("V", fmt.Sprintf("%s = ", ident.Lexeme))
+			src.Append(fmt.Sprintf("%s = ", gen.WriteVar(ident.Lexeme)))
 		} else if i == len(declaration.Identifiers)-1 {
-			src.Append("V", ident.Lexeme)
+			src.Append(gen.WriteVar(ident.Lexeme))
 		} else {
-			src.Append("V", fmt.Sprintf("%s, ", ident.Lexeme))
+			src.Append(fmt.Sprintf("%s, ", gen.WriteVar(ident.Lexeme)))
 		}
 	}
 	for i := range values {
@@ -323,7 +323,7 @@ func (gen *Generator) enumDeclarationStmt(node ast.EnumDeclarationStmt, scope *G
 		scope.AppendTabbed()
 	}
 
-	scope.Append("V", node.Name.Lexeme, " = {\n")
+	scope.Append(gen.WriteVar(node.Name.Lexeme), " = {\n")
 
 	length := len(node.Fields)
 	for i := range node.Fields {
@@ -360,7 +360,7 @@ func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, Struc
 	constructorScope.Append("function Hybroid_", Struct.Name.Lexeme, "_New(")
 
 	for i, param := range node.Params {
-		constructorScope.Append("V", param.Name.Lexeme)
+		constructorScope.Append(gen.WriteVar(param.Name.Lexeme))
 		if i != len(node.Params)-1 {
 			constructorScope.Append(", ")
 		}
@@ -413,7 +413,7 @@ func (gen *Generator) methodDeclarationStmt(node ast.MethodDeclarationStmt, Stru
 	methodScope.Append("function Hybroid_", Struct.Name.Lexeme, "_", node.Name.Lexeme, "(Self")
 	for _, param := range node.Params {
 		methodScope.WriteString(", ")
-		methodScope.Append("V", param.Name.Lexeme)
+		methodScope.Append(gen.WriteVar(param.Name.Lexeme))
 	}
 	methodScope.Append(")\n")
 

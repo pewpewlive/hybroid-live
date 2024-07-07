@@ -173,8 +173,22 @@ func (gs *GenScope) AppendTabbed(strs ...string) {
 }
 
 type Generator struct {
+	envName string
 	Scope  GenScope
 	Errors []ast.Error
+}
+
+func (gen *Generator) SetEnvName(name string) {
+	gen.envName = "E" + name
+}
+
+func (gen *Generator) WriteVar(name string) string {
+	return gen.envName + name
+}
+
+func (gen *Generator) Clear() {
+	gen.Scope = NewGenScope(nil)
+	gen.Errors = make([]ast.Error, 0)
 }
 
 func getTabs() string {
@@ -319,6 +333,8 @@ func (gen *Generator) GenerateExpr(node ast.Node, scope *GenScope) string {
 		return gen.matchExpr(*newNode, scope)
 	case *ast.MethodCallExpr:
 		return gen.methodCallExpr(*newNode, scope)
+	case *ast.EnvAccessExpr:
+		return gen.envAccessExpr(*newNode, scope)
 	}
 
 	return ""

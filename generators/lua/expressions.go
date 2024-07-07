@@ -27,7 +27,7 @@ func (gen *Generator) literalExpr(node ast.LiteralExpr) string {
 }
 
 func (gen *Generator) identifierExpr(node ast.IdentifierExpr, _ *GenScope) string {
-	return "V" + node.Name.Lexeme
+	return gen.WriteVar(node.Name.Lexeme)
 }
 
 func (gen *Generator) groupingExpr(node ast.GroupExpr, scope *GenScope) string {
@@ -289,4 +289,8 @@ func (gen *Generator) matchExpr(match ast.MatchExpr, scope *GenScope) string {
 	scope.AppendTabbed(fmt.Sprintf("::%s::\n", gotoLabel))
 
 	return vars.String()
+}
+
+func (gen *Generator) envAccessExpr(node ast.EnvAccessExpr, scope *GenScope) string {
+	return gen.GenerateExpr(node.Accessed, scope)
 }

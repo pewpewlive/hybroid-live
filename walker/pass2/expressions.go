@@ -62,6 +62,12 @@ func BinaryExpr(w *wkr.Walker, node *ast.BinaryExpr, scope *wkr.Scope) wkr.Value
 			return &wkr.Invalid{}
 		}
 		return &wkr.NumberVal{}
+	case lexer.Concat:
+		if !wkr.TypeEquals(leftType, wkr.NewBasicType(ast.String)) && !wkr.TypeEquals(rightType, wkr.NewBasicType(ast.String)) {
+			w.Error(node.GetToken(), fmt.Sprintf("invalid concatenation: left is %s and right is %s", leftType.ToString(), rightType.ToString()))
+			return &wkr.Invalid{}
+		}
+		return &wkr.StringVal{}
 	default:
 		if !wkr.TypeEquals(leftType, rightType) {
 			w.Error(node.GetToken(), fmt.Sprintf("invalid comparison: types are not the same (left: %s, right: %s)",leftType.ToString(), rightType.ToString()))
@@ -160,7 +166,7 @@ func CallExpr(w *wkr.Walker, node *ast.CallExpr, scope *wkr.Scope, callType wkr.
 
 	valType := val.GetType().PVT()
 	if valType != ast.Func {
-		return &wkr.Unknown{}
+		return &wkr.Invalid{}
 	}
 
 	variable, it_is := val.(*wkr.VariableVal)
@@ -168,6 +174,12 @@ func CallExpr(w *wkr.Walker, node *ast.CallExpr, scope *wkr.Scope, callType wkr.
 		val = variable.Value
 	}
 	fun, _ := val.(*wkr.FunctionVal)
+
+	args := []wkr.Type{}
+	for i := range node.Args {
+		args = append(args, GetNodeValue(w, &node.Args[i], scope).GetType())
+	}
+	w.ValidateArguments(args, fun.Params, node.Caller.GetToken(), w.DetermineCallTypeString(callType))
 
 	if len(fun.Returns) == 1 {
 		return w.TypeToValue(fun.Returns[0])

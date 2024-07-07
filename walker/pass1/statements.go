@@ -187,7 +187,7 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 		}
 	}
 
-	if !declaration.IsLocal {
+	if !declaration.IsLocal && scope.Parent != nil {
 		w.Error(declaration.Token, "cannot declare a global variable inside a local block")
 	}
 	if declaration.Token.Type == lexer.Const && scope.Parent != nil {

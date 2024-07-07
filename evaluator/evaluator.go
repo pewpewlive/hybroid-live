@@ -90,6 +90,9 @@ func (e *Evaluator) Action() error {
 		fmt.Println("[Pass 1] Walking through the nodes...")
 		pass1.Action(&e.walkerList[i], prog, &e.walkers)
 		fmt.Printf("Pass 1 time: %v seconds\n\n", time.Since(start).Seconds())
+
+		e.lexer = lexer.NewLexer()
+		e.parser = parser.NewParser()
 	}
 
 	for i := range e.walkerList {
@@ -113,6 +116,7 @@ func (e *Evaluator) Action() error {
 		fmt.Println("Generating the lua code...")
 
 		//e.gen.Scope.Src.Grow(len(sourceFile))
+		e.gen.SetEnvName(e.walkerList[i].Environment.Name)
 		e.gen.Generate(e.walkerList[i].Nodes)
 		if len(e.gen.Errors) != 0 {
 			colorstring.Println("[red]Failed generating:")
@@ -124,6 +128,8 @@ func (e *Evaluator) Action() error {
 		if err != nil {
 			return fmt.Errorf("failed to write transpiled file to destination: %v", err)
 		}
+
+		e.gen.Clear()
 	}
 
 	return nil
