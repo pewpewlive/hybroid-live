@@ -26,10 +26,10 @@ type MethodContainer interface {
 }
 
 type UnresolvedVal struct {
-	Expr *ast.EnvAccessExpr
+	Expr ast.Node
 }
 
-func NewUnresolvedVal(expr *ast.EnvAccessExpr) *UnresolvedVal {
+func NewUnresolvedVal(expr ast.Node) *UnresolvedVal {
 	return &UnresolvedVal{
 		Expr: expr,
 	}
@@ -286,22 +286,22 @@ var EmptyReturn = Types{}
 
 type Types []Type
 
-func (ts *Types) GetType() Type {
-	if len(*ts) == 0 {
+func (ts Types) GetType() Type {
+	if len(ts) == 0 {
 		return (&Invalid{}).GetType()
 	}
-	return (*ts)[0]
+	return (ts)[0]
 }
 
-func (ts *Types) GetDefault() *ast.LiteralExpr {
+func (ts Types) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "TYPES"}
 }
 
-func (rt *Types) Eq(otherRT *Types) bool {
+func (rt Types) Eq(otherRT Types) bool {
 	typesSame := true
-	if len(*rt) == len(*otherRT) {
-		for i, v := range *rt {
-			if !TypeEquals(v, (*otherRT)[i]) {
+	if len(rt) == len(otherRT) {
+		for i, v := range rt {
+			if !TypeEquals(v, otherRT[i]) {
 				typesSame = false
 				break
 			}

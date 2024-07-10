@@ -2,6 +2,7 @@ package pass1
 
 import (
 	"hybroid/ast"
+	"hybroid/helpers"
 	"hybroid/lexer"
 	wkr "hybroid/walker"
 )
@@ -172,7 +173,6 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 	}
 
 	for i := range declaration.Values {
-
 		exprValue := GetNodeValue(w, &declaration.Values[i], scope)
 		if declaration.Values[i].GetType() == ast.SelfExpression {
 			w.Error(declaration.Values[i].GetToken(), "cannot assign self to a variable")
@@ -363,6 +363,13 @@ func YieldStmt(w *wkr.Walker, node *ast.YieldStmt, scope *wkr.Scope) *wkr.Types 
 			yieldTypes = append(yieldTypes, *types...)
 		} else {
 			yieldTypes = append(yieldTypes, valType)
+		}
+	}
+	if sc, _, met :=  wkr.ResolveTagScope[*wkr.MatchExprTag](scope); sc != nil {
+		if helpers.ListsAreSame((*met).YieldValues, wkr.EmptyReturn) {
+			(*met).YieldValues = yieldTypes
+		}else {
+			(*met).YieldValues = append((*met).YieldValues, yieldTypes...)
 		}
 	}
 	if sc == nil {

@@ -1,0 +1,19 @@
+env Helper::General as Level
+
+// let a = match Other::other {
+//     "a" => {
+//         yield Other::other
+//     }
+//     _ => {
+//         yield 1
+//     }
+// }
+
+let p = match ExampleLevel::b {
+    "a" => ExampleLevel::b
+    _ => "a"
+}
+
+p = "a"
+
+ExampleLevel::Abs(-1)

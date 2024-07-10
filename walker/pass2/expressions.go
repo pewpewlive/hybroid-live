@@ -35,6 +35,7 @@ func AnonFnExpr(w *wkr.Walker, fn *ast.AnonFnExpr, scope *wkr.Scope) wkr.Value {
 
 func MatchExpr(w *wkr.Walker, node *ast.MatchExpr, scope *wkr.Scope) wkr.Value {
 	matchScope := scope.AccessChild()
+	matchScope.Tag = &wkr.MatchExprTag{YieldValues: make(wkr.Types, 0)}
 
 	for i := range node.MatchStmt.Cases {
 		caseScope := matchScope.AccessChild()
@@ -43,7 +44,7 @@ func MatchExpr(w *wkr.Walker, node *ast.MatchExpr, scope *wkr.Scope) wkr.Value {
 
 	yieldValues := matchScope.Tag.(*wkr.MatchExprTag).YieldValues
 
-	node.ReturnAmount = len(*yieldValues)
+	node.ReturnAmount = len(yieldValues)
 
 	return yieldValues
 }
@@ -82,14 +83,8 @@ func LiteralExpr(w *wkr.Walker, node *ast.LiteralExpr) wkr.Value {
 	switch node.ValueType {
 	case ast.String:
 		return &wkr.StringVal{}
-	case ast.Fixed:
-		return &wkr.FixedVal{SpecificType: ast.Fixed}
-	case ast.Radian:
-		return &wkr.FixedVal{SpecificType: ast.Radian}
-	case ast.FixedPoint:
-		return &wkr.FixedVal{SpecificType: ast.FixedPoint}
-	case ast.Degree:
-		return &wkr.FixedVal{SpecificType: ast.Degree}
+	case ast.Fixed, ast.Radian, ast.FixedPoint, ast.Degree:
+		return &wkr.FixedVal{SpecificType: node.ValueType}
 	case ast.Bool:
 		return &wkr.BoolVal{}
 	case ast.Number:
@@ -151,7 +146,13 @@ func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr) wkr.Value {
 
 	envStmt.AddRequirement(walker.Environment.Path)
 
-	return GetNodeValue(w, &node.Accessed, &walker.Environment.Scope)
+	value := GetNodeValue(w, &node.Accessed, &walker.Environment.Scope)
+
+	if value.GetType().PVT() == ast.Unresolved {
+		value = GetNodeValue(walker, &value.(*wkr.UnresolvedVal).Expr, &walker.Environment.Scope)
+	}
+
+	return value
 }
 
 func GroupingExpr(w *wkr.Walker, node *ast.GroupExpr, scope *wkr.Scope) wkr.Value {

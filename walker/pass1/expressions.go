@@ -48,6 +48,12 @@ func MatchExpr(w *wkr.Walker, node *ast.MatchExpr, scope *wkr.Scope) wkr.Value {
 		WalkBody(w, &node.MatchStmt.Cases[i].Body, mpt, caseScope)
 	}
 
+	for _, v := range mtt.YieldValues {
+		if v.PVT() == ast.Unresolved {
+			return wkr.NewUnresolvedVal(node)
+		}
+	}
+
 	return mtt.YieldValues
 }
 

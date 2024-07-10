@@ -212,7 +212,7 @@ func (self *NamedType) ToString() string {
 }
 
 type UnresolvedType struct {
-	Expr *ast.EnvAccessExpr
+	Expr ast.Node
 }
 
 func (self *UnresolvedType) PVT() ast.PrimitiveValueType {

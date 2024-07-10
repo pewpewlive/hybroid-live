@@ -3,6 +3,7 @@ package pass2
 import (
 	"fmt"
 	"hybroid/ast"
+	"hybroid/helpers"
 	"hybroid/parser"
 	wkr "hybroid/walker"
 	"strings"
@@ -445,10 +446,10 @@ func YieldStmt(w *wkr.Walker, node *ast.YieldStmt, scope *wkr.Scope) *wkr.Types 
 
 	matchExprTag := *matchExprT
 
-	if matchExprTag.YieldValues == nil {
-		matchExprTag.YieldValues = &ret
+	if helpers.ListsAreSame(matchExprTag.YieldValues, wkr.EmptyReturn) {
+		matchExprTag.YieldValues = ret
 	} else {
-		errorMsg := w.ValidateReturnValues(ret, *matchExprTag.YieldValues)
+		errorMsg := w.ValidateReturnValues(ret, matchExprTag.YieldValues)
 		if errorMsg != "" {
 			errorMsg = strings.Replace(errorMsg, "return", "yield", -1)
 			w.Error(node.GetToken(), errorMsg)

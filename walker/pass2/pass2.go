@@ -43,6 +43,8 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 		TickStmt(w, newNode, scope)
 	case *ast.CallExpr:
 		CallExpr(w, newNode, scope, wkr.Function)
+	case *ast.EnvAccessExpr:
+		EnvAccessExpr(w, newNode)
 	case *ast.MethodCallExpr:
 		MethodCallExpr(w, node, scope)
 	case *ast.StructDeclarationStmt:

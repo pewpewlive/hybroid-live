@@ -640,7 +640,7 @@ func (p *Parser) EnvType() *ast.EnvTypeExpr {
 	envType := StringToEnvType(name.Lexeme)
 
 	if envType == ast.InvalidEnv {
-		p.error(name, "expected 'Level', 'Shared', 'Mesh' or 'Sound' as environment type")
+		p.error(name, "expected 'Level', 'Mesh' or 'Sound' as environment type")
 	}
 
 	return &ast.EnvTypeExpr{Type: envType, Token: name}

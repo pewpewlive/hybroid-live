@@ -306,6 +306,9 @@ func (gen *Generator) GenerateStmt(node ast.Node, scope *GenScope) {
 		gen.enumDeclarationStmt(*newNode, scope)
 	case *ast.StructDeclarationStmt:
 		gen.structDeclarationStmt(*newNode, scope)
+	case *ast.EnvAccessExpr:
+		val := gen.envAccessExpr(*newNode, scope)
+		scope.WriteString(val)
 	}
 }
 

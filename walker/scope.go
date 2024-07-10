@@ -100,7 +100,7 @@ func (self *FuncTag) GetIfExits(et ExitType) bool {
 
 type MatchExprTag struct {
 	Mpt         *MultiPathTag
-	YieldValues *Types
+	YieldValues Types
 }
 
 func (met *MatchExprTag) GetType() ScopeTagType {

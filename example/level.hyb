@@ -23,7 +23,7 @@ a += 1337//that is t
 //   d[1] = 180d
 // }
 
-fn Abs(number a) number {
+pub fn Abs(number a) number {
   // if a >= 0 {
   //   return a
   // }
@@ -52,7 +52,6 @@ repeat 10 with i {
       continue
     }
     _ => {
-      break
     }
   }
   
