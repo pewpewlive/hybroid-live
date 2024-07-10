@@ -381,7 +381,7 @@ func (p *Parser) primary() ast.Node {
 		env, ok := p.program[0].(*ast.EnvironmentStmt)
 		if ok {
 			envType := env.EnvType.Type
-			allowFX := envType == ast.Level || envType == ast.Shared
+			allowFX := envType == ast.Level
 			switch literal.Type {
 			case lexer.Number:
 				if allowFX && strings.ContainsRune(literal.Lexeme, '.') {
@@ -623,8 +623,6 @@ func StringToEnvType(name string) ast.EnvType {
 		return ast.Mesh
 	case "Level":
 		return ast.Level
-	case "Shared":
-		return ast.Shared
 	case "Sound":
 		return ast.Sound
 	default:
@@ -652,7 +650,7 @@ func (p *Parser) EnvPathExpr() ast.Node {
 	ident, ok := p.consume("expected identifier for an environment path", lexer.Identifier)
 
 	if !ok {
-		return &ast.Improper{Token:ident}
+		return &ast.Improper{Token: ident}
 	}
 
 	envPath := &ast.EnvPathExpr{
@@ -662,7 +660,7 @@ func (p *Parser) EnvPathExpr() ast.Node {
 	for p.match(lexer.DoubleColon) {
 		ident, ok = p.consume("expected identifier in environment path", lexer.Identifier)
 		if !ok {
-			return &ast.Improper{Token:ident}
+			return &ast.Improper{Token: ident}
 		}
 		envPath.SubPaths = append(envPath.SubPaths, ident.Lexeme)
 	}

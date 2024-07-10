@@ -12,8 +12,8 @@ type Parser struct {
 	Errors  []ast.Error
 }
 
-func NewParser() *Parser {
-	return &Parser{make([]ast.Node, 0), 0, make([]lexer.Token, 0), make([]ast.Error, 0)}
+func NewParser() Parser {
+	return Parser{make([]ast.Node, 0), 0, make([]lexer.Token, 0), make([]ast.Error, 0)}
 }
 
 func (p *Parser) AssignTokens(tokens []lexer.Token) {

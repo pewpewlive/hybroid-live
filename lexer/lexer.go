@@ -12,8 +12,8 @@ type Lexer struct {
 	start, current, line, columnStart, columnCurrent int
 }
 
-func NewLexer() *Lexer {
-	return &Lexer{make([]Token, 0), make([]byte, 0), make([]LexerError, 0), 0, 0, 1, 0, 0}
+func NewLexer() Lexer {
+	return Lexer{make([]Token, 0), make([]byte, 0), make([]LexerError, 0), 0, 0, 1, 0, 0}
 }
 
 func (l *Lexer) AssignSource(src []byte) {
