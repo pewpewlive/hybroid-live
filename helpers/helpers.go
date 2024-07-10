@@ -1,6 +1,8 @@
 package helpers
 
-import "reflect"
+import (
+	"reflect"
+)
 
 func IsZero[T comparable](v T) bool {
 	var z T

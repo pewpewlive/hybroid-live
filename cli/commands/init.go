@@ -2,41 +2,79 @@ package commands
 
 import (
 	"fmt"
+	"hybroid/helpers"
 	"os"
 
 	"github.com/pelletier/go-toml/v2"
 	"github.com/urfave/cli/v2"
 )
 
-type LevelManifest struct {
-	Name              string         `toml:"name" json:"name"`
-	Descriptions      []string       `toml:"descriptions" json:"descriptions"`
-	Information       string         `toml:"information" json:"information"`
-	EntryPoint        string         `toml:"entry_point" json:"entry_point"`
-	IsCasual          bool           `toml:"casual" json:"has_score_leaderboard"`
-	MedalRequirements map[string]int `toml:"medal_requirements" json:"rank_thresholds_1p,omitempty"`
+const levelTemplate = `env %s as Level
+
+// Hello, world!
+tick with i {
+  if i %% 2 == 0 {
+	  Print("Foo")
+	} else {
+	  Print("Bar")
+	}
+}
+`
+
+func Initialize() *cli.Command {
+	return &cli.Command{
+		Name:    "initialize",
+		Aliases: []string{"init", "i"},
+		Usage:   "Initializes a new Hybroid project",
+		Flags: []cli.Flag{
+			&cli.StringFlag{Name: "package", Required: true, Usage: "The package name of the project"},
+			&cli.StringFlag{Name: "name", Required: true, Usage: "The level name of the project"},
+			&cli.StringFlag{Name: "target", Required: true, Usage: "Which target to use for the project"},
+			&cli.StringFlag{Name: "output", Required: true, Usage: "What output directory to use when building"},
+		},
+		Args:            true,
+		SkipFlagParsing: false,
+		Action: func(ctx *cli.Context) error {
+			if ctx.NumFlags() != 4 {
+				return fmt.Errorf("invalid amount of arguments (needed: 4, given: %v)", len(ctx.FlagNames()))
+			}
+			return initialize(ctx)
+		},
+	}
 }
 
-type ProjectConfig struct {
-	Name            string `toml:"name"`   // should be kebab-case
-	Target          string `toml:"target"` // ppl or else throw an error
-	OutputDirectory string `toml:"output_directory"`
-}
+func initialize(ctx *cli.Context) error {
+	pkgName, levelName, target, output := ctx.String("package"), ctx.String("name"), ctx.String("target"), ctx.String("output")
+	if pkgName == "" || levelName == "" || target == "" || output == "" {
+		return fmt.Errorf("invalid arguments, run `hybroid help init` for more information")
+	}
 
-type HybroidConfig struct {
-	Level   LevelManifest `toml:"level"`
-	Project ProjectConfig `toml:"project"`
-	//Packages        []PackageConfig `toml:"packages"`
-}
+	config := helpers.HybroidConfig{
+		Level: helpers.LevelManifest{
+			Name:         levelName,
+			Descriptions: []string{"Change me!"},
+			Information:  "Change me!",
+			EntryPoint:   "level.hyb",
+			IsCasual:     true,
+		},
+		Project: helpers.ProjectConfig{
+			Name:            pkgName,
+			Target:          target,
+			OutputDirectory: output,
+		},
+	}
 
-func Initialize(ctx *cli.Context) error {
-	config := HybroidConfig{LevelManifest{Name: ctx.Args().Get(0), Descriptions: []string{"Change me!"}, Information: "Change me!", EntryPoint: "level.hyb", IsCasual: true}, ProjectConfig{Name: ctx.Args().Get(0), Target: ctx.Args().Get(1), OutputDirectory: ctx.Args().Get(2)}}
-
-	output, err := toml.Marshal(config)
+	configFile, err := toml.Marshal(config)
 	if err != nil {
 		return fmt.Errorf("failed generating Hybroid config file: %v", err)
 	}
 
-	os.WriteFile("hybconfig.toml", output, 0644)
+	if err = os.WriteFile("hybconfig.toml", configFile, 0644); err != nil {
+		return fmt.Errorf("failed to write the Hybroid config file to disk: %v", err)
+	}
+	if err = os.WriteFile("level.hyb", []byte(fmt.Sprintf(levelTemplate, levelName)), 0644); err != nil {
+		return fmt.Errorf("failed to write a level template to disk: %v", err)
+	}
+
 	return nil
 }

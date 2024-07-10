@@ -1,12 +1,11 @@
 [level]
 name = "Example Level"
-descriptions = [ "This is an example level created using Hybroid" ]
+descriptions = ["This is an example level created using Hybroid"]
 information = "https://github.com/pewpewlive/hybroid"
-entry_point = "example.hyb"
+entry_point = "level.hyb"
 casual = true
-medal_requirements = { bronze = 100, silver = 200, gold = 400 }
 
 [project]
 name = "example-level"
-output_directory = "build"
+output_directory = "out"
 target = "ppl"

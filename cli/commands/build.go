@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"hybroid/evaluator"
-	"hybroid/generators/lua"
+	"hybroid/generator"
+	"hybroid/helpers"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,81 +15,49 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// func GetDirFiles(cwd string, dir string) ([]FileInformation, error) {
-// 	dirEntries, err := os.ReadDir(cwd+dir)
-// 	files := make([]FileInformation, 0)
+func Build() *cli.Command {
+	return &cli.Command{
+		Name:        "build",
+		Aliases:     []string{"b"},
+		Usage:       "Builds a Hybroid project",
+		Description: "This will take the current project in the location the command was ran, and will transpile the project into its destination folder, based on the config file",
+		Action: func(ctx *cli.Context) error {
+			return build(ctx)
+		},
+	}
+}
 
-// 	if err != nil { return files, err }
-
-// 	for _, dirEntry := range dirEntries {
-// 		info, err := dirEntry.Info()
-// 		if err != nil { return files, err }
-
-// 		if info.IsDir() {
-// 			//fmt.Println(cwd+info.Name())
-// 			subfiles, err := GetDirFiles(cwd, dir+info.Name())
-// 			if err != nil { return files, err }
-
-// 			files = append(files, subfiles...)
-// 		}else {
-// 			fmt.Printf("Dir: %s, Info: %s \n", dir, info.Name())
-// 			pathFile, err := filepath.Rel(cwd, cwd+"/"+dir+"/"+info.Name())
-// 			fmt.Println(pathFile)
-// 			if err != nil { return files, err }
-
-// 			ext := filepath.Ext(pathFile)
-// 			if ext != ".hyb" {
-// 				continue
-// 			}
-// 			files = append(files, FileInformation{
-// 				DirectoryPath: dir,
-// 				FileName: strings.Replace(info.Name(),".hyb", "", -1),
-// 				FileExtension: ext,
-// 			})
-// 		}
-// 	}
-
-// 	return files, nil
-// }
-
-func Accumulate(cwd string, dir string) ([]FileInformation, error) {
-	dirEntries, err := os.ReadDir(cwd+dir)
-	files := make([]FileInformation, 0)
-
-	if err != nil { return files, err }
-
-	for _, dirEntry := range dirEntries {
-		info, err := dirEntry.Info()
-		if err != nil { return files, err }
-
-		if info.IsDir() {
-			//fmt.Println(cwd+info.Name())
-			subfiles, err := GetDirFiles(cwd, dir+info.Name())
-			if err != nil { return files, err }
-
-			files = append(files, subfiles...)
-		}else {
-			fmt.Printf("Dir: %s, Info: %s \n", dir, info.Name())
-			pathFile, err := filepath.Rel(cwd, cwd+"/"+dir+"/"+info.Name())
-			fmt.Println(pathFile)
-			if err != nil { return files, err }
-
-			ext := filepath.Ext(pathFile)
+func collectFiles(cwd string) ([]helpers.FileInformation, error) {
+	files := make([]helpers.FileInformation, 0)
+	err := fs.WalkDir(os.DirFS(cwd), ".", func(path string, d fs.DirEntry, err error) error {
+		if !d.IsDir() {
+			ext := filepath.Ext(path)
 			if ext != ".hyb" {
-				continue
+				return nil
 			}
-			files = append(files, FileInformation{
-				DirectoryPath: dir,
-				FileName: strings.Replace(info.Name(),".hyb", "", -1),
+
+			directoryPath, err := filepath.Rel(cwd, filepath.Dir(cwd+"/"+path))
+			if err != nil {
+				return err
+			}
+
+			files = append(files, helpers.FileInformation{
+				DirectoryPath: filepath.ToSlash(directoryPath),
+				FileName:      strings.Replace(d.Name(), ".hyb", "", -1),
 				FileExtension: ext,
 			})
 		}
+
+		return nil
+	})
+	if err != nil {
+		return files, err
 	}
 
 	return files, nil
 }
 
-func Build(ctx *cli.Context, files ...FileInformation) error {
+func build(ctx *cli.Context, filesToBuild ...helpers.FileInformation) error {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("failed getting current working directory: %v", err)
@@ -99,7 +69,7 @@ func Build(ctx *cli.Context, files ...FileInformation) error {
 		return fmt.Errorf("failed reading Hybroid config file: %v", err)
 	}
 
-	config := HybroidConfig{}
+	config := helpers.HybroidConfig{}
 	if err := toml.Unmarshal(configFile, &config); err != nil {
 		return fmt.Errorf("failed parsing Hybroid config file: %v", err)
 	}
@@ -111,10 +81,9 @@ func Build(ctx *cli.Context, files ...FileInformation) error {
 	evalError := make(chan error)
 	go func(err chan error) {
 		outputDir := config.Project.OutputDirectory
-		entryPoint := config.Level.EntryPoint
 
 		if outputDir != "" {
-			os.Mkdir(cwd+outputDir, 0644)
+			os.MkdirAll(cwd+outputDir, 0644)
 		}
 
 		manifestConfig := config.Level
@@ -124,31 +93,28 @@ func Build(ctx *cli.Context, files ...FileInformation) error {
 		if manifestErr != nil {
 			err <- fmt.Errorf("failed creating level manifest file: %v", manifestErr)
 		}
-		os.WriteFile(cwd+outputDir+"/manifest.json", manifest, 0644)
+		os.WriteFile(filepath.Join(cwd, outputDir, "/manifest.json"), manifest, 0644)
 
-		eval := evaluator.NewEvaluator(lua.Generator{Scope: lua.GenScope{Src: lua.StringBuilder{}}})
+		eval := evaluator.NewEvaluator(generator.Generator{
+			Scope: generator.GenScope{
+				Src: generator.StringBuilder{},
+			},
+		})
 
-		if len(files) == 0 {
-			var filesErr error
-			files, filesErr = GetDirFiles(cwd, "")
+		if len(filesToBuild) == 0 {
+			files, filesErr := collectFiles(cwd)
 			if filesErr != nil {
 				err <- filesErr
 				return
 			}
-			fmt.Printf("Files:\n %v", files)
+			filesToBuild = append(filesToBuild, files...)
 		}
 
-		if len(files) == 0 {			
-			eval.AssignFile(cwd+entryPoint, cwd+outputDir+"/"+strings.Replace(entryPoint, ".hyb", ".lua", -1))
-			err <- eval.Action()
-		} else {
-			for _, file := range files {
-				sourceFilePath := cwd+file.Path()
-				outputFilePath := cwd+file.NewPath(outputDir, ".lua")
-				eval.AssignFile(sourceFilePath, outputFilePath)
-			}
-			err <- eval.Action()
+		for _, file := range filesToBuild {
+			fmt.Printf("%v", file)
+			eval.AssignFile(file)
 		}
+		err <- eval.Action(cwd, outputDir)
 	}(evalError)
 	if err = <-evalError; err != nil {
 		return fmt.Errorf("failed evaluation: %v", err)

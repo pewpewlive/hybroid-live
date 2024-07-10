@@ -1,31 +1,27 @@
 package commands
 
 import (
-	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/urfave/cli/v2"
 )
 
-type FileInformation struct {
-	DirectoryPath string // The directory the file is located at (relative)
-	FileName      string // The name of the file (without an extension)
-	FileExtension string // The extension of the file
+func Watch() *cli.Command {
+	return &cli.Command{
+		Name:        "watch",
+		Aliases:     []string{"w"},
+		Usage:       "Starts a watcher process",
+		Description: "The Hybroid watcher will keep track of the project files and will automatically build them when they are updated, to remove the need for running the transpiler every time",
+		Action: func(ctx *cli.Context) error {
+			return watch(ctx)
+		},
+	}
 }
 
-func (fi *FileInformation) Path() string {
-	return fmt.Sprintf("%s/%s%s", fi.DirectoryPath, fi.FileName, fi.FileExtension)
-}
-
-func (fi *FileInformation) NewPath(start string, end string) string {
-	return fmt.Sprintf("%s/%s/%s%s", start, fi.DirectoryPath, fi.FileName, end)
-}
-
-func Watch(ctx *cli.Context) error {
+func watch(ctx *cli.Context) error {
 	cwd, _ := os.Getwd()
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -43,11 +39,12 @@ func Watch(ctx *cli.Context) error {
 				}
 				log.Println("event:", event)
 				if event.Has(fsnotify.Write) && !strings.Contains(event.Name, ".lua") {
-					directoryPath, _ := filepath.Rel(cwd, filepath.Dir(event.Name))
-					fileName := strings.Split(filepath.Base(event.Name), ".")[0]
-					fileExtension := filepath.Ext(event.Name)
+					// FIXME: Fix watcher. Move to serving soon
+					// directoryPath, _ := filepath.Rel(cwd, filepath.Dir(event.Name))
+					// fileName := strings.Split(filepath.Base(event.Name), ".")[0]
+					// fileExtension := filepath.Ext(event.Name)
 
-					Build(ctx, FileInformation{directoryPath, fileName, fileExtension})
+					//Build(ctx, FileInformation{directoryPath, fileName, fileExtension})
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {

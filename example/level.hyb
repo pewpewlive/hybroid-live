@@ -1,4 +1,7 @@
-env HybroidLevel as Level
+env ExampleLevel as Level
+
+//use A
+
 // Hi!
 
 /*
@@ -7,13 +10,11 @@ env HybroidLevel as Level
   HYBROID!!
 */
 
-let a = 100
 let text b = "Hello"
-let c = {banana = 1, apple = 2, pear = 3}
+pub c = MoreTest::moreTest
 let d = [1.5f, 2.2048fx, 90d, 3.14r]
 
-a = c["banana"]
-a += 1337
+Test::a += 1337
 
 // if d[1] == 2.2048fx {
 //   d[2] = d[1]
@@ -30,9 +31,9 @@ fn Abs(number a) number {
   return -a
 }
 
-a = Abs(a)
+Test::a = Abs(Test::a)
 
-Abs(a)
+Abs(Test::a)
 
 fn MatchShow(text test) text {
   return match test {
@@ -44,7 +45,7 @@ fn MatchShow(text test) text {
 }
 
 MatchShow("Hello")//
-MatchShow("Hybroid")
+MatchShow("asdasd")
 
 repeat 10 with i {
   match i {
@@ -56,7 +57,7 @@ repeat 10 with i {
     }
   }
   
-  if i / a > 1 {
+  if i / 10 > 1 {
     break
   }
 }
@@ -130,5 +131,4 @@ fn PrintError(Error error) text {
 }
 
 PrintError(error)
-
-Test::a = 23232
+Test::a = 100
