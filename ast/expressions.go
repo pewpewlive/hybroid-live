@@ -20,7 +20,6 @@ type EnvType int
 const (
 	Mesh EnvType = iota
 	Level
-	Shared
 	Sound
 	InvalidEnv
 )
@@ -30,15 +29,15 @@ type EnvTypeExpr struct {
 	Token lexer.Token
 }
 
-func (le *EnvTypeExpr) GetType() NodeType {
+func (ete *EnvTypeExpr) GetType() NodeType {
 	return EnvironmentTypeExpression
 }
 
-func (le *EnvTypeExpr) GetToken() lexer.Token {
-	return le.Token
+func (ete *EnvTypeExpr) GetToken() lexer.Token {
+	return ete.Token
 }
 
-func (le *EnvTypeExpr) GetValueType() PrimitiveValueType { // env1::thing::type
+func (ete *EnvTypeExpr) GetValueType() PrimitiveValueType {
 	return Unknown
 }
 
@@ -46,36 +45,36 @@ type EnvPathExpr struct {
 	SubPaths []string
 }
 
-func (le *EnvPathExpr) GetType() NodeType {
+func (epe *EnvPathExpr) GetType() NodeType {
 	return EnvironmentPathExpression
 }
 
-func (le *EnvPathExpr) GetToken() lexer.Token {
-	return lexer.Token{Lexeme: le.SubPaths[0]}
+func (epe *EnvPathExpr) GetToken() lexer.Token {
+	return lexer.Token{Lexeme: epe.SubPaths[0]}
 }
 
-func (le *EnvPathExpr) GetValueType() PrimitiveValueType {
+func (epe *EnvPathExpr) GetValueType() PrimitiveValueType {
 	return Unknown
 }
 
-func (self *EnvPathExpr) Nameify() string {
-	return strings.Join(self.SubPaths, "::")
+func (epe *EnvPathExpr) Nameify() string {
+	return strings.Join(epe.SubPaths, "::")
 }
 
 type EnvAccessExpr struct {
-	PathExpr    *EnvPathExpr
-	Accessed    Node
+	PathExpr *EnvPathExpr
+	Accessed Node
 }
 
-func (le *EnvAccessExpr) GetType() NodeType {
+func (eae *EnvAccessExpr) GetType() NodeType {
 	return EnvironmentAccessExpression
 }
 
-func (le *EnvAccessExpr) GetToken() lexer.Token {
-	return le.Accessed.GetToken()
+func (eae *EnvAccessExpr) GetToken() lexer.Token {
+	return eae.Accessed.GetToken()
 }
 
-func (le *EnvAccessExpr) GetValueType() PrimitiveValueType {
+func (eae *EnvAccessExpr) GetValueType() PrimitiveValueType {
 	return Unknown
 }
 

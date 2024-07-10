@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func Action(w *walker.Walker, nodes []ast.Node, wlkrs *map[string]*walker.Walker) {
+func Action(w *walker.Walker, nodes []ast.Node, wlkrs map[string]*walker.Walker) {
 	w.Walkers = wlkrs
 	w.Nodes = nodes
 
@@ -26,13 +26,13 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 		}
 
 		w.Environment.Name = strings.Join(newNode.Env.SubPaths, "::")
-		for k, v := range (*w.Walkers) {
+		for k, v := range w.Walkers {
 			if k == w.Environment.Name {
 				w.Error(newNode.GetToken(), fmt.Sprintf("duplicate names found between %s and %s", w.Environment.Path, v.Environment.Path))
 			}
 		}
 
-		(*w.Walkers)[w.Environment.Name] = w
+		w.Walkers[w.Environment.Name] = w
 	case *ast.VariableDeclarationStmt:
 		VariableDeclarationStmt(w, newNode, scope)
 	case *ast.IfStmt:
@@ -131,7 +131,6 @@ func WalkBody(w *wkr.Walker, body *[]ast.Node, tag wkr.ExitableTag, scope *wkr.S
 		*body = (*body)[:endIndex]
 	}
 }
-
 
 func TypeifyNodeList(w *wkr.Walker, nodes *[]ast.Node, scope *wkr.Scope) []wkr.Type {
 	arguments := make([]wkr.Type, 0)

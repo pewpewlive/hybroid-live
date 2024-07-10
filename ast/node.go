@@ -29,9 +29,9 @@ const (
 	YieldStatement       NodeType = "yieldStatement"
 	MatchStatement       NodeType = "matchStatement"
 
-	EnvironmentPathExpression       NodeType = "environmentPathExpression"
-	EnvironmentAccessExpression       NodeType = "environmentAccessExpression"
-	EnvironmentTypeExpression       NodeType = "environmentTypeExpression"
+	EnvironmentPathExpression   NodeType = "environmentPathExpression"
+	EnvironmentAccessExpression NodeType = "environmentAccessExpression"
+	EnvironmentTypeExpression   NodeType = "environmentTypeExpression"
 	AnonymousFunctionExpression NodeType = "anonymousFunctionExpression"
 	AnonymousStructExpression   NodeType = "anonymousStructExpression"
 	DirectiveExpression         NodeType = "directiveExpression"

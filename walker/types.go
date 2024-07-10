@@ -2,7 +2,7 @@ package walker
 
 import (
 	"hybroid/ast"
-	"hybroid/generators/lua"
+	"hybroid/generator"
 	"hybroid/helpers"
 )
 
@@ -62,7 +62,7 @@ func (self *FunctionType) _eq(other Type) bool {
 }
 
 func (self *FunctionType) ToString() string {
-	src := lua.StringBuilder{}
+	src := generator.StringBuilder{}
 
 	src.WriteString("fn(")
 
@@ -158,7 +158,7 @@ func (self *AnonStructType) _eq(other Type) bool {
 }
 
 func (self *AnonStructType) ToString() string {
-	src := lua.StringBuilder{}
+	src := generator.StringBuilder{}
 
 	src.WriteString("struct{")
 	length := len(self.Fields) - 1

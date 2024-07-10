@@ -6,7 +6,7 @@ import (
 	wkr "hybroid/walker"
 )
 
-func Action(w *walker.Walker, wlkrs *map[string]*walker.Walker) {
+func Action(w *walker.Walker, wlkrs map[string]*walker.Walker) {
 	w.Walkers = wlkrs
 
 	scope := &w.Environment.Scope
@@ -18,7 +18,7 @@ func Action(w *walker.Walker, wlkrs *map[string]*walker.Walker) {
 func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 	switch newNode := (*node).(type) {
 	case *ast.EnvironmentStmt:
-		
+
 	case *ast.VariableDeclarationStmt:
 		VariableDeclarationStmt(w, newNode, scope)
 	case *ast.IfStmt:
@@ -54,6 +54,7 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 	case *ast.AssignmentStmt:
 		AssignmentStmt(w, newNode, scope)
 	case *ast.UseStmt:
+		UseStmt(w, newNode, scope)
 	case *ast.Improper:
 		w.Error(newNode.GetToken(), "Improper statement: parser fault")
 	default:
@@ -99,6 +100,8 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 		val = MatchExpr(w, newNode, scope)
 	case *ast.EnvAccessExpr:
 		val = EnvAccessExpr(w, newNode)
+	case *ast.UseStmt:
+
 	default:
 		w.Error(newNode.GetToken(), "Expected expression")
 		return &walker.Invalid{}
@@ -126,7 +129,6 @@ func WalkBody(w *walker.Walker, body *[]ast.Node, scope *walker.Scope) {
 // 		*body = (*body)[:endIndex]
 // 	}
 // }
-
 
 func TypeifyNodeList(w *wkr.Walker, nodes *[]ast.Node, scope *wkr.Scope) []wkr.Type {
 	arguments := make([]wkr.Type, 0)

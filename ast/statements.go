@@ -12,15 +12,25 @@ type EnvironmentStmt struct {
 	Requirements Paths
 }
 
-func (as *EnvironmentStmt) GetType() NodeType {
+func (as *EnvironmentStmt) AddRequirement(path string) bool {
+	for i := range as.Requirements {
+		if as.Requirements[i] == path {
+			return false
+		}
+	}
+	as.Requirements = append(as.Requirements, path)
+	return true
+}
+
+func (es *EnvironmentStmt) GetType() NodeType {
 	return EnvironmentStatement
 }
 
-func (as *EnvironmentStmt) GetToken() lexer.Token {
-	return as.Env.GetToken()
+func (es *EnvironmentStmt) GetToken() lexer.Token {
+	return es.Env.GetToken()
 }
 
-func (as *EnvironmentStmt) GetValueType() PrimitiveValueType {
+func (es *EnvironmentStmt) GetValueType() PrimitiveValueType {
 	return Unknown
 }
 
@@ -89,15 +99,15 @@ type EnumDeclarationStmt struct {
 	IsLocal bool
 }
 
-func (sds *EnumDeclarationStmt) GetType() NodeType {
+func (eds *EnumDeclarationStmt) GetType() NodeType {
 	return StructureDeclarationStatement
 }
 
-func (sds *EnumDeclarationStmt) GetToken() lexer.Token {
-	return sds.Name
+func (eds *EnumDeclarationStmt) GetToken() lexer.Token {
+	return eds.Name
 }
 
-func (sds *EnumDeclarationStmt) GetValueType() PrimitiveValueType {
+func (eds *EnumDeclarationStmt) GetValueType() PrimitiveValueType {
 	return Unknown
 }
 
@@ -408,7 +418,7 @@ func (rs *RemoveStmt) GetValueType() PrimitiveValueType {
 }
 
 type UseStmt struct {
-	Path     *EnvPathExpr
+	Path *EnvPathExpr
 }
 
 func (us *UseStmt) GetToken() lexer.Token {

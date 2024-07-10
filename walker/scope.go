@@ -66,7 +66,7 @@ func (et *EntityTag) GetType() ScopeTagType {
 }
 
 type FuncTag struct {
-	Returns    []bool
+	Returns     []bool
 	ReturnTypes Types
 }
 

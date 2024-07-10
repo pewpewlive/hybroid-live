@@ -3,7 +3,7 @@ package walker
 import (
 	"fmt"
 	"hybroid/ast"
-	"hybroid/generators/lua"
+	"hybroid/generator"
 	"hybroid/lexer"
 	"hybroid/parser"
 )
@@ -80,7 +80,7 @@ func (self *AnonStructVal) GetType() Type {
 }
 
 func (self *AnonStructVal) GetDefault() *ast.LiteralExpr {
-	src := lua.StringBuilder{}
+	src := generator.StringBuilder{}
 
 	src.WriteString("{")
 	length := len(self.Fields) - 1
@@ -120,7 +120,7 @@ func (self *EnumVal) GetType() Type {
 }
 
 func (self *EnumVal) GetDefault() *ast.LiteralExpr {
-	src := lua.StringBuilder{}
+	src := generator.StringBuilder{}
 
 	src.Append(self.Type.Name, "[1]")
 
@@ -164,7 +164,7 @@ func (self *StructVal) GetType() Type {
 }
 
 func (self *StructVal) GetDefault() *ast.LiteralExpr {
-	src := lua.StringBuilder{}
+	src := generator.StringBuilder{}
 
 	src.WriteString("{")
 	length := len(self.Fields) - 1
@@ -326,7 +326,7 @@ func (f *FunctionVal) GetReturns() Types {
 }
 
 func (f *FunctionVal) GetDefault() *ast.LiteralExpr {
-	src := lua.StringBuilder{}
+	src := generator.StringBuilder{}
 	src.WriteString("function(")
 	for i := range f.Params {
 		src.WriteString(fmt.Sprintf("param%v", i))

@@ -48,7 +48,7 @@ func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope
 			IsLocal: node.IsLocal,
 			Token:   (*node.Methods)[i].GetToken(),
 		}
-		*structScope.GetVariable(variable.Name) = *variable
+		*w.GetVariable(structScope, variable.Name) = *variable
 	}
 
 	for i := range *node.Methods {
@@ -88,10 +88,10 @@ func FieldDeclarationStmt(w *wkr.Walker, node *ast.FieldDeclarationStmt, contain
 	variables := VariableDeclarationStmt(w, &varDecl, scope)
 	node.Values = varDecl.Values
 	for i := range variables {
-		variable, _, found:= container.ContainsField(variables[i].Name)
+		variable, _, found := container.ContainsField(variables[i].Name)
 		if found {
 			variable.Value = variables[i].Value
-		}else {
+		} else {
 			container.AddField(variables[i])
 		}
 	}
@@ -124,7 +124,7 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, s
 	params := make([]wkr.Type, 0)
 	for i, param := range node.Params {
 		params = append(params, TypeExpr(w, param.Type, w.Environment))
-		fnScope.GetVariable(param.Name.Lexeme).Value = w.TypeToValue(params[i])
+		w.GetVariable(fnScope, param.Name.Lexeme).Value = w.TypeToValue(params[i])
 	}
 
 	variable := &wkr.VariableVal{
@@ -133,7 +133,7 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, s
 		Token: node.GetToken(),
 	}
 	if procType == wkr.Function {
-		*scope.GetVariable(variable.Name) = *variable
+		w.GetVariable(fnScope, variable.Name).Value = variable.Value
 	}
 
 	WalkBody(w, &node.Body, fnScope)
@@ -142,7 +142,7 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, s
 }
 
 func EnumDeclarationStmt(w *wkr.Walker, node *ast.EnumDeclarationStmt, scope *wkr.Scope) {
-	enumVal := scope.GetVariable(node.Name.Lexeme).Value.(*wkr.EnumVal)
+	enumVal := w.GetVariable(scope, node.Name.Lexeme).Value.(*wkr.EnumVal)
 
 	for _, v := range node.Fields {
 		variable := &wkr.VariableVal{
@@ -162,7 +162,7 @@ func EnumDeclarationStmt(w *wkr.Walker, node *ast.EnumDeclarationStmt, scope *wk
 		IsConst: true,
 	}
 
-	*scope.GetVariable(enumVar.Name) = *enumVar
+	*w.GetVariable(scope, enumVar.Name) = *enumVar
 }
 
 func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclarationStmt, scope *wkr.Scope) []*wkr.VariableVal {
@@ -204,7 +204,7 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 			values[i] = w.TypeToValue(TypeExpr(w, declaration.Types[i], w.Environment))
 			declaration.Values = append(declaration.Values, values[i].GetDefault())
 		}
-		_var := scope.GetVariable(ident.Lexeme)
+		_var := w.GetVariable(scope, ident.Lexeme)
 		_var.Value = values[i]
 		variables = append(variables, _var)
 	}
@@ -306,8 +306,8 @@ func RepeatStmt(w *wkr.Walker, node *ast.RepeatStmt, scope *wkr.Scope) {
 
 	if !(wkr.TypeEquals(repeatType, startType) && wkr.TypeEquals(startType, skipType)) {
 		w.Error(node.Start.GetToken(), fmt.Sprintf("all value types must be the same (iter:%s, start:%s, by:%s)", repeatType.ToString(), startType.ToString(), skipType.ToString()))
-	}else {
-		repeatScope.GetVariable(node.Variable.Name.Lexeme).Value = w.TypeToValue(repeatType)
+	} else {
+		w.GetVariable(repeatScope, node.Variable.Name.Lexeme).Value = w.TypeToValue(repeatType)
 	}
 
 	WalkBody(w, &node.Body, repeatScope)
@@ -325,7 +325,7 @@ func ForloopStmt(w *wkr.Walker, node *ast.ForStmt, scope *wkr.Scope) {
 	forScope := scope.AccessChild()
 
 	if len(node.KeyValuePair) != 0 {
-		forScope.GetVariable(node.KeyValuePair[0].Name.Lexeme).Value = &wkr.NumberVal{}
+		w.GetVariable(forScope, node.KeyValuePair[0].Name.Lexeme).Value = &wkr.NumberVal{}
 	}
 	valType := GetNodeValue(w, &node.Iterator, scope).GetType()
 	wrapper, ok := valType.(*wkr.WrapperType)
@@ -333,7 +333,7 @@ func ForloopStmt(w *wkr.Walker, node *ast.ForStmt, scope *wkr.Scope) {
 		w.Error(node.Iterator.GetToken(), "iterator must be of type map or list")
 	} else if len(node.KeyValuePair) == 2 {
 		node.OrderedIteration = wrapper.PVT() == ast.List
-		forScope.GetVariable(node.KeyValuePair[1].Name.Lexeme).Value = w.TypeToValue(wrapper.WrappedType)
+		w.GetVariable(forScope, node.KeyValuePair[1].Name.Lexeme).Value = w.TypeToValue(wrapper.WrappedType)
 	}
 
 	WalkBody(w, &node.Body, forScope)
@@ -450,4 +450,28 @@ func YieldStmt(w *wkr.Walker, node *ast.YieldStmt, scope *wkr.Scope) *wkr.Types 
 	}
 
 	return &ret
+}
+
+func UseStmt(w *wkr.Walker, node *ast.UseStmt, scope *wkr.Scope) {
+	if scope.Parent != nil {
+		w.Error(node.GetToken(), "cannot have a use statement inside a local block")
+		return
+	}
+	envStmt := w.GetEnvStmt()
+	envName := node.Path.Nameify()
+	walker, found := w.Walkers[envName]
+
+	if !found {
+		w.Error(node.GetToken(), fmt.Sprintf("Environment named '%s' doesn't exist", envName))
+		return
+	}
+
+	success := envStmt.AddRequirement(walker.Environment.Path)
+
+	if !success {
+		w.Error(node.GetToken(), fmt.Sprintf("Environment '%s' is already used", envName))
+		return
+	}
+
+	w.UsedWalkers = append(w.UsedWalkers, walker)
 }

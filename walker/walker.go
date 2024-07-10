@@ -8,23 +8,17 @@ import (
 	"hybroid/parser"
 )
 
-type Path struct {
-	Src string
-	Dst string
-}
-
 type Environment struct {
 	Name      string
-	Path      Path
+	Path      string // dynamic lua path
 	Scope     Scope
 	Variables map[string]*VariableVal
 	Structs   map[string]*StructVal
 }
 
-func NewEnvironment(path Path) *Environment {
+func NewEnvironment(path string) *Environment {
 	scope := Scope{
-		Children: make([]*Scope, 0),
-
+		Children:  make([]*Scope, 0),
 		Tag:       &UntaggedTag{},
 		Variables: map[string]*VariableVal{},
 	}
@@ -40,18 +34,17 @@ func NewEnvironment(path Path) *Environment {
 
 type Walker struct {
 	Environment *Environment
-	Walkers     *map[string]*Walker
-	UsedWalkers    []*Walker
+	Walkers     map[string]*Walker
+	UsedWalkers []*Walker
 	Nodes       []ast.Node
 	Errors      []ast.Error
 	Warnings    []ast.Warning
 	Context     Context
 }
 
-func NewWalker(path Path) *Walker {
-	environment := NewEnvironment(path)
-	walker := Walker{
-		Environment: environment,
+func NewWalker(path string) *Walker {
+	return &Walker{
+		Environment: NewEnvironment(path),
 		Nodes:       []ast.Node{},
 		Errors:      []ast.Error{},
 		Warnings:    []ast.Warning{},
@@ -61,7 +54,6 @@ func NewWalker(path Path) *Walker {
 			Ret:   Types{},
 		},
 	}
-	return &walker
 }
 
 func (w *Walker) Error(token lexer.Token, msg string) {
@@ -76,18 +68,17 @@ func (w *Walker) AddError(err ast.Error) {
 	w.Errors = append(w.Errors, err)
 }
 
-func (s *Scope) GetVariable(name string) *VariableVal {
-	variable := s.Variables[name]
+func (w *Walker) GetEnvStmt() *ast.EnvironmentStmt {
+	return w.Nodes[0].(*ast.EnvironmentStmt)
+}
 
-	if variable == nil {
+func (w *Walker) GetVariable(s *Scope, name string) *VariableVal {
+	sc := w.ResolveVariable(s, name)
+	if sc == nil {
 		return nil
 	}
 
-	variable.IsUsed = true
-
-	s.Variables[name] = variable
-
-	return s.Variables[name]
+	return sc.Variables[name]
 }
 
 func (w *Walker) GetStruct(name string) (*StructVal, bool) {
@@ -104,8 +95,8 @@ func (w *Walker) GetStruct(name string) (*StructVal, bool) {
 	return structType, true
 }
 
-func (s *Scope) AssignVariableByName(name string, value Value) (Value, *ast.Error) {
-	scope := s.ResolveVariable(name)
+func (w *Walker) AssignVariableByName(s *Scope, name string, value Value) (Value, *ast.Error) {
+	scope := w.ResolveVariable(s, name)
 
 	if scope == nil {
 		return &Invalid{}, &ast.Error{Message: "cannot assign to an undeclared variable"}
@@ -154,16 +145,22 @@ func (w *Walker) DeclareStruct(structVal *StructVal) bool {
 	return true
 }
 
-func (s *Scope) ResolveVariable(name string) *Scope {
+func (w *Walker) ResolveVariable(s *Scope, name string) *Scope {
 	if _, found := s.Variables[name]; found {
 		return s
 	}
 
 	if s.Parent == nil {
+		for i := range w.UsedWalkers {
+			variable := w.GetVariable(&w.UsedWalkers[i].Environment.Scope, name)
+			if variable != nil {
+				return &w.UsedWalkers[i].Environment.Scope
+			}
+		}
 		return nil
 	}
 
-	return s.Parent.ResolveVariable(name)
+	return w.ResolveVariable(s.Parent, name)
 }
 
 func ResolveTagScope[T ScopeTag](sc *Scope) (*Scope, *ScopeTag, *T) {
@@ -205,6 +202,7 @@ func (w *Walker) ValidateArguments(args []Type, params []Type, callToken lexer.T
 	}
 	for i, typeVal := range args {
 		if !TypeEquals(typeVal, params[i]) {
+			w.Error(callToken, fmt.Sprintf("argument is of type %s, but should be %s", typeVal.ToString(), params[i].ToString()))
 			return i, false
 		}
 	}
@@ -224,7 +222,6 @@ func (w *Walker) DetermineValueType(left Type, right Type) Type {
 
 	return InvalidType
 }
-
 
 func (w *Walker) ValidateArithmeticOperands(left Type, right Type, expr *ast.BinaryExpr) bool {
 	//fmt.Printf("Validating operands: %v (%v) and %v (%v)\n", left.Val, left.Type, right.Val, right.Type)
@@ -306,7 +303,7 @@ func (w *Walker) TypeToValue(_type Type) Value {
 			Fields: _type.(*AnonStructType).Fields,
 		}
 	case ast.Enum:
-		return w.Environment.Scope.GetVariable(_type.(*EnumType).Name)
+		return w.GetVariable(&w.Environment.Scope, _type.(*EnumType).Name)
 	default:
 		return &Invalid{}
 	}

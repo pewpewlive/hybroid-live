@@ -23,9 +23,9 @@ func AnonStructExpr(w *wkr.Walker, node *ast.AnonStructExpr, scope *wkr.Scope) *
 func AnonFnExpr(w *wkr.Walker, fn *ast.AnonFnExpr, scope *wkr.Scope) wkr.Value {
 	returnTypes := wkr.EmptyReturn
 	for i := range fn.Return {
-		returnTypes =  append(returnTypes, TypeExpr(w, fn.Return[i]))
+		returnTypes = append(returnTypes, TypeExpr(w, fn.Return[i]))
 	}
-	funcTag :=  &wkr.FuncTag{ReturnTypes: returnTypes}
+	funcTag := &wkr.FuncTag{ReturnTypes: returnTypes}
 	fnScope := wkr.NewScope(scope, funcTag, wkr.ReturnAllowing)
 
 	WalkBody(w, &fn.Body, funcTag, fnScope)
@@ -66,13 +66,13 @@ func LiteralExpr(w *wkr.Walker, node *ast.LiteralExpr) wkr.Value {
 	case ast.String:
 		return &wkr.StringVal{}
 	case ast.Fixed:
-		return &wkr.FixedVal{SpecificType:ast.Fixed}
+		return &wkr.FixedVal{SpecificType: ast.Fixed}
 	case ast.Radian:
-		return &wkr.FixedVal{SpecificType:ast.Radian}
+		return &wkr.FixedVal{SpecificType: ast.Radian}
 	case ast.FixedPoint:
-		return &wkr.FixedVal{SpecificType:ast.FixedPoint}
+		return &wkr.FixedVal{SpecificType: ast.FixedPoint}
 	case ast.Degree:
-		return &wkr.FixedVal{SpecificType:ast.Degree}
+		return &wkr.FixedVal{SpecificType: ast.Degree}
 	case ast.Bool:
 		return &wkr.BoolVal{}
 	case ast.Number:
@@ -86,12 +86,12 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 	valueNode := *node
 	ident := valueNode.(*ast.IdentifierExpr)
 
-	sc := scope.ResolveVariable(ident.Name.Lexeme)
+	sc := w.ResolveVariable(scope, ident.Name.Lexeme)
 	if sc == nil {
 		return &wkr.Unknown{}
 	}
 
-	variable := sc.GetVariable(ident.Name.Lexeme)
+	variable := w.GetVariable(sc, ident.Name.Lexeme)
 
 	if sc.Tag.GetType() == wkr.Struct {
 		_struct := sc.Tag.(*wkr.StructTag).StructVal
@@ -337,7 +337,7 @@ func NewExpr(w *wkr.Walker, new *ast.NewExpr, scope *wkr.Scope) wkr.Value {
 	var found bool
 	if new.Type.GetType() == ast.Identifier {
 		val, found = w.GetStruct(new.Type.GetToken().Lexeme)
-	}else {
+	} else {
 		return &wkr.Unknown{}
 	}
 	if !found {
@@ -398,7 +398,7 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr) wkr.Type {
 		if structVal, found := w.Environment.Structs[typee.Name.GetToken().Lexeme]; found {
 			return structVal.GetType()
 		}
-		if val := w.Environment.Scope.GetVariable(typee.Name.GetToken().Lexeme); val != nil {
+		if val := w.GetVariable(&w.Environment.Scope, typee.Name.GetToken().Lexeme); val != nil {
 			if val.GetType().PVT() == ast.Enum {
 				return val.GetType()
 			}
