@@ -1,4 +1,4 @@
-package lua
+package generator
 
 import (
 	"fmt"
@@ -41,9 +41,11 @@ func (sb *StringBuilder) ReplaceRange(str string, replaceRange Range) {
 	sb.Append(buffer[:replaceRange.Start], str, buffer[replaceRange.End:])
 }
 
+var envMap = map[string]string{}
 var charset = []byte("_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 var charsetLength = len(charset)
 var varCounter = 0
+var envCounter = 0
 
 var hyGTL = "GL"
 var HyVar = "H"
@@ -174,12 +176,21 @@ func (gs *GenScope) AppendTabbed(strs ...string) {
 
 type Generator struct {
 	envName string
-	Scope  GenScope
-	Errors []ast.Error
+	Scope   GenScope
+	Errors  []ast.Error
+}
+
+func (gen *Generator) SetUniqueEnvName(name string) {
+	uniqueName := StringBuilder{}
+	uniqueName.WriteByte('E')
+	ResolveVarCounter(&uniqueName, envCounter)
+	envCounter++
+
+	envMap[name] = uniqueName.String()
 }
 
 func (gen *Generator) SetEnvName(name string) {
-	gen.envName = "E" + name
+	gen.envName = envMap[name]
 }
 
 func (gen *Generator) WriteVar(name string) string {
@@ -256,6 +267,8 @@ func degToRad(floatstr string) string {
 
 func (gen *Generator) GenerateStmt(node ast.Node, scope *GenScope) {
 	switch newNode := node.(type) {
+	case *ast.EnvironmentStmt:
+		gen.envStmt(*newNode, scope)
 	case *ast.AssignmentStmt:
 		gen.assignmentStmt(*newNode, scope)
 	case *ast.BreakStmt:
@@ -281,12 +294,11 @@ func (gen *Generator) GenerateStmt(node ast.Node, scope *GenScope) {
 	case *ast.VariableDeclarationStmt:
 		gen.variableDeclarationStmt(*newNode, scope)
 	case *ast.UseStmt:
-		gen.useStmt(*newNode, scope)
 	case *ast.MethodCallExpr:
-		val := gen.methodCallExpr(*newNode, scope) // koocing
+		val := gen.methodCallExpr(*newNode, scope)
 		scope.WriteString(val)
 	case *ast.CallExpr:
-		val := gen.callExpr(*newNode, true, scope) // koocing
+		val := gen.callExpr(*newNode, true, scope)
 		scope.WriteString(val)
 	case *ast.FunctionDeclarationStmt:
 		gen.functionDeclarationStmt(*newNode, scope)

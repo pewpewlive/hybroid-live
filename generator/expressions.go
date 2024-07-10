@@ -1,4 +1,4 @@
-package lua
+package generator
 
 import (
 	"fmt"
@@ -56,7 +56,7 @@ func (gen *Generator) callExpr(node ast.CallExpr, tabbed bool, scope *GenScope) 
 
 	if tabbed {
 		src.AppendTabbed(fn, "(")
-	}else {
+	} else {
 		src.Append(fn, "(")
 	}
 	for i, arg := range node.Args {
@@ -139,7 +139,7 @@ func (gen *Generator) fieldExpr(node ast.FieldExpr, scope *GenScope) string {
 		}
 		if node.Index == -1 {
 			src.Append(".", node.Identifier.GetToken().Lexeme, prop)
-		}else {
+		} else {
 			src.Append("[", fmt.Sprintf("%v", node.Index), "]", prop)
 		}
 		return src.String()
@@ -292,5 +292,8 @@ func (gen *Generator) matchExpr(match ast.MatchExpr, scope *GenScope) string {
 }
 
 func (gen *Generator) envAccessExpr(node ast.EnvAccessExpr, scope *GenScope) string {
-	return gen.GenerateExpr(node.Accessed, scope)
+	accessed := gen.GenerateExpr(node.Accessed, scope)
+	accessed = accessed[len(gen.envName):]
+
+	return envMap[node.PathExpr.Nameify()] + accessed
 }

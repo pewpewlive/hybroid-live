@@ -1,4 +1,4 @@
-package lua
+package generator
 
 import (
 	"fmt"
@@ -6,6 +6,12 @@ import (
 	"hybroid/lexer"
 	"strconv"
 )
+
+func (gen *Generator) envStmt(node ast.EnvironmentStmt, scope *GenScope) {
+	for i := range node.Requirements {
+		scope.Append("require(\"", node.Requirements[i], "\")\n")
+	}
+}
 
 func (gen *Generator) ifStmt(node ast.IfStmt, scope *GenScope) {
 	ifScope := NewGenScope(scope)
@@ -249,7 +255,6 @@ func (gen *Generator) forStmt(node ast.ForStmt, scope *GenScope) {
 
 	forScope.ReplaceAll()
 
-
 	forScope.AppendETabbed("::" + gotoLabel + "::\n")
 
 	forScope.AppendTabbed("end")
@@ -422,11 +427,6 @@ func (gen *Generator) methodDeclarationStmt(node ast.MethodDeclarationStmt, Stru
 	methodScope.AppendTabbed("end\n")
 
 	scope.Write(methodScope.Src)
-}
-
-func (gen *Generator) useStmt(node ast.UseStmt, scope *GenScope) {
-	// fileName := strings.Replace(node.File.Literal, ".hyb", ".lua", 1)
-	// scope.Append("local ", node.Variable.Name.Lexeme, " = require(\"/dynamic/", fileName, "\")")
 }
 
 func (gen *Generator) matchStmt(node ast.MatchStmt, scope *GenScope) {
