@@ -143,6 +143,12 @@ func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr) wkr.Value {
 
 	envStmt := w.GetEnvStmt()
 
+	for _, v := range walker.GetEnvStmt().Requirements {
+		if v == w.Environment.Path {
+			w.Error(node.GetToken(), fmt.Sprintf("import cycle detected: this environment and '%s' are using each other", walker.Environment.Name))
+		}
+	}
+
 	envStmt.AddRequirement(walker.Environment.Path)
 
 	return GetNodeValue(w, &node.Accessed, &walker.Environment.Scope)
@@ -296,11 +302,7 @@ func UnaryExpr(w *wkr.Walker, node *ast.UnaryExpr, scope *wkr.Scope) wkr.Value {
 
 func MemberExpr(w *wkr.Walker, node *ast.MemberExpr, scope *wkr.Scope) wkr.Value {
 	if node.Owner == nil {
-		val := GetNodeValue(w, &node.Identifier, scope)
-
-		if val.GetType().PVT() == ast.Unresolved {
-			return &wkr.Unknown{}
-		}
+		val := GetNodeValue(w, &node.Identifier, scope) // invalid, can we start again cuz i wanna go into this
 
 		var memberVal wkr.Value
 		if node.Property == nil {
@@ -318,12 +320,12 @@ func MemberExpr(w *wkr.Walker, node *ast.MemberExpr, scope *wkr.Scope) wkr.Value
 	arrayType := array.GetType().PVT()
 
 	if arrayType == ast.Map {
-		if valType != ast.String && valType != ast.Unknown {
+		if valType != ast.String {
 			w.Error(node.Identifier.GetToken(), "variable is not a string")
 			return &wkr.Invalid{}
 		}
 	} else if arrayType == ast.List {
-		if valType != ast.Number && valType != ast.Unknown {
+		if valType != ast.Number {
 			w.Error(node.Identifier.GetToken(), "variable is not a number")
 			return &wkr.Invalid{}
 		}
@@ -433,7 +435,10 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, env *wkr.Environment) wkr.Type
 			Params:  params,
 			Returns: returns,
 		}
-	default:
+	case ast.Map, ast.List:
+		wrapped := TypeExpr(w, typee.WrappedType, env)
+		return wkr.NewWrapperType(wkr.NewBasicType(pvt), wrapped) // lets goo
+	default: // oh wait we're not even checking here for maps and lists, bruh
 		if structVal, found := env.Structs[typee.Name.GetToken().Lexeme]; found {
 			return structVal.GetType()
 		}

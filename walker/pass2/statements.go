@@ -200,9 +200,15 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 		if ident.Lexeme == "_" {
 			continue
 		}
-		if declaration.Types[i] != nil && values[i].GetType().PVT() == ast.Unknown {
-			values[i] = w.TypeToValue(TypeExpr(w, declaration.Types[i], w.Environment))
-			declaration.Values = append(declaration.Values, values[i].GetDefault())
+		if declaration.Types[i] != nil {
+			valueType := values[i].GetType()
+			explicitType := TypeExpr(w, declaration.Types[i], w.Environment)
+			if valueType.PVT() == ast.Unknown {
+				values[i] = w.TypeToValue(explicitType)
+				declaration.Values = append(declaration.Values, values[i].GetDefault())
+			} else if !wkr.TypeEquals(valueType, explicitType) {
+				w.Error(declaration.Values[i].GetToken(), fmt.Sprintf("Given value is %s, but explicit type is %s", valueType.ToString(), explicitType.ToString()))
+			}
 		}
 		_var := w.GetVariable(scope, ident.Lexeme)
 		_var.Value = values[i]
@@ -464,6 +470,13 @@ func UseStmt(w *wkr.Walker, node *ast.UseStmt, scope *wkr.Scope) {
 	if !found {
 		w.Error(node.GetToken(), fmt.Sprintf("Environment named '%s' doesn't exist", envName))
 		return
+	}
+
+	for _, v := range walker.GetEnvStmt().Requirements {
+		if v == w.Environment.Path {
+			w.Error(node.GetToken(), fmt.Sprintf("import cycle detected: this environment and '%s' are using each other", walker.Environment.Name))
+			return
+		}
 	}
 
 	success := envStmt.AddRequirement(walker.Environment.Path)

@@ -10,11 +10,10 @@ env ExampleLevel as Level
   HYBROID!!
 */
 
-let text b = "Hello"
-pub c = MoreTest::moreTest
-let d = [1.5f, 2.2048fx, 90d, 3.14r]
-
-Test::a += 1337
+pub text b = Other::other
+pub d = [1.5f, 2.2048fx, 90d, 3.14r]
+let a = 10
+a += 1337//that is t
 
 // if d[1] == 2.2048fx {
 //   d[2] = d[1]
@@ -31,9 +30,9 @@ fn Abs(number a) number {
   return -a
 }
 
-Test::a = Abs(Test::a)
+a = Abs(a)
 
-Abs(Test::a)
+Abs(a)
 
 fn MatchShow(text test) text {
   return match test {
@@ -131,4 +130,4 @@ fn PrintError(Error error) text {
 }
 
 PrintError(error)
-Test::a = 100
+a = 100
