@@ -6,8 +6,19 @@ macro Test2() => {
   let a = 100
 }
 
-let b = Test()
+let b = "a"
 
-Test2()
+let number num = 1
 
-let c = a
+fn function(fixed param1, text param2) {
+
+  let o = param2 .. " djsbifskjfdb"
+}
+// 5 +2 + 2+ 2
+repeat to 10 from 5 by 2 with i {
+
+}
+
+while b == "a" {
+
+}

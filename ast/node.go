@@ -11,6 +11,8 @@ const (
 	FieldDeclarationStatement     NodeType = "fieldDeclarationStatement"
 	MethodDeclarationStatement    NodeType = "methodDeclarationStatement"
 	EnumDeclarationStatement      NodeType = "enumDeclarationStatement"
+	MacroDeclarationStatement     NodeType = "macroDeclarationStatement"
+	
 
 	ConstructorStatement NodeType = "constructorStatement"
 	EnvironmentStatement NodeType = "environmentStatement"
@@ -34,7 +36,6 @@ const (
 	EnvironmentTypeExpression   NodeType = "environmentTypeExpression"
 	AnonymousFunctionExpression NodeType = "anonymousFunctionExpression"
 	AnonymousStructExpression   NodeType = "anonymousStructExpression"
-	DirectiveExpression         NodeType = "directiveExpression"
 	LiteralExpression           NodeType = "literalExpression"
 	UnaryExpression             NodeType = "unaryExpression"
 	BinaryExpression            NodeType = "binaryExpression"

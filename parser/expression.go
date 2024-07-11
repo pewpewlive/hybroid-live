@@ -314,7 +314,7 @@ func (p *Parser) accessorExprDepth1(owner ast.Accessor, ident ast.Node, nodeType
 		}
 	}
 	if propNodeType == ast.FieldExpression {
-		propIdent = p.directive()
+		propIdent = p.new()
 	} else {
 		propIdent = p.expression()
 		p.consume("expected closing bracket in member expression", lexer.RightBracket)
@@ -331,15 +331,7 @@ func (p *Parser) matchExpr() ast.Node {
 		return &ast.MatchExpr{MatchStmt: *p.matchStmt(true)}
 	}
 
-	return p.directive()
-}
-
-func (p *Parser) directive() ast.Node {
-	if !p.match(lexer.At) {
-		return p.new()
-	}
-
-	return p.directiveCall()
+	return p.new()
 }
 
 func (p *Parser) new() ast.Node {

@@ -52,6 +52,32 @@ func (as *AssignmentStmt) GetValueType() PrimitiveValueType {
 	return Unknown
 }
 
+type MacroType int
+
+const (
+	ExpressionExpansion MacroType = iota
+	ProgramExpansion
+)
+
+type MacroDeclarationStmt struct {
+	Name lexer.Token
+	Params []lexer.Token
+	MacroType MacroType
+	Tokens     []lexer.Token
+}
+
+func (self *MacroDeclarationStmt) GetType() NodeType {
+	return MacroDeclarationStatement
+}
+
+func (self *MacroDeclarationStmt) GetToken() lexer.Token {
+	return self.Name
+}
+
+func (self *MacroDeclarationStmt) GetValueType() PrimitiveValueType {
+	return Unknown
+}
+
 type VariableDeclarationStmt struct {
 	Identifiers []lexer.Token
 	Types       []*TypeExpr

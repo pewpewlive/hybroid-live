@@ -169,16 +169,6 @@ func (gen *Generator) memberExpr(node ast.MemberExpr, scope *GenScope) string {
 	return src.String()
 }
 
-func (gen *Generator) directiveExpr(node ast.DirectiveExpr, scope *GenScope) string {
-	src := StringBuilder{}
-
-	if node.Identifier.Lexeme != "Environment" {
-		src.Append(node.Identifier.Lexeme, "(", gen.GenerateExpr(node.Expr, scope), ")")
-	}
-
-	return src.String()
-}
-
 func (gen *Generator) anonFnExpr(fn ast.AnonFnExpr, scope *GenScope) string {
 	fnScope := NewGenScope(scope)
 

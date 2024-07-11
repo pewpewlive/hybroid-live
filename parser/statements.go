@@ -42,6 +42,9 @@ func (p *Parser) statement() ast.Node {
 	}
 
 	switch token {
+	case lexer.Macro:
+		p.advance()
+		return p.macroDeclarationStmt()
 	case lexer.Env:
 		p.advance()
 		return p.envStmt()
@@ -108,26 +111,67 @@ func (p *Parser) statement() ast.Node {
 	return expr
 }
 
-func (p *Parser) getBody() []ast.Node {
-	body := make([]ast.Node, 0)
-	if _, success := p.consume("expected opening of the body", lexer.LeftBrace); !success {
-		return body
+func (p *Parser) macroDeclarationStmt() ast.Node {
+	name, ok := p.consume("expected identifier after 'macro' keyword", lexer.Identifier)
+	if !ok {
+		return &ast.Improper{}
 	}
 
-	for !p.match(lexer.RightBrace) {
-		if p.peek().Type == lexer.Eof {
-			p.error(p.peek(), "expected body closure")
-			break
+	macroDeclaration := &ast.MacroDeclarationStmt{
+		Name: name,
+	}
+	p.consume("expected opening parenthesis", lexer.LeftParen)
+	params := []lexer.Token{}
+	token := p.peek()
+	if token.Type == lexer.RightParen {
+		p.advance()
+	}else if token.Type == lexer.Identifier {
+		p.advance()
+		params = append(params, token)
+		for p.match(lexer.Colon) {
+			name, ok = p.consume("expected identifier as parameter", lexer.Identifier)
+			if !ok {
+				return &ast.Improper{}
+			}
+			params = append(params, name)
 		}
-
-		statement := p.statement()
-		if statement.GetType() != ast.NA {
-			body = append(body, statement)
-		}
+		macroDeclaration.Params = params
+		p.consume("expected closing parenthesis", lexer.RightParen)
+	}else {
+		p.advance()
+		p.error(token, "expected either identifier or closing parenthesis after opening parenthesis")
+		return &ast.Improper{}
 	}
 
-	return body
+	if !p.match(lexer.FatArrow) {
+		p.error(p.peek(), "expected fat arrow in macro declaration")
+		return &ast.Improper{}
+	}
+	if p.match(lexer.LeftBrace) {
+		macroDeclaration.MacroType = ast.ProgramExpansion
+		nestedBrace := 0
+		for !(p.peek().Type == lexer.RightBrace && nestedBrace <= 0) {
+			t := p.advance()
+			if t.Type == lexer.LeftBrace {
+				nestedBrace++
+			}else if t.Type == lexer.RightBrace {
+				nestedBrace--
+			}
+			macroDeclaration.Tokens = append(macroDeclaration.Tokens, t)
+		}
+		p.advance()
+		return macroDeclaration
+	}
+	macroDeclaration.MacroType = ast.ExpressionExpansion
+	line := p.peek(-1).Location.LineStart
+
+	for p.peek().Location.LineStart == line {
+		macroDeclaration.Tokens = append(macroDeclaration.Tokens, p.advance())
+	}
+
+	return macroDeclaration
 }
+
 
 func (p *Parser) envStmt() ast.Node {
 	stmt := ast.EnvironmentStmt{}

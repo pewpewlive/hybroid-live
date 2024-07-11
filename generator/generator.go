@@ -334,8 +334,6 @@ func (gen *Generator) GenerateExpr(node ast.Node, scope *GenScope) string {
 		return gen.fieldExpr(*newNode, scope)
 	case *ast.MemberExpr:
 		return gen.memberExpr(*newNode, scope)
-	case *ast.DirectiveExpr:
-		return gen.directiveExpr(*newNode, scope)
 	case *ast.AnonFnExpr:
 		return gen.anonFnExpr(*newNode, scope)
 	case *ast.AnonStructExpr:
