@@ -540,11 +540,12 @@ Greet("John") // -> Hello, John!
 Directives are special functions that are evaluated in the transpiler. They work similarly to _macros_.
 
 ```rs
-dir @Hello(name) {
-  "Hello ".. name .. "!"
-}
+macro Directiv1(params) => "hello" .. params 
 
-print(@Hello("John")) // -> Hello, John!
+macro HandleEntity($params) => {
+  let id = new $params()
+  id.AddCallback()
+} 
 ```
 
 The generated code looks something like this:
@@ -712,4 +713,3 @@ Set.timeout(10, fn() {
 ```
 
 ### Using static namespace
-

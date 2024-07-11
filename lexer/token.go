@@ -73,6 +73,7 @@ const (
 	If       TokenType = "if"
 	In       TokenType = "in"
 	Let      TokenType = "let"
+	Macro    TokenType = "macro"
 	Match    TokenType = "match"
 	New      TokenType = "new"
 	Or       TokenType = "or"
@@ -114,6 +115,7 @@ var keywords = map[string]TokenType{
 	"if":       If,
 	"in":       In,
 	"let":      Let,
+	"macro":    Macro,
 	"match":    Match,
 	"new":      New,
 	"or":       Or,

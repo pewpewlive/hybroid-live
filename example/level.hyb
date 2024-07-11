@@ -1,132 +1,13 @@
 env ExampleLevel as Level
 
-//use A
+macro Test() => "hello"
 
-// Hi!
-
-/*
-  This
-  Is
-  HYBROID!!
-*/
-
-pub text b = Other::other
-pub d = [1.5f, 2.2048fx, 90d, 3.14r]
-let a = 10
-a += 1337//that is t
-
-// if d[1] == 2.2048fx {
-//   d[2] = d[1]
-// } else if false {
-//   d[1] = d[2]
-// } else {
-//   d[1] = 180d
-// }
-
-pub fn Abs(number a) number {
-  // if a >= 0 {
-  //   return a
-  // }
-  return -a
+macro Test2() => {
+  let a = 100
 }
 
-a = Abs(a)
+let b = Test()
 
-Abs(a)
+Test2()
 
-fn MatchShow(text test) text {
-  return match test {
-    "Hello" => "Hi"
-    "Goodbye" => "Bye"
-    "See you later" => "Cya"
-    _ => "Wrong input"
-  }
-}
-
-MatchShow("Hello")//
-MatchShow("asdasd")
-
-repeat 10 with i {
-  match i {
-    1 => {
-      continue
-    }
-    _ => {
-    }
-  }
-  
-  if i / 10 > 1 {
-    break
-  }
-}
-
-repeat from 10 to -10 by -1 with i { }
-while false { }
-for i, v in d { }
-
-struct Foo {
-  number foo, bar = 100, 90
-  number foobar
-  
-  new(number foo, number bar) {
-    self.foo = foo
-    self.bar = bar
-    foobar = self.foo + self.bar
-  }
-
-  fn Foo() number {
-    return foo
-  }
-
-  fn Foobar() number {
-    return self.foobar
-  }
-}
-
-let testmap = {a = 2, b = 3}
-
-for k, v in testmap {
-    break
-}
-
-let list = [1,2,3]
-
-for i, v in list {
-    if i == 2 {
-        continue
-    }
-    match v {
-        0 => {
-            continue
-        }
-    }
-}
-
-enum TestEnum {
-    One,
-    Two,
-    Three,
-    NA
-}
-
-enum Error {
-  SyntaxError,
-  ParserError,
-  WalkerError
-}
-
-let error = Error.SyntaxError
-
-fn PrintError(Error error) text {
-  match error {
-    Error.SyntaxError, Error.ParserError, Error.WalkerError => {
-      return "Syntax, Parser or Walker Error"
-    }
-    _ => {
-      return "Invalid error type!"
-    }
-  } 
-}
-
-PrintError(error)
-a = 100
+let c = a
