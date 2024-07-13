@@ -1,6 +1,7 @@
 package pass1
 
 import (
+	"fmt"
 	"hybroid/ast"
 	"hybroid/helpers"
 	"hybroid/lexer"
@@ -230,6 +231,22 @@ func IfStmt(w *wkr.Walker, node *ast.IfStmt, scope *wkr.Scope) {
 	}
 
 	w.ReportExits(mpt, scope)
+}
+
+func MacroDeclarationStmt(w *wkr.Walker, node *ast.MacroDeclarationStmt, scope *wkr.Scope) {
+	if scope.Parent != nil {
+		w.Error(node.Name, "cannot declare a macro inside a local block")
+		return;
+	}
+
+	_, found := scope.Environment.Macros[node.Name.Lexeme]
+
+	if found {
+		w.Error(node.Name, fmt.Sprintf("Macro named '%s' already exists", node.Name.Lexeme))
+		return;
+	}
+
+	scope.Environment.Macros[node.Name.Lexeme] = node
 }
 
 func RepeatStmt(w *wkr.Walker, node *ast.RepeatStmt, scope *wkr.Scope) {

@@ -78,6 +78,22 @@ func (eae *EnvAccessExpr) GetValueType() PrimitiveValueType {
 	return Unknown
 }
 
+type MacroCallExpr struct {
+	Caller *CallExpr
+}
+
+func (self *MacroCallExpr) GetType() NodeType {
+	return MacroCallExpression
+}
+
+func (self *MacroCallExpr) GetToken() lexer.Token {
+	return self.Caller.GetToken()
+}
+
+func (self *MacroCallExpr) GetValueType() PrimitiveValueType {
+	return Unknown
+}
+
 type LiteralExpr struct {
 	Value     string
 	ValueType PrimitiveValueType

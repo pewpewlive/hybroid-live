@@ -59,6 +59,7 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 		UseStmt(w, newNode, scope)
 	case *ast.Improper:
 		w.Error(newNode.GetToken(), "Improper statement: parser fault")
+	case *ast.MacroDeclarationStmt:
 	default:
 		w.Error(newNode.GetToken(), "Expected statement")
 	}

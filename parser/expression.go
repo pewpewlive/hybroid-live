@@ -331,6 +331,22 @@ func (p *Parser) matchExpr() ast.Node {
 		return &ast.MatchExpr{MatchStmt: *p.matchStmt(true)}
 	}
 
+	return p.macroCall()
+}
+
+func (p *Parser) macroCall() ast.Node {
+	if p.match(lexer.At) {
+		macroCall := &ast.MacroCallExpr{}
+		caller := p.envAccessExpr()
+		callerType := caller.GetType()
+		if callerType != ast.CallExpression {
+			p.error(caller.GetToken(), "expected call after '@'")
+			return &ast.Improper{}
+		}
+		macroCall.Caller = caller.(*ast.CallExpr)
+		return macroCall
+	}
+
 	return p.new()
 }
 

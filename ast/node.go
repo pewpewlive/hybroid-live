@@ -44,6 +44,7 @@ const (
 	MapExpression               NodeType = "mapExpression"
 	CallExpression              NodeType = "callExpression"
 	MethodCallExpression        NodeType = "methodCallExpression"
+	MacroCallExpression         NodeType = "macroCallExpression"
 	MatchExpression             NodeType = "matchExpression"
 	FieldExpression             NodeType = "fieldExpression"
 	MemberExpression            NodeType = "memberExpression"

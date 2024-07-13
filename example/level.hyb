@@ -6,6 +6,8 @@ macro Test2() => {
   let a = 100
 }
 
+@Test2()
+
 let b = "a"
 
 let number num = 1
