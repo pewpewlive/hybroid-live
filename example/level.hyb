@@ -24,3 +24,15 @@ repeat to 10 from 5 by 2 with i {
 while b == "a" {
 
 }
+
+entity Quadro {
+  speed = 1
+
+  spawn() {
+
+  }
+
+  destroy() {
+    
+  }
+}

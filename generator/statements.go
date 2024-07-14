@@ -344,7 +344,7 @@ func (gen *Generator) enumDeclarationStmt(node ast.EnumDeclarationStmt, scope *G
 func (gen *Generator) structDeclarationStmt(node ast.StructDeclarationStmt, scope *GenScope) {
 	structScope := NewGenScope(scope)
 
-	for _, nodebody := range *node.Methods {
+	for _, nodebody := range node.Methods {
 		gen.methodDeclarationStmt(nodebody, node, &structScope)
 	}
 

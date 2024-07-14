@@ -14,7 +14,6 @@ type Environment struct {
 	Scope     Scope
 	Variables map[string]*VariableVal
 	Structs   map[string]*StructVal
-	Macros    map[string]*ast.MacroDeclarationStmt
 
 }
 
@@ -28,7 +27,6 @@ func NewEnvironment(path string) *Environment {
 		Path:    path,
 		Scope:   scope,
 		Structs: map[string]*StructVal{},
-		Macros: make(map[string]*ast.MacroDeclarationStmt),
 	}
 
 	global.Scope.Environment = global

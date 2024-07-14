@@ -13,7 +13,12 @@ type Parser struct {
 }
 
 func NewParser() Parser {
-	return Parser{make([]ast.Node, 0), 0, make([]lexer.Token, 0), make([]ast.Error, 0)}
+	return Parser{
+		make([]ast.Node, 0), 
+		0,
+		make([]lexer.Token, 0), 
+		make([]ast.Error, 0),
+	}
 }
 
 func (p *Parser) AssignTokens(tokens []lexer.Token) {

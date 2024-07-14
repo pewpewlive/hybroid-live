@@ -30,6 +30,10 @@ func (p *Parser) statement() ast.Node {
 			p.advance()
 			p.advance()
 			return p.structDeclarationStmt()
+		case lexer.Entity:
+			p.advance()
+			p.advance()
+			return p.entityDeclarationStmt()
 		case lexer.Enum:
 			p.advance()
 			p.advance()
@@ -95,6 +99,9 @@ func (p *Parser) statement() ast.Node {
 	case lexer.Struct:
 		p.advance()
 		return p.structDeclarationStmt()
+	case lexer.Entity:
+		p.advance()
+		return p.entityDeclarationStmt()
 	case lexer.While:
 		p.advance()
 		return p.whileStmt()
@@ -168,6 +175,7 @@ func (p *Parser) macroDeclarationStmt() ast.Node {
 	for p.peek().Location.LineStart == line {
 		macroDeclaration.Tokens = append(macroDeclaration.Tokens, p.advance())
 	}
+
 
 	return macroDeclaration
 }
@@ -246,7 +254,7 @@ func (p *Parser) enumDeclarationStmt(local bool) ast.Node {
 }
 
 func (p *Parser) structDeclarationStmt() ast.Node {
-	stmt := ast.StructDeclarationStmt{
+	stmt := &ast.StructDeclarationStmt{
 		IsLocal: p.peek(-1).Type != lexer.Pub,
 	}
 	stmt.Token = p.peek(-1)
@@ -263,12 +271,12 @@ func (p *Parser) structDeclarationStmt() ast.Node {
 	if !ok {
 		return &ast.Improper{Token: stmt.Token}
 	}
-	stmt.Methods = &[]ast.MethodDeclarationStmt{}
+	stmt.Methods = []ast.MethodDeclarationStmt{}
 	for !p.match(lexer.RightBrace) {
 		if p.match(lexer.Fn) {
 			method, ok := p.methodDeclarationStmt(stmt.IsLocal).(*ast.MethodDeclarationStmt)
 			if ok {
-				*stmt.Methods = append(*stmt.Methods, *method)
+				stmt.Methods = append(stmt.Methods, *method)
 			}
 		} else if p.match(lexer.New) {
 			construct, ok := p.constructorDeclarationStmt().(*ast.ConstructorStmt)
@@ -291,21 +299,115 @@ func (p *Parser) structDeclarationStmt() ast.Node {
 		}
 	}
 
-	return &stmt
+	return stmt
 }
 
+func (p *Parser) entityDeclarationStmt() ast.Node {
+	stmt := &ast.EntityDeclarationStmt{
+		IsLocal: p.peek(-1).Type != lexer.Pub,
+		Token: p.peek(-1),
+	}
+
+	name, ok := p.consume("expected the name of the entity", lexer.Identifier)
+
+	if !ok {
+		return &ast.Improper{Token: stmt.Token}
+	}
+	stmt.Name = name
+
+	_, ok = p.consume("expected opening of the struct body", lexer.LeftBrace)
+	if !ok {
+		return &ast.Improper{Token: stmt.Token}
+	}
+
+	for !p.match(lexer.RightBrace) {
+		if p.match(lexer.Fn) {
+			method, ok := p.methodDeclarationStmt(stmt.IsLocal).(*ast.MethodDeclarationStmt)
+			if ok {
+				stmt.Methods = append(stmt.Methods, *method)
+			}
+			continue
+		} 
+		if p.match(lexer.Spawn) {
+			spawner := p.spawnDeclarationStmt()
+			if spawner.GetType() != ast.NA {
+				stmt.Spawner = spawner.(*ast.SpawnDeclarationStmt)
+			}
+			continue
+		} 
+		if p.match(lexer.Destroy) {
+			destroyer := p.destroyDeclarationStmt()
+			if destroyer.GetType() != ast.NA {
+				stmt.Destroyer = destroyer.(*ast.DestroyDeclarationStmt)
+			}
+			continue
+		} 
+		if p.check(lexer.Identifier) {
+			switch p.peek().Lexeme {
+			case "WeaponCollision":
+			case "WallCollision":
+			case "PlayerCollision":
+			}
+		} 
+		field := p.fieldDeclarationStmt()
+		if field.GetType() != ast.NA {
+			stmt.Fields = append(stmt.Fields, *field.(*ast.FieldDeclarationStmt))
+		} else {
+			p.error(p.peek(), "unknown statement inside struct")
+		}
+	}
+
+	if stmt.Spawner == nil {
+		p.error(stmt.Token, "entity struct is missing 'spawn' constructor")
+	}
+
+	return stmt
+}
+
+func (p *Parser) spawnDeclarationStmt() ast.Node {
+	stmt := p.constructorDeclarationStmt()
+	if stmt.GetType() == ast.NA {
+		return stmt
+	}
+	construct := stmt.(*ast.ConstructorStmt)
+
+	return &ast.SpawnDeclarationStmt{
+		Token: construct.Token,
+		Params: construct.Params,
+		Body: construct.Body,
+		Return: construct.Return,
+	}
+}
+
+
+func (p *Parser) destroyDeclarationStmt() ast.Node {
+	stmt := p.constructorDeclarationStmt()
+	if stmt.GetType() == ast.NA {
+		return stmt
+	}
+	construct := stmt.(*ast.ConstructorStmt)
+
+	return &ast.DestroyDeclarationStmt{
+		Token: construct.Token,
+		Params: construct.Params,
+		Body: construct.Body,
+		Return: construct.Return,
+	}
+}
+
+
 func (p *Parser) constructorDeclarationStmt() ast.Node {
-	stmt := ast.ConstructorStmt{Token: p.peek(-1)}
+	stmt := &ast.ConstructorStmt{Token: p.peek(-1)}
 
 	stmt.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
-
+	stmt.Return = p.returnings()
 	stmt.Body = p.getBody()
 
 	if stmt.Body == nil {
 		return &ast.Improper{Token: stmt.Token}
 	}
 
-	return &stmt
+	return stmt
 }
 
 func (p *Parser) fieldDeclarationStmt() ast.Node {

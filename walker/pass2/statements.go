@@ -32,28 +32,28 @@ func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope
 		FieldDeclarationStmt(w, &node.Fields[i], structVal, structScope)
 	}
 
-	for i := range *node.Methods {
+	for i := range node.Methods {
 		params := make([]wkr.Type, 0)
-		for _, param := range (*node.Methods)[i].Params {
+		for _, param := range node.Methods[i].Params {
 			params = append(params, TypeExpr(w, param.Type, w.Environment))
 		}
 
 		ret := wkr.EmptyReturn
-		for _, typee := range (*node.Methods)[i].Return {
+		for _, typee := range node.Methods[i].Return {
 			ret = append(ret, TypeExpr(w, typee, w.Environment))
 			//fmt.Printf("%s\n", ret.values[len(ret.values)-1].Type.ToString())
 		}
 		variable := &wkr.VariableVal{
-			Name:    (*node.Methods)[i].Name.Lexeme,
+			Name:    node.Methods[i].Name.Lexeme,
 			Value:   &wkr.FunctionVal{Params: params, Returns: ret},
 			IsLocal: node.IsLocal,
-			Token:   (*node.Methods)[i].GetToken(),
+			Token:   node.Methods[i].GetToken(),
 		}
 		*w.GetVariable(structScope, variable.Name) = *variable
 	}
 
-	for i := range *node.Methods {
-		MethodDeclarationStmt(w, &(*node.Methods)[i], structVal, structScope)
+	for i := range node.Methods {
+		MethodDeclarationStmt(w, &node.Methods[i], structVal, structScope)
 	}
 
 	MethodDeclarationStmt(w, &funcDeclaration, structVal, structScope)

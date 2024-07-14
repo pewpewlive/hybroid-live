@@ -1,7 +1,6 @@
 package pass1
 
 import (
-	"fmt"
 	"hybroid/ast"
 	"hybroid/helpers"
 	"hybroid/lexer"
@@ -39,29 +38,29 @@ func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope
 		FieldDeclarationStmt(w, &node.Fields[i], structVal, structScope)
 	}
 
-	for i := range *node.Methods {
+	for i := range node.Methods {
 		params := make([]wkr.Type, 0)
-		for _, param := range (*node.Methods)[i].Params {
+		for _, param := range node.Methods[i].Params {
 			params = append(params, TypeExpr(w, param.Type))
 		}
 
 		ret := wkr.EmptyReturn
-		for _, typee := range (*node.Methods)[i].Return {
+		for _, typee := range node.Methods[i].Return {
 			ret = append(ret, TypeExpr(w, typee))
 			//fmt.Printf("%s\n", ret.values[len(ret.values)-1].Type.ToString())
 		}
 		variable := &wkr.VariableVal{
-			Name:    (*node.Methods)[i].Name.Lexeme,
+			Name:    node.Methods[i].Name.Lexeme,
 			Value:   &wkr.FunctionVal{Params: params, Returns: ret},
 			IsLocal: node.IsLocal,
-			Token:   (*node.Methods)[i].GetToken(),
+			Token:   node.Methods[i].GetToken(),
 		}
-		w.DeclareVariable(structScope, variable, (*node.Methods)[i].Name)
+		w.DeclareVariable(structScope, variable, node.Methods[i].Name)
 		structVal.Methods[variable.Name] = variable
 	}
 
-	for i := range *node.Methods {
-		MethodDeclarationStmt(w, &(*node.Methods)[i], structVal, structScope)
+	for i := range node.Methods {
+		MethodDeclarationStmt(w, &node.Methods[i], structVal, structScope)
 	}
 
 	MethodDeclarationStmt(w, &funcDeclaration, structVal, structScope)
@@ -234,19 +233,19 @@ func IfStmt(w *wkr.Walker, node *ast.IfStmt, scope *wkr.Scope) {
 }
 
 func MacroDeclarationStmt(w *wkr.Walker, node *ast.MacroDeclarationStmt, scope *wkr.Scope) {
-	if scope.Parent != nil {
-		w.Error(node.Name, "cannot declare a macro inside a local block")
-		return;
-	}
+	// if scope.Parent != nil {
+	// 	w.Error(node.Name, "cannot declare a macro inside a local block")
+	// 	return;
+	// }
 
-	_, found := scope.Environment.Macros[node.Name.Lexeme]
+	// _, found := scope.Environment.Macros[node.Name.Lexeme]
 
-	if found {
-		w.Error(node.Name, fmt.Sprintf("Macro named '%s' already exists", node.Name.Lexeme))
-		return;
-	}
+	// if found {
+	// 	w.Error(node.Name, fmt.Sprintf("Macro named '%s' already exists", node.Name.Lexeme))
+	// 	return;
+	// }
 
-	scope.Environment.Macros[node.Name.Lexeme] = node
+	// scope.Environment.Macros[node.Name.Lexeme] = node
 }
 
 func RepeatStmt(w *wkr.Walker, node *ast.RepeatStmt, scope *wkr.Scope) {

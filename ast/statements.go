@@ -103,7 +103,7 @@ type StructDeclarationStmt struct {
 	Name        lexer.Token
 	Fields      []FieldDeclarationStmt
 	Constructor *ConstructorStmt
-	Methods     *[]MethodDeclarationStmt
+	Methods     []MethodDeclarationStmt
 	IsLocal     bool
 }
 
@@ -119,6 +119,65 @@ func (sds *StructDeclarationStmt) GetValueType() PrimitiveValueType {
 	return Unknown
 }
 
+type EntityDeclarationStmt struct {
+	Token       lexer.Token
+	Name        lexer.Token
+	Fields      []FieldDeclarationStmt
+	Spawner     *SpawnDeclarationStmt
+	Destroyer   *DestroyDeclarationStmt
+	Methods     []MethodDeclarationStmt
+	IsLocal     bool
+}
+
+func (sds *EntityDeclarationStmt) GetType() NodeType {
+	return EntityDeclarationStatement
+}
+
+func (sds *EntityDeclarationStmt) GetToken() lexer.Token {
+	return sds.Token
+}
+
+func (sds *EntityDeclarationStmt) GetValueType() PrimitiveValueType {
+	return Unknown
+}
+
+type SpawnDeclarationStmt struct {
+	Token  lexer.Token
+	Body   []Node
+	Return []*TypeExpr
+	Params []Param
+}
+
+func (sds *SpawnDeclarationStmt) GetType() NodeType {
+	return SpawnDeclarationStatement
+}
+
+func (sds *SpawnDeclarationStmt) GetToken() lexer.Token {
+	return sds.Token
+}
+
+func (sds *SpawnDeclarationStmt) GetValueType() PrimitiveValueType {
+	return Unknown
+}
+
+type DestroyDeclarationStmt struct {
+	Token  lexer.Token
+	Body   []Node
+	Return []*TypeExpr
+	Params []Param
+}
+
+func (sds *DestroyDeclarationStmt) GetType() NodeType {
+	return DestroyDeclarationStatement
+}
+
+func (sds *DestroyDeclarationStmt) GetToken() lexer.Token {
+	return sds.Token
+}
+
+func (sds *DestroyDeclarationStmt) GetValueType() PrimitiveValueType {
+	return Unknown
+}
 type EnumDeclarationStmt struct {
 	Name    lexer.Token
 	Fields  []lexer.Token

@@ -91,6 +91,7 @@ const (
 	While    TokenType = "while"
 	With     TokenType = "with"
 	Yield    TokenType = "yield"
+	Destroy  TokenType = "destroy"
 
 	Eof TokenType = "eof" // EOF (End of File)
 )
@@ -133,6 +134,7 @@ var keywords = map[string]TokenType{
 	"while":    While,
 	"with":     With,
 	"yield":    Yield,
+	"destroy":  Destroy,
 }
 
 type TokenLocation struct {

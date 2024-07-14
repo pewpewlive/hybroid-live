@@ -13,6 +13,9 @@ const (
 	EnumDeclarationStatement      NodeType = "enumDeclarationStatement"
 	MacroDeclarationStatement     NodeType = "macroDeclarationStatement"
 	
+	EntityDeclarationStatement    NodeType = "entityDeclarationStatement"
+	DestroyDeclarationStatement   NodeType = "destroyDeclarationStatement"
+	SpawnDeclarationStatement     NodeType = "spawnDeclarationStatement"
 
 	ConstructorStatement NodeType = "constructorStatement"
 	EnvironmentStatement NodeType = "environmentStatement"
