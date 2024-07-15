@@ -71,6 +71,7 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 	case *ast.AssignmentStmt:
 	case *ast.EnvAccessExpr:
 	case *ast.EntityDeclarationStmt:
+		EntityDeclarationStmt(w, newNode, scope)
 	default:
 		w.Error(newNode.GetToken(), "Expected statement")
 	}

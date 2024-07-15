@@ -1,6 +1,7 @@
 package pass1
 
 import (
+	"fmt"
 	"hybroid/ast"
 	"hybroid/helpers"
 	"hybroid/lexer"
@@ -96,6 +97,52 @@ func MethodDeclarationStmt(w *wkr.Walker, node *ast.MethodDeclarationStmt, conta
 	container.AddMethod(variable)
 }
 
+func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDeclarationStmt, scope *wkr.Scope) {
+	entityScope := wkr.NewScope(scope, &wkr.EntityTag{}, wkr.SelfAllowing)
+	
+	if scope.Parent != nil {
+		w.Error(node.Token, "can't declare an entity inside a local block")
+	}
+
+	found := map[ast.CallbackType][]lexer.Token{}
+
+	for i := range node.Callbacks {
+		found[node.Callbacks[i].Callback] = append(found[node.Callbacks[i].Callback], node.Callbacks[i].Token)
+
+		if node.Callbacks[i].Callback == ast.WallCollision {
+
+			params := WalkParams(w, node.Callbacks[i].Params, entityScope, func(name lexer.Token, value wkr.Value) {})
+
+			if len(params) != 2 {
+				w.Error(node.Callbacks[i].Token, fmt.Sprintf("expected (fixed wallNormalX, fixed wallNormalY) as parameters, found (%s)", wkr.TypesToString(params)));
+			}else if !(params[0].GetType() == wkr.Fixed && params[1].GetType() == wkr.Fixed) {
+				w.Error(node.Callbacks[i].Token, fmt.Sprintf("expected (fixed wallNormalX, fixed wallNormalY) as parameters, found (%s)", wkr.TypesToString(params)));
+			}
+		}else if node.Callbacks[i].Callback == ast.WeaponCollision {
+		}else {
+		}
+	}
+
+	for k := range found {
+		if len(found[k]) > 1 {
+			for i := range found[k] {
+				w.Error(found[k][i], fmt.Sprintf("multiple instances of the same callback is not allowed (%s)", k))
+			}
+		}
+	}
+}
+
+func WalkParams(w *wkr.Walker, parameters []ast.Param, scope *wkr.Scope, declare func(name lexer.Token, value wkr.Value)) []wkr.Type {
+	params := make([]wkr.Type, 0)
+	for i, param := range parameters {
+		params = append(params, TypeExpr(w, param.Type))
+		value := w.TypeToValue(params[i])
+		declare(param.Name, value)
+	}
+	
+	return params
+}
+
 func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, scope *wkr.Scope, procType wkr.ProcedureType) *wkr.VariableVal {
 	ret := wkr.EmptyReturn
 	for _, typee := range node.Return {
@@ -104,17 +151,14 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, s
 	funcTag := &wkr.FuncTag{ReturnTypes: ret}
 	fnScope := wkr.NewScope(scope, funcTag, wkr.ReturnAllowing)
 
-	params := make([]wkr.Type, 0)
-	for i, param := range node.Params {
-		params = append(params, TypeExpr(w, param.Type))
-		value := w.TypeToValue(params[i])
+	params := WalkParams(w, node.Params, fnScope, func(name lexer.Token, value wkr.Value) {
 		w.DeclareVariable(fnScope, &wkr.VariableVal{
-			Name:    param.Name.Lexeme,
+			Name:    name.Lexeme,
 			Value:   value,
 			IsLocal: node.IsLocal,
 			Token:   node.GetToken(),
-		}, node.Params[i].Name)
-	}
+		}, name)
+	})
 
 	variable := &wkr.VariableVal{
 		Name:  node.Name.Lexeme,

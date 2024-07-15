@@ -40,7 +40,7 @@ entity Quadro {
 
   }
 
-  WallCollision() {
+  WallCollision(fixed wallNormalX, fixed wallNormalX) {
 
   }
 }

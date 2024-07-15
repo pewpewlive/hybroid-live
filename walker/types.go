@@ -22,6 +22,7 @@ const (
 	AnonStruct
 	Structure
 	PewpewEntity
+	Fixed
 	Wrapper // List or Map
 	Enum
 	Unresolved
@@ -119,6 +120,33 @@ func (self *BasicType) _eq(other Type) bool {
 
 func (self *BasicType) ToString() string {
 	return string(self.PrimitiveType)
+}
+
+type FixedPoint struct {
+	Specific ast.PrimitiveValueType
+}
+
+func NewFixedPointType(specific ast.PrimitiveValueType) *FixedPoint {
+	return &FixedPoint{
+		Specific: specific,
+	}
+}
+
+// Type
+func (self *FixedPoint) PVT() ast.PrimitiveValueType {
+	return self.Specific
+}
+
+func (self *FixedPoint) GetType() ValueType {
+	return Fixed
+}
+
+func (self *FixedPoint) _eq(other Type) bool {
+	return true
+}
+
+func (self *FixedPoint) ToString() string {
+	return string(self.Specific)
 }
 
 type AnonStructType struct {

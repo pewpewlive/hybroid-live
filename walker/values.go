@@ -271,7 +271,7 @@ type FixedVal struct {
 }
 
 func (f *FixedVal) GetType() Type {
-	return NewBasicType(ast.FixedPoint)
+	return NewFixedPointType(f.SpecificType)
 }
 
 func (f *FixedVal) GetDefault() *ast.LiteralExpr {
@@ -310,6 +310,19 @@ func (rt Types) Eq(otherRT Types) bool {
 		typesSame = false
 	}
 	return typesSame
+}
+
+func TypesToString(types []Type) string {
+	src := generator.StringBuilder{}
+
+	for i := range types {
+		src.WriteString(types[i].ToString())
+		if i != len(types)-1 {
+			src.WriteRune('\n');
+		}
+	}
+
+	return src.String()
 }
 
 type FunctionVal struct {

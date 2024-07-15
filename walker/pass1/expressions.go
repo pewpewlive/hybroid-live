@@ -362,8 +362,10 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr) wkr.Type {
 
 	pvt := w.GetTypeFromString(typee.Name.GetToken().Lexeme)
 	switch pvt {
-	case ast.Bool, ast.String, ast.Number, ast.Fixed, ast.FixedPoint, ast.Radian, ast.Degree:
+	case ast.Bool, ast.String, ast.Number:
 		return wkr.NewBasicType(pvt)
+	case ast.Fixed, ast.FixedPoint, ast.Radian, ast.Degree:
+		return wkr.NewFixedPointType(pvt)
 	case ast.Enum:
 		return wkr.NewBasicType(ast.Enum)
 	case ast.AnonStruct:
