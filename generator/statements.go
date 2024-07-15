@@ -76,12 +76,7 @@ func (gen *Generator) functionDeclarationStmt(node ast.FunctionDeclarationStmt, 
 	}
 
 	fnScope.Append("function ", gen.WriteVar(node.Name.Lexeme), "(")
-	for i, param := range node.Params {
-		fnScope.Append(gen.WriteVar(param.Name.Lexeme))
-		if i != len(node.Params)-1 {
-			fnScope.Append(", ")
-		}
-	}
+	gen.GenerateParams(node.Params, &fnScope)
 	fnScope.Append(")\n")
 
 	/* scope src, node src
@@ -353,23 +348,110 @@ func (gen *Generator) structDeclarationStmt(node ast.StructDeclarationStmt, scop
 	scope.Write(structScope.Src)
 }
 
+func (gen *Generator) entityDeclarationStmt(node ast.EntityDeclarationStmt, scope *GenScope) {
+	entityScope := NewGenScope(scope)
+
+	gen.spawnDeclarationStmt(*node.Spawner, node, &entityScope)
+	gen.destroyDeclarationStmt(*node.Destroyer, node, &entityScope)
+
+	scope.Write(entityScope.Src)
+}
+
+func (gen *Generator) spawnDeclarationStmt(node ast.SpawnDeclarationStmt, entity ast.EntityDeclarationStmt, scope *GenScope) {
+	spawnScope :=  NewGenScope(scope)
+
+	// if entity.IsLocal {
+	// 	spawnScope.WriteString("local ")
+	// }
+
+	spawnScope.Append("HS_", gen.WriteVar(entity.Name.Lexeme), " = {}\n")
+
+	// if entity.IsLocal {
+	// 	spawnScope.WriteString("local ")
+	// }
+
+	spawnScope.Append("function Hy_", gen.WriteVar(entity.Name.Lexeme), "_Spawn(")
+	gen.GenerateParams(node.Params, &spawnScope)
+
+	spawnScope.Append(")\n")
+
+	TabsCount++
+	spawnScope.AppendTabbed("local instance = pewpew.new_customizable_entity(", node.Params[0].Name.Lexeme,", ", node.Params[1].Name.Lexeme,")\n")
+
+	spawnScope.AppendTabbed("local Self = {")
+	for i, v := range entity.Fields {
+		gen.fieldDeclarationStmt(v, &spawnScope)
+		if i != len(entity.Fields)-1 {
+			spawnScope.WriteString(", ")
+		}
+		spawnScope.WriteString("\n")
+	}
+	spawnScope.WriteString("}\n")
+	spawnScope.AppendTabbed("HS_", gen.WriteVar(entity.Name.Lexeme), "[instance] = Self\n\n")
+
+	for i, v := range entity.Callbacks {
+		spawnScope.AppendTabbed(fmt.Sprintf("local function HCb%v", i),"(")
+		gen.GenerateParams(v.Params, &spawnScope)
+		spawnScope.WriteString(")\n")
+		gen.GenerateBody(v.Body, &spawnScope)
+		spawnScope.AppendTabbed("end\n")
+		if v.Callback == ast.WallCollision {
+			spawnScope.AppendTabbed(fmt.Sprintf("pewpew.customizable_entity_configure_wall_collision(instance, true, HCb%v)\n", i))
+		}else if v.Callback == ast.WeaponCollision {
+			spawnScope.AppendTabbed(fmt.Sprintf("pewpew.customizable_entity_set_weapon_collision(instance, HCb%v)\n", i))
+		}else if v.Callback == ast.PlayerCollision {
+			spawnScope.AppendTabbed(fmt.Sprintf("pewpew.customizable_entity_set_player_collision(instance, HCb%v)\n", i))
+		}
+	}
+	TabsCount--
+	gen.GenerateBody(node.Body, &spawnScope)
+	spawnScope.WriteString("end\n")
+
+	scope.Write(spawnScope.Src)
+} 
+
+func (gen *Generator) destroyDeclarationStmt(node ast.DestroyDeclarationStmt, entity ast.EntityDeclarationStmt, scope *GenScope) {
+	spawnScope :=  NewGenScope(scope)
+
+	// if entity.IsLocal {
+	// 	spawnScope.WriteString("local ")
+	// }
+
+	spawnScope.Append("function Hy_", gen.WriteVar(entity.Name.Lexeme), "_Destroy(")
+
+	gen.GenerateParams(node.Params, &spawnScope)
+
+	spawnScope.Append(")\n")
+
+	gen.GenerateBody(node.Body, &spawnScope)
+
+	spawnScope.WriteString("end\n")
+
+	scope.Write(spawnScope.Src)
+}
+
+func (gen *Generator) GenerateParams(params []ast.Param, scope *GenScope) {
+	for i, param := range params {
+		scope.Append(gen.WriteVar(param.Name.Lexeme))
+		if i != len(params)-1 {
+			scope.Append(", ")
+		}
+	}
+} 
+
 func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, Struct ast.StructDeclarationStmt, scope *GenScope) {
 	src := StringBuilder{}
 
 	constructorScope := NewGenScope(scope)
 
-	if Struct.IsLocal {
-		constructorScope.WriteString("local ")
-	}
+	// if Struct.IsLocal {
+	// 	constructorScope.WriteString("local ")
+	// }
 
-	constructorScope.Append("function Hybroid_", Struct.Name.Lexeme, "_New(")
+	constructorScope.Append("function Hy_", gen.WriteVar(Struct.Name.Lexeme), "_New(")
 
-	for i, param := range node.Params {
-		constructorScope.Append(gen.WriteVar(param.Name.Lexeme))
-		if i != len(node.Params)-1 {
-			constructorScope.Append(", ")
-		}
-	}
+	gen.GenerateParams(node.Params, &constructorScope)
+
 	constructorScope.Append(")\n")
 
 	TabsCount++
@@ -411,9 +493,9 @@ func (gen *Generator) fieldDeclarationStmt(node ast.FieldDeclarationStmt, scope 
 func (gen *Generator) methodDeclarationStmt(node ast.MethodDeclarationStmt, Struct ast.StructDeclarationStmt, scope *GenScope) {
 	methodScope := NewGenScope(scope)
 
-	if Struct.IsLocal {
-		methodScope.WriteString("local ")
-	}
+	// if Struct.IsLocal {
+	// 	methodScope.WriteString("local ")
+	// }
 
 	methodScope.Append("function Hybroid_", Struct.Name.Lexeme, "_", node.Name.Lexeme, "(Self")
 	for _, param := range node.Params {

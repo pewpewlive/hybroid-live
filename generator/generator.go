@@ -309,6 +309,8 @@ func (gen *Generator) GenerateStmt(node ast.Node, scope *GenScope) {
 	case *ast.EnvAccessExpr:
 		val := gen.envAccessExpr(*newNode, scope)
 		scope.WriteString(val)
+	case *ast.EntityDeclarationStmt:
+		gen.entityDeclarationStmt(*newNode, scope)
 	}
 }
 

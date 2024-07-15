@@ -16,6 +16,7 @@ const (
 	EntityDeclarationStatement    NodeType = "entityDeclarationStatement"
 	DestroyDeclarationStatement   NodeType = "destroyDeclarationStatement"
 	SpawnDeclarationStatement     NodeType = "spawnDeclarationStatement"
+	EntityCallbackStatetement     NodeType = "entityCallbackStatetement"
 
 	ConstructorStatement NodeType = "constructorStatement"
 	EnvironmentStatement NodeType = "environmentStatement"

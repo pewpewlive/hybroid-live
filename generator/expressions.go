@@ -72,7 +72,7 @@ func (gen *Generator) callExpr(node ast.CallExpr, tabbed bool, scope *GenScope) 
 
 func (gen *Generator) methodCallExpr(node ast.MethodCallExpr, scope *GenScope) string {
 	src := StringBuilder{}
-	src.AppendTabbed("Hybroid_", node.TypeName, "_", node.MethodName)
+	src.AppendTabbed("Hy_", gen.WriteVar(node.TypeName), "_", node.MethodName)
 
 	src.Append("(", gen.GenerateExpr(node.Owner, scope))
 	if len(node.Args) != 0 {

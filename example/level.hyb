@@ -6,8 +6,6 @@ macro Test2() => {
   let a = 100
 }
 
-@Test2()
-
 let b = "a"
 
 let number num = 1
@@ -26,13 +24,23 @@ while b == "a" {
 }
 
 entity Quadro {
-  speed = 1
-
-  spawn() {
+  spawn(fixed x, fixed y) {
 
   }
 
   destroy() {
     
+  }
+
+  WeaponCollision() {
+    
+  }
+
+  PlayerCollision() {
+
+  }
+
+  WallCollision() {
+
   }
 }

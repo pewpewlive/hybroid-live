@@ -121,7 +121,7 @@ func (p *Parser) statement() ast.Node {
 func (p *Parser) macroDeclarationStmt() ast.Node {
 	name, ok := p.consume("expected identifier after 'macro' keyword", lexer.Identifier)
 	if !ok {
-		return &ast.Improper{}
+		return ast.NewImproper(name)
 	}
 
 	macroDeclaration := &ast.MacroDeclarationStmt{
@@ -138,7 +138,7 @@ func (p *Parser) macroDeclarationStmt() ast.Node {
 		for p.match(lexer.Colon) {
 			name, ok = p.consume("expected identifier as parameter", lexer.Identifier)
 			if !ok {
-				return &ast.Improper{}
+				return ast.NewImproper(name)
 			}
 			params = append(params, name)
 		}
@@ -147,12 +147,12 @@ func (p *Parser) macroDeclarationStmt() ast.Node {
 	}else {
 		p.advance()
 		p.error(token, "expected either identifier or closing parenthesis after opening parenthesis")
-		return &ast.Improper{}
+		return ast.NewImproper(token)
 	}
 
 	if !p.match(lexer.FatArrow) {
 		p.error(p.peek(), "expected fat arrow in macro declaration")
-		return &ast.Improper{}
+		return ast.NewImproper(p.peek())
 	}
 	if p.match(lexer.LeftBrace) {
 		macroDeclaration.MacroType = ast.ProgramExpansion
@@ -345,8 +345,23 @@ func (p *Parser) entityDeclarationStmt() ast.Node {
 		if p.check(lexer.Identifier) {
 			switch p.peek().Lexeme {
 			case "WeaponCollision":
+				cb := p.entityCallbackStmt(p.advance(), ast.WeaponCollision)
+				if cb.GetType() != ast.NA {
+					stmt.Callbacks = append(stmt.Callbacks, cb.(*ast.EntityCallbackStmt))
+				}
+				continue
 			case "WallCollision":
+				cb := p.entityCallbackStmt(p.advance(), ast.WallCollision)
+				if cb.GetType() != ast.NA {
+					stmt.Callbacks = append(stmt.Callbacks, cb.(*ast.EntityCallbackStmt))
+				}
+				continue
 			case "PlayerCollision":
+				cb := p.entityCallbackStmt(p.advance(), ast.PlayerCollision)
+				if cb.GetType() != ast.NA {
+					stmt.Callbacks = append(stmt.Callbacks, cb.(*ast.EntityCallbackStmt))
+				}
+				continue
 			}
 		} 
 		field := p.fieldDeclarationStmt()
@@ -355,10 +370,6 @@ func (p *Parser) entityDeclarationStmt() ast.Node {
 		} else {
 			p.error(p.peek(), "unknown statement inside struct")
 		}
-	}
-
-	if stmt.Spawner == nil {
-		p.error(stmt.Token, "entity struct is missing 'spawn' constructor")
 	}
 
 	return stmt
@@ -395,15 +406,30 @@ func (p *Parser) destroyDeclarationStmt() ast.Node {
 	}
 }
 
+func (p *Parser) entityCallbackStmt(token lexer.Token, callback ast.CallbackType) ast.Node {
+	stmt := &ast.EntityCallbackStmt{
+		Callback: callback,
+		Token: token,
+	}
+
+	stmt.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
+	var success bool
+	stmt.Body, success = p.getBody()
+	if !success {
+		return ast.NewImproper(stmt.Token)
+	}
+
+	return stmt
+}
 
 func (p *Parser) constructorDeclarationStmt() ast.Node {
 	stmt := &ast.ConstructorStmt{Token: p.peek(-1)}
 
 	stmt.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
 	stmt.Return = p.returnings()
-	stmt.Body = p.getBody()
-
-	if stmt.Body == nil {
+	var success bool
+	stmt.Body, success = p.getBody()
+	if !success {
 		return &ast.Improper{Token: stmt.Token}
 	}
 
@@ -415,7 +441,7 @@ func (p *Parser) fieldDeclarationStmt() ast.Node {
 
 	typ, ident := p.TypeWithVar()
 	if ident.GetType() != ast.Identifier {
-		return &ast.Improper{}
+		return ast.NewImproper(ident.GetToken())
 	}
 
 	idents := []lexer.Token{ident.GetToken()}
@@ -423,7 +449,7 @@ func (p *Parser) fieldDeclarationStmt() ast.Node {
 	for p.match(lexer.Comma) {
 		typ, ident := p.TypeWithVar()
 		if ident.GetType() != ast.Identifier {
-			return &ast.Improper{}
+			return ast.NewImproper(ident.GetToken())
 		}
 
 		idents = append(idents, ident.GetToken())
@@ -479,7 +505,11 @@ func (p *Parser) methodDeclarationStmt(IsLocal bool) ast.Node {
 		}
 	}
 	fnDec.Return = ret
-	fnDec.Body = p.getBody()
+	var success bool
+	fnDec.Body, success = p.getBody()
+	if !success {
+		return ast.NewImproper(fnDec.Name)
+	}
 
 	return &fnDec
 }
@@ -505,7 +535,8 @@ func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) *ast.IfS
 		// }
 	}
 	ifStm.BoolExpr = expr
-	ifStm.Body = p.getBody()
+	ifStm.Body, _ = p.getBody()
+
 	if is_else || is_elseif {
 		return &ifStm
 	}
@@ -619,7 +650,11 @@ func (p *Parser) functionDeclarationStmt() ast.Node {
 	fnDec.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
 
 	fnDec.Return = p.returnings()
-	fnDec.Body = p.getBody()
+	var success bool
+	fnDec.Body, success = p.getBody()
+	if !success {
+		return ast.NewImproper(fnDec.Name)
+	}
 
 	return &fnDec
 }
@@ -742,7 +777,11 @@ func (p *Parser) repeatStmt() ast.Node {
 		repeatStmt.Iterator = &ast.LiteralExpr{Token: repeatStmt.Token, Value: "1", ValueType: ast.Number}
 	}
 
-	repeatStmt.Body = p.getBody()
+	var success bool
+	repeatStmt.Body, success = p.getBody()
+	if !success {
+		return ast.NewImproper(repeatStmt.Token)
+	}
 
 	return &repeatStmt
 }
@@ -754,12 +793,16 @@ func (p *Parser) whileStmt() ast.Node {
 
 	if condtion.GetType() == ast.NA {
 		p.error(condtion.GetToken(), "Expected an expressions after 'while'")
-		return &ast.Improper{}
+		return ast.NewImproper(condtion.GetToken())
 	}
 
 	whileStmt.Condtion = condtion
 
-	whileStmt.Body = p.getBody()
+	var success bool
+	whileStmt.Body, success = p.getBody()
+	if !success {
+		return ast.NewImproper(whileStmt.Token)
+	}
 
 	return whileStmt
 }
@@ -802,7 +845,11 @@ func (p *Parser) forStmt() ast.Node {
 		forStmt.Iterator = &ast.LiteralExpr{Token: forStmt.Token, Value: "[1]", ValueType: ast.List}
 	}
 
-	forStmt.Body = p.getBody()
+	var success bool
+	forStmt.Body, success = p.getBody()
+	if !success {
+		return ast.NewImproper(forStmt.Token)
+	}
 
 	return &forStmt
 }
@@ -821,7 +868,11 @@ func (p *Parser) tickStmt() ast.Node {
 		tickStmt.Variable = *identExpr.(*ast.IdentifierExpr)
 	}
 
-	tickStmt.Body = p.getBody()
+	var success bool
+	tickStmt.Body, success = p.getBody()
+	if !success {
+		return ast.NewImproper(tickStmt.Token)
+	}
 
 	return &tickStmt
 }
@@ -834,8 +885,9 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 
 	typ, ide := p.TypeWithVar()
 	if ide.GetType() != ast.Identifier {
-		p.error(ide.GetToken(), "expected identifier in variable declaration")
-		return &ast.Improper{}
+		ideToken := ide.GetToken()
+		p.error(ideToken, "expected identifier in variable declaration")
+		return ast.NewImproper(ideToken)
 	}
 
 	idents := []lexer.Token{ide.GetToken()}
@@ -843,8 +895,9 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 	for p.match(lexer.Comma) {
 		typ, ide = p.TypeWithVar()
 		if ide.GetType() != ast.Identifier {
-			p.error(ide.GetToken(), "expected identifier in variable declaration")
-			return &ast.Improper{}
+			ideToken := ide.GetToken()
+			p.error(ideToken, "expected identifier in variable declaration")
+			return ast.NewImproper(ideToken)
 		}
 
 		idents = append(idents, ide.GetToken())
@@ -883,7 +936,7 @@ func (p *Parser) useStmt() ast.Node {
 	filepath := p.EnvPathExpr()
 	if filepath.GetType() != ast.EnvironmentPathExpression {
 		p.error(p.peek(), "expected filepath")
-		return &ast.Improper{}
+		return ast.NewImproper(p.peek())
 	}
 	useStmt.Path = filepath.(*ast.EnvPathExpr)
 
@@ -934,7 +987,7 @@ func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
 	p.consume("expected fat arrow after expression in case", lexer.FatArrow)
 
 	if p.check(lexer.LeftBrace) {
-		body := p.getBody()
+		body, _ := p.getBody()
 		for i := range caseStmts {
 			caseStmts[i].Body = body
 		}

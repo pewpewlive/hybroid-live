@@ -470,6 +470,12 @@ type Improper struct {
 	Token lexer.Token
 }
 
+func NewImproper(token lexer.Token) *Improper {
+	return &Improper{
+		Token: token,
+	}
+}
+
 func (i *Improper) GetType() NodeType {
 	return NA
 }

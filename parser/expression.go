@@ -29,7 +29,11 @@ func (p *Parser) fn() ast.Node {
 		}
 
 		fn.Return = ret
-		fn.Body = p.getBody()
+		var success bool
+		fn.Body, success = p.getBody()
+		if !success {
+			return &ast.Improper{}
+		}
 		return fn
 	} else {
 		return p.multiComparison()

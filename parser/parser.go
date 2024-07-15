@@ -134,16 +134,16 @@ func (p *Parser) ParseTokens() []ast.Node {
 	return p.program
 }
 
-func (p *Parser) getBody() []ast.Node {
+func (p *Parser) getBody() ([]ast.Node, bool) {
 	body := make([]ast.Node, 0)
 	if _, success := p.consume("expected opening of the body", lexer.LeftBrace); !success {
-		return body
+		return body, false
 	}
 
 	for !p.match(lexer.RightBrace) {
 		if p.peek().Type == lexer.Eof {
 			p.error(p.peek(), "expected body closure")
-			break
+			return body, false
 		}
 
 		statement := p.statement()
@@ -152,5 +152,5 @@ func (p *Parser) getBody() []ast.Node {
 		}
 	}
 
-	return body
+	return body, true
 }

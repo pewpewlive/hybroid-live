@@ -125,6 +125,7 @@ type EntityDeclarationStmt struct {
 	Fields      []FieldDeclarationStmt
 	Spawner     *SpawnDeclarationStmt
 	Destroyer   *DestroyDeclarationStmt
+	Callbacks   []*EntityCallbackStmt
 	Methods     []MethodDeclarationStmt
 	IsLocal     bool
 }
@@ -178,6 +179,35 @@ func (sds *DestroyDeclarationStmt) GetToken() lexer.Token {
 func (sds *DestroyDeclarationStmt) GetValueType() PrimitiveValueType {
 	return Unknown
 }
+
+type CallbackType string
+
+const (
+	WeaponCollision CallbackType = "weaponCollision"
+	WallCollision CallbackType = "wallCollision"
+	PlayerCollision CallbackType = "playerCollision"
+)
+
+type EntityCallbackStmt struct {
+	Callback CallbackType
+	Params   []Param
+	Body     []Node
+	Token    lexer.Token
+}
+
+func (eds *EntityCallbackStmt) GetType() NodeType {
+	return EntityCallbackStatetement
+}
+
+func (eds *EntityCallbackStmt) GetToken() lexer.Token {
+	return eds.Token
+}
+
+func (eds *EntityCallbackStmt) GetValueType() PrimitiveValueType {
+	return Unknown
+}
+
+
 type EnumDeclarationStmt struct {
 	Name    lexer.Token
 	Fields  []lexer.Token
