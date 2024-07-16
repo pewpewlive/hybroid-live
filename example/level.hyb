@@ -27,3 +27,9 @@ entity Quadro {
 
   }
 }
+
+fn test(Quadro m) {
+  
+}
+
+test(spawn Quadro(10f, 10f, 0))

@@ -304,7 +304,7 @@ func (mce *MethodCallExpr) GetValueType() PrimitiveValueType {
 }
 
 type NewExpr struct {
-	Type  Node
+	Type  *TypeExpr
 	Args  []Node
 	Token lexer.Token
 }
@@ -318,6 +318,24 @@ func (ne *NewExpr) GetToken() lexer.Token {
 }
 
 func (ne *NewExpr) GetValueType() PrimitiveValueType {
+	return Unknown
+}
+
+type SpawnExpr struct {
+	Type  *TypeExpr
+	Args  []Node
+	Token lexer.Token
+}
+
+func (ne *SpawnExpr) GetType() NodeType {
+	return NewExpession
+}
+
+func (ne *SpawnExpr) GetToken() lexer.Token {
+	return ne.Token
+}
+
+func (ne *SpawnExpr) GetValueType() PrimitiveValueType {
 	return Unknown
 }
 

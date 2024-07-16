@@ -118,41 +118,7 @@ func (p *Parser) unary() ast.Node {
 		right := p.unary()
 		return &ast.UnaryExpr{Operator: operator, Value: right}
 	}
-	return p.envAccessExpr()
-}
-
-func (p *Parser) envAccessExpr() ast.Node {
-	expr := p.accessorExprDepth2(nil, nil, ast.NA)
-
-	if p.match(lexer.DoubleColon) {
-		if expr.GetType() != ast.Identifier {
-			p.error(expr.GetToken(), "expected identifier in environment expression")
-			return &ast.Improper{Token: expr.GetToken()}
-		}
-		envPath := &ast.EnvPathExpr{
-			SubPaths: []string{
-				expr.GetToken().Lexeme,
-			},
-		}
-
-		next := p.accessorExprDepth2(nil, nil, ast.NA)
-		for p.match(lexer.DoubleColon) {
-			envPath.SubPaths = append(envPath.SubPaths, next.GetToken().Lexeme)
-			if next.GetType() != ast.Identifier {
-				p.error(next.GetToken(), "expected identifier in environment expression")
-				return &ast.Improper{Token: next.GetToken()}
-			}
-			next = p.accessorExprDepth2(nil, nil, ast.NA)
-		}
-		envExpr := &ast.EnvAccessExpr{
-			PathExpr: envPath,
-		}
-		envExpr.Accessed = next
-
-		return envExpr
-	}
-
-	return expr
+	return p.accessorExprDepth2(nil, nil, ast.NA)
 }
 
 func (p *Parser) call(caller ast.Node) ast.Node {
@@ -341,7 +307,7 @@ func (p *Parser) matchExpr() ast.Node {
 func (p *Parser) macroCall() ast.Node {
 	if p.match(lexer.At) {
 		macroCall := &ast.MacroCallExpr{}
-		caller := p.envAccessExpr()
+		caller := p.primary()
 		callerType := caller.GetType()
 		if callerType != ast.CallExpression {
 			p.error(caller.GetToken(), "expected call after '@'")
@@ -357,6 +323,21 @@ func (p *Parser) macroCall() ast.Node {
 func (p *Parser) new() ast.Node {
 	if p.match(lexer.New) {
 		expr := ast.NewExpr{
+			Token: p.peek(-1),
+		}
+
+		expr.Type = p.Type()
+		expr.Args = p.arguments()
+
+		return &expr
+	}
+
+	return p.spawn()
+}
+
+func (p *Parser) spawn() ast.Node {
+	if p.match(lexer.Spawn) {
+		expr := ast.SpawnExpr{
 			Token: p.peek(-1),
 		}
 
@@ -442,6 +423,29 @@ func (p *Parser) primary() ast.Node {
 
 	if p.match(lexer.Identifier) {
 		token := p.peek(-1)
+		if p.match(lexer.DoubleColon) {
+			envPath := &ast.EnvPathExpr{
+				SubPaths: []string{
+					token.Lexeme,
+				},
+			}
+	
+			next := p.accessorExprDepth2(nil, nil, ast.NA)
+			for p.match(lexer.DoubleColon) {
+				envPath.SubPaths = append(envPath.SubPaths, next.GetToken().Lexeme)
+				if next.GetType() != ast.Identifier {
+					p.error(next.GetToken(), "expected identifier in environment expression")
+					return &ast.Improper{Token: next.GetToken()}
+				}
+				next = p.accessorExprDepth2(nil, nil, ast.NA)
+			}
+			envExpr := &ast.EnvAccessExpr{
+				PathExpr: envPath,
+			}
+			envExpr.Accessed = next
+	
+			return envExpr
+		}
 		return &ast.IdentifierExpr{Name: token, ValueType: ast.Ident}
 	}
 
@@ -571,7 +575,7 @@ func (p *Parser) WrappedType() *ast.TypeExpr {
 }
 
 func (p *Parser) Type() *ast.TypeExpr {
-	expr := p.envAccessExpr()
+	expr := p.primary()
 	exprToken := expr.GetToken()
 
 	if expr.GetType() == ast.EnvironmentAccessExpression {

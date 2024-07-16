@@ -14,7 +14,8 @@ const (
 	MacroDeclarationStatement     NodeType = "macroDeclarationStatement"
 
 	EntityDeclarationStatement        NodeType = "entityDeclarationStatement"
-	EntityFunctionDeclarationStatemet NodeType = "entityFunctionDeclarationStatemet"
+	EntityFunctionDeclarationStatemet NodeType = "entityFunctionDeclarationStatement"
+	DestroyStmt                       NodeType = "spawnStatement"
 
 	ConstructorStatement NodeType = "constructorStatement"
 	EnvironmentStatement NodeType = "environmentStatement"
@@ -54,6 +55,7 @@ const (
 	TypeExpression              NodeType = "typeExpression"
 	SelfExpression              NodeType = "selfExpression"
 	NewExpession                NodeType = "newExpession"
+	SpawnExpression             NodeType = "spawnExpression"
 
 	Identifier NodeType = "identifier"
 

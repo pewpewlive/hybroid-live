@@ -366,6 +366,22 @@ func NewExpr(w *wkr.Walker, new *ast.NewExpr, scope *wkr.Scope) wkr.Value {
 	return val
 }
 
+func SpawnExpr(w *wkr.Walker, new *ast.SpawnExpr, scope *wkr.Scope) wkr.Value {
+	w.Context.Node = new
+	var val *wkr.EntityVal
+	var found bool
+	if new.Type.GetType() == ast.Identifier {
+		val, found = w.GetEntity(new.Type.GetToken().Lexeme)
+	} else {
+		return &wkr.Unknown{}
+	}
+	if !found {
+		return &wkr.Unknown{}
+	}
+
+	return val
+}
+
 func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr) wkr.Type {
 	if typee == nil {
 		return wkr.InvalidType
@@ -416,6 +432,9 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr) wkr.Type {
 			Returns: returns,
 		}
 	default:
+		if entityVal, found := w.Environment.Entities[typee.Name.GetToken().Lexeme]; found {
+			return entityVal.GetType()
+		}
 		if structVal, found := w.Environment.Structs[typee.Name.GetToken().Lexeme]; found {
 			return structVal.GetType()
 		}

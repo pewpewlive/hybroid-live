@@ -356,16 +356,48 @@ func SelfExpr(w *wkr.Walker, self *ast.SelfExpr, scope *wkr.Scope) wkr.Value {
 
 func NewExpr(w *wkr.Walker, new *ast.NewExpr, scope *wkr.Scope) wkr.Value {
 	w.Context.Node = new
-	var val *wkr.StructVal
-	var found bool
-	if new.Type.GetType() == ast.Identifier {
-		val, found = w.GetStruct(new.Type.GetToken().Lexeme)
-	} else {
-		return &wkr.Unknown{}
-	}
-	if !found {
+	_type := TypeExpr(w, new.Type, w.Environment)
+
+	if _type.PVT() == ast.Invalid {
+		w.Error(new.Type.GetToken(), "invalid type given in new expression")
+		return &wkr.Invalid{}
+	}else if _type.PVT() != ast.Struct {
+		w.Error(new.Type.GetToken(), "type given in new expression is not a struct")
 		return &wkr.Invalid{}
 	}
+
+	val := w.TypeToValue(_type).(*wkr.StructVal)
+
+	args := make([]wkr.Type, 0)
+	for i := range new.Args {
+		args = append(args, GetNodeValue(w, &new.Args[i], scope).GetType())
+	}
+
+	w.ValidateArguments(args, val.Params, new.Token, "constructor")
+
+	return val
+}
+
+func SpawnExpr(w *wkr.Walker, new *ast.SpawnExpr, scope *wkr.Scope) wkr.Value {
+	w.Context.Node = new
+	_type := TypeExpr(w, new.Type, w.Environment)
+
+	if _type.PVT() == ast.Invalid {
+		w.Error(new.Type.GetToken(), "invalid type given in spawn expression")
+		return &wkr.Invalid{}
+	}else if _type.PVT() != ast.Entity {
+		w.Error(new.Type.GetToken(), "type given in spawn expression is not an entity")
+		return &wkr.Invalid{}
+	}
+
+	val := w.TypeToValue(_type).(*wkr.EntityVal)
+
+	args := make([]wkr.Type, 0)
+	for i := range new.Args {
+		args = append(args, GetNodeValue(w, &new.Args[i], scope).GetType())
+	}
+
+	w.ValidateArguments(args, val.SpawnParams, new.Token, "spawn")
 
 	return val
 }
@@ -424,8 +456,11 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, env *wkr.Environment) wkr.Type
 		}
 	case ast.Map, ast.List:
 		wrapped := TypeExpr(w, typee.WrappedType, env)
-		return wkr.NewWrapperType(wkr.NewBasicType(pvt), wrapped) // lets goo
-	default: // oh wait we're not even checking here for maps and lists, bruh
+		return wkr.NewWrapperType(wkr.NewBasicType(pvt), wrapped)
+	default:
+		if entityVal, found := w.Environment.Entities[typee.Name.GetToken().Lexeme]; found {
+			return entityVal.GetType()
+		}
 		if structVal, found := env.Structs[typee.Name.GetToken().Lexeme]; found {
 			return structVal.GetType()
 		}

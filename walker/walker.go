@@ -329,6 +329,9 @@ func (w *Walker) TypeToValue(_type Type) Value {
 		}
 	case ast.Enum:
 		return w.GetVariable(&w.Environment.Scope, _type.(*EnumType).Name)
+	case ast.Entity:
+		val, _ := w.GetEntity(_type.ToString())
+		return val
 	default:
 		return &Invalid{}
 	}
