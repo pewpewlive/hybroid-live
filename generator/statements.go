@@ -351,77 +351,100 @@ func (gen *Generator) structDeclarationStmt(node ast.StructDeclarationStmt, scop
 func (gen *Generator) entityDeclarationStmt(node ast.EntityDeclarationStmt, scope *GenScope) {
 	entityScope := NewGenScope(scope)
 
+	entityName := gen.WriteVar(node.Name.Lexeme)
+
+	for i, v := range node.Callbacks {
+		entityScope.AppendTabbed(fmt.Sprintf("local function %sHCb%d", entityName, i), "(id")
+		if len(v.Params) != 0 {
+			entityScope.Append(", ")
+		}
+		gen.GenerateParams(v.Params, &entityScope)
+		entityScope.WriteString(")\n")
+		entityScope.AppendETabbed("local Self = HS_", entityName, "[id]\n")
+		gen.GenerateBody(v.Body, &entityScope)
+		entityScope.AppendTabbed("end\n")
+	}
+
 	gen.spawnDeclarationStmt(*node.Spawner, node, &entityScope)
 	gen.destroyDeclarationStmt(*node.Destroyer, node, &entityScope)
 
 	scope.Write(entityScope.Src)
 }
 
-func (gen *Generator) spawnDeclarationStmt(node ast.SpawnDeclarationStmt, entity ast.EntityDeclarationStmt, scope *GenScope) {
-	spawnScope :=  NewGenScope(scope)
+func (gen *Generator) spawnDeclarationStmt(node ast.EntityFunctionDeclarationStmt, entity ast.EntityDeclarationStmt, scope *GenScope) { // callbacks spawn similarly, spawn and destroy are the outliers
+	spawnScope := NewGenScope(scope)
 
 	// if entity.IsLocal {
 	// 	spawnScope.WriteString("local ")
 	// }
 
-	spawnScope.Append("HS_", gen.WriteVar(entity.Name.Lexeme), " = {}\n")
+	entityName := gen.WriteVar(entity.Name.Lexeme)
+
+	spawnScope.Append("HS_", entityName, " = {}\n")
 
 	// if entity.IsLocal {
 	// 	spawnScope.WriteString("local ")
 	// }
 
-	spawnScope.Append("function Hy_", gen.WriteVar(entity.Name.Lexeme), "_Spawn(")
+	spawnScope.Append("function Hy_", entityName, "_Spawn(")
+
 	gen.GenerateParams(node.Params, &spawnScope)
 
 	spawnScope.Append(")\n")
 
 	TabsCount++
-	spawnScope.AppendTabbed("local instance = pewpew.new_customizable_entity(", node.Params[0].Name.Lexeme,", ", node.Params[1].Name.Lexeme,")\n")
 
-	spawnScope.AppendTabbed("local Self = {")
+	spawnScope.AppendTabbed("local id = pewpew.new_customizable_entity(", gen.WriteVar(node.Params[0].Name.Lexeme), ", ", gen.WriteVar(node.Params[1].Name.Lexeme), ")\n")
+	spawnScope.AppendTabbed("HS_", entityName, "[id] = {\n")
 	for i, v := range entity.Fields {
-		gen.fieldDeclarationStmt(v, &spawnScope)
+		val := gen.fieldDeclarationStmt(v, &spawnScope) // should be good now
+		spawnScope.AppendETabbed(val)
 		if i != len(entity.Fields)-1 {
 			spawnScope.WriteString(", ")
-		}
+		} // should look good
 		spawnScope.WriteString("\n")
 	}
-	spawnScope.WriteString("}\n")
-	spawnScope.AppendTabbed("HS_", gen.WriteVar(entity.Name.Lexeme), "[instance] = Self\n\n")
-
-	for i, v := range entity.Callbacks {
-		spawnScope.AppendTabbed(fmt.Sprintf("local function HCb%v", i),"(")
-		gen.GenerateParams(v.Params, &spawnScope)
-		spawnScope.WriteString(")\n")
-		gen.GenerateBody(v.Body, &spawnScope)
-		spawnScope.AppendTabbed("end\n")
-		if v.Callback == ast.WallCollision {
-			spawnScope.AppendTabbed(fmt.Sprintf("pewpew.customizable_entity_configure_wall_collision(instance, true, HCb%v)\n", i))
-		}else if v.Callback == ast.WeaponCollision {
-			spawnScope.AppendTabbed(fmt.Sprintf("pewpew.customizable_entity_set_weapon_collision(instance, HCb%v)\n", i))
-		}else if v.Callback == ast.PlayerCollision {
-			spawnScope.AppendTabbed(fmt.Sprintf("pewpew.customizable_entity_set_player_collision(instance, HCb%v)\n", i))
-		}
-	}
+	spawnScope.AppendTabbed("}\n")
+	spawnScope.AppendTabbed("local Self = HS_", entityName, "[id]\n")
 	TabsCount--
 	gen.GenerateBody(node.Body, &spawnScope)
-	spawnScope.WriteString("end\n")
+	TabsCount++
+	// walker panics
+	for i, v := range entity.Callbacks { // dw
+		switch v.Type {
+		case ast.WallCollision:
+			spawnScope.AppendTabbed(fmt.Sprintf("pewpew.customizable_entity_configure_wall_collision(id, true, %sHCb%d)\n", entityName, i))
+		case ast.WeaponCollision:
+			spawnScope.AppendTabbed(fmt.Sprintf("pewpew.customizable_entity_set_weapon_collision(id, %sHCb%d)\n", entityName, i))
+		case ast.PlayerCollision:
+			spawnScope.AppendTabbed(fmt.Sprintf("pewpew.customizable_entity_set_player_collision(id, %sHCb%d)\n", entityName, i))
+		case ast.Update:
+			spawnScope.AppendTabbed(fmt.Sprintf("pewpew.entity_set_update_callback(id, %sHCb%d)\n", entityName, i))
+		} // try?
+	}
+	TabsCount--
+
+	spawnScope.AppendTabbed("end\n")
 
 	scope.Write(spawnScope.Src)
-} 
+}
 
-func (gen *Generator) destroyDeclarationStmt(node ast.DestroyDeclarationStmt, entity ast.EntityDeclarationStmt, scope *GenScope) {
-	spawnScope :=  NewGenScope(scope)
+func (gen *Generator) destroyDeclarationStmt(node ast.EntityFunctionDeclarationStmt, entity ast.EntityDeclarationStmt, scope *GenScope) {
+	spawnScope := NewGenScope(scope)
 
 	// if entity.IsLocal {
 	// 	spawnScope.WriteString("local ")
 	// }
 
-	spawnScope.Append("function Hy_", gen.WriteVar(entity.Name.Lexeme), "_Destroy(")
+	spawnScope.Append("function Hy_", gen.WriteVar(entity.Name.Lexeme), "_Destroy(id")
+	if len(node.Params) != 0 {
+		spawnScope.Append(", ")
+	}
 
 	gen.GenerateParams(node.Params, &spawnScope)
 
 	spawnScope.Append(")\n")
+	spawnScope.AppendETabbed("local Self = HS_", gen.WriteVar(entity.Name.Lexeme), "[id]\n")
 
 	gen.GenerateBody(node.Body, &spawnScope)
 
@@ -437,7 +460,7 @@ func (gen *Generator) GenerateParams(params []ast.Param, scope *GenScope) {
 			scope.Append(", ")
 		}
 	}
-} 
+}
 
 func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, Struct ast.StructDeclarationStmt, scope *GenScope) {
 	src := StringBuilder{}

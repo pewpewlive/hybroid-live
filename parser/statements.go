@@ -132,7 +132,7 @@ func (p *Parser) macroDeclarationStmt() ast.Node {
 	token := p.peek()
 	if token.Type == lexer.RightParen {
 		p.advance()
-	}else if token.Type == lexer.Identifier {
+	} else if token.Type == lexer.Identifier {
 		p.advance()
 		params = append(params, token)
 		for p.match(lexer.Colon) {
@@ -144,7 +144,7 @@ func (p *Parser) macroDeclarationStmt() ast.Node {
 		}
 		macroDeclaration.Params = params
 		p.consume("expected closing parenthesis", lexer.RightParen)
-	}else {
+	} else {
 		p.advance()
 		p.error(token, "expected either identifier or closing parenthesis after opening parenthesis")
 		return ast.NewImproper(token)
@@ -161,7 +161,7 @@ func (p *Parser) macroDeclarationStmt() ast.Node {
 			t := p.advance()
 			if t.Type == lexer.LeftBrace {
 				nestedBrace++
-			}else if t.Type == lexer.RightBrace {
+			} else if t.Type == lexer.RightBrace {
 				nestedBrace--
 			}
 			macroDeclaration.Tokens = append(macroDeclaration.Tokens, t)
@@ -176,10 +176,8 @@ func (p *Parser) macroDeclarationStmt() ast.Node {
 		macroDeclaration.Tokens = append(macroDeclaration.Tokens, p.advance())
 	}
 
-
 	return macroDeclaration
 }
-
 
 func (p *Parser) envStmt() ast.Node {
 	stmt := ast.EnvironmentStmt{}
@@ -305,7 +303,7 @@ func (p *Parser) structDeclarationStmt() ast.Node {
 func (p *Parser) entityDeclarationStmt() ast.Node {
 	stmt := &ast.EntityDeclarationStmt{
 		IsLocal: p.peek(-1).Type != lexer.Pub,
-		Token: p.peek(-1),
+		Token:   p.peek(-1),
 	}
 
 	name, ok := p.consume("expected the name of the entity", lexer.Identifier)
@@ -327,88 +325,64 @@ func (p *Parser) entityDeclarationStmt() ast.Node {
 				stmt.Methods = append(stmt.Methods, *method)
 			}
 			continue
-		} 
+		}
 		if p.match(lexer.Spawn) {
-			spawner := p.spawnDeclarationStmt()
+			spawner := p.entityFunctionDeclarationStmt(p.peek(-1), ast.Spawn)
 			if spawner.GetType() != ast.NA {
-				stmt.Spawner = spawner.(*ast.SpawnDeclarationStmt)
+				stmt.Spawner = spawner.(*ast.EntityFunctionDeclarationStmt)
 			}
 			continue
-		} 
+		}
+
 		if p.match(lexer.Destroy) {
-			destroyer := p.destroyDeclarationStmt()
+			destroyer := p.entityFunctionDeclarationStmt(p.peek(-1), ast.Destroy)
 			if destroyer.GetType() != ast.NA {
-				stmt.Destroyer = destroyer.(*ast.DestroyDeclarationStmt)
+				stmt.Destroyer = destroyer.(*ast.EntityFunctionDeclarationStmt)
 			}
 			continue
-		} 
+		}
 		if p.check(lexer.Identifier) {
 			switch p.peek().Lexeme {
 			case "WeaponCollision":
-				cb := p.entityCallbackStmt(p.advance(), ast.WeaponCollision)
+				cb := p.entityFunctionDeclarationStmt(p.advance(), ast.WeaponCollision)
 				if cb.GetType() != ast.NA {
-					stmt.Callbacks = append(stmt.Callbacks, cb.(*ast.EntityCallbackStmt))
+					stmt.Callbacks = append(stmt.Callbacks, cb.(*ast.EntityFunctionDeclarationStmt))
 				}
 				continue
 			case "WallCollision":
-				cb := p.entityCallbackStmt(p.advance(), ast.WallCollision)
+				cb := p.entityFunctionDeclarationStmt(p.advance(), ast.WallCollision)
 				if cb.GetType() != ast.NA {
-					stmt.Callbacks = append(stmt.Callbacks, cb.(*ast.EntityCallbackStmt))
+					stmt.Callbacks = append(stmt.Callbacks, cb.(*ast.EntityFunctionDeclarationStmt))
 				}
 				continue
 			case "PlayerCollision":
-				cb := p.entityCallbackStmt(p.advance(), ast.PlayerCollision)
+				cb := p.entityFunctionDeclarationStmt(p.advance(), ast.PlayerCollision)
 				if cb.GetType() != ast.NA {
-					stmt.Callbacks = append(stmt.Callbacks, cb.(*ast.EntityCallbackStmt))
+					stmt.Callbacks = append(stmt.Callbacks, cb.(*ast.EntityFunctionDeclarationStmt))
+				}
+				continue
+			case "Update":
+				cb := p.entityFunctionDeclarationStmt(p.advance(), ast.Update)
+				if cb.GetType() != ast.NA {
+					stmt.Callbacks = append(stmt.Callbacks, cb.(*ast.EntityFunctionDeclarationStmt))
 				}
 				continue
 			}
-		} 
+		}
 		field := p.fieldDeclarationStmt()
 		if field.GetType() != ast.NA {
 			stmt.Fields = append(stmt.Fields, *field.(*ast.FieldDeclarationStmt))
 		} else {
-			p.error(p.peek(), "unknown statement inside struct")
+			p.error(p.peek(), "unknown statement inside entity")
 		}
 	}
 
 	return stmt
 }
 
-func (p *Parser) spawnDeclarationStmt() ast.Node {
-	stmt := p.constructorDeclarationStmt()
-	if stmt.GetType() == ast.NA {
-		return stmt
-	}
-	construct := stmt.(*ast.ConstructorStmt)
-
-	return &ast.SpawnDeclarationStmt{
-		Token: construct.Token,
-		Params: construct.Params,
-		Body: construct.Body,
-		Return: construct.Return,
-	}
-}
-
-
-func (p *Parser) destroyDeclarationStmt() ast.Node {
-	stmt := p.constructorDeclarationStmt()
-	if stmt.GetType() == ast.NA {
-		return stmt
-	}
-	construct := stmt.(*ast.ConstructorStmt)
-
-	return &ast.DestroyDeclarationStmt{
-		Token: construct.Token,
-		Params: construct.Params,
-		Body: construct.Body,
-		Return: construct.Return,
-	}
-}
-
-func (p *Parser) entityCallbackStmt(token lexer.Token, callback ast.CallbackType) ast.Node {
-	stmt := &ast.EntityCallbackStmt{
-		Callback: callback,
+func (p *Parser) entityFunctionDeclarationStmt(token lexer.Token, functionType ast.EntityFunctionType) ast.Node {
+	stmt := &ast.EntityFunctionDeclarationStmt{
+		Type:  functionType,
 		Token: token,
 	}
 

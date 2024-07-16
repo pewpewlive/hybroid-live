@@ -151,24 +151,32 @@ func (self *EnumFieldVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "ENUM_FIELD_VAL"}
 }
 
-type StructVal struct {
-	Type    NamedType
-	IsLocal bool
-	Fields  []*VariableVal
-	Methods map[string]*VariableVal
-	Params  Types
+type EntityVal struct {
+	Type          NamedType
+	IsLocal       bool
+	Fields        []*VariableVal
+	Methods       map[string]*VariableVal
+	SpawnParams   Types
+	DestroyParams Types
 }
 
-func (self *StructVal) GetType() Type {
-	return &self.Type
+func NewEntityVal(name string, isLocal bool) *EntityVal {
+	return &EntityVal{
+		Type:    *NewNamedType(name, ast.Entity),
+		IsLocal: isLocal,
+	}
 }
 
-func (self *StructVal) GetDefault() *ast.LiteralExpr {
+func (ev *EntityVal) GetType() Type { // bishwhat ah wait, i think ev is nil
+	return &ev.Type //lol
+}
+
+func (ev *EntityVal) GetDefault() *ast.LiteralExpr {
 	src := generator.StringBuilder{}
 
 	src.WriteString("{")
-	length := len(self.Fields) - 1
-	for i, v := range self.Fields {
+	length := len(ev.Fields) - 1
+	for i, v := range ev.Fields {
 		if i == length {
 			src.Append(v.GetDefault().Value)
 		} else {
@@ -181,24 +189,78 @@ func (self *StructVal) GetDefault() *ast.LiteralExpr {
 }
 
 // Container
-func (self *StructVal) AddField(variable *VariableVal) {
-	self.Fields = append(self.Fields, variable)
+func (ev *EntityVal) AddField(variable *VariableVal) {
+	ev.Fields = append(ev.Fields, variable)
 }
 
-func (self *StructVal) AddMethod(variable *VariableVal) {
-	self.Methods[variable.Name] = variable
+func (ev *EntityVal) AddMethod(variable *VariableVal) {
+	ev.Methods[variable.Name] = variable
 }
 
-func (self *StructVal) ContainsField(name string) (*VariableVal, int, bool) {
-	if variable, ind, found := FindFromList(self.Fields, name); found {
+func (ev *EntityVal) ContainsField(name string) (*VariableVal, int, bool) {
+	if variable, ind, found := FindFromList(ev.Fields, name); found {
 		return variable, ind, true
 	}
 
 	return nil, -1, false
 }
 
-func (self *StructVal) ContainsMethod(name string) (*VariableVal, bool) {
-	if variable, found := self.Methods[name]; found {
+func (ev *EntityVal) ContainsMethod(name string) (*VariableVal, bool) {
+	if variable, found := ev.Methods[name]; found {
+		return variable, true
+	}
+
+	return nil, false
+}
+
+type StructVal struct {
+	Type    NamedType
+	IsLocal bool
+	Fields  []*VariableVal
+	Methods map[string]*VariableVal
+	Params  Types
+}
+
+func (sv *StructVal) GetType() Type {
+	return &sv.Type
+}
+
+func (sv *StructVal) GetDefault() *ast.LiteralExpr {
+	src := generator.StringBuilder{}
+
+	src.WriteString("{")
+	length := len(sv.Fields) - 1
+	for i, v := range sv.Fields {
+		if i == length {
+			src.Append(v.GetDefault().Value)
+		} else {
+			src.Append(v.GetDefault().Value, ", ")
+		}
+	}
+	src.WriteString("}")
+
+	return &ast.LiteralExpr{Value: src.String()}
+}
+
+// Container
+func (sv *StructVal) AddField(variable *VariableVal) {
+	sv.Fields = append(sv.Fields, variable)
+}
+
+func (sv *StructVal) AddMethod(variable *VariableVal) {
+	sv.Methods[variable.Name] = variable
+}
+
+func (sv *StructVal) ContainsField(name string) (*VariableVal, int, bool) {
+	if variable, ind, found := FindFromList(sv.Fields, name); found {
+		return variable, ind, true
+	}
+
+	return nil, -1, false
+}
+
+func (sv *StructVal) ContainsMethod(name string) (*VariableVal, bool) {
+	if variable, found := sv.Methods[name]; found {
 		return variable, true
 	}
 
@@ -318,7 +380,7 @@ func TypesToString(types []Type) string {
 	for i := range types {
 		src.WriteString(types[i].ToString())
 		if i != len(types)-1 {
-			src.WriteRune('\n');
+			src.WriteRune('\n')
 		}
 	}
 

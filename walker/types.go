@@ -20,8 +20,7 @@ const (
 	Basic ValueType = iota
 	Fn
 	AnonStruct
-	Structure
-	PewpewEntity
+	Named
 	Fixed
 	Wrapper // List or Map
 	Enum
@@ -207,23 +206,25 @@ func (self *AnonStructType) ToString() string {
 }
 
 type NamedType struct {
+	Pvt    ast.PrimitiveValueType
 	Name   string
 	IsUsed bool
 }
 
-func NewNamedType(name string) *NamedType {
+func NewNamedType(name string, primitive ast.PrimitiveValueType) *NamedType {
 	return &NamedType{
 		Name: name,
+		Pvt:  primitive, //
 	}
-}
+} // does this have to be a pointer?
 
 // Type
 func (self *NamedType) PVT() ast.PrimitiveValueType {
-	return ast.Struct
+	return self.Pvt
 }
 
 func (self *NamedType) GetType() ValueType {
-	return Structure
+	return Named
 }
 
 func (self *NamedType) _eq(othr Type) bool {

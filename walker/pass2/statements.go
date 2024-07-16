@@ -59,6 +59,40 @@ func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope
 	MethodDeclarationStmt(w, &funcDeclaration, structVal, structScope)
 }
 
+func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDeclarationStmt, scope *wkr.Scope) {
+	entityScope := scope.AccessChild()
+
+	entityVal, _ := w.GetEntity(node.Name.Lexeme)
+
+	for i := range node.Fields { // debug?
+		FieldDeclarationStmt(w, &node.Fields[i], entityVal, entityScope)
+	}
+
+	//spawn
+	if node.Spawner != nil {
+		EntityFunctionDeclarationStmt(w, node.Spawner, entityVal, entityScope)
+	}
+	//destroy
+	if node.Destroyer != nil {
+		EntityFunctionDeclarationStmt(w, node.Destroyer, entityVal, entityScope)
+	}
+
+	for i := range node.Callbacks {
+		EntityFunctionDeclarationStmt(w, node.Callbacks[i], entityVal, entityScope)
+	}
+}
+
+func EntityFunctionDeclarationStmt(w *wkr.Walker, node *ast.EntityFunctionDeclarationStmt, entityVal *wkr.EntityVal, scope *wkr.Scope) {
+
+	fnScope := scope.AccessChild()
+	params := make([]wkr.Type, 0)
+	for _, param := range node.Params {
+		params = append(params, TypeExpr(w, param.Type, w.Environment))
+		w.GetVariable(fnScope, param.Name.Lexeme).Value = w.TypeToValue(params[len(params)-1])
+	}
+	WalkBody(w, &node.Body, fnScope)
+} // that should do it
+
 func FieldDeclarationStmt(w *wkr.Walker, node *ast.FieldDeclarationStmt, container wkr.FieldContainer, scope *wkr.Scope) {
 	varDecl := ast.VariableDeclarationStmt{
 		Identifiers: node.Identifiers,
@@ -206,7 +240,7 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 			explicitType := TypeExpr(w, declaration.Types[i], w.Environment)
 			if valueType.PVT() == ast.Unknown {
 				values[i] = w.TypeToValue(explicitType)
-				declaration.Values = append(declaration.Values, values[i].GetDefault())
+				declaration.Values = append(declaration.Values, values[i].GetDefault()) // only here does it set to default if no value is given
 			} else if !wkr.TypeEquals(valueType, explicitType) {
 				w.Error(declaration.Values[i].GetToken(), fmt.Sprintf("Given value is %s, but explicit type is %s", valueType.ToString(), explicitType.ToString()))
 			}

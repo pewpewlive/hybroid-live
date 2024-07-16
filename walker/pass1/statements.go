@@ -10,7 +10,7 @@ import (
 
 func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope *wkr.Scope) {
 	structVal := &wkr.StructVal{
-		Type:    *wkr.NewNamedType(node.Name.Lexeme),
+		Type:    *wkr.NewNamedType(node.Name.Lexeme, ast.Struct),
 		IsLocal: node.IsLocal,
 		Fields:  make([]*wkr.VariableVal, 0),
 		Methods: map[string]*wkr.VariableVal{},
@@ -79,7 +79,7 @@ func FieldDeclarationStmt(w *wkr.Walker, node *ast.FieldDeclarationStmt, contain
 	variables := VariableDeclarationStmt(w, &varDecl, scope)
 	node.Values = varDecl.Values
 	for i := range variables {
-		container.AddField(variables[i])
+		container.AddField(variables[i]) //
 	}
 }
 
@@ -98,37 +98,88 @@ func MethodDeclarationStmt(w *wkr.Walker, node *ast.MethodDeclarationStmt, conta
 }
 
 func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDeclarationStmt, scope *wkr.Scope) {
-	entityScope := wkr.NewScope(scope, &wkr.EntityTag{}, wkr.SelfAllowing)
-	
+	et := &wkr.EntityTag{}
+	entityScope := wkr.NewScope(scope, et, wkr.SelfAllowing) //that makes sense
+
 	if scope.Parent != nil {
 		w.Error(node.Token, "can't declare an entity inside a local block")
 	}
 
-	found := map[ast.CallbackType][]lexer.Token{}
+	entityVal := wkr.NewEntityVal(node.Name.Lexeme, node.IsLocal)
+
+	//fields
+	for i := range node.Fields { // debug?
+		FieldDeclarationStmt(w, &node.Fields[i], entityVal, entityScope)
+	}
+
+	//spawn
+	if node.Spawner == nil {
+		w.Error(node.Token, "entity must have a spawner")
+	} else {
+		EntityFunctionDeclarationStmt(w, node.Spawner, entityVal, entityScope)
+	}
+	//destroy
+	if node.Destroyer == nil {
+		w.Error(node.Token, "entity must have a destroyer")
+	} else {
+		EntityFunctionDeclarationStmt(w, node.Destroyer, entityVal, entityScope)
+	}
+	//callbacks
+	found := map[ast.EntityFunctionType][]lexer.Token{}
 
 	for i := range node.Callbacks {
-		found[node.Callbacks[i].Callback] = append(found[node.Callbacks[i].Callback], node.Callbacks[i].Token)
-
-		if node.Callbacks[i].Callback == ast.WallCollision {
-
-			params := WalkParams(w, node.Callbacks[i].Params, entityScope, func(name lexer.Token, value wkr.Value) {})
-
-			if len(params) != 2 {
-				w.Error(node.Callbacks[i].Token, fmt.Sprintf("expected (fixed wallNormalX, fixed wallNormalY) as parameters, found (%s)", wkr.TypesToString(params)));
-			}else if !(params[0].GetType() == wkr.Fixed && params[1].GetType() == wkr.Fixed) {
-				w.Error(node.Callbacks[i].Token, fmt.Sprintf("expected (fixed wallNormalX, fixed wallNormalY) as parameters, found (%s)", wkr.TypesToString(params)));
-			}
-		}else if node.Callbacks[i].Callback == ast.WeaponCollision {
-		}else {
-		}
+		found[node.Callbacks[i].Type] = append(found[node.Callbacks[i].Type], node.Callbacks[i].Token)
+		EntityFunctionDeclarationStmt(w, node.Callbacks[i], entityVal, entityScope)
 	}
 
 	for k := range found {
 		if len(found[k]) > 1 {
 			for i := range found[k] {
-				w.Error(found[k][i], fmt.Sprintf("multiple instances of the same callback is not allowed (%s)", k))
+				w.Error(found[k][i], fmt.Sprintf("multiple instances of the same entity function is not allowed (%s)", k))
 			}
 		}
+	}
+
+	et.EntityType = entityVal
+
+	w.DeclareEntity(entityVal)
+}
+
+// this is a big name lol
+func EntityFunctionDeclarationStmt(w *wkr.Walker, node *ast.EntityFunctionDeclarationStmt, entityVal *wkr.EntityVal, scope *wkr.Scope) {
+	ft := &wkr.FuncTag{
+		ReturnTypes: wkr.EmptyReturn,
+		Returns:     make([]bool, 0),
+	}
+	fnScope := wkr.NewScope(scope, ft, wkr.ReturnAllowing)
+	params := WalkParams(w, node.Params, scope, func(name lexer.Token, value wkr.Value) {
+		w.DeclareVariable(fnScope, &wkr.VariableVal{
+			Name:    name.Lexeme,
+			Value:   value,
+			IsLocal: true,
+			Token:   node.GetToken(),
+		}, name)
+	})
+	WalkBody(w, &node.Body, ft, fnScope)
+	switch node.Type {
+	case ast.Spawn:
+		if len(params) < 2 || !(params[0].GetType() == wkr.Fixed && params[1].GetType() == wkr.Fixed) {
+			w.Error(node.Token, fmt.Sprintf("first two parameters of %s must be of fixed type", node.Type))
+		}
+		entityVal.SpawnParams = params
+	case ast.Destroy:
+		entityVal.DestroyParams = params
+
+	case ast.WallCollision:
+		if len(params) < 2 || !(params[0].GetType() == wkr.Fixed && params[1].GetType() == wkr.Fixed) {
+			w.Error(node.Token, fmt.Sprintf("first two parameters of %s must be of fixed type", node.Type))
+		}
+	case ast.PlayerCollision:
+		// TODO:
+		//first need to have a id type or something, because having ship_id as number will look weird
+	case ast.WeaponCollision:
+		// TODO:
+		//first need WeaponType and by extension the implementation of pewpew library
 	}
 }
 
@@ -139,7 +190,7 @@ func WalkParams(w *wkr.Walker, parameters []ast.Param, scope *wkr.Scope, declare
 		value := w.TypeToValue(params[i])
 		declare(param.Name, value)
 	}
-	
+
 	return params
 }
 
@@ -340,7 +391,7 @@ func ForloopStmt(w *wkr.Walker, node *ast.ForStmt, scope *wkr.Scope) {
 func TickStmt(w *wkr.Walker, node *ast.TickStmt, scope *wkr.Scope) {
 	funcTag := &wkr.FuncTag{ReturnTypes: wkr.EmptyReturn}
 	tickScope := wkr.NewScope(scope, funcTag, wkr.ReturnAllowing)
-	
+
 	if node.Variable.GetValueType() != ast.Unknown {
 		w.DeclareVariable(tickScope, &wkr.VariableVal{Name: node.Variable.Name.Lexeme, Value: &wkr.NumberVal{}}, node.Token)
 	}
@@ -414,7 +465,7 @@ func YieldStmt(w *wkr.Walker, node *ast.YieldStmt, scope *wkr.Scope) *wkr.Types 
 		w.Error(node.GetToken(), "cannot use yield outside of statement expressions") // wut
 	}
 
-	sc, _, _:= wkr.ResolveTagScope[*wkr.MatchExprTag](scope)
+	sc, _, _ := wkr.ResolveTagScope[*wkr.MatchExprTag](scope)
 	yieldTypes := wkr.EmptyReturn
 	for i := range node.Args {
 		val := GetNodeValue(w, &node.Args[i], scope)
@@ -425,10 +476,10 @@ func YieldStmt(w *wkr.Walker, node *ast.YieldStmt, scope *wkr.Scope) *wkr.Types 
 			yieldTypes = append(yieldTypes, valType)
 		}
 	}
-	if sc, _, met :=  wkr.ResolveTagScope[*wkr.MatchExprTag](scope); sc != nil {
+	if sc, _, met := wkr.ResolveTagScope[*wkr.MatchExprTag](scope); sc != nil {
 		if helpers.ListsAreSame((*met).YieldValues, wkr.EmptyReturn) {
 			(*met).YieldValues = yieldTypes
-		}else {
+		} else {
 			(*met).YieldValues = append((*met).YieldValues, yieldTypes...)
 		}
 	}

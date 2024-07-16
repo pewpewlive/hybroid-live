@@ -94,9 +94,9 @@ func LiteralExpr(w *wkr.Walker, node *ast.LiteralExpr) wkr.Value {
 	}
 }
 
-func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
+func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value { // we finna
 	valueNode := *node
-	ident := valueNode.(*ast.IdentifierExpr)
+	ident := valueNode.(*ast.IdentifierExpr) // bishwhat
 
 	sc := w.ResolveVariable(scope, ident.Name.Lexeme)
 	if sc == nil {
@@ -104,25 +104,6 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 	}
 
 	variable := w.GetVariable(sc, ident.Name.Lexeme)
-
-	if sc.Tag.GetType() == wkr.Struct {
-		_struct := sc.Tag.(*wkr.StructTag).StructVal
-		_, index, _ := _struct.ContainsField(variable.Name)
-		selfExpr := &ast.FieldExpr{
-			Identifier: &ast.SelfExpr{
-				Token: valueNode.GetToken(),
-				Type:  ast.SelfStruct,
-			},
-		}
-
-		fieldExpr := &ast.FieldExpr{
-			Owner:      selfExpr,
-			Identifier: valueNode,
-			Index:      index,
-		}
-		selfExpr.Property = fieldExpr
-		*node = selfExpr
-	}
 	variable.IsUsed = true
 	return variable.Value
 }
@@ -235,8 +216,8 @@ func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {
 	if node.Owner == nil {
 		val := GetNodeValue(w, &node.Identifier, scope)
 
-		if val.GetType().PVT() == ast.Unresolved {
-			return &wkr.Unknown{}
+		if val.GetType().PVT() == ast.Unresolved { // i fixed it
+			return &wkr.Unknown{} // OHHHHHH
 		}
 
 		if !wkr.IsOfPrimitiveType(val, ast.Struct, ast.Entity, ast.AnonStruct, ast.Enum) {
@@ -357,15 +338,20 @@ func SelfExpr(w *wkr.Walker, self *ast.SelfExpr, scope *wkr.Scope) wkr.Value {
 		w.Error(self.Token, "can't use self outside of struct/entity")
 		return &wkr.Invalid{}
 	}
-
+	// AHHHHHHH IT HAS ALREADY TURNED INTO A SELF EXPRESSION FROM PASS 1
 	sc, _, structTag := wkr.ResolveTagScope[*wkr.StructTag](scope) // TODO: CHECK FOR ENTITY SCOPE
 
-	if sc != nil {
-		(*self).Type = ast.SelfStruct
-		return (*structTag).StructVal
-	} else {
+	if sc == nil {
+		entitySc, _, entityTag := wkr.ResolveTagScope[*wkr.EntityTag](scope) // try now
+		if entitySc != nil {
+			return (*entityTag).EntityType
+		}
+
 		return &wkr.Invalid{}
 	}
+
+	(*self).Type = ast.SelfStruct
+	return (*structTag).StructVal
 }
 
 func NewExpr(w *wkr.Walker, new *ast.NewExpr, scope *wkr.Scope) wkr.Value {

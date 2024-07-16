@@ -56,9 +56,8 @@ func (st *StructTag) GetType() ScopeTagType {
 	return Struct
 }
 
-// to be used
 type EntityTag struct {
-	//EntityType *StructTypeVal
+	EntityType *EntityVal
 }
 
 func (et *EntityTag) GetType() ScopeTagType {

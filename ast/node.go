@@ -12,11 +12,9 @@ const (
 	MethodDeclarationStatement    NodeType = "methodDeclarationStatement"
 	EnumDeclarationStatement      NodeType = "enumDeclarationStatement"
 	MacroDeclarationStatement     NodeType = "macroDeclarationStatement"
-	
-	EntityDeclarationStatement    NodeType = "entityDeclarationStatement"
-	DestroyDeclarationStatement   NodeType = "destroyDeclarationStatement"
-	SpawnDeclarationStatement     NodeType = "spawnDeclarationStatement"
-	EntityCallbackStatetement     NodeType = "entityCallbackStatetement"
+
+	EntityDeclarationStatement        NodeType = "entityDeclarationStatement"
+	EntityFunctionDeclarationStatemet NodeType = "entityFunctionDeclarationStatemet"
 
 	ConstructorStatement NodeType = "constructorStatement"
 	EnvironmentStatement NodeType = "environmentStatement"

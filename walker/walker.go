@@ -14,7 +14,7 @@ type Environment struct {
 	Scope     Scope
 	Variables map[string]*VariableVal
 	Structs   map[string]*StructVal
-
+	Entities  map[string]*EntityVal
 }
 
 func NewEnvironment(path string) *Environment {
@@ -24,9 +24,10 @@ func NewEnvironment(path string) *Environment {
 		Variables: map[string]*VariableVal{},
 	}
 	global := &Environment{
-		Path:    path,
-		Scope:   scope,
-		Structs: map[string]*StructVal{},
+		Path:     path,
+		Scope:    scope,
+		Structs:  map[string]*StructVal{},
+		Entities: map[string]*EntityVal{}, // try
 	}
 
 	global.Scope.Environment = global
@@ -96,6 +97,20 @@ func (w *Walker) GetStruct(name string) (*StructVal, bool) {
 	return structType, true
 }
 
+func (w *Walker) GetEntity(name string) (*EntityVal, bool) {
+	entityType, found := w.Environment.Entities[name]
+	if !found {
+		//w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s", name, " exists"))
+		return nil, false
+	}
+
+	entityType.Type.IsUsed = true
+
+	w.Environment.Entities[name] = entityType
+
+	return entityType, true
+}
+
 func (w *Walker) AssignVariableByName(s *Scope, name string, value Value) (Value, *ast.Error) {
 	scope := w.ResolveVariable(s, name)
 
@@ -143,6 +158,15 @@ func (w *Walker) DeclareStruct(structVal *StructVal) bool {
 	}
 
 	w.Environment.Structs[structVal.Type.Name] = structVal
+	return true
+}
+
+func (w *Walker) DeclareEntity(entityVal *EntityVal) bool {
+	if _, found := w.Environment.Entities[entityVal.Type.Name]; found {
+		return false
+	}
+
+	w.Environment.Entities[entityVal.Type.Name] = entityVal
 	return true
 }
 

@@ -60,10 +60,10 @@ const (
 )
 
 type MacroDeclarationStmt struct {
-	Name lexer.Token
-	Params []lexer.Token
+	Name      lexer.Token
+	Params    []lexer.Token
 	MacroType MacroType
-	Tokens     []lexer.Token
+	Tokens    []lexer.Token
 }
 
 func (self *MacroDeclarationStmt) GetType() NodeType {
@@ -120,14 +120,14 @@ func (sds *StructDeclarationStmt) GetValueType() PrimitiveValueType {
 }
 
 type EntityDeclarationStmt struct {
-	Token       lexer.Token
-	Name        lexer.Token
-	Fields      []FieldDeclarationStmt
-	Spawner     *SpawnDeclarationStmt
-	Destroyer   *DestroyDeclarationStmt
-	Callbacks   []*EntityCallbackStmt
-	Methods     []MethodDeclarationStmt
-	IsLocal     bool
+	Token     lexer.Token
+	Name      lexer.Token
+	Fields    []FieldDeclarationStmt
+	Spawner   *EntityFunctionDeclarationStmt
+	Destroyer *EntityFunctionDeclarationStmt
+	Callbacks []*EntityFunctionDeclarationStmt
+	Methods   []MethodDeclarationStmt
+	IsLocal   bool
 }
 
 func (sds *EntityDeclarationStmt) GetType() NodeType {
@@ -142,71 +142,35 @@ func (sds *EntityDeclarationStmt) GetValueType() PrimitiveValueType {
 	return Unknown
 }
 
-type SpawnDeclarationStmt struct {
-	Token  lexer.Token
-	Body   []Node
-	Return []*TypeExpr
-	Params []Param
-}
-
-func (sds *SpawnDeclarationStmt) GetType() NodeType {
-	return SpawnDeclarationStatement
-}
-
-func (sds *SpawnDeclarationStmt) GetToken() lexer.Token {
-	return sds.Token
-}
-
-func (sds *SpawnDeclarationStmt) GetValueType() PrimitiveValueType {
-	return Unknown
-}
-
-type DestroyDeclarationStmt struct {
-	Token  lexer.Token
-	Body   []Node
-	Return []*TypeExpr
-	Params []Param
-}
-
-func (sds *DestroyDeclarationStmt) GetType() NodeType {
-	return DestroyDeclarationStatement
-}
-
-func (sds *DestroyDeclarationStmt) GetToken() lexer.Token {
-	return sds.Token
-}
-
-func (sds *DestroyDeclarationStmt) GetValueType() PrimitiveValueType {
-	return Unknown
-}
-
-type CallbackType string
+type EntityFunctionType string
 
 const (
-	WeaponCollision CallbackType = "weaponCollision"
-	WallCollision CallbackType = "wallCollision"
-	PlayerCollision CallbackType = "playerCollision"
+	WeaponCollision EntityFunctionType = "weaponCollision"
+	WallCollision   EntityFunctionType = "wallCollision"
+	PlayerCollision EntityFunctionType = "playerCollision"
+	Update          EntityFunctionType = "update"
+	Destroy         EntityFunctionType = "destroy"
+	Spawn           EntityFunctionType = "spawn"
 )
 
-type EntityCallbackStmt struct {
-	Callback CallbackType
-	Params   []Param
-	Body     []Node
-	Token    lexer.Token
+type EntityFunctionDeclarationStmt struct {
+	Type   EntityFunctionType
+	Params []Param
+	Body   []Node
+	Token  lexer.Token
 }
 
-func (eds *EntityCallbackStmt) GetType() NodeType {
-	return EntityCallbackStatetement
+func (eds *EntityFunctionDeclarationStmt) GetType() NodeType {
+	return EntityFunctionDeclarationStatemet
 }
 
-func (eds *EntityCallbackStmt) GetToken() lexer.Token {
+func (eds *EntityFunctionDeclarationStmt) GetToken() lexer.Token {
 	return eds.Token
 }
 
-func (eds *EntityCallbackStmt) GetValueType() PrimitiveValueType {
+func (eds *EntityFunctionDeclarationStmt) GetValueType() PrimitiveValueType {
 	return Unknown
 }
-
 
 type EnumDeclarationStmt struct {
 	Name    lexer.Token

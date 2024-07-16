@@ -1,34 +1,17 @@
 env ExampleLevel as Level
 
-macro Test() => "hello"
-
-macro Test2() => {
-  let a = 100
-}
-
-let b = "a"
-
-let number num = 1
-
-fn function(fixed param1, text param2) {
-
-  let o = param2 .. " djsbifskjfdb"
-}
-// 5 +2 + 2+ 2
-repeat to 10 from 5 by 2 with i {
-
-}
-
-while b == "a" {
-
-}
-
 entity Quadro {
-  spawn(fixed x, fixed y) {
+  number b
+
+  spawn(fixed x, fixed y, number a) {
+    self.b = a
+  }
+
+  Update() {
 
   }
 
-  destroy() {
+  destroy(fixed something) {
     
   }
 
@@ -40,7 +23,7 @@ entity Quadro {
 
   }
 
-  WallCollision(fixed wallNormalX, fixed wallNormalX) {
+  WallCollision(fixed wallNormalX, fixed wallNormalY) {// bad
 
   }
 }
