@@ -360,13 +360,17 @@ func (gen *Generator) entityDeclarationStmt(node ast.EntityDeclarationStmt, scop
 		}
 		gen.GenerateParams(v.Params, &entityScope)
 		entityScope.WriteString(")\n")
-		entityScope.AppendETabbed("local Self = HS_", entityName, "[id]\n")
+		entityScope.AppendETabbed("local Self = ", hyState, entityName, "[id]\n")
 		gen.GenerateBody(v.Body, &entityScope)
 		entityScope.AppendTabbed("end\n")
 	}
 
 	gen.spawnDeclarationStmt(*node.Spawner, node, &entityScope)
 	gen.destroyDeclarationStmt(*node.Destroyer, node, &entityScope)
+
+	for _, v := range node.Methods {
+		gen.entityMethodDeclarationStmt(v, node, scope)
+	}
 
 	scope.Write(entityScope.Src)
 }
@@ -380,13 +384,13 @@ func (gen *Generator) spawnDeclarationStmt(node ast.EntityFunctionDeclarationStm
 
 	entityName := gen.WriteVar(entity.Name.Lexeme)
 
-	spawnScope.Append("HS_", entityName, " = {}\n")
+	spawnScope.Append(hyState, entityName, " = {}\n")
 
 	// if entity.IsLocal {
 	// 	spawnScope.WriteString("local ")
 	// }
 
-	spawnScope.Append("function Hy_", entityName, "_Spawn(")
+	spawnScope.Append("function ", hyEntity, entityName, "_Spawn(")
 
 	gen.GenerateParams(node.Params, &spawnScope)
 
@@ -395,7 +399,7 @@ func (gen *Generator) spawnDeclarationStmt(node ast.EntityFunctionDeclarationStm
 	TabsCount++
 
 	spawnScope.AppendTabbed("local id = pewpew.new_customizable_entity(", gen.WriteVar(node.Params[0].Name.Lexeme), ", ", gen.WriteVar(node.Params[1].Name.Lexeme), ")\n")
-	spawnScope.AppendTabbed("HS_", entityName, "[id] = {\n")
+	spawnScope.AppendTabbed(hyState, entityName, "[id] = {\n")
 	for i, v := range entity.Fields {
 		val := gen.fieldDeclarationStmt(v, &spawnScope) // should be good now
 		spawnScope.AppendETabbed(val)
@@ -405,7 +409,7 @@ func (gen *Generator) spawnDeclarationStmt(node ast.EntityFunctionDeclarationStm
 		spawnScope.WriteString("\n")
 	}
 	spawnScope.AppendTabbed("}\n")
-	spawnScope.AppendTabbed("local Self = HS_", entityName, "[id]\n")
+	spawnScope.AppendTabbed("local Self = ", hyState, entityName, "[id]\n")
 	TabsCount--
 	gen.GenerateBody(node.Body, &spawnScope)
 	TabsCount++
@@ -436,7 +440,7 @@ func (gen *Generator) destroyDeclarationStmt(node ast.EntityFunctionDeclarationS
 	// 	spawnScope.WriteString("local ")
 	// }
 
-	spawnScope.Append("function Hy_", gen.WriteVar(entity.Name.Lexeme), "_Destroy(id")
+	spawnScope.Append("function ", hyEntity, gen.WriteVar(entity.Name.Lexeme), "_Destroy(id")
 	if len(node.Params) != 0 {
 		spawnScope.Append(", ")
 	}
@@ -444,7 +448,7 @@ func (gen *Generator) destroyDeclarationStmt(node ast.EntityFunctionDeclarationS
 	gen.GenerateParams(node.Params, &spawnScope)
 
 	spawnScope.Append(")\n")
-	spawnScope.AppendETabbed("local Self = HS_", gen.WriteVar(entity.Name.Lexeme), "[id]\n")
+	spawnScope.AppendETabbed("local Self = ", hyState, gen.WriteVar(entity.Name.Lexeme), "[id]\n")
 
 	gen.GenerateBody(node.Body, &spawnScope)
 
@@ -471,7 +475,7 @@ func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, Struc
 	// 	constructorScope.WriteString("local ")
 	// }
 
-	constructorScope.Append("function Hy_", gen.WriteVar(Struct.Name.Lexeme), "_New(")
+	constructorScope.Append("function ", hyStruct, gen.WriteVar(Struct.Name.Lexeme), "_New(")
 
 	gen.GenerateParams(node.Params, &constructorScope)
 
@@ -520,14 +524,31 @@ func (gen *Generator) methodDeclarationStmt(node ast.MethodDeclarationStmt, Stru
 	// 	methodScope.WriteString("local ")
 	// }
 
-	methodScope.Append("function Hybroid_", Struct.Name.Lexeme, "_", node.Name.Lexeme, "(Self")
+	methodScope.Append("function ", hyStruct, Struct.Name.Lexeme, "_", node.Name.Lexeme, "(Self")
 	for _, param := range node.Params {
 		methodScope.WriteString(", ")
 		methodScope.Append(gen.WriteVar(param.Name.Lexeme))
 	}
 	methodScope.Append(")\n")
 
-	gen.GenerateBody(node.Body, &methodScope) // its constructor
+	gen.GenerateBody(node.Body, &methodScope) 
+
+	methodScope.AppendTabbed("end\n")
+
+	scope.Write(methodScope.Src)
+}
+
+func (gen *Generator) entityMethodDeclarationStmt(node ast.MethodDeclarationStmt, entity ast.EntityDeclarationStmt, scope *GenScope) {
+	methodScope := NewGenScope(scope)
+
+	methodScope.Append("function ", hyEntity, entity.Name.Lexeme, "_", node.Name.Lexeme, "(id")
+	for _, param := range node.Params {
+		methodScope.WriteString(", ")
+		methodScope.Append(gen.WriteVar(param.Name.Lexeme))
+	}
+	methodScope.Append(")\n")
+
+	gen.GenerateBody(node.Body, &methodScope) 
 
 	methodScope.AppendTabbed("end\n")
 

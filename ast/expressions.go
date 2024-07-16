@@ -284,6 +284,7 @@ func (se *SelfExpr) GetValueType() PrimitiveValueType {
 
 type MethodCallExpr struct {
 	TypeName   string
+	OwnerType  SelfExprType
 	Owner      Node
 	Call       Node
 	MethodName string

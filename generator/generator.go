@@ -48,7 +48,10 @@ var varCounter = 0
 var envCounter = 0
 
 var hyGTL = "GL"
-var HyVar = "H"
+var hyVar = "H"
+var hyStruct = "HS"
+var hyEntity = "HE"
+var hyState = "HS"
 
 func ResolveVarCounter(varname *StringBuilder, counter int) {
 	if counter > charsetLength-1 {
@@ -350,6 +353,8 @@ func (gen *Generator) GenerateExpr(node ast.Node, scope *GenScope) string {
 		return gen.methodCallExpr(*newNode, scope)
 	case *ast.EnvAccessExpr:
 		return gen.envAccessExpr(*newNode, scope)
+	case *ast.SpawnExpr:
+		return gen.spawnExpr(*newNode, scope)
 	}
 
 	return ""

@@ -199,6 +199,12 @@ func MethodCallExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 		}
 	}
 
+	if ownerVal.GetType().PVT() == ast.Entity {
+		method.OwnerType = ast.SelfEntity
+	}else {
+		method.OwnerType = ast.SelfStruct
+	}
+
 	method.TypeName = ownerVal.GetType().(*wkr.NamedType).Name
 	*node = method
 

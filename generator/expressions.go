@@ -72,7 +72,11 @@ func (gen *Generator) callExpr(node ast.CallExpr, tabbed bool, scope *GenScope) 
 
 func (gen *Generator) methodCallExpr(node ast.MethodCallExpr, scope *GenScope) string {
 	src := StringBuilder{}
-	src.AppendTabbed("Hy_", gen.WriteVar(node.TypeName), "_", node.MethodName)
+	if node.OwnerType == ast.SelfEntity {
+		src.AppendTabbed(hyEntity, gen.WriteVar(node.TypeName), "_", node.MethodName)
+	}else {
+		src.AppendTabbed(hyStruct, gen.WriteVar(node.TypeName), "_", node.MethodName)
+	}
 
 	src.Append("(", gen.GenerateExpr(node.Owner, scope))
 	if len(node.Args) != 0 {
@@ -216,7 +220,7 @@ func (gen *Generator) selfExpr(self ast.SelfExpr, _ *GenScope) string {
 func (gen *Generator) newExpr(new ast.NewExpr, scope *GenScope) string {
 	src := StringBuilder{}
 
-	src.Append("Hybroid_", gen.GenerateExpr(new.Type, scope), "_New(")
+	src.Append(hyStruct, gen.WriteVar(new.Type.GetToken().Lexeme), "_New(")
 	for i, arg := range new.Args {
 		src.WriteString(gen.GenerateExpr(arg, scope))
 		if i != len(new.Args)-1 {
@@ -234,7 +238,7 @@ func (gen *Generator) matchExpr(match ast.MatchExpr, scope *GenScope) string {
 	gotoLabel := GenerateVar(hyGTL)
 
 	for i := 0; i < match.ReturnAmount; i++ {
-		helperVarName := GenerateVar(HyVar)
+		helperVarName := GenerateVar(hyVar)
 		if i == 0 {
 			scope.Src.AppendTabbed("local ", helperVarName)
 			vars.WriteString(helperVarName)
@@ -286,4 +290,17 @@ func (gen *Generator) envAccessExpr(node ast.EnvAccessExpr, scope *GenScope) str
 	accessed = accessed[len(gen.envName):]
 
 	return envMap[node.PathExpr.Nameify()] + accessed
+}
+
+func (gen *Generator) spawnExpr(spawn ast.SpawnExpr, scope *GenScope) string {
+	src := StringBuilder{}
+	src.Append(hyEntity, gen.WriteVar(spawn.Type.GetToken().Lexeme), "_Spawn(")
+	for i, arg := range spawn.Args {
+		src.WriteString(gen.GenerateExpr(arg, scope))
+		if i != len(spawn.Args)-1 {
+			src.WriteString(", ")
+		}
+	}
+	src.WriteString(")")
+	return src.String()
 }
