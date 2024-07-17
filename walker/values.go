@@ -151,6 +151,16 @@ func (self *EnumFieldVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "ENUM_FIELD_VAL"}
 }
 
+type RawEntityVal struct{}
+
+func (self *RawEntityVal) GetType() Type {
+	return &RawEntityType{}
+}
+
+func (ev *RawEntityVal) GetDefault() *ast.LiteralExpr {
+	return &ast.LiteralExpr{Value: "ID"}
+}
+
 type EntityVal struct {
 	Type          NamedType
 	IsLocal       bool

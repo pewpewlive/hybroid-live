@@ -188,9 +188,9 @@ func MethodCallExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 		container := *container
 		if _, _, contains := container.ContainsField(method.MethodName); contains {
 			expr := ast.CallExpr{
-				Name:       lexer.Token{ Lexeme: method.MethodName, Location: method.Token.Location },
-				Caller:     method.Call,
-				Args:       method.Args,
+				Name:   lexer.Token{Lexeme: method.MethodName, Location: method.Token.Location},
+				Caller: method.Call,
+				Args:   method.Args,
 			}
 			val := CallExpr(w, &expr, scope, wkr.Function)
 			*node = &expr
@@ -202,9 +202,9 @@ func MethodCallExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 	*node = method
 
 	callExpr := ast.CallExpr{
-		Name: lexer.Token{ Lexeme: method.TypeName, Location: method.Token.Location },
-		Caller:     method.Call,
-		Args:       method.Args,
+		Name:   lexer.Token{Lexeme: method.TypeName, Location: method.Token.Location},
+		Caller: method.Call,
+		Args:   method.Args,
 	}
 
 	return CallExpr(w, &callExpr, scope, wkr.Method)
@@ -429,6 +429,11 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr) wkr.Type {
 			Params:  params,
 			Returns: returns,
 		}
+	case ast.Map, ast.List:
+		wrapped := TypeExpr(w, typee.WrappedType)
+		return wkr.NewWrapperType(wkr.NewBasicType(pvt), wrapped)
+	case ast.Entity:
+		return &wkr.RawEntityType{}
 	default:
 		if entityVal, found := w.Environment.Entities[typee.Name.GetToken().Lexeme]; found {
 			return entityVal.GetType()

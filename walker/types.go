@@ -23,6 +23,7 @@ const (
 	Named
 	Fixed
 	Wrapper // List or Map
+	RawEntity
 	Enum
 	Unresolved
 	NA
@@ -91,6 +92,25 @@ func (self *FunctionType) ToString() string {
 	}
 
 	return src.String()
+}
+
+type RawEntityType struct{}
+
+func (self *RawEntityType) PVT() ast.PrimitiveValueType {
+	return ast.Entity
+}
+
+func (self *RawEntityType) GetType() ValueType {
+	return RawEntity
+}
+
+func (self *RawEntityType) _eq(other Type) bool {
+	ret := other.(*RawEntityType)
+	return ret.GetType() == RawEntity
+}
+
+func (self *RawEntityType) ToString() string {
+	return string(ast.Entity)
 }
 
 type BasicType struct {
@@ -389,6 +409,10 @@ func TypeEquals(t Type, other Type) bool {
 	if tpvt == ast.Unresolved || tpvt == ast.Unknown {
 		return true
 	} else if otherpvt == ast.Unresolved {
+		return true
+	}
+
+	if t.GetType() == Named && t.PVT() == ast.Entity && other.GetType() == RawEntity {
 		return true
 	}
 

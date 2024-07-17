@@ -69,27 +69,27 @@ type Library int
 
 const (
 	Pewpew Library = iota
-	Fmath 
+	Fmath
 	Math
 	String
 	Table
 )
 
 type Walker struct {
-	Environment *Environment
-	Walkers     map[string]*Walker
+	Environment   *Environment
+	Walkers       map[string]*Walker
 	UsedLibraries map[Library]bool
-	UsedWalkers []*Walker
-	Nodes       []ast.Node
-	Errors      []ast.Error
-	Warnings    []ast.Warning
-	Context     Context
+	UsedWalkers   []*Walker
+	Nodes         []ast.Node
+	Errors        []ast.Error
+	Warnings      []ast.Warning
+	Context       Context
 }
 
 // var pewpewEnv = &Environment{
 // 	Path: "pewpew_path",
 // 	Variables: map[string]*VariableVal{
-// 		"WeaponType": 
+// 		"WeaponType":
 // 	},
 // }
 
@@ -135,12 +135,12 @@ func (w *Walker) GetVariable(s *Scope, name string) *VariableVal {
 func (w *Walker) TypeExists(name string) bool {
 	if _, found := w.GetEntity(name); found {
 		return true
-	} 
+	}
 	if _, found := w.GetStruct(name); found {
 		return true
 	}
 
-	return false;
+	return false
 }
 
 func (w *Walker) GetStruct(name string) (*StructVal, bool) {
@@ -363,6 +363,9 @@ func (w *Walker) ValidateReturnValues(_return Types, expectReturn Types) string 
 }
 
 func (w *Walker) TypeToValue(_type Type) Value {
+	if _type.GetType() == RawEntity {
+		return &RawEntityVal{}
+	}
 	switch _type.PVT() {
 	case ast.Radian, ast.Fixed, ast.FixedPoint, ast.Degree:
 		return &FixedVal{SpecificType: _type.PVT()}
@@ -422,6 +425,8 @@ func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
 		return ast.Bool
 	case "struct":
 		return ast.AnonStruct
+	case "entity":
+		return ast.Entity
 	default:
 		return ast.Invalid
 	}

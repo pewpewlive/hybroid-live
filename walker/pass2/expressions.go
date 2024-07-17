@@ -188,9 +188,9 @@ func MethodCallExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 		container := *container
 		if _, _, contains := container.ContainsField(method.MethodName); contains {
 			expr := ast.CallExpr{
-				Name:       lexer.Token{ Lexeme: method.MethodName, Location: method.Token.Location },
-				Caller:     method.Call,
-				Args:       method.Args,
+				Name:   lexer.Token{Lexeme: method.MethodName, Location: method.Token.Location},
+				Caller: method.Call,
+				Args:   method.Args,
 			}
 			val := CallExpr(w, &expr, scope, wkr.Function)
 			*node = &expr
@@ -200,7 +200,7 @@ func MethodCallExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 
 	if ownerVal.GetType().PVT() == ast.Entity {
 		method.OwnerType = ast.SelfEntity
-	}else {
+	} else {
 		method.OwnerType = ast.SelfStruct
 	}
 
@@ -208,9 +208,9 @@ func MethodCallExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 	*node = method
 
 	callExpr := ast.CallExpr{
-		Name:       lexer.Token{ Lexeme: method.TypeName, Location: method.Token.Location },
-		Caller:     method.Call,
-		Args:       method.Args,
+		Name:   lexer.Token{Lexeme: method.TypeName, Location: method.Token.Location},
+		Caller: method.Call,
+		Args:   method.Args,
 	}
 
 	return CallExpr(w, &callExpr, scope, wkr.Method)
@@ -365,7 +365,7 @@ func NewExpr(w *wkr.Walker, new *ast.NewExpr, scope *wkr.Scope) wkr.Value {
 	if _type.PVT() == ast.Invalid {
 		w.Error(new.Type.GetToken(), "invalid type given in new expression")
 		return &wkr.Invalid{}
-	}else if _type.PVT() != ast.Struct {
+	} else if _type.PVT() != ast.Struct {
 		w.Error(new.Type.GetToken(), "type given in new expression is not a struct")
 		return &wkr.Invalid{}
 	}
@@ -389,7 +389,7 @@ func SpawnExpr(w *wkr.Walker, new *ast.SpawnExpr, scope *wkr.Scope) wkr.Value {
 	if _type.PVT() == ast.Invalid {
 		w.Error(new.Type.GetToken(), "invalid type given in spawn expression")
 		return &wkr.Invalid{}
-	}else if _type.PVT() != ast.Entity {
+	} else if _type.PVT() != ast.Entity {
 		w.Error(new.Type.GetToken(), "type given in spawn expression is not an entity")
 		return &wkr.Invalid{}
 	}
@@ -461,6 +461,8 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, env *wkr.Environment) wkr.Type
 	case ast.Map, ast.List:
 		wrapped := TypeExpr(w, typee.WrappedType, env)
 		return wkr.NewWrapperType(wkr.NewBasicType(pvt), wrapped)
+	case ast.Entity:
+		return &wkr.RawEntityType{}
 	default:
 		if entityVal, found := w.Environment.Entities[typee.Name.GetToken().Lexeme]; found {
 			return entityVal.GetType()
