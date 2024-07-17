@@ -187,10 +187,9 @@ func (be *BinaryExpr) GetValueType() PrimitiveValueType {
 }
 
 type CallExpr struct {
-	Identifier string
+	Name lexer.Token
 	Caller     Node
 	Args       []Node
-	Token      lexer.Token
 }
 
 func (ce *CallExpr) GetType() NodeType {
@@ -198,10 +197,90 @@ func (ce *CallExpr) GetType() NodeType {
 }
 
 func (ce *CallExpr) GetToken() lexer.Token {
-	return ce.Token
+	return ce.Name
 }
 
 func (ce *CallExpr) GetValueType() PrimitiveValueType {
+	return Unknown
+}
+
+type PewpewExpr struct {
+	Node Node
+}
+
+func (ce *PewpewExpr) GetType() NodeType {
+	return PewpewExpression
+}
+
+func (ce *PewpewExpr) GetToken() lexer.Token {
+	return ce.Node.GetToken()
+}
+
+func (ce *PewpewExpr) GetValueType() PrimitiveValueType {
+	return Unknown
+}
+
+type FmathExpr struct {
+	Node Node
+}
+
+func (ce *FmathExpr) GetType() NodeType {
+	return FmathExpression
+}
+
+func (ce *FmathExpr) GetToken() lexer.Token {
+	return ce.Node.GetToken()
+}
+
+func (ce *FmathExpr) GetValueType() PrimitiveValueType {
+	return Unknown
+}
+
+type BuiltinCallExpr struct {
+	Name lexer.Token
+	Args []Node
+}
+
+func (ce *BuiltinCallExpr) GetType() NodeType {
+	return BuiltinCallExpression
+}
+
+func (ce *BuiltinCallExpr) GetToken() lexer.Token {
+	return ce.Name
+}
+
+func (ce *BuiltinCallExpr) GetValueType() PrimitiveValueType {
+	return Unknown
+}
+
+type StandardLibrary int
+
+const (
+	MathLib StandardLibrary = iota
+	StringLib
+	TableLib 
+)
+
+var Libraries = map[string]StandardLibrary{
+	"Math": MathLib,
+	"String": StringLib,
+	"Table": TableLib,
+}
+
+type StandardExpr struct {
+	Library StandardLibrary
+	Node Node
+}
+
+func (ce *StandardExpr) GetType() NodeType {
+	return StandardExpression
+}
+
+func (ce *StandardExpr) GetToken() lexer.Token {
+	return ce.Node.GetToken()
+}
+
+func (ce *StandardExpr) GetValueType() PrimitiveValueType {
 	return Unknown
 }
 

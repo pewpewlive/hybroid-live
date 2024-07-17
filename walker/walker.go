@@ -17,6 +17,37 @@ type Environment struct {
 	Entities  map[string]*EntityVal
 }
 
+/*
+
+use pewpew
+
+entity Quadro {
+	fn Dosomasd(Mothership ms) {
+		pewpew::EntityReactToWeapon(ms.y, WepaonConfig)
+	}
+}
+
+entity GraphicElement {
+	spawn(fixed x, fixed y, mesh Mesh) {
+	}
+}
+
+spawn GraphicElement(100fx, 100fx, MeshThing)
+
+fn something(WeaponType a) {
+	spawn GraphicElement(100f, 100f, Meshes::Amogus)
+	let mothership = pewpew::NewMothership(100f, 100f, pewpew::MothershipType.SEVEN_CORNERS, 90d)
+	let quadro = spawn Quario()
+
+	quadro.Dosomasd(motiehrship)
+}
+
+function seomthing(a) {
+	local a = pewpew.WeaponType.BULLET
+}
+
+*/
+
 func NewEnvironment(path string) *Environment {
 	scope := Scope{
 		Children:  make([]*Scope, 0),
@@ -34,15 +65,33 @@ func NewEnvironment(path string) *Environment {
 	return global
 }
 
+type Library int
+
+const (
+	Pewpew Library = iota
+	Fmath 
+	Math
+	String
+	Table
+)
+
 type Walker struct {
 	Environment *Environment
 	Walkers     map[string]*Walker
+	UsedLibraries map[Library]bool
 	UsedWalkers []*Walker
 	Nodes       []ast.Node
 	Errors      []ast.Error
 	Warnings    []ast.Warning
 	Context     Context
 }
+
+// var pewpewEnv = &Environment{
+// 	Path: "pewpew_path",
+// 	Variables: map[string]*VariableVal{
+// 		"WeaponType": 
+// 	},
+// }
 
 func NewWalker(path string) *Walker {
 	return &Walker{
@@ -81,6 +130,17 @@ func (w *Walker) GetVariable(s *Scope, name string) *VariableVal {
 	}
 
 	return sc.Variables[name]
+}
+
+func (w *Walker) TypeExists(name string) bool {
+	if _, found := w.GetEntity(name); found {
+		return true
+	} 
+	if _, found := w.GetStruct(name); found {
+		return true
+	}
+
+	return false;
 }
 
 func (w *Walker) GetStruct(name string) (*StructVal, bool) {

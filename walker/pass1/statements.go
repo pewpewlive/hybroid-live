@@ -9,6 +9,15 @@ import (
 )
 
 func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope *wkr.Scope) {
+	if node.Constructor == nil {
+		w.Error(node.Name, "structs must be declared with a constructor")
+		return;
+	}
+
+	if w.TypeExists(node.Name.Lexeme) {
+		w.Error(node.Name, "a type with this name already exists")
+	}
+
 	structVal := &wkr.StructVal{
 		Type:    *wkr.NewNamedType(node.Name.Lexeme, ast.Struct),
 		IsLocal: node.IsLocal,
@@ -105,6 +114,10 @@ func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDeclarationStmt, scope
 		w.Error(node.Token, "can't declare an entity inside a local block")
 	}
 
+	if w.TypeExists(node.Name.Lexeme) {
+		w.Error(node.Name, "a type with this name already exists")
+	}
+
 	entityVal := wkr.NewEntityVal(node.Name.Lexeme, node.IsLocal)
 
 	//fields
@@ -114,13 +127,13 @@ func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDeclarationStmt, scope
 
 	//spawn
 	if node.Spawner == nil {
-		w.Error(node.Token, "entity must have a spawner")
+		w.Error(node.Token, "entities must be declared with a spawner")
 	} else {
 		EntityFunctionDeclarationStmt(w, node.Spawner, entityVal, entityScope)
 	}
 	//destroy
 	if node.Destroyer == nil {
-		w.Error(node.Token, "entity must have a destroyer")
+		w.Error(node.Token, "entities must be declared with a destroyer")
 	} else {
 		EntityFunctionDeclarationStmt(w, node.Destroyer, entityVal, entityScope)
 	}
@@ -252,6 +265,10 @@ func EnumDeclarationStmt(w *wkr.Walker, node *ast.EnumDeclarationStmt, scope *wk
 		Value:   enumVal,
 		IsLocal: node.IsLocal,
 		IsConst: true,
+	}
+
+	if w.TypeExists(enumVar.Name) {
+		w.Error(node.Name, "a type with this name already exists")
 	}
 
 	w.DeclareVariable(scope, enumVar, node.GetToken())

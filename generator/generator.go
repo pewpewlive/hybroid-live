@@ -51,7 +51,7 @@ var hyGTL = "GL"
 var hyVar = "H"
 var hyStruct = "HS"
 var hyEntity = "HE"
-var hyState = "HS"
+var hyEntityState = "HES"
 
 func ResolveVarCounter(varname *StringBuilder, counter int) {
 	if counter > charsetLength-1 {

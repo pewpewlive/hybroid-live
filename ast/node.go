@@ -56,6 +56,12 @@ const (
 	SelfExpression              NodeType = "selfExpression"
 	NewExpession                NodeType = "newExpession"
 	SpawnExpression             NodeType = "spawnExpression"
+	
+	PewpewExpression            NodeType = "pewpewExpression"
+	PewpewCallExpression        NodeType = "pewpewCallExpression"
+	FmathExpression         NodeType = "fmathExpression"
+	BuiltinCallExpression       NodeType = "builtinCallExpession"
+	StandardExpression      NodeType = "standardExpression"
 
 	Identifier NodeType = "identifier"
 

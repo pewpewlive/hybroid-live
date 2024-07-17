@@ -360,7 +360,7 @@ func (gen *Generator) entityDeclarationStmt(node ast.EntityDeclarationStmt, scop
 		}
 		gen.GenerateParams(v.Params, &entityScope)
 		entityScope.WriteString(")\n")
-		entityScope.AppendETabbed("local Self = ", hyState, entityName, "[id]\n")
+		entityScope.AppendETabbed("local Self = ", hyEntityState, entityName, "[id]\n")
 		gen.GenerateBody(v.Body, &entityScope)
 		entityScope.AppendTabbed("end\n")
 	}
@@ -384,7 +384,7 @@ func (gen *Generator) spawnDeclarationStmt(node ast.EntityFunctionDeclarationStm
 
 	entityName := gen.WriteVar(entity.Name.Lexeme)
 
-	spawnScope.Append(hyState, entityName, " = {}\n")
+	spawnScope.Append(hyEntityState, entityName, " = {}\n")
 
 	// if entity.IsLocal {
 	// 	spawnScope.WriteString("local ")
@@ -399,7 +399,7 @@ func (gen *Generator) spawnDeclarationStmt(node ast.EntityFunctionDeclarationStm
 	TabsCount++
 
 	spawnScope.AppendTabbed("local id = pewpew.new_customizable_entity(", gen.WriteVar(node.Params[0].Name.Lexeme), ", ", gen.WriteVar(node.Params[1].Name.Lexeme), ")\n")
-	spawnScope.AppendTabbed(hyState, entityName, "[id] = {\n")
+	spawnScope.AppendTabbed(hyEntityState, entityName, "[id] = {\n")
 	for i, v := range entity.Fields {
 		val := gen.fieldDeclarationStmt(v, &spawnScope) // should be good now
 		spawnScope.AppendETabbed(val)
@@ -409,7 +409,7 @@ func (gen *Generator) spawnDeclarationStmt(node ast.EntityFunctionDeclarationStm
 		spawnScope.WriteString("\n")
 	}
 	spawnScope.AppendTabbed("}\n")
-	spawnScope.AppendTabbed("local Self = ", hyState, entityName, "[id]\n")
+	spawnScope.AppendTabbed("local Self = ", hyEntityState, entityName, "[id]\n")
 	TabsCount--
 	gen.GenerateBody(node.Body, &spawnScope)
 	TabsCount++
@@ -448,7 +448,7 @@ func (gen *Generator) destroyDeclarationStmt(node ast.EntityFunctionDeclarationS
 	gen.GenerateParams(node.Params, &spawnScope)
 
 	spawnScope.Append(")\n")
-	spawnScope.AppendETabbed("local Self = ", hyState, gen.WriteVar(entity.Name.Lexeme), "[id]\n")
+	spawnScope.AppendETabbed("local Self = ", hyEntityState, gen.WriteVar(entity.Name.Lexeme), "[id]\n")
 
 	gen.GenerateBody(node.Body, &spawnScope)
 

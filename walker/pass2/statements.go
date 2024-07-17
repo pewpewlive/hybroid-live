@@ -10,6 +10,9 @@ import (
 )
 
 func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope *wkr.Scope) {
+	if node.Constructor == nil {
+		return;
+	}
 	structScope := scope.AccessChild()
 
 	structVal := structScope.Tag.(*wkr.StructTag).StructVal

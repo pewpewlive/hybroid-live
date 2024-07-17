@@ -28,8 +28,17 @@ entity Quadro {
   }
 }
 
-fn test(Quadro m) {
+struct QuadroState {
+  new() {
+    
+  }
+}
+
+fn test(Quadro m) {// which one do we refer to?
   
 }
 
 test(spawn Quadro(10f, 10f, 0))
+
+Pewpew::uh()
+let a = Math::pi

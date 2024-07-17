@@ -133,10 +133,9 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 	}
 
 	call_expr := &ast.CallExpr{
-		Identifier: caller.GetToken().Lexeme,
+		Name: caller.GetToken(),
 		Caller:     caller,
 		Args:       p.arguments(),
-		Token:      caller.GetToken(),
 	}
 
 	if p.check(lexer.LeftParen) {
@@ -203,9 +202,8 @@ func (p *Parser) accessorExprDepth2(owner ast.Accessor, ident ast.Node, nodeType
 	} else {
 		expr = &ast.CallExpr{
 			Caller:     beforeExpr,
-			Identifier: last.GetToken().Lexeme,
+			Name: last.GetToken(),
 			Args:       args,
-			Token:      last.GetToken(),
 		}
 	}
 
@@ -424,6 +422,36 @@ func (p *Parser) primary() ast.Node {
 	if p.match(lexer.Identifier) {
 		token := p.peek(-1)
 		if p.match(lexer.DoubleColon) {
+			switch token.Lexeme{
+			case "Pewpew":
+				expr := p.expression()
+
+				return &ast.PewpewExpr{
+					Node: expr,
+				}
+			case "Fmath":
+				name, ok := p.consume("expected identifier in fmath access", lexer.Identifier)
+				if !ok {
+					return ast.NewImproper(name)
+				}
+				return &ast.FmathExpr{
+					Node: p.call(&ast.IdentifierExpr{
+						Name: name,
+					}),
+				}
+			case "Math", "String", "Table":
+				name, ok := p.consume("expected identifier in %s access", lexer.Identifier)
+				if !ok {
+					return ast.NewImproper(name)
+				}
+				call := p.call(&ast.IdentifierExpr{
+					Name: name,
+				});
+				return &ast.StandardExpr{
+					Library: ast.Libraries[token.Lexeme],
+					Node: call,
+				};
+			}
 			envPath := &ast.EnvPathExpr{
 				SubPaths: []string{
 					token.Lexeme,

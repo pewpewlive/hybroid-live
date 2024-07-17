@@ -291,12 +291,6 @@ func (p *Parser) structDeclarationStmt() ast.Node {
 		}
 	}
 
-	if stmt.Constructor == nil {
-		stmt.Constructor = &ast.ConstructorStmt{
-			Token: stmt.Token,
-		}
-	}
-
 	return stmt
 }
 
