@@ -86,14 +86,73 @@ const (
 	Struct      PrimitiveValueType = "struct"
 	AnonStruct  PrimitiveValueType = "anonStruct"
 	Ident       PrimitiveValueType = "ident"
-	Environment PrimitiveValueType = "environment"
 	Enum        PrimitiveValueType = "enum"
 	Unresolved  PrimitiveValueType = "unresolved"
 	Invalid     PrimitiveValueType = "invalid"
 )
 
+type EnvType int
+
+const (
+	Mesh EnvType = iota
+	Level
+	Sound
+	InvalidEnv
+)
+
+type StandardLibrary int
+
+const (
+	MathLib StandardLibrary = iota
+	StringLib
+	TableLib 
+)
+
+type SelfExprType int
+
+const (
+	SelfStruct SelfExprType = iota
+	SelfEntity
+)
+
+type MacroType int
+
+const (
+	ExpressionExpansion MacroType = iota
+	ProgramExpansion
+)
+
+type EntityFunctionType string
+
+const (
+	WeaponCollision EntityFunctionType = "weaponCollision"
+	WallCollision   EntityFunctionType = "wallCollision"
+	PlayerCollision EntityFunctionType = "playerCollision"
+	Update          EntityFunctionType = "update"
+	Destroy         EntityFunctionType = "destroy"
+	Spawn           EntityFunctionType = "spawn"
+)
+
+type Paths []string
+
 type Node interface {
 	GetType() NodeType
 	GetToken() lexer.Token
 	GetValueType() PrimitiveValueType
+}
+
+type Accessor interface {
+	Node
+	GetOwner() *Accessor
+	GetProperty() *Node
+	SetOwner(owner Accessor)
+	SetProperty(prop Node)
+	SetIdentifier(ident Node)
+	Copy() Accessor
+}
+
+var Libraries = map[string]StandardLibrary{
+	"Math": MathLib,
+	"String": StringLib,
+	"Table": TableLib,
 }

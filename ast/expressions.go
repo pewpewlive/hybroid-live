@@ -5,25 +5,6 @@ import (
 	"strings"
 )
 
-type Accessor interface {
-	Node
-	GetOwner() *Accessor
-	GetProperty() *Node
-	SetOwner(owner Accessor)
-	SetProperty(prop Node)
-	SetIdentifier(ident Node)
-	DeepCopy() Accessor
-}
-
-type EnvType int
-
-const (
-	Mesh EnvType = iota
-	Level
-	Sound
-	InvalidEnv
-)
-
 type EnvTypeExpr struct {
 	Type  EnvType
 	Token lexer.Token
@@ -253,20 +234,6 @@ func (ce *BuiltinCallExpr) GetValueType() PrimitiveValueType {
 	return Unknown
 }
 
-type StandardLibrary int
-
-const (
-	MathLib StandardLibrary = iota
-	StringLib
-	TableLib 
-)
-
-var Libraries = map[string]StandardLibrary{
-	"Math": MathLib,
-	"String": StringLib,
-	"Table": TableLib,
-}
-
 type StandardExpr struct {
 	Library StandardLibrary
 	Node Node
@@ -336,13 +303,6 @@ func (me *MatchExpr) GetToken() lexer.Token {
 func (me *MatchExpr) GetValueType() PrimitiveValueType {
 	return Unknown
 }
-
-type SelfExprType int
-
-const (
-	SelfStruct SelfExprType = iota
-	SelfEntity
-)
 
 type SelfExpr struct {
 	Token lexer.Token
@@ -458,7 +418,7 @@ func (fe *FieldExpr) SetOwner(owner Accessor) {
 	fe.Owner = owner
 }
 
-func (fe *FieldExpr) DeepCopy() Accessor {
+func (fe *FieldExpr) Copy() Accessor {
 	copy := *fe
 	return &copy
 }
@@ -502,7 +462,7 @@ func (me *MemberExpr) SetOwner(owner Accessor) {
 	me.Owner = owner
 }
 
-func (me *MemberExpr) DeepCopy() Accessor {
+func (me *MemberExpr) Copy() Accessor {
 	copy := *me
 	return &copy
 }

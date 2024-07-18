@@ -189,7 +189,7 @@ func (p *Parser) accessorExprDepth2(owner ast.Accessor, ident ast.Node, nodeType
 
 	acesss := expr.(ast.Accessor)
 	args := p.arguments()
-	beforeExpr := acesss.DeepCopy()
+	beforeExpr := acesss.Copy()
 	last := p.resolveProperty(&expr)
 	if last.GetType() == ast.FieldExpression {
 		expr = &ast.MethodCallExpr{

@@ -4,8 +4,6 @@ import (
 	"hybroid/lexer"
 )
 
-type Paths []string
-
 type EnvironmentStmt struct {
 	EnvType      *EnvTypeExpr
 	Env          *EnvPathExpr
@@ -31,7 +29,7 @@ func (es *EnvironmentStmt) GetToken() lexer.Token {
 }
 
 func (es *EnvironmentStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type AssignmentStmt struct {
@@ -49,15 +47,8 @@ func (as *AssignmentStmt) GetToken() lexer.Token {
 }
 
 func (as *AssignmentStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
-
-type MacroType int
-
-const (
-	ExpressionExpansion MacroType = iota
-	ProgramExpansion
-)
 
 type MacroDeclarationStmt struct {
 	Name      lexer.Token
@@ -75,7 +66,7 @@ func (self *MacroDeclarationStmt) GetToken() lexer.Token {
 }
 
 func (self *MacroDeclarationStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type VariableDeclarationStmt struct {
@@ -95,7 +86,7 @@ func (vds *VariableDeclarationStmt) GetToken() lexer.Token {
 }
 
 func (vds *VariableDeclarationStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type StructDeclarationStmt struct {
@@ -116,7 +107,7 @@ func (sds *StructDeclarationStmt) GetToken() lexer.Token {
 }
 
 func (sds *StructDeclarationStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type EntityDeclarationStmt struct {
@@ -139,19 +130,8 @@ func (sds *EntityDeclarationStmt) GetToken() lexer.Token {
 }
 
 func (sds *EntityDeclarationStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
-
-type EntityFunctionType string
-
-const (
-	WeaponCollision EntityFunctionType = "weaponCollision"
-	WallCollision   EntityFunctionType = "wallCollision"
-	PlayerCollision EntityFunctionType = "playerCollision"
-	Update          EntityFunctionType = "update"
-	Destroy         EntityFunctionType = "destroy"
-	Spawn           EntityFunctionType = "spawn"
-)
 
 type EntityFunctionDeclarationStmt struct {
 	Type   EntityFunctionType
@@ -169,7 +149,7 @@ func (eds *EntityFunctionDeclarationStmt) GetToken() lexer.Token {
 }
 
 func (eds *EntityFunctionDeclarationStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type EnumDeclarationStmt struct {
@@ -187,7 +167,7 @@ func (eds *EnumDeclarationStmt) GetToken() lexer.Token {
 }
 
 func (eds *EnumDeclarationStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type ConstructorStmt struct {
@@ -206,7 +186,7 @@ func (cs *ConstructorStmt) GetToken() lexer.Token {
 }
 
 func (cs *ConstructorStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type FieldDeclarationStmt struct {
@@ -225,7 +205,7 @@ func (fds *FieldDeclarationStmt) GetToken() lexer.Token {
 }
 
 func (fds *FieldDeclarationStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type Param struct {
@@ -250,7 +230,7 @@ func (fds *FunctionDeclarationStmt) GetToken() lexer.Token {
 }
 
 func (fds *FunctionDeclarationStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type MethodDeclarationStmt struct {
@@ -271,7 +251,7 @@ func (mds *MethodDeclarationStmt) GetToken() lexer.Token {
 }
 
 func (mds *MethodDeclarationStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type IfStmt struct {
@@ -291,7 +271,12 @@ func (is *IfStmt) GetToken() lexer.Token {
 }
 
 func (is *IfStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
+}
+
+type CaseStmt struct {
+	Expression Node
+	Body       []Node
 }
 
 type MatchStmt struct {
@@ -300,17 +285,12 @@ type MatchStmt struct {
 	HasDefault  bool
 }
 
-type CaseStmt struct {
-	Expression Node
-	Body       []Node
-}
-
 func (ms *MatchStmt) GetType() NodeType {
 	return MatchStatement
 }
 
 func (ms *MatchStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 func (ms *MatchStmt) GetToken() lexer.Token {
@@ -335,7 +315,7 @@ func (rs *RepeatStmt) GetToken() lexer.Token {
 }
 
 func (rs *RepeatStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type WhileStmt struct {
@@ -353,7 +333,7 @@ func (fs *WhileStmt) GetToken() lexer.Token {
 }
 
 func (fs *WhileStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type ForStmt struct {
@@ -373,7 +353,7 @@ func (fs *ForStmt) GetToken() lexer.Token {
 }
 
 func (fs *ForStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type TickStmt struct {
@@ -391,7 +371,7 @@ func (ts *TickStmt) GetToken() lexer.Token {
 }
 
 func (ts *TickStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type ReturnStmt struct {
@@ -408,7 +388,7 @@ func (rs *ReturnStmt) GetToken() lexer.Token {
 }
 
 func (rs *ReturnStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type YieldStmt struct {
@@ -425,7 +405,7 @@ func (ys *YieldStmt) GetToken() lexer.Token {
 }
 
 func (ys *YieldStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type BreakStmt struct {
@@ -441,7 +421,7 @@ func (bs *BreakStmt) GetToken() lexer.Token {
 }
 
 func (bs *BreakStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type ContinueStmt struct {
@@ -457,7 +437,7 @@ func (cs *ContinueStmt) GetToken() lexer.Token {
 }
 
 func (cs *ContinueStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type AddStmt struct {
@@ -475,7 +455,7 @@ func (as *AddStmt) GetToken() lexer.Token {
 }
 
 func (as *AddStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type RemoveStmt struct {
@@ -493,7 +473,7 @@ func (rs *RemoveStmt) GetType() NodeType {
 }
 
 func (rs *RemoveStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type UseStmt struct {
@@ -509,5 +489,5 @@ func (us *UseStmt) GetType() NodeType {
 }
 
 func (us *UseStmt) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }

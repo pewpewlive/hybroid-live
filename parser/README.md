@@ -1,6 +1,6 @@
 # Parser
 
-The parser converts tokens to an Abstract Syntax Tree (AST) for it to be processed further.
+The parser converts tokens to an Abstract Syntax Tree (AST).
 
 ## `parser.go`
 
@@ -10,7 +10,7 @@ The parser file has the necessary structure and functions to work with the `Pars
 
 #### **_Parser_**
 
-The `Parser` holds the tokens ready to be converted, an index pointing to the current token being parsed, as well as a list of errors generated along the way when processing the tokens. The resulting program is stored as a list of `ast.Node`s.
+The `Parser` holds the tokens ready to be converted, an index pointing to the current token being parsed, as well as a list of errors generated along the way when processing the tokens. The resulting program is stored as a list of `ast.Node`s (CITATION NEEDED).
 
 ```go
 type Parser struct {
@@ -44,10 +44,10 @@ type Parser struct {
 
 The file that holds all of the necessary helpers for the [Parser](https://github.com/pewpewlive/hybroid/blob/master/parser/README.md#parsergo). It makes the code less repetitive and easier to grasp.
 
-### **Methods:**
-
 (This file adds additional methods to [Parser](https://github.com/pewpewlive/hybroid/blob/master/parser/README.md#parsergo))
 
+### **Methods:**
+Σ
 1. `createBinExpr(left ast.Node, operator lexer.Token, tokenType lexer.TokenType, lexeme string, right ast.Node) -> ast.Node` - Evaluates the value type, creates a `BinaryExpr` with the respective parameters, and returns it.
 2. `getOp(opEqual lexer.Token) -> lexer.Token` - Returns the respective operation when using assignment operators. For example: if given `lexer.MinusEqual` (`-=`), it returns `lexer.Minus`.
 3. `getParam() -> ast.Param` - Attempts to get the current token (that is an identifier) and its type. Returns an `ast.Param` type with the respective values.
@@ -62,6 +62,9 @@ The file that holds all of the necessary helpers for the [Parser](https://github
 
 ### **Methods:**
 
-`statement() -> ast.Node` - Switches on tokens to get into correct function for handling the token, if this function gets an error it will try to synchronize to find as much errors as possible.
+1. `statement() -> ast.Node` - Switches on tokens to get into correct function for handling the token, if this function gets an error it will try to synchronize to find as much errors as possible.
+2. `macroDeclarationStmt() -> ast.Node` - Creates an `ast.MacroDeclarationStmt` (CITATION NEEDED). For this to be called the `lexer.Macro` token must have been found.
+3. `envStmt() -> ast.Node` - Creates an [ast.EnvironmentStmt](https://github.com/pewpewlive/hybroid/blob/master/ast/README.md#environmentstmt) (CITATION NEEDED).
 
-`envStmt() -> ast.Node` - Parses `env` keyword
+## `expressions.go`
+
