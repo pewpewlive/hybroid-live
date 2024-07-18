@@ -44,7 +44,7 @@ type Parser struct {
 
 The file that holds all of the necessary helpers for the [Parser](https://github.com/pewpewlive/hybroid/blob/master/parser/README.md#parsergo). It makes the code less repetitive and easier to grasp.
 
-(This file adds additional methods to [Parser](https://github.com/pewpewlive/hybroid/blob/master/parser/README.md#parsergo))
+This file adds additional methods to [Parser](https://github.com/pewpewlive/hybroid/blob/master/parser/README.md#parsergo).
 
 ### **Methods:**
 Σ
@@ -64,7 +64,8 @@ The file that holds all of the necessary helpers for the [Parser](https://github
 
 1. `statement() -> ast.Node` - Switches on tokens to get into correct function for handling the token, if this function gets an error it will try to synchronize to find as much errors as possible.
 2. `macroDeclarationStmt() -> ast.Node` - Creates an `ast.MacroDeclarationStmt` (CITATION NEEDED). For this to be called the `lexer.Macro` token must have been found.
-3. `envStmt() -> ast.Node` - Creates an [ast.EnvironmentStmt](https://github.com/pewpewlive/hybroid/blob/master/ast/README.md#environmentstmt) (CITATION NEEDED).
+3. `envStmt() -> ast.Node` - Creates an [ast.EnvironmentStmt](https://github.com/pewpewlive/hybroid/blob/master/ast/README.md#environmentstmt).
+4. 
 
 ## `expressions.go`
 

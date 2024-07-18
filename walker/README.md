@@ -55,23 +55,23 @@ Some nodes such as field expressions are associated with a struct type, which is
 ###### EnvironmentVal
 ```go
 type EnvironmentVal struct {
-	Path         string
-	Name         string
-	Fields       map[string]VariableVal
-	Methods      map[string]VariableVal
-	FieldIndexes map[string]int
+  Path         string
+  Name         string
+  Fields       map[string]VariableVal
+  Methods      map[string]VariableVal
+  FieldIndexes map[string]int
 }
 ```
 
-###### **_Environment_**
+###### Environment
 
 ```go
 type EnvironmentVal struct {
-	Name         string
+  Name         string
   Path         string
-	Ctx          Context
-	Scope        Scope
-	StructTypes  map[string]*StructVal
+  Ctx          Context
+  Scope        Scope
+  StructTypes  map[string]*StructVal
 }
 ```
 

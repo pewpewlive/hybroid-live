@@ -1256,7 +1256,7 @@ use Path::Subpath
 
 #### **_Param_**
 
-Used in [FunctionDeclarationStmt](https://github.com/pewpewlive/hybroid/blob/master/ast/README.md#functiondeclarationstmt) and [MethodDecalrationStmt](https://github.com/pewpewlive/hybroid/blob/master/ast/README.md#methoddeclarationstmt).
+Used in [FunctionDeclarationStmt](https://github.com/pewpewlive/hybroid/blob/master/ast/README.md#functiondeclarationstmt) and [MethodDeclarationStmt](https://github.com/pewpewlive/hybroid/blob/master/ast/README.md#methoddeclarationstmt).
 
 ```go
 type Param struct {
