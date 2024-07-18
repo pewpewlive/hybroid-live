@@ -2,82 +2,105 @@
 
 package api
 
-/*
-func print()
-func print_debug_info()
-func set_level_size()
-func add_wall()
-func remove_wall()
-func add_update_callback()
-func get_number_of_players()
-func increase_score_of_player()
-func increase_score_streak_of_player()
-func get_score_streak_level()
-func stop_game()
-func get_player_inputs()
-func get_score_of_player()
-func configure_player()
-func configure_player_hud()
-func get_player_configuration()
-func configure_player_ship_weapon()
-func add_damage_to_player_ship()
-func add_arrow_to_player_ship()
-func remove_arrow_from_player_ship()
-func make_player_ship_transparent()
-func set_player_ship_speed()
-func get_all_entities()
-func get_entities_colliding_with_disk()
-func get_entity_count()
-func get_entity_type()
-func play_ambient_sound()
-func play_sound()
-func create_explosion()
-func new_asteroid()
-func new_asteroid_with_size()
-func new_baf()
-func new_baf_red()
-func new_baf_blue()
-func new_bomb()
-func new_bonus()
-func new_crowder()
-func new_floating_message()
-func new_customizable_entity()
-func new_inertiac()
-func new_mothership()
-func new_pointonium()
-func new_player_ship()
-func new_player_bullet()
-func new_rolling_cube()
-func new_rolling_sphere()
-func new_wary()
-func new_ufo()
-func rolling_cube_set_enable_collisions_with_walls()
-func ufo_set_enable_collisions_with_walls()
-func entity_get_position()
-func entity_get_is_alive()
-func entity_get_is_started_to_be_destroyed()
-func entity_set_position()
-func entity_set_radius()
-func entity_set_update_callback()
-func entity_destroy()
-func entity_react_to_weapon()
-func customizable_entity_set_position_interpolation()
-func customizable_entity_set_mesh()
-func customizable_entity_set_flipping_meshes()
-func customizable_entity_set_mesh_color()
-func customizable_entity_set_string()
-func customizable_entity_set_mesh_xyz()
-func customizable_entity_set_mesh_z()
-func customizable_entity_set_mesh_scale()
-func customizable_entity_set_mesh_xyz_scale()
-func customizable_entity_set_mesh_angle()
-func customizable_entity_skip_mesh_attributes_interpolation()
-func customizable_entity_configure_music_response()
-func customizable_entity_add_rotation_to_mesh()
-func customizable_entity_set_visibility_radius()
-func customizable_entity_configure_wall_collision()
-func customizable_entity_set_player_collision_callback()
-func customizable_entity_set_weapon_collision_callback()
-func customizable_entity_start_spawning()
-func customizable_entity_start_exploding()
-*/
+type EntityType int
+
+const (
+  ASTEROID EntityType = iota
+  BAF
+  INERTIAC
+  MOTHERSHIP
+  MOTHERSHIP_BULLET
+  ROLLING_CUBE
+  ROLLING_SPHERE
+  UFO
+  WARY
+  CROWDER
+  CUSTOMIZABLE_ENTITY
+  SHIP
+  BOMB
+  BAF_BLUE
+  BAF_RED
+  WARY_MISSILE
+  UFO_BULLET
+  PLAYER_BULLET
+  BOMB_EXPLOSION
+  PLAYER_EXPLOSION
+  BONUS
+  FLOATING_MESSAGE
+  POINTONIUM
+  BONUS_IMPLOSION
+)
+
+type MothershipType int
+
+const (
+  THREE_CORNERS MothershipType = iota
+  FOUR_CORNERS
+  FIVE_CORNERS
+  SIX_CORNERS
+  SEVEN_CORNERS
+)
+
+type CannonType int
+
+const (
+  SINGLE CannonType = iota
+  TIC_TOC
+  DOUBLE
+  TRIPLE
+  FOUR_DIRECTIONS
+  DOUBLE_SWIPE
+  HEMISPHERE
+)
+
+type CannonFrequency int
+
+const (
+  FREQ_30 CannonFrequency = iota
+  FREQ_15
+  FREQ_10
+  FREQ_7_5
+  FREQ_6
+  FREQ_5
+  FREQ_3
+  FREQ_2
+  FREQ_1
+)
+
+type BombType int
+
+const (
+  FREEZE BombType = iota
+  REPULSIVE
+  ATOMIZE
+  SMALL_ATOMIZE
+  SMALL_FREEZE
+)
+
+type BonusType int
+
+const (
+  REINSTANTIATION BonusType = iota
+  SHIELD
+  SPEED
+  WEAPON
+)
+
+type WeaponType int
+
+const (
+  BULLET WeaponType = iota
+  FREEZE_EXPLOSION
+  REPULSIVE_EXPLOSION
+  ATOMIZE_EXPLOSION
+)
+
+type AsteroidSize int
+
+const (
+  SMALL AsteroidSize = iota
+  MEDIUM
+  LARGE
+  VERY_LARGE
+)
+

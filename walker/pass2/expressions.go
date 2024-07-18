@@ -39,6 +39,7 @@ func MatchExpr(w *wkr.Walker, node *ast.MatchExpr, scope *wkr.Scope) wkr.Value {
 
 	for i := range node.MatchStmt.Cases {
 		caseScope := matchScope.AccessChild()
+		GetNodeValue(w, &node.MatchStmt.Cases[i].Expression, matchScope)
 		WalkBody(w, &node.MatchStmt.Cases[i].Body, caseScope)
 	}
 
@@ -94,9 +95,9 @@ func LiteralExpr(w *wkr.Walker, node *ast.LiteralExpr) wkr.Value {
 	}
 }
 
-func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value { // we finna
+func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 	valueNode := *node
-	ident := valueNode.(*ast.IdentifierExpr) // bishwhat
+	ident := valueNode.(*ast.IdentifierExpr)
 
 	sc := w.ResolveVariable(scope, ident.Name.Lexeme)
 	if sc == nil {
@@ -220,8 +221,8 @@ func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {
 	if node.Owner == nil {
 		val := GetNodeValue(w, &node.Identifier, scope)
 
-		if val.GetType().PVT() == ast.Unresolved { // i fixed it
-			return &wkr.Unknown{} // OHHHHHH
+		if val.GetType().PVT() == ast.Unresolved {
+			return &wkr.Unknown{}
 		}
 
 		if !wkr.IsOfPrimitiveType(val, ast.Struct, ast.Entity, ast.AnonStruct, ast.Enum) {
@@ -288,7 +289,7 @@ func UnaryExpr(w *wkr.Walker, node *ast.UnaryExpr, scope *wkr.Scope) wkr.Value {
 
 func MemberExpr(w *wkr.Walker, node *ast.MemberExpr, scope *wkr.Scope) wkr.Value {
 	if node.Owner == nil {
-		val := GetNodeValue(w, &node.Identifier, scope) // invalid, can we start again cuz i wanna go into this
+		val := GetNodeValue(w, &node.Identifier, scope)
 
 		var memberVal wkr.Value
 		if node.Property == nil {
@@ -342,11 +343,11 @@ func SelfExpr(w *wkr.Walker, self *ast.SelfExpr, scope *wkr.Scope) wkr.Value {
 		w.Error(self.Token, "can't use self outside of struct/entity")
 		return &wkr.Invalid{}
 	}
-	// AHHHHHHH IT HAS ALREADY TURNED INTO A SELF EXPRESSION FROM PASS 1
+
 	sc, _, structTag := wkr.ResolveTagScope[*wkr.StructTag](scope) // TODO: CHECK FOR ENTITY SCOPE
 
 	if sc == nil {
-		entitySc, _, entityTag := wkr.ResolveTagScope[*wkr.EntityTag](scope) // try now
+		entitySc, _, entityTag := wkr.ResolveTagScope[*wkr.EntityTag](scope)
 		if entitySc != nil {
 			return (*entityTag).EntityType
 		}

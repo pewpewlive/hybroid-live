@@ -1,44 +1,151 @@
-env ExampleLevel as Level
+env MyLevel as Level
 
-entity Quadro {
-  number b
+let width, height = 500f, 500f
+let ship_id = spawn pewpew::PlayerShip(width / 2f, height / 2f)
+pewpew::configure_ship(0, struct{ shield = 5 })
+pewpew::configure_ship_weapon(ship_id, struct{
+  cannon = pewpew::CannonType.Double, 
+  frequency = pewpew::CannonFrequency.Freq30
+})
 
-  spawn(fixed x, fixed y, number a) {
-    self.b = a
+
+spawn pewpew::Mothership(100f, 100f, pewpew::MothershipType.SevenCorners, 90d)
+
+let id = spawn entity(100f, 100f)
+pewpew::set_entity_mesh(id, MyMeshes::AmazingMesh, 0)
+pewpew::start_spawning_entity(id, 60)
+pewpew::set_entity_update_callback(id, fn(entity id) {
+  let x, y = pewpew::get_entity_position(id)
+  pewpew::set_entity_position(id, x + 10f, y - 10f)
+})
+
+// env ExampleLevel as Level
+
+//use A
+
+// Hi!
+
+/*
+  This
+  Is
+  HYBROID!!
+*/
+
+let text b = "Hello"
+pub c = {banana = 1, apple = 2, pear = 3}
+let d = [1.5f, 2.2048fx, 90d, 3.14r]
+a /= 3
+if d[1] == 2.2048fx + 2.2048fx / 2.2048fx or d[1] == 2.1024fx  {
+  d[2] = d[1]
+} else if false {
+  d[1] = d[2]
+} else {
+  d[1] = 180d
+}
+
+fn Abs(number a) number {
+  if a >= 0 {
+    return a
   }
+  return -a
+}
 
-  Update() {
+let a = Abs(c["banana"])
+a = Abs(a)
 
-  }
-
-  destroy(fixed something) {
-    
-  }
-
-  WeaponCollision() {
-    
-  }
-
-  PlayerCollision() {
-
-  }
-
-  WallCollision(fixed wallNormalX, fixed wallNormalY) {// bad
-
+fn MatchShow(text test) text {
+  return match test {
+    "Hello" => "Hi"
+    "Goodbye" => "Bye"
+    "See you later" => "Cya"
+    _ => "Wrong input"
   }
 }
 
-struct QuadroState {
-  new() {
-    
-  }
-}
+b = MatchShow("Hello")
+b = MatchShow(b)
 
-fn test(Quadro m) {// which one do we refer to?
+repeat 10 with i {
+  match i {
+    1 => {
+      continue
+    }
+    _ => {
+      break
+    }
+  }
   
+  if i / a <>= 1 {
+    break
+  }
 }
 
-test(spawn Quadro(10f, 10f, 0))
+repeat from 10 to -10 by -1 with i { }
+while false { }
+for i, v in d { }
 
-Pewpew::uh()
-let a = Math::pi
+struct Foo {
+  number foo, bar = 100, 90
+  number foobar
+  
+  new(number foo, number bar) {
+    self.foo = foo
+    self.bar = bar
+    foobar = self.foo + self.bar
+  }
+
+  fn Foo() number {
+    return foo
+  }
+
+  fn Foobar() number {
+    return self.foobar
+  }
+}
+
+let testmap = {a = 2, b = 3}
+
+for k, v in testmap {
+    break
+}
+
+let list = [1,2,3]
+
+for i, v in list {
+    if i == 2 {
+        continue
+    }
+    match v {
+        0 => {
+            continue
+        }
+    }
+}
+
+enum TestEnum {
+    One,
+    Two,
+    Three,
+    NA
+}
+
+enum Error {
+  SyntaxError,
+  ParserError,
+  WalkerError
+}
+
+let error = Error.SyntaxError
+
+fn PrintError(Error error) text {
+  match error {
+    Error.SyntaxError, Error.ParserError, Error.WalkerError => {
+      return "Syntax, Parser or Walker Error"
+    }
+    _ => {
+      return "Invalid error type!"
+    }
+  } 
+}
+
+PrintError(error)
