@@ -1,28 +1,105 @@
-env ExampleLevel as Level
+env MyLevel as Level
 
-entity Quadro {
-  number b
+// let width, height = 500f, 500f
+// let ship_id = spawn pewpew::PlayerShip(width / 2f, height / 2f)
+// pewpew::configure_ship(0, struct{ shield = 5 })
+// pewpew::configure_ship_weapon(ship_id, struct{
+//   cannon = pewpew::CannonType.Double, 
+//   frequency = pewpew::CannonFrequency.Freq30
+// })
 
-  spawn(fixed x, fixed y, number a) { self.b = a } // works
 
-  Update() {
+// spawn pewpew::Mothership(100f, 100f, pewpew::MothershipType.SevenCorners, 90d)
 
+// let id = spawn entity(100f, 100f)
+// pewpew::set_entity_mesh(id, MyMeshes::AmazingMesh, 0)
+// pewpew::start_spawning_entity(id, 60)
+// pewpew::set_entity_update_callback(id, fn(entity id) {
+//   let x, y = pewpew::get_entity_position(id)
+//   pewpew::set_entity_position(id, x + 10f, y - 10f)
+// })
+
+// env ExampleLevel as Level
+
+//use A
+
+// Hi!
+
+/*
+  This
+  Is
+  HYBROID!!
+*/
+
+let text b = "Hello"
+pub c = {banana = 1, apple = 2, pear = 3}
+let d = [1.5f, 2.2048fx, 90d, 3.14r]
+a /= 3
+if d[1] == 2.2048fx + 2.2048fx / 2.2048fx or d[1] == 2.1024fx  {
+  d[2] = d[1]
+} else if false {
+  d[1] = d[2]
+} else {
+  d[1] = 180d
+}
+
+fn Abs(number a) number {
+  if a >= 0 {
+    return a
+  }
+  return -a
+}
+
+let a = Abs(c["banana"])
+a = Abs(a)
+
+fn MatchShow(text test) text {
+  return match test {
+    "Hello" => "Hi"
+    "Goodbye" => "Bye"
+    "See you later" => "Cya"
+    _ => "Wrong input"
+  }
+}
+
+b = MatchShow("Hello")
+b = MatchShow(b)
+
+repeat 10 with i {
+  match i {
+    1 => {
+      continue
+    }
+    _ => {
+      break
+    }
+  }
+  
+  if i / a <>= 1 {
+    break
+  }
+}
+
+repeat from 10 to -10 by -1 with i { }
+while false { }
+for i, v in d { }
+
+struct Foo {
+  number foo, bar = 100, 90
+  number foobar
+  
+  new(number foo, number bar) {
+    self.foo = foo
+    self.bar = bar
+    foobar = self.foo + self.bar
   }
 
-  destroy(fixed something) {
-    
+  fn Foo() number {
+    return foo
   }
 
-  WeaponCollision() {
-    
-  }
-
-  PlayerCollision() {
-
-  }
-
-  WallCollision(fixed wallNormalX, fixed wallNormalY) {// bad
-
+  fn Foobar() number {
+    return self.foobar
   }
 }
 
@@ -31,6 +108,9 @@ struct QuadroState {
     
   }
 }
+
+b = MatchShow("Hello")
+b = MatchShow(b)
 
 fn test(Quadro m) { let a = 1 } // works
 

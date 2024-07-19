@@ -177,8 +177,8 @@ func NewEntityVal(name string, isLocal bool) *EntityVal {
 	}
 }
 
-func (ev *EntityVal) GetType() Type { // bishwhat ah wait, i think ev is nil
-	return &ev.Type //lol
+func (ev *EntityVal) GetType() Type {
+	return &ev.Type
 }
 
 func (ev *EntityVal) GetDefault() *ast.LiteralExpr {

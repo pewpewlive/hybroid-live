@@ -33,49 +33,43 @@ class APIType(Enum):
                 return APIType.CALLBACK
 
 
-class APIParameter(TypedDict):
+class APIParameter:
     name: str | None
     type: APIType
     map_entries: list["APIParameter"]
     enum: str | None
 
+    def __init__(self, raw: dict):
+        type = APIType.from_str(raw.get("type", "unknown"))
+        assert type is not None, "type should not be None"
 
-def api_parameter(raw: dict) -> APIParameter:
-    type = APIType.from_str(raw.get("type", "unknown"))
-    assert type is not None, "type should not be None"
+        map_entries: dict = raw.get("map_entries", {})
+        if type is APIType.MAP and len(map_entries) == 0:
+            raise Exception("map entries should not be empty when the type is MAP")
 
-    map_entries: dict = raw.get("map_entries", {})
-    if type is APIType.MAP and len(map_entries) == 0:
-        raise Exception("map entries should not be empty when the type is MAP")
-
-    return {
-        "name": raw.get("name"),
-        "type": type,
-        "map_entries": list(map(api_parameter, map_entries)),
-        "enum": raw.get("enum"),
-    }
+        self.name = raw.get("name")
+        self.type = type
+        self.map_entries = [APIParameter(entry) for entry in map_entries]
+        self.enum = raw.get("enum")
 
 
-class APIFunction(TypedDict):
-    return_types: list[APIParameter]
-    func_name: str
-    comment: str
+class APIFunction:
+    name: str
+    description: str
     parameters: list[APIParameter]
+    return_types: list[APIParameter]
+
+    def __init__(self, raw: dict):
+        self.name = raw["func_name"]
+        self.description = raw["comment"]
+        self.parameters = [APIParameter(param) for param in raw["parameters"]]
+        self.return_types = [APIParameter(type) for type in raw["return_types"]]
 
 
-def api_function(raw: dict) -> APIFunction:
-    return {
-        "return_types": list(map(api_parameter, raw["return_types"])),
-        "func_name": raw["func_name"],
-        "comment": raw["comment"],
-        "parameters": list(map(api_parameter, raw["parameters"])),
-    }
-
-
-class APIEnum(TypedDict):
+class APIEnum:
     name: str
     values: list[str]
 
-
-def api_enum(raw: dict) -> APIEnum:
-    return {"name": raw["name"], "values": raw["values"]}
+    def __init__(self, raw: dict):
+        self.name = raw["name"]
+        self.values = raw["values"]
