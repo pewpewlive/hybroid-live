@@ -29,10 +29,20 @@ func (p *Parser) fn() ast.Node {
 		}
 
 		fn.Return = ret
-		var success bool
-		fn.Body, success = p.getBody()
-		if !success {
-			return &ast.Improper{}
+		if p.match(lexer.FatArrow) {
+			stmt := p.statement()
+			if stmt.GetType() == ast.NA {
+				return &ast.Improper{Token: stmt.GetToken()}
+			}
+			fn.Body = []ast.Node{
+				stmt,
+			}
+		}else {
+			var success bool
+			fn.Body, success = p.getBody()
+			if !success {
+				return ast.NewImproper(fn.Token)
+			}
 		}
 		return fn
 	} else {
@@ -381,22 +391,22 @@ func (p *Parser) primary() ast.Node {
 				valueType = ast.Number
 			case lexer.Fixed:
 				if !allowFX {
-					p.error(literal, "cannot have a fixed in a mesh, sound or luageneric environment")
+					p.error(literal, "cannot have a fixed in a mesh or sound environment")
 				}
 				valueType = ast.Fixed
 			case lexer.FixedPoint:
 				if !allowFX {
-					p.error(literal, "cannot have a fixedpoint in a mesh, sound or luageneric environment")
+					p.error(literal, "cannot have a fixedpoint in a mesh, sound environment")
 				}
 				valueType = ast.FixedPoint
 			case lexer.Degree:
 				if !allowFX {
-					p.error(literal, "cannot have a degree, sound or luageneric environment")
+					p.error(literal, "cannot have a degree, sound environment")
 				}
 				valueType = ast.Degree
 			case lexer.Radian:
 				if !allowFX {
-					p.error(literal, "cannot have a radian in a mesh, sound or luageneric environment")
+					p.error(literal, "cannot have a radian in a mesh or sound environment")
 				}
 				valueType = ast.Radian
 			case lexer.String:

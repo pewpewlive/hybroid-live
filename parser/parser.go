@@ -136,6 +136,20 @@ func (p *Parser) ParseTokens() []ast.Node {
 
 func (p *Parser) getBody() ([]ast.Node, bool) {
 	body := make([]ast.Node, 0)
+	if p.match(lexer.FatArrow) {
+		args, ok := p.returnArgs()
+		if !ok {
+			return body, false
+		}
+		body = []ast.Node{
+			&ast.ReturnStmt{
+				Token: args[0].GetToken(),
+				Args: args,
+			},
+		}
+		
+		return body, true
+	} 
 	if _, success := p.consume("expected opening of the body", lexer.LeftBrace); !success {
 		return body, false
 	}

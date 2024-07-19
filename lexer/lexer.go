@@ -241,6 +241,14 @@ func (l *Lexer) scanToken() {
 			}
 		}
 
+	case '\\':
+		if l.matchChar('=') {
+			l.addToken(BackSlashEqual, "")
+		} else {
+			l.addToken(BackSlash, "")
+		}
+
+
 	// Whitespace characters
 	case ' ', ';', '\r', '\t':
 		break

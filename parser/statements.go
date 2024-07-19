@@ -25,7 +25,7 @@ func (p *Parser) statement() ast.Node {
 		switch next {
 		case lexer.Fn:
 			p.advance()
-			token = p.peek().Type
+			return p.functionDeclarationStmt(true)
 		case lexer.Struct:
 			p.advance()
 			p.advance()
@@ -37,7 +37,7 @@ func (p *Parser) statement() ast.Node {
 		case lexer.Enum:
 			p.advance()
 			p.advance()
-			return p.enumDeclarationStmt(false)
+			return p.enumDeclarationStmt(true)
 		}
 	}
 
@@ -63,7 +63,7 @@ func (p *Parser) statement() ast.Node {
 		return p.removeFromStmt()
 	case lexer.Fn:
 		p.advance()
-		return p.functionDeclarationStmt()
+		return p.functionDeclarationStmt(false)
 	case lexer.Return:
 		p.advance()
 		return p.returnStmt()
@@ -381,6 +381,7 @@ func (p *Parser) entityFunctionDeclarationStmt(token lexer.Token, functionType a
 	}
 
 	stmt.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
+	
 	var success bool
 	stmt.Body, success = p.getBody()
 	if !success {
@@ -451,35 +452,20 @@ func (p *Parser) fieldDeclarationStmt() ast.Node {
 }
 
 func (p *Parser) methodDeclarationStmt(IsLocal bool) ast.Node {
-	fnDec := ast.MethodDeclarationStmt{
-		IsLocal: IsLocal,
-	}
+	fnDec := p.functionDeclarationStmt(IsLocal)
 
-	ident, ok := p.consume("expected a function name", lexer.Identifier)
-	if !ok {
-		return &fnDec
-	}
-
-	fnDec.Name = ident
-	fnDec.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
-
-	ret := make([]*ast.TypeExpr, 0)
-	for p.check(lexer.Identifier) {
-		ret = append(ret, p.Type())
-		if !p.check(lexer.Comma) {
-			break
-		} else {
-			p.advance()
+	if fnDec.GetType() != ast.FunctionDeclarationStatement {
+		return fnDec
+	}else {
+		FnDec := fnDec.(*ast.FunctionDeclarationStmt)
+		return &ast.MethodDeclarationStmt{
+			IsLocal: FnDec.IsLocal,
+			Name: FnDec.Name,
+			Return: FnDec.Return,
+			Params: FnDec.Params,
+			Body: FnDec.Body,
 		}
 	}
-	fnDec.Return = ret
-	var success bool
-	fnDec.Body, success = p.getBody()
-	if !success {
-		return ast.NewImproper(fnDec.Name)
-	}
-
-	return &fnDec
 }
 
 func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) *ast.IfStmt {
@@ -559,14 +545,21 @@ func (p *Parser) assignmentStmt() ast.Node {
 }
 
 func (p *Parser) returnStmt() ast.Node {
-	returnStmt := ast.ReturnStmt{
+	returnStmt := &ast.ReturnStmt{
 		Token: p.peek(-1),
 	}
 
+	args, _ := p.returnArgs()
+	returnStmt.Args = args
+
+	return returnStmt
+}
+
+func (p *Parser) returnArgs() ([]ast.Node, bool) {
 	args := []ast.Node{}
 	expr := p.expression()
 	if expr.GetType() == ast.NA {
-		return &returnStmt
+		return args, false
 	}
 	args = append(args, expr)
 	for p.match(lexer.Comma) {
@@ -576,9 +569,7 @@ func (p *Parser) returnStmt() ast.Node {
 		}
 		args = append(args, expr)
 	}
-	returnStmt.Args = args
-
-	return &returnStmt
+	return args, true
 }
 
 func (p *Parser) yieldStmt() ast.Node {
@@ -604,10 +595,10 @@ func (p *Parser) yieldStmt() ast.Node {
 	return &yieldStmt
 }
 
-func (p *Parser) functionDeclarationStmt() ast.Node {
+func (p *Parser) functionDeclarationStmt(IsLocal bool) ast.Node {
 	fnDec := ast.FunctionDeclarationStmt{}
 
-	fnDec.IsLocal = p.peek(-2).Type != lexer.Pub
+	fnDec.IsLocal = IsLocal
 
 	ident, ok := p.consume("expected a function name", lexer.Identifier)
 	if !ok {
@@ -618,11 +609,13 @@ func (p *Parser) functionDeclarationStmt() ast.Node {
 	fnDec.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
 
 	fnDec.Return = p.returnings()
+
 	var success bool
 	fnDec.Body, success = p.getBody()
 	if !success {
 		return ast.NewImproper(fnDec.Name)
 	}
+	
 
 	return &fnDec
 }
@@ -923,7 +916,7 @@ func (p *Parser) matchStmt(isExpr bool) *ast.MatchStmt {
 		matchStmt.Cases = append(matchStmt.Cases, caseStmts...)
 		caseStmts, stop = p.caseStmt(isExpr)
 		for i := range caseStmts {
-			if caseStmts[i].Expression.GetToken().Lexeme == "_" {
+			if caseStmts[i].Expression.GetToken().Lexeme == "else" {
 				matchStmt.HasDefault = true
 			}
 		}
@@ -939,7 +932,14 @@ func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
 	caseStmts := []ast.CaseStmt{}
 
 	caseStmt := ast.CaseStmt{}
-	caseStmt.Expression = p.expression()
+	if p.match(lexer.Else) {
+		caseStmt.Expression = &ast.IdentifierExpr{
+			Name: p.peek(-1),
+			ValueType: ast.Unknown,
+		}
+	}else {
+		caseStmt.Expression = p.expression()
+	}
 	if caseStmt.Expression.GetType() == ast.NA {
 		return caseStmts, true
 	}

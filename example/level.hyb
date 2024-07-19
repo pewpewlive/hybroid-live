@@ -3,9 +3,7 @@ env ExampleLevel as Level
 entity Quadro {
   number b
 
-  spawn(fixed x, fixed y, number a) {
-    self.b = a
-  }
+  spawn(fixed x, fixed y, number a) { self.b = a } // works
 
   Update() {
 
@@ -34,11 +32,20 @@ struct QuadroState {
   }
 }
 
-fn test(Quadro m) {// which one do we refer to?
-  
-}
+fn test(Quadro m) { let a = 1 } // works
 
+fn test2() number => 2
+  
 test(spawn Quadro(10f, 10f, 0))
 
-Pewpew::uh()
-let a = Math::pi
+//Pewpew::uh()
+//let a = Math::pi
+
+match true {
+  true => {
+
+  }
+  else => {
+
+  }
+}

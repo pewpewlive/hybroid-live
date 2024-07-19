@@ -404,7 +404,7 @@ func MatchStmt(w *wkr.Walker, node *ast.MatchStmt, isExpr bool, scope *wkr.Scope
 			WalkBody(w, &node.Cases[i].Body, caseScope)
 		}
 
-		if node.Cases[i].Expression.GetToken().Lexeme == "_" {
+		if node.Cases[i].Expression.GetToken().Lexeme == "else" {
 			continue
 		}
 
