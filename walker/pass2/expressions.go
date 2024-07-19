@@ -105,6 +105,43 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 	}
 
 	variable := w.GetVariable(sc, ident.Name.Lexeme)
+
+	if sc.Tag.GetType() == wkr.Struct {
+		_struct := sc.Tag.(*wkr.StructTag).StructVal
+		_, index, _ := _struct.ContainsField(variable.Name)
+		selfExpr := &ast.FieldExpr{
+			Identifier: &ast.SelfExpr{
+				Token: valueNode.GetToken(),
+				Type:  ast.SelfStruct,
+			},
+		}
+
+		fieldExpr := &ast.FieldExpr{
+			Owner:      selfExpr,
+			Identifier: valueNode,
+			Index:      index,
+		}
+		selfExpr.Property = fieldExpr
+		*node = selfExpr
+	} else if sc.Tag.GetType() == wkr.Entity {
+		entity := sc.Tag.(*wkr.EntityTag).EntityType
+		_, index, _ := entity.ContainsField(variable.Name)
+		selfExpr := &ast.FieldExpr{
+			Identifier: &ast.SelfExpr{
+				Token: valueNode.GetToken(),
+				Type:  ast.SelfEntity,
+			},
+		}
+
+		fieldExpr := &ast.FieldExpr{
+			Owner:      selfExpr,
+			Identifier: valueNode,
+			Index:      index,
+		}
+		selfExpr.Property = fieldExpr
+		*node = selfExpr
+	}
+
 	variable.IsUsed = true
 	return variable.Value
 }

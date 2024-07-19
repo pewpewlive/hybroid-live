@@ -399,16 +399,17 @@ func (gen *Generator) spawnDeclarationStmt(node ast.EntityFunctionDeclarationStm
 	TabsCount++
 
 	spawnScope.AppendTabbed("local id = pewpew.new_customizable_entity(", gen.WriteVar(node.Params[0].Name.Lexeme), ", ", gen.WriteVar(node.Params[1].Name.Lexeme), ")\n")
-	spawnScope.AppendTabbed(hyEntityState, entityName, "[id] = {\n")
-	for i, v := range entity.Fields {
-		val := gen.fieldDeclarationStmt(v, &spawnScope) // should be good now
-		spawnScope.AppendETabbed(val)
-		if i != len(entity.Fields)-1 {
-			spawnScope.WriteString(", ")
-		} // should look good
-		spawnScope.WriteString("\n")
+	spawnScope.AppendTabbed(hyEntityState, entityName, "[id] = {")
+	for i, field := range entity.Fields {
+		for j, value := range field.Values {
+			if j == len(field.Values)-1 && i == len(entity.Fields)-1 {
+				spawnScope.WriteString(gen.GenerateExpr(value, &spawnScope))
+			} else {
+				spawnScope.Append(gen.GenerateExpr(value, &spawnScope), ",")
+			}
+		}
 	}
-	spawnScope.AppendTabbed("}\n")
+	spawnScope.Append("}\n")
 	spawnScope.AppendTabbed("local Self = ", hyEntityState, entityName, "[id]\n")
 	TabsCount--
 	gen.GenerateBody(node.Body, &spawnScope)
@@ -531,7 +532,7 @@ func (gen *Generator) methodDeclarationStmt(node ast.MethodDeclarationStmt, Stru
 	}
 	methodScope.Append(")\n")
 
-	gen.GenerateBody(node.Body, &methodScope) 
+	gen.GenerateBody(node.Body, &methodScope)
 
 	methodScope.AppendTabbed("end\n")
 
@@ -548,7 +549,7 @@ func (gen *Generator) entityMethodDeclarationStmt(node ast.MethodDeclarationStmt
 	}
 	methodScope.Append(")\n")
 
-	gen.GenerateBody(node.Body, &methodScope) 
+	gen.GenerateBody(node.Body, &methodScope)
 
 	methodScope.AppendTabbed("end\n")
 

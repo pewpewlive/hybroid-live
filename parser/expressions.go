@@ -29,20 +29,10 @@ func (p *Parser) fn() ast.Node {
 		}
 
 		fn.Return = ret
-		if p.match(lexer.FatArrow) {
-			stmt := p.statement()
-			if stmt.GetType() == ast.NA {
-				return &ast.Improper{Token: stmt.GetToken()}
-			}
-			fn.Body = []ast.Node{
-				stmt,
-			}
-		}else {
-			var success bool
-			fn.Body, success = p.getBody()
-			if !success {
-				return ast.NewImproper(fn.Token)
-			}
+		var success bool
+		fn.Body, success = p.getBody(false)
+		if !success {
+			return ast.NewImproper(fn.Token)
 		}
 		return fn
 	} else {
@@ -143,9 +133,9 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 	}
 
 	call_expr := &ast.CallExpr{
-		Name: caller.GetToken(),
-		Caller:     caller,
-		Args:       p.arguments(),
+		Name:   caller.GetToken(),
+		Caller: caller,
+		Args:   p.arguments(),
 	}
 
 	if p.check(lexer.LeftParen) {
@@ -211,9 +201,9 @@ func (p *Parser) accessorExprDepth2(owner ast.Accessor, ident ast.Node, nodeType
 		}
 	} else {
 		expr = &ast.CallExpr{
-			Caller:     beforeExpr,
-			Name: last.GetToken(),
-			Args:       args,
+			Caller: beforeExpr,
+			Name:   last.GetToken(),
+			Args:   args,
 		}
 	}
 
@@ -432,7 +422,7 @@ func (p *Parser) primary() ast.Node {
 	if p.match(lexer.Identifier) {
 		token := p.peek(-1)
 		if p.match(lexer.DoubleColon) {
-			switch token.Lexeme{
+			switch token.Lexeme {
 			case "Pewpew":
 				expr := p.expression()
 
@@ -456,18 +446,18 @@ func (p *Parser) primary() ast.Node {
 				}
 				call := p.call(&ast.IdentifierExpr{
 					Name: name,
-				});
+				})
 				return &ast.StandardExpr{
 					Library: ast.Libraries[token.Lexeme],
-					Node: call,
-				};
+					Node:    call,
+				}
 			}
 			envPath := &ast.EnvPathExpr{
 				SubPaths: []string{
 					token.Lexeme,
 				},
 			}
-	
+
 			next := p.accessorExprDepth2(nil, nil, ast.NA)
 			for p.match(lexer.DoubleColon) {
 				envPath.SubPaths = append(envPath.SubPaths, next.GetToken().Lexeme)
@@ -481,7 +471,7 @@ func (p *Parser) primary() ast.Node {
 				PathExpr: envPath,
 			}
 			envExpr.Accessed = next
-	
+
 			return envExpr
 		}
 		return &ast.IdentifierExpr{Name: token, ValueType: ast.Ident}

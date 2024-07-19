@@ -74,7 +74,7 @@ func (gen *Generator) methodCallExpr(node ast.MethodCallExpr, scope *GenScope) s
 	src := StringBuilder{}
 	if node.OwnerType == ast.SelfEntity {
 		src.AppendTabbed(hyEntity, gen.WriteVar(node.TypeName), "_", node.MethodName)
-	}else {
+	} else {
 		src.AppendTabbed(hyStruct, gen.WriteVar(node.TypeName), "_", node.MethodName)
 	}
 
@@ -212,6 +212,8 @@ func (gen *Generator) anonStructExpr(node ast.AnonStructExpr, scope *GenScope) s
 
 func (gen *Generator) selfExpr(self ast.SelfExpr, _ *GenScope) string {
 	if self.Type == ast.SelfStruct {
+		return "Self"
+	} else if self.Type == ast.SelfEntity {
 		return "Self"
 	}
 	return ""

@@ -56,12 +56,12 @@ const (
 	SelfExpression              NodeType = "selfExpression"
 	NewExpession                NodeType = "newExpession"
 	SpawnExpression             NodeType = "spawnExpression"
-	
-	PewpewExpression            NodeType = "pewpewExpression"
-	PewpewCallExpression        NodeType = "pewpewCallExpression"
-	FmathExpression         NodeType = "fmathExpression"
-	BuiltinCallExpression       NodeType = "builtinCallExpession"
-	StandardExpression      NodeType = "standardExpression"
+
+	PewpewExpression      NodeType = "pewpewExpression"
+	PewpewCallExpression  NodeType = "pewpewCallExpression"
+	FmathExpression       NodeType = "fmathExpression"
+	BuiltinCallExpression NodeType = "builtinCallExpession"
+	StandardExpression    NodeType = "standardExpression"
 
 	Identifier NodeType = "identifier"
 
@@ -71,24 +71,24 @@ const (
 type PrimitiveValueType string
 
 const (
-	Unknown     PrimitiveValueType = "unknown"
-	Number      PrimitiveValueType = "number"
-	String      PrimitiveValueType = "string"
-	Bool        PrimitiveValueType = "bool"
-	FixedPoint  PrimitiveValueType = "fixedPoint"
-	Fixed       PrimitiveValueType = "fixed"
-	Radian      PrimitiveValueType = "radian"
-	Degree      PrimitiveValueType = "degree"
-	List        PrimitiveValueType = "list"
-	Map         PrimitiveValueType = "map"
-	Func        PrimitiveValueType = "func"
-	Entity      PrimitiveValueType = "entity"
-	Struct      PrimitiveValueType = "struct"
-	AnonStruct  PrimitiveValueType = "anonStruct"
-	Ident       PrimitiveValueType = "ident"
-	Enum        PrimitiveValueType = "enum"
-	Unresolved  PrimitiveValueType = "unresolved"
-	Invalid     PrimitiveValueType = "invalid"
+	Unknown    PrimitiveValueType = "unknown"
+	Number     PrimitiveValueType = "number"
+	String     PrimitiveValueType = "string"
+	Bool       PrimitiveValueType = "bool"
+	FixedPoint PrimitiveValueType = "fixedPoint"
+	Fixed      PrimitiveValueType = "fixed"
+	Radian     PrimitiveValueType = "radian"
+	Degree     PrimitiveValueType = "degree"
+	List       PrimitiveValueType = "list"
+	Map        PrimitiveValueType = "map"
+	Func       PrimitiveValueType = "func"
+	Entity     PrimitiveValueType = "entity"
+	Struct     PrimitiveValueType = "struct"
+	AnonStruct PrimitiveValueType = "anonStruct"
+	Ident      PrimitiveValueType = "ident"
+	Enum       PrimitiveValueType = "enum"
+	Unresolved PrimitiveValueType = "unresolved"
+	Invalid    PrimitiveValueType = "invalid"
 )
 
 type EnvType int
@@ -105,7 +105,7 @@ type StandardLibrary int
 const (
 	MathLib StandardLibrary = iota
 	StringLib
-	TableLib 
+	TableLib
 )
 
 type SelfExprType int
@@ -152,7 +152,7 @@ type Accessor interface {
 }
 
 var Libraries = map[string]StandardLibrary{
-	"Math": MathLib,
+	"Math":   MathLib,
 	"String": StringLib,
-	"Table": TableLib,
+	"Table":  TableLib,
 }

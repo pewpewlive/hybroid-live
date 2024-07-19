@@ -381,9 +381,9 @@ func (p *Parser) entityFunctionDeclarationStmt(token lexer.Token, functionType a
 	}
 
 	stmt.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
-	
+
 	var success bool
-	stmt.Body, success = p.getBody()
+	stmt.Body, success = p.getBody(false)
 	if !success {
 		return ast.NewImproper(stmt.Token)
 	}
@@ -397,7 +397,7 @@ func (p *Parser) constructorDeclarationStmt() ast.Node {
 	stmt.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
 	stmt.Return = p.returnings()
 	var success bool
-	stmt.Body, success = p.getBody()
+	stmt.Body, success = p.getBody(false)
 	if !success {
 		return &ast.Improper{Token: stmt.Token}
 	}
@@ -456,14 +456,14 @@ func (p *Parser) methodDeclarationStmt(IsLocal bool) ast.Node {
 
 	if fnDec.GetType() != ast.FunctionDeclarationStatement {
 		return fnDec
-	}else {
+	} else {
 		FnDec := fnDec.(*ast.FunctionDeclarationStmt)
 		return &ast.MethodDeclarationStmt{
 			IsLocal: FnDec.IsLocal,
-			Name: FnDec.Name,
-			Return: FnDec.Return,
-			Params: FnDec.Params,
-			Body: FnDec.Body,
+			Name:    FnDec.Name,
+			Return:  FnDec.Return,
+			Params:  FnDec.Params,
+			Body:    FnDec.Body,
 		}
 	}
 }
@@ -489,7 +489,7 @@ func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) *ast.IfS
 		// }
 	}
 	ifStm.BoolExpr = expr
-	ifStm.Body, _ = p.getBody()
+	ifStm.Body, _ = p.getBody(false)
 
 	if is_else || is_elseif {
 		return &ifStm
@@ -611,11 +611,10 @@ func (p *Parser) functionDeclarationStmt(IsLocal bool) ast.Node {
 	fnDec.Return = p.returnings()
 
 	var success bool
-	fnDec.Body, success = p.getBody()
+	fnDec.Body, success = p.getBody(len(fnDec.Return) > 0)
 	if !success {
 		return ast.NewImproper(fnDec.Name)
 	}
-	
 
 	return &fnDec
 }
@@ -739,7 +738,7 @@ func (p *Parser) repeatStmt() ast.Node {
 	}
 
 	var success bool
-	repeatStmt.Body, success = p.getBody()
+	repeatStmt.Body, success = p.getBody(false)
 	if !success {
 		return ast.NewImproper(repeatStmt.Token)
 	}
@@ -760,7 +759,7 @@ func (p *Parser) whileStmt() ast.Node {
 	whileStmt.Condtion = condtion
 
 	var success bool
-	whileStmt.Body, success = p.getBody()
+	whileStmt.Body, success = p.getBody(false)
 	if !success {
 		return ast.NewImproper(whileStmt.Token)
 	}
@@ -807,7 +806,7 @@ func (p *Parser) forStmt() ast.Node {
 	}
 
 	var success bool
-	forStmt.Body, success = p.getBody()
+	forStmt.Body, success = p.getBody(false)
 	if !success {
 		return ast.NewImproper(forStmt.Token)
 	}
@@ -830,7 +829,7 @@ func (p *Parser) tickStmt() ast.Node {
 	}
 
 	var success bool
-	tickStmt.Body, success = p.getBody()
+	tickStmt.Body, success = p.getBody(false)
 	if !success {
 		return ast.NewImproper(tickStmt.Token)
 	}
@@ -934,10 +933,10 @@ func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
 	caseStmt := ast.CaseStmt{}
 	if p.match(lexer.Else) {
 		caseStmt.Expression = &ast.IdentifierExpr{
-			Name: p.peek(-1),
+			Name:      p.peek(-1),
 			ValueType: ast.Unknown,
 		}
-	}else {
+	} else {
 		caseStmt.Expression = p.expression()
 	}
 	if caseStmt.Expression.GetType() == ast.NA {
@@ -955,7 +954,7 @@ func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
 	p.consume("expected fat arrow after expression in case", lexer.FatArrow)
 
 	if p.check(lexer.LeftBrace) {
-		body, _ := p.getBody()
+		body, _ := p.getBody(false)
 		for i := range caseStmts {
 			caseStmts[i].Body = body
 		}
