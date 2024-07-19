@@ -11,7 +11,7 @@ import (
 
 func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope *wkr.Scope) {
 	if node.Constructor == nil {
-		return;
+		return
 	}
 	structScope := scope.AccessChild()
 
@@ -151,14 +151,14 @@ func MethodDeclarationStmt(w *wkr.Walker, node *ast.MethodDeclarationStmt, conta
 }
 
 func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, scope *wkr.Scope, procType wkr.ProcedureType) *wkr.VariableVal {
-	ret := wkr.EmptyReturn
+	ret := wkr.EmptyReturn // debug?
 	for _, typee := range node.Return {
 		ret = append(ret, TypeExpr(w, typee, w.Environment))
 	}
 	fnScope := scope.AccessChild()
 	funcTag := fnScope.Tag.(*wkr.FuncTag)
 	funcTag.ReturnTypes = ret
-
+	// let me check call expr
 	params := make([]wkr.Type, 0)
 	for i, param := range node.Params {
 		params = append(params, TypeExpr(w, param.Type, w.Environment))
@@ -438,7 +438,7 @@ func ReturnStmt(w *wkr.Walker, node *ast.ReturnStmt, scope *wkr.Scope) *wkr.Type
 
 	ret := wkr.EmptyReturn
 	for i := range node.Args {
-		val := GetNodeValue(w, &node.Args[i], scope)
+		val := GetNodeValue(w, &node.Args[i], scope) // we need to check waht happens here
 		valType := val.GetType()
 		if types, ok := val.(*wkr.Types); ok {
 			ret = append(ret, *types...)
@@ -451,7 +451,7 @@ func ReturnStmt(w *wkr.Walker, node *ast.ReturnStmt, scope *wkr.Scope) *wkr.Type
 		return &ret
 	}
 
-	errorMsg := w.ValidateReturnValues(ret, (*funcTag).ReturnTypes)
+	errorMsg := w.ValidateReturnValues(ret, (*funcTag).ReturnTypes) // wait
 	if errorMsg != "" {
 		w.Error(node.GetToken(), errorMsg)
 	}

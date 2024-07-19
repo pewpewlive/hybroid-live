@@ -351,7 +351,7 @@ func returnsAreValid(list1 []Type, list2 []Type) bool {
 
 func (w *Walker) ValidateReturnValues(_return Types, expectReturn Types) string {
 	returnValues, expectedReturnValues := _return, expectReturn
-	if len(returnValues) < len(expectedReturnValues) {
+	if len(returnValues) < len(expectedReturnValues) { // debug?
 		return "not enough return values given"
 	} else if len(returnValues) > len(expectedReturnValues) {
 		return "too many return values given"
@@ -361,7 +361,6 @@ func (w *Walker) ValidateReturnValues(_return Types, expectReturn Types) string 
 	}
 	return ""
 }
-
 func (w *Walker) TypeToValue(_type Type) Value {
 	if _type.GetType() == RawEntity {
 		return &RawEntityVal{}
@@ -370,7 +369,13 @@ func (w *Walker) TypeToValue(_type Type) Value {
 	case ast.Radian, ast.Fixed, ast.FixedPoint, ast.Degree:
 		return &FixedVal{SpecificType: _type.PVT()}
 	case ast.Bool:
-		return &BoolVal{}
+		return &BoolVal{} // there is no func here
+	case ast.Func:
+		ft := _type.(*FunctionType)
+		return &FunctionVal{
+			Params:  ft.Params,
+			Returns: ft.Returns,
+		}
 	case ast.String:
 		return &StringVal{}
 	case ast.Number:

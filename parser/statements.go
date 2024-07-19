@@ -41,7 +41,7 @@ func (p *Parser) statement() ast.Node {
 		}
 	}
 
-	if token == lexer.Struct && next != lexer.Identifier {
+	if token == lexer.Struct && next != lexer.Identifier { // wait yeah idk
 		return p.expression()
 	}
 
@@ -76,8 +76,8 @@ func (p *Parser) statement() ast.Node {
 	case lexer.Continue:
 		p.advance()
 		return &ast.ContinueStmt{Token: p.peek(-1)}
-	case lexer.Identifier, lexer.Self:
-		return p.assignmentStmt()
+	//case lexer.Identifier, lexer.Self:
+	//	return p.assignmentStmt()
 	case lexer.If:
 		p.advance()
 		return p.ifStmt(false, false, false)
@@ -110,12 +110,25 @@ func (p *Parser) statement() ast.Node {
 		return p.matchStmt(false)
 	}
 
-	expr := p.expression()
+	expr := p.exprStatement()
+
 	if expr.GetType() == ast.NA {
 		p.error(p.peek(), "expected statement")
 		p.advance()
 	}
+
 	return expr
+}
+
+func (p *Parser) exprStatement() ast.Node {
+	token := p.peek().Type
+
+	switch token {
+	case lexer.Identifier, lexer.Self:
+		return p.assignmentStmt()
+	}
+
+	return p.expression()
 }
 
 func (p *Parser) macroDeclarationStmt() ast.Node {
@@ -837,7 +850,7 @@ func (p *Parser) tickStmt() ast.Node {
 	return &tickStmt
 }
 
-func (p *Parser) variableDeclarationStmt() ast.Node {
+func (p *Parser) variableDeclarationStmt() ast.Node { // kk
 	variable := ast.VariableDeclarationStmt{
 		Token:   p.peek(-1),
 		IsLocal: p.peek(-1).Type == lexer.Let,

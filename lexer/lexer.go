@@ -166,6 +166,8 @@ func (l *Lexer) scanToken() {
 	case '-':
 		if l.matchChar('=') {
 			l.addToken(MinusEqual, "")
+		} else if l.matchChar('>') {
+			l.addToken(ThinArrow, "")
 		} else {
 			l.addToken(Minus, "")
 		}
@@ -247,7 +249,6 @@ func (l *Lexer) scanToken() {
 		} else {
 			l.addToken(BackSlash, "")
 		}
-
 
 	// Whitespace characters
 	case ' ', ';', '\r', '\t':

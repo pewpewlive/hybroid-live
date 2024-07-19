@@ -16,19 +16,13 @@ func (p *Parser) fn() ast.Node {
 		fn := &ast.AnonFnExpr{
 			Token: p.peek(-1),
 		}
-		fn.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
-
-		ret := make([]*ast.TypeExpr, 0)
-		for p.check(lexer.Identifier) {
-			ret = append(ret, p.Type())
-			if !p.check(lexer.Comma) {
-				break
-			} else {
-				p.advance()
-			}
+		if p.check(lexer.LeftParen) {
+			fn.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
+		} else {
+			fn.Params = make([]ast.Param, 0)
 		}
+		fn.Return = p.returnings()
 
-		fn.Return = ret
 		var success bool
 		fn.Body, success = p.getBody(false)
 		if !success {
@@ -133,19 +127,32 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 	}
 
 	call_expr := &ast.CallExpr{
-		Name:   caller.GetToken(),
 		Caller: caller,
-		Args:   p.arguments(),
+		Args:   p.arguments(), // ahh wait a minute
 	}
 
-	if p.check(lexer.LeftParen) {
-		expr := p.call(call_expr)
-		if expr.GetType() == ast.CallExpression {
-			call_expr = expr.(*ast.CallExpr)
-		}
-	}
+	/*
 
-	return call_expr
+				this is how
+
+				test3()()()()
+
+				looks like:
+
+				Call: test3()()()()
+					Caller: Call:  test3()()()
+							Caller: Call: test3()()
+										Caller: Call: test3()
+
+										so the w
+		soppus rekl
+
+		liveshare died
+										we need to check what is getting called, the type if its fn() fn() then you can call
+										but if its nothing like yyou do test()()() even tho it returns only one function
+	*/
+
+	return p.call(call_expr)
 }
 
 func (p *Parser) resolveProperty(node *ast.Node) ast.Accessor {
@@ -202,7 +209,6 @@ func (p *Parser) accessorExprDepth2(owner ast.Accessor, ident ast.Node, nodeType
 	} else {
 		expr = &ast.CallExpr{
 			Caller: beforeExpr,
-			Name:   last.GetToken(),
 			Args:   args,
 		}
 	}
@@ -628,27 +634,21 @@ func (p *Parser) Type() *ast.TypeExpr {
 		typee := &ast.TypeExpr{}
 
 		p.advance()
-		params := make([]*ast.TypeExpr, 0)
+		params := make([]*ast.TypeExpr, 0) // yes
 		typee.Returns = make([]*ast.TypeExpr, 0)
-		if p.match(lexer.LeftParen) {
-			params = append(params, p.Type())
-
-			for p.match(lexer.Comma) {
+		if p.match(lexer.LeftParen) { // because this fucks up
+			if !p.match(lexer.RightParen) {
 				params = append(params, p.Type())
-			}
-			p.consume("expected closing parenthesis in 'fn(...'", lexer.RightParen)
-		}
 
-		typee.Params = params
-
-		if p.check(lexer.Identifier) {
-			typee.Returns = append(typee.Returns, p.Type())
-
-			for p.match(lexer.Comma) {
-				typee.Returns = append(typee.Returns, p.Type())
+				for p.match(lexer.Comma) {
+					params = append(params, p.Type())
+				}
+				p.consume("expected closing parenthesis in 'fn(...'", lexer.RightParen)
 			}
 		}
 
+		typee.Params = params          // we finna debug
+		typee.Returns = p.returnings() // go to level
 		typee.Name = expr
 		return typee
 	case lexer.Struct:
@@ -659,6 +659,12 @@ func (p *Parser) Type() *ast.TypeExpr {
 		p.advance()
 		return &ast.TypeExpr{Name: expr}
 	}
+}
+
+func (p *Parser) PeekIsType() bool {
+	token := p.peek()
+
+	return !(token.Type != lexer.Identifier && token.Type != lexer.Fn && token.Type != lexer.Struct)
 }
 
 func StringToEnvType(name string) ast.EnvType {

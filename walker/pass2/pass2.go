@@ -76,7 +76,7 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 	case *ast.BinaryExpr:
 		val = BinaryExpr(w, newNode, scope)
 	case *ast.IdentifierExpr:
-		val = IdentifierExpr(w, node, scope)
+		val = IdentifierExpr(w, node, scope) // so this is good
 	case *ast.GroupExpr:
 		val = GroupingExpr(w, newNode, scope)
 	case *ast.ListExpr:

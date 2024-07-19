@@ -94,13 +94,25 @@ func (p *Parser) arguments() []ast.Node {
 
 func (p *Parser) returnings() []*ast.TypeExpr {
 	ret := make([]*ast.TypeExpr, 0)
-	for p.check(lexer.Identifier) {
-		ret = append(ret, p.Type())
-		if !p.check(lexer.Comma) {
-			break
-		} else {
-			p.advance()
+	if !p.match(lexer.ThinArrow) {
+		return ret
+	}
+	isList := false
+	if p.match(lexer.LeftParen) {
+		isList = true
+	}
+	if !p.PeekIsType() {
+		return ret
+	}
+	ret = append(ret, p.Type())
+	for isList && p.match(lexer.Comma) {
+		if !p.PeekIsType() {
+			return ret
 		}
+		ret = append(ret, p.Type())
+	}
+	if isList {
+		p.consume("expected closing parenthesis", lexer.RightParen)
 	}
 	return ret
 }

@@ -188,7 +188,6 @@ func MethodCallExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 		container := *container
 		if _, _, contains := container.ContainsField(method.MethodName); contains {
 			expr := ast.CallExpr{
-				Name:   lexer.Token{Lexeme: method.MethodName, Location: method.Token.Location},
 				Caller: method.Call,
 				Args:   method.Args,
 			}
@@ -202,7 +201,6 @@ func MethodCallExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 	*node = method
 
 	callExpr := ast.CallExpr{
-		Name:   lexer.Token{Lexeme: method.TypeName, Location: method.Token.Location},
 		Caller: method.Call,
 		Args:   method.Args,
 	}

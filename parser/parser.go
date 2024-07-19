@@ -149,7 +149,7 @@ func (p *Parser) getBody(hasReturns bool) ([]ast.Node, bool) {
 				},
 			}
 		} else {
-			body = []ast.Node{p.statement()}
+			body = []ast.Node{p.exprStatement()}
 		}
 		return body, true
 	}
@@ -157,7 +157,7 @@ func (p *Parser) getBody(hasReturns bool) ([]ast.Node, bool) {
 		return body, false
 	}
 
-	for !p.match(lexer.RightBrace) {
+	for !p.match(lexer.RightBrace) { // passed that
 		if p.peek().Type == lexer.Eof {
 			p.error(p.peek(), "expected body closure")
 			return body, false

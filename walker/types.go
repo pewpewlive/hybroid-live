@@ -3,7 +3,6 @@ package walker
 import (
 	"hybroid/ast"
 	"hybroid/generator"
-	"hybroid/helpers"
 )
 
 type Type interface {
@@ -52,11 +51,21 @@ func (self *FunctionType) GetType() ValueType {
 
 func (self *FunctionType) _eq(other Type) bool {
 	ft := other.(*FunctionType)
-	if !helpers.ListsAreSame(self.Params, ft.Params) {
+	if len(self.Params) != len(ft.Params) {
 		return false
 	}
-	if !helpers.ListsAreSame(self.Returns, ft.Returns) {
+	for i := range self.Params {
+		if !TypeEquals(self.Params[i], ft.Params[i]) {
+			return false
+		}
+	}
+	if len(self.Returns) != len(ft.Returns) {
 		return false
+	}
+	for i := range self.Returns { // aight
+		if !TypeEquals(self.Returns[i], ft.Returns[i]) {
+			return false
+		}
 	}
 
 	return true

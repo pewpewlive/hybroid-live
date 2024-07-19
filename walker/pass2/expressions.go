@@ -28,9 +28,19 @@ func AnonFnExpr(w *wkr.Walker, fn *ast.AnonFnExpr, scope *wkr.Scope) wkr.Value {
 	}
 	fnScope := scope.AccessChild()
 
+	fnScope.Tag.(*wkr.FuncTag).ReturnTypes = returnTypes
+
 	WalkBody(w, &fn.Body, fnScope)
 
-	return &fnScope.Tag.(*wkr.FuncTag).ReturnTypes
+	params := make([]wkr.Type, 0)
+	for i, param := range fn.Params {
+		params = append(params, TypeExpr(w, param.Type, w.Environment))
+		w.GetVariable(fnScope, param.Name.Lexeme).Value = w.TypeToValue(params[i])
+	}
+	return &wkr.FunctionVal{ // returnTypes should contain a fn()
+		Params:  params,
+		Returns: returnTypes,
+	}
 }
 
 func MatchExpr(w *wkr.Walker, node *ast.MatchExpr, scope *wkr.Scope) wkr.Value {
@@ -106,7 +116,7 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 
 	variable := w.GetVariable(sc, ident.Name.Lexeme)
 
-	if sc.Tag.GetType() == wkr.Struct {
+	if sc.Tag.GetType() == wkr.Struct { // so this variables is a function that returns a function
 		_struct := sc.Tag.(*wkr.StructTag).StructVal
 		_, index, _ := _struct.ContainsField(variable.Name)
 		selfExpr := &ast.FieldExpr{
@@ -191,15 +201,16 @@ func ListExpr(w *wkr.Walker, node *ast.ListExpr, scope *wkr.Scope) wkr.Value {
 	return &value
 }
 
-func CallExpr(w *wkr.Walker, node *ast.CallExpr, scope *wkr.Scope, callType wkr.ProcedureType) wkr.Value {
-	val := GetNodeValue(w, &node.Caller, scope)
+func CallExpr(w *wkr.Walker, node *ast.CallExpr, scope *wkr.Scope, callType wkr.ProcedureType) wkr.Value { // we finna debug
+	val := GetNodeValue(w, &node.Caller, scope) // debug again?
 
-	valType := val.GetType().PVT()
+	valType := val.GetType().PVT() // this is good actually
 	if valType != ast.Func {
-		return &wkr.Invalid{}
-	}
-
-	variable, it_is := val.(*wkr.VariableVal)
+		w.Error(node.Caller.GetToken(), "caller is not a function") // it works we just dont handle it lmao
+		return &wkr.Invalid{}                                       // lets debug this again
+	} // aight
+	// nice
+	variable, it_is := val.(*wkr.VariableVal) // eyssir
 	if it_is {
 		val = variable.Value
 	}
@@ -212,7 +223,7 @@ func CallExpr(w *wkr.Walker, node *ast.CallExpr, scope *wkr.Scope, callType wkr.
 	w.ValidateArguments(args, fun.Params, node.Caller.GetToken(), w.DetermineCallTypeString(callType))
 
 	if len(fun.Returns) == 1 {
-		return w.TypeToValue(fun.Returns[0])
+		return w.TypeToValue(fun.Returns[0]) // debug?
 	}
 	return &fun.Returns
 }
@@ -226,7 +237,6 @@ func MethodCallExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 		container := *container
 		if _, _, contains := container.ContainsField(method.MethodName); contains {
 			expr := ast.CallExpr{
-				Name:   lexer.Token{Lexeme: method.MethodName, Location: method.Token.Location},
 				Caller: method.Call,
 				Args:   method.Args,
 			}
@@ -246,7 +256,6 @@ func MethodCallExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 	*node = method
 
 	callExpr := ast.CallExpr{
-		Name:   lexer.Token{Lexeme: method.TypeName, Location: method.Token.Location},
 		Caller: method.Call,
 		Args:   method.Args,
 	}
@@ -462,8 +471,10 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, env *wkr.Environment) wkr.Type
 
 	pvt := w.GetTypeFromString(typee.Name.GetToken().Lexeme)
 	switch pvt {
-	case ast.Bool, ast.String, ast.Number, ast.Fixed, ast.FixedPoint, ast.Radian, ast.Degree:
+	case ast.Bool, ast.String, ast.Number:
 		return wkr.NewBasicType(pvt)
+	case ast.Fixed, ast.FixedPoint, ast.Radian, ast.Degree:
+		return wkr.NewFixedPointType(pvt)
 	case ast.Enum:
 		return wkr.NewBasicType(ast.Enum)
 	case ast.AnonStruct:

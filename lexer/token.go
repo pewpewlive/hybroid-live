@@ -26,8 +26,8 @@ const (
 	PlusEqual      TokenType = "plusEqual"      // +=
 	Slash          TokenType = "slash"          // /
 	SlashEqual     TokenType = "slashEqual"     // /=
-	BackSlash 	   TokenType = "backSlash" 		  // \
-	BackSlashEqual TokenType = "backSlashEqual"	// \=
+	BackSlash      TokenType = "backSlash"      // \
+	BackSlashEqual TokenType = "backSlashEqual" // \=
 	Star           TokenType = "star"           // *
 	StarEqual      TokenType = "starEqual"      // *=
 	Caret          TokenType = "caret"          // ^
@@ -37,6 +37,7 @@ const (
 	Equal          TokenType = "equal"          // =
 	EqualEqual     TokenType = "equalEqual"     // ==
 	FatArrow       TokenType = "fatArrow"       // =>
+	ThinArrow      TokenType = "thinArrow"      // ->
 	Greater        TokenType = "greater"        // >
 	GreaterEqual   TokenType = "greaterEqual"   // >=
 	Less           TokenType = "less"           // <

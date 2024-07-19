@@ -168,9 +168,8 @@ func (be *BinaryExpr) GetValueType() PrimitiveValueType {
 }
 
 type CallExpr struct {
-	Name lexer.Token
-	Caller     Node
-	Args       []Node
+	Caller Node
+	Args   []Node
 }
 
 func (ce *CallExpr) GetType() NodeType {
@@ -178,7 +177,7 @@ func (ce *CallExpr) GetType() NodeType {
 }
 
 func (ce *CallExpr) GetToken() lexer.Token {
-	return ce.Name
+	return ce.Caller.GetToken()
 }
 
 func (ce *CallExpr) GetValueType() PrimitiveValueType {
@@ -236,7 +235,7 @@ func (ce *BuiltinCallExpr) GetValueType() PrimitiveValueType {
 
 type StandardExpr struct {
 	Library StandardLibrary
-	Node Node
+	Node    Node
 }
 
 func (ce *StandardExpr) GetType() NodeType {

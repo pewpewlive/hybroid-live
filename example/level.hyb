@@ -139,10 +139,30 @@ match true {
 
 */
 
-entity Quadro {
+let gex = 0
+
+// fn test()
+//   => gex = 1
+
+//            ___     ___   ______
+//            |  |    |  |  |     | 
+//            ____________  ______
+//            |          |  |     |
+fn test3() -> (fn -> fn, number) 
+  => test4, 4
+// 
+fn test4() -> fn 
+  => fn => gex = 2
+
+let bih, a = test3()
+bih() // added thin arrow it works now
+
+entity Quadro { 
+  fixed x, y = 0f, 0f
   number damage = 2
   spawn(fixed x, fixed y, number _damage) {
-    damage = _damage
+    self.x = x
+    self.y = y
   }
 
   destroy() {
