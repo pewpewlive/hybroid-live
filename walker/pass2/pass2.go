@@ -57,6 +57,8 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 		AssignmentStmt(w, newNode, scope)
 	case *ast.UseStmt:
 		UseStmt(w, newNode, scope)
+	case *ast.TypeDeclarationStmt:
+		TypeDeclarationStmt(w, newNode, scope)
 	case *ast.Improper:
 		w.Error(newNode.GetToken(), "Improper statement: parser fault")
 	case *ast.MacroDeclarationStmt:

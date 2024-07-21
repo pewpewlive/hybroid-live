@@ -67,6 +67,8 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 		EnumDeclarationStmt(w, newNode, scope)
 	case *ast.MacroDeclarationStmt:
 		MacroDeclarationStmt(w, newNode, scope)
+	case *ast.TypeDeclarationStmt:
+		TypeDeclarationStmt(w, newNode, scope)
 	case *ast.UseStmt:
 	case *ast.AssignmentStmt:
 	case *ast.EnvAccessExpr:

@@ -110,9 +110,41 @@ func (self *AnonStructVal) ContainsField(name string) (*VariableVal, int, bool) 
 	return nil, -1, false
 }
 
+type CustomVal struct {
+	Type *CustomType
+}
+
+func NewCustomVal(typ *CustomType) *CustomVal {
+	return &CustomVal{
+		Type: typ,
+	}
+}
+
+func (self *CustomVal) GetType() Type {
+	return self.Type
+}
+
+func (self *CustomVal) GetDefault() *ast.LiteralExpr {
+	return &ast.LiteralExpr{Value: "CUSTOM_VALUE"}
+}
+
 type EnumVal struct {
 	Type   *EnumType
 	Fields []*VariableVal
+}
+
+func NewEnumVal(name string, isLocal bool, fields ...string) *EnumVal {
+	val := &EnumVal{
+		Type: NewEnumType(name),
+		Fields: []*VariableVal{},
+	}
+	if len(fields) == 0 {
+		return val
+	}
+	for i := range fields {
+		val.Fields = append(val.Fields, NewEnumFieldVar(fields[i], name, isLocal))
+	}
+	return val
 }
 
 func (self *EnumVal) GetType() Type {
@@ -150,6 +182,18 @@ func (self *EnumFieldVal) GetType() Type {
 func (self *EnumFieldVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "ENUM_FIELD_VAL"}
 }
+
+func NewEnumFieldVar(name string, enumName string, isLocal bool) *VariableVal {
+	return &VariableVal{
+		Name: name,
+		Value: &EnumFieldVal{
+			Type: NewEnumType(enumName),
+		},
+		IsLocal: isLocal,
+		IsConst: true,
+	}
+}
+
 
 type RawEntityVal struct{}
 
@@ -400,6 +444,17 @@ func TypesToString(types []Type) string {
 type FunctionVal struct {
 	Params  Types
 	Returns Types
+}
+
+func NewFunction(params ...Type) *FunctionVal {
+	return &FunctionVal{
+		Params: params,
+	}
+}
+
+func (fn FunctionVal) WithReturns(returns ...Type) *FunctionVal {
+	fn.Returns = returns
+	return &fn
 }
 
 func (f *FunctionVal) GetType() Type {

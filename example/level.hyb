@@ -148,21 +148,43 @@ let gex = 0
 //            |  |    |  |  |     | 
 //            ____________  ______
 //            |          |  |     |
-fn test3() -> (fn -> fn, number) 
+fn test3 -> (fn -> fn, number) 
   => test4, 4
 // 
-fn test4() -> fn 
+fn test4 -> fn 
   => fn => gex = 2
 
+/*
+fn test4 -> fn {
+  return fn {
+    gex = 2
+  }
+}
+*/
+
 let bih, a = test3()
-bih() // added thin arrow it works now
+bih() 
+
+type FixedMap = map<fixed>
+
+let FixedMap variable = {a = 4f}
+
+variable["a"] = 1f
+
+fn test5(FixedMap uh) {
+  uh = {
+    a = 1f
+  }
+}
 
 entity Quadro { 
   fixed x, y = 0f, 0f
   number damage = 2
+
   spawn(fixed x, fixed y, number _damage) {
     self.x = x
     self.y = y
+    damage = _damage
   }
 
   destroy() {

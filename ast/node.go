@@ -12,6 +12,7 @@ const (
 	MethodDeclarationStatement    NodeType = "methodDeclarationStatement"
 	EnumDeclarationStatement      NodeType = "enumDeclarationStatement"
 	MacroDeclarationStatement     NodeType = "macroDeclarationStatement"
+	TypeDeclarationStatement      NodeType = "typeDeclarationStatement"
 
 	EntityDeclarationStatement        NodeType = "entityDeclarationStatement"
 	EntityFunctionDeclarationStatemet NodeType = "entityFunctionDeclarationStatement"

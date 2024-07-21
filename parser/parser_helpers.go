@@ -53,8 +53,8 @@ func (p *Parser) getParam() ast.Param {
 }
 
 func (p *Parser) parameters(opening lexer.TokenType, closing lexer.TokenType) []ast.Param {
-	if _, ok := p.consume(fmt.Sprintf("expected %s", string(opening)), opening); !ok {
-		return nil
+	if !p.match(opening) {
+		return []ast.Param{}
 	}
 
 	var args []ast.Param

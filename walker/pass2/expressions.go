@@ -513,13 +513,17 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, env *wkr.Environment) wkr.Type
 	case ast.Entity:
 		return &wkr.RawEntityType{}
 	default:
-		if entityVal, found := w.Environment.Entities[typee.Name.GetToken().Lexeme]; found {
+		typeName := typee.Name.GetToken().Lexeme
+		if entityVal, found := w.Environment.Entities[typeName]; found {
 			return entityVal.GetType()
 		}
-		if structVal, found := env.Structs[typee.Name.GetToken().Lexeme]; found {
+		if structVal, found := env.Structs[typeName]; found {
 			return structVal.GetType()
 		}
-		if val := w.GetVariable(&env.Scope, typee.Name.GetToken().Lexeme); val != nil {
+		if customType, found := w.Environment.CustomTypes[typeName]; found {
+			return customType
+		}
+		if val := w.GetVariable(&env.Scope, typeName); val != nil {
 			if val.GetType().PVT() == ast.Enum {
 				return val.GetType()
 			}

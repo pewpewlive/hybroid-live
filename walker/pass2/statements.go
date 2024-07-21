@@ -9,6 +9,10 @@ import (
 	"strings"
 )
 
+func TypeDeclarationStmt(w *wkr.Walker, node *ast.TypeDeclarationStmt, scope *wkr.Scope) {
+	w.Environment.CustomTypes[node.Alias.Lexeme] = wkr.NewCustomType(node.Alias.Lexeme, TypeExpr(w, node.AliasedType, w.Environment))
+}
+
 func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope *wkr.Scope) {
 	if node.Constructor == nil {
 		return
@@ -280,7 +284,6 @@ func IfStmt(w *wkr.Walker, node *ast.IfStmt, scope *wkr.Scope) {
 }
 
 func AssignmentStmt(w *wkr.Walker, assignStmt *ast.AssignmentStmt, scope *wkr.Scope) {
-
 	wIdents := []wkr.Value{}
 	for i := range assignStmt.Identifiers {
 		wIdents = append(wIdents, GetNodeValue(w, &assignStmt.Identifiers[i], scope))

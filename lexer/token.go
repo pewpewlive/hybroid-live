@@ -95,6 +95,7 @@ const (
 	With     TokenType = "with"
 	Yield    TokenType = "yield"
 	Destroy  TokenType = "destroy"
+	Type     TokenType = "type"
 
 	Eof TokenType = "eof" // EOF (End of File)
 )
@@ -138,6 +139,7 @@ var keywords = map[string]TokenType{
 	"with":     With,
 	"yield":    Yield,
 	"destroy":  Destroy,
+	"type":     Type,
 }
 
 type TokenLocation struct {

@@ -25,9 +25,39 @@ const (
 	RawEntity
 	Enum
 	Unresolved
+	CstmType
 	NA
 	NotKnown
 )
+
+type CustomType struct {
+	Name string
+	UnderlyingType Type
+}
+
+func NewCustomType(name string, underlyingType Type) *CustomType {
+	return &CustomType{
+		Name: name,
+		UnderlyingType: underlyingType,
+	}
+}
+
+func (self *CustomType) PVT() ast.PrimitiveValueType {
+	return self.UnderlyingType.PVT()
+}
+
+func (self *CustomType) GetType() ValueType {
+	return CstmType
+}
+
+func (self *CustomType) _eq(other Type) bool {
+	ret := other.(*CustomType)
+	return ret.Name == self.Name
+}
+
+func (self *CustomType) ToString() string {
+	return self.Name+"("+self.UnderlyingType.ToString()+")"
+}
 
 type FunctionType struct {
 	Params  Types

@@ -15,6 +15,7 @@ type Environment struct {
 	Variables map[string]*VariableVal
 	Structs   map[string]*StructVal
 	Entities  map[string]*EntityVal
+	CustomTypes     map[string]*CustomType
 }
 
 /*
@@ -58,7 +59,8 @@ func NewEnvironment(path string) *Environment {
 		Path:     path,
 		Scope:    scope,
 		Structs:  map[string]*StructVal{},
-		Entities: map[string]*EntityVal{}, // try
+		Entities: map[string]*EntityVal{}, 
+		CustomTypes: map[string]*CustomType{},
 	}
 
 	global.Scope.Environment = global
@@ -364,6 +366,9 @@ func (w *Walker) ValidateReturnValues(_return Types, expectReturn Types) string 
 func (w *Walker) TypeToValue(_type Type) Value {
 	if _type.GetType() == RawEntity {
 		return &RawEntityVal{}
+	}
+	if _type.GetType() == CstmType {
+		return NewCustomVal(_type.(*CustomType))
 	}
 	switch _type.PVT() {
 	case ast.Radian, ast.Fixed, ast.FixedPoint, ast.Degree:

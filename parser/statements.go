@@ -25,7 +25,7 @@ func (p *Parser) statement() ast.Node {
 		switch next {
 		case lexer.Fn:
 			p.advance()
-			return p.functionDeclarationStmt(true)
+			return p.functionDeclarationStmt(false)
 		case lexer.Struct:
 			p.advance()
 			p.advance()
@@ -37,7 +37,11 @@ func (p *Parser) statement() ast.Node {
 		case lexer.Enum:
 			p.advance()
 			p.advance()
-			return p.enumDeclarationStmt(true)
+			return p.enumDeclarationStmt(false)
+		case lexer.Type:
+			p.advance()
+			p.advance()
+			return p.TypeDeclarationStmt(false)
 		}
 	}
 
@@ -46,6 +50,9 @@ func (p *Parser) statement() ast.Node {
 	}
 
 	switch token {
+	case lexer.Type:
+		p.advance()
+		return p.TypeDeclarationStmt(true)
 	case lexer.Macro:
 		p.advance()
 		return p.macroDeclarationStmt()
@@ -63,7 +70,7 @@ func (p *Parser) statement() ast.Node {
 		return p.removeFromStmt()
 	case lexer.Fn:
 		p.advance()
-		return p.functionDeclarationStmt(false)
+		return p.functionDeclarationStmt(true)
 	case lexer.Return:
 		p.advance()
 		return p.returnStmt()
@@ -129,6 +136,28 @@ func (p *Parser) exprStatement() ast.Node {
 	}
 
 	return p.expression()
+}
+
+func (p *Parser) TypeDeclarationStmt(isLocal bool) ast.Node {
+	typeToken := p.peek(-1)
+	name, ok := p.consume("expected identifier in type declaration", lexer.Identifier)
+	if !ok {
+		return ast.NewImproper(name)
+	}
+	if token, ok := p.consume("expected '=' after identifier in type declaration", lexer.Equal); !ok {
+		return ast.NewImproper(token)
+	}
+
+	if !p.PeekIsType() {
+		return ast.NewImproper(p.peek())
+	}
+	aliased := p.Type()
+
+	return &ast.TypeDeclarationStmt{
+		Alias: name,
+		AliasedType: aliased,
+		Token: typeToken,
+	}
 }
 
 func (p *Parser) macroDeclarationStmt() ast.Node {

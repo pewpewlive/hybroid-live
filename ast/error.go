@@ -2,6 +2,7 @@ package ast
 
 import "hybroid/lexer"
 
+
 type Alert interface {
 	GetToken() lexer.Token
 	GetHeader() string
