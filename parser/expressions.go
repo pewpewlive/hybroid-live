@@ -8,7 +8,21 @@ import (
 )
 
 func (p *Parser) expression() ast.Node {
-	return p.fn()
+	return p.cast(p.fn())
+}
+
+func (p *Parser) cast(node ast.Node) ast.Node {
+	if p.match(lexer.As) {
+		if !p.PeekIsType() {
+			p.error(p.peek(), "expected type after 'as'")
+		}
+		return &ast.CastExpr{
+			Value: node,
+			Type: p.Type(),
+		}
+	}
+
+	return node
 }
 
 func (p *Parser) fn() ast.Node {

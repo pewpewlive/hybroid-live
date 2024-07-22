@@ -177,6 +177,10 @@ fn test5(FixedMap uh) {
   }
 }
 
+test5({
+  a = 1f
+})
+
 entity Quadro { 
   fixed x, y = 0f, 0f
   number damage = 2

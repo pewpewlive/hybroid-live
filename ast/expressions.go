@@ -75,6 +75,23 @@ func (self *MacroCallExpr) GetValueType() PrimitiveValueType {
 	return Unknown
 }
 
+type CastExpr struct{
+	Value Node
+	Type  *TypeExpr
+}
+
+func (le *CastExpr) GetType() NodeType {
+	return LiteralExpression
+}
+
+func (le *CastExpr) GetToken() lexer.Token {
+	return le.Value.GetToken()
+}
+
+func (le *CastExpr) GetValueType() PrimitiveValueType {
+	return le.Value.GetValueType()
+}
+
 type LiteralExpr struct {
 	Value     string
 	ValueType PrimitiveValueType
