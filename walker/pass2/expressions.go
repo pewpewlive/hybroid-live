@@ -350,21 +350,22 @@ func MemberExpr(w *wkr.Walker, node *ast.MemberExpr, scope *wkr.Scope) wkr.Value
 	val := GetNodeValue(w, &node.Identifier, scope)
 	valType := val.GetType().PVT()
 	array := w.Context.Value
-	arrayType := array.GetType().PVT()
+	arrayType := array.GetType()
+	arrayPVT := arrayType.PVT()
 
-	if arrayType == ast.Map {
+	if arrayPVT == ast.Map {
 		if valType != ast.String {
 			w.Error(node.Identifier.GetToken(), "variable is not a string")
 			return &wkr.Invalid{}
 		}
-	} else if arrayType == ast.List {
+	} else if arrayPVT == ast.List {
 		if valType != ast.Number {
 			w.Error(node.Identifier.GetToken(), "variable is not a number")
 			return &wkr.Invalid{}
 		}
 	}
 
-	if arrayType != ast.List && arrayType != ast.Map {
+	if arrayPVT != ast.List && arrayPVT != ast.Map {
 		w.Error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a list, or map", node.Identifier.GetToken().Lexeme))
 		return &wkr.Invalid{}
 	}
@@ -372,9 +373,14 @@ func MemberExpr(w *wkr.Walker, node *ast.MemberExpr, scope *wkr.Scope) wkr.Value
 	if variable, ok := array.(*wkr.VariableVal); ok {
 		array = variable.Value
 	}
-
-	wrappedValType := array.GetType().(*wkr.WrapperType).WrappedType
-	wrappedVal := w.TypeToValue(wrappedValType)
+	arrayType = array.GetType()
+	
+	var wrappedVal wkr.Value
+	if wrappedValType, ok := arrayType.(*wkr.WrapperType); ok {
+		wrappedVal = w.TypeToValue(wrappedValType.WrappedType)
+	}else if customValType, ok := arrayType.(*wkr.CustomType); ok {
+		wrappedVal = w.TypeToValue(customValType.UnderlyingType.(*wkr.WrapperType).WrappedType)
+	}
 
 	if node.Property != nil {
 		w.Context.Value = wrappedVal
@@ -452,6 +458,24 @@ func SpawnExpr(w *wkr.Walker, new *ast.SpawnExpr, scope *wkr.Scope) wkr.Value {
 
 	return val
 }
+
+func CastExpr(w *wkr.Walker, cast *ast.CastExpr, scope *wkr.Scope) wkr.Value {
+	val := GetNodeValue(w, &cast.Value, scope)
+	typ := TypeExpr(w, cast.Type, w.Environment)
+
+	if typ.GetType() != wkr.CstmType {
+		return &wkr.Invalid{}
+	}
+
+	cstm := typ.(*wkr.CustomType)
+
+	if !wkr.TypeEquals(val.GetType(), cstm.UnderlyingType) {
+		w.Error(cast.Value.GetToken(), fmt.Sprintf("expression type is %s, but underlying type is %s", val.GetType().ToString(), cstm.UnderlyingType.ToString()))
+		return &wkr.Invalid{}
+	}
+
+	return wkr.NewCustomVal(cstm)
+} 
 
 func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, env *wkr.Environment) wkr.Type {
 	if typee == nil {

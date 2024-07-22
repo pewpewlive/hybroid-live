@@ -306,3 +306,7 @@ func (gen *Generator) spawnExpr(spawn ast.SpawnExpr, scope *GenScope) string {
 	src.WriteString(")")
 	return src.String()
 }
+
+func (gen *Generator) castExpr(cast ast.CastExpr, scope *GenScope) string {
+	return gen.GenerateExpr(cast.Value, scope)
+}

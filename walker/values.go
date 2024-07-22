@@ -354,7 +354,7 @@ func GetContentsValueType(values []Value) Type {
 		index++
 	}
 	if parser.IsFx(valTypes[0].PVT()) {
-		return NewBasicType(ast.FixedPoint)
+		return NewFixedPointType(ast.FixedPoint)
 	}
 	return valTypes[0]
 }

@@ -355,6 +355,8 @@ func (gen *Generator) GenerateExpr(node ast.Node, scope *GenScope) string {
 		return gen.envAccessExpr(*newNode, scope)
 	case *ast.SpawnExpr:
 		return gen.spawnExpr(*newNode, scope)
+	case *ast.CastExpr:
+		return gen.castExpr(*newNode, scope)
 	}
 
 	return ""

@@ -109,6 +109,8 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 		val = EnvAccessExpr(w, newNode)
 	case *ast.SpawnExpr:
 		val = SpawnExpr(w, newNode, scope)
+	case *ast.CastExpr:
+		val = CastExpr(w, newNode, scope)
 	case *ast.UseStmt:
 
 	default:

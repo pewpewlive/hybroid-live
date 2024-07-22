@@ -167,23 +167,23 @@ bih()
 
 type FixedMap = map<fixed>
 
-let FixedMap variable = {a = 4f}
+let FixedMap variable = {a = 4f} as FixedMap
 
 variable["a"] = 1f
 
 fn test5(FixedMap uh) {
   uh = {
     a = 1f
-  }
+  } as FixedMap
 }
 
 test5({
   a = 1f
-})
+} as FixedMap)
 
 entity Quadro { 
   fixed x, y = 0f, 0f
-  number damage = 2
+  number damage = 2S
 
   spawn(fixed x, fixed y, number _damage) {
     self.x = x

@@ -378,6 +378,28 @@ func SpawnExpr(w *wkr.Walker, new *ast.SpawnExpr, scope *wkr.Scope) wkr.Value {
 	return val
 }
 
+func CastExpr(w *wkr.Walker, cast *ast.CastExpr, scope *wkr.Scope) wkr.Value {
+	val := GetNodeValue(w, &cast.Value, scope)
+
+	if (val.GetType().GetType() == wkr.Unresolved) {
+		return val
+	}
+
+	typ := TypeExpr(w, cast.Type)
+
+	if typ.GetType() == wkr.Unresolved {
+		return &wkr.UnresolvedVal{
+			Expr: typ.(*wkr.UnresolvedType).Expr,
+		}
+	}
+
+	if typ.GetType() != wkr.CstmType {
+		w.Error(cast.Type.GetToken(), "can only accept custom types in cast")
+	}
+
+	return &wkr.Unknown{}
+} 
+
 func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr) wkr.Type {
 	if typee == nil {
 		return wkr.InvalidType
