@@ -43,6 +43,8 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 		TickStmt(w, newNode, scope)
 	case *ast.CallExpr:
 		CallExpr(w, newNode, scope, wkr.Function)
+	case *ast.PewpewExpr:
+		PewpewExpr(w, newNode, scope)
 	case *ast.EnvAccessExpr:
 		EnvAccessExpr(w, newNode)
 	case *ast.MethodCallExpr:
@@ -57,8 +59,8 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 		AssignmentStmt(w, newNode, scope)
 	case *ast.UseStmt:
 		UseStmt(w, newNode, scope)
-	case *ast.TypeDeclarationStmt:
-		TypeDeclarationStmt(w, newNode, scope)
+	// case *ast.TypeDeclarationStmt:
+	// 	TypeDeclarationStmt(w, newNode, scope)
 	case *ast.Improper:
 		w.Error(newNode.GetToken(), "Improper statement: parser fault")
 	case *ast.MacroDeclarationStmt:
@@ -78,7 +80,7 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 	case *ast.BinaryExpr:
 		val = BinaryExpr(w, newNode, scope)
 	case *ast.IdentifierExpr:
-		val = IdentifierExpr(w, node, scope) // so this is good
+		val = IdentifierExpr(w, node, scope)
 	case *ast.GroupExpr:
 		val = GroupingExpr(w, newNode, scope)
 	case *ast.ListExpr:
@@ -109,10 +111,11 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 		val = EnvAccessExpr(w, newNode)
 	case *ast.SpawnExpr:
 		val = SpawnExpr(w, newNode, scope)
-	case *ast.CastExpr:
-		val = CastExpr(w, newNode, scope)
+	// case *ast.CastExpr:
+	// 	val = CastExpr(w, newNode, scope)
 	case *ast.UseStmt:
-
+	case *ast.PewpewExpr:
+		val = PewpewExpr(w, newNode, scope)
 	default:
 		w.Error(newNode.GetToken(), "Expected expression")
 		return &walker.Invalid{}

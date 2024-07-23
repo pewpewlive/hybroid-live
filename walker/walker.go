@@ -8,6 +8,10 @@ import (
 	"hybroid/parser"
 )
 
+var LibraryEnvs = map[Library]*Environment{
+	Pewpew: PewpewEnv,
+}
+
 type Environment struct {
 	Name      string
 	Path      string // dynamic lua path
@@ -78,8 +82,9 @@ const (
 )
 
 type Walker struct {
+	CurrentEnvironment *Environment
 	Environment   *Environment
-	Walkers       map[string]*Walker
+	Walkers       map[string]*Walker// the walker struct?
 	UsedLibraries map[Library]bool
 	UsedWalkers   []*Walker
 	Nodes         []ast.Node
@@ -96,7 +101,7 @@ type Walker struct {
 // }
 
 func NewWalker(path string) *Walker {
-	return &Walker{
+	walker := &Walker{
 		Environment: NewEnvironment(path),
 		Nodes:       []ast.Node{},
 		Errors:      []ast.Error{},
@@ -107,6 +112,8 @@ func NewWalker(path string) *Walker {
 			Ret:   Types{},
 		},
 	}
+	walker.CurrentEnvironment = walker.Environment
+	return walker
 }
 
 func (w *Walker) Error(token lexer.Token, msg string) {
@@ -233,6 +240,7 @@ func (w *Walker) DeclareEntity(entityVal *EntityVal) bool {
 }
 
 func (w *Walker) ResolveVariable(s *Scope, name string) *Scope {
+	
 	if _, found := s.Variables[name]; found {
 		return s
 	}
@@ -242,6 +250,16 @@ func (w *Walker) ResolveVariable(s *Scope, name string) *Scope {
 			variable := w.GetVariable(&w.UsedWalkers[i].Environment.Scope, name)
 			if variable != nil {
 				return &w.UsedWalkers[i].Environment.Scope
+			}
+		}
+		for k, v := range w.UsedLibraries {
+			if !v {
+				continue
+			} 
+
+			variable := w.GetVariable(&LibraryEnvs[k].Scope, name)
+			if variable != nil {
+				return &LibraryEnvs[k].Scope
 			}
 		}
 		return nil
@@ -493,4 +511,8 @@ func DetermineCallTypeString(callType ProcedureType) string {
 	}
 
 	return "method"
+}
+
+func SetupLibraryEnvironments() {
+	PewpewEnv.Scope.Environment = PewpewEnv	
 }

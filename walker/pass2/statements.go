@@ -9,9 +9,9 @@ import (
 	"strings"
 )
 
-func TypeDeclarationStmt(w *wkr.Walker, node *ast.TypeDeclarationStmt, scope *wkr.Scope) {
-	w.Environment.CustomTypes[node.Alias.Lexeme] = wkr.NewCustomType(node.Alias.Lexeme, TypeExpr(w, node.AliasedType, w.Environment))
-}
+// func TypeDeclarationStmt(w *wkr.Walker, node *ast.TypeDeclarationStmt, scope *wkr.Scope) {
+// 	w.Environment.CustomTypes[node.Alias.Lexeme] = wkr.NewCustomType(node.Alias.Lexeme, TypeExpr(w, node.AliasedType, w.Environment))
+// }
 
 func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope *wkr.Scope) {
 	if node.Constructor == nil {
@@ -504,6 +504,12 @@ func UseStmt(w *wkr.Walker, node *ast.UseStmt, scope *wkr.Scope) {
 		w.Error(node.GetToken(), "cannot have a use statement inside a local block")
 		return
 	}
+
+	if strings.ToLower(node.Path.Nameify()) == "pewpew" {
+		w.UsedLibraries[wkr.Pewpew] = true
+		return;
+	}
+
 	envStmt := w.GetEnvStmt()
 	envName := node.Path.Nameify()
 	walker, found := w.Walkers[envName]

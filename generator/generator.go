@@ -53,6 +53,140 @@ var hyStruct = "HS"
 var hyEntity = "HE"
 var hyEntityState = "HES"
 
+var pewpewEnums = map[string]map[string]string {
+	"MothershipType": {
+		"Triangle": "THREE_CORNERS",
+		"Square": "FOUR_CORNERS",
+		"Pentagon": "FIVE_CORNERS",
+		"Hexagon": "SIX_CORNERS",
+		"Heptagon": "SEVEN_CORNERS",
+	},
+	"EntityType": {
+		"Asteroid": "ASTEROID",
+		"YellowBaf": "BAF",
+		"Inertiac": "INERTIAC",
+		"Mothership": "MOTHERSHIP",
+		"MothershipBullet": "MOTHERSHIP_BULLET",
+		"RollingCube": "ROLLING_CUBE",
+		"RollingSphere": "ROLLING_SPHERE",
+		"Ufo": "UFO",
+		"Wary": "WARY",
+		"Crowder": "CROWDER",
+		"CustomizableEntity": "CUSTOMIZABLE_ENTITY",
+		"Ship": "SHIP",
+		"Bomb": "BOMB",
+		"BlueBaf": "BAF_BLUE",
+		"RedBaf": "BAF_RED",
+		"WaryMissile": "WARY_MISSILE",
+		"UfoBullet": "UFO_BULLET",
+		"PlayerBullet": "PLAYER_BULLET",
+		"BombExplosion": "BOMB_EXPLOSION",
+		"PlayerExplosion": "PLAYER_EXPLOSION",
+		"Bonus": "BONUS",
+		"FloatingMessage": "FLOATING_MESSAGE",
+		"Pointonium": "POINTONIUM",
+		"BonusImplosion": "BONUS_IMPLOSION",
+	},
+	"CannonType": {
+		"Single": "SINGLE",
+		"TicToc": "TIC_TOC",
+		"Double": "DOUBLE",
+		"Triple": "TRIPLE",
+		"FourDirections": "FOUR_DIRECTIONS",
+		"DoubleSwipe": "DOUBLE_SWIPE",
+		"Hemisphere": "HEMISPHERE",
+	},
+	"CannonFrequency": {
+		"Freq30": "FREQ_30",
+		"Freq15": "FREQ_15",
+		"Freq10": "FREQ_10",
+		"Freq7_5": "FREQ_7_5",
+		"Freq6": "FREQ_6",
+		"Freq5": "FREQ_5",
+		"Freq3": "FREQ_3",
+		"Freq2": "FREQ_2",
+		"Freq1": "FREQ_1",
+	},
+	"BombType": {
+		"Freeze": "FREEZE",
+		"Repulsive": "REPULSIVE",
+		"Atomize": "ATOMIZE",
+		"SmallAtomize" : "SMALL_ATOMIZE",
+		"SmallFreeze": "SMALL_ATOMIZE",
+	},
+	"WeaponType": {
+		"Bullet": "BULLET",
+		"FreezeExplosion": "FREEZE_EXPLOSION",
+		"RepulsiveExplosion": "REPULSIVE_EXPLOSION",
+		"AtomizeExplosion": "ATOMIZE_EXPLOSION",
+	},
+	"AsteroidSize": {
+		"Small": "SMALL",
+		"Medium": "MEDIUM",
+		"Large": "LARGE",
+		"Enormous": "VERY_LARGE",
+	},
+}
+
+var pewpewFunctions = map[string]string{
+	"Print": "print",
+	"PrintDebug": "print_debug_info",
+	"SetLevelSize": "set_level_size",
+	"AddWall": "add_wall",
+	"RemoveWall": "remove_wall",
+	"AddUpdateCallback": "add_update_callback",
+	"GetNumberOfPlayers": "get_number_of_players",
+	"IncreasePlayerScore": "increase_score_of_player",
+	"IncreasePlayerScoreStreak": "increase_score_streak_of_player",
+	"GetPlayerScoreStreak": "get_score_streak_level",
+	"StopGame": "stop_game",
+	"GetPlayerInputs": "get_player_inputs",
+	"GetPlayerScore": "get_score_of_player",
+	"ConfigurePlayer": "configure_player",
+	"ConfigurePlayerHud": "configure_player_hud",
+	"GetPlayerConfig": "get_player_configuration", 
+	"ConfigureShipWeapon": "configure_player_ship_weapon",
+	"DamageShip": "add_damage_to_player_ship",
+	"AddArrowToShip": "add_arrow_to_player_ship",
+	"RemoveArrowFromShip": "remove_arrow_from_player_ship", 
+	"SetShipSpeed": "set_player_ship_speed",
+	"MakeShipTransparent": "make_player_ship_transparent",  
+	"GetAllEntities": "get_all_entities",
+	"GetEntitiesInRadius": "get_entities_colliding_with_disk", 
+	"GetEntityCount": "get_entity_count",
+	"GetEntityType": "get_entity_type",
+	"CreateExplosion": "create_explosion",
+	"NewAsteroid": "new_asteroid",
+	"NewAsteroidWithSize": "new_asteroid_with_size", 
+	"NewYellowBaf": "new_baf",
+	"NewRedBaf": "new_baf_red",
+	"NewBlueBaf": "new_baf_blue",
+	"NewBomb": "new_bomb",
+	"NewBonus": "new_bonus",
+	"NewCrowder": "new_crowder",
+	"NewFloatingMessage": "new_floating_message",
+	"NewEntity": "new_customizable_entity",
+	"NewInertiac": "new_inertiac",
+	"NewMothership": "new_mothership",
+	"NewPointonium": "new_pointonium",
+	"NewShip": "new_player_ship",
+	"NewBullet": "new_player_bullet",
+	"NewRollingCube": "new_rolling_cube",
+	"NewRollingSphere": "new_rolling_sphere",
+	"NewWary": "new_wary",
+	"NewUfo": "new_ufo",
+	"SetRollingCubeWallCollision": "rolling_cube_set_enable_collisions_with_walls",
+	"SetUFOWallCollision": "ufo_set_enable_collisions_with_walls",
+	"GetEntityPosition": "entity_get_position",
+	"GetEntityAlive": "entity_get_is_alive",
+	"IsEntityBeingDestroyed": "entity_get_is_started_to_be_destroyed",
+	"SetEntityPosition": "entity_set_position",
+	"SetEntityRadius": "entity_set_radius",
+	"SetEntityCallback": "entity_set_update_callback",
+	"DestroyEntity": "entity_destroy",
+	"EntityReactToWeapon": "entity_react_to_weapon",
+}
+
 func ResolveVarCounter(varname *StringBuilder, counter int) {
 	if counter > charsetLength-1 {
 		newCounter := counter - charsetLength
@@ -312,6 +446,9 @@ func (gen *Generator) GenerateStmt(node ast.Node, scope *GenScope) {
 	case *ast.EnvAccessExpr:
 		val := gen.envAccessExpr(*newNode, scope)
 		scope.WriteString(val)
+	case *ast.PewpewExpr:
+		val := gen.pewpewExpr(*newNode, scope)
+		scope.WriteString(val)
 	case *ast.EntityDeclarationStmt:
 		gen.entityDeclarationStmt(*newNode, scope)
 	}
@@ -355,8 +492,10 @@ func (gen *Generator) GenerateExpr(node ast.Node, scope *GenScope) string {
 		return gen.envAccessExpr(*newNode, scope)
 	case *ast.SpawnExpr:
 		return gen.spawnExpr(*newNode, scope)
-	case *ast.CastExpr:
-		return gen.castExpr(*newNode, scope)
+	case *ast.PewpewExpr:
+		return gen.pewpewExpr(*newNode, scope)
+	// case *ast.CastExpr:
+	// 	return gen.castExpr(*newNode, scope)
 	}
 
 	return ""

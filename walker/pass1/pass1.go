@@ -3,12 +3,11 @@ package pass1
 import (
 	"fmt"
 	"hybroid/ast"
-	"hybroid/walker"
 	wkr "hybroid/walker"
 	"strings"
 )
 
-func Action(w *walker.Walker, nodes []ast.Node, wlkrs map[string]*walker.Walker) {
+func Action(w *wkr.Walker, nodes []ast.Node, wlkrs map[string]*wkr.Walker) {
 	w.Walkers = wlkrs
 	w.Nodes = nodes
 
@@ -67,8 +66,10 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 		EnumDeclarationStmt(w, newNode, scope)
 	case *ast.MacroDeclarationStmt:
 		MacroDeclarationStmt(w, newNode, scope)
-	case *ast.TypeDeclarationStmt:
-		TypeDeclarationStmt(w, newNode, scope)
+	case *ast.PewpewExpr:
+		PewpewExpr(w, newNode, scope)
+	// case *ast.TypeDeclarationStmt:
+	// 	TypeDeclarationStmt(w, newNode, scope)
 	case *ast.UseStmt:
 	case *ast.AssignmentStmt:
 	case *ast.EnvAccessExpr:
@@ -79,8 +80,8 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 	}
 }
 
-func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.Value {
-	var val walker.Value
+func GetNodeValue(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
+	var val wkr.Value
 
 	switch newNode := (*node).(type) {
 	case *ast.LiteralExpr:
@@ -119,11 +120,13 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 		val = EnvAccessExpr(w, newNode, scope)
 	case *ast.SpawnExpr:
 		val = SpawnExpr(w, newNode, scope)
-	case *ast.CastExpr:
-		val = CastExpr(w, newNode, scope)
+	// case *ast.CastExpr:
+	// 	val = CastExpr(w, newNode, scope)
+	case *ast.PewpewExpr:
+		val = PewpewExpr(w, newNode, scope)
 	default:
 		w.Error(newNode.GetToken(), "Expected expression")
-		return &walker.Invalid{}
+		return &wkr.Invalid{}
 	}
 	return val
 }

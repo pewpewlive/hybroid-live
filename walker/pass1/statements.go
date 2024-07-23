@@ -8,16 +8,16 @@ import (
 	wkr "hybroid/walker"
 )
 
-func TypeDeclarationStmt(w *wkr.Walker, node *ast.TypeDeclarationStmt, scope *wkr.Scope) {
-	typ := TypeExpr(w, &ast.TypeExpr{
-		Name: &ast.IdentifierExpr{Name: node.Alias},
-	})
-	if typ.PVT() != ast.Invalid && typ.PVT() != ast.Unknown {
-		w.Error(node.Alias, "type alias already exists")
-		return
-	}
-	w.Environment.CustomTypes[node.Alias.Lexeme] = wkr.NewCustomType(node.Alias.Lexeme, TypeExpr(w, node.AliasedType))
-}
+// func TypeDeclarationStmt(w *wkr.Walker, node *ast.TypeDeclarationStmt, scope *wkr.Scope) {
+// 	typ := TypeExpr(w, &ast.TypeExpr{
+// 		Name: &ast.IdentifierExpr{Name: node.Alias},
+// 	})
+// 	if typ.PVT() != ast.Invalid && typ.PVT() != ast.Unknown {
+// 		w.Error(node.Alias, "type alias already exists")
+// 		return
+// 	}
+// 	w.Environment.CustomTypes[node.Alias.Lexeme] = wkr.NewCustomType(node.Alias.Lexeme, TypeExpr(w, node.AliasedType))
+// }
 
 func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope *wkr.Scope) {
 	if node.Constructor == nil {

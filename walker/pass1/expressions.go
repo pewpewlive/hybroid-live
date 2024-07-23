@@ -167,6 +167,10 @@ func CallExpr(w *wkr.Walker, node *ast.CallExpr, scope *wkr.Scope, callType wkr.
 		return &wkr.Unknown{}
 	}
 
+	for i := range node.Args {
+		GetNodeValue(w, &node.Args[i], scope)
+	}
+
 	variable, it_is := val.(*wkr.VariableVal)
 	if it_is {
 		val = variable.Value
@@ -378,27 +382,31 @@ func SpawnExpr(w *wkr.Walker, new *ast.SpawnExpr, scope *wkr.Scope) wkr.Value {
 	return val
 }
 
-func CastExpr(w *wkr.Walker, cast *ast.CastExpr, scope *wkr.Scope) wkr.Value {
-	val := GetNodeValue(w, &cast.Value, scope)
+func PewpewExpr(w *wkr.Walker, expr *ast.PewpewExpr, scope *wkr.Scope) wkr.Value {
+	return GetNodeValue(w, &expr.Node, &wkr.PewpewEnv.Scope)
+}
 
-	if (val.GetType().GetType() == wkr.Unresolved) {
-		return val
-	}
+// func CastExpr(w *wkr.Walker, cast *ast.CastExpr, scope *wkr.Scope) wkr.Value {
+// 	val := GetNodeValue(w, &cast.Value, scope)
 
-	typ := TypeExpr(w, cast.Type)
+// 	if (val.GetType().GetType() == wkr.Unresolved) {
+// 		return val
+// 	}
 
-	if typ.GetType() == wkr.Unresolved {
-		return &wkr.UnresolvedVal{
-			Expr: typ.(*wkr.UnresolvedType).Expr,
-		}
-	}
+// 	typ := TypeExpr(w, cast.Type)
 
-	if typ.GetType() != wkr.CstmType {
-		w.Error(cast.Type.GetToken(), "can only accept custom types in cast")
-	}
+// 	if typ.GetType() == wkr.Unresolved {
+// 		return &wkr.UnresolvedVal{
+// 			Expr: typ.(*wkr.UnresolvedType).Expr,
+// 		}
+// 	}
 
-	return &wkr.Unknown{}
-} 
+// 	if typ.GetType() != wkr.CstmType {
+// 		w.Error(cast.Type.GetToken(), "can only accept custom types in cast")
+// 	}
+
+// 	return &wkr.Unknown{}
+// } 
 
 func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr) wkr.Type {
 	if typee == nil {
@@ -456,16 +464,16 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr) wkr.Type {
 		return &wkr.RawEntityType{}
 	default:
 		typeeName := typee.Name.GetToken().Lexeme
-		if entityVal, found := w.Environment.Entities[typeeName]; found {
+		if entityVal, found := w.CurrentEnvironment.Entities[typeeName]; found {
 			return entityVal.GetType()
 		}
-		if structVal, found := w.Environment.Structs[typeeName]; found {
+		if structVal, found := w.CurrentEnvironment.Structs[typeeName]; found {
 			return structVal.GetType()
 		}
-		if customType, found := w.Environment.CustomTypes[typeeName]; found {
+		if customType, found := w.CurrentEnvironment.CustomTypes[typeeName]; found {
 			return customType
 		}
-		if val := w.GetVariable(&w.Environment.Scope, typeeName); val != nil {
+		if val := w.GetVariable(&w.CurrentEnvironment.Scope, typeeName); val != nil {
 			if val.GetType().PVT() == ast.Enum {
 				return val.GetType()
 			}

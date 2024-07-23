@@ -43,6 +43,8 @@ func (e *Evaluator) AssignFile(file helpers.FileInformation) {
 }
 
 func (e *Evaluator) Action(cwd, outputDir string) error {
+	walker.SetupLibraryEnvironments()
+
 	for file := range e.walkerList {
 		sourceFile, err := os.ReadFile(filepath.Join(cwd, file.Path()))
 		if err != nil {

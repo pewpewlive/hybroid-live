@@ -116,7 +116,7 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 
 	variable := w.GetVariable(sc, ident.Name.Lexeme)
 
-	if sc.Tag.GetType() == wkr.Struct { // so this variables is a function that returns a function
+	if sc.Tag.GetType() == wkr.Struct { 
 		_struct := sc.Tag.(*wkr.StructTag).StructVal
 		_, index, _ := _struct.ContainsField(variable.Name)
 		selfExpr := &ast.FieldExpr{
@@ -201,16 +201,16 @@ func ListExpr(w *wkr.Walker, node *ast.ListExpr, scope *wkr.Scope) wkr.Value {
 	return &value
 }
 
-func CallExpr(w *wkr.Walker, node *ast.CallExpr, scope *wkr.Scope, callType wkr.ProcedureType) wkr.Value { // we finna debug
-	val := GetNodeValue(w, &node.Caller, scope) // debug again?
+func CallExpr(w *wkr.Walker, node *ast.CallExpr, scope *wkr.Scope, callType wkr.ProcedureType) wkr.Value { 
+	val := GetNodeValue(w, &node.Caller, scope) 
 
-	valType := val.GetType().PVT() // this is good actually
+	valType := val.GetType().PVT() 
 	if valType != ast.Func {
-		w.Error(node.Caller.GetToken(), "caller is not a function") // it works we just dont handle it lmao
-		return &wkr.Invalid{}                                       // lets debug this again
-	} // aight
-	// nice
-	variable, it_is := val.(*wkr.VariableVal) // eyssir
+		w.Error(node.Caller.GetToken(), "caller is not a function") 
+		return &wkr.Invalid{}                                       
+	}
+
+	variable, it_is := val.(*wkr.VariableVal) 
 	if it_is {
 		val = variable.Value
 	}
@@ -223,7 +223,7 @@ func CallExpr(w *wkr.Walker, node *ast.CallExpr, scope *wkr.Scope, callType wkr.
 	w.ValidateArguments(args, fun.Params, node.Caller.GetToken(), w.DetermineCallTypeString(callType))
 
 	if len(fun.Returns) == 1 {
-		return w.TypeToValue(fun.Returns[0]) // debug?
+		return w.TypeToValue(fun.Returns[0]) 
 	}
 	return &fun.Returns
 }
@@ -459,23 +459,28 @@ func SpawnExpr(w *wkr.Walker, new *ast.SpawnExpr, scope *wkr.Scope) wkr.Value {
 	return val
 }
 
-func CastExpr(w *wkr.Walker, cast *ast.CastExpr, scope *wkr.Scope) wkr.Value {
-	val := GetNodeValue(w, &cast.Value, scope)
-	typ := TypeExpr(w, cast.Type, w.Environment)
+func PewpewExpr(w *wkr.Walker, expr *ast.PewpewExpr, scope *wkr.Scope) wkr.Value {
+	wkr.PewpewEnv.Scope.Parent = scope
+	return GetNodeValue(w, &expr.Node, &wkr.PewpewEnv.Scope)
+}
 
-	if typ.GetType() != wkr.CstmType {
-		return &wkr.Invalid{}
-	}
+// func CastExpr(w *wkr.Walker, cast *ast.CastExpr, scope *wkr.Scope) wkr.Value {
+// 	val := GetNodeValue(w, &cast.Value, scope)
+// 	typ := TypeExpr(w, cast.Type, w.Environment)
 
-	cstm := typ.(*wkr.CustomType)
+// 	if typ.GetType() != wkr.CstmType {
+// 		return &wkr.Invalid{}
+// 	}
 
-	if !wkr.TypeEquals(val.GetType(), cstm.UnderlyingType) {
-		w.Error(cast.Value.GetToken(), fmt.Sprintf("expression type is %s, but underlying type is %s", val.GetType().ToString(), cstm.UnderlyingType.ToString()))
-		return &wkr.Invalid{}
-	}
+// 	cstm := typ.(*wkr.CustomType)
 
-	return wkr.NewCustomVal(cstm)
-} 
+// 	if !wkr.TypeEquals(val.GetType(), cstm.UnderlyingType) {
+// 		w.Error(cast.Value.GetToken(), fmt.Sprintf("expression type is %s, but underlying type is %s", val.GetType().ToString(), cstm.UnderlyingType.ToString()))
+// 		return &wkr.Invalid{}
+// 	}
+
+// 	return wkr.NewCustomVal(cstm)
+// } 
 
 func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, env *wkr.Environment) wkr.Type {
 	if typee == nil {

@@ -8,22 +8,22 @@ import (
 )
 
 func (p *Parser) expression() ast.Node {
-	return p.cast(p.fn())
+	return /*p.cast(*/p.fn()/*)*/
 }
 
-func (p *Parser) cast(node ast.Node) ast.Node {
-	if p.match(lexer.As) {
-		if !p.PeekIsType() {
-			p.error(p.peek(), "expected type after 'as'")
-		}
-		return &ast.CastExpr{
-			Value: node,
-			Type: p.Type(),
-		}
-	}
+// func (p *Parser) cast(node ast.Node) ast.Node {
+// 	if p.match(lexer.As) {
+// 		if !p.PeekIsType() {
+// 			p.error(p.peek(), "expected type after 'as'")
+// 		}
+// 		return &ast.CastExpr{
+// 			Value: node,
+// 			Type: p.Type(),
+// 		}
+// 	}
 
-	return node
-}
+// 	return node
+// }
 
 func (p *Parser) fn() ast.Node {
 	if p.match(lexer.Fn) {
@@ -325,7 +325,7 @@ func (p *Parser) matchExpr() ast.Node {
 func (p *Parser) macroCall() ast.Node {
 	if p.match(lexer.At) {
 		macroCall := &ast.MacroCallExpr{}
-		caller := p.primary()
+		caller := p.primary(true)
 		callerType := caller.GetType()
 		if callerType != ast.CallExpression {
 			p.error(caller.GetToken(), "expected call after '@'")
@@ -375,10 +375,10 @@ func (p *Parser) self() ast.Node {
 		}
 	}
 
-	return p.primary()
+	return p.primary(true)
 }
 
-func (p *Parser) primary() ast.Node {
+func (p *Parser) primary(allowStruct bool) ast.Node {
 	if p.match(lexer.False) {
 		return &ast.LiteralExpr{Value: "false", ValueType: ast.Bool, Token: p.peek(-1)}
 	}
@@ -435,7 +435,7 @@ func (p *Parser) primary() ast.Node {
 		return p.list()
 	}
 
-	if p.match(lexer.Struct) {
+	if allowStruct && p.match(lexer.Struct) {
 		return p.anonStruct()
 	}
 
@@ -539,7 +539,7 @@ func (p *Parser) parseMap() ast.Node {
 	token := p.peek(-1)
 	parsedMap := make(map[lexer.Token]ast.Property, 0)
 	for !p.check(lexer.RightBrace) {
-		key := p.primary()
+		key := p.primary(true)
 
 		var newKey lexer.Token
 		switch key := key.(type) {
@@ -623,7 +623,7 @@ func (p *Parser) WrappedType() *ast.TypeExpr {
 }
 
 func (p *Parser) Type() *ast.TypeExpr {
-	expr := p.primary()
+	expr := p.primary(false)
 	exprToken := expr.GetToken()
 
 	if expr.GetType() == ast.EnvironmentAccessExpression {
@@ -661,11 +661,12 @@ func (p *Parser) Type() *ast.TypeExpr {
 			}
 		}
 
-		typee.Params = params          // we finna debug
-		typee.Returns = p.returnings() // go to level
+		typee.Params = params
+		typee.Returns = p.returnings()
 		typee.Name = expr
 		return typee
 	case lexer.Struct:
+		p.advance()
 		fields := p.parameters(lexer.LeftBrace, lexer.RightBrace)
 		return &ast.TypeExpr{Name: expr, Fields: fields}
 	default:

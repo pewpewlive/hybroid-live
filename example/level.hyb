@@ -1,189 +1,51 @@
 env MyLevel as Level
-/*
-let width, height = 500f, 500f
-let ship_id = spawn pewpew::PlayerShip(width / 2f, height / 2f)
-pewpew::configure_ship(0, struct{ shield = 5 })
-pewpew::configure_ship_weapon(ship_id, struct{
-  cannon = pewpew::CannonType.Double, 
-  frequency = pewpew::CannonFrequency.Freq30
+
+// let width, height = 500f, 500f
+// let ship_id = spawn pewpew::PlayerShip(width / 2f, height / 2f)
+// pewpew::configure_ship(0, struct{ shield = 5 })
+// pewpew::configure_ship_weapon(ship_id, struct{
+//   cannon = pewpew::CannonType.Double, 
+//   frequency = pewpew::CannonFrequency.Freq30
+// })
+// spawn pewpew::Mothership(100f, 100f, pewpew::MothershipType.SevenCorners, 90d)
+// let id = spawn entity(100f, 100f)
+// pewpew::set_entity_mesh(id, MyMeshes::AmazingMesh, 0)
+// Pewpew::EntitySetMesh(id, MyMeshes::AmazingMesh, 0)
+
+// pewpew::start_spawning_entity(id, 60)
+// pewpew::set_entity_update_callback(id, fn(entity id) {
+//   let x, y = pewpew::get_entity_position(id)
+//   pewpew::set_entity_position(id, x + 10f, y - 10f)
+// })
+
+Pewpew::SetLevelSize(1000fx, 1000fx)
+
+let ship = Pewpew::NewShip(0f, 0f, 0)
+
+Pewpew::ConfigurePlayer(0, struct{ shield = 10 })
+Pewpew::ConfigureShipWeapon(ship, struct{
+  cannon = Pewpew::CannonType.Double
+  frequency = Pewpew::CannonFrequency.Freq30
 })
-spawn pewpew::Mothership(100f, 100f, pewpew::MothershipType.SevenCorners, 90d)
-let id = spawn entity(100f, 100f)
-pewpew::set_entity_mesh(id, MyMeshes::AmazingMesh, 0)
-Pewpew::EntitySetMesh(id, MyMeshes::AmazingMesh, 0)
 
-pewpew::start_spawning_entity(id, 60)
-pewpew::set_entity_update_callback(id, fn(entity id) {
-  let x, y = pewpew::get_entity_position(id)
-  pewpew::set_entity_position(id, x + 10f, y - 10f)
-})
-//env ExampleLevel as Level
-
-//use A
-
-// Hi!
-
-let text b = "Hello"
-pub c = {banana = 1, apple = 2, pear = 3}
-let d = [1.5f, 2.2048fx, 90d, 3.14r]
-a /= 3
-// if d[1] == 2.2048fx + 2.2048fx / 2.2048fx or d[1] == 2.1024fx  {
-//   d[2] = d[1]
-// } else if false {
-//   d[1] = d[2]
-// } else {
-//   d[1] = 180d
+// let a = struct{
+//   a = 1f
+//   b = struct{
+//     c = 1
+//   }
 // }
 
-fn Abs(number a) number {
-  if a >= 0 {
-    return a
-  }
-  return -a
-}
+// fn uh(struct{ number a } a) {
 
-let a = Abs(c["banana"])
-a = Abs(a)
+// }
 
-fn MatchShow(text test) text {
-  return match test {
-    "Hello" => "Hi"
-    "Goodbye" => "Bye"
-    "See you later" => "Cya"
-    _ => "Wrong input"
-  }
-}
+// uh(struct{ a = 1 })
 
-b = MatchShow("Hello")
-b = MatchShow(b)
-
-spawn entity(10f, 10f)
-let quad = spawn Quadro(10f, 10f, 2)
-
-repeat 10 with i {
-  match i {
-    1 => {
-      continue
-    }
-    else => {
-      break
-    }
-  }
-  
-  if i / a >= 1 {
-    break
-  }
-}
-
-repeat from 10 to -10 by -1 with i { }
-while false { }
-for i, v in d { }
-
-struct Foo {
-  number foo, bar = 100, 90
-  number foobar
-  
-  new(number foo, number bar) {
-    self.foo = foo
-    self.bar = bar
-    foobar = self.foo + self.bar
-  }
-
-  fn Foo() number {
-    return foo
-  }
-
-  fn Foobar() number {
-    return self.foobar
-  }
-}
-
-struct QuadroState {
-  new() {
-    
-  }
-}
-
-b = MatchShow("Hello")
-b = MatchShow(b)
-
-fn test(Quadro m) 
-  => if false {
-
-  } // works
-
-fn test2() number 
-  => 2
-
-if true 
-  => if true {
-      test2()
-    } 
-
-while true 
-  => let xdas = 4
-  
-test(spawn Quadro(10f, 10f, 0))
-
-//Pewpew::uh()
-//let a = Math::pi
-
-match true {
-  true => {
-
-  }
-  else => {
-
-  }
-}
-
-*/
-
-let gex = 0
-
-// fn test()
-//   => gex = 1
-
-//            ___     ___   ______
-//            |  |    |  |  |     | 
-//            ____________  ______
-//            |          |  |     |
-fn test3 -> (fn -> fn, number) 
-  => test4, 4
-// 
-fn test4 -> fn 
-  => fn => gex = 2
-
-/*
-fn test4 -> fn {
-  return fn {
-    gex = 2
-  }
-}
-*/
-
-let bih, a = test3()
-bih() 
-
-type FixedMap = map<fixed>
-
-let FixedMap variable = {a = 4f} as FixedMap
-
-variable["a"] = 1f
-
-fn test5(FixedMap uh) {
-  uh = {
-    a = 1f
-  } as FixedMap
-}
-
-test5({
-  a = 1f
-} as FixedMap)
+let test = Pewpew::NewEntity(0f, 0f)
 
 entity Quadro { 
   fixed x, y = 0f, 0f
-  number damage = 2S
+  number damage = 2
 
   spawn(fixed x, fixed y, number _damage) {
     self.x = x

@@ -59,9 +59,17 @@ func (gen *Generator) callExpr(node ast.CallExpr, tabbed bool, scope *GenScope) 
 	} else {
 		src.Append(fn, "(")
 	}
-	for i, arg := range node.Args {
+	src.WriteString(gen.GenerateArgs(node.Args, scope))
+
+	return src.String()
+}
+
+func (gen *Generator) GenerateArgs(args []ast.Node, scope *GenScope) string {
+	src := StringBuilder{}
+
+	for i, arg := range args {
 		src.WriteString(gen.GenerateExpr(arg, scope))
-		if i != len(node.Args)-1 {
+		if i != len(args)-1 {
 			src.WriteString(", ")
 		}
 	}
@@ -307,6 +315,25 @@ func (gen *Generator) spawnExpr(spawn ast.SpawnExpr, scope *GenScope) string {
 	return src.String()
 }
 
-func (gen *Generator) castExpr(cast ast.CastExpr, scope *GenScope) string {
-	return gen.GenerateExpr(cast.Value, scope)
+func (gen *Generator) pewpewExpr(expr ast.PewpewExpr, scope *GenScope) string {
+	src := StringBuilder{}
+
+	src.WriteString("pewpew.")
+	
+	nodeType := expr.Node.GetType()
+	if nodeType == ast.FieldExpression {
+		field := expr.Node.(*ast.FieldExpr)
+		enumName := field.Identifier.GetToken().Lexeme
+		src.Append(enumName, ".", pewpewEnums[enumName][field.Property.GetToken().Lexeme])
+	}else if nodeType == ast.CallExpression {
+		call := expr.Node.(*ast.CallExpr)
+		src.Append(pewpewFunctions[call.GetToken().Lexeme], "(")
+		src.WriteString(gen.GenerateArgs(call.Args, scope))
+	}
+
+	return src.String()
 }
+
+// func (gen *Generator) castExpr(cast ast.CastExpr, scope *GenScope) string {
+// 	return gen.GenerateExpr(cast.Value, scope)
+// }
