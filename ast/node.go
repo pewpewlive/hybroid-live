@@ -89,7 +89,6 @@ const (
 	Ident      PrimitiveValueType = "ident"
 	Enum       PrimitiveValueType = "enum"
 	Path       PrimitiveValueType = "path"
-	Sound      PrimitiveValueType = "sound"
 	Unresolved PrimitiveValueType = "unresolved"
 	Invalid    PrimitiveValueType = "invalid"
 )
