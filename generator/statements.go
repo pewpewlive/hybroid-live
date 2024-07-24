@@ -295,11 +295,11 @@ func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclaratio
 	}
 	for i, ident := range declaration.Identifiers {
 		if i == len(declaration.Identifiers)-1 && len(values) != 0 {
-			src.Append(fmt.Sprintf("%s = ", gen.WriteVar(ident.Lexeme)))
+			src.Append(fmt.Sprintf("%s = ", gen.GenerateExpr(&ast.IdentifierExpr{Name:ident}, scope)))
 		} else if i == len(declaration.Identifiers)-1 {
-			src.Append(gen.WriteVar(ident.Lexeme))
+			src.Append(gen.GenerateExpr(&ast.IdentifierExpr{Name:ident}, scope))
 		} else {
-			src.Append(fmt.Sprintf("%s, ", gen.WriteVar(ident.Lexeme)))
+			src.Append(fmt.Sprintf("%s, ", gen.GenerateExpr(&ast.IdentifierExpr{Name:ident}, scope)))
 		}
 	}
 	for i := range values {

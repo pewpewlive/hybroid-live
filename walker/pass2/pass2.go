@@ -46,7 +46,10 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 	case *ast.PewpewExpr:
 		PewpewExpr(w, newNode, scope)
 	case *ast.EnvAccessExpr:
-		EnvAccessExpr(w, newNode)
+		_, newVersion := EnvAccessExpr(w, newNode)
+		if newVersion != nil {
+			*node = newVersion
+		}
 	case *ast.MethodCallExpr:
 		MethodCallExpr(w, node, scope)
 	case *ast.StructDeclarationStmt:
@@ -108,7 +111,11 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 	case *ast.MatchExpr:
 		val = MatchExpr(w, newNode, scope)
 	case *ast.EnvAccessExpr:
-		val = EnvAccessExpr(w, newNode)
+		var newVersion ast.Node
+		val, newVersion = EnvAccessExpr(w, newNode)
+		if newVersion != nil {
+			*node = newVersion
+		}
 	case *ast.SpawnExpr:
 		val = SpawnExpr(w, newNode, scope)
 	// case *ast.CastExpr:

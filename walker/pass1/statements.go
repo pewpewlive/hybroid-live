@@ -327,6 +327,31 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 		if ident.Lexeme == "_" {
 			continue
 		}
+		if w.Environment.Type == ast.MeshEnv && ident.Lexeme == "meshes" {
+			if len(declaration.Identifiers) > 1 {
+				w.Error(ident, "'meshes' variable cannot be declared with another variables")
+			}else if declaration.IsLocal {
+				w.Error(ident, "'meshes' has to be global")
+			}
+			expectedValueType := &wkr.ListVal{ValueType: wkr.NewAnonStructType(map[string]*wkr.VariableVal{
+					"vertexes": {
+						Name: "vertexes",
+						Value: &wkr.ListVal{ValueType: wkr.NewWrapperType(wkr.NewBasicType(ast.List), wkr.NewBasicType(ast.Number))},
+					},
+					"segments": {
+						Name: "segments",
+						Value:  &wkr.ListVal{ValueType: wkr.NewWrapperType(wkr.NewBasicType(ast.List), wkr.NewBasicType(ast.Number))},
+					},
+					"colors": {
+						Name: "colors",
+						Value: &wkr.ListVal{ValueType: wkr.NewBasicType(ast.Number)},
+					},
+				}, true),
+			}
+			if !wkr.TypeEquals(values[i].GetType(), expectedValueType.GetType()) {
+				w.Error(ident, fmt.Sprintf("'meshes' needs to be of type %s", expectedValueType.GetType().ToString()))
+			}
+		}
 
 		variable := &wkr.VariableVal{
 			Value:   values[i],

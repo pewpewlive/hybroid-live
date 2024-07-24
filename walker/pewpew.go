@@ -167,7 +167,7 @@ var pewpewVariables = map[string]*VariableVal{
 				Name: "shoot_joystick_color",
 				Value: &NumberVal{},
 			},
-		})),
+		}, true)),
 		IsConst: true,
 	},
 	"ConfigurePlayerHud": {
@@ -177,7 +177,7 @@ var pewpewVariables = map[string]*VariableVal{
 				Name: "TopLeftLine",
 				Value: &StringVal{},
 			},
-		})),
+		}, true)),
 	},
 	"GetPlayerConfig": {  
 		Name:  "GetPlayerConfig", 
@@ -190,7 +190,7 @@ var pewpewVariables = map[string]*VariableVal{
 				Name: "has_lost",
 				Value: &BoolVal{},
 			},
-		})),
+		}, true)),
 		IsConst: true,
 	}, 
 	"ConfigureShipWeapon": {  
@@ -208,7 +208,7 @@ var pewpewVariables = map[string]*VariableVal{
 				Name: "duration",
 				Value: &NumberVal{},
 			},
-		})),
+		}, true)),
 		IsConst: true,
 	},
 	"DamageShip": { 
@@ -256,28 +256,16 @@ var pewpewVariables = map[string]*VariableVal{
 		Value: NewFunction(&RawEntityType{}).WithReturns(NewEnumType("EntityType")),
 		IsConst: true,
 	},
-
-	// pewpew.play_ambient_sound(
-	// 	sound_path: string,
-	// 	index: int
-	//   )
-		// "PlayAmbientSound": { 
-		// 	Name:  "PlayAmbientSound", 
-		// 	Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)).WithReturns(&RawEntityType{}),
-		// 	IsConst: true, // ok
-		// },// let's like, ignore playAmbientSound and PlaySound for now
-	// pewpew.play_sound(
-	// 	sound_path: string,
-	// 	index: int,
-	// 	x: FixedPoint,
-	// 	y: FixedPoint
-	// )
-		// "NewEntity": { 
-		// 	Name:  "NewEntity", 
-		// 	Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)).WithReturns(&RawEntityType{}),
-		// 	IsConst: true,
-	// },
-		
+	"PlayAmbientSound": { 
+		Name:  "PlayAmbientSound", 
+		Value: NewFunction(NewPathType(ast.SoundEnv), NewBasicType(ast.Number)),
+		IsConst: true,
+	},
+	"PlaySound": { 
+		Name:  "PlaySound", 
+		Value: NewFunction(NewPathType(ast.SoundEnv), NewBasicType(ast.Number), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)),
+		IsConst: true,
+	},
 	"CreateExplosion": { 
 		Name:  "CreateExplosion", 
 		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewBasicType(ast.Number), NewFixedPointType(ast.Fixed), NewBasicType(ast.Number)),
@@ -352,7 +340,7 @@ var pewpewVariables = map[string]*VariableVal{
 					},
 				},
 			},
-		})).WithReturns(&RawEntityType{}),
+		}, true)).WithReturns(&RawEntityType{}),
 		IsConst: true,
 	},
 	"NewCrowder": { 
@@ -375,7 +363,7 @@ var pewpewVariables = map[string]*VariableVal{
 				Name: "is_optional",
 				Value: &BoolVal{},
 			},
-		})).WithReturns(&RawEntityType{}),
+		}, true)).WithReturns(&RawEntityType{}),
 		IsConst: true,
 	},
 
@@ -477,30 +465,113 @@ var pewpewVariables = map[string]*VariableVal{
 				Name: "PlayerIndex",
 				Value: &NumberVal{},
 			},
-		})),
+		}, true)),
 	},
-	// pewpew.customizable_entity_set_position_interpolation(
-	// 	entity_id: EntityId,
-	// 	enable: bool
-	//   )
-
-	// pewpew.customizable_entity_set_mesh(
-	// 	entity_id: EntityId,
-	// 	file_path: string,
-	// 	index: int
-	//   )
-
-	// pewpew.customizable_entity_set_flipping_meshes(
-	// 	entity_id: EntityId,
-	// 	file_path: string,
-	// 	index_0: int,
-	// 	index_1: int
-	//   )
-
-	// pewpew.customizable_entity_set_mesh_color(
-	// 	entity_id: EntityId,
-	// 	color: int
-	//   )
+	"SetEntityInterpolation": {
+		Name: "SetEntityInterpolation",
+		Value: NewFunction(&RawEntityType{}, NewBasicType(ast.Bool)),
+	},
+	"SetEntityMesh": {
+		Name: "SetEntityMesh",
+		Value: NewFunction(&RawEntityType{}, NewPathType(ast.MeshEnv), NewBasicType(ast.Number)),
+	},
+	"SetEntityFlippingMeshes": {
+		Name: "SetEntityFlippingMeshes",
+		Value: NewFunction(&RawEntityType{}, NewPathType(ast.MeshEnv), NewBasicType(ast.Number), NewBasicType(ast.Number)),
+	},
+	"SetEntityColor": {
+		Name: "SetEntityColor",
+		Value: NewFunction(&RawEntityType{}, NewBasicType(ast.Number)),
+	},
+	"EntitySkipAttributesInterpolation": {
+		Name: "EntitySkipAttributesInterpolation",
+		Value: NewFunction(&RawEntityType{}),
+	},
+	"NewString": {
+		Name: "NewString",
+		Value: NewFunction(&RawEntityType{}, NewBasicType(ast.String)),
+	},
+	"SetEntityMeshPosition": {
+		Name: "SetEntityMeshPosition",
+		Value: NewFunction(&RawEntityType{}, NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)),
+	},
+	"SetEntityMeshScale": {
+		Name: "SetEntityMeshScale",
+		Value: NewFunction(&RawEntityType{}, NewFixedPointType(ast.Fixed)),
+	},
+	"SetEntityMeshScaleXYZ": {
+		Name: "SetEntityMeshScaleXYZ",
+		Value: NewFunction(&RawEntityType{}, NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)),
+	},
+	"SetEntityMeshAngle": {
+		Name: "SetEntityMeshAngle",
+		Value: NewFunction(&RawEntityType{}, NewFixedPointType(ast.Fixed)),
+	},
+	"ConfigureEntityMusicResponse": {
+		Name: "ConfigureEntityMusicResponse",
+		Value: NewFunction(&RawEntityType{}, NewAnonStructType(map[string]*VariableVal{
+			"color_start": {
+				Name: "color_start",
+				Value: &NumberVal{},
+			},
+			"color_end": {
+				Name: "color_end",
+				Value: &NumberVal{},
+			},
+			"scale_x_start": {
+				Name: "scale_x_start",
+				Value: &FixedVal{ SpecificType: ast.Fixed },
+			},
+			"scale_x_end": {
+				Name: "scale_x_end",
+				Value: &FixedVal{ SpecificType: ast.Fixed },
+			},
+			"scale_y_start": {
+				Name: "scale_y_start",
+				Value: &FixedVal{ SpecificType: ast.Fixed },
+			},
+			"scale_y_end": {
+				Name: "scale_y_end",
+				Value: &FixedVal{ SpecificType: ast.Fixed },
+			},
+			"scale_z_start": {
+				Name: "scale_z_start",
+				Value: &FixedVal{ SpecificType: ast.Fixed },
+			},
+			"scale_z_end": {
+				Name: "scale_z_end",
+				Value: &FixedVal{ SpecificType: ast.Fixed },
+			},
+		}, true)),
+	},
+	"RotateEntityMesh": {
+		Name: "RotateEntityMesh",
+		Value: NewFunction(&RawEntityType{}, NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)),
+	},
+	"SetEntityVisibilityRadius": {
+		Name: "SetEntityVisibilityRadius",
+		Value: NewFunction(&RawEntityType{}, NewFixedPointType(ast.Fixed)),
+	},
+	"ConfigureEntityWallCollision": {
+		Name: "ConfigureEntityWallCollision",
+		Value: NewFunction(&RawEntityType{}, NewBasicType(ast.Bool), NewFunctionType(Types{&RawEntityType{}, NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)}, Types{})),
+	},
+	"SetEntityPlayerCollision": {
+		Name: "SetEntityPlayerCollision",
+		Value: NewFunction(&RawEntityType{}, NewFunctionType(Types{&RawEntityType{}, NewBasicType(ast.Number), &RawEntityType{}}, Types{})),
+	},
+	"SetEntityWeaponCollision": {
+		Name: "SetEntityWeaponCollision",
+		Value: NewFunction(&RawEntityType{}, NewFunctionType(Types{&RawEntityType{}, NewBasicType(ast.Number), NewEnumType("WeaponType")}, Types{NewBasicType(ast.Bool)})),
+	},
+	"SpawnEntity": {
+		Name: "SpawnEntity",
+		Value: NewFunction(&RawEntityType{}, NewBasicType(ast.Number)),
+	},
+	"ExplodeEntity": {
+		Name: "ExplodeEntity",
+		Value: NewFunction(&RawEntityType{}, NewBasicType(ast.Number)),
+	},
 }
 
 var EntityType = NewEnumVal("EntityType", false,

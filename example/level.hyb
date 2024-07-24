@@ -30,6 +30,9 @@ Pewpew:ConfigureShipWeapon(ship, struct{
 
 let uhhh = Math:Pi
 
+let id = Pewpew:NewEntity(10f, 10f)
+Pewpew:SetEntityMesh(id, Graphics, 0)
+
 // let a = struct{
 //   a = 1f
 //   b = struct{

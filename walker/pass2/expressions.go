@@ -111,6 +111,15 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 
 	sc := w.ResolveVariable(scope, ident.Name.Lexeme)
 	if sc == nil {
+
+		walker, found := w.Walkers[ident.Name.Lexeme]
+		if found {
+			*node = &ast.LiteralExpr{
+				Value: "\""+walker.Environment.Path+"\"",
+			}
+			return wkr.NewPathVal(walker.Environment.Path, walker.Environment.Type)
+		}
+
 		return &wkr.Invalid{}
 	}
 
@@ -156,13 +165,25 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 	return variable.Value
 }
 
-func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr) wkr.Value {
+func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr) (wkr.Value, ast.Node) {
 	envName := node.PathExpr.Nameify()
 
+	if node.Accessed.GetType() == ast.Identifier {
+		name := node.Accessed.(*ast.IdentifierExpr).Name.Lexeme
+		path := envName+"::"+name
+		walker, found := w.Walkers[path]
+		if found {
+			return wkr.NewPathVal(walker.Environment.Path, walker.Environment.Type), &ast.LiteralExpr{
+				Value: "\""+walker.Environment.Path+"\"",
+			}
+		}
+	}
+// let a = Pewpew
+// a::
 	walker, found := w.Walkers[envName]
 	if !found {
 		w.Error(node.GetToken(), fmt.Sprintf("Environment named '%s' doesn't exist", envName))
-		return &wkr.Invalid{}
+		return &wkr.Invalid{}, nil
 	}
 
 	envStmt := w.GetEnvStmt()
@@ -181,7 +202,7 @@ func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr) wkr.Value {
 		value = GetNodeValue(walker, &value.(*wkr.UnresolvedVal).Expr, &walker.Environment.Scope)
 	}
 
-	return value
+	return value, nil
 }
 
 func GroupingExpr(w *wkr.Walker, node *ast.GroupExpr, scope *wkr.Scope) wkr.Value {
@@ -287,6 +308,10 @@ func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {
 		return fieldVal
 	}
 	owner := w.Context.Value
+	if !wkr.IsOfPrimitiveType(owner, ast.Struct, ast.Entity, ast.AnonStruct, ast.Enum) {
+		w.Error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a struct, entity, enum or anonymous struct", node.Identifier.GetToken().Lexeme))
+		return &wkr.Invalid{}
+	}
 	variable := &wkr.VariableVal{Value: &wkr.Invalid{}}
 	ident := node.Identifier.GetToken()
 	var isField, isMethod bool
@@ -363,10 +388,8 @@ func MemberExpr(w *wkr.Walker, node *ast.MemberExpr, scope *wkr.Scope) wkr.Value
 			w.Error(node.Identifier.GetToken(), "variable is not a number")
 			return &wkr.Invalid{}
 		}
-	}
-
-	if arrayPVT != ast.List && arrayPVT != ast.Map {
-		w.Error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a list, or map", node.Identifier.GetToken().Lexeme))
+	}else {
+		w.Error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a list or map", node.Owner.GetToken().Lexeme))
 		return &wkr.Invalid{}
 	}
 
@@ -462,7 +485,12 @@ func SpawnExpr(w *wkr.Walker, new *ast.SpawnExpr, scope *wkr.Scope) wkr.Value {
 func GetNodeValueFromExternalEnv(w *wkr.Walker, expr ast.Node, scope *wkr.Scope, env *wkr.Environment) wkr.Value {
 	env.Scope.Parent = scope
 	env.Scope.Attributes = scope.Attributes
-	return GetNodeValue(w, &expr, &env.Scope)
+	val := GetNodeValue(w, &expr, &env.Scope)
+	_, isTypes := val.(*wkr.Types)
+	if !isTypes && val.GetType().PVT() == ast.Invalid {
+		w.Error(expr.GetToken(), fmt.Sprintf("variable named '%s' doesn't exist", expr.GetToken().Lexeme))
+	}
+	return val
 }
 
 func PewpewExpr(w *wkr.Walker, expr *ast.PewpewExpr, scope *wkr.Scope) wkr.Value {
@@ -479,11 +507,7 @@ func StandardExpr(w *wkr.Walker, expr *ast.StandardExpr, scope *wkr.Scope) wkr.V
 		// 	w.Error(expr.GetToken(), "cannot use the Math library in a Level environment")
 		// 	return &wkr.Invalid{}
 		// }
-		val :=  GetNodeValueFromExternalEnv(w, expr.Node, scope, wkr.MathEnv)
-		if val.GetType().PVT() == ast.Invalid {
-			w.Error(expr.Node.GetToken(), fmt.Sprintf("variable named '%s' doesn't exist", expr.Node.GetToken().Lexeme))
-		}
-		return val
+		return GetNodeValueFromExternalEnv(w, expr.Node, scope, wkr.MathEnv)
 	}
 
 	return &wkr.Invalid{}
@@ -547,9 +571,7 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, env *wkr.Environment) wkr.Type
 			}
 		}
 
-		return &wkr.AnonStructType{
-			Fields: fields,
-		}
+		return wkr.NewAnonStructType(fields, false)
 	case ast.Func:
 		params := wkr.Types{}
 

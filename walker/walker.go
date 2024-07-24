@@ -17,6 +17,7 @@ var LibraryEnvs = map[Library]*Environment{
 type Environment struct {
 	Name      string
 	Path      string // dynamic lua path
+	Type      ast.EnvType
 	Scope     Scope
 	Variables map[string]*VariableVal
 	Structs   map[string]*StructVal
@@ -63,6 +64,7 @@ func NewEnvironment(path string) *Environment {
 	}
 	global := &Environment{
 		Path:     path,
+		Type:     ast.InvalidEnv,
 		Scope:    scope,
 		Structs:  map[string]*StructVal{},
 		Entities: map[string]*EntityVal{}, 
@@ -308,7 +310,7 @@ func (w *Walker) ValidateArguments(args []Type, params []Type, callToken lexer.T
 		return -1, true
 	}
 	for i, typeVal := range args {
-		if !TypeEquals(typeVal, params[i]) {
+		if !TypeEquals(params[i], typeVal) {
 			w.Error(callToken, fmt.Sprintf("argument is of type %s, but should be %s", typeVal.ToString(), params[i].ToString()))
 			return i, false
 		}

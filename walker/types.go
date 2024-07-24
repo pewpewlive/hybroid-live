@@ -26,9 +26,37 @@ const (
 	Enum
 	Unresolved
 	CstmType
+	Path
 	NA
 	NotKnown
 )
+
+type PathType struct {
+	EnvType ast.EnvType
+}
+
+func NewPathType(envType ast.EnvType) *PathType {
+	return &PathType{
+		EnvType: envType,
+	}
+}
+
+func (self *PathType) PVT() ast.PrimitiveValueType {
+	return ast.Path
+}
+
+func (self *PathType) GetType() ValueType {
+	return Path
+}
+
+func (self *PathType) _eq(other Type) bool {
+	path := other.(*PathType)
+	return self.EnvType == path.EnvType
+}
+
+func (self *PathType) ToString() string {
+	return string(self.EnvType)
+}
 
 type CustomType struct {
 	Name string
@@ -209,9 +237,10 @@ func (self *FixedPoint) ToString() string {
 
 type AnonStructType struct {
 	Fields map[string]*VariableVal
+	Lenient bool
 }
 
-func NewAnonStructType(fields map[string]*VariableVal) *AnonStructType {
+func NewAnonStructType(fields map[string]*VariableVal, lenient bool) *AnonStructType {
 	return &AnonStructType{
 		Fields: fields,
 	}
@@ -228,6 +257,9 @@ func (self *AnonStructType) GetType() ValueType {
 func (self *AnonStructType) _eq(other Type) bool {
 	map1 := self.Fields
 	map2 := other.(*AnonStructType).Fields
+	if self.Lenient {
+		return other._eq(self)
+	} 
 
 	for k, v := range map1 {
 		containsK := false

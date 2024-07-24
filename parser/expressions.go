@@ -517,19 +517,22 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 func (p *Parser) list() ast.Node {
 	token := p.peek(-1)
 	list := make([]ast.Node, 0)
+	if p.match(lexer.RightBracket) {
+		return &ast.ListExpr{ValueType: ast.List, List: list, Token: token}
+	}
+	exprInList := p.expression()
+	if exprInList.GetType() == ast.NA {
+		p.error(p.peek(), "expected expression")
+	}
+	list = append(list, exprInList)
 	for !p.match(lexer.RightBracket) {
+		p.consume("expected ',' after expression", lexer.Comma)
+
 		exprInList := p.expression()
 		if exprInList.GetType() == ast.NA {
 			p.error(p.peek(), "expected expression")
-			break
 		}
-
-		token, _ := p.consume("expected ',' or ']' after expression", lexer.Comma, lexer.RightBracket)
-
 		list = append(list, exprInList)
-		if token.Type == lexer.RightBracket || token.Type == lexer.Eof {
-			break
-		}
 	}
 
 	return &ast.ListExpr{ValueType: ast.List, List: list, Token: token}
@@ -570,7 +573,7 @@ func (p *Parser) parseMap() ast.Node {
 			break
 		}
 
-		if _, ok := p.consume("expected ',' or '}' after expression", lexer.Comma, lexer.RightBrace); !ok {
+		if _, ok := p.consume("expected ',' after expression", lexer.Comma); !ok {
 			return &ast.Improper{Token: p.peek(-1)}
 		}
 
@@ -672,7 +675,7 @@ func (p *Parser) Type() *ast.TypeExpr {
 	case lexer.Entity:
 		return &ast.TypeExpr{Name: &ast.IdentifierExpr{Name:p.advance()}}
 	default:
-		p.error(exprToken, "Improper type")
+		//p.error(exprToken, "Improper type")
 		p.advance()
 		return &ast.TypeExpr{Name: expr}
 	}

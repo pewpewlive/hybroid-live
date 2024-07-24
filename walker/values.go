@@ -5,7 +5,6 @@ import (
 	"hybroid/ast"
 	"hybroid/generator"
 	"hybroid/lexer"
-	"hybroid/parser"
 )
 
 type Value interface {
@@ -71,12 +70,40 @@ func FindFromList(list []*VariableVal, name string) (*VariableVal, int, bool) {
 	return nil, -1, false
 }
 
+type PathVal struct {
+	Path string
+	EnvType ast.EnvType
+}
+
+func NewPathVal(path string, envType ast.EnvType) *PathVal {
+	return &PathVal{
+		Path: path,
+		EnvType: envType,
+	}
+} 
+
+func (self *PathVal) GetType() Type {
+	return NewPathType(self.EnvType)
+}
+
+func (self *PathVal) GetDefault() *ast.LiteralExpr {
+	return &ast.LiteralExpr{Value: "DEFAULT_PATH"}
+}
+
 type AnonStructVal struct {
 	Fields map[string]*VariableVal
+	Lenient bool
+}
+
+func NewAnonStructVal(fields map[string]*VariableVal, lenient bool)  *AnonStructVal {
+	return &AnonStructVal{
+		Fields: fields,
+		Lenient: lenient,
+	}
 }
 
 func (self *AnonStructVal) GetType() Type {
-	return NewAnonStructType(self.Fields)
+	return NewAnonStructType(self.Fields, self.Lenient)
 }
 
 func (self *AnonStructVal) GetDefault() *ast.LiteralExpr {
@@ -350,14 +377,12 @@ func GetContentsValueType(values []Value) Type {
 		}
 		valTypes = append(valTypes, v.GetType())
 		prev, curr := index-1, len(valTypes)-1
-		if !(parser.IsFx(valTypes[prev].PVT()) && parser.IsFx(valTypes[curr].PVT())) && valTypes[prev].PVT() != valTypes[curr].PVT() {
+		if !TypeEquals(values[prev].GetType(), values[curr].GetType()) {
 			return NAType
 		}
 		index++
 	}
-	if parser.IsFx(valTypes[0].PVT()) {
-		return NewFixedPointType(ast.FixedPoint)
-	}
+
 	return valTypes[0]
 }
 

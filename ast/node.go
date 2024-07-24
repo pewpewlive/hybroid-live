@@ -88,19 +88,19 @@ const (
 	AnonStruct PrimitiveValueType = "anonStruct"
 	Ident      PrimitiveValueType = "ident"
 	Enum       PrimitiveValueType = "enum"
-	Mesh       PrimitiveValueType = "mesh"
+	Path       PrimitiveValueType = "path"
 	Sound      PrimitiveValueType = "sound"
 	Unresolved PrimitiveValueType = "unresolved"
 	Invalid    PrimitiveValueType = "invalid"
 )
 
-type EnvType int
+type EnvType string
 
 const (
-	MeshEnv EnvType = iota
-	Level
-	SoundEnv
-	InvalidEnv
+	MeshEnv EnvType = "MeshEnv"
+	Level EnvType = "LevelEnv"
+	SoundEnv EnvType = "SoundEnv"
+	InvalidEnv EnvType = "InvalidEnv"
 )
 
 type StandardLibrary int

@@ -9,9 +9,7 @@ import (
 
 func AnonStructExpr(w *wkr.Walker, node *ast.AnonStructExpr, scope *wkr.Scope) *wkr.AnonStructVal {
 	anonStructScope := wkr.NewScope(scope, &wkr.UntaggedTag{})
-	structTypeVal := &wkr.AnonStructVal{
-		Fields: make(map[string]*wkr.VariableVal),
-	}
+	structTypeVal := wkr.NewAnonStructVal(make(map[string]*wkr.VariableVal), false)
 
 	for i := range node.Fields {
 		FieldDeclarationStmt(w, node.Fields[i], structTypeVal, anonStructScope)
@@ -460,9 +458,7 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr) wkr.Type {
 			}
 		}
 
-		return &wkr.AnonStructType{
-			Fields: fields,
-		}
+		return wkr.NewAnonStructType(fields, false)
 	case ast.Func:
 		params := wkr.Types{}
 

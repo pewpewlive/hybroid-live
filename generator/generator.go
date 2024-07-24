@@ -180,6 +180,7 @@ func (gs *GenScope) AppendTabbed(strs ...string) {
 
 type Generator struct {
 	envName string
+	envType ast.EnvType
 	Scope   GenScope
 	Errors  []ast.Error
 }
@@ -193,8 +194,9 @@ func (gen *Generator) SetUniqueEnvName(name string) {
 	envMap[name] = uniqueName.String()
 }
 
-func (gen *Generator) SetEnvName(name string) {
+func (gen *Generator) SetEnv(name string, typ ast.EnvType) {
 	gen.envName = envMap[name]
+	gen.envType = typ
 }
 
 func (gen *Generator) WriteVar(name string) string {

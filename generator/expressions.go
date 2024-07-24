@@ -27,6 +27,9 @@ func (gen *Generator) literalExpr(node ast.LiteralExpr) string {
 }
 
 func (gen *Generator) identifierExpr(node ast.IdentifierExpr, _ *GenScope) string {
+	if (gen.envType == ast.MeshEnv && node.Name.Lexeme == "meshes"){
+		return "meshes"
+	}
 	return gen.WriteVar(node.Name.Lexeme)
 }
 

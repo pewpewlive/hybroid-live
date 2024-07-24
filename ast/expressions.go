@@ -121,7 +121,7 @@ func (ue *UnaryExpr) GetType() NodeType {
 }
 
 func (ue *UnaryExpr) GetToken() lexer.Token {
-	return ue.Operator
+	return ue.Value.GetToken()
 }
 
 func (ue *UnaryExpr) GetValueType() PrimitiveValueType {

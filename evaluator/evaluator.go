@@ -81,6 +81,9 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 
 		start = time.Now()
 		fmt.Println("[Pass 1] Walking through the nodes...")
+		if env, ok := prog[0].(*ast.EnvironmentStmt); ok {
+			e.walkerList[file].Environment.Type = env.EnvType.Type
+		}
 		pass1.Action(e.walkerList[file], prog, e.walkers)
 		fmt.Printf("Pass 1 time: %v seconds\n\n", time.Since(start).Seconds())
 
@@ -114,7 +117,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		fmt.Println("Generating the lua code...")
 
 		//e.gen.Scope.Src.Grow(len(sourceFile))
-		e.gen.SetEnvName(walker.Environment.Name)
+		e.gen.SetEnv(walker.Environment.Name, walker.Environment.Type)
 		e.gen.Generate(walker.Nodes)
 		if len(e.gen.Errors) != 0 {
 			colorstring.Println("[red]Failed generating:")
