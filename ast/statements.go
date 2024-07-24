@@ -240,7 +240,7 @@ type FunctionDeclarationStmt struct {
 }
 
 func (fds *FunctionDeclarationStmt) GetType() NodeType {
-	return MethodDeclarationStatement
+	return FunctionDeclarationStatement
 }
 
 func (fds *FunctionDeclarationStmt) GetToken() lexer.Token {

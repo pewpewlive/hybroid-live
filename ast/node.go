@@ -88,6 +88,8 @@ const (
 	AnonStruct PrimitiveValueType = "anonStruct"
 	Ident      PrimitiveValueType = "ident"
 	Enum       PrimitiveValueType = "enum"
+	Mesh       PrimitiveValueType = "mesh"
+	Sound      PrimitiveValueType = "sound"
 	Unresolved PrimitiveValueType = "unresolved"
 	Invalid    PrimitiveValueType = "invalid"
 )
@@ -95,9 +97,9 @@ const (
 type EnvType int
 
 const (
-	Mesh EnvType = iota
+	MeshEnv EnvType = iota
 	Level
-	Sound
+	SoundEnv
 	InvalidEnv
 )
 

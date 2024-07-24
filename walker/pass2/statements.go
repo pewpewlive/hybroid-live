@@ -71,7 +71,7 @@ func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDeclarationStmt, scope
 
 	entityVal, _ := w.GetEntity(node.Name.Lexeme)
 
-	for i := range node.Fields { // debug?
+	for i := range node.Fields {
 		FieldDeclarationStmt(w, &node.Fields[i], entityVal, entityScope)
 	}
 
@@ -86,6 +86,11 @@ func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDeclarationStmt, scope
 
 	for i := range node.Callbacks {
 		EntityFunctionDeclarationStmt(w, node.Callbacks[i], entityVal, entityScope)
+	}
+
+	//methods
+	for i := range node.Methods {
+		MethodDeclarationStmt(w, &node.Methods[i], entityVal, entityScope)
 	}
 }
 

@@ -218,6 +218,8 @@ func NewEntityVal(name string, isLocal bool) *EntityVal {
 	return &EntityVal{
 		Type:    *NewNamedType(name, ast.Entity),
 		IsLocal: isLocal,
+		Methods: make(map[string]*VariableVal),
+		Fields: make([]*VariableVal, 0),
 	}
 }
 

@@ -382,8 +382,27 @@ func SpawnExpr(w *wkr.Walker, new *ast.SpawnExpr, scope *wkr.Scope) wkr.Value {
 	return val
 }
 
+func GetNodeValueFromExternalEnv(w *wkr.Walker, expr ast.Node, scope *wkr.Scope, env *wkr.Environment) wkr.Value {
+	env.Scope.Parent = scope
+	env.Scope.Attributes = scope.Attributes
+	return GetNodeValue(w, &expr, &env.Scope)
+}
+
 func PewpewExpr(w *wkr.Walker, expr *ast.PewpewExpr, scope *wkr.Scope) wkr.Value {
-	return GetNodeValue(w, &expr.Node, &wkr.PewpewEnv.Scope)
+	return GetNodeValueFromExternalEnv(w, expr.Node, scope, wkr.PewpewEnv)
+}
+
+func FmathExpr(w *wkr.Walker, expr *ast.FmathExpr, scope *wkr.Scope) wkr.Value {
+	return GetNodeValueFromExternalEnv(w, expr.Node, scope, wkr.FmathEnv)
+}
+
+func StandardExpr(w *wkr.Walker, expr *ast.StandardExpr, scope *wkr.Scope) wkr.Value {
+	if expr.Library == ast.MathLib {
+		val := GetNodeValueFromExternalEnv(w, expr.Node, scope, wkr.MathEnv)
+		return val
+	}
+
+	return &wkr.Invalid{}
 }
 
 // func CastExpr(w *wkr.Walker, cast *ast.CastExpr, scope *wkr.Scope) wkr.Value {
@@ -417,6 +436,9 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr) wkr.Type {
 		return &wkr.UnresolvedType{
 			Expr: expr,
 		}
+	}
+	if typee.Name.GetToken().Type == lexer.Entity {
+		return &wkr.RawEntityType{}
 	}
 
 	pvt := w.GetTypeFromString(typee.Name.GetToken().Lexeme)

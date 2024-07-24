@@ -140,10 +140,12 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 func printAlerts[T ast.Alert](filePath string, errs []T) {
 	for _, err := range errs {
 		tokenLocation := err.GetToken().Location
-		str := fmt.Sprintf("%s in %s at line %v: %s\n",
+		str := fmt.Sprintf("%s in %s at line %v (%v-%v): %s\n",
 			err.GetHeader(),
 			filePath,
 			tokenLocation.LineStart,
+			tokenLocation.ColStart,
+			tokenLocation.ColEnd,
 			err.GetMessage())
 		fmt.Print(colorstring.Color(str))
 	}

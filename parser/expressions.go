@@ -441,7 +441,7 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 
 	if p.match(lexer.Identifier) {
 		token := p.peek(-1)
-		if p.match(lexer.DoubleColon) {
+		if p.match(lexer.Colon) {
 			switch token.Lexeme {
 			case "Pewpew":
 				expr := p.expression()
@@ -479,7 +479,7 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 			}
 
 			next := p.accessorExprDepth2(nil, nil, ast.NA)
-			for p.match(lexer.DoubleColon) {
+			for p.match(lexer.Colon) {
 				envPath.SubPaths = append(envPath.SubPaths, next.GetToken().Lexeme)
 				if next.GetType() != ast.Identifier {
 					p.error(next.GetToken(), "expected identifier in environment expression")
@@ -669,27 +669,25 @@ func (p *Parser) Type() *ast.TypeExpr {
 		p.advance()
 		fields := p.parameters(lexer.LeftBrace, lexer.RightBrace)
 		return &ast.TypeExpr{Name: expr, Fields: fields}
+	case lexer.Entity:
+		return &ast.TypeExpr{Name: &ast.IdentifierExpr{Name:p.advance()}}
 	default:
-		p.error(exprToken, "Expected an identifier for a type")
+		p.error(exprToken, "Improper type")
 		p.advance()
 		return &ast.TypeExpr{Name: expr}
 	}
 }
 
-func (p *Parser) PeekIsType() bool {
-	token := p.peek()
 
-	return !(token.Type != lexer.Identifier && token.Type != lexer.Fn && token.Type != lexer.Struct)
-}
 
 func StringToEnvType(name string) ast.EnvType {
 	switch name {
 	case "Mesh":
-		return ast.Mesh
+		return ast.MeshEnv
 	case "Level":
 		return ast.Level
 	case "Sound":
-		return ast.Sound
+		return ast.SoundEnv
 	default:
 		return ast.InvalidEnv
 	}
@@ -722,7 +720,7 @@ func (p *Parser) EnvPathExpr() ast.Node {
 		SubPaths: []string{ident.Lexeme},
 	}
 
-	for p.match(lexer.DoubleColon) {
+	for p.match(lexer.Colon) {
 		ident, ok = p.consume("expected identifier in environment path", lexer.Identifier)
 		if !ok {
 			return &ast.Improper{Token: ident}

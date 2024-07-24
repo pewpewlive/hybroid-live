@@ -1,32 +1,34 @@
 env MyLevel as Level
 
 // let width, height = 500f, 500f
-// let ship_id = spawn pewpew::PlayerShip(width / 2f, height / 2f)
-// pewpew::configure_ship(0, struct{ shield = 5 })
-// pewpew::configure_ship_weapon(ship_id, struct{
-//   cannon = pewpew::CannonType.Double, 
-//   frequency = pewpew::CannonFrequency.Freq30
+// let ship_id = spawn pewpew:PlayerShip(width / 2f, height / 2f)
+// pewpew:configure_ship(0, struct{ shield = 5 })
+// pewpew:configure_ship_weapon(ship_id, struct{
+//   cannon = pewpew:CannonType.Double, 
+//   frequency = pewpew:CannonFrequency.Freq30
 // })
-// spawn pewpew::Mothership(100f, 100f, pewpew::MothershipType.SevenCorners, 90d)
+// spawn pewpew:Mothership(100f, 100f, pewpew:MothershipType.SevenCorners, 90d)
 // let id = spawn entity(100f, 100f)
-// pewpew::set_entity_mesh(id, MyMeshes::AmazingMesh, 0)
-// Pewpew::EntitySetMesh(id, MyMeshes::AmazingMesh, 0)
+// pewpew:set_entity_mesh(id, MyMeshes:AmazingMesh, 0)
+// Pewpew:EntitySetMesh(id, MyMeshes:AmazingMesh, 0)
 
-// pewpew::start_spawning_entity(id, 60)
-// pewpew::set_entity_update_callback(id, fn(entity id) {
-//   let x, y = pewpew::get_entity_position(id)
-//   pewpew::set_entity_position(id, x + 10f, y - 10f)
+// pewpew:start_spawning_entity(id, 60)
+// pewpew:set_entity_update_callback(id, fn(entity id) {
+//   let x, y = pewpew:get_entity_position(id)
+//   pewpew:set_entity_position(id, x + 10f, y - 10f)
 // })
 
-Pewpew::SetLevelSize(1000fx, 1000fx)
+Pewpew:SetLevelSize(1000fx, 1000fx)
 
-let ship = Pewpew::NewShip(0f, 0f, 0)
+let ship = Pewpew:NewShip(Fmath:RandomFixed(0f, 50f), Fmath:RandomFixed(0f, 50f), 0)
 
-Pewpew::ConfigurePlayer(0, struct{ shield = 10 })
-Pewpew::ConfigureShipWeapon(ship, struct{
-  cannon = Pewpew::CannonType.Double
-  frequency = Pewpew::CannonFrequency.Freq30
+Pewpew:ConfigurePlayer(0, struct{ shield = 10 })
+Pewpew:ConfigureShipWeapon(ship, struct{
+  cannon = Pewpew:CannonType.Double
+  frequency = Pewpew:CannonFrequency.Freq30
 })
+
+let uhhh = Math:Pi
 
 // let a = struct{
 //   a = 1f
@@ -41,7 +43,7 @@ Pewpew::ConfigureShipWeapon(ship, struct{
 
 // uh(struct{ a = 1 })
 
-let test = Pewpew::NewEntity(0f, 0f)
+let test = Pewpew:NewEntity(0f, 0f)
 
 entity Quadro { 
   fixed x, y = 0f, 0f
@@ -69,11 +71,7 @@ entity Quadro {
 
   }
 
-  PlayerCollision() {
-    
-  }
-
-  fn MyFunc() {
-    //PewPew::DamageShip(ship, damage)
+  PlayerCollision(number playerIndex, entity shipId) {
+    Pewpew:DamageShip(shipId, damage)
   }
 }

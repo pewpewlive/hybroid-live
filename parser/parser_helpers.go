@@ -22,6 +22,12 @@ func IsFx(valueType ast.PrimitiveValueType) bool {
 	return valueType == ast.FixedPoint || valueType == ast.Fixed || valueType == ast.Radian || valueType == ast.Degree
 }
 
+func (p *Parser) PeekIsType() bool {
+	token := p.peek()
+
+	return !(token.Type != lexer.Identifier && token.Type != lexer.Fn && token.Type != lexer.Struct && token.Type != lexer.Entity)
+}
+
 func (p *Parser) getOp(opEqual lexer.Token) lexer.Token {
 	switch opEqual.Type {
 	case lexer.PlusEqual:

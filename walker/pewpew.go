@@ -1,6 +1,8 @@
 package walker
 
-import "hybroid/ast"
+import (
+	"hybroid/ast"
+)
 
 var PewpewEnv = &Environment{
 	Name: "Pewpew",

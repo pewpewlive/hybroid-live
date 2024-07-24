@@ -315,12 +315,17 @@ func (gen *Generator) spawnExpr(spawn ast.SpawnExpr, scope *GenScope) string {
 	return src.String()
 }
 
-func (gen *Generator) pewpewExpr(expr ast.PewpewExpr, scope *GenScope) string {
+func (gen *Generator) pewpewExpr(expr ast.PewpewExpr, tabbed bool, scope *GenScope) string {
 	src := StringBuilder{}
 
-	src.WriteString("pewpew.")
-	
 	nodeType := expr.Node.GetType()
+
+	if tabbed && nodeType == ast.CallExpression {
+		src.AppendTabbed("pewpew.")
+	}else {
+		src.WriteString("pewpew.")
+	}
+
 	if nodeType == ast.FieldExpression {
 		field := expr.Node.(*ast.FieldExpr)
 		enumName := field.Identifier.GetToken().Lexeme
@@ -329,6 +334,48 @@ func (gen *Generator) pewpewExpr(expr ast.PewpewExpr, scope *GenScope) string {
 		call := expr.Node.(*ast.CallExpr)
 		src.Append(pewpewFunctions[call.GetToken().Lexeme], "(")
 		src.WriteString(gen.GenerateArgs(call.Args, scope))
+	}
+
+	return src.String()
+}
+
+func (gen *Generator) fmathExpr(expr ast.FmathExpr, scope *GenScope) string {
+	src := StringBuilder{}
+
+	src.WriteString("fmath.")
+	
+	nodeType := expr.Node.GetType()
+	if nodeType == ast.CallExpression {
+		call := expr.Node.(*ast.CallExpr)
+		src.Append(fmathFunctions[call.GetToken().Lexeme], "(")
+		src.WriteString(gen.GenerateArgs(call.Args, scope))
+	}
+
+	return src.String()
+}
+
+var libPrefix = map[ast.StandardLibrary]string {
+	ast.StringLib: "string.",
+	ast.MathLib: "math.",
+	ast.TableLib: "taBble.",
+}
+
+var libVariables = map[ast.StandardLibrary]map[string]string {
+	ast.MathLib: mathVariables,
+}
+
+func (gen *Generator) standardExpr(expr ast.StandardExpr, scope *GenScope) string {
+	src := StringBuilder{}
+
+	src.WriteString(libPrefix[expr.Library])
+	
+	nodeType := expr.Node.GetType()
+	if nodeType == ast.CallExpression {
+		call := expr.Node.(*ast.CallExpr)
+		src.Append(libVariables[expr.Library][call.GetToken().Lexeme], "(")
+		src.WriteString(gen.GenerateArgs(call.Args, scope))
+	}else {
+		src.Append(libVariables[expr.Library][expr.Node.GetToken().Lexeme])
 	}
 
 	return src.String()

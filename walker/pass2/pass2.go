@@ -116,6 +116,10 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 	case *ast.UseStmt:
 	case *ast.PewpewExpr:
 		val = PewpewExpr(w, newNode, scope)
+	case *ast.FmathExpr:
+		val = FmathExpr(w, newNode, scope)
+	case *ast.StandardExpr:
+		StandardExpr(w, newNode, scope)
 	default:
 		w.Error(newNode.GetToken(), "Expected expression")
 		return &walker.Invalid{}

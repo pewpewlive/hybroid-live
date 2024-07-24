@@ -10,6 +10,8 @@ import (
 
 var LibraryEnvs = map[Library]*Environment{
 	Pewpew: PewpewEnv,
+	Fmath: FmathEnv,
+	Math: MathEnv,
 }
 
 type Environment struct {
@@ -453,8 +455,6 @@ func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
 		return ast.Bool
 	case "struct":
 		return ast.AnonStruct
-	case "entity":
-		return ast.Entity
 	default:
 		return ast.Invalid
 	}
@@ -515,4 +515,5 @@ func DetermineCallTypeString(callType ProcedureType) string {
 
 func SetupLibraryEnvironments() {
 	PewpewEnv.Scope.Environment = PewpewEnv	
+	FmathEnv.Scope.Environment = FmathEnv
 }

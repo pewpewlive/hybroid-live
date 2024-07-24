@@ -161,7 +161,7 @@ func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr) wkr.Value {
 
 	walker, found := w.Walkers[envName]
 	if !found {
-		w.Error(node.PathExpr.GetToken(), fmt.Sprintf("Environment named '%s' doesn't exist", envName))
+		w.Error(node.GetToken(), fmt.Sprintf("Environment named '%s' doesn't exist", envName))
 		return &wkr.Invalid{}
 	}
 
@@ -459,10 +459,36 @@ func SpawnExpr(w *wkr.Walker, new *ast.SpawnExpr, scope *wkr.Scope) wkr.Value {
 	return val
 }
 
-func PewpewExpr(w *wkr.Walker, expr *ast.PewpewExpr, scope *wkr.Scope) wkr.Value {
-	wkr.PewpewEnv.Scope.Parent = scope
-	return GetNodeValue(w, &expr.Node, &wkr.PewpewEnv.Scope)
+func GetNodeValueFromExternalEnv(w *wkr.Walker, expr ast.Node, scope *wkr.Scope, env *wkr.Environment) wkr.Value {
+	env.Scope.Parent = scope
+	env.Scope.Attributes = scope.Attributes
+	return GetNodeValue(w, &expr, &env.Scope)
 }
+
+func PewpewExpr(w *wkr.Walker, expr *ast.PewpewExpr, scope *wkr.Scope) wkr.Value {
+	return GetNodeValueFromExternalEnv(w, expr.Node, scope, wkr.PewpewEnv)
+}
+
+func FmathExpr(w *wkr.Walker, expr *ast.FmathExpr, scope *wkr.Scope) wkr.Value {
+	return GetNodeValueFromExternalEnv(w, expr.Node, scope, wkr.FmathEnv)
+}
+
+func StandardExpr(w *wkr.Walker, expr *ast.StandardExpr, scope *wkr.Scope) wkr.Value {
+	if expr.Library == ast.MathLib {
+		// if w.Nodes[0].(*ast.EnvironmentStmt).EnvType.Type == ast.Level {
+		// 	w.Error(expr.GetToken(), "cannot use the Math library in a Level environment")
+		// 	return &wkr.Invalid{}
+		// }
+		val :=  GetNodeValueFromExternalEnv(w, expr.Node, scope, wkr.MathEnv)
+		if val.GetType().PVT() == ast.Invalid {
+			w.Error(expr.Node.GetToken(), fmt.Sprintf("variable named '%s' doesn't exist", expr.Node.GetToken().Lexeme))
+		}
+		return val
+	}
+
+	return &wkr.Invalid{}
+}
+
 
 // func CastExpr(w *wkr.Walker, cast *ast.CastExpr, scope *wkr.Scope) wkr.Value {
 // 	val := GetNodeValue(w, &cast.Value, scope)
@@ -496,6 +522,10 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, env *wkr.Environment) wkr.Type
 			return wkr.InvalidType
 		}
 		return TypeExpr(w, &ast.TypeExpr{Name: expr.Accessed}, walker.Environment)
+	}
+
+	if typee.Name.GetToken().Type == lexer.Entity {
+		return &wkr.RawEntityType{}
 	}
 
 	pvt := w.GetTypeFromString(typee.Name.GetToken().Lexeme)

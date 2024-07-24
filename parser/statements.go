@@ -356,9 +356,9 @@ func (p *Parser) entityDeclarationStmt() ast.Node {
 
 	for !p.match(lexer.RightBrace) {
 		if p.match(lexer.Fn) {
-			method, ok := p.methodDeclarationStmt(stmt.IsLocal).(*ast.MethodDeclarationStmt)
-			if ok {
-				stmt.Methods = append(stmt.Methods, *method)
+			method := p.methodDeclarationStmt(stmt.IsLocal)
+			if method.GetType() != ast.MethodDeclarationStatement {
+				stmt.Methods = append(stmt.Methods, *method.(*ast.MethodDeclarationStmt))
 			}
 			continue
 		}

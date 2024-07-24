@@ -119,7 +119,7 @@ func MethodDeclarationStmt(w *wkr.Walker, node *ast.MethodDeclarationStmt, conta
 
 func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDeclarationStmt, scope *wkr.Scope) {
 	et := &wkr.EntityTag{}
-	entityScope := wkr.NewScope(scope, et, wkr.SelfAllowing) //that makes sense
+	entityScope := wkr.NewScope(scope, et, wkr.SelfAllowing)
 
 	if scope.Parent != nil {
 		w.Error(node.Token, "can't declare an entity inside a local block")
@@ -132,7 +132,7 @@ func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDeclarationStmt, scope
 	entityVal := wkr.NewEntityVal(node.Name.Lexeme, node.IsLocal)
 
 	//fields
-	for i := range node.Fields { // debug?
+	for i := range node.Fields { 
 		FieldDeclarationStmt(w, &node.Fields[i], entityVal, entityScope)
 	}
 
@@ -151,6 +151,10 @@ func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDeclarationStmt, scope
 	//callbacks
 	found := map[ast.EntityFunctionType][]lexer.Token{}
 
+	et.EntityType = entityVal
+
+	w.DeclareEntity(entityVal)
+
 	for i := range node.Callbacks {
 		found[node.Callbacks[i].Type] = append(found[node.Callbacks[i].Type], node.Callbacks[i].Token)
 		EntityFunctionDeclarationStmt(w, node.Callbacks[i], entityVal, entityScope)
@@ -164,9 +168,10 @@ func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDeclarationStmt, scope
 		}
 	}
 
-	et.EntityType = entityVal
-
-	w.DeclareEntity(entityVal)
+	//methods
+	for i := range node.Methods {
+		MethodDeclarationStmt(w, &node.Methods[i], entityVal, entityScope)
+	}
 }
 
 // this is a big name lol
@@ -195,12 +200,13 @@ func EntityFunctionDeclarationStmt(w *wkr.Walker, node *ast.EntityFunctionDeclar
 		entityVal.DestroyParams = params
 
 	case ast.WallCollision:
-		if len(params) < 2 || !(params[0].GetType() == wkr.Fixed && params[1].GetType() == wkr.Fixed) {
+		if len(params) < 2 || len(params) > 2 || !(params[0].GetType() == wkr.Fixed && params[1].GetType() == wkr.Fixed) {
 			w.Error(node.Token, fmt.Sprintf("first two parameters of %s must be of fixed type", node.Type))
 		}
 	case ast.PlayerCollision:
-		// TODO:
-		//first need to have a id type or something, because having ship_id as number will look weird
+		if len(params) < 2 || len(params) > 2 || !(params[0].PVT() == ast.Number && params[1].GetType() == wkr.RawEntity) {
+			w.Error(node.Token, "first parameter must be a number (player index) and second must be an entity_id (ship id)")
+		}		
 	case ast.WeaponCollision:
 		// TODO:
 		//first need WeaponType and by extension the implementation of pewpew library
