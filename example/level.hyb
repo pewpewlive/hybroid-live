@@ -40,6 +40,7 @@ fn idk(fixed a, number... nums) {
 }
 
 idk(1f, 1, 2, 3)
+//idk(1f, [1, 2, 3])
 
 // let a = struct{
 //   a = 1f

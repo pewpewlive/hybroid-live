@@ -6,10 +6,8 @@ import (
 	"hybroid/evaluator"
 	"hybroid/generator"
 	"hybroid/helpers"
-	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/pelletier/go-toml/v2"
 	"github.com/urfave/cli/v2"
@@ -25,36 +23,6 @@ func Build() *cli.Command {
 			return build(ctx)
 		},
 	}
-}
-
-func collectFiles(cwd string) ([]helpers.FileInformation, error) {
-	files := make([]helpers.FileInformation, 0)
-	err := fs.WalkDir(os.DirFS(cwd), ".", func(path string, d fs.DirEntry, err error) error {
-		if !d.IsDir() {
-			ext := filepath.Ext(path)
-			if ext != ".hyb" {
-				return nil
-			}
-
-			directoryPath, err := filepath.Rel(cwd, filepath.Dir(cwd+"/"+path))
-			if err != nil {
-				return err
-			}
-
-			files = append(files, helpers.FileInformation{
-				DirectoryPath: filepath.ToSlash(directoryPath),
-				FileName:      strings.Replace(d.Name(), ".hyb", "", -1),
-				FileExtension: ext,
-			})
-		}
-
-		return nil
-	})
-	if err != nil {
-		return files, err
-	}
-
-	return files, nil
 }
 
 func build(ctx *cli.Context, filesToBuild ...helpers.FileInformation) error {
@@ -102,7 +70,7 @@ func build(ctx *cli.Context, filesToBuild ...helpers.FileInformation) error {
 		})
 
 		if len(filesToBuild) == 0 {
-			files, filesErr := collectFiles(cwd)
+			files, filesErr := helpers.CollectFiles(cwd)
 			if filesErr != nil {
 				err <- filesErr
 				return

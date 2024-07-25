@@ -1,7 +1,11 @@
 package helpers
 
 import (
+	"io/fs"
+	"os"
+	"path/filepath"
 	"reflect"
+	"strings"
 )
 
 func IsZero[T comparable](v T) bool {
@@ -58,4 +62,34 @@ func ListsAreSame[T comparable](list1 []T, list2 []T) bool {
 	}
 
 	return true
+}
+
+func CollectFiles(cwd string) ([]FileInformation, error) {
+	files := make([]FileInformation, 0)
+	err := fs.WalkDir(os.DirFS(cwd), ".", func(path string, d fs.DirEntry, err error) error {
+		if !d.IsDir() {
+			ext := filepath.Ext(path)
+			if ext != ".hyb" {
+				return nil
+			}
+
+			directoryPath, err := filepath.Rel(cwd, filepath.Dir(cwd+"/"+path))
+			if err != nil {
+				return err
+			}
+
+			files = append(files, FileInformation{
+				DirectoryPath: filepath.ToSlash(directoryPath),
+				FileName:      strings.Replace(d.Name(), ".hyb", "", -1),
+				FileExtension: ext,
+			})
+		}
+
+		return nil
+	})
+	if err != nil {
+		return files, err
+	}
+
+	return files, nil
 }
