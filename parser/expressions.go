@@ -8,7 +8,7 @@ import (
 )
 
 func (p *Parser) expression() ast.Node {
-	return /*p.cast(*/p.fn()/*)*/
+	return /*p.cast(*/ p.fn() /*)*/
 }
 
 // func (p *Parser) cast(node ast.Node) ast.Node {
@@ -34,11 +34,12 @@ func (p *Parser) fn() ast.Node {
 			fn.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
 		} else {
 			fn.Params = make([]ast.Param, 0)
+			p.error(p.peek(), "expected opening parenthesis for parameters")
 		}
 		fn.Return = p.returnings()
 
 		var success bool
-		fn.Body, success = p.getBody(false)
+		fn.Body, success = p.getBody()
 		if !success {
 			return ast.NewImproper(fn.Token)
 		}
@@ -641,7 +642,6 @@ func (p *Parser) Type() *ast.TypeExpr {
 		return typ
 	}
 
-
 	switch exprToken.Type {
 	// case lexer.DotDotDot:
 	// 	p.advance()
@@ -679,7 +679,7 @@ func (p *Parser) Type() *ast.TypeExpr {
 		fields := p.parameters(lexer.LeftBrace, lexer.RightBrace)
 		typ = &ast.TypeExpr{Name: expr, Fields: fields}
 	case lexer.Entity:
-		typ = &ast.TypeExpr{Name: &ast.IdentifierExpr{Name:p.advance()}}
+		typ = &ast.TypeExpr{Name: &ast.IdentifierExpr{Name: p.advance()}}
 	default:
 		//p.error(exprToken, "Improper type")
 		p.advance()
@@ -689,8 +689,6 @@ func (p *Parser) Type() *ast.TypeExpr {
 
 	return typ
 }
-
-
 
 func StringToEnvType(name string) ast.EnvType {
 	switch name {

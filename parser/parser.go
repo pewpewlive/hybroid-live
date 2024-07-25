@@ -134,23 +134,21 @@ func (p *Parser) ParseTokens() []ast.Node {
 	return p.program
 }
 
-func (p *Parser) getBody(hasReturns bool) ([]ast.Node, bool) {
+func (p *Parser) getBody() ([]ast.Node, bool) {
 	body := make([]ast.Node, 0)
 	if p.match(lexer.FatArrow) {
-		if hasReturns {
-			args, ok := p.returnArgs()
-			if !ok {
-				return body, false
-			}
-			body = []ast.Node{
-				&ast.ReturnStmt{
-					Token: args[0].GetToken(),
-					Args:  args,
-				},
-			}
-		} else {
-			body = []ast.Node{p.exprStatement()}
+		args, ok := p.returnArgs()
+		if !ok {
+			p.error(p.peek(), "expected return arguments")
 		}
+		body = []ast.Node{
+			&ast.ReturnStmt{
+				Token: args[0].GetToken(),
+				Args:  args,
+			},
+		}
+	} else if !p.check(lexer.LeftBrace) {
+		body = []ast.Node{p.statement()}
 		return body, true
 	}
 	if _, success := p.consume("expected opening of the body", lexer.LeftBrace); !success {
