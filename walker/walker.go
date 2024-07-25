@@ -12,6 +12,7 @@ var LibraryEnvs = map[Library]*Environment{
 	Pewpew: PewpewEnv,
 	Fmath: FmathEnv,
 	Math: MathEnv,
+	String: StringEnv,
 }
 
 type Environment struct {
@@ -536,4 +537,6 @@ func DetermineCallTypeString(callType ProcedureType) string {
 func SetupLibraryEnvironments() {
 	PewpewEnv.Scope.Environment = PewpewEnv	
 	FmathEnv.Scope.Environment = FmathEnv
+	StringEnv.Scope.Environment = StringEnv
+	TableEnv.Scope.Environment = TableEnv
 }

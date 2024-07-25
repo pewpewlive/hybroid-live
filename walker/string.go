@@ -5,7 +5,7 @@ import "hybroid/ast"
 var StringEnv = &Environment{
 	Name: "String",
 	Scope: Scope{
-		Variables: mathVariables,
+		Variables: stringVariables,
 		Tag: &UntaggedTag{},
 	},
 	Structs: make(map[string]*StructVal),
@@ -26,14 +26,15 @@ var stringVariables = map[string]*VariableVal{
 	},
 	"Find": {
 		Name:  "Find",
-		Value: NewFunction(NewBasicType(ast.String), NewBasicType(ast.Number), NewBasicType(ast.Number)).WithReturns(NewBasicType(ast.Number), NewBasicType(ast.Number)),
+		Value: NewFunction(NewBasicType(ast.String), NewBasicType(ast.String), NewBasicType(ast.Number)).
+			WithReturns(NewBasicType(ast.Number), NewBasicType(ast.Number), NewWrapperType(NewBasicType(ast.List), NewBasicType(ast.Number))),
 		IsConst: true,
 	},
-	// "Format": {
-	// 	Name:  "Byte",
-	// 	Value: NewFunction(NewWrapperType(NewBasicType(ast.List), NewBasicType(ast.String))),
-	// 	IsConst: true,
-	// },
+	"Format": {
+		Name:  "Format",
+		Value: NewFunction(NewBasicType(ast.String), NewVariadicType(NewBasicType(/*?????*/ast.Unknown))),
+		IsConst: true,
+	},
 	"Gsub": {
 		Name:  "Gsub",
 		Value: NewFunction(NewBasicType(ast.String), NewBasicType(ast.String), NewBasicType(ast.String)).WithReturns(NewBasicType(ast.String)),
@@ -44,37 +45,79 @@ var stringVariables = map[string]*VariableVal{
 		Value: NewFunction(NewBasicType(ast.String), NewBasicType(ast.String)).WithReturns(NewBasicType(ast.Number), NewBasicType(ast.Number)),
 		IsConst: true,
 	},
-	// "Find": {
-	// 	Name:  "Find",
-	// 	Value: NewFunction(NewBasicType(ast.String), NewBasicType(ast.Number), NewBasicType(ast.Number)).WithReturns(NewBasicType(ast.Number), NewBasicType(ast.Number)),
-	// 	IsConst: true,
-	// },
-	// "Find": {
-	// 	Name:  "Find",
-	// 	Value: NewFunction(NewBasicType(ast.String), NewBasicType(ast.Number), NewBasicType(ast.Number)).WithReturns(NewBasicType(ast.Number), NewBasicType(ast.Number)),
-	// 	IsConst: true,
-	// },
-	// "Find": {
-	// 	Name:  "Find",
-	// 	Value: NewFunction(NewBasicType(ast.String), NewBasicType(ast.Number), NewBasicType(ast.Number)).WithReturns(NewBasicType(ast.Number), NewBasicType(ast.Number)),
-	// 	IsConst: true,
-	// },
-	// byte
-	// char
-	// dump // to do
-	// find
-	// format // to do 
-	// gmatch
-	// gsub
-	// len
-	// lower
-	// match
-	// rep
-	// reverse
-	// sub
-	// upper
-	// pack
-	// packsize
-	// unpack
+	"Dump": {
+		Name:  "Dump",
+		Value: NewFunction(NewFunctionType(Types{}, Types{}), NewBasicType(ast.Bool)).WithReturns(NewBasicType(ast.String)),
+		IsConst: true,
+	},
+	"Len": {
+		Name:  "Len",
+		Value: NewFunction(NewBasicType(ast.String)).WithReturns(NewBasicType(ast.Number)),
+		IsConst: true,
+	},
+	"Lower": {
+		Name:  "Lower",
+		Value: NewFunction(NewBasicType(ast.String)).WithReturns(NewBasicType(ast.String)),
+		IsConst: true,
+	},
+	"Upper": {
+		Name:  "Upper",
+		Value: NewFunction(NewBasicType(ast.String)).WithReturns(NewBasicType(ast.String)),
+		IsConst: true,
+	},
+	"Match": {
+		Name:  "Match",
+		Value: NewFunction(NewBasicType(ast.String), NewBasicType(ast.String), NewBasicType(ast.Number)).
+			WithReturns(NewVariadicType(NewBasicType(ast.String))),
+		IsConst: true,
+	},
+	"Rep": {
+		Name:  "Rep",
+		Value: NewFunction(NewBasicType(ast.String), NewBasicType(ast.Number)).WithReturns(NewBasicType(ast.String)),
+		IsConst: true,
+	},
+	"Reverse": {
+		Name:  "Reverse",
+		Value: NewFunction(NewBasicType(ast.String)).WithReturns(NewBasicType(ast.String)),
+		IsConst: true,
+	},
+	"Sub": {
+		Name:  "Sub",
+		Value: NewFunction(NewBasicType(ast.String), NewBasicType(ast.Number), NewBasicType(ast.Number)).WithReturns(NewBasicType(ast.String)),
+		IsConst: true,
+	},
+	"Pack": {
+		Name:  "Pack",
+		Value: NewFunction(NewBasicType(ast.String), NewBasicType(ast.String), NewBasicType(ast.String), NewVariadicType(NewBasicType(ast.String))).WithReturns(NewBasicType(ast.String)),
+		IsConst: true,
+	},
+	"PackSize": {
+		Name:  "PackSize",
+		Value: NewFunction(NewBasicType(ast.String)).WithReturns(NewBasicType(ast.Number)),
+		IsConst: true,
+	},
+	"Unpack": {
+		Name:  "Unpack",
+		Value: NewFunction(NewBasicType(ast.String), NewBasicType(ast.String), NewBasicType(ast.Number)).
+			WithReturns(NewVariadicType(NewBasicType(ast.String)), NewBasicType(ast.Number)),
+		IsConst: true,
+	},
+	// byte [tobeverified]
+	// char [tobeverified]
+	// dump [tobeverified]
+	// find [tobeverified]
+	// format [tobeverified]
+	// gmatch [tobeverified]
+	// gsub [tobeverified]
+	// len [tobeverified]
+	// lower [done]
+	// match [tobeverified]
+	// rep [tobeverified]
+	// reverse [tobeverified]
+	// sub [tobeverified]
+	// upper [done]
+	// pack [done]
+	// packsize [done]
+	// unpack [tobeverified]
 
 }

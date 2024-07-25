@@ -395,12 +395,8 @@ func FmathExpr(w *wkr.Walker, expr *ast.FmathExpr, scope *wkr.Scope) wkr.Value {
 }
 
 func StandardExpr(w *wkr.Walker, expr *ast.StandardExpr, scope *wkr.Scope) wkr.Value {
-	if expr.Library == ast.MathLib {
-		val := GetNodeValueFromExternalEnv(w, expr.Node, scope, wkr.MathEnv)
-		return val
-	}
-
-	return &wkr.Invalid{}
+	val := GetNodeValueFromExternalEnv(w, expr.Node, scope, wkr.MathEnv)
+	return val
 }
 
 // func CastExpr(w *wkr.Walker, cast *ast.CastExpr, scope *wkr.Scope) wkr.Value {
