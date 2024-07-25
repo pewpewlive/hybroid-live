@@ -629,30 +629,37 @@ func (p *Parser) Type() *ast.TypeExpr {
 	expr := p.primary(false)
 	exprToken := expr.GetToken()
 
+	var typ *ast.TypeExpr
+
 	if expr.GetType() == ast.EnvironmentAccessExpression {
 		envAccess := expr.(*ast.EnvAccessExpr)
 		if envAccess.Accessed.GetType() != ast.Identifier {
 			p.error(envAccess.Accessed.GetToken(), "accessed type must be an identifier")
 		}
-		return &ast.TypeExpr{Name: expr}
+		typ = &ast.TypeExpr{Name: expr}
+		typ.IsVariadic = p.match(lexer.DotDotDot)
+		return typ
 	}
 
-	switch exprToken.Type {
-	case lexer.Identifier:
-		typee := &ast.TypeExpr{}
 
+	switch exprToken.Type {
+	// case lexer.DotDotDot:
+	// 	p.advance()
+	// 	typ := p.Type()
+	// 	typ.IsVariadic = true
+	// 	return typ
+	case lexer.Identifier:
+		typ = &ast.TypeExpr{}
 		if p.match(lexer.Less) { // map<number>
-			typee.WrappedType = p.WrappedType()
+			typ.WrappedType = p.WrappedType()
 			p.consume("expected '>'", lexer.Greater)
 		}
-		typee.Name = expr
-		return typee
+		typ.Name = expr
 	case lexer.Fn:
-		typee := &ast.TypeExpr{}
-
+		typ = &ast.TypeExpr{}
 		p.advance()
 		params := make([]*ast.TypeExpr, 0) // yes
-		typee.Returns = make([]*ast.TypeExpr, 0)
+		typ.Returns = make([]*ast.TypeExpr, 0)
 		if p.match(lexer.LeftParen) { // because this fucks up
 			if !p.match(lexer.RightParen) {
 				params = append(params, p.Type())
@@ -664,21 +671,23 @@ func (p *Parser) Type() *ast.TypeExpr {
 			}
 		}
 
-		typee.Params = params
-		typee.Returns = p.returnings()
-		typee.Name = expr
-		return typee
+		typ.Params = params
+		typ.Returns = p.returnings()
+		typ.Name = expr
 	case lexer.Struct:
 		p.advance()
 		fields := p.parameters(lexer.LeftBrace, lexer.RightBrace)
-		return &ast.TypeExpr{Name: expr, Fields: fields}
+		typ = &ast.TypeExpr{Name: expr, Fields: fields}
 	case lexer.Entity:
-		return &ast.TypeExpr{Name: &ast.IdentifierExpr{Name:p.advance()}}
+		typ = &ast.TypeExpr{Name: &ast.IdentifierExpr{Name:p.advance()}}
 	default:
 		//p.error(exprToken, "Improper type")
 		p.advance()
-		return &ast.TypeExpr{Name: expr}
+		typ = &ast.TypeExpr{Name: expr}
 	}
+	typ.IsVariadic = p.match(lexer.DotDotDot)
+
+	return typ
 }
 
 

@@ -80,6 +80,7 @@ const (
 	YieldReplacement ReplaceType = iota
 	GotoReplacement
 	ContinueReplacement
+	VariadicParamReplacement
 )
 
 type Range struct {

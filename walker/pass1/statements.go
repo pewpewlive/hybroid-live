@@ -214,11 +214,25 @@ func EntityFunctionDeclarationStmt(w *wkr.Walker, node *ast.EntityFunctionDeclar
 }
 
 func WalkParams(w *wkr.Walker, parameters []ast.Param, scope *wkr.Scope, declare func(name lexer.Token, value wkr.Value)) []wkr.Type {
+	variadicParams := make(map[lexer.Token]int)
 	params := make([]wkr.Type, 0)
 	for i, param := range parameters {
 		params = append(params, TypeExpr(w, param.Type))
+		if params[i].GetType() == wkr.Variadic {
+			variadicParams[parameters[i].Name] = i
+		}
 		value := w.TypeToValue(params[i])
 		declare(param.Name, value)
+	}
+
+	if len(variadicParams) > 1 {
+		w.Error(parameters[0].Name, "can only have one vartiadic parameter")
+	}else if len(variadicParams) != 0 {
+		for k, v := range variadicParams {
+			if v != len(parameters)-1 {
+				w.Error(k, "variadic parameter should be last")
+			}
+		}
 	}
 
 	return params

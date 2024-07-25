@@ -536,6 +536,9 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, env *wkr.Environment) wkr.Type
 	if typee == nil {
 		return wkr.InvalidType
 	}
+
+	var typ wkr.Type
+
 	if typee.Name.GetType() == ast.EnvironmentAccessExpression {
 		expr, _ := typee.Name.(*ast.EnvAccessExpr)
 		path := expr.PathExpr.Nameify()
@@ -545,21 +548,28 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, env *wkr.Environment) wkr.Type
 			w.Error(expr.PathExpr.GetToken(), "Environment name so doesn't exist")
 			return wkr.InvalidType
 		}
-		return TypeExpr(w, &ast.TypeExpr{Name: expr.Accessed}, walker.Environment)
+		typ = TypeExpr(w, &ast.TypeExpr{Name: expr.Accessed}, walker.Environment)
+		if typee.IsVariadic {
+			return wkr.NewVariadicType(typ)
+		}
 	}
 
 	if typee.Name.GetToken().Type == lexer.Entity {
-		return &wkr.RawEntityType{}
+		typ = &wkr.RawEntityType{}
+		if typee.IsVariadic {
+			return wkr.NewVariadicType(typ)
+		}
+		return typ
 	}
 
 	pvt := w.GetTypeFromString(typee.Name.GetToken().Lexeme)
 	switch pvt {
 	case ast.Bool, ast.String, ast.Number:
-		return wkr.NewBasicType(pvt)
+		typ = wkr.NewBasicType(pvt)
 	case ast.Fixed, ast.FixedPoint, ast.Radian, ast.Degree:
-		return wkr.NewFixedPointType(pvt)
+		typ = wkr.NewFixedPointType(pvt)
 	case ast.Enum:
-		return wkr.NewBasicType(ast.Enum)
+		typ = wkr.NewBasicType(ast.Enum)
 	case ast.AnonStruct:
 		fields := map[string]*wkr.VariableVal{}
 
@@ -571,7 +581,7 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, env *wkr.Environment) wkr.Type
 			}
 		}
 
-		return wkr.NewAnonStructType(fields, false)
+		typ = wkr.NewAnonStructType(fields, false)
 	case ast.Func:
 		params := wkr.Types{}
 
@@ -584,31 +594,40 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, env *wkr.Environment) wkr.Type
 			returns = append(returns, TypeExpr(w, v, env))
 		}
 
-		return &wkr.FunctionType{
+		typ = &wkr.FunctionType{
 			Params:  params,
 			Returns: returns,
 		}
 	case ast.Map, ast.List:
 		wrapped := TypeExpr(w, typee.WrappedType, env)
-		return wkr.NewWrapperType(wkr.NewBasicType(pvt), wrapped)
+		typ = wkr.NewWrapperType(wkr.NewBasicType(pvt), wrapped)
 	case ast.Entity:
-		return &wkr.RawEntityType{}
+		typ = &wkr.RawEntityType{}
 	default:
 		typeName := typee.Name.GetToken().Lexeme
 		if entityVal, found := w.Environment.Entities[typeName]; found {
-			return entityVal.GetType()
+			typ = entityVal.GetType()
+			break
 		}
 		if structVal, found := env.Structs[typeName]; found {
-			return structVal.GetType()
+			typ = structVal.GetType()
+			break
 		}
 		if customType, found := w.Environment.CustomTypes[typeName]; found {
-			return customType
+			typ = customType
+			break
 		}
 		if val := w.GetVariable(&env.Scope, typeName); val != nil {
 			if val.GetType().PVT() == ast.Enum {
-				return val.GetType()
+				typ = val.GetType()
+				break
 			}
 		}
-		return wkr.InvalidType
+		typ = wkr.InvalidType
 	}
+
+	if typee.IsVariadic {
+		return wkr.NewVariadicType(typ)
+	}
+	return typ
 }

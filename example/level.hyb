@@ -33,6 +33,14 @@ let uhhh = Math:Pi
 let id = Pewpew:NewEntity(10f, 10f)
 Pewpew:SetEntityMesh(id, Graphics, 0)
 
+fn idk(fixed a, number... nums) {
+  for i, v in nums {
+    
+  }
+}
+
+idk(1f, 1, 2, 3)
+
 // let a = struct{
 //   a = 1f
 //   b = struct{

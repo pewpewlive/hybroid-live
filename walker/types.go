@@ -26,10 +26,39 @@ const (
 	Enum
 	Unresolved
 	CstmType
+	Variadic
 	Path
 	NA
 	NotKnown
 )
+
+type VariadicType struct {
+	Type Type
+}
+
+func NewVariadicType(typ Type) *VariadicType {
+	return &VariadicType{
+		Type: typ,
+	}
+}
+
+func (self *VariadicType) PVT() ast.PrimitiveValueType {
+	return self.Type.PVT()
+}
+
+func (self *VariadicType) GetType() ValueType {
+	return Variadic
+}
+
+func (self *VariadicType) _eq(other Type) bool {
+	path := other.(*VariadicType)
+	return self.Type == path.Type
+}
+
+func (self *VariadicType) ToString() string {
+	return "..."+self.Type.ToString()
+}
+
 
 type PathType struct {
 	EnvType ast.EnvType
@@ -243,6 +272,7 @@ type AnonStructType struct {
 func NewAnonStructType(fields map[string]*VariableVal, lenient bool) *AnonStructType {
 	return &AnonStructType{
 		Fields: fields,
+		Lenient: lenient,
 	}
 }
 

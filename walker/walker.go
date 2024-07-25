@@ -301,16 +301,28 @@ func (sc *Scope) ResolveReturnable() *ExitableTag {
 }
 
 func (w *Walker) ValidateArguments(args []Type, params []Type, callToken lexer.Token, typeCall string) (int, bool) {
-	if len(params) < len(args) {
-		w.Error(callToken, fmt.Sprintf("too many arguments given in %s call", typeCall))
-		return -1, true
-	}
-	if len(params) > len(args) {
+	paramCount := len(params)
+	if paramCount > len(args) {
 		w.Error(callToken, fmt.Sprintf("too few arguments given in %s call", typeCall))
 		return -1, true
 	}
+	var param Type
 	for i, typeVal := range args {
-		if !TypeEquals(params[i], typeVal) {
+		if i >= paramCount-1 {
+			if params[paramCount-1].GetType() == Variadic {
+				param = params[paramCount-1].(*VariadicType).Type
+			}else if i > paramCount-1 {
+				w.Error(callToken, fmt.Sprintf("too many arguments given in %s call", typeCall))
+				return -1, true
+			}else {
+				param = params[i]
+			}
+		}else {
+			param = params[i]
+		}
+	
+
+		if !TypeEquals(param, typeVal) {
 			w.Error(callToken, fmt.Sprintf("argument is of type %s, but should be %s", typeVal.ToString(), params[i].ToString()))
 			return i, false
 		}
@@ -391,6 +403,12 @@ func (w *Walker) TypeToValue(_type Type) Value {
 	}
 	if _type.GetType() == CstmType {
 		return NewCustomVal(_type.(*CustomType))
+	}
+	if _type.GetType() == Variadic {
+		return &ListVal{
+			ValueType: _type.(*VariadicType).Type,
+			Values: make([]Value, 0),
+		}
 	}
 	switch _type.PVT() {
 	case ast.Radian, ast.Fixed, ast.FixedPoint, ast.Degree:

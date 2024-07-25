@@ -429,24 +429,35 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr) wkr.Type {
 	if typee == nil {
 		return wkr.InvalidType
 	}
+	var typ wkr.Type
+
 	if typee.Name.GetType() == ast.EnvironmentAccessExpression {
 		expr, _ := typee.Name.(*ast.EnvAccessExpr)
-		return &wkr.UnresolvedType{
+		typ = &wkr.UnresolvedType{
 			Expr: expr,
 		}
+		if typee.IsVariadic {
+			return wkr.NewVariadicType(typ)
+		}
+		return typ
 	}
 	if typee.Name.GetToken().Type == lexer.Entity {
-		return &wkr.RawEntityType{}
+		typ = &wkr.RawEntityType{}
+		if typee.IsVariadic {
+			return wkr.NewVariadicType(typ)
+		}
+		return typ
 	}
+
 
 	pvt := w.GetTypeFromString(typee.Name.GetToken().Lexeme)
 	switch pvt {
 	case ast.Bool, ast.String, ast.Number:
-		return wkr.NewBasicType(pvt)
+		typ = wkr.NewBasicType(pvt)
 	case ast.Fixed, ast.FixedPoint, ast.Radian, ast.Degree:
-		return wkr.NewFixedPointType(pvt)
+		typ = wkr.NewFixedPointType(pvt)
 	case ast.Enum:
-		return wkr.NewBasicType(ast.Enum)
+		typ = wkr.NewBasicType(ast.Enum)
 	case ast.AnonStruct:
 		fields := map[string]*wkr.VariableVal{}
 
@@ -458,7 +469,7 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr) wkr.Type {
 			}
 		}
 
-		return wkr.NewAnonStructType(fields, false)
+		typ = wkr.NewAnonStructType(fields, false)
 	case ast.Func:
 		params := wkr.Types{}
 
@@ -471,31 +482,40 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr) wkr.Type {
 			returns = append(returns, TypeExpr(w, v))
 		}
 
-		return &wkr.FunctionType{
+		typ = &wkr.FunctionType{
 			Params:  params,
 			Returns: returns,
 		}
 	case ast.Map, ast.List:
 		wrapped := TypeExpr(w, typee.WrappedType)
-		return wkr.NewWrapperType(wkr.NewBasicType(pvt), wrapped)
+		typ = wkr.NewWrapperType(wkr.NewBasicType(pvt), wrapped)
 	case ast.Entity:
-		return &wkr.RawEntityType{}
+		typ = &wkr.RawEntityType{}
 	default:
 		typeeName := typee.Name.GetToken().Lexeme
 		if entityVal, found := w.CurrentEnvironment.Entities[typeeName]; found {
-			return entityVal.GetType()
+			typ = entityVal.GetType()
+			break
 		}
 		if structVal, found := w.CurrentEnvironment.Structs[typeeName]; found {
-			return structVal.GetType()
+			typ = structVal.GetType()
+			break
 		}
 		if customType, found := w.CurrentEnvironment.CustomTypes[typeeName]; found {
-			return customType
+			typ = customType
+			break
 		}
 		if val := w.GetVariable(&w.CurrentEnvironment.Scope, typeeName); val != nil {
 			if val.GetType().PVT() == ast.Enum {
-				return val.GetType()
+				typ = val.GetType()
+				break
 			}
 		}
-		return wkr.InvalidType
+		typ = wkr.InvalidType
 	}
+
+	if typee.IsVariadic {
+		return wkr.NewVariadicType(typ)
+	}
+	return typ
 }

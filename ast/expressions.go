@@ -134,6 +134,7 @@ type TypeExpr struct {
 	Params      []*TypeExpr
 	Returns     []*TypeExpr
 	Fields      []Param
+	IsVariadic  bool
 }
 
 func (te *TypeExpr) GetType() NodeType {

@@ -153,7 +153,11 @@ func (l *Lexer) scanToken() {
 		l.addToken(Pipe, "")
 	case '.':
 		if l.matchChar('.') {
-			l.addToken(Concat, "")
+			if l.matchChar('.') {
+				l.addToken(DotDotDot, "")
+			}else {
+				l.addToken(Concat, "")
+			}
 		} else {
 			l.addToken(Dot, "")
 		}

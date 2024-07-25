@@ -25,7 +25,7 @@ func IsFx(valueType ast.PrimitiveValueType) bool {
 func (p *Parser) PeekIsType() bool {
 	token := p.peek()
 
-	return !(token.Type != lexer.Identifier && token.Type != lexer.Fn && token.Type != lexer.Struct && token.Type != lexer.Entity)
+	return !(token.Type != lexer.Identifier && token.Type != lexer.Fn && token.Type != lexer.Struct && token.Type != lexer.Entity/* && lexer.Type != lexer.DotDotDot*/)
 }
 
 func (p *Parser) getOp(opEqual lexer.Token) lexer.Token {

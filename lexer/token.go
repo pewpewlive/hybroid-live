@@ -20,6 +20,7 @@ const (
 	DoubleColon    TokenType = "doubleColon"    // ::
 	Dot            TokenType = "dot"            // .
 	Concat         TokenType = "concat"         // ..
+	DotDotDot      TokenType =  "dotdotdot"     // ...
 	Minus          TokenType = "minus"          // -
 	MinusEqual     TokenType = "minusEqual"     // -=
 	Plus           TokenType = "plus"           // +

@@ -77,7 +77,6 @@ func (gen *Generator) functionDeclarationStmt(node ast.FunctionDeclarationStmt, 
 
 	fnScope.Append("function ", gen.WriteVar(node.Name.Lexeme), "(")
 	gen.GenerateParams(node.Params, &fnScope)
-	fnScope.Append(")\n")
 
 	/* scope src, node src
 
@@ -359,7 +358,6 @@ func (gen *Generator) entityDeclarationStmt(node ast.EntityDeclarationStmt, scop
 			entityScope.Append(", ")
 		}
 		gen.GenerateParams(v.Params, &entityScope)
-		entityScope.WriteString(")\n")
 		entityScope.AppendETabbed("local Self = ", hyEntityState, entityName, "[id]\n")
 		gen.GenerateBody(v.Body, &entityScope)
 		entityScope.AppendTabbed("end\n")
@@ -393,8 +391,6 @@ func (gen *Generator) spawnDeclarationStmt(node ast.EntityFunctionDeclarationStm
 	spawnScope.Append("function ", hyEntity, entityName, "_Spawn(")
 
 	gen.GenerateParams(node.Params, &spawnScope)
-
-	spawnScope.Append(")\n")
 
 	TabsCount++
 
@@ -448,7 +444,6 @@ func (gen *Generator) destroyDeclarationStmt(node ast.EntityFunctionDeclarationS
 
 	gen.GenerateParams(node.Params, &spawnScope)
 
-	spawnScope.Append(")\n")
 	spawnScope.AppendETabbed("local Self = ", hyEntityState, gen.WriteVar(entity.Name.Lexeme), "[id]\n")
 
 	gen.GenerateBody(node.Body, &spawnScope)
@@ -459,11 +454,22 @@ func (gen *Generator) destroyDeclarationStmt(node ast.EntityFunctionDeclarationS
 }
 
 func (gen *Generator) GenerateParams(params []ast.Param, scope *GenScope) {
+	var variadicParam string
 	for i, param := range params {
-		scope.Append(gen.WriteVar(param.Name.Lexeme))
+		if param.Type.IsVariadic {
+			scope.WriteString("...")
+			variadicParam = gen.WriteVar(param.Name.Lexeme)
+		}else {
+			scope.Append(gen.WriteVar(param.Name.Lexeme))
+		}
 		if i != len(params)-1 {
 			scope.Append(", ")
 		}
+	}
+	scope.Append(")\n")
+
+	if variadicParam != "" {
+		scope.AppendETabbed("local ", variadicParam, " = {...}\n")
 	}
 }
 
@@ -479,8 +485,6 @@ func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, Struc
 	constructorScope.Append("function ", hyStruct, gen.WriteVar(Struct.Name.Lexeme), "_New(")
 
 	gen.GenerateParams(node.Params, &constructorScope)
-
-	constructorScope.Append(")\n")
 
 	TabsCount++
 	src.AppendTabbed("local Self = {")
