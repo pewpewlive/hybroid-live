@@ -57,6 +57,10 @@ An experimental VS Code extension is available [here](https://github.com/pewpewl
 
 - [ ] Language server and syntax highlighting
 
+## Building for release
+
+Run `utils/build_hybroid.py`.
+
 ## License
 
 Hybroid is licensed under Apache 2.0 license.
