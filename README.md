@@ -39,24 +39,6 @@ The preliminary syntax for Hybroid can be found [here](spec/syntax.md).
 
 An experimental VS Code extension is available [here](https://github.com/pewpewlive/hybroid-vscode).
 
-## Goals
-
-- [ ] Full spec
-
-- [x] Working lexer
-
-- [ ] Working parser
-
-- [ ] Working AST walker
-
-- [x] Basic Lua codegen
-
-- [ ] Advanced codegen
-
-- [ ] APPAPI implementation
-
-- [ ] Language server and syntax highlighting
-
 ## Building for release
 
 Run `utils/build_hybroid.py`.
