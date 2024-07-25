@@ -1,0 +1,11 @@
+env Test1 as Level
+
+let a = 1
+
+if true {
+  a = 2
+}
+
+if true 
+  => a = 2
+

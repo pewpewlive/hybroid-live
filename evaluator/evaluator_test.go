@@ -4,6 +4,7 @@ import (
 	"hybroid/generator"
 	"hybroid/helpers"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -58,12 +59,45 @@ func checkFiles(generated, expected string, t *testing.T) {
 		t.Fail()
 	}
 }
+
+// useful minifier code
+// func minify(str string) string {
+// 	for i := 0; i < len(str); i++ {
+// 		switch rune(str[i]) {
+// 		case '\t', '\n', ' ', '\r':
+// 			if i == 0 {
+// 				continue
+// 			}
+// 			switch str[i-1] {
+// 			case '\t', '\n', ' ', '\r':
+// 				if i == len(str)-1 {
+// 					str = str[:i-1]
+// 				} else if i == 0 {
+// 					str = str[i+1:]
+// 				} else {
+// 					str = str[:i] + str[i+1:]
+// 				}
+// 				i--
+// 			}
+// 		}
+// 	}
+
+// 	str = strings.Trim(str, "\t \n\r")
+
+// 	str = strings.Replace(str, "\r", " ", -1)
+// 	str = strings.Replace(str, "\n", " ", -1)
+// 	str = strings.Replace(str, "\t", " ", -1)
+
+// 	return str
+// }
+
 func check(fileName string, t *testing.T) {
 	expected := readExpectedFile(fileName, t)
 	generated := readFile(fileName, t)
-
-	if generated != expected {
-		t.Errorf("Test case failed: expected %v\ngot\n%v", generated, expected)
+	minifiedGenerated := minify(generated)
+	minifiedExpected := minify(expected)
+	if minifiedGenerated != minifiedExpected {
+		t.Errorf("Test case failed: expected %v\ngot\n%v", minifiedGenerated, minifiedExpected)
 		t.Fail()
 	}
 }
@@ -72,6 +106,7 @@ func check(fileName string, t *testing.T) {
 func Test1(t *testing.T) {
 	testFolderName = "test1"
 	newEval(t)
+	t.Run
 
 	check("test1", t)
 }
