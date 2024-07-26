@@ -215,17 +215,14 @@ func EnumDeclarationStmt(w *wkr.Walker, node *ast.EnumDeclarationStmt, scope *wk
 func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclarationStmt, scope *wkr.Scope) []*wkr.VariableVal {
 	variables := []*wkr.VariableVal{}
 
-	idents := len(declaration.Identifiers)
-	values := make([]wkr.Value, idents)
+	values := make([]wkr.Value, len(declaration.Values))
 
 	for i := range values {
 		values[i] = &wkr.Unknown{}
 	}
-
-	valuesLength := len(declaration.Values)
-	if valuesLength > idents {
-		w.Error(declaration.Token, "too many values provided in declaration")
-		return variables
+	
+	if declaration.Identifiers[0].Lexeme == "z" {
+		println("temp")
 	}
 
 	for i := range declaration.Values {
@@ -243,6 +240,16 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 		}
 	}
 
+	
+	identsLength := len(declaration.Identifiers)
+	valuesLength := len(declaration.Values)
+	if identsLength < valuesLength {
+		w.Error(declaration.Token, "too many values given in variable declaration")
+	}else if valuesLength > identsLength {
+		w.Error(declaration.Token, "too few values given in variable declaration")
+		return []*wkr.VariableVal{}
+	}
+
 	for i, ident := range declaration.Identifiers {
 		if ident.Lexeme == "_" {
 			continue
@@ -252,7 +259,7 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 			explicitType := TypeExpr(w, declaration.Types[i], w.Environment)
 			if valueType.PVT() == ast.Unknown {
 				values[i] = w.TypeToValue(explicitType)
-				declaration.Values = append(declaration.Values, values[i].GetDefault()) // only here does it set to default if no value is given
+				declaration.Values = append(declaration.Values, values[i].GetDefault()) 
 			} else if !wkr.TypeEquals(valueType, explicitType) {
 				w.Error(declaration.Values[i].GetToken(), fmt.Sprintf("Given value is %s, but explicit type is %s", valueType.ToString(), explicitType.ToString()))
 			}

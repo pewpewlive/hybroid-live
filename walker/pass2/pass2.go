@@ -42,7 +42,8 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 	case *ast.TickStmt:
 		TickStmt(w, newNode, scope)
 	case *ast.CallExpr:
-		CallExpr(w, newNode, scope, wkr.Function)
+		val := GetNodeValue(w, &newNode.Caller, scope)
+		CallExpr(w, val, newNode, scope)
 	case *ast.PewpewExpr:
 		PewpewExpr(w, newNode, scope)
 	case *ast.EnvAccessExpr:
@@ -50,8 +51,6 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 		if newVersion != nil {
 			*node = newVersion
 		}
-	case *ast.MethodCallExpr:
-		MethodCallExpr(w, node, scope)
 	case *ast.StructDeclarationStmt:
 		StructDeclarationStmt(w, newNode, scope)
 	case *ast.EnumDeclarationStmt:
@@ -91,15 +90,14 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 	case *ast.UnaryExpr:
 		val = UnaryExpr(w, newNode, scope)
 	case *ast.CallExpr:
-		val = CallExpr(w, newNode, scope, wkr.Function)
+		callVal := GetNodeValue(w, &newNode.Caller, scope)
+		val = CallExpr(w, callVal, newNode, scope)
 	case *ast.MapExpr:
 		val = MapExpr(w, newNode, scope)
 	case *ast.AnonFnExpr:
 		val = AnonFnExpr(w, newNode, scope)
 	case *ast.AnonStructExpr:
 		val = AnonStructExpr(w, newNode, scope)
-	case *ast.MethodCallExpr:
-		val = MethodCallExpr(w, node, scope)
 	case *ast.MemberExpr:
 		val = MemberExpr(w, newNode, scope)
 	case *ast.FieldExpr:

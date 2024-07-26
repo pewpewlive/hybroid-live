@@ -308,8 +308,9 @@ func EnumDeclarationStmt(w *wkr.Walker, node *ast.EnumDeclarationStmt, scope *wk
 func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclarationStmt, scope *wkr.Scope) []*wkr.VariableVal {
 	declaredVariables := []*wkr.VariableVal{}
 
-	idents := len(declaration.Identifiers)
-	values := make([]wkr.Value, idents)
+	identsLength := len(declaration.Identifiers)
+	valuesLength := len(declaration.Values)
+	values := make([]wkr.Value, valuesLength)
 
 	for i := range values {
 		values[i] = &wkr.Invalid{}
@@ -329,12 +330,20 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 			values[i] = exprValue
 		}
 	}
+	trueValuesLength := len(values)
 
 	if !declaration.IsLocal && scope.Parent != nil {
 		w.Error(declaration.Token, "cannot declare a global variable inside a local block")
 	}
 	if declaration.Token.Type == lexer.Const && scope.Parent != nil {
 		w.Error(declaration.Token, "cannot declare a global constant inside a local block")
+	}
+
+	if identsLength < trueValuesLength {
+		w.Error(declaration.Token, "too many values given in variable declaration")
+	}else if trueValuesLength > identsLength {
+		w.Error(declaration.Token, "too few values given in variable declaration")
+		return []*wkr.VariableVal{}
 	}
 
 	for i, ident := range declaration.Identifiers {

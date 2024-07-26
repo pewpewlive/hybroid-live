@@ -140,6 +140,7 @@ func (p *Parser) getBody() ([]ast.Node, bool) {
 		args, ok := p.returnArgs()
 		if !ok {
 			p.error(p.peek(), "expected return arguments")
+			return []ast.Node{}, false
 		}
 		body = []ast.Node{
 			&ast.ReturnStmt{
@@ -147,6 +148,7 @@ func (p *Parser) getBody() ([]ast.Node, bool) {
 				Args:  args,
 			},
 		}
+		return body, true
 	} else if !p.check(lexer.LeftBrace) {
 		body = []ast.Node{p.statement()}
 		return body, true

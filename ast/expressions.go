@@ -22,6 +22,10 @@ func (ete *EnvTypeExpr) GetValueType() PrimitiveValueType {
 	return Unknown
 }
 
+// func (ete *EnvTypeExpr) DrawNode(str *strings.Builder, depth int) *strings.Builder {
+// 	str.WriteString(ete.Type)
+// }
+
 type EnvPathExpr struct {
 	SubPaths []string
 }
@@ -338,28 +342,6 @@ func (se *SelfExpr) GetValueType() PrimitiveValueType {
 	return Unknown
 }
 
-type MethodCallExpr struct {
-	TypeName   string
-	OwnerType  SelfExprType
-	Owner      Node
-	Call       Node
-	MethodName string
-	Args       []Node
-	Token      lexer.Token
-}
-
-func (mce *MethodCallExpr) GetType() NodeType {
-	return MethodCallExpression
-}
-
-func (mce *MethodCallExpr) GetToken() lexer.Token {
-	return mce.Token
-}
-
-func (mce *MethodCallExpr) GetValueType() PrimitiveValueType {
-	return Unknown
-}
-
 type NewExpr struct {
 	Type  *TypeExpr
 	Args  []Node
@@ -397,7 +379,6 @@ func (ne *SpawnExpr) GetValueType() PrimitiveValueType {
 }
 
 type FieldExpr struct {
-	Owner      Accessor
 	Property   Node
 	Identifier Node
 	Index      int
@@ -423,25 +404,11 @@ func (fe *FieldExpr) GetProperty() *Node {
 	return &fe.Property
 }
 
-func (fe *FieldExpr) GetOwner() *Accessor {
-	return &fe.Owner
-}
-
 func (fe *FieldExpr) SetIdentifier(ident Node) {
 	fe.Identifier = ident
 }
 
-func (fe *FieldExpr) SetOwner(owner Accessor) {
-	fe.Owner = owner
-}
-
-func (fe *FieldExpr) Copy() Accessor {
-	copy := *fe
-	return &copy
-}
-
 type MemberExpr struct {
-	Owner      Accessor
 	Property   Node
 	Identifier Node
 	IsList     bool
@@ -467,21 +434,8 @@ func (me *MemberExpr) GetProperty() *Node {
 	return &me.Property
 }
 
-func (me *MemberExpr) GetOwner() *Accessor {
-	return &me.Owner
-}
-
 func (me *MemberExpr) SetIdentifier(ident Node) {
 	me.Identifier = ident
-}
-
-func (me *MemberExpr) SetOwner(owner Accessor) {
-	me.Owner = owner
-}
-
-func (me *MemberExpr) Copy() Accessor {
-	copy := *me
-	return &copy
 }
 
 type Property struct {

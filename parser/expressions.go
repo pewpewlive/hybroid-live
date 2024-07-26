@@ -127,7 +127,7 @@ func (p *Parser) unary() ast.Node {
 		right := p.unary()
 		return &ast.UnaryExpr{Operator: operator, Value: right}
 	}
-	return p.accessorExprDepth2(nil, nil, ast.NA)
+	return p.accessorExpr(ast.NA)
 }
 
 func (p *Parser) call(caller ast.Node) ast.Node {
@@ -143,137 +143,28 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 
 	call_expr := &ast.CallExpr{
 		Caller: caller,
-		Args:   p.arguments(), // ahh wait a minute
+		Args:   p.arguments(),
 	}
-
-	/*
-
-				this is how
-
-				test3()()()()
-
-				looks like:
-
-				Call: test3()()()()
-					Caller: Call:  test3()()()
-							Caller: Call: test3()()
-										Caller: Call: test3()
-
-										so the w
-		soppus rekl
-
-		liveshare died
-										we need to check what is getting called, the type if its fn() fn() then you can call
-										but if its nothing like yyou do test()()() even tho it returns only one function
-	*/
 
 	return p.call(call_expr)
 }
 
-func (p *Parser) resolveProperty(node *ast.Node) ast.Accessor {
-	var accessor ast.Accessor
-	if (*node).GetType() == ast.FieldExpression {
-		accessor = (*node).(*ast.FieldExpr)
-	} else {
-		accessor = (*node).(*ast.MemberExpr)
-	}
-	prop := accessor.GetProperty()
-	propAccessor := (*prop).(ast.Accessor)
-
-	if *propAccessor.GetProperty() == nil {
-		accessor.SetProperty(nil)
-		*node = accessor
-		return propAccessor
-	}
-
-	last := p.resolveProperty(prop)
-
-	if fieldExpr, ok := (*node).(*ast.FieldExpr); ok {
-		fieldExpr.Property = *prop
-		*node = fieldExpr
-	} else if memberExpr, ok := (*node).(*ast.MemberExpr); ok {
-		memberExpr.Property = *prop
-		*node = memberExpr
-	}
-
-	return last
-}
-
-func (p *Parser) accessorExprDepth2(owner ast.Accessor, ident ast.Node, nodeType ast.NodeType) ast.Node {
-	expr := p.accessorExprDepth1(owner, ident, nodeType)
-
-	if expr.GetType() != ast.FieldExpression && expr.GetType() != ast.MemberExpression {
-		return p.call(expr)
-	}
-	if !p.check(lexer.LeftParen) {
-		return expr
-	}
-
-	acesss := expr.(ast.Accessor)
-	args := p.arguments()
-	beforeExpr := acesss.Copy()
-	last := p.resolveProperty(&expr)
-	if last.GetType() == ast.FieldExpression {
-		expr = &ast.MethodCallExpr{
-			Owner:      expr,
-			Call:       beforeExpr,
-			MethodName: last.GetToken().Lexeme,
-			Args:       args,
-			Token:      last.GetToken(),
-		}
-	} else {
-		expr = &ast.CallExpr{
-			Caller: beforeExpr,
-			Args:   args,
-		}
-	}
-
-	expr = p.call(expr)
-
-	isField, isMember := p.check(lexer.Dot), p.check(lexer.LeftBracket)
-
-	var propNodeType ast.NodeType
-	if isField {
-		propNodeType = ast.FieldExpression
-	} else {
-		propNodeType = ast.MemberExpression
-	}
-
-	if !isField && !isMember {
-		return expr
-	}
-
-	accessorExpr := p.accessorExprDepth2(owner, expr, propNodeType)
-
-	return accessorExpr
-}
-
-func (p *Parser) accessorExprDepth1(owner ast.Accessor, ident ast.Node, nodeType ast.NodeType) ast.Node {
-	if ident == nil {
+func (p *Parser) accessorExpr(nodeType ast.NodeType) ast.Node {
+	var ident ast.Node
+	if nodeType == ast.NA {
 		ident = p.matchExpr()
+	}else if nodeType == ast.MemberExpression {
+		ident = p.expression()
+		p.consume("expected closing bracket in member expression", lexer.RightBracket)
+	}else {
+		ident = p.new()
 	}
-	if owner == nil {
-		ident = p.call(ident)
-	}
+	ident = p.call(ident)
 
 	isField, isMember := p.check(lexer.Dot), p.check(lexer.LeftBracket)
 
 	if !isField && !isMember {
-		if owner == nil {
-			return ident
-		} else {
-			if nodeType == ast.FieldExpression {
-				return &ast.FieldExpr{
-					Owner:      owner,
-					Identifier: ident,
-				}
-			} else {
-				return &ast.MemberExpr{
-					Owner:      owner,
-					Identifier: ident,
-				}
-			}
-		}
+		return ident
 	}
 
 	p.advance()
@@ -290,25 +181,16 @@ func (p *Parser) accessorExprDepth1(owner ast.Accessor, ident ast.Node, nodeType
 
 	var expr ast.Accessor
 	var prop ast.Node
-	var propIdent ast.Node
 	if nodeType == ast.FieldExpression {
 		expr = &ast.FieldExpr{
-			Owner:      owner,
 			Identifier: ident,
 		}
 	} else {
 		expr = &ast.MemberExpr{
-			Owner:      owner,
 			Identifier: ident,
 		}
 	}
-	if propNodeType == ast.FieldExpression {
-		propIdent = p.new()
-	} else {
-		propIdent = p.expression()
-		p.consume("expected closing bracket in member expression", lexer.RightBracket)
-	}
-	prop = p.accessorExprDepth1(expr, propIdent, propNodeType)
+	prop = p.accessorExpr(propNodeType)
 
 	expr.SetProperty(prop)
 
@@ -479,14 +361,14 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 				},
 			}
 
-			next := p.accessorExprDepth2(nil, nil, ast.NA)
+			next := p.accessorExpr(ast.NA)
 			for p.match(lexer.Colon) {
 				envPath.SubPaths = append(envPath.SubPaths, next.GetToken().Lexeme)
 				if next.GetType() != ast.Identifier {
 					p.error(next.GetToken(), "expected identifier in environment expression")
 					return &ast.Improper{Token: next.GetToken()}
 				}
-				next = p.accessorExprDepth2(nil, nil, ast.NA)
+				next = p.accessorExpr(ast.NA)
 			}
 			envExpr := &ast.EnvAccessExpr{
 				PathExpr: envPath,
@@ -532,6 +414,7 @@ func (p *Parser) list() ast.Node {
 		exprInList := p.expression()
 		if exprInList.GetType() == ast.NA {
 			p.error(p.peek(), "expected expression")
+			p.advance()
 		}
 		list = append(list, exprInList)
 	}

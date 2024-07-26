@@ -11,6 +11,12 @@ type Context struct {
 	Ret   Types
 }
 
+func (c *Context) Clear() {
+	c.Node = &ast.Improper{}
+	c.Value = &Unknown{}
+	c.Ret = EmptyReturn
+}
+
 type ScopeTagType int
 
 const (

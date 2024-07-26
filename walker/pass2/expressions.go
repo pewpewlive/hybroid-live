@@ -3,7 +3,6 @@ package pass2
 import (
 	"fmt"
 	"hybroid/ast"
-	"hybroid/helpers"
 	"hybroid/lexer"
 	wkr "hybroid/walker"
 )
@@ -136,7 +135,6 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 		}
 
 		fieldExpr := &ast.FieldExpr{
-			Owner:      selfExpr,
 			Identifier: valueNode,
 			Index:      index,
 		}
@@ -153,7 +151,6 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 		}
 
 		fieldExpr := &ast.FieldExpr{
-			Owner:      selfExpr,
 			Identifier: valueNode,
 			Index:      index,
 		}
@@ -222,9 +219,7 @@ func ListExpr(w *wkr.Walker, node *ast.ListExpr, scope *wkr.Scope) wkr.Value {
 	return &value
 }
 
-func CallExpr(w *wkr.Walker, node *ast.CallExpr, scope *wkr.Scope, callType wkr.ProcedureType) wkr.Value { 
-	val := GetNodeValue(w, &node.Caller, scope) 
-
+func CallExpr(w *wkr.Walker, val wkr.Value, node *ast.CallExpr, scope *wkr.Scope) wkr.Value { 
 	valType := val.GetType().PVT() 
 	if valType != ast.Func {
 		w.Error(node.Caller.GetToken(), "caller is not a function") 
@@ -241,7 +236,7 @@ func CallExpr(w *wkr.Walker, node *ast.CallExpr, scope *wkr.Scope, callType wkr.
 	for i := range node.Args {
 		args = append(args, GetNodeValue(w, &node.Args[i], scope).GetType())
 	}
-	w.ValidateArguments(args, fun.Params, node.Caller.GetToken(), w.DetermineCallTypeString(callType))
+	w.ValidateArguments(args, fun.Params, node.Caller.GetToken())
 
 	if len(fun.Returns) == 1 {
 		return w.TypeToValue(fun.Returns[0]) 
@@ -249,99 +244,109 @@ func CallExpr(w *wkr.Walker, node *ast.CallExpr, scope *wkr.Scope, callType wkr.
 	return &fun.Returns
 }
 
-func MethodCallExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
-	method := (*node).(*ast.MethodCallExpr)
+func PropertyExpr(w *wkr.Walker, node ast.Node, scope *wkr.Scope) wkr.Value {// READS CONTEXT
+	var val wkr.Value
+	val = &wkr.Invalid{}
+	
+	switch w.Context.Node.(type) {
+	case *ast.FieldExpr:
+		owner := w.Context.Value
+		if !wkr.IsOfPrimitiveType(owner, ast.Struct, ast.Entity, ast.AnonStruct, ast.Enum) {
+			token := w.Context.Node.GetToken()
+			w.Error(token, fmt.Sprintf("variable '%s' is not a struct, entity, enum or anonymous struct", token.Lexeme))
+			break
+		}
+		if node.GetType() == ast.CallExpression {
+			val := PropertyExpr(w, node.(*ast.CallExpr).Caller, scope)
+			return CallExpr(w, val, node.(*ast.CallExpr), scope)
+		}
+		fieldContainer, _ := owner.(wkr.FieldContainer)
+		if value, index, ok := fieldContainer.ContainsField(node.GetToken().Lexeme); ok {
+			w.Context.Node.(*ast.FieldExpr).Index = index
 
-	ownerVal := GetNodeValue(w, &method.Owner, scope)
-
-	if container := helpers.GetValOfInterface[wkr.FieldContainer](ownerVal); container != nil {
-		container := *container
-		if _, _, contains := container.ContainsField(method.MethodName); contains {
-			expr := ast.CallExpr{
-				Caller: method.Call,
-				Args:   method.Args,
+			val = value
+		}else {
+			methodContainer, ok := owner.(wkr.MethodContainer)
+			if !ok {
+			}else if value, ok := methodContainer.ContainsMethod(node.GetToken().Lexeme); ok {
+				val = value
 			}
-			val := CallExpr(w, &expr, scope, wkr.Function)
-			*node = &expr
-			return val
+		}
+	case *ast.MemberExpr:
+		owner := w.Context.Value
+		if owner.GetType().GetType() != wkr.Wrapper {
+			token := w.Context.Node.GetToken()
+			w.Error(token, fmt.Sprintf("%s is not a map nor a list", token.Lexeme))
+			break
+		}
+		if node.GetType() == ast.CallExpression {
+			val := PropertyExpr(w, node.(*ast.CallExpr).Caller, scope)
+			return CallExpr(w, val, node.(*ast.CallExpr), scope)
+		}
+		expr := GetNodeValue(w, &node, scope)
+		if expr.GetType().PVT() != ast.String && expr.GetType().PVT() != ast.Number {
+			w.Error(node.GetToken(), "value inside brackets must be a string or a number")
+		}else {
+			ownerType, _ := owner.GetType().(*wkr.WrapperType)
+			val = w.TypeToValue(ownerType.WrappedType)
 		}
 	}
 
-	if ownerVal.GetType().PVT() == ast.Entity {
-		method.OwnerType = ast.SelfEntity
-	} else {
-		method.OwnerType = ast.SelfStruct
+	if val.GetType().PVT() == ast.Invalid {
+		w.Error(node.GetToken(), "invalid property")
 	}
 
-	method.TypeName = ownerVal.GetType().(*wkr.NamedType).Name
-	*node = method
-
-	callExpr := ast.CallExpr{
-		Caller: method.Call,
-		Args:   method.Args,
-	}
-
-	return CallExpr(w, &callExpr, scope, wkr.Method)
+	return val
 }
 
-func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {
-	if node.Owner == nil {
-		val := GetNodeValue(w, &node.Identifier, scope)
-
-		if val.GetType().PVT() == ast.Unresolved {
-			return &wkr.Unknown{}
-		}
-
-		if !wkr.IsOfPrimitiveType(val, ast.Struct, ast.Entity, ast.AnonStruct, ast.Enum) {
-			w.Error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a struct, entity, enum or anonymous struct", node.Identifier.GetToken().Lexeme))
-			return &wkr.Invalid{}
-		}
-
-		var fieldVal wkr.Value
-		if node.Property == nil {
-			return val
-		} else {
-			w.Context.Value = val
-			w.Context.Node = node.Identifier
-			fieldVal = GetNodeValue(w, &node.Property, scope)
-		}
-		return fieldVal
+func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {// WRITES CONTEXT
+	var val wkr.Value
+	if w.Context.Value.GetType().GetType() != wkr.NA {
+		val = PropertyExpr(w, node.Identifier, scope)
+	}else {
+		val = GetNodeValue(w, &node.Identifier, scope)
 	}
-	owner := w.Context.Value
-	if !wkr.IsOfPrimitiveType(owner, ast.Struct, ast.Entity, ast.AnonStruct, ast.Enum) {
+
+	if !wkr.IsOfPrimitiveType(val, ast.Struct, ast.Entity, ast.AnonStruct, ast.Enum) {
 		w.Error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a struct, entity, enum or anonymous struct", node.Identifier.GetToken().Lexeme))
 		return &wkr.Invalid{}
 	}
-	variable := &wkr.VariableVal{Value: &wkr.Invalid{}}
-	ident := node.Identifier.GetToken()
-	var isField, isMethod bool
-	if container, is := owner.(wkr.FieldContainer); is {
-		field, index, containsField := container.ContainsField(ident.Lexeme)
-		isField = containsField
-		if containsField {
-			node.Index = index
-			variable = field
-		}
+
+	w.Context.Value = val
+	w.Context.Node = node
+	finalValue := PropertyExpr(w, node.Property, scope)
+	if member, ok := node.Property.(*ast.MemberExpr); ok {
+		return MemberExpr(w, member, scope)
+	}else if field, ok := node.Property.(*ast.FieldExpr); ok {
+		return FieldExpr(w, field, scope)
 	}
-	if container, is := owner.(wkr.MethodContainer); is && !isField {
-		method, containsMethod := container.ContainsMethod(ident.Lexeme)
-		isMethod = containsMethod
-		if isMethod {
-			node.Index = -1
-			variable = method
-		}
-	}
-	if !isField && !isMethod {
-		w.Error(ident, fmt.Sprintf("variable '%s' does not contain '%s'", w.Context.Node.GetToken().Lexeme, ident.Lexeme))
+	w.Context.Clear()
+	return finalValue
+}
+
+func MemberExpr(w *wkr.Walker, node *ast.MemberExpr, scope *wkr.Scope) wkr.Value {// WRITES CONTEXT
+	var val wkr.Value
+	if w.Context.Value.GetType().GetType() != wkr.NA {
+		val = PropertyExpr(w, node.Identifier, scope)
+	}else {
+		val = GetNodeValue(w, &node.Identifier, scope)
 	}
 
-	if node.Property != nil {
-		w.Context.Value = variable.Value
-		val := GetNodeValue(w, &node.Property, scope)
-		return val
+	if val.GetType().GetType() != wkr.Wrapper {
+		token := w.Context.Node.GetToken()
+		w.Error(token, fmt.Sprintf("%s is not a map nor a list", token.Lexeme))
+		return &wkr.Invalid{}
 	}
-
-	return variable.Value
+	w.Context.Value = val
+	w.Context.Node = node
+	finalValue := PropertyExpr(w, node.Property, scope)
+	if member, ok := node.Property.(*ast.MemberExpr); ok {
+		return MemberExpr(w, member, scope)
+	}else if field, ok := node.Property.(*ast.FieldExpr); ok {
+		return FieldExpr(w, field, scope)
+	}
+	w.Context.Clear()
+	return finalValue
 }
 
 func MapExpr(w *wkr.Walker, node *ast.MapExpr, scope *wkr.Scope) wkr.Value {
@@ -356,61 +361,6 @@ func MapExpr(w *wkr.Walker, node *ast.MapExpr, scope *wkr.Scope) wkr.Value {
 
 func UnaryExpr(w *wkr.Walker, node *ast.UnaryExpr, scope *wkr.Scope) wkr.Value {
 	return GetNodeValue(w, &node.Value, scope)
-}
-
-func MemberExpr(w *wkr.Walker, node *ast.MemberExpr, scope *wkr.Scope) wkr.Value {
-	if node.Owner == nil {
-		val := GetNodeValue(w, &node.Identifier, scope)
-
-		var memberVal wkr.Value
-		if node.Property == nil {
-			return val
-		} else {
-			w.Context.Value = val
-			memberVal = GetNodeValue(w, &node.Property, scope)
-		}
-		return memberVal
-	}
-
-	val := GetNodeValue(w, &node.Identifier, scope)
-	valType := val.GetType().PVT()
-	array := w.Context.Value
-	arrayType := array.GetType()
-	arrayPVT := arrayType.PVT()
-
-	if arrayPVT == ast.Map {
-		if valType != ast.String {
-			w.Error(node.Identifier.GetToken(), "variable is not a string")
-			return &wkr.Invalid{}
-		}
-	} else if arrayPVT == ast.List {
-		if valType != ast.Number {
-			w.Error(node.Identifier.GetToken(), "variable is not a number")
-			return &wkr.Invalid{}
-		}
-	}else {
-		w.Error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a list or map", node.Owner.GetToken().Lexeme))
-		return &wkr.Invalid{}
-	}
-
-	if variable, ok := array.(*wkr.VariableVal); ok {
-		array = variable.Value
-	}
-	arrayType = array.GetType()
-	
-	var wrappedVal wkr.Value
-	if wrappedValType, ok := arrayType.(*wkr.WrapperType); ok {
-		wrappedVal = w.TypeToValue(wrappedValType.WrappedType)
-	}else if customValType, ok := arrayType.(*wkr.CustomType); ok {
-		wrappedVal = w.TypeToValue(customValType.UnderlyingType.(*wkr.WrapperType).WrappedType)
-	}
-
-	if node.Property != nil {
-		w.Context.Value = wrappedVal
-		return GetNodeValue(w, &node.Property, scope)
-	}
-
-	return wrappedVal
 }
 
 func SelfExpr(w *wkr.Walker, self *ast.SelfExpr, scope *wkr.Scope) wkr.Value {
@@ -453,7 +403,7 @@ func NewExpr(w *wkr.Walker, new *ast.NewExpr, scope *wkr.Scope) wkr.Value {
 		args = append(args, GetNodeValue(w, &new.Args[i], scope).GetType())
 	}
 
-	w.ValidateArguments(args, val.Params, new.Token, "constructor")
+	w.ValidateArguments(args, val.Params, new.Token)
 
 	return val
 }
@@ -477,7 +427,7 @@ func SpawnExpr(w *wkr.Walker, new *ast.SpawnExpr, scope *wkr.Scope) wkr.Value {
 		args = append(args, GetNodeValue(w, &new.Args[i], scope).GetType())
 	}
 
-	w.ValidateArguments(args, val.SpawnParams, new.Token, "spawn")
+	w.ValidateArguments(args, val.SpawnParams, new.Token)
 
 	return val
 }

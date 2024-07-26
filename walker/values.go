@@ -538,7 +538,7 @@ func (n *Invalid) GetDefault() *ast.LiteralExpr {
 type Unknown struct{}
 
 func (u *Unknown) GetType() Type {
-	return NewBasicType(ast.Unknown)
+	return &NotAnyType{}
 }
 
 func (u *Unknown) GetDefault() *ast.LiteralExpr {

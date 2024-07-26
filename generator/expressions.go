@@ -81,29 +81,6 @@ func (gen *Generator) GenerateArgs(args []ast.Node, scope *GenScope) string {
 	return src.String()
 }
 
-func (gen *Generator) methodCallExpr(node ast.MethodCallExpr, scope *GenScope) string {
-	src := StringBuilder{}
-	if node.OwnerType == ast.SelfEntity {
-		src.AppendTabbed(hyEntity, gen.WriteVar(node.TypeName), "_", node.MethodName)
-	} else {
-		src.AppendTabbed(hyStruct, gen.WriteVar(node.TypeName), "_", node.MethodName)
-	}
-
-	src.Append("(", gen.GenerateExpr(node.Owner, scope))
-	if len(node.Args) != 0 {
-		src.WriteString(", ")
-	}
-	for i, arg := range node.Args {
-		src.WriteString(gen.GenerateExpr(arg, scope))
-		if i != len(node.Args)-1 {
-			src.WriteString(", ")
-		}
-	}
-	src.WriteString(")")
-
-	return src.String()
-}
-
 func (gen *Generator) mapExpr(node ast.MapExpr, scope *GenScope) string {
 	src := StringBuilder{}
 
@@ -139,47 +116,24 @@ func (gen *Generator) unaryExpr(node ast.UnaryExpr, scope *GenScope) string {
 func (gen *Generator) fieldExpr(node ast.FieldExpr, scope *GenScope) string {
 	src := StringBuilder{}
 
-	var prop string
-	if node.Property != nil {
-		prop = gen.GenerateExpr(node.Property, scope)
+	src.WriteString(gen.GenerateExpr(node.Identifier, scope))
+	
+	val := gen.GenerateExpr(node.Property, scope)
+	if node.Index >= 0 {
+		val = fmt.Sprintf("[%v]%s", node.Index, val[len(node.Property.GetToken().Lexeme):])
 	}
-
-	var expr string
-	if node.Owner == nil {
-		expr = gen.GenerateExpr(node.Identifier, scope)
-	} else {
-		if node.Owner.GetType() == ast.AnonymousStructExpression {
-			src.Append(".", fmt.Sprintf("%v", node.Identifier), prop)
-			return src.String()
-		}
-		if node.Index == -1 {
-			src.Append(".", node.Identifier.GetToken().Lexeme, prop)
-		} else {
-			src.Append("[", fmt.Sprintf("%v", node.Index), "]", prop)
-		}
-		return src.String()
-	} // Self.rect
-	src.Append(expr, prop)
-
+	src.WriteString(val) 
 	return src.String()
 }
 
 func (gen *Generator) memberExpr(node ast.MemberExpr, scope *GenScope) string {
 	src := StringBuilder{}
 
-	var prop string
-	if node.Property != nil {
-		prop = gen.GenerateExpr(node.Property, scope)
-	}
-
-	if node.Owner == nil {
-		src.Append(gen.GenerateExpr(node.Identifier, scope), prop)
-		return src.String()
-	}
-
-	expr := gen.GenerateExpr(node.Identifier, scope)
-
-	src.Append("[", expr, "]", prop)
+	src.WriteString(gen.GenerateExpr(node.Identifier, scope))
+	val := gen.GenerateExpr(node.Property, scope)
+	name := node.Property.GetToken().Literal
+	val = fmt.Sprintf("[%s]%s", val[:len(name)], val[len(name):])
+	src.WriteString(val)
 
 	return src.String()
 }

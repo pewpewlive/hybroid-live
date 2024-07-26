@@ -301,9 +301,6 @@ func (gen *Generator) GenerateStmt(node ast.Node, scope *GenScope) {
 	case *ast.VariableDeclarationStmt:
 		gen.variableDeclarationStmt(*newNode, scope)
 	case *ast.UseStmt:
-	case *ast.MethodCallExpr:
-		val := gen.methodCallExpr(*newNode, scope)
-		scope.WriteString(val)
 	case *ast.CallExpr:
 		val := gen.callExpr(*newNode, true, scope)
 		scope.WriteString(val)
@@ -356,8 +353,6 @@ func (gen *Generator) GenerateExpr(node ast.Node, scope *GenScope) string {
 		return gen.newExpr(*newNode, scope)
 	case *ast.MatchExpr:
 		return gen.matchExpr(*newNode, scope)
-	case *ast.MethodCallExpr:
-		return gen.methodCallExpr(*newNode, scope)
 	case *ast.EnvAccessExpr:
 		return gen.envAccessExpr(*newNode, scope)
 	case *ast.SpawnExpr:

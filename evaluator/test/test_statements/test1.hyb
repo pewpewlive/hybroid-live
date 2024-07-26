@@ -15,19 +15,11 @@ while true
 if true
   a = 2
 
-if true 
-  => a = 2
-
-if true a = 2
-
-if true => a = 2
-
-
 fn test() 
   a = 2 
 
 fn test2() -> number 
-  => if true {
+  if true {
     return 2
   } 
 
@@ -39,5 +31,3 @@ fn test4(number a) -> number, number
     2 => 2
     _ => 1
   }, 2 
-
-  match a 

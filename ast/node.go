@@ -145,12 +145,9 @@ type Node interface {
 
 type Accessor interface {
 	Node
-	GetOwner() *Accessor
 	GetProperty() *Node
-	SetOwner(owner Accessor)
 	SetProperty(prop Node)
 	SetIdentifier(ident Node)
-	Copy() Accessor
 }
 
 var Libraries = map[string]StandardLibrary{

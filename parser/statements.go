@@ -83,8 +83,8 @@ func (p *Parser) statement() ast.Node {
 	case lexer.Continue:
 		p.advance()
 		return &ast.ContinueStmt{Token: p.peek(-1)}
-	//case lexer.Identifier, lexer.Self:
-	//	return p.assignmentStmt()
+	case lexer.Identifier, lexer.Self:
+		return p.assignmentStmt()
 	case lexer.If:
 		p.advance()
 		return p.ifStmt(false, false, false)

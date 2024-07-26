@@ -55,9 +55,8 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 	case *ast.TickStmt:
 		TickStmt(w, newNode, scope)
 	case *ast.CallExpr:
-		CallExpr(w, newNode, scope, wkr.Function)
-	case *ast.MethodCallExpr:
-		MethodCallExpr(w, node, scope)
+		callerVal := GetNodeValue(w, &newNode.Caller, scope)
+		CallExpr(w, callerVal, newNode, scope)
 	case *ast.StructDeclarationStmt:
 		StructDeclarationStmt(w, newNode, scope)
 	case *ast.MatchStmt:
@@ -97,15 +96,14 @@ func GetNodeValue(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 	case *ast.UnaryExpr:
 		val = UnaryExpr(w, newNode, scope)
 	case *ast.CallExpr:
-		val = CallExpr(w, newNode, scope, wkr.Function)
+		callerVal := GetNodeValue(w, &newNode.Caller, scope)
+		val = CallExpr(w, callerVal, newNode, scope)
 	case *ast.MapExpr:
 		val = MapExpr(w, newNode, scope)
 	case *ast.AnonFnExpr:
 		val = AnonFnExpr(w, newNode, scope)
 	case *ast.AnonStructExpr:
 		val = AnonStructExpr(w, newNode, scope)
-	case *ast.MethodCallExpr:
-		val = MethodCallExpr(w, node, scope)
 	case *ast.MemberExpr:
 		val = MemberExpr(w, newNode, scope)
 	case *ast.FieldExpr:
@@ -127,7 +125,7 @@ func GetNodeValue(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 	case *ast.FmathExpr:
 		val = FmathExpr(w, newNode, scope)
 	case *ast.StandardExpr:
-		StandardExpr(w, newNode, scope)
+		val = StandardExpr(w, newNode, scope)
 	default:
 		w.Error(newNode.GetToken(), "Expected expression")
 		return &wkr.Invalid{}

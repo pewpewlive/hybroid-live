@@ -104,13 +104,8 @@ func check(fileName string, t *testing.T) {
 
 var tests = []string{
 	"test1",
-	"test1",
-	"test1",
-	"test1",
-	"test1",
-	"test1",
-	"test1",
-	"test1",
+	"test_statements",
+	"test_expressions",
 }
 
 // sample test
@@ -119,7 +114,7 @@ func TestAll(t *testing.T) {
 		testFolderName = test
 		t.Run(test, func(t *testing.T) {
 			newEval(t)
-			check("test1", t)
+			check(test, t)
 		})
 	}
 }

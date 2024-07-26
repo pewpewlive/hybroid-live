@@ -79,6 +79,8 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		}
 		fmt.Printf("Parsing time: %v seconds\n\n", time.Since(start).Seconds())
 
+		//ast.DrawNodes(prog)
+
 		start = time.Now()
 		fmt.Println("[Pass 1] Walking through the nodes...")
 		if env, ok := prog[0].(*ast.EnvironmentStmt); ok {
@@ -136,6 +138,9 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 
 		e.gen.Clear()
 	}
+
+	e.walkerList = make(map[helpers.FileInformation]*walker.Walker)
+	e.walkers = make(map[string]*walker.Walker)
 
 	return nil
 }

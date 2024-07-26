@@ -301,10 +301,10 @@ func (sc *Scope) ResolveReturnable() *ExitableTag {
 	return sc.Parent.ResolveReturnable()
 }
 
-func (w *Walker) ValidateArguments(args []Type, params []Type, callToken lexer.Token, typeCall string) (int, bool) {
+func (w *Walker) ValidateArguments(args []Type, params []Type, callToken lexer.Token) (int, bool) {
 	paramCount := len(params)
 	if paramCount > len(args) {
-		w.Error(callToken, fmt.Sprintf("too few arguments given in %s call", typeCall))
+		w.Error(callToken, "too few arguments given in call")
 		return -1, true
 	}
 	var param Type
@@ -313,7 +313,7 @@ func (w *Walker) ValidateArguments(args []Type, params []Type, callToken lexer.T
 			if params[paramCount-1].GetType() == Variadic {
 				param = params[paramCount-1].(*VariadicType).Type
 			}else if i > paramCount-1 {
-				w.Error(callToken, fmt.Sprintf("too many arguments given in %s call", typeCall))
+				w.Error(callToken, "too many arguments given in call")
 				return -1, true
 			}else {
 				param = params[i]

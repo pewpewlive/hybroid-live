@@ -1,3 +1,3 @@
 
-local E6a = 1
+local E_a = 1
 
