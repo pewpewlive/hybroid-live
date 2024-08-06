@@ -32,7 +32,7 @@ func Init() {
 	// 	log.Fatalf("error opening file: %v", err)
 	// }
 	// log.SetOutput(f)
-	log.Println("Starting Internal Hybroid Language Server")
+	log.Println("Starting Integrated Language Server for Hybroid")
 	log.Println("WARNING: THIS SERVER IS IN PRE-ALPHA STATE!!! USE WITH CAUTION!")
 
 	log.Println("Preparing to communicate via stdio")

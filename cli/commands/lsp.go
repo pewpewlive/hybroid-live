@@ -9,7 +9,7 @@ import (
 func Lsp() *cli.Command {
 	return &cli.Command{
 		Name:  "lsp",
-		Usage: "Starts Internal Hybroid Language Server",
+		Usage: "Starts Integrated Language Server for Hybroid",
 		Action: func(ctx *cli.Context) error {
 			return languageServer(ctx)
 		},
