@@ -10,8 +10,10 @@ import (
 
 func RunApp() {
 	app := &cli.App{
-		Name:  "hybroid",
-		Usage: "The Hybroid transpiler CLI",
+		Name:      "hybroid",
+		Usage:     "The Hybroid transpiler CLI",
+		Version:   "0.0.0",
+		Copyright: "Copyright (C) Hybroid Team, 2024\nLicensed under Apache-2.0",
 		Commands: []*cli.Command{
 			commands.Add(),
 			commands.Build(),
