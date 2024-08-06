@@ -19,6 +19,7 @@ func RunApp() {
 			commands.Build(),
 			commands.Initialize(),
 			commands.Watch(),
+			commands.Lsp(),
 		},
 	}
 

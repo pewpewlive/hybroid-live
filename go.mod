@@ -7,6 +7,8 @@ require (
 	github.com/urfave/cli/v2 v2.27.2
 )
 
+require github.com/sourcegraph/jsonrpc2 v0.2.0 // indirect
+
 require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0
