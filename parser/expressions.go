@@ -172,16 +172,13 @@ func (p *Parser) accessorExpr(nodeType ast.NodeType) ast.Node {
 	var propNodeType ast.NodeType
 	if isField {
 		propNodeType = ast.FieldExpression
-	} else {
+	}else {
 		propNodeType = ast.MemberExpression
-	}
-	if nodeType == ast.NA {
-		nodeType = propNodeType
 	}
 
 	var expr ast.Accessor
 	var prop ast.Node
-	if nodeType == ast.FieldExpression {
+	if isField {
 		expr = &ast.FieldExpr{
 			Identifier: ident,
 		}

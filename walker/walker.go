@@ -59,7 +59,6 @@ function seomthing(a) {
 
 func NewEnvironment(path string) *Environment {
 	scope := Scope{
-		Children:  make([]*Scope, 0),
 		Tag:       &UntaggedTag{},
 		Variables: map[string]*VariableVal{},
 	}
@@ -96,6 +95,7 @@ type Walker struct {
 	Errors        []ast.Error
 	Warnings      []ast.Warning
 	Context       Context
+	Walked        bool
 }
 
 // var pewpewEnv = &Environment{

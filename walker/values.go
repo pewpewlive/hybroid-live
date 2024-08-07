@@ -7,6 +7,11 @@ import (
 	"hybroid/lexer"
 )
 
+type ScopeableValue interface {
+	Value
+	Scopify(parent *Scope, expr *ast.FieldExpr) *Scope
+}
+
 type Value interface {
 	GetType() Type
 	GetDefault() *ast.LiteralExpr
@@ -22,26 +27,6 @@ type MethodContainer interface {
 	Value
 	AddMethod(variable *VariableVal)
 	ContainsMethod(name string) (*VariableVal, bool)
-}
-
-type UnresolvedVal struct {
-	Expr ast.Node
-}
-
-func NewUnresolvedVal(expr ast.Node) *UnresolvedVal {
-	return &UnresolvedVal{
-		Expr: expr,
-	}
-}
-
-func (uv *UnresolvedVal) GetType() Type {
-	return &UnresolvedType{
-		Expr: uv.Expr,
-	}
-}
-
-func (v *UnresolvedVal) GetDefault() *ast.LiteralExpr {
-	return &ast.LiteralExpr{Value: "UNRESOLVED"}
 }
 
 type VariableVal struct {
@@ -91,11 +76,11 @@ func (self *PathVal) GetDefault() *ast.LiteralExpr {
 }
 
 type AnonStructVal struct {
-	Fields map[string]*VariableVal
+	Fields map[string]Field
 	Lenient bool
 }
 
-func NewAnonStructVal(fields map[string]*VariableVal, lenient bool)  *AnonStructVal {
+func NewAnonStructVal(fields map[string]Field, lenient bool)  *AnonStructVal {
 	return &AnonStructVal{
 		Fields: fields,
 		Lenient: lenient,
@@ -114,9 +99,9 @@ func (self *AnonStructVal) GetDefault() *ast.LiteralExpr {
 	index := 0
 	for k, v := range self.Fields {
 		if index == length {
-			src.Append(k, " = ", v.GetDefault().Value)
+			src.Append(k, " = ", v.Var.GetDefault().Value)
 		} else {
-			src.Append(k, " = ", v.GetDefault().Value, ", ")
+			src.Append(k, " = ", v.Var.GetDefault().Value, ", ")
 		}
 		index++
 	}
@@ -126,15 +111,27 @@ func (self *AnonStructVal) GetDefault() *ast.LiteralExpr {
 }
 
 func (self *AnonStructVal) AddField(variable *VariableVal) {
-	self.Fields[variable.Name] = variable
+	self.Fields[variable.Name] = NewField(len(self.Fields), variable)
 }
 
 func (self *AnonStructVal) ContainsField(name string) (*VariableVal, int, bool) {
-	if variable, found := self.Fields[name]; found {
-		return variable, -1, true
+	if v, found := self.Fields[name]; found {
+		return v.Var, v.Index, true
 	}
 
 	return nil, -1, false
+}
+
+func (self *AnonStructVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
+	scope := NewScope(parent, &UntaggedTag{})
+
+	for k, v := range self.Fields {
+		scope.Variables[k] = v.Var
+	}
+	scope.Node = expr
+	scope.Container = self
+
+	return scope
 }
 
 type CustomVal struct {
@@ -157,19 +154,19 @@ func (self *CustomVal) GetDefault() *ast.LiteralExpr {
 
 type EnumVal struct {
 	Type   *EnumType
-	Fields []*VariableVal
+	Fields map[string]*VariableVal
 }
 
 func NewEnumVal(name string, isLocal bool, fields ...string) *EnumVal {
 	val := &EnumVal{
 		Type: NewEnumType(name),
-		Fields: []*VariableVal{},
+		Fields: map[string]*VariableVal{},
 	}
 	if len(fields) == 0 {
 		return val
 	}
 	for i := range fields {
-		val.Fields = append(val.Fields, NewEnumFieldVar(fields[i], name, isLocal))
+		val.Fields[fields[i]] = NewEnumFieldVar(fields[i], name, i)
 	}
 	return val
 }
@@ -187,18 +184,32 @@ func (self *EnumVal) GetDefault() *ast.LiteralExpr {
 }
 
 func (self *EnumVal) AddField(variable *VariableVal) {
-	self.Fields = append(self.Fields, variable)
+	if (self == nil) {
+		return;
+	}
+	self.Fields[variable.Name] = variable
 }
 
 func (self *EnumVal) ContainsField(name string) (*VariableVal, int, bool) {
-	if variable, ind, found := FindFromList(self.Fields, name); found {
-		return variable, ind, true
+	if variable, found := self.Fields[name]; found {
+		return variable, variable.Value.(*EnumFieldVal).Index, true
 	}
 
 	return nil, -1, false
 }
 
+func (self *EnumVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
+	scope := NewScope(parent, &UntaggedTag{})
+
+	scope.Variables = self.Fields
+	scope.Node = expr
+	scope.Container = self
+
+	return scope
+}
+
 type EnumFieldVal struct {
+	Index int
 	Type *EnumType
 }
 
@@ -210,13 +221,13 @@ func (self *EnumFieldVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "ENUM_FIELD_VAL"}
 }
 
-func NewEnumFieldVar(name string, enumName string, isLocal bool) *VariableVal {
+func NewEnumFieldVar(name string, enumName string, index int) *VariableVal {
 	return &VariableVal{
 		Name: name,
 		Value: &EnumFieldVal{
 			Type: NewEnumType(enumName),
 		},
-		IsLocal: isLocal,
+		IsLocal: true,
 		IsConst: true,
 	}
 }
@@ -232,10 +243,22 @@ func (ev *RawEntityVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "ID"}
 }
 
+type Field struct {
+	Index int
+	Var *VariableVal
+}
+
+func NewField(index int, val *VariableVal) Field {
+	return Field{
+		Index: index,
+		Var: val,
+	}
+}
+
 type EntityVal struct {
 	Type          NamedType
 	IsLocal       bool
-	Fields        []*VariableVal
+	Fields        map[string]Field
 	Methods       map[string]*VariableVal
 	SpawnParams   Types
 	DestroyParams Types
@@ -246,7 +269,7 @@ func NewEntityVal(name string, isLocal bool) *EntityVal {
 		Type:    *NewNamedType(name, ast.Entity),
 		IsLocal: isLocal,
 		Methods: make(map[string]*VariableVal),
-		Fields: make([]*VariableVal, 0),
+		Fields: make(map[string]Field, 0),
 	}
 }
 
@@ -259,12 +282,14 @@ func (ev *EntityVal) GetDefault() *ast.LiteralExpr {
 
 	src.WriteString("{")
 	length := len(ev.Fields) - 1
-	for i, v := range ev.Fields {
+	i := 0
+	for _, v := range ev.Fields {
 		if i == length {
-			src.Append(v.GetDefault().Value)
+			src.Append(v.Var.GetDefault().Value)
 		} else {
-			src.Append(v.GetDefault().Value, ", ")
+			src.Append(v.Var.GetDefault().Value, ", ")
 		}
+		i++
 	}
 	src.WriteString("}")
 
@@ -273,7 +298,7 @@ func (ev *EntityVal) GetDefault() *ast.LiteralExpr {
 
 // Container
 func (ev *EntityVal) AddField(variable *VariableVal) {
-	ev.Fields = append(ev.Fields, variable)
+	ev.Fields[variable.Name] = NewField(len(ev.Fields), variable)
 }
 
 func (ev *EntityVal) AddMethod(variable *VariableVal) {
@@ -281,8 +306,8 @@ func (ev *EntityVal) AddMethod(variable *VariableVal) {
 }
 
 func (ev *EntityVal) ContainsField(name string) (*VariableVal, int, bool) {
-	if variable, ind, found := FindFromList(ev.Fields, name); found {
-		return variable, ind, true
+	if variable, found := ev.Fields[name]; found {
+		return variable.Var, variable.Index, true
 	}
 
 	return nil, -1, false
@@ -296,10 +321,27 @@ func (ev *EntityVal) ContainsMethod(name string) (*VariableVal, bool) {
 	return nil, false
 }
 
+func (self *EntityVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
+	scope := NewScope(parent, &UntaggedTag{})
+
+	for _, v := range self.Fields {
+		scope.Variables[v.Var.Name] = v.Var
+	}
+
+	for _, v := range self.Methods {
+		scope.Variables[v.Name] = v
+	}
+
+	scope.Node = expr
+	scope.Container = self
+
+	return scope
+}
+
 type StructVal struct {
 	Type    NamedType
 	IsLocal bool
-	Fields  []*VariableVal
+	Fields  map[string]Field
 	Methods map[string]*VariableVal
 	Params  Types
 }
@@ -313,12 +355,14 @@ func (sv *StructVal) GetDefault() *ast.LiteralExpr {
 
 	src.WriteString("{")
 	length := len(sv.Fields) - 1
-	for i, v := range sv.Fields {
+	i := 0
+	for _, v := range sv.Fields {
 		if i == length {
-			src.Append(v.GetDefault().Value)
+			src.Append(v.Var.GetDefault().Value)
 		} else {
-			src.Append(v.GetDefault().Value, ", ")
+			src.Append(v.Var.GetDefault().Value, ", ")
 		}
+		i++
 	}
 	src.WriteString("}")
 
@@ -327,7 +371,7 @@ func (sv *StructVal) GetDefault() *ast.LiteralExpr {
 
 // Container
 func (sv *StructVal) AddField(variable *VariableVal) {
-	sv.Fields = append(sv.Fields, variable)
+	sv.Fields[variable.Name] = NewField(len(sv.Fields), variable)
 }
 
 func (sv *StructVal) AddMethod(variable *VariableVal) {
@@ -335,8 +379,8 @@ func (sv *StructVal) AddMethod(variable *VariableVal) {
 }
 
 func (sv *StructVal) ContainsField(name string) (*VariableVal, int, bool) {
-	if variable, ind, found := FindFromList(sv.Fields, name); found {
-		return variable, ind, true
+	if variable, found := sv.Fields[name]; found {
+		return variable.Var, variable.Index, true
 	}
 
 	return nil, -1, false
@@ -348,6 +392,23 @@ func (sv *StructVal) ContainsMethod(name string) (*VariableVal, bool) {
 	}
 
 	return nil, false
+}
+
+func (self *StructVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
+	scope := NewScope(parent, &UntaggedTag{})
+
+	for _, v := range self.Fields {
+		scope.Variables[v.Var.Name] = v.Var
+	}
+
+	for _, v := range self.Methods {
+		scope.Variables[v.Name] = v
+	}
+
+	scope.Node = expr
+	scope.Container = self
+
+	return scope
 }
 
 type MapVal struct {

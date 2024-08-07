@@ -20,7 +20,8 @@ import (
 
 type Evaluator struct {
 	walkers    map[string]*walker.Walker
-	walkerList map[helpers.FileInformation]*walker.Walker
+	walkerList []*walker.Walker
+	files      []helpers.FileInformation
 
 	// Toolset
 	lexer  lexer.Lexer
@@ -31,7 +32,7 @@ type Evaluator struct {
 func NewEvaluator(gen generator.Generator) Evaluator {
 	return Evaluator{
 		walkers:    make(map[string]*walker.Walker),
-		walkerList: make(map[helpers.FileInformation]*walker.Walker),
+		walkerList: make([]*walker.Walker, 0),
 		lexer:      lexer.NewLexer(),
 		parser:     parser.NewParser(),
 		gen:        gen,
@@ -39,14 +40,15 @@ func NewEvaluator(gen generator.Generator) Evaluator {
 }
 
 func (e *Evaluator) AssignFile(file helpers.FileInformation) {
-	e.walkerList[file] = walker.NewWalker(file.NewPath("/dynamic", ".lua"))
+	e.files = append(e.files, file)
+	e.walkerList = append(e.walkerList, walker.NewWalker(file.NewPath("/dynamic", ".lua")))
 }
 
 func (e *Evaluator) Action(cwd, outputDir string) error {
 	walker.SetupLibraryEnvironments()
 
-	for file := range e.walkerList {
-		sourceFile, err := os.ReadFile(filepath.Join(cwd, file.Path()))
+	for i := range e.walkerList {
+		sourceFile, err := os.ReadFile(filepath.Join(cwd, e.files[i].Path()))
 		if err != nil {
 			return fmt.Errorf("failed to read source file: %v", err)
 		}
@@ -58,7 +60,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		e.lexer.Tokenize()
 		if len(e.lexer.Errors) != 0 {
 			fmt.Println("[red]Failed tokenizing:")
-			printAlerts(file.Path(), e.lexer.Errors)
+			printAlerts(e.files[i].Path(), e.lexer.Errors)
 			return fmt.Errorf("failed to tokenize source file")
 		}
 
@@ -84,28 +86,31 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		start = time.Now()
 		fmt.Println("[Pass 1] Walking through the nodes...")
 		if env, ok := prog[0].(*ast.EnvironmentStmt); ok {
-			e.walkerList[file].Environment.Type = env.EnvType.Type
+			e.walkerList[i].Environment.Type = env.EnvType.Type
 		}
-		pass1.Action(e.walkerList[file], prog, e.walkers)
+		pass1.Action(e.walkerList[i], prog, e.walkers)
 		fmt.Printf("Pass 1 time: %v seconds\n\n", time.Since(start).Seconds())
 
 		e.lexer = lexer.NewLexer()
 		e.parser = parser.NewParser()
 	}
 
-	for file, walker := range e.walkerList {
+	for i, walker := range e.walkerList {
+		if walker.Walked {
+			continue
+		}
 		start := time.Now()
 		fmt.Println("[Pass 2] Walking through the nodes...")
 
 		pass2.Action(walker, e.walkers)
 		fmt.Printf("Pass 2 time: %v seconds\n\n", time.Since(start).Seconds())
 		if len(walker.Errors) != 0 {
-			colorstring.Printf("[red]Failed walking (%s):\n", file.Path())
-			printAlerts(file.Path(), walker.Errors)
+			colorstring.Printf("[red]Failed walking (%s):\n", e.files[i].Path())
+			printAlerts(e.files[i].Path(), walker.Errors)
 			return fmt.Errorf("failed to walk through the nodes")
 		}
 		if len(walker.Warnings) != 0 {
-			printAlerts(file.Path(), walker.Warnings)
+			printAlerts(e.files[i].Path(), walker.Warnings)
 		}
 	}
 
@@ -114,7 +119,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		e.gen.SetUniqueEnvName(walker.Environment.Name)
 	}
 
-	for file, walker := range e.walkerList {
+	for i, walker := range e.walkerList {
 		start := time.Now()
 		fmt.Println("Generating the lua code...")
 
@@ -123,15 +128,15 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		e.gen.Generate(walker.Nodes)
 		if len(e.gen.Errors) != 0 {
 			colorstring.Println("[red]Failed generating:")
-			printAlerts(file.Path(), e.gen.GetErrors())
+			printAlerts(e.files[i].Path(), e.gen.GetErrors())
 		}
 		fmt.Printf("Generating time: %v seconds\n", time.Since(start).Seconds())
 
-		err := os.MkdirAll(filepath.Join(cwd, outputDir, file.DirectoryPath), os.ModePerm)
+		err := os.MkdirAll(filepath.Join(cwd, outputDir, e.files[i].DirectoryPath), os.ModePerm)
 		if err != nil {
 			return fmt.Errorf("failed to write transpiled file to destination: %v", err)
 		}
-		err = os.WriteFile(file.NewPath(filepath.Join(cwd, outputDir), ".lua"), []byte(e.gen.GetSrc()), 0644)
+		err = os.WriteFile(e.files[i].NewPath(filepath.Join(cwd, outputDir), ".lua"), []byte(e.gen.GetSrc()), 0644)
 		if err != nil {
 			return fmt.Errorf("failed to write transpiled file to destination: %v", err)
 		}
@@ -139,7 +144,8 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		e.gen.Clear()
 	}
 
-	e.walkerList = make(map[helpers.FileInformation]*walker.Walker)
+	e.walkerList = make([]*walker.Walker, 0)
+	e.files = make([]helpers.FileInformation, 0)
 	e.walkers = make(map[string]*walker.Walker)
 
 	return nil

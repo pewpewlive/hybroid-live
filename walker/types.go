@@ -24,7 +24,6 @@ const (
 	Wrapper // List or Map
 	RawEntity
 	Enum
-	Unresolved
 	CstmType
 	Variadic
 	Path
@@ -265,11 +264,11 @@ func (self *FixedPoint) ToString() string {
 }
 
 type AnonStructType struct {
-	Fields map[string]*VariableVal
+	Fields map[string]Field
 	Lenient bool
 }
 
-func NewAnonStructType(fields map[string]*VariableVal, lenient bool) *AnonStructType {
+func NewAnonStructType(fields map[string]Field, lenient bool) *AnonStructType {
 	return &AnonStructType{
 		Fields: fields,
 		Lenient: lenient,
@@ -294,7 +293,7 @@ func (self *AnonStructType) _eq(other Type) bool {
 	for k, v := range map1 {
 		containsK := false
 		for k2, v2 := range map2 {
-			if k == k2 && TypeEquals(v.GetType(), v2.GetType()) {
+			if k == k2 && TypeEquals(v.Var.GetType(), v2.Var.GetType()) {
 				containsK = true
 			}
 		}
@@ -313,10 +312,10 @@ func (self *AnonStructType) ToString() string {
 	index := 0
 	for k, v := range self.Fields {
 		if index == length {
-			_type := v.Value.GetType()
+			_type := v.Var.Value.GetType()
 			src.Append(_type.ToString(), " ", k)
 		} else {
-			_type := v.Value.GetType()
+			_type := v.Var.Value.GetType()
 			src.Append(_type.ToString(), " ", k, ", ")
 		}
 		index++
@@ -359,31 +358,6 @@ func (self *NamedType) _eq(othr Type) bool {
 
 func (self *NamedType) ToString() string {
 	return self.Name
-}
-
-type UnresolvedType struct {
-	Expr ast.Node
-}
-
-func (self *UnresolvedType) PVT() ast.PrimitiveValueType {
-	return ast.Unresolved
-}
-
-func (self *UnresolvedType) GetType() ValueType {
-	return Unresolved
-}
-
-func (self *UnresolvedType) _eq(othr Type) bool {
-	other := othr.(*UnresolvedType)
-	if self.Expr != other.Expr {
-		return false
-	}
-
-	return true
-}
-
-func (self *UnresolvedType) ToString() string {
-	return "unresolved"
 }
 
 type EnumType struct {

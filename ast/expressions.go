@@ -423,7 +423,7 @@ func (me *MemberExpr) GetToken() lexer.Token {
 }
 
 func (me *MemberExpr) GetValueType() PrimitiveValueType {
-	return Unknown
+	return me.Identifier.GetValueType()
 }
 
 func (me *MemberExpr) SetProperty(prop Node) {

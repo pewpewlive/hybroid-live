@@ -1,7 +1,8 @@
-package pass2
+package pass2 // THE ACTUAL WALKING
 
 import (
 	"hybroid/ast"
+	"hybroid/lexer"
 	"hybroid/walker"
 	wkr "hybroid/walker"
 )
@@ -13,12 +14,13 @@ func Action(w *walker.Walker, wlkrs map[string]*walker.Walker) {
 	for i := range w.Nodes {
 		WalkNode(w, &w.Nodes[i], scope)
 	}
+
+	w.Walked = true;
 }
 
 func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 	switch newNode := (*node).(type) {
 	case *ast.EnvironmentStmt:
-
 	case *ast.VariableDeclarationStmt:
 		VariableDeclarationStmt(w, newNode, scope)
 	case *ast.IfStmt:
@@ -129,12 +131,26 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 		w.Error(newNode.GetToken(), "Expected expression")
 		return &walker.Invalid{}
 	}
+
+	if scope.Node != nil {
+		_, scope.Node.Index, _ = scope.Container.ContainsField((*node).GetToken().Lexeme)
+		scope.Node.Index += 1
+	}
 	return val
 }
 
-func WalkBody(w *walker.Walker, body *[]ast.Node, scope *walker.Scope) {
+func WalkBody(w *wkr.Walker, body *[]ast.Node, tag wkr.ExitableTag, scope *wkr.Scope) {
+	endIndex := -1
 	for i := range *body {
+		if tag.GetIfExits(wkr.All) {
+			w.Warn((*body)[i].GetToken(), "unreachable code detected")
+			endIndex = i
+			break
+		}
 		WalkNode(w, &(*body)[i], scope)
+	}
+	if endIndex != -1 {
+		*body = (*body)[:endIndex]
 	}
 }
 
@@ -164,4 +180,29 @@ func TypeifyNodeList(w *wkr.Walker, nodes *[]ast.Node, scope *wkr.Scope) []wkr.T
 		}
 	}
 	return arguments
+}
+
+func WalkParams(w *wkr.Walker, parameters []ast.Param, scope *wkr.Scope, declare func(name lexer.Token, value wkr.Value)) []wkr.Type {
+	variadicParams := make(map[lexer.Token]int)
+	params := make([]wkr.Type, 0)
+	for i, param := range parameters {
+		params = append(params, TypeExpr(w, param.Type, w.Environment))
+		if params[i].GetType() == wkr.Variadic {
+			variadicParams[parameters[i].Name] = i
+		}
+		value := w.TypeToValue(params[i])
+		declare(param.Name, value)
+	}
+
+	if len(variadicParams) > 1 {
+		w.Error(parameters[0].Name, "can only have one vartiadic parameter")
+	}else if len(variadicParams) != 0 {
+		for k, v := range variadicParams {
+			if v != len(parameters)-1 {
+				w.Error(k, "variadic parameter should be last")
+			}
+		}
+	}
+
+	return params
 }

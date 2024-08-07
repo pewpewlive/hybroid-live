@@ -55,6 +55,8 @@ idk(1f, 1, 2, 3)
 
 // uh(struct{ a = 1 })
 
+let uhhhh = Test2:a
+
 let test = Pewpew:NewEntity(0f, 0f)
 
 entity Quadro { 

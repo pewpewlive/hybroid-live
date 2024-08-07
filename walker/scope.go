@@ -202,15 +202,15 @@ var EmptyAttributes = ScopeAttributes{}
 type Scope struct {
 	Environment *Environment
 	Parent      *Scope
-	Children    []*Scope
 
 	Tag        ScopeTag
 	Attributes ScopeAttributes
 
 	Variables         map[string]*VariableVal
-	currentChildIndex int
 
 	Body *[]*ast.Node
+	Node      *ast.FieldExpr
+	Container FieldContainer
 }
 
 func (sc *Scope) Is(types ...ScopeAttribute) bool {
@@ -227,11 +227,6 @@ func (sc *Scope) Is(types ...ScopeAttribute) bool {
 	return true
 }
 
-func (sc *Scope) AccessChild() *Scope {
-	defer func() { sc.currentChildIndex++ }()
-	return sc.Children[sc.currentChildIndex]
-}
-
 func NewScope(parent *Scope, tag ScopeTag, extraAttrs ...ScopeAttribute) *Scope {
 	var attrs ScopeAttributes
 	if parent == nil {
@@ -245,13 +240,11 @@ func NewScope(parent *Scope, tag ScopeTag, extraAttrs ...ScopeAttribute) *Scope 
 	scope := Scope{
 		Environment: parent.Environment,
 		Parent:      parent,
-		Children:    make([]*Scope, 0),
 
 		Tag:        tag,
 		Attributes: attrs,
 
 		Variables: map[string]*VariableVal{},
 	}
-	parent.Children = append(parent.Children, &scope)
 	return &scope
 }

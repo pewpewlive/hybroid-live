@@ -8,10 +8,8 @@ import (
 )
 
 func AnonStructExpr(w *wkr.Walker, node *ast.AnonStructExpr, scope *wkr.Scope) *wkr.AnonStructVal {
-	anonStructScope := scope.AccessChild()
-	structTypeVal := &wkr.AnonStructVal{
-		Fields: make(map[string]*wkr.VariableVal),
-	}
+	anonStructScope := wkr.NewScope(scope, &wkr.UntaggedTag{})
+	structTypeVal := wkr.NewAnonStructVal(make(map[string]wkr.Field), false)
 
 	for i := range node.Fields {
 		FieldDeclarationStmt(w, node.Fields[i], structTypeVal, anonStructScope)
@@ -25,16 +23,15 @@ func AnonFnExpr(w *wkr.Walker, fn *ast.AnonFnExpr, scope *wkr.Scope) wkr.Value {
 	for i := range fn.Return {
 		returnTypes = append(returnTypes, TypeExpr(w, fn.Return[i], w.Environment))
 	}
-	fnScope := scope.AccessChild()
+	funcTag := &wkr.FuncTag{ReturnTypes: returnTypes}
+	fnScope := wkr.NewScope(scope, funcTag, wkr.ReturnAllowing)
 
-	fnScope.Tag.(*wkr.FuncTag).ReturnTypes = returnTypes
-
-	WalkBody(w, &fn.Body, fnScope)
+	WalkBody(w, &fn.Body, funcTag, fnScope)
 
 	params := make([]wkr.Type, 0)
 	for i, param := range fn.Params {
 		params = append(params, TypeExpr(w, param.Type, w.Environment))
-		w.GetVariable(fnScope, param.Name.Lexeme).Value = w.TypeToValue(params[i])
+		w.DeclareVariable(fnScope, &wkr.VariableVal{Name: param.Name.Lexeme, Value: w.TypeToValue(params[i]), IsLocal: true}, param.Name)
 	}
 	return &wkr.FunctionVal{ // returnTypes should contain a fn()
 		Params:  params,
@@ -43,13 +40,20 @@ func AnonFnExpr(w *wkr.Walker, fn *ast.AnonFnExpr, scope *wkr.Scope) wkr.Value {
 }
 
 func MatchExpr(w *wkr.Walker, node *ast.MatchExpr, scope *wkr.Scope) wkr.Value {
-	matchScope := scope.AccessChild()
+	mtt := &wkr.MatchExprTag{}
+
+	matchScope := wkr.NewScope(scope, mtt, wkr.YieldAllowing)
+	casesLength := len(node.MatchStmt.Cases) + 1
+	if node.MatchStmt.HasDefault {
+		casesLength--
+	}
 	matchScope.Tag = &wkr.MatchExprTag{YieldValues: make(wkr.Types, 0)}
+	mpt := wkr.NewMultiPathTag(casesLength)
 
 	for i := range node.MatchStmt.Cases {
-		caseScope := matchScope.AccessChild()
+		caseScope := wkr.NewScope(matchScope, mpt)
 		GetNodeValue(w, &node.MatchStmt.Cases[i].Expression, matchScope)
-		WalkBody(w, &node.MatchStmt.Cases[i].Body, caseScope)
+		WalkBody(w, &node.MatchStmt.Cases[i].Body, mpt, caseScope)
 	}
 
 	yieldValues := matchScope.Tag.(*wkr.MatchExprTag).YieldValues
@@ -86,7 +90,6 @@ func BinaryExpr(w *wkr.Walker, node *ast.BinaryExpr, scope *wkr.Scope) wkr.Value
 		}
 		return &wkr.BoolVal{}
 	}
-
 }
 
 func LiteralExpr(w *wkr.Walker, node *ast.LiteralExpr) wkr.Value {
@@ -128,33 +131,33 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 		_struct := sc.Tag.(*wkr.StructTag).StructVal
 		_, index, _ := _struct.ContainsField(variable.Name)
 		selfExpr := &ast.FieldExpr{
+			Index: index,
 			Identifier: &ast.SelfExpr{
 				Token: valueNode.GetToken(),
 				Type:  ast.SelfStruct,
 			},
 		}
 
-		fieldExpr := &ast.FieldExpr{
-			Identifier: valueNode,
-			Index:      index,
+		identExpr := &ast.IdentifierExpr{
+			Name: valueNode.GetToken(),
 		}
-		selfExpr.Property = fieldExpr
+		selfExpr.Property = identExpr
 		*node = selfExpr
 	} else if sc.Tag.GetType() == wkr.Entity {
 		entity := sc.Tag.(*wkr.EntityTag).EntityType
 		_, index, _ := entity.ContainsField(variable.Name)
 		selfExpr := &ast.FieldExpr{
+			Index: index,
 			Identifier: &ast.SelfExpr{
 				Token: valueNode.GetToken(),
 				Type:  ast.SelfEntity,
 			},
 		}
 
-		fieldExpr := &ast.FieldExpr{
-			Identifier: valueNode,
-			Index:      index,
+		identExpr := &ast.IdentifierExpr{
+			Name: valueNode.GetToken(),
 		}
-		selfExpr.Property = fieldExpr
+		selfExpr.Property = identExpr
 		*node = selfExpr
 	}
 
@@ -175,8 +178,7 @@ func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr) (wkr.Value, ast.Node)
 			}
 		}
 	}
-// let a = Pewpew
-// a::
+
 	walker, found := w.Walkers[envName]
 	if !found {
 		w.Error(node.GetToken(), fmt.Sprintf("Environment named '%s' doesn't exist", envName))
@@ -193,11 +195,11 @@ func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr) (wkr.Value, ast.Node)
 
 	envStmt.AddRequirement(walker.Environment.Path)
 
-	value := GetNodeValue(w, &node.Accessed, &walker.Environment.Scope)
-
-	if value.GetType().PVT() == ast.Unresolved {
-		value = GetNodeValue(walker, &value.(*wkr.UnresolvedVal).Expr, &walker.Environment.Scope)
+	if (!walker.Walked) {
+		Action(walker, w.Walkers)
 	}
+
+	value := GetNodeValue(w, &node.Accessed, &walker.Environment.Scope)
 
 	return value, nil
 }
@@ -232,6 +234,8 @@ func CallExpr(w *wkr.Walker, val wkr.Value, node *ast.CallExpr, scope *wkr.Scope
 	}
 	fun, _ := val.(*wkr.FunctionVal)
 
+	w.Context.Clear()
+
 	args := []wkr.Type{}
 	for i := range node.Args {
 		args = append(args, GetNodeValue(w, &node.Args[i], scope).GetType())
@@ -244,65 +248,19 @@ func CallExpr(w *wkr.Walker, val wkr.Value, node *ast.CallExpr, scope *wkr.Scope
 	return &fun.Returns
 }
 
-func PropertyExpr(w *wkr.Walker, node ast.Node, scope *wkr.Scope) wkr.Value {// READS CONTEXT
-	var val wkr.Value
-	val = &wkr.Invalid{}
-	
-	switch w.Context.Node.(type) {
-	case *ast.FieldExpr:
-		owner := w.Context.Value
-		if !wkr.IsOfPrimitiveType(owner, ast.Struct, ast.Entity, ast.AnonStruct, ast.Enum) {
-			token := w.Context.Node.GetToken()
-			w.Error(token, fmt.Sprintf("variable '%s' is not a struct, entity, enum or anonymous struct", token.Lexeme))
-			break
-		}
-		if node.GetType() == ast.CallExpression {
-			val := PropertyExpr(w, node.(*ast.CallExpr).Caller, scope)
-			return CallExpr(w, val, node.(*ast.CallExpr), scope)
-		}
-		fieldContainer, _ := owner.(wkr.FieldContainer)
-		if value, index, ok := fieldContainer.ContainsField(node.GetToken().Lexeme); ok {
-			w.Context.Node.(*ast.FieldExpr).Index = index
-
-			val = value
-		}else {
-			methodContainer, ok := owner.(wkr.MethodContainer)
-			if !ok {
-			}else if value, ok := methodContainer.ContainsMethod(node.GetToken().Lexeme); ok {
-				val = value
-			}
-		}
-	case *ast.MemberExpr:
-		owner := w.Context.Value
-		if owner.GetType().GetType() != wkr.Wrapper {
-			token := w.Context.Node.GetToken()
-			w.Error(token, fmt.Sprintf("%s is not a map nor a list", token.Lexeme))
-			break
-		}
-		if node.GetType() == ast.CallExpression {
-			val := PropertyExpr(w, node.(*ast.CallExpr).Caller, scope)
-			return CallExpr(w, val, node.(*ast.CallExpr), scope)
-		}
-		expr := GetNodeValue(w, &node, scope)
-		if expr.GetType().PVT() != ast.String && expr.GetType().PVT() != ast.Number {
-			w.Error(node.GetToken(), "value inside brackets must be a string or a number")
-		}else {
-			ownerType, _ := owner.GetType().(*wkr.WrapperType)
-			val = w.TypeToValue(ownerType.WrappedType)
-		}
-	}
-
-	if val.GetType().PVT() == ast.Invalid {
-		w.Error(node.GetToken(), "invalid property")
-	}
-
-	return val
-}
-
 func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {// WRITES CONTEXT
 	var val wkr.Value
+	if node.Identifier.GetToken().Lexeme == "EnumTest" {
+		println("breakpoint")
+	}
 	if w.Context.Value.GetType().GetType() != wkr.NA {
-		val = PropertyExpr(w, node.Identifier, scope)
+		scopeable, ok :=  w.Context.Value.(wkr.ScopeableValue)
+		if !ok {
+			w.Error(w.Context.Node.GetToken(), fmt.Sprintf("variable '%s' is not a struct, entity, enum or anonymous struct", w.Context.Node.GetToken().Lexeme))
+			return &wkr.Invalid{}
+		}
+		w.Context.Clear()
+		return GetNodeValue(w, &node.Property, scopeable.Scopify(scope, node))
 	}else {
 		val = GetNodeValue(w, &node.Identifier, scope)
 	}
@@ -311,15 +269,10 @@ func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {
 		w.Error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a struct, entity, enum or anonymous struct", node.Identifier.GetToken().Lexeme))
 		return &wkr.Invalid{}
 	}
-
-	w.Context.Value = val
-	w.Context.Node = node
-	finalValue := PropertyExpr(w, node.Property, scope)
-	if member, ok := node.Property.(*ast.MemberExpr); ok {
-		return MemberExpr(w, member, scope)
-	}else if field, ok := node.Property.(*ast.FieldExpr); ok {
-		return FieldExpr(w, field, scope)
-	}
+	owner := val.(wkr.ScopeableValue)
+	w.Context.Value = owner
+	w.Context.Node = node.Property
+	finalValue := GetNodeValue(w, &node.Property, owner.Scopify(scope, node))
 	w.Context.Clear()
 	return finalValue
 }
@@ -327,26 +280,44 @@ func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {
 func MemberExpr(w *wkr.Walker, node *ast.MemberExpr, scope *wkr.Scope) wkr.Value {// WRITES CONTEXT
 	var val wkr.Value
 	if w.Context.Value.GetType().GetType() != wkr.NA {
-		val = PropertyExpr(w, node.Identifier, scope)
+		val = w.Context.Value
 	}else {
 		val = GetNodeValue(w, &node.Identifier, scope)
 	}
-
-	if val.GetType().GetType() != wkr.Wrapper {
+	valType := val.GetType()
+	if valType.GetType() != wkr.Wrapper {
 		token := w.Context.Node.GetToken()
-		w.Error(token, fmt.Sprintf("%s is not a map nor a list", token.Lexeme))
+		w.Error(token, fmt.Sprintf("%s is not a map nor a list (found %s)", token.Lexeme, valType.ToString()))
 		return &wkr.Invalid{}
 	}
-	w.Context.Value = val
-	w.Context.Node = node
-	finalValue := PropertyExpr(w, node.Property, scope)
-	if member, ok := node.Property.(*ast.MemberExpr); ok {
-		return MemberExpr(w, member, scope)
-	}else if field, ok := node.Property.(*ast.FieldExpr); ok {
-		return FieldExpr(w, field, scope)
+	
+	if node.Property.GetValueType() != ast.Ident {
+	}else if valType.PVT() == ast.Map {
+		if node.GetValueType() != ast.String {
+			w.Error(node.Property.GetToken(), "expected string inside brackets for map accessing")
+		}
+	}else if valType.PVT() == ast.List {
+		if node.GetValueType() != ast.Number {
+			w.Error(node.Property.GetToken(), "expected number inside brackets for list accessing")
+		}
 	}
+	property := w.TypeToValue(val.GetType().(*wkr.WrapperType).WrappedType)
+	w.Context.Value = property
+	w.Context.Node = node.Property
+	nodePropertyType := node.Property.GetType()
+	if nodePropertyType == ast.Identifier {
+		w.Context.Clear()
+		return property
+	}else if nodePropertyType == ast.CallExpression {
+		w.Context.Clear()
+		return CallExpr(w, property, node.Property.(*ast.CallExpr), scope)
+	}else if nodePropertyType == ast.LiteralExpression {
+		w.Context.Clear()
+		return property
+	}
+	final := GetNodeValue(w, &node.Property, scope)
 	w.Context.Clear()
-	return finalValue
+	return final
 }
 
 func MapExpr(w *wkr.Walker, node *ast.MapExpr, scope *wkr.Scope) wkr.Value {
@@ -521,14 +492,14 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, env *wkr.Environment) wkr.Type
 	case ast.Enum:
 		typ = wkr.NewBasicType(ast.Enum)
 	case ast.AnonStruct:
-		fields := map[string]*wkr.VariableVal{}
+		fields := map[string]wkr.Field{}
 
-		for _, v := range typee.Fields {
-			fields[v.Name.Lexeme] = &wkr.VariableVal{
+		for i, v := range typee.Fields {
+			fields[v.Name.Lexeme] = wkr.NewField(i, &wkr.VariableVal{
 				Name:  v.Name.Lexeme,
 				Value: w.TypeToValue(TypeExpr(w, v.Type, env)),
 				Token: v.Name,
-			}
+			})
 		}
 
 		typ = wkr.NewAnonStructType(fields, false)

@@ -119,8 +119,14 @@ func (gen *Generator) fieldExpr(node ast.FieldExpr, scope *GenScope) string {
 	src.WriteString(gen.GenerateExpr(node.Identifier, scope))
 	
 	val := gen.GenerateExpr(node.Property, scope)
+	cut := ""
+	for i := range val {
+		if val[i] == '[' {
+			cut = val[i:]
+		}
+	}
 	if node.Index >= 0 {
-		val = fmt.Sprintf("[%v]%s", node.Index, val[len(node.Property.GetToken().Lexeme):])
+		val = fmt.Sprintf("[%v]%s", node.Index, cut)
 	}
 	src.WriteString(val) 
 	return src.String()
