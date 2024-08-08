@@ -637,6 +637,7 @@ func (p *Parser) functionDeclarationStmt(IsLocal bool) ast.Node {
 	}
 
 	fnDec.Name = ident
+	fnDec.GenericParams = p.genericParameters()
 	fnDec.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
 
 	fnDec.Return = p.returnings()
@@ -855,8 +856,9 @@ func (p *Parser) tickStmt() ast.Node {
 		if identExpr.GetType() != ast.Identifier {
 			p.error(identExpr.GetToken(), "expected identifier expression after keyword 'with'")
 			return &tickStmt
+		}else {
+			tickStmt.Variable = identExpr.(*ast.IdentifierExpr)
 		}
-		tickStmt.Variable = *identExpr.(*ast.IdentifierExpr)
 	}
 
 	var success bool
@@ -965,7 +967,7 @@ func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
 	if p.match(lexer.Else) {
 		caseStmt.Expression = &ast.IdentifierExpr{
 			Name:      p.peek(-1),
-			ValueType: ast.Unknown,
+			ValueType: ast.Object,
 		}
 	} else {
 		caseStmt.Expression = p.expression()

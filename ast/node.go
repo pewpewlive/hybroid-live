@@ -72,7 +72,7 @@ const (
 type PrimitiveValueType string
 
 const (
-	Unknown    PrimitiveValueType = "unknown"
+	Object     PrimitiveValueType = "object"
 	Number     PrimitiveValueType = "number"
 	String     PrimitiveValueType = "string"
 	Bool       PrimitiveValueType = "bool"
@@ -89,7 +89,6 @@ const (
 	Ident      PrimitiveValueType = "ident"
 	Enum       PrimitiveValueType = "enum"
 	Path       PrimitiveValueType = "path"
-	Unresolved PrimitiveValueType = "unresolved"
 	Invalid    PrimitiveValueType = "invalid"
 )
 

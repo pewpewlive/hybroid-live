@@ -1,3 +1,11 @@
 env Test2 as Level
 
 pub a = 1
+
+let b = "string"
+
+let c = String:Format(b, 3, 2)
+
+fn test<T>(T a) {
+    a += 1
+}

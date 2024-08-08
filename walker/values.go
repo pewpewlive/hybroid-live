@@ -428,7 +428,7 @@ func GetContentsValueType(values []Value) Type {
 	valTypes := []Type{}
 	index := 0
 	if len(values) == 0 {
-		return NAType
+		return InvalidType
 	}
 	for _, v := range values {
 		if index == 0 {
@@ -439,7 +439,7 @@ func GetContentsValueType(values []Value) Type {
 		valTypes = append(valTypes, v.GetType())
 		prev, curr := index-1, len(valTypes)-1
 		if !TypeEquals(values[prev].GetType(), values[curr].GetType()) {
-			return NAType
+			return InvalidType
 		}
 		index++
 	}
@@ -537,6 +537,7 @@ type FunctionVal struct {
 func NewFunction(params ...Type) *FunctionVal {
 	return &FunctionVal{
 		Params: params,
+		Returns: EmptyReturn,
 	}
 }
 
@@ -586,6 +587,10 @@ func (s *StringVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "\"\""}
 }
 
+type GenericVal struct{
+	Type NamedType
+}
+
 type Invalid struct{}
 
 func (u *Invalid) GetType() Type {
@@ -599,7 +604,7 @@ func (n *Invalid) GetDefault() *ast.LiteralExpr {
 type Unknown struct{}
 
 func (u *Unknown) GetType() Type {
-	return &NotAnyType{}
+	return ObjectTyp
 }
 
 func (u *Unknown) GetDefault() *ast.LiteralExpr {

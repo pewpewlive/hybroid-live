@@ -114,7 +114,6 @@ func NewWalker(path string) *Walker {
 		Context: Context{
 			Node:  &ast.Improper{},
 			Value: &Unknown{},
-			Ret:   Types{},
 		},
 	}
 	walker.CurrentEnvironment = walker.Environment
@@ -332,9 +331,6 @@ func (w *Walker) ValidateArguments(args []Type, params []Type, callToken lexer.T
 }
 
 func (w *Walker) DetermineValueType(left Type, right Type) Type {
-	if left.PVT() == ast.Unknown || right.PVT() == ast.Unknown {
-		return NAType
-	}
 	if TypeEquals(left, right) {
 		return right
 	}
@@ -378,7 +374,7 @@ func returnsAreValid(list1 []Type, list2 []Type) bool {
 	}
 
 	for i, v := range list1 {
-		//fmt.Printf("%s compared to %s\n", list1[i].ToString(), list2[i].ToString())
+		fmt.Printf("%s compared to %s\n", list1[i].ToString(), list2[i].ToString())
 		if !TypeEquals(v, list2[i]) {
 			return false
 		}
@@ -446,6 +442,8 @@ func (w *Walker) TypeToValue(_type Type) Value {
 	case ast.Entity:
 		val, _ := w.GetEntity(_type.ToString())
 		return val
+	case ast.Object:
+		return &Unknown{}
 	default:
 		return &Invalid{}
 	}

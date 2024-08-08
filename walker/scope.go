@@ -8,13 +8,11 @@ import (
 type Context struct {
 	Node  ast.Node
 	Value Value
-	Ret   Types
 }
 
 func (c *Context) Clear() {
 	c.Node = &ast.Improper{}
 	c.Value = &Unknown{}
-	c.Ret = EmptyReturn
 }
 
 type ScopeTagType int
@@ -73,6 +71,8 @@ func (et *EntityTag) GetType() ScopeTagType {
 type FuncTag struct {
 	Returns     []bool
 	ReturnTypes Types
+
+	Generics    []*GenericType
 }
 
 func (et *FuncTag) GetType() ScopeTagType {

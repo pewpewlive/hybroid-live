@@ -21,7 +21,7 @@ func AnonStructExpr(w *wkr.Walker, node *ast.AnonStructExpr, scope *wkr.Scope) *
 func AnonFnExpr(w *wkr.Walker, fn *ast.AnonFnExpr, scope *wkr.Scope) wkr.Value {
 	returnTypes := wkr.EmptyReturn
 	for i := range fn.Return {
-		returnTypes = append(returnTypes, TypeExpr(w, fn.Return[i], w.Environment))
+		returnTypes = append(returnTypes, TypeExpr(w, fn.Return[i], scope, true))
 	}
 	funcTag := &wkr.FuncTag{ReturnTypes: returnTypes}
 	fnScope := wkr.NewScope(scope, funcTag, wkr.ReturnAllowing)
@@ -30,7 +30,7 @@ func AnonFnExpr(w *wkr.Walker, fn *ast.AnonFnExpr, scope *wkr.Scope) wkr.Value {
 
 	params := make([]wkr.Type, 0)
 	for i, param := range fn.Params {
-		params = append(params, TypeExpr(w, param.Type, w.Environment))
+		params = append(params, TypeExpr(w, param.Type, scope, true))
 		w.DeclareVariable(fnScope, &wkr.VariableVal{Name: param.Name.Lexeme, Value: w.TypeToValue(params[i]), IsLocal: true}, param.Name)
 	}
 	return &wkr.FunctionVal{ // returnTypes should contain a fn()
@@ -357,7 +357,7 @@ func SelfExpr(w *wkr.Walker, self *ast.SelfExpr, scope *wkr.Scope) wkr.Value {
 
 func NewExpr(w *wkr.Walker, new *ast.NewExpr, scope *wkr.Scope) wkr.Value {
 	w.Context.Node = new
-	_type := TypeExpr(w, new.Type, w.Environment)
+	_type := TypeExpr(w, new.Type, scope, false)
 
 	if _type.PVT() == ast.Invalid {
 		w.Error(new.Type.GetToken(), "invalid type given in new expression")
@@ -381,7 +381,7 @@ func NewExpr(w *wkr.Walker, new *ast.NewExpr, scope *wkr.Scope) wkr.Value {
 
 func SpawnExpr(w *wkr.Walker, new *ast.SpawnExpr, scope *wkr.Scope) wkr.Value {
 	w.Context.Node = new
-	_type := TypeExpr(w, new.Type, w.Environment)
+	_type := TypeExpr(w, new.Type, scope, false)
 
 	if _type.PVT() == ast.Invalid {
 		w.Error(new.Type.GetToken(), "invalid type given in spawn expression")
@@ -424,14 +424,17 @@ func FmathExpr(w *wkr.Walker, expr *ast.FmathExpr, scope *wkr.Scope) wkr.Value {
 
 func StandardExpr(w *wkr.Walker, expr *ast.StandardExpr, scope *wkr.Scope) wkr.Value {
 	if expr.Library == ast.MathLib {
-		// if w.Nodes[0].(*ast.EnvironmentStmt).EnvType.Type == ast.Level {
-		// 	w.Error(expr.GetToken(), "cannot use the Math library in a Level environment")
-		// 	return &wkr.Invalid{}
-		// }
-		return GetNodeValueFromExternalEnv(w, expr.Node, scope, wkr.MathEnv)
-	}
+		if w.Nodes[0].(*ast.EnvironmentStmt).EnvType.Type == ast.Level {
+			w.Error(expr.GetToken(), "cannot use the Math library in a Level environment")
+			return &wkr.Invalid{}
+		}
 
-	return &wkr.Invalid{}
+		return GetNodeValueFromExternalEnv(w, expr.Node, scope, wkr.MathEnv)
+	}else if expr.Library == ast.StringLib {
+		return GetNodeValueFromExternalEnv(w, expr.Node, scope, wkr.StringEnv)
+	}else {
+		return GetNodeValueFromExternalEnv(w, expr.Node, scope, wkr.TableEnv)
+	}
 }
 
 
@@ -453,7 +456,7 @@ func StandardExpr(w *wkr.Walker, expr *ast.StandardExpr, scope *wkr.Scope) wkr.V
 // 	return wkr.NewCustomVal(cstm)
 // } 
 
-func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, env *wkr.Environment) wkr.Type {
+func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) wkr.Type {
 	if typee == nil {
 		return wkr.InvalidType
 	}
@@ -469,7 +472,7 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, env *wkr.Environment) wkr.Type
 			w.Error(expr.PathExpr.GetToken(), "Environment name so doesn't exist")
 			return wkr.InvalidType
 		}
-		typ = TypeExpr(w, &ast.TypeExpr{Name: expr.Accessed}, walker.Environment)
+		typ = TypeExpr(w, &ast.TypeExpr{Name: expr.Accessed}, &walker.Environment.Scope, throw)
 		if typee.IsVariadic {
 			return wkr.NewVariadicType(typ)
 		}
@@ -497,7 +500,7 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, env *wkr.Environment) wkr.Type
 		for i, v := range typee.Fields {
 			fields[v.Name.Lexeme] = wkr.NewField(i, &wkr.VariableVal{
 				Name:  v.Name.Lexeme,
-				Value: w.TypeToValue(TypeExpr(w, v.Type, env)),
+				Value: w.TypeToValue(TypeExpr(w, v.Type, scope, throw)),
 				Token: v.Name,
 			})
 		}
@@ -507,12 +510,12 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, env *wkr.Environment) wkr.Type
 		params := wkr.Types{}
 
 		for _, v := range typee.Params {
-			params = append(params, TypeExpr(w, v, env))
+			params = append(params, TypeExpr(w, v, scope, throw))
 		}
 
 		returns := wkr.Types{}
 		for _, v := range typee.Returns {
-			returns = append(returns, TypeExpr(w, v, env))
+			returns = append(returns, TypeExpr(w, v, scope, throw))
 		}
 
 		typ = &wkr.FunctionType{
@@ -520,7 +523,7 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, env *wkr.Environment) wkr.Type
 			Returns: returns,
 		}
 	case ast.Map, ast.List:
-		wrapped := TypeExpr(w, typee.WrappedType, env)
+		wrapped := TypeExpr(w, typee.WrappedType, scope, throw)
 		typ = wkr.NewWrapperType(wkr.NewBasicType(pvt), wrapped)
 	case ast.Entity:
 		typ = &wkr.RawEntityType{}
@@ -530,7 +533,7 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, env *wkr.Environment) wkr.Type
 			typ = entityVal.GetType()
 			break
 		}
-		if structVal, found := env.Structs[typeName]; found {
+		if structVal, found := scope.Environment.Structs[typeName]; found {
 			typ = structVal.GetType()
 			break
 		}
@@ -538,17 +541,33 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, env *wkr.Environment) wkr.Type
 			typ = customType
 			break
 		}
-		if val := w.GetVariable(&env.Scope, typeName); val != nil {
+		if val := w.GetVariable(scope, typeName); val != nil {
 			if val.GetType().PVT() == ast.Enum {
 				typ = val.GetType()
 				break
 			}
 		}
+
+		sc, _, fnTag := wkr.ResolveTagScope[*wkr.FuncTag](scope)
+		
+		if sc != nil {
+			fnTag := *fnTag
+			for _, v := range fnTag.Generics {
+				if v.Name == typeName {
+					return v
+				}
+			}
+		}
+	
+
 		typ = wkr.InvalidType
 	}
 
 	if typee.IsVariadic {
 		return wkr.NewVariadicType(typ)
+	}
+	if throw && typ.PVT() == ast.Invalid {
+		w.Error(typee.GetToken(), "invalid type")
 	}
 	return typ
 }

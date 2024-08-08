@@ -36,7 +36,7 @@ func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope
 
 	params := make([]wkr.Type, 0)
 	for _, param := range node.Constructor.Params {
-		params = append(params, TypeExpr(w, param.Type, w.Environment))
+		params = append(params, TypeExpr(w, param.Type, scope, true))
 	}
 	structVal.Params = params
 
@@ -57,12 +57,12 @@ func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope
 	for i := range node.Methods {
 		params := make([]wkr.Type, 0)
 		for _, param := range node.Methods[i].Params {
-			params = append(params, TypeExpr(w, param.Type, w.Environment))
+			params = append(params, TypeExpr(w, param.Type, scope, true))
 		}
 
 		ret := wkr.EmptyReturn
 		for _, typee := range node.Methods[i].Return {
-			ret = append(ret, TypeExpr(w, typee, w.Environment))
+			ret = append(ret, TypeExpr(w, typee, scope, true))
 			//fmt.Printf("%s\n", ret.values[len(ret.values)-1].Type.ToString())
 		}
 		variable := &wkr.VariableVal{
@@ -265,16 +265,25 @@ func MethodDeclarationStmt(w *wkr.Walker, node *ast.MethodDeclarationStmt, conta
 }
 
 func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, scope *wkr.Scope, procType wkr.ProcedureType) *wkr.VariableVal {
-	ret := wkr.EmptyReturn // debug?
-	for _, typee := range node.Return {
-		ret = append(ret, TypeExpr(w, typee, w.Environment))
+	generics := make([]*wkr.GenericType, 0)
+	
+	for _, param := range node.GenericParams {
+		generics = append(generics, wkr.NewGeneric(param.Name.Lexeme))
 	}
-	funcTag := &wkr.FuncTag{ReturnTypes: ret}
+
+	funcTag := &wkr.FuncTag{Generics: generics}
 	fnScope := wkr.NewScope(scope, funcTag, wkr.ReturnAllowing)
-	// let me check call expr
+
+	ret := wkr.EmptyReturn 
+	for _, typee := range node.Return {
+		ret = append(ret, TypeExpr(w, typee, scope, true))
+	}
+
+	funcTag.ReturnTypes = ret
+
 	params := make([]wkr.Type, 0)
 	for i, param := range node.Params {
-		params = append(params, TypeExpr(w, param.Type, w.Environment))
+		params = append(params, TypeExpr(w, param.Type, scope, true))
 		w.DeclareVariable(fnScope, &wkr.VariableVal{Name: param.Name.Lexeme, Value: w.TypeToValue(params[i]), IsLocal: true}, param.Name)
 	}
 
@@ -366,13 +375,17 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 
 		if declaration.Types[i] != nil {
 			valueType := values[i].GetType()
-			explicitType := TypeExpr(w, declaration.Types[i], w.Environment)
-			if valueType.PVT() == ast.Unknown {
+			explicitType := TypeExpr(w, declaration.Types[i], scope, false)
+			if valueType.PVT() == ast.Object {
 				values[i] = w.TypeToValue(explicitType)
 				declaration.Values = append(declaration.Values, values[i].GetDefault()) 
 			} else if !wkr.TypeEquals(valueType, explicitType) {
 				w.Error(declaration.Values[i].GetToken(), fmt.Sprintf("Given value is %s, but explicit type is %s", valueType.ToString(), explicitType.ToString()))
 			}
+		}
+
+		if values[i].GetType().PVT() == ast.Invalid {
+			w.Error(declaration.Values[i].GetToken(), "Given value is invalid")
 		}
 
 		variable := &wkr.VariableVal{
@@ -538,7 +551,7 @@ func TickStmt(w *wkr.Walker, node *ast.TickStmt, scope *wkr.Scope) {
 	funcTag := &wkr.FuncTag{ReturnTypes: wkr.EmptyReturn}
 	tickScope := wkr.NewScope(scope, funcTag, wkr.ReturnAllowing)
 
-	if node.Variable.GetValueType() != ast.Unknown {
+	if node.Variable != nil {
 		w.DeclareVariable(tickScope, &wkr.VariableVal{Name: node.Variable.Name.Lexeme, Value: &wkr.NumberVal{}}, node.Token)
 	}
 

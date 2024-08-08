@@ -234,6 +234,7 @@ type Param struct {
 type FunctionDeclarationStmt struct {
 	Name    lexer.Token
 	Return  []*TypeExpr
+	GenericParams []*IdentifierExpr
 	Params  []Param
 	IsLocal bool
 	Body    []Node
@@ -375,7 +376,7 @@ func (fs *ForStmt) GetValueType() PrimitiveValueType {
 }
 
 type TickStmt struct {
-	Variable IdentifierExpr
+	Variable *IdentifierExpr
 	Body     []Node
 	Token    lexer.Token
 }

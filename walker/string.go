@@ -32,7 +32,7 @@ var stringVariables = map[string]*VariableVal{
 	},
 	"Format": {
 		Name:  "Format",
-		Value: NewFunction(NewBasicType(ast.String), NewVariadicType(NewBasicType(/*?????*/ast.Unknown))),
+		Value: NewFunction(NewBasicType(ast.String), NewVariadicType(NewBasicType(ast.Object))).WithReturns(NewBasicType(ast.String)),
 		IsConst: true,
 	},
 	"Gsub": {
@@ -102,7 +102,7 @@ var stringVariables = map[string]*VariableVal{
 			WithReturns(NewVariadicType(NewBasicType(ast.String)), NewBasicType(ast.Number)),
 		IsConst: true,
 	},
-	// byte [tobeverified]
+	// byte [done]
 	// char [tobeverified]
 	// dump [tobeverified]
 	// find [tobeverified]

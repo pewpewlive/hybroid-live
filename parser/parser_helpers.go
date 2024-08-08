@@ -77,6 +77,33 @@ func (p *Parser) parameters(opening lexer.TokenType, closing lexer.TokenType) []
 	return args
 }
 
+func (p *Parser) genericParameters() []*ast.IdentifierExpr {
+	params := []*ast.IdentifierExpr{}
+	if !p.match(lexer.Less) {
+		return params
+	}
+
+	token := p.advance()
+	if token.Type != lexer.Identifier {
+		p.error(token, "expected identifier in generic parameters")
+	}else {
+		params = append(params, &ast.IdentifierExpr{Name: token, ValueType: ast.Invalid})
+	}
+
+	for p.match(lexer.Comma) {
+		token := p.advance()
+		if token.Type != lexer.Identifier {
+			p.error(token, "expected identifier in generic parameters")
+		}else {
+			params = append(params, &ast.IdentifierExpr{Name: token, ValueType: ast.Invalid})
+		}
+	}
+
+	p.consume("expected '>' in generic parameters", lexer.Greater)
+
+	return params
+}
+
 func (p *Parser) arguments() []ast.Node {
 	if _, ok := p.consume("expected opening paren", lexer.LeftParen); !ok {
 		return nil
@@ -133,7 +160,7 @@ func (p *Parser) TypeWasVar(typ *ast.TypeExpr) *ast.IdentifierExpr {
 	if typ.Returns != nil {
 		return nil
 	}
-	return &ast.IdentifierExpr{Name: typ.Name.GetToken(), ValueType: ast.Unknown}
+	return &ast.IdentifierExpr{Name: typ.Name.GetToken(), ValueType: ast.Object}
 }
 
 func (p *Parser) TypeWithVar() (*ast.TypeExpr, ast.Node) {

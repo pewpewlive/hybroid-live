@@ -126,7 +126,7 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 	case *ast.FmathExpr:
 		val = FmathExpr(w, newNode, scope)
 	case *ast.StandardExpr:
-		StandardExpr(w, newNode, scope)
+		val = StandardExpr(w, newNode, scope)
 	default:
 		w.Error(newNode.GetToken(), "Expected expression")
 		return &walker.Invalid{}
@@ -186,7 +186,7 @@ func WalkParams(w *wkr.Walker, parameters []ast.Param, scope *wkr.Scope, declare
 	variadicParams := make(map[lexer.Token]int)
 	params := make([]wkr.Type, 0)
 	for i, param := range parameters {
-		params = append(params, TypeExpr(w, param.Type, w.Environment))
+		params = append(params, TypeExpr(w, param.Type, scope, false))
 		if params[i].GetType() == wkr.Variadic {
 			variadicParams[parameters[i].Name] = i
 		}
