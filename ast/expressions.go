@@ -191,6 +191,7 @@ func (be *BinaryExpr) GetValueType() PrimitiveValueType {
 
 type CallExpr struct {
 	Caller Node
+	GenericArgs []*TypeExpr
 	Args   []Node
 }
 

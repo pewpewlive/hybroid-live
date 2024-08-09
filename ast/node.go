@@ -89,6 +89,7 @@ const (
 	Ident      PrimitiveValueType = "ident"
 	Enum       PrimitiveValueType = "enum"
 	Path       PrimitiveValueType = "path"
+	Generic    PrimitiveValueType = "generic"
 	Invalid    PrimitiveValueType = "invalid"
 )
 

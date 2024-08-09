@@ -6,6 +6,8 @@ let b = "string"
 
 let c = String:Format(b, 3, 2)
 
-fn test<T>(T a) {
-    a += 1
+fn test<T>(T a) -> T {
+    return a
 }
+
+let testt = test(1)

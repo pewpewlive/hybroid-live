@@ -195,7 +195,7 @@ type GenericType struct{
 }
 
 func (self *GenericType) PVT() ast.PrimitiveValueType {
-	return ast.Entity
+	return ast.Generic
 }
 
 func (self *GenericType) GetType() ValueType {

@@ -104,6 +104,23 @@ func (p *Parser) genericParameters() []*ast.IdentifierExpr {
 	return params
 }
 
+func (p *Parser) genericArguments() []*ast.TypeExpr {
+	params := []*ast.TypeExpr{}
+	if !p.match(lexer.Less) {
+		return params
+	}
+
+	params = append(params, p.Type())
+
+	for p.match(lexer.Comma) {
+		params = append(params, p.Type())
+	}
+
+	p.consume("expected '>' in generic args", lexer.Greater)
+
+	return params
+}
+
 func (p *Parser) arguments() []ast.Node {
 	if _, ok := p.consume("expected opening paren", lexer.LeftParen); !ok {
 		return nil

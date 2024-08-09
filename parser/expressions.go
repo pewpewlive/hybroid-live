@@ -131,7 +131,16 @@ func (p *Parser) unary() ast.Node {
 }
 
 func (p *Parser) call(caller ast.Node) ast.Node {
+	hasGenerics := false
+	args := []*ast.TypeExpr{}
+	if p.check(lexer.Less) {
+		args = p.genericArguments()
+		hasGenerics = false
+	}
 	if !p.check(lexer.LeftParen) {
+		if hasGenerics {
+			p.error(p.peek(), "expected call arguments after generic arguments")
+		}
 		return caller
 	}
 
@@ -143,6 +152,7 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 
 	call_expr := &ast.CallExpr{
 		Caller: caller,
+		GenericArgs: args,
 		Args:   p.arguments(),
 	}
 

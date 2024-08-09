@@ -588,7 +588,15 @@ func (s *StringVal) GetDefault() *ast.LiteralExpr {
 }
 
 type GenericVal struct{
-	Type NamedType
+	Type *GenericType
+}
+
+func (self *GenericVal) GetType() Type {
+	return self.Type
+}
+
+func (self *GenericVal) GetDefault() *ast.LiteralExpr {
+	return &ast.LiteralExpr{Value: "generic"}
 }
 
 type Invalid struct{}

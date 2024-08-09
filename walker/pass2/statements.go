@@ -17,7 +17,7 @@ import (
 func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope *wkr.Scope) {
 	if node.Constructor == nil {
 		w.Error(node.Name, "structs must be declared with a constructor")
-		return;
+		return
 	}
 
 	if w.TypeExists(node.Name.Lexeme) {
@@ -276,14 +276,14 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, s
 
 	ret := wkr.EmptyReturn 
 	for _, typee := range node.Return {
-		ret = append(ret, TypeExpr(w, typee, scope, true))
+		ret = append(ret, TypeExpr(w, typee, fnScope, true))
 	}
 
 	funcTag.ReturnTypes = ret
 
 	params := make([]wkr.Type, 0)
 	for i, param := range node.Params {
-		params = append(params, TypeExpr(w, param.Type, scope, true))
+		params = append(params, TypeExpr(w, param.Type, fnScope, true))
 		w.DeclareVariable(fnScope, &wkr.VariableVal{Name: param.Name.Lexeme, Value: w.TypeToValue(params[i]), IsLocal: true}, param.Name)
 	}
 

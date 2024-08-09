@@ -26,37 +26,6 @@ type Environment struct {
 	CustomTypes     map[string]*CustomType
 }
 
-/*
-
-use pewpew
-
-entity Quadro {
-	fn Dosomasd(Mothership ms) {
-		pewpew::EntityReactToWeapon(ms.y, WepaonConfig)
-	}
-}
-
-entity GraphicElement {
-	spawn(fixed x, fixed y, mesh Mesh) {
-	}
-}
-
-spawn GraphicElement(100fx, 100fx, MeshThing)
-
-fn something(WeaponType a) {
-	spawn GraphicElement(100f, 100f, Meshes::Amogus)
-	let mothership = pewpew::NewMothership(100f, 100f, pewpew::MothershipType.SEVEN_CORNERS, 90d)
-	let quadro = spawn Quario()
-
-	quadro.Dosomasd(motiehrship)
-}
-
-function seomthing(a) {
-	local a = pewpew.WeaponType.BULLET
-}
-
-*/
-
 func NewEnvironment(path string) *Environment {
 	scope := Scope{
 		Tag:       &UntaggedTag{},
@@ -444,6 +413,10 @@ func (w *Walker) TypeToValue(_type Type) Value {
 		return val
 	case ast.Object:
 		return &Unknown{}
+	case ast.Generic:
+		return &GenericVal{
+			Type: _type.(*GenericType),
+		}
 	default:
 		return &Invalid{}
 	}
