@@ -10,4 +10,4 @@ fn test<T>(T a) -> T {
     return a
 }
 
-let testt = test(1)
+let testt = test<number>(1)

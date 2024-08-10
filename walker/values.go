@@ -262,6 +262,8 @@ type EntityVal struct {
 	Methods       map[string]*VariableVal
 	SpawnParams   Types
 	DestroyParams Types
+	SpawnGenerics []*GenericType
+	DestroyGenerics []*GenericType
 }
 
 func NewEntityVal(name string, isLocal bool) *EntityVal {
@@ -344,6 +346,7 @@ type StructVal struct {
 	Fields  map[string]Field
 	Methods map[string]*VariableVal
 	Params  Types
+	Generics []*GenericType
 }
 
 func (sv *StructVal) GetType() Type {
@@ -530,6 +533,7 @@ func TypesToString(types []Type) string {
 }
 
 type FunctionVal struct {
+	Generics []*GenericType
 	Params  Types
 	Returns Types
 }

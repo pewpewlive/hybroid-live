@@ -411,6 +411,7 @@ func (p *Parser) entityFunctionDeclarationStmt(token lexer.Token, functionType a
 		Token: token,
 	}
 
+	stmt.Generics = p.genericParameters()
 	stmt.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
 
 	var success bool
@@ -425,6 +426,7 @@ func (p *Parser) entityFunctionDeclarationStmt(token lexer.Token, functionType a
 func (p *Parser) constructorDeclarationStmt() ast.Node {
 	stmt := &ast.ConstructorStmt{Token: p.peek(-1)}
 
+	stmt.Generics = p.genericParameters()
 	stmt.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
 	stmt.Return = p.returnings()
 	var success bool
@@ -490,11 +492,12 @@ func (p *Parser) methodDeclarationStmt(IsLocal bool) ast.Node {
 	} else {
 		FnDec := fnDec.(*ast.FunctionDeclarationStmt)
 		return &ast.MethodDeclarationStmt{
-			IsLocal: FnDec.IsLocal,
-			Name:    FnDec.Name,
-			Return:  FnDec.Return,
-			Params:  FnDec.Params,
-			Body:    FnDec.Body,
+			IsLocal:  FnDec.IsLocal,
+			Name:     FnDec.Name,
+			Return:   FnDec.Return,
+			Params:   FnDec.Params,
+			Generics: FnDec.GenericParams,
+			Body:     FnDec.Body,
 		}
 	}
 }

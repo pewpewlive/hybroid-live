@@ -46,6 +46,7 @@ func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope
 		Name:    node.Constructor.Token,
 		Params:  node.Constructor.Params,
 		Return:  node.Constructor.Return,
+		Generics: node.Constructor.Generics,
 		IsLocal: true,
 		Body:    node.Constructor.Body,
 	}
@@ -141,7 +142,14 @@ func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDeclarationStmt, scope
 }
 
 func EntityFunctionDeclarationStmt(w *wkr.Walker, node *ast.EntityFunctionDeclarationStmt, entityVal *wkr.EntityVal, scope *wkr.Scope) {
+	generics := make([]*wkr.GenericType, 0)
+	
+	for _, param := range node.Generics {
+		generics = append(generics, wkr.NewGeneric(param.Name.Lexeme))
+	}
+	
 	ft := &wkr.FuncTag{
+		Generics: generics,
 		ReturnTypes: wkr.EmptyReturn,
 		Returns:     make([]bool, 0),
 	}
@@ -154,6 +162,9 @@ func EntityFunctionDeclarationStmt(w *wkr.Walker, node *ast.EntityFunctionDeclar
 			Token:   node.GetToken(),
 		}, name)
 	})
+
+	w.Context.Clear()
+
 	WalkBody(w, &node.Body, ft, fnScope)
 	switch node.Type {
 	case ast.Spawn:
@@ -255,6 +266,7 @@ func MethodDeclarationStmt(w *wkr.Walker, node *ast.MethodDeclarationStmt, conta
 		Name:    node.Name,
 		Return:  node.Return,
 		Params:  node.Params,
+		GenericParams: node.Generics,
 		Body:    node.Body,
 		IsLocal: true,
 	}
@@ -287,9 +299,11 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, s
 		w.DeclareVariable(fnScope, &wkr.VariableVal{Name: param.Name.Lexeme, Value: w.TypeToValue(params[i]), IsLocal: true}, param.Name)
 	}
 
+	w.Context.Clear()
+
 	variable := &wkr.VariableVal{
 		Name:  node.Name.Lexeme,
-		Value: &wkr.FunctionVal{Params: params, Returns: ret},
+		Value: &wkr.FunctionVal{Params: params, Returns: ret, Generics: generics},
 		Token: node.GetToken(),
 	}
 	if procType == wkr.Function {

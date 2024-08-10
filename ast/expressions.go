@@ -345,6 +345,7 @@ func (se *SelfExpr) GetValueType() PrimitiveValueType {
 
 type NewExpr struct {
 	Type  *TypeExpr
+	Generics []*TypeExpr
 	Args  []Node
 	Token lexer.Token
 }
@@ -364,6 +365,7 @@ func (ne *NewExpr) GetValueType() PrimitiveValueType {
 type SpawnExpr struct {
 	Type  *TypeExpr
 	Args  []Node
+	Generics []*TypeExpr
 	Token lexer.Token
 }
 

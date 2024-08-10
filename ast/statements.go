@@ -153,6 +153,7 @@ func (sds *EntityDeclarationStmt) GetValueType() PrimitiveValueType {
 
 type EntityFunctionDeclarationStmt struct {
 	Type   EntityFunctionType
+	Generics []*IdentifierExpr
 	Params []Param
 	Body   []Node
 	Token  lexer.Token
@@ -193,6 +194,7 @@ type ConstructorStmt struct {
 	Body   []Node
 	Return []*TypeExpr
 	Params []Param
+	Generics []*IdentifierExpr
 }
 
 func (cs *ConstructorStmt) GetType() NodeType {
@@ -257,6 +259,7 @@ type MethodDeclarationStmt struct {
 	Name    lexer.Token
 	Return  []*TypeExpr
 	Params  []Param
+	Generics []*IdentifierExpr
 	IsLocal bool
 	Body    []Node
 }

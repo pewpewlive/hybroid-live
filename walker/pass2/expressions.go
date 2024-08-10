@@ -221,8 +221,8 @@ func ListExpr(w *wkr.Walker, node *ast.ListExpr, scope *wkr.Scope) wkr.Value {
 	return &value
 }
 
-func CallExpr(w *wkr.Walker, val wkr.Value, node *ast.CallExpr, scope *wkr.Scope) wkr.Value { 
-	valType := val.GetType().PVT() 
+func CallExpr(w *wkr.Walker, val wkr.Value, node *ast.CallExpr, scope *wkr.Scope) wkr.Value {
+	valType := val.GetType().PVT()
 	if valType != ast.Func {
 		w.Error(node.Caller.GetToken(), "caller is not a function") 
 		return &wkr.Invalid{}                                       
@@ -233,19 +233,35 @@ func CallExpr(w *wkr.Walker, val wkr.Value, node *ast.CallExpr, scope *wkr.Scope
 		val = variable.Value
 	}
 	fun, _ := val.(*wkr.FunctionVal)
-
-	w.Context.Clear()
-
+	
+	suppliedGenerics := GetGenerics(w, node, node.GenericArgs, fun.Generics, scope)
+	
 	args := []wkr.Type{}
 	for i := range node.Args {
 		args = append(args, GetNodeValue(w, &node.Args[i], scope).GetType())
 	}
-	w.ValidateArguments(args, fun.Params, node.Caller.GetToken())
+	w.ValidateArguments(suppliedGenerics, args, fun.Params, node.Caller.GetToken())
 
 	if len(fun.Returns) == 1 {
 		return w.TypeToValue(fun.Returns[0]) 
 	}
 	return &fun.Returns
+}
+
+func GetGenerics(w *wkr.Walker, node ast.Node, genericArgs []*ast.TypeExpr, expectedGenerics []*wkr.GenericType, scope *wkr.Scope) map[string]wkr.Type {
+	receivedGenericsLength := len(genericArgs)
+	expectedGenericsLength := len(expectedGenerics)
+
+	suppliedGenerics := map[string]wkr.Type{}
+	if receivedGenericsLength > expectedGenericsLength {
+		w.Error(node.GetToken(), "too many generic arguments supplied")
+	}else {
+		for i := range genericArgs {
+			suppliedGenerics[expectedGenerics[i].Name] = TypeExpr(w, genericArgs[i], scope, true)
+		}
+	}
+
+	return suppliedGenerics
 }
 
 func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {// WRITES CONTEXT
@@ -374,7 +390,9 @@ func NewExpr(w *wkr.Walker, new *ast.NewExpr, scope *wkr.Scope) wkr.Value {
 		args = append(args, GetNodeValue(w, &new.Args[i], scope).GetType())
 	}
 
-	w.ValidateArguments(args, val.Params, new.Token)
+	suppliedGenerics := GetGenerics(w, new, new.Generics, val.Generics, scope)
+
+	w.ValidateArguments(suppliedGenerics, args, val.Params, new.Token)
 
 	return val
 }
@@ -398,7 +416,9 @@ func SpawnExpr(w *wkr.Walker, new *ast.SpawnExpr, scope *wkr.Scope) wkr.Value {
 		args = append(args, GetNodeValue(w, &new.Args[i], scope).GetType())
 	}
 
-	w.ValidateArguments(args, val.SpawnParams, new.Token)
+	suppliedGenerics := GetGenerics(w, new, new.Generics, val.SpawnGenerics, scope)
+
+	w.ValidateArguments(suppliedGenerics, args, val.SpawnParams, new.Token)
 
 	return val
 }

@@ -269,7 +269,8 @@ func (sc *Scope) ResolveReturnable() *ExitableTag {
 	return sc.Parent.ResolveReturnable()
 }
 
-func (w *Walker) ValidateArguments(args []Type, params []Type, callToken lexer.Token) (int, bool) {
+func (w *Walker) ValidateArguments(generics map[string]Type, args []Type, params []Type, callToken lexer.Token) (int, bool) {
+	
 	paramCount := len(params)
 	if paramCount > len(args) {
 		w.Error(callToken, "too few arguments given in call")
@@ -289,8 +290,17 @@ func (w *Walker) ValidateArguments(args []Type, params []Type, callToken lexer.T
 		}else {
 			param = params[i]
 		}
-	
 
+		if param.GetType() == Generic {
+			generic := param.(*GenericType)
+			if typ, found := generics[generic.Name]; found {
+				param = typ
+			}else {
+				generics[generic.Name] = typeVal
+				param = typeVal
+			}
+		}
+	
 		if !TypeEquals(param, typeVal) {
 			w.Error(callToken, fmt.Sprintf("argument is of type %s, but should be %s", typeVal.ToString(), params[i].ToString()))
 			return i, false
