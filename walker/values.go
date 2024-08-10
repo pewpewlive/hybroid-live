@@ -266,9 +266,9 @@ type EntityVal struct {
 	DestroyGenerics []*GenericType
 }
 
-func NewEntityVal(name string, isLocal bool) *EntityVal {
+func NewEntityVal(envName string, name string, isLocal bool) *EntityVal {
 	return &EntityVal{
-		Type:    *NewNamedType(name, ast.Entity),
+		Type:    *NewNamedType(envName, name, ast.Entity),
 		IsLocal: isLocal,
 		Methods: make(map[string]*VariableVal),
 		Fields: make(map[string]Field, 0),

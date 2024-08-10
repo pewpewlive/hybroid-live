@@ -27,7 +27,7 @@ func (ete *EnvTypeExpr) GetValueType() PrimitiveValueType {
 // }
 
 type EnvPathExpr struct {
-	SubPaths []string
+	SubPaths []lexer.Token
 }
 
 func (epe *EnvPathExpr) GetType() NodeType {
@@ -35,7 +35,7 @@ func (epe *EnvPathExpr) GetType() NodeType {
 }
 
 func (epe *EnvPathExpr) GetToken() lexer.Token {
-	return lexer.Token{Lexeme: epe.SubPaths[0]}
+	return lexer.Token{Lexeme: epe.SubPaths[len(epe.SubPaths)-1].Lexeme}
 }
 
 func (epe *EnvPathExpr) GetValueType() PrimitiveValueType {
@@ -43,7 +43,12 @@ func (epe *EnvPathExpr) GetValueType() PrimitiveValueType {
 }
 
 func (epe *EnvPathExpr) Nameify() string {
-	return strings.Join(epe.SubPaths, "::")
+	strs := []string{}
+
+	for i := range epe.SubPaths {
+		strs = append(strs, epe.SubPaths[i].Lexeme)
+	}
+	return strings.Join(strs, "::")
 }
 
 type EnvAccessExpr struct {

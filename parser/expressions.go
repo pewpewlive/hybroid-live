@@ -363,14 +363,14 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 				}
 			}
 			envPath := &ast.EnvPathExpr{
-				SubPaths: []string{
-					token.Lexeme,
+				SubPaths: []lexer.Token{
+					token,
 				},
 			}
 
-			next := p.accessorExpr(ast.NA)
+			next := p.accessorExpr(ast.NA)// new Env1:Type()
 			for p.match(lexer.Colon) {
-				envPath.SubPaths = append(envPath.SubPaths, next.GetToken().Lexeme)
+				envPath.SubPaths = append(envPath.SubPaths, next.GetToken())
 				if next.GetType() != ast.Identifier {
 					p.error(next.GetToken(), "expected identifier in environment expression")
 					return &ast.Improper{Token: next.GetToken()}
@@ -517,20 +517,27 @@ func (p *Parser) WrappedType() *ast.TypeExpr {
 }
 
 func (p *Parser) Type() *ast.TypeExpr {
-	expr := p.primary(false)
-	exprToken := expr.GetToken()
+	var expr ast.Node
+	expr = p.EnvPathExpr()
+	if expr.GetType() == ast.EnvironmentPathExpression {
+		envPath := expr.(*ast.EnvPathExpr)
+		if len(envPath.SubPaths) == 1 {
+			expr = &ast.IdentifierExpr{
+				Name: envPath.SubPaths[0],
+				ValueType: ast.Invalid,
+			}
+		}
+	}
+
 
 	var typ *ast.TypeExpr
 
-	if expr.GetType() == ast.EnvironmentAccessExpression {
-		envAccess := expr.(*ast.EnvAccessExpr)
-		if envAccess.Accessed.GetType() != ast.Identifier {
-			p.error(envAccess.Accessed.GetToken(), "accessed type must be an identifier")
-		}
+	if expr.GetType() == ast.EnvironmentPathExpression {
 		typ = &ast.TypeExpr{Name: expr}
 		typ.IsVariadic = p.match(lexer.DotDotDot)
 		return typ
 	}
+	exprToken := expr.GetToken()
 
 	switch exprToken.Type {
 	// case lexer.DotDotDot:
@@ -617,15 +624,15 @@ func (p *Parser) EnvPathExpr() ast.Node {
 	}
 
 	envPath := &ast.EnvPathExpr{
-		SubPaths: []string{ident.Lexeme},
+		SubPaths: []lexer.Token{ident},
 	}
 
 	for p.match(lexer.Colon) {
 		ident, ok = p.consume("expected identifier in environment path", lexer.Identifier)
 		if !ok {
-			return &ast.Improper{Token: ident}
+			return &ast.Improper{Token: envPath.GetToken()}
 		}
-		envPath.SubPaths = append(envPath.SubPaths, ident.Lexeme)
+		envPath.SubPaths = append(envPath.SubPaths, ident)
 	}
 
 	return envPath

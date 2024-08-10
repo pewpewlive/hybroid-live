@@ -11,3 +11,17 @@ fn test<T>(T a) -> T {
 }
 
 let testt = test<number>(1)
+
+testt += 2
+
+pub struct Example {
+    new() {
+
+    }
+
+    fn e(number param1) {
+        param1 += 2
+    }
+}
+
+let d = new Example()

@@ -195,7 +195,7 @@ func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr) (wkr.Value, ast.Node)
 
 	envStmt.AddRequirement(walker.Environment.Path)
 
-	if (!walker.Walked) {
+	if !walker.Walked {
 		Action(walker, w.Walkers)
 	}
 
@@ -241,6 +241,12 @@ func CallExpr(w *wkr.Walker, val wkr.Value, node *ast.CallExpr, scope *wkr.Scope
 		args = append(args, GetNodeValue(w, &node.Args[i], scope).GetType())
 	}
 	w.ValidateArguments(suppliedGenerics, args, fun.Params, node.Caller.GetToken())
+
+	for i := range fun.Returns {
+		if fun.Returns[i].GetType() == wkr.Generic {
+			fun.Returns[i] = suppliedGenerics[fun.Returns[i].(*wkr.GenericType).Name]
+		}
+	}
 
 	if len(fun.Returns) == 1 {
 		return w.TypeToValue(fun.Returns[0]) 
@@ -483,19 +489,41 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 
 	var typ wkr.Type
 
-	if typee.Name.GetType() == ast.EnvironmentAccessExpression {
-		expr, _ := typee.Name.(*ast.EnvAccessExpr)
-		path := expr.PathExpr.Nameify()
+	if typee.Name.GetType() == ast.EnvironmentPathExpression {
+		expr, _ := typee.Name.(*ast.EnvPathExpr)
+		path := expr.Nameify()
+		lastSubPath := 0
+		for i := len(path)-1; i > 0; i-- {
+			if path[i] == ':' {
+				lastSubPath = i
+				break
+			}
+		}
+		path = path[:lastSubPath-1]
 
 		walker, found := w.Walkers[path]
 		if !found {
-			w.Error(expr.PathExpr.GetToken(), "Environment name so doesn't exist")
+			w.Error(expr.GetToken(), "Environment name so doesn't exist")
 			return wkr.InvalidType
 		}
-		typ = TypeExpr(w, &ast.TypeExpr{Name: expr.Accessed}, &walker.Environment.Scope, throw)
+
+		for _, v := range walker.GetEnvStmt().Requirements {
+			if v == w.Environment.Path {
+				w.Error(typee.GetToken(), fmt.Sprintf("import cycle detected: this environment and '%s' are using each other", walker.Environment.Name))
+			}
+		}
+	
+		w.GetEnvStmt().AddRequirement(walker.Environment.Path)
+
+		if !walker.Walked {
+			Action(walker, w.Walkers)
+		}
+		ident := &ast.IdentifierExpr{Name: expr.SubPaths[len(expr.SubPaths)-1], ValueType: ast.Invalid}
+		typ = TypeExpr(w, &ast.TypeExpr{Name: ident}, &walker.Environment.Scope, throw)
 		if typee.IsVariadic {
 			return wkr.NewVariadicType(typ)
 		}
+		return typ
 	}
 
 	if typee.Name.GetToken().Type == lexer.Entity {
@@ -578,7 +606,30 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 				}
 			}
 		}
-	
+
+		types := map[string]wkr.Type{}
+		for i := range w.UsedWalkers {
+			if !w.UsedWalkers[i].Walked {
+				Action(w.UsedWalkers[i], w.Walkers)
+			}
+			typ := TypeExpr(w.UsedWalkers[i], typee, &w.UsedWalkers[i].Environment.Scope, false)
+			if typ.PVT() != ast.Invalid {
+				types[w.UsedWalkers[i].Environment.Name] = typ
+			}
+		}
+
+		if len(types) > 1 {
+			errorMsg := "conflicting types between: "
+			for k, v := range types {
+				errorMsg += k+":"+v.ToString()+", "
+			}
+			errorMsg = errorMsg[:len(errorMsg)-1]
+			w.Error(typee.GetToken(), errorMsg)
+		}else if len(types) == 1 {
+			for _, v := range types {
+				return v
+			}
+		}
 
 		typ = wkr.InvalidType
 	}

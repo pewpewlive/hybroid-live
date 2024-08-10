@@ -355,12 +355,14 @@ func (self *AnonStructType) ToString() string {
 
 type NamedType struct {
 	Pvt    ast.PrimitiveValueType
+	EnvName string
 	Name   string
 	IsUsed bool
 }
 
-func NewNamedType(name string, primitive ast.PrimitiveValueType) *NamedType {
+func NewNamedType(envName string, name string, primitive ast.PrimitiveValueType) *NamedType {
 	return &NamedType{
+		EnvName: envName,
 		Name: name,
 		Pvt:  primitive, //
 	}

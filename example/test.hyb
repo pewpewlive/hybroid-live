@@ -1,0 +1,11 @@
+env Test as Level
+
+use Test2
+
+fn test<T>(T a) -> T {
+    return a
+}
+
+let a = test<Example>(new Example())
+
+//a.e(1)

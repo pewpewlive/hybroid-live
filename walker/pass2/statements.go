@@ -24,11 +24,18 @@ func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope
 		w.Error(node.Name, "a type with this name already exists")
 	}
 
+	generics := make([]*wkr.GenericType, 0)
+	
+	for _, param := range node.Constructor.Generics {
+		generics = append(generics, wkr.NewGeneric(param.Name.Lexeme))
+	}
+
 	structVal := &wkr.StructVal{
-		Type:    *wkr.NewNamedType(node.Name.Lexeme, ast.Struct),
+		Type:    *wkr.NewNamedType(w.Environment.Name, node.Name.Lexeme, ast.Struct),
 		IsLocal: node.IsLocal,
 		Fields:  make(map[string]wkr.Field),
 		Methods: map[string]*wkr.VariableVal{},
+		Generics: generics,
 		Params:  wkr.Types{},
 	}
 
@@ -95,7 +102,7 @@ func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDeclarationStmt, scope
 		w.Error(node.Name, "a type with this name already exists")
 	}
 
-	entityVal := wkr.NewEntityVal(node.Name.Lexeme, node.IsLocal)
+	entityVal := wkr.NewEntityVal(w.Environment.Name, node.Name.Lexeme, node.IsLocal)
 
 	//fields
 	for i := range node.Fields { 

@@ -57,7 +57,7 @@ const (
 type Walker struct {
 	CurrentEnvironment *Environment
 	Environment   *Environment
-	Walkers       map[string]*Walker// the walker struct?
+	Walkers       map[string]*Walker
 	UsedLibraries map[Library]bool
 	UsedWalkers   []*Walker
 	Nodes         []ast.Node
@@ -213,14 +213,13 @@ func (w *Walker) DeclareEntity(entityVal *EntityVal) bool {
 }
 
 func (w *Walker) ResolveVariable(s *Scope, name string) *Scope {
-	
 	if _, found := s.Variables[name]; found {
 		return s
 	}
 
 	if s.Parent == nil {
 		for i := range w.UsedWalkers {
-			variable := w.GetVariable(&w.UsedWalkers[i].Environment.Scope, name)
+			variable := w.UsedWalkers[i].GetVariable(&w.UsedWalkers[i].Environment.Scope, name)
 			if variable != nil {
 				return &w.UsedWalkers[i].Environment.Scope
 			}
@@ -410,7 +409,7 @@ func (w *Walker) TypeToValue(_type Type) Value {
 			MemberType: _type.(*WrapperType).WrappedType,
 		}
 	case ast.Struct:
-		val, _ := w.GetStruct(_type.ToString())
+		val, _ := w.Walkers[_type.(*NamedType).EnvName].GetStruct(_type.ToString())
 		return val
 	case ast.AnonStruct:
 		return &AnonStructVal{
@@ -419,7 +418,7 @@ func (w *Walker) TypeToValue(_type Type) Value {
 	case ast.Enum:
 		return w.GetVariable(&w.Environment.Scope, _type.(*EnumType).Name)
 	case ast.Entity:
-		val, _ := w.GetEntity(_type.ToString())
+		val, _ := w.Walkers[_type.(*NamedType).EnvName].GetEntity(_type.ToString())
 		return val
 	case ast.Object:
 		return &Unknown{}

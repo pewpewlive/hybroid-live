@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"hybroid/ast"
 	wkr "hybroid/walker"
-	"strings"
 )
 
 func Action(w *wkr.Walker, nodes []ast.Node, wlkrs map[string]*wkr.Walker) {
@@ -24,7 +23,7 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 			w.Error(newNode.GetToken(), "cannot have 2 environment declaration statements in one file")
 		}
 
-		w.Environment.Name = strings.Join(newNode.Env.SubPaths, "::")
+		w.Environment.Name = newNode.Env.Nameify()
 		for k, v := range w.Walkers {
 			if k == w.Environment.Name {
 				w.Error(newNode.GetToken(), fmt.Sprintf("duplicate names found between %s and %s", w.Environment.Path, v.Environment.Path))
