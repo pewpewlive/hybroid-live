@@ -331,60 +331,59 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 
 	if p.match(lexer.Identifier) {
 		token := p.peek(-1)
-		if p.match(lexer.Colon) {
-			switch token.Lexeme {
-			case "Pewpew":
-				expr := p.expression()
-
-				return &ast.PewpewExpr{
-					Node: expr,
-				}
-			case "Fmath":
-				name, ok := p.consume("expected identifier in fmath access", lexer.Identifier)
-				if !ok {
-					return ast.NewImproper(name)
-				}
-				return &ast.FmathExpr{
-					Node: p.call(&ast.IdentifierExpr{
-						Name: name,
-					}),
-				}
-			case "Math", "String", "Table":
-				name, ok := p.consume("expected identifier in %s access", lexer.Identifier)
-				if !ok {
-					return ast.NewImproper(name)
-				}
-				call := p.call(&ast.IdentifierExpr{
-					Name: name,
-				})
-				return &ast.StandardExpr{
-					Library: ast.Libraries[token.Lexeme],
-					Node:    call,
-				}
-			}
-			envPath := &ast.EnvPathExpr{
-				SubPaths: []lexer.Token{
-					token,
-				},
-			}
-
-			next := p.accessorExpr(ast.NA)// new Env1:Type()
-			for p.match(lexer.Colon) {
-				envPath.SubPaths = append(envPath.SubPaths, next.GetToken())
-				if next.GetType() != ast.Identifier {
-					p.error(next.GetToken(), "expected identifier in environment expression")
-					return &ast.Improper{Token: next.GetToken()}
-				}
-				next = p.accessorExpr(ast.NA)
-			}
-			envExpr := &ast.EnvAccessExpr{
-				PathExpr: envPath,
-			}
-			envExpr.Accessed = next
-
-			return envExpr
+		if !p.match(lexer.Colon) {
+			return &ast.IdentifierExpr{Name: token, ValueType: ast.Ident}
 		}
-		return &ast.IdentifierExpr{Name: token, ValueType: ast.Ident}
+
+		switch token.Lexeme {
+		case "Pewpew":
+			expr := p.expression()
+
+			return &ast.PewpewExpr{
+				Node: expr,
+			}
+		case "Fmath":
+			name, ok := p.consume("expected identifier in fmath access", lexer.Identifier)
+			if !ok {
+				return ast.NewImproper(name)
+			}
+			return &ast.FmathExpr{
+				Node: p.call(&ast.IdentifierExpr{
+					Name: name,
+				}),
+			}
+		case "Math", "String", "Table":
+			name, ok := p.consume("expected identifier in %s access", lexer.Identifier)
+			if !ok {
+				return ast.NewImproper(name)
+			}
+			call := p.call(&ast.IdentifierExpr{
+				Name: name,
+			})
+			return &ast.StandardExpr{
+				Library: ast.Libraries[token.Lexeme],
+				Node:    call,
+			}
+		}
+		envPath := &ast.EnvPathExpr{
+			Path: token,
+		}
+
+		next := p.accessorExpr(ast.NA)
+		for p.match(lexer.Colon) {
+			envPath.Combine(next.GetToken())
+			if next.GetType() != ast.Identifier {
+				p.error(next.GetToken(), "expected identifier in environment expression")
+				return &ast.Improper{Token: next.GetToken()}
+			}
+			next = p.accessorExpr(ast.NA)
+		}
+		envExpr := &ast.EnvAccessExpr{
+			PathExpr: envPath,
+		}
+		envExpr.Accessed = next
+
+		return envExpr
 	}
 
 	if p.match(lexer.LeftParen) {
@@ -518,21 +517,37 @@ func (p *Parser) WrappedType() *ast.TypeExpr {
 
 func (p *Parser) Type() *ast.TypeExpr {
 	var expr ast.Node
-	expr = p.EnvPathExpr()
-	if expr.GetType() == ast.EnvironmentPathExpression {
-		envPath := expr.(*ast.EnvPathExpr)
-		if len(envPath.SubPaths) == 1 {
-			expr = &ast.IdentifierExpr{
-				Name: envPath.SubPaths[0],
-				ValueType: ast.Invalid,
+	token := p.advance()
+	if p.match(lexer.Colon) {
+		if token.Type != lexer.Identifier {
+			p.error(token, "expected identifier")
+		}
+		envAccess := &ast.EnvAccessExpr{
+			PathExpr: &ast.EnvPathExpr{
+				Path: token,
+			},
+		}
+		next := p.advance()
+		for p.match(lexer.Colon) {
+			envAccess.PathExpr.Combine(next)
+			if next.Type != lexer.Identifier {
+				p.error(next, "expected identifier in environment expression")
 			}
+			next = p.advance()
+		}
+		envAccess.Accessed = &ast.IdentifierExpr{
+			Name: next,
+		}
+		expr = envAccess
+	}else {
+		expr = &ast.IdentifierExpr{
+			Name: token,
+			ValueType: ast.Invalid,
 		}
 	}
 
-
 	var typ *ast.TypeExpr
-
-	if expr.GetType() == ast.EnvironmentPathExpression {
+	if expr.GetType() == ast.EnvironmentAccessExpression {
 		typ = &ast.TypeExpr{Name: expr}
 		typ.IsVariadic = p.match(lexer.DotDotDot)
 		return typ
@@ -624,7 +639,7 @@ func (p *Parser) EnvPathExpr() ast.Node {
 	}
 
 	envPath := &ast.EnvPathExpr{
-		SubPaths: []lexer.Token{ident},
+		Path: ident,
 	}
 
 	for p.match(lexer.Colon) {
@@ -632,7 +647,7 @@ func (p *Parser) EnvPathExpr() ast.Node {
 		if !ok {
 			return &ast.Improper{Token: envPath.GetToken()}
 		}
-		envPath.SubPaths = append(envPath.SubPaths, ident)
+		envPath.Combine(ident)
 	}
 
 	return envPath

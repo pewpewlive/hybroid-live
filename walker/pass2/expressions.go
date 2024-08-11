@@ -113,7 +113,6 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 
 	sc := w.ResolveVariable(scope, ident.Name.Lexeme)
 	if sc == nil {
-
 		walker, found := w.Walkers[ident.Name.Lexeme]
 		if found {
 			*node = &ast.LiteralExpr{
@@ -141,7 +140,7 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 		identExpr := &ast.IdentifierExpr{
 			Name: valueNode.GetToken(),
 		}
-		selfExpr.Property = identExpr
+		selfExpr.Property = identExpr// x -> self.x
 		*node = selfExpr
 	} else if sc.Tag.GetType() == wkr.Entity {
 		entity := sc.Tag.(*wkr.EntityTag).EntityType
@@ -159,6 +158,17 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 		}
 		selfExpr.Property = identExpr
 		*node = selfExpr
+	}else if sc.Environment != w.Environment {
+		newNode := &ast.EnvAccessExpr{
+			PathExpr: &ast.EnvPathExpr{
+				Path: lexer.Token{
+					Lexeme: sc.Environment.Name,
+					Location: ident.GetToken().Location,
+				},
+			},
+			Accessed: ident,
+		}
+		*node = newNode
 	}
 
 	variable.IsUsed = true
@@ -166,7 +176,7 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 }
 
 func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr) (wkr.Value, ast.Node) {
-	envName := node.PathExpr.Nameify()
+	envName := node.PathExpr.Path.Lexeme
 
 	if node.Accessed.GetType() == ast.Identifier {
 		name := node.Accessed.(*ast.IdentifierExpr).Name.Lexeme
@@ -488,18 +498,9 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 	}
 
 	var typ wkr.Type
-
-	if typee.Name.GetType() == ast.EnvironmentPathExpression {
-		expr, _ := typee.Name.(*ast.EnvPathExpr)
-		path := expr.Nameify()
-		lastSubPath := 0
-		for i := len(path)-1; i > 0; i-- {
-			if path[i] == ':' {
-				lastSubPath = i
-				break
-			}
-		}
-		path = path[:lastSubPath-1]
+	if typee.Name.GetType() == ast.EnvironmentAccessExpression {
+		expr, _ := typee.Name.(*ast.EnvAccessExpr)
+		path := expr.PathExpr.Path.Lexeme
 
 		walker, found := w.Walkers[path]
 		if !found {
@@ -518,7 +519,7 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 		if !walker.Walked {
 			Action(walker, w.Walkers)
 		}
-		ident := &ast.IdentifierExpr{Name: expr.SubPaths[len(expr.SubPaths)-1], ValueType: ast.Invalid}
+		ident := &ast.IdentifierExpr{Name: expr.Accessed.GetToken(), ValueType: ast.Invalid}
 		typ = TypeExpr(w, &ast.TypeExpr{Name: ident}, &walker.Environment.Scope, throw)
 		if typee.IsVariadic {
 			return wkr.NewVariadicType(typ)
@@ -626,7 +627,19 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 			errorMsg = errorMsg[:len(errorMsg)-1]
 			w.Error(typee.GetToken(), errorMsg)
 		}else if len(types) == 1 {
-			for _, v := range types {
+			for k, v := range types {
+
+				typee.Name = &ast.EnvAccessExpr{
+					PathExpr: &ast.EnvPathExpr{
+						Path: lexer.Token{
+							Lexeme: k,
+							Location: typee.Name.GetToken().Location,
+						},
+					},
+					Accessed: &ast.IdentifierExpr{
+						Name: typee.Name.GetToken(),
+					},
+				}
 				return v
 			}
 		}

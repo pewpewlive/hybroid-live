@@ -3,9 +3,15 @@ env Test as Level
 use Test2
 
 fn test<T>(T a) -> T {
+    let sdsd = Test2:a
     return a
 }
 
-let a = test<Example>(new Example())
+let b = test<Example>(new Example())
 
+a += 2
 //a.e(1)
+
+let list = [1,2,3]
+
+Table:Insert(list, list)

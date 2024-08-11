@@ -23,7 +23,7 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 			w.Error(newNode.GetToken(), "cannot have 2 environment declaration statements in one file")
 		}
 
-		w.Environment.Name = newNode.Env.Nameify()
+		w.Environment.Name = newNode.Env.Path.Lexeme
 		for k, v := range w.Walkers {
 			if k == w.Environment.Name {
 				w.Error(newNode.GetToken(), fmt.Sprintf("duplicate names found between %s and %s", w.Environment.Path, v.Environment.Path))

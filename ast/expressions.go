@@ -2,7 +2,6 @@ package ast
 
 import (
 	"hybroid/lexer"
-	"strings"
 )
 
 type EnvTypeExpr struct {
@@ -27,7 +26,7 @@ func (ete *EnvTypeExpr) GetValueType() PrimitiveValueType {
 // }
 
 type EnvPathExpr struct {
-	SubPaths []lexer.Token
+	Path lexer.Token
 }
 
 func (epe *EnvPathExpr) GetType() NodeType {
@@ -35,20 +34,17 @@ func (epe *EnvPathExpr) GetType() NodeType {
 }
 
 func (epe *EnvPathExpr) GetToken() lexer.Token {
-	return lexer.Token{Lexeme: epe.SubPaths[len(epe.SubPaths)-1].Lexeme}
+	return lexer.Token{Lexeme: epe.Path.Lexeme}
 }
 
 func (epe *EnvPathExpr) GetValueType() PrimitiveValueType {
 	return Invalid
 }
 
-func (epe *EnvPathExpr) Nameify() string {
-	strs := []string{}
-
-	for i := range epe.SubPaths {
-		strs = append(strs, epe.SubPaths[i].Lexeme)
-	}
-	return strings.Join(strs, "::")
+func (epe *EnvPathExpr) Combine(token lexer.Token) {
+	epe.Path.Lexeme += ":"+token.Lexeme
+	epe.Path.Location.ColEnd = token.Location.ColEnd
+	epe.Path.Location.LineEnd = token.Location.LineEnd
 }
 
 type EnvAccessExpr struct {

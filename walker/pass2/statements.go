@@ -717,13 +717,13 @@ func UseStmt(w *wkr.Walker, node *ast.UseStmt, scope *wkr.Scope) {
 		return
 	}
 
-	if strings.ToLower(node.Path.Nameify()) == "pewpew" {
+	if strings.ToLower(node.Path.Path.Lexeme) == "pewpew" {
 		w.UsedLibraries[wkr.Pewpew] = true
 		return;
 	}
 
 	envStmt := w.GetEnvStmt()
-	envName := node.Path.Nameify()
+	envName := node.Path.Path.Lexeme
 	walker, found := w.Walkers[envName]
 
 	if !found {

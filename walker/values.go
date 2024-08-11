@@ -550,6 +550,11 @@ func (fn FunctionVal) WithReturns(returns ...Type) *FunctionVal {
 	return &fn
 }
 
+func (fn FunctionVal) WithGenerics(generics ...*GenericType) *FunctionVal {
+	fn.Generics = generics
+	return &fn
+}
+
 func (f *FunctionVal) GetType() Type {
 	return NewFunctionType(f.Params, f.Returns)
 }

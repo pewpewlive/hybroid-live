@@ -288,24 +288,52 @@ func (w *Walker) ValidateArguments(generics map[string]Type, args []Type, params
 			}
 		}else {
 			param = params[i]
-		}
+		} 
 
-		if param.GetType() == Generic {
-			generic := param.(*GenericType)
+
+		if typFound, found := ResolveGenericType(&param); found {
+			generic := (*typFound).(*GenericType)
 			if typ, found := generics[generic.Name]; found {
-				param = typ
+				*typFound = typ
 			}else {
-				generics[generic.Name] = typeVal
+				generics[generic.Name] = ResolveMatchingType(param, typeVal)
 				param = typeVal
 			}
 		}
 	
 		if !TypeEquals(param, typeVal) {
-			w.Error(callToken, fmt.Sprintf("argument is of type %s, but should be %s", typeVal.ToString(), params[i].ToString()))
+			w.Error(callToken, fmt.Sprintf("argument is of type %s, but should be %s", typeVal.ToString(), param.ToString()))
 			return i, false
 		}
 	}
 	return -1, true
+}
+
+func ResolveGenericType(typ *Type) (*Type, bool) {
+	if (*typ).GetType() == Generic {
+		return typ, true
+	}
+
+	if (*typ).GetType() == Wrapper {
+		return ResolveGenericType(&(*typ).(*WrapperType).WrappedType)
+	}
+
+	return nil, false
+}
+
+func ResolveMatchingType(predefinedType Type, receivedType Type) Type {
+	if (predefinedType.GetType() == Wrapper && receivedType.GetType() == Wrapper) {
+		wrapper1 := predefinedType.(*WrapperType)
+		wrapper2 := receivedType.(*WrapperType)
+
+		if TypeEquals(wrapper1.Type, wrapper2.Type) {
+			return ResolveMatchingType(wrapper1.WrappedType, wrapper2.WrappedType)
+		}
+
+		return wrapper2.Type
+	}
+
+	return receivedType
 }
 
 func (w *Walker) DetermineValueType(left Type, right Type) Type {

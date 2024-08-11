@@ -48,6 +48,8 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 		CallExpr(w, val, newNode, scope)
 	case *ast.PewpewExpr:
 		PewpewExpr(w, newNode, scope)
+	case *ast.StandardExpr:
+		StandardExpr(w, newNode, scope)
 	case *ast.EnvAccessExpr:
 		_, newVersion := EnvAccessExpr(w, newNode)
 		if newVersion != nil {
