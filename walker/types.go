@@ -24,9 +24,9 @@ const (
 	Wrapper // List or Map
 	RawEntity
 	Enum
-	Unresolved
 	CstmType
 	Variadic
+	Generic
 	Path
 	NA
 	NotKnown
@@ -190,6 +190,33 @@ func (self *FunctionType) ToString() string {
 	return src.String()
 }
 
+type GenericType struct{
+	Name string
+}
+
+func (self *GenericType) PVT() ast.PrimitiveValueType {
+	return ast.Generic
+}
+
+func (self *GenericType) GetType() ValueType {
+	return Generic
+}
+
+func (self *GenericType) _eq(other Type) bool {
+	g := other.(*GenericType)
+	return g.Name == self.Name
+}
+
+func (self *GenericType) ToString() string {
+	return self.Name
+}
+
+func NewGeneric(name string) *GenericType {
+	return &GenericType{
+		Name: name,
+	}
+}
+
 type RawEntityType struct{}
 
 func (self *RawEntityType) PVT() ast.PrimitiveValueType {
@@ -265,11 +292,11 @@ func (self *FixedPoint) ToString() string {
 }
 
 type AnonStructType struct {
-	Fields map[string]*VariableVal
+	Fields map[string]Field
 	Lenient bool
 }
 
-func NewAnonStructType(fields map[string]*VariableVal, lenient bool) *AnonStructType {
+func NewAnonStructType(fields map[string]Field, lenient bool) *AnonStructType {
 	return &AnonStructType{
 		Fields: fields,
 		Lenient: lenient,
@@ -294,7 +321,7 @@ func (self *AnonStructType) _eq(other Type) bool {
 	for k, v := range map1 {
 		containsK := false
 		for k2, v2 := range map2 {
-			if k == k2 && TypeEquals(v.GetType(), v2.GetType()) {
+			if k == k2 && TypeEquals(v.Var.GetType(), v2.Var.GetType()) {
 				containsK = true
 			}
 		}
@@ -313,10 +340,10 @@ func (self *AnonStructType) ToString() string {
 	index := 0
 	for k, v := range self.Fields {
 		if index == length {
-			_type := v.Value.GetType()
+			_type := v.Var.Value.GetType()
 			src.Append(_type.ToString(), " ", k)
 		} else {
-			_type := v.Value.GetType()
+			_type := v.Var.Value.GetType()
 			src.Append(_type.ToString(), " ", k, ", ")
 		}
 		index++
@@ -328,12 +355,14 @@ func (self *AnonStructType) ToString() string {
 
 type NamedType struct {
 	Pvt    ast.PrimitiveValueType
+	EnvName string
 	Name   string
 	IsUsed bool
 }
 
-func NewNamedType(name string, primitive ast.PrimitiveValueType) *NamedType {
+func NewNamedType(envName string, name string, primitive ast.PrimitiveValueType) *NamedType {
 	return &NamedType{
+		EnvName: envName,
 		Name: name,
 		Pvt:  primitive, //
 	}
@@ -350,40 +379,11 @@ func (self *NamedType) GetType() ValueType {
 
 func (self *NamedType) _eq(othr Type) bool {
 	other := othr.(*NamedType)
-	if self.Name != other.Name {
-		return false
-	}
-
-	return true
+	return self.Name == other.Name
 }
 
 func (self *NamedType) ToString() string {
 	return self.Name
-}
-
-type UnresolvedType struct {
-	Expr ast.Node
-}
-
-func (self *UnresolvedType) PVT() ast.PrimitiveValueType {
-	return ast.Unresolved
-}
-
-func (self *UnresolvedType) GetType() ValueType {
-	return Unresolved
-}
-
-func (self *UnresolvedType) _eq(othr Type) bool {
-	other := othr.(*UnresolvedType)
-	if self.Expr != other.Expr {
-		return false
-	}
-
-	return true
-}
-
-func (self *UnresolvedType) ToString() string {
-	return "unresolved"
 }
 
 type EnumType struct {
@@ -459,24 +459,24 @@ func (self *WrapperType) ToString() string {
 	return self.Type.ToString() + "<" + self.WrappedType.ToString() + ">"
 }
 
-type NotAnyType struct{}
+type ObjectType struct{}
 
-var NAType = &NotAnyType{}
+var ObjectTyp = &ObjectType{}
 
 // Type
-func (self *NotAnyType) PVT() ast.PrimitiveValueType {
-	return ast.Invalid
+func (self *ObjectType) PVT() ast.PrimitiveValueType {
+	return ast.Object
 }
 
-func (self *NotAnyType) GetType() ValueType {
+func (self *ObjectType) GetType() ValueType {
 	return NA
 }
 
-func (self *NotAnyType) _eq(_ Type) bool {
+func (self *ObjectType) _eq(_ Type) bool {
 	return false
 }
 
-func (self *NotAnyType) ToString() string {
+func (self *ObjectType) ToString() string {
 	return "NotAnyType"
 }
 
@@ -501,16 +501,10 @@ func TypeEquals(t Type, other Type) bool {
 	tpvt := t.PVT()
 	otherpvt := other.PVT()
 
-	if tpvt == ast.Unknown {
-		return true
-	} else if otherpvt == ast.Unknown {
-		return true
-	}
-
-	if tpvt == ast.Unresolved || tpvt == ast.Unknown {
-		return true
-	} else if otherpvt == ast.Unresolved {
-		return true
+	if tpvt == ast.Object {
+		return otherpvt != ast.Invalid
+	}else if otherpvt == ast.Object {
+		return tpvt != ast.Invalid
 	}
 
 	if t.GetType() == Named && t.PVT() == ast.Entity && other.GetType() == RawEntity {

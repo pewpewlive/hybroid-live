@@ -23,10 +23,10 @@ fn test2() -> number
     return 2
   } 
 
-fn test3() -> number, number
-  return 2
+fn test3() -> (number, number)
+  return 2, 3
 
-fn test4(number a) -> number, number
+fn test4(number a) -> (number, number)
   => match a {
     2 => 2
     _ => 1

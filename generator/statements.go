@@ -178,7 +178,7 @@ func (gen *Generator) repeatStmt(node ast.RepeatStmt, scope *GenScope) {
 	end := gen.GenerateExpr(node.Iterator, scope)
 	start := gen.GenerateExpr(node.Start, scope)
 	skip := gen.GenerateExpr(node.Skip, scope)
-	if node.Variable.GetValueType() != ast.Unknown {
+	if node.Variable.GetValueType() != ast.Invalid {
 		variable := gen.GenerateExpr(node.Variable, &repeatScope)
 		repeatScope.AppendTabbed("for ", variable, " = ", start, ", ", end, ", ", skip, " do\n")
 	} else {
@@ -261,8 +261,8 @@ func (gen *Generator) tickStmt(node ast.TickStmt, scope *GenScope) {
 
 	tickScope := GenScope{Src: StringBuilder{}, Parent: scope}
 
-	if node.Variable.GetValueType() != ast.Unknown {
-		variable := gen.GenerateExpr(&node.Variable, scope)
+	if node.Variable != nil {
+		variable := gen.GenerateExpr(node.Variable, scope)
 		tickScope.Src.Append(tickTabs, "local ", variable, " = 0\n")
 		tickScope.Src.Append(tickTabs, "pewpew.add_update_callback(function()\n")
 		tickScope.Src.AppendTabbed(variable, " = ", variable, " + 1\n")

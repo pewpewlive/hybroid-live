@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hybroid/ast"
 	"hybroid/helpers"
+	"hybroid/lexer"
 	"hybroid/parser"
 	wkr "hybroid/walker"
 	"strings"
@@ -15,22 +16,44 @@ import (
 
 func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope *wkr.Scope) {
 	if node.Constructor == nil {
+		w.Error(node.Name, "structs must be declared with a constructor")
 		return
 	}
-	structScope := scope.AccessChild()
 
-	structVal := structScope.Tag.(*wkr.StructTag).StructVal
+	if w.TypeExists(node.Name.Lexeme) {
+		w.Error(node.Name, "a type with this name already exists")
+	}
+
+	generics := make([]*wkr.GenericType, 0)
+	
+	for _, param := range node.Constructor.Generics {
+		generics = append(generics, wkr.NewGeneric(param.Name.Lexeme))
+	}
+
+	structVal := &wkr.StructVal{
+		Type:    *wkr.NewNamedType(w.Environment.Name, node.Name.Lexeme, ast.Struct),
+		IsLocal: node.IsLocal,
+		Fields:  make(map[string]wkr.Field),
+		Methods: map[string]*wkr.VariableVal{},
+		Generics: generics,
+		Params:  wkr.Types{},
+	}
+
+	structScope := wkr.NewScope(scope, &wkr.StructTag{StructVal: structVal}, wkr.SelfAllowing)
 
 	params := make([]wkr.Type, 0)
 	for _, param := range node.Constructor.Params {
-		params = append(params, TypeExpr(w, param.Type, w.Environment))
+		params = append(params, TypeExpr(w, param.Type, scope, true))
 	}
 	structVal.Params = params
+
+	w.DeclareStruct(structVal)
 
 	funcDeclaration := ast.MethodDeclarationStmt{
 		Name:    node.Constructor.Token,
 		Params:  node.Constructor.Params,
 		Return:  node.Constructor.Return,
+		Generics: node.Constructor.Generics,
 		IsLocal: true,
 		Body:    node.Constructor.Body,
 	}
@@ -42,12 +65,12 @@ func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope
 	for i := range node.Methods {
 		params := make([]wkr.Type, 0)
 		for _, param := range node.Methods[i].Params {
-			params = append(params, TypeExpr(w, param.Type, w.Environment))
+			params = append(params, TypeExpr(w, param.Type, scope, true))
 		}
 
 		ret := wkr.EmptyReturn
 		for _, typee := range node.Methods[i].Return {
-			ret = append(ret, TypeExpr(w, typee, w.Environment))
+			ret = append(ret, TypeExpr(w, typee, scope, true))
 			//fmt.Printf("%s\n", ret.values[len(ret.values)-1].Type.ToString())
 		}
 		variable := &wkr.VariableVal{
@@ -56,7 +79,8 @@ func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope
 			IsLocal: node.IsLocal,
 			Token:   node.Methods[i].GetToken(),
 		}
-		*w.GetVariable(structScope, variable.Name) = *variable
+		w.DeclareVariable(structScope, variable, node.Methods[i].Name)
+		structVal.Methods[variable.Name] = variable
 	}
 
 	for i := range node.Methods {
@@ -67,25 +91,55 @@ func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope
 }
 
 func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDeclarationStmt, scope *wkr.Scope) {
-	entityScope := scope.AccessChild()
+	et := &wkr.EntityTag{}
+	entityScope := wkr.NewScope(scope, et, wkr.SelfAllowing)
 
-	entityVal, _ := w.GetEntity(node.Name.Lexeme)
+	if scope.Parent != nil {
+		w.Error(node.Token, "can't declare an entity inside a local block")
+	}
 
-	for i := range node.Fields {
+	if w.TypeExists(node.Name.Lexeme) {
+		w.Error(node.Name, "a type with this name already exists")
+	}
+
+	entityVal := wkr.NewEntityVal(w.Environment.Name, node.Name.Lexeme, node.IsLocal)
+
+	//fields
+	for i := range node.Fields { 
 		FieldDeclarationStmt(w, &node.Fields[i], entityVal, entityScope)
 	}
 
+	et.EntityType = entityVal
+
+	w.DeclareEntity(entityVal)
+
+	//callbacks
+	found := map[ast.EntityFunctionType][]lexer.Token{}
+	
 	//spawn
-	if node.Spawner != nil {
+	if node.Spawner == nil {
+		w.Error(node.Token, "entities must be declared with a spawner")
+	} else {
 		EntityFunctionDeclarationStmt(w, node.Spawner, entityVal, entityScope)
 	}
 	//destroy
-	if node.Destroyer != nil {
+	if node.Destroyer == nil {
+		w.Error(node.Token, "entities must be declared with a destroyer")
+	} else {
 		EntityFunctionDeclarationStmt(w, node.Destroyer, entityVal, entityScope)
 	}
 
 	for i := range node.Callbacks {
+		found[node.Callbacks[i].Type] = append(found[node.Callbacks[i].Type], node.Callbacks[i].Token)
 		EntityFunctionDeclarationStmt(w, node.Callbacks[i], entityVal, entityScope)
+	}
+
+	for k := range found {
+		if len(found[k]) > 1 {
+			for i := range found[k] {
+				w.Error(found[k][i], fmt.Sprintf("multiple instances of the same entity function is not allowed (%s)", k))
+			}
+		}
 	}
 
 	//methods
@@ -95,15 +149,85 @@ func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDeclarationStmt, scope
 }
 
 func EntityFunctionDeclarationStmt(w *wkr.Walker, node *ast.EntityFunctionDeclarationStmt, entityVal *wkr.EntityVal, scope *wkr.Scope) {
-
-	fnScope := scope.AccessChild()
-	params := make([]wkr.Type, 0)
-	for _, param := range node.Params {
-		params = append(params, TypeExpr(w, param.Type, w.Environment))
-		w.GetVariable(fnScope, param.Name.Lexeme).Value = w.TypeToValue(params[len(params)-1])
+	generics := make([]*wkr.GenericType, 0)
+	
+	for _, param := range node.Generics {
+		generics = append(generics, wkr.NewGeneric(param.Name.Lexeme))
 	}
-	WalkBody(w, &node.Body, fnScope)
-} // that should do it
+	
+	ft := &wkr.FuncTag{
+		Generics: generics,
+		ReturnTypes: wkr.EmptyReturn,
+		Returns:     make([]bool, 0),
+	}
+	fnScope := wkr.NewScope(scope, ft, wkr.ReturnAllowing)
+	params := WalkParams(w, node.Params, scope, func(name lexer.Token, value wkr.Value) {
+		w.DeclareVariable(fnScope, &wkr.VariableVal{
+			Name:    name.Lexeme,
+			Value:   value,
+			IsLocal: true,
+			Token:   node.GetToken(),
+		}, name)
+	})
+
+	w.Context.Clear()
+
+	WalkBody(w, &node.Body, ft, fnScope)
+	switch node.Type {
+	case ast.Spawn:
+		if len(params) < 2 || !(params[0].GetType() == wkr.Fixed && params[1].GetType() == wkr.Fixed) {
+			w.Error(node.Token, fmt.Sprintf("first two parameters of %s must be of fixed type", node.Type))
+		}
+		entityVal.SpawnParams = params
+	case ast.Destroy:
+		entityVal.DestroyParams = params
+
+	case ast.WallCollision:
+		if len(params) < 2 || len(params) > 2 || !(params[0].GetType() == wkr.Fixed && params[1].GetType() == wkr.Fixed) {
+			w.Error(node.Token, fmt.Sprintf("first two parameters of %s must be of fixed type", node.Type))
+		}
+	case ast.PlayerCollision:
+		if len(params) < 2 || len(params) > 2 || !(params[0].PVT() == ast.Number && params[1].GetType() == wkr.RawEntity) {
+			w.Error(node.Token, "first parameter must be a number (player index) and second must be an entity_id (ship id)")
+		}		
+	case ast.WeaponCollision:
+		// TODO:
+		//first need WeaponType and by extension the implementation of pewpew library
+	}
+} 
+
+func EnumDeclarationStmt(w *wkr.Walker, node *ast.EnumDeclarationStmt, scope *wkr.Scope) {
+	enumVal := &wkr.EnumVal{
+		Type: wkr.NewEnumType(node.Name.Lexeme),
+		Fields: make(map[string]*wkr.VariableVal),
+	}
+
+	if len(node.Fields) == 0 {
+		w.Error(node.GetToken(), "can't declare an enum with no fields")
+	}
+	for _, v := range node.Fields {
+		variable := &wkr.VariableVal{
+			Name:    v.Lexeme,
+			Value:   &wkr.EnumFieldVal{Type: enumVal.Type},
+			IsLocal: node.IsLocal,
+			IsConst: true,
+		}
+		enumVal.AddField(variable)
+	}
+
+	enumVar := &wkr.VariableVal{
+		Name:    enumVal.Type.Name,
+		Value:   enumVal,
+		IsLocal: node.IsLocal,
+		IsConst: true,
+	}
+
+	if w.TypeExists(enumVar.Name) {
+		w.Error(node.Name, "a type with this name already exists")
+	}
+
+	w.DeclareVariable(scope, enumVar, node.GetToken())
+}
 
 func FieldDeclarationStmt(w *wkr.Walker, node *ast.FieldDeclarationStmt, container wkr.FieldContainer, scope *wkr.Scope) {
 	varDecl := ast.VariableDeclarationStmt{
@@ -149,80 +273,65 @@ func MethodDeclarationStmt(w *wkr.Walker, node *ast.MethodDeclarationStmt, conta
 		Name:    node.Name,
 		Return:  node.Return,
 		Params:  node.Params,
+		GenericParams: node.Generics,
 		Body:    node.Body,
 		IsLocal: true,
 	}
 
 	variable := FunctionDeclarationStmt(w, &funcExpr, scope, wkr.Method)
 	node.Body = funcExpr.Body
-	method, _ := container.ContainsMethod(variable.Name)
-	*method = *variable
+	container.AddMethod(variable)
 }
 
 func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, scope *wkr.Scope, procType wkr.ProcedureType) *wkr.VariableVal {
-	ret := wkr.EmptyReturn // debug?
-	for _, typee := range node.Return {
-		ret = append(ret, TypeExpr(w, typee, w.Environment))
+	generics := make([]*wkr.GenericType, 0)
+	
+	for _, param := range node.GenericParams {
+		generics = append(generics, wkr.NewGeneric(param.Name.Lexeme))
 	}
-	fnScope := scope.AccessChild()
-	funcTag := fnScope.Tag.(*wkr.FuncTag)
+
+	funcTag := &wkr.FuncTag{Generics: generics}
+	fnScope := wkr.NewScope(scope, funcTag, wkr.ReturnAllowing)
+
+	ret := wkr.EmptyReturn 
+	for _, typee := range node.Return {
+		ret = append(ret, TypeExpr(w, typee, fnScope, true))
+	}
+
 	funcTag.ReturnTypes = ret
-	// let me check call expr
+
 	params := make([]wkr.Type, 0)
 	for i, param := range node.Params {
-		params = append(params, TypeExpr(w, param.Type, w.Environment))
-		w.GetVariable(fnScope, param.Name.Lexeme).Value = w.TypeToValue(params[i])
+		params = append(params, TypeExpr(w, param.Type, fnScope, true))
+		w.DeclareVariable(fnScope, &wkr.VariableVal{Name: param.Name.Lexeme, Value: w.TypeToValue(params[i]), IsLocal: true}, param.Name)
 	}
+
+	w.Context.Clear()
 
 	variable := &wkr.VariableVal{
 		Name:  node.Name.Lexeme,
-		Value: &wkr.FunctionVal{Params: params, Returns: ret},
+		Value: &wkr.FunctionVal{Params: params, Returns: ret, Generics: generics},
 		Token: node.GetToken(),
 	}
 	if procType == wkr.Function {
-		w.GetVariable(fnScope, variable.Name).Value = variable.Value
+		w.DeclareVariable(scope, variable, variable.Token)
 	}
 
-	WalkBody(w, &node.Body, fnScope)
+	WalkBody(w, &node.Body, funcTag, fnScope)
 
 	return variable
 }
 
-func EnumDeclarationStmt(w *wkr.Walker, node *ast.EnumDeclarationStmt, scope *wkr.Scope) {
-	enumVal := w.GetVariable(scope, node.Name.Lexeme).Value.(*wkr.EnumVal)
-
-	for _, v := range node.Fields {
-		variable := &wkr.VariableVal{
-			Name:    v.Lexeme,
-			Value:   &wkr.EnumFieldVal{Type: enumVal.Type},
-			IsLocal: node.IsLocal,
-			IsConst: true,
-		}
-		field, _, _ := enumVal.ContainsField(variable.Name)
-		*field = *variable
-	}
-
-	enumVar := &wkr.VariableVal{
-		Name:    enumVal.Type.Name,
-		Value:   enumVal,
-		IsLocal: node.IsLocal,
-		IsConst: true,
-	}
-
-	*w.GetVariable(scope, enumVar.Name) = *enumVar
-}
 
 func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclarationStmt, scope *wkr.Scope) []*wkr.VariableVal {
-	variables := []*wkr.VariableVal{}
+	declaredVariables := []*wkr.VariableVal{}
 
-	values := make([]wkr.Value, len(declaration.Values))
+	identsLength := len(declaration.Identifiers)
+	valuesLength := len(declaration.Values)
+	values := make([]wkr.Value, valuesLength)
 
 	for i := range values {
-		values[i] = &wkr.Unknown{}
-	}
-	
-	if declaration.Identifiers[0].Lexeme == "z" {
-		println("temp")
+		values[i] = &wkr.Invalid{}
 	}
 
 	for i := range declaration.Values {
@@ -239,13 +348,18 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 			values[i] = exprValue
 		}
 	}
+	trueValuesLength := len(values)
 
-	
-	identsLength := len(declaration.Identifiers)
-	valuesLength := len(declaration.Values)
-	if identsLength < valuesLength {
+	if !declaration.IsLocal && scope.Parent != nil {
+		w.Error(declaration.Token, "cannot declare a global variable inside a local block")
+	}
+	if declaration.Token.Type == lexer.Const && scope.Parent != nil {
+		w.Error(declaration.Token, "cannot declare a global constant inside a local block")
+	}
+
+	if identsLength < trueValuesLength {
 		w.Error(declaration.Token, "too many values given in variable declaration")
-	}else if valuesLength > identsLength {
+	}else if trueValuesLength > identsLength {
 		w.Error(declaration.Token, "too few values given in variable declaration")
 		return []*wkr.VariableVal{}
 	}
@@ -254,44 +368,84 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 		if ident.Lexeme == "_" {
 			continue
 		}
+		if w.Environment.Type == ast.MeshEnv && ident.Lexeme == "meshes" {
+			if len(declaration.Identifiers) > 1 {
+				w.Error(ident, "'meshes' variable cannot be declared with another variables")
+			}else if declaration.IsLocal {
+				w.Error(ident, "'meshes' has to be global")
+			}
+			expectedValueType := &wkr.ListVal{ValueType: wkr.NewAnonStructType(map[string]wkr.Field{
+					"vertexes": wkr.NewField(0, &wkr.VariableVal{
+						Name: "vertexes",
+						Value: &wkr.ListVal{ValueType: wkr.NewWrapperType(wkr.NewBasicType(ast.List), wkr.NewBasicType(ast.Number))},
+					}),
+					"segments": wkr.NewField(1, &wkr.VariableVal{
+						Name: "segments",
+						Value:  &wkr.ListVal{ValueType: wkr.NewWrapperType(wkr.NewBasicType(ast.List), wkr.NewBasicType(ast.Number))},
+					}),
+					"colors": wkr.NewField(2, &wkr.VariableVal{
+						Name: "colors",
+						Value: &wkr.ListVal{ValueType: wkr.NewBasicType(ast.Number)},
+					}),
+				}, true),
+			}
+			if !wkr.TypeEquals(values[i].GetType(), expectedValueType.GetType()) {
+				w.Error(ident, fmt.Sprintf("'meshes' needs to be of type %s", expectedValueType.GetType().ToString()))
+			}
+		}
+
 		if declaration.Types[i] != nil {
 			valueType := values[i].GetType()
-			explicitType := TypeExpr(w, declaration.Types[i], w.Environment)
-			if valueType.PVT() == ast.Unknown {
+			explicitType := TypeExpr(w, declaration.Types[i], scope, false)
+			if valueType.PVT() == ast.Object {
 				values[i] = w.TypeToValue(explicitType)
 				declaration.Values = append(declaration.Values, values[i].GetDefault()) 
 			} else if !wkr.TypeEquals(valueType, explicitType) {
 				w.Error(declaration.Values[i].GetToken(), fmt.Sprintf("Given value is %s, but explicit type is %s", valueType.ToString(), explicitType.ToString()))
 			}
 		}
-		_var := w.GetVariable(scope, ident.Lexeme)
-		_var.Value = values[i]
-		variables = append(variables, _var)
+
+		if values[i].GetType().PVT() == ast.Invalid {
+			w.Error(declaration.Values[i].GetToken(), "Given value is invalid")
+		}
+
+		variable := &wkr.VariableVal{
+			Value:   values[i],
+			Name:    ident.Lexeme,
+			IsLocal: declaration.IsLocal,
+			Token:   ident,
+		}
+		declaredVariables = append(declaredVariables, variable)
+		w.DeclareVariable(scope, variable, ident)
 	}
 
-	return variables
+	return declaredVariables
 }
+
 func IfStmt(w *wkr.Walker, node *ast.IfStmt, scope *wkr.Scope) {
-	multiPathScope := scope.AccessChild()
-	ifScope := multiPathScope.AccessChild()
+	length := len(node.Elseifs) + 2
+	mpt := wkr.NewMultiPathTag(length, scope.Attributes...)
+	multiPathScope := wkr.NewScope(scope, mpt)
+	ifScope := wkr.NewScope(multiPathScope, &wkr.UntaggedTag{})
+
 	boolExpr := GetNodeValue(w, &node.BoolExpr, scope)
 	if boolExpr.GetType().PVT() != ast.Bool {
 		w.Error(node.BoolExpr.GetToken(), "if condition is not a comparison")
 	}
-	WalkBody(w, &node.Body, ifScope)
+	WalkBody(w, &node.Body, mpt, ifScope)
 
 	for i := range node.Elseifs {
 		boolExpr := GetNodeValue(w, &node.Elseifs[i].BoolExpr, scope)
 		if boolExpr.GetType().PVT() != ast.Bool {
 			w.Error(node.Elseifs[i].BoolExpr.GetToken(), "if condition is not a comparison")
 		}
-		ifScope := multiPathScope.AccessChild()
-		WalkBody(w, &node.Elseifs[i].Body, ifScope)
+		ifScope := wkr.NewScope(multiPathScope, &wkr.UntaggedTag{})
+		WalkBody(w, &node.Elseifs[i].Body, mpt, ifScope)
 	}
 
 	if node.Else != nil {
-		elseScope := multiPathScope.AccessChild()
-		WalkBody(w, &node.Else.Body, elseScope)
+		elseScope := wkr.NewScope(multiPathScope, &wkr.UntaggedTag{})
+		WalkBody(w, &node.Else.Body, mpt, elseScope)
 	}
 }
 
@@ -335,7 +489,13 @@ func AssignmentStmt(w *wkr.Walker, assignStmt *ast.AssignmentStmt, scope *wkr.Sc
 }
 
 func RepeatStmt(w *wkr.Walker, node *ast.RepeatStmt, scope *wkr.Scope) {
-	repeatScope := scope.AccessChild()
+	repeatScope := wkr.NewScope(scope, &wkr.MultiPathTag{}, wkr.BreakAllowing, wkr.ContinueAllowing)
+	lt := wkr.NewMultiPathTag(1, repeatScope.Attributes...)
+	repeatScope.Tag = lt
+
+	if node.Variable != nil {
+		w.DeclareVariable(repeatScope, &wkr.VariableVal{Name: node.Variable.Name.Lexeme, Value: &wkr.Invalid{}, IsLocal: true}, node.Variable.Name)
+	}
 
 	end := GetNodeValue(w, &node.Iterator, scope)
 	endType := end.GetType()
@@ -365,26 +525,34 @@ func RepeatStmt(w *wkr.Walker, node *ast.RepeatStmt, scope *wkr.Scope) {
 
 	if !(wkr.TypeEquals(repeatType, startType) && wkr.TypeEquals(startType, skipType)) {
 		w.Error(node.Start.GetToken(), fmt.Sprintf("all value types must be the same (iter:%s, start:%s, by:%s)", repeatType.ToString(), startType.ToString(), skipType.ToString()))
-	} else {
-		w.GetVariable(repeatScope, node.Variable.Name.Lexeme).Value = w.TypeToValue(repeatType)
 	}
 
-	WalkBody(w, &node.Body, repeatScope)
+	if node.Variable != nil {
+		w.DeclareVariable(repeatScope, &wkr.VariableVal{Name: node.Variable.Name.Lexeme, Value: w.TypeToValue(repeatType), IsLocal: true}, node.Variable.Name)
+	}
+
+	WalkBody(w, &node.Body, lt, repeatScope)
 }
 
 func WhileStmt(w *wkr.Walker, node *ast.WhileStmt, scope *wkr.Scope) {
-	whileScope := scope.AccessChild()
+	whileScope := wkr.NewScope(scope, &wkr.MultiPathTag{}, wkr.BreakAllowing, wkr.ContinueAllowing)
+	lt := wkr.NewMultiPathTag(1, whileScope.Attributes...)
+	whileScope.Tag = lt
 
 	_ = GetNodeValue(w, &node.Condtion, scope)
 
-	WalkBody(w, &node.Body, whileScope)
+	WalkBody(w, &node.Body, lt, whileScope)
 }
 
 func ForloopStmt(w *wkr.Walker, node *ast.ForStmt, scope *wkr.Scope) {
-	forScope := scope.AccessChild()
+	forScope := wkr.NewScope(scope, &wkr.MultiPathTag{}, wkr.BreakAllowing, wkr.ContinueAllowing)
+	lt := wkr.NewMultiPathTag(1, forScope.Attributes...)
+	forScope.Tag = lt
 
 	if len(node.KeyValuePair) != 0 {
-		w.GetVariable(forScope, node.KeyValuePair[0].Name.Lexeme).Value = &wkr.NumberVal{}
+		w.DeclareVariable(forScope,
+			&wkr.VariableVal{Name: node.KeyValuePair[0].Name.Lexeme, Value: &wkr.NumberVal{}},
+			node.KeyValuePair[0].Name)
 	}
 	valType := GetNodeValue(w, &node.Iterator, scope).GetType()
 	wrapper, ok := valType.(*wkr.WrapperType)
@@ -392,16 +560,23 @@ func ForloopStmt(w *wkr.Walker, node *ast.ForStmt, scope *wkr.Scope) {
 		w.Error(node.Iterator.GetToken(), "iterator must be of type map or list")
 	} else if len(node.KeyValuePair) == 2 {
 		node.OrderedIteration = wrapper.PVT() == ast.List
-		w.GetVariable(forScope, node.KeyValuePair[1].Name.Lexeme).Value = w.TypeToValue(wrapper.WrappedType)
+		w.DeclareVariable(forScope,
+			&wkr.VariableVal{Name: node.KeyValuePair[1].Name.Lexeme, Value:w.TypeToValue(wrapper.WrappedType)},
+			node.KeyValuePair[1].Name)
 	}
 
-	WalkBody(w, &node.Body, forScope)
+	WalkBody(w, &node.Body, lt, forScope)
 }
 
 func TickStmt(w *wkr.Walker, node *ast.TickStmt, scope *wkr.Scope) {
-	tickScope := scope.AccessChild()
+	funcTag := &wkr.FuncTag{ReturnTypes: wkr.EmptyReturn}
+	tickScope := wkr.NewScope(scope, funcTag, wkr.ReturnAllowing)
 
-	WalkBody(w, &node.Body, tickScope)
+	if node.Variable != nil {
+		w.DeclareVariable(tickScope, &wkr.VariableVal{Name: node.Variable.Name.Lexeme, Value: &wkr.NumberVal{}}, node.Token)
+	}
+
+	WalkBody(w, &node.Body, funcTag, tickScope)
 }
 
 func MatchStmt(w *wkr.Walker, node *ast.MatchStmt, isExpr bool, scope *wkr.Scope) {
@@ -410,13 +585,18 @@ func MatchStmt(w *wkr.Walker, node *ast.MatchStmt, isExpr bool, scope *wkr.Scope
 		w.Error(node.ExprToMatch.GetToken(), "variable is of type invalid")
 	}
 	valType := val.GetType()
-	multiPathScope := scope.AccessChild()
+	casesLength := len(node.Cases) + 1
+	if node.HasDefault {
+		casesLength--
+	}
+	mpt := wkr.NewMultiPathTag(casesLength, scope.Attributes...)
+	multiPathScope := wkr.NewScope(scope, mpt)
 
 	for i := range node.Cases {
-		caseScope := multiPathScope.AccessChild()
+		caseScope := wkr.NewScope(multiPathScope, &wkr.UntaggedTag{})
 
 		if !isExpr {
-			WalkBody(w, &node.Cases[i].Body, caseScope)
+			WalkBody(w, &node.Cases[i].Body, mpt, caseScope)
 		}
 
 		if node.Cases[i].Expression.GetToken().Lexeme == "else" {
@@ -438,11 +618,21 @@ func BreakStmt(w *wkr.Walker, node *ast.BreakStmt, scope *wkr.Scope) {
 	if !scope.Is(wkr.BreakAllowing) {
 		w.Error(node.GetToken(), "cannot use break outside of loops")
 	}
+
+	if returnable := scope.ResolveReturnable(); returnable != nil {
+		(*returnable).SetExit(true, wkr.Break)
+		(*returnable).SetExit(true, wkr.All)
+	}
 }
 
 func ContinueStmt(w *wkr.Walker, node *ast.ContinueStmt, scope *wkr.Scope) {
 	if !scope.Is(wkr.ContinueAllowing) {
 		w.Error(node.GetToken(), "cannot use break outside of loops")
+	}
+
+	if returnable := scope.ResolveReturnable(); returnable != nil {
+		(*returnable).SetExit(true, wkr.Continue)
+		(*returnable).SetExit(true, wkr.All)
 	}
 }
 
@@ -469,6 +659,11 @@ func ReturnStmt(w *wkr.Walker, node *ast.ReturnStmt, scope *wkr.Scope) *wkr.Type
 	errorMsg := w.ValidateReturnValues(ret, (*funcTag).ReturnTypes) // wait
 	if errorMsg != "" {
 		w.Error(node.GetToken(), errorMsg)
+	}
+
+	if returnable := scope.ResolveReturnable(); returnable != nil {
+		(*returnable).SetExit(true, wkr.Return)
+		(*returnable).SetExit(true, wkr.All)
 	}
 
 	return &ret
@@ -508,6 +703,11 @@ func YieldStmt(w *wkr.Walker, node *ast.YieldStmt, scope *wkr.Scope) *wkr.Types 
 		}
 	}
 
+	if returnable := scope.ResolveReturnable(); returnable != nil {
+		(*returnable).SetExit(true, wkr.Yield)
+		(*returnable).SetExit(true, wkr.All)
+	}
+
 	return &ret
 }
 
@@ -517,13 +717,13 @@ func UseStmt(w *wkr.Walker, node *ast.UseStmt, scope *wkr.Scope) {
 		return
 	}
 
-	if strings.ToLower(node.Path.Nameify()) == "pewpew" {
+	if strings.ToLower(node.Path.Path.Lexeme) == "pewpew" {
 		w.UsedLibraries[wkr.Pewpew] = true
 		return;
 	}
 
 	envStmt := w.GetEnvStmt()
-	envName := node.Path.Nameify()
+	envName := node.Path.Path.Lexeme
 	walker, found := w.Walkers[envName]
 
 	if !found {

@@ -26,40 +26,8 @@ type Environment struct {
 	CustomTypes     map[string]*CustomType
 }
 
-/*
-
-use pewpew
-
-entity Quadro {
-	fn Dosomasd(Mothership ms) {
-		pewpew::EntityReactToWeapon(ms.y, WepaonConfig)
-	}
-}
-
-entity GraphicElement {
-	spawn(fixed x, fixed y, mesh Mesh) {
-	}
-}
-
-spawn GraphicElement(100fx, 100fx, MeshThing)
-
-fn something(WeaponType a) {
-	spawn GraphicElement(100f, 100f, Meshes::Amogus)
-	let mothership = pewpew::NewMothership(100f, 100f, pewpew::MothershipType.SEVEN_CORNERS, 90d)
-	let quadro = spawn Quario()
-
-	quadro.Dosomasd(motiehrship)
-}
-
-function seomthing(a) {
-	local a = pewpew.WeaponType.BULLET
-}
-
-*/
-
 func NewEnvironment(path string) *Environment {
 	scope := Scope{
-		Children:  make([]*Scope, 0),
 		Tag:       &UntaggedTag{},
 		Variables: map[string]*VariableVal{},
 	}
@@ -89,13 +57,14 @@ const (
 type Walker struct {
 	CurrentEnvironment *Environment
 	Environment   *Environment
-	Walkers       map[string]*Walker// the walker struct?
+	Walkers       map[string]*Walker
 	UsedLibraries map[Library]bool
 	UsedWalkers   []*Walker
 	Nodes         []ast.Node
 	Errors        []ast.Error
 	Warnings      []ast.Warning
 	Context       Context
+	Walked        bool
 }
 
 // var pewpewEnv = &Environment{
@@ -111,10 +80,16 @@ func NewWalker(path string) *Walker {
 		Nodes:       []ast.Node{},
 		Errors:      []ast.Error{},
 		Warnings:    []ast.Warning{},
+		UsedLibraries: map[Library]bool{
+			Pewpew: false,
+			Table: false,
+			String: false,
+			Math: false,
+			Fmath: false,
+		},
 		Context: Context{
 			Node:  &ast.Improper{},
 			Value: &Unknown{},
-			Ret:   Types{},
 		},
 	}
 	walker.CurrentEnvironment = walker.Environment
@@ -137,13 +112,9 @@ func (w *Walker) GetEnvStmt() *ast.EnvironmentStmt {
 	return w.Nodes[0].(*ast.EnvironmentStmt)
 }
 
+// ONLY CALL THIS IF YOU ALREADY CALLED ResolveVariable
 func (w *Walker) GetVariable(s *Scope, name string) *VariableVal {
-	sc := w.ResolveVariable(s, name)
-	if sc == nil {
-		return nil
-	}
-
-	return sc.Variables[name]
+	return s.Variables[name]
 }
 
 func (w *Walker) TypeExists(name string) bool {
@@ -245,14 +216,13 @@ func (w *Walker) DeclareEntity(entityVal *EntityVal) bool {
 }
 
 func (w *Walker) ResolveVariable(s *Scope, name string) *Scope {
-	
 	if _, found := s.Variables[name]; found {
 		return s
 	}
 
 	if s.Parent == nil {
 		for i := range w.UsedWalkers {
-			variable := w.GetVariable(&w.UsedWalkers[i].Environment.Scope, name)
+			variable := w.UsedWalkers[i].GetVariable(&w.UsedWalkers[i].Environment.Scope, name)
 			if variable != nil {
 				return &w.UsedWalkers[i].Environment.Scope
 			}
@@ -301,7 +271,8 @@ func (sc *Scope) ResolveReturnable() *ExitableTag {
 	return sc.Parent.ResolveReturnable()
 }
 
-func (w *Walker) ValidateArguments(args []Type, params []Type, callToken lexer.Token) (int, bool) {
+func (w *Walker) ValidateArguments(generics map[string]Type, args []Type, params []Type, callToken lexer.Token) (int, bool) {
+	
 	paramCount := len(params)
 	if paramCount > len(args) {
 		w.Error(callToken, "too few arguments given in call")
@@ -320,21 +291,55 @@ func (w *Walker) ValidateArguments(args []Type, params []Type, callToken lexer.T
 			}
 		}else {
 			param = params[i]
+		} 
+
+
+		if typFound, found := ResolveGenericType(&param); found {
+			generic := (*typFound).(*GenericType)
+			if typ, found := generics[generic.Name]; found {
+				*typFound = typ
+			}else {
+				generics[generic.Name] = ResolveMatchingType(param, typeVal)
+				param = typeVal
+			}
 		}
 	
-
 		if !TypeEquals(param, typeVal) {
-			w.Error(callToken, fmt.Sprintf("argument is of type %s, but should be %s", typeVal.ToString(), params[i].ToString()))
+			w.Error(callToken, fmt.Sprintf("argument is of type %s, but should be %s", typeVal.ToString(), param.ToString()))
 			return i, false
 		}
 	}
 	return -1, true
 }
 
-func (w *Walker) DetermineValueType(left Type, right Type) Type {
-	if left.PVT() == ast.Unknown || right.PVT() == ast.Unknown {
-		return NAType
+func ResolveGenericType(typ *Type) (*Type, bool) {
+	if (*typ).GetType() == Generic {
+		return typ, true
 	}
+
+	if (*typ).GetType() == Wrapper {
+		return ResolveGenericType(&(*typ).(*WrapperType).WrappedType)
+	}
+
+	return nil, false
+}
+
+func ResolveMatchingType(predefinedType Type, receivedType Type) Type {
+	if (predefinedType.GetType() == Wrapper && receivedType.GetType() == Wrapper) {
+		wrapper1 := predefinedType.(*WrapperType)
+		wrapper2 := receivedType.(*WrapperType)
+
+		if TypeEquals(wrapper1.Type, wrapper2.Type) {
+			return ResolveMatchingType(wrapper1.WrappedType, wrapper2.WrappedType)
+		}
+
+		return wrapper2.Type
+	}
+
+	return receivedType
+}
+
+func (w *Walker) DetermineValueType(left Type, right Type) Type {
 	if TypeEquals(left, right) {
 		return right
 	}
@@ -378,7 +383,7 @@ func returnsAreValid(list1 []Type, list2 []Type) bool {
 	}
 
 	for i, v := range list1 {
-		//fmt.Printf("%s compared to %s\n", list1[i].ToString(), list2[i].ToString())
+		fmt.Printf("%s compared to %s\n", list1[i].ToString(), list2[i].ToString())
 		if !TypeEquals(v, list2[i]) {
 			return false
 		}
@@ -435,7 +440,7 @@ func (w *Walker) TypeToValue(_type Type) Value {
 			MemberType: _type.(*WrapperType).WrappedType,
 		}
 	case ast.Struct:
-		val, _ := w.GetStruct(_type.ToString())
+		val, _ := w.Walkers[_type.(*NamedType).EnvName].GetStruct(_type.ToString())
 		return val
 	case ast.AnonStruct:
 		return &AnonStructVal{
@@ -444,8 +449,14 @@ func (w *Walker) TypeToValue(_type Type) Value {
 	case ast.Enum:
 		return w.GetVariable(&w.Environment.Scope, _type.(*EnumType).Name)
 	case ast.Entity:
-		val, _ := w.GetEntity(_type.ToString())
+		val, _ := w.Walkers[_type.(*NamedType).EnvName].GetEntity(_type.ToString())
 		return val
+	case ast.Object:
+		return &Unknown{}
+	case ast.Generic:
+		return &GenericVal{
+			Type: _type.(*GenericType),
+		}
 	default:
 		return &Invalid{}
 	}

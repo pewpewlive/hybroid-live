@@ -29,7 +29,6 @@ func Initialize() *cli.Command {
 		Flags: []cli.Flag{
 			&cli.StringFlag{Name: "package", Required: true, Usage: "The package name of the project"},
 			&cli.StringFlag{Name: "name", Required: true, Usage: "The level name of the project"},
-			&cli.StringFlag{Name: "target", Required: true, Usage: "Which target to use for the project"},
 			&cli.StringFlag{Name: "output", Required: true, Usage: "What output directory to use when building"},
 		},
 		Args:            true,
@@ -44,8 +43,8 @@ func Initialize() *cli.Command {
 }
 
 func initialize(ctx *cli.Context) error {
-	pkgName, levelName, target, output := ctx.String("package"), ctx.String("name"), ctx.String("target"), ctx.String("output")
-	if pkgName == "" || levelName == "" || target == "" || output == "" {
+	pkgName, levelName, output := ctx.String("package"), ctx.String("name"), ctx.String("output")
+	if pkgName == "" || levelName == "" || output == "" {
 		return fmt.Errorf("invalid arguments, run `hybroid help init` for more information")
 	}
 
@@ -59,7 +58,6 @@ func initialize(ctx *cli.Context) error {
 		},
 		Project: helpers.ProjectConfig{
 			Name:            pkgName,
-			Target:          target,
 			OutputDirectory: output,
 		},
 	}

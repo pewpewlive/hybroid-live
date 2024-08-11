@@ -1,89 +1,14 @@
-env MyLevel as Level
+env Main as Level
 
-// let width, height = 500f, 500f
-// let ship_id = spawn pewpew:PlayerShip(width / 2f, height / 2f)
-// pewpew:configure_ship(0, struct{ shield = 5 })
-// pewpew:configure_ship_weapon(ship_id, struct{
-//   cannon = pewpew:CannonType.Double, 
-//   frequency = pewpew:CannonFrequency.Freq30
-// })
-// spawn pewpew:Mothership(100f, 100f, pewpew:MothershipType.SevenCorners, 90d)
-// let id = spawn entity(100f, 100f)
-// pewpew:set_entity_mesh(id, MyMeshes:AmazingMesh, 0)
-// Pewpew:EntitySetMesh(id, MyMeshes:AmazingMesh, 0)
+use Pewpew
 
-// pewpew:start_spawning_entity(id, 60)
-// pewpew:set_entity_update_callback(id, fn(entity id) {
-//   let x, y = pewpew:get_entity_position(id)
-//   pewpew:set_entity_position(id, x + 10f, y - 10f)
-// })
+SetLevelSize(100f, 100f)
 
-Pewpew:SetLevelSize(1000fx, 1000fx)
+let ship = NewShip(50f, 50f, 0)
 
-let ship = Pewpew:NewShip(Fmath:RandomFixed(0f, 50f), Fmath:RandomFixed(0f, 50f), 0)
-
-Pewpew:ConfigurePlayer(0, struct{ shield = 10 })
-Pewpew:ConfigureShipWeapon(ship, struct{
-  cannon = Pewpew:CannonType.Double
-  frequency = Pewpew:CannonFrequency.Freq30
+ConfigureShipWeapon(ship, struct{
+  frequency = CannonFrequency.Freq2
+  cannon = CannonType.Double
+  duration = -1
 })
 
-let uhhh = Math:Pi
-
-let id = Pewpew:NewEntity(10f, 10f)
-Pewpew:SetEntityMesh(id, Graphics, 0)
-
-fn idk(fixed a, number... nums) {
-  for i, v in nums {
-    
-  }
-}
-
-idk(1f, 1, 2, 3)
-//idk(1f, [1, 2, 3])
-
-// let a = struct{
-//   a = 1f
-//   b = struct{
-//     c = 1
-//   }
-// }
-
-// fn uh(struct{ number a } a) {
-
-// }
-
-// uh(struct{ a = 1 })
-
-let test = Pewpew:NewEntity(0f, 0f)
-
-entity Quadro { 
-  fixed x, y = 0f, 0f
-  number damage = 2
-
-  spawn(fixed x, fixed y, number _damage) {
-    self.x = x
-    self.y = y
-    damage = _damage
-  }
-
-  destroy() {
-    
-  }
-
-  Update() {
-
-  }
-
-  WeaponCollision() {
-
-  }
-
-  WallCollision(fixed wallNormalX, fixed WallNormalY) {
-
-  }
-
-  PlayerCollision(number playerIndex, entity shipId) {
-    Pewpew:DamageShip(shipId, damage)
-  }
-}

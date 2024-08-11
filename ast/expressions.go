@@ -2,7 +2,6 @@ package ast
 
 import (
 	"hybroid/lexer"
-	"strings"
 )
 
 type EnvTypeExpr struct {
@@ -19,7 +18,7 @@ func (ete *EnvTypeExpr) GetToken() lexer.Token {
 }
 
 func (ete *EnvTypeExpr) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 // func (ete *EnvTypeExpr) DrawNode(str *strings.Builder, depth int) *strings.Builder {
@@ -27,7 +26,7 @@ func (ete *EnvTypeExpr) GetValueType() PrimitiveValueType {
 // }
 
 type EnvPathExpr struct {
-	SubPaths []string
+	Path lexer.Token
 }
 
 func (epe *EnvPathExpr) GetType() NodeType {
@@ -35,15 +34,17 @@ func (epe *EnvPathExpr) GetType() NodeType {
 }
 
 func (epe *EnvPathExpr) GetToken() lexer.Token {
-	return lexer.Token{Lexeme: epe.SubPaths[0]}
+	return lexer.Token{Lexeme: epe.Path.Lexeme}
 }
 
 func (epe *EnvPathExpr) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
-func (epe *EnvPathExpr) Nameify() string {
-	return strings.Join(epe.SubPaths, "::")
+func (epe *EnvPathExpr) Combine(token lexer.Token) {
+	epe.Path.Lexeme += ":"+token.Lexeme
+	epe.Path.Location.ColEnd = token.Location.ColEnd
+	epe.Path.Location.LineEnd = token.Location.LineEnd
 }
 
 type EnvAccessExpr struct {
@@ -60,7 +61,7 @@ func (eae *EnvAccessExpr) GetToken() lexer.Token {
 }
 
 func (eae *EnvAccessExpr) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type MacroCallExpr struct {
@@ -76,7 +77,7 @@ func (self *MacroCallExpr) GetToken() lexer.Token {
 }
 
 func (self *MacroCallExpr) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 // type CastExpr struct{
@@ -150,7 +151,7 @@ func (te *TypeExpr) GetToken() lexer.Token {
 }
 
 func (te *TypeExpr) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type GroupExpr struct {
@@ -191,6 +192,7 @@ func (be *BinaryExpr) GetValueType() PrimitiveValueType {
 
 type CallExpr struct {
 	Caller Node
+	GenericArgs []*TypeExpr
 	Args   []Node
 }
 
@@ -203,7 +205,7 @@ func (ce *CallExpr) GetToken() lexer.Token {
 }
 
 func (ce *CallExpr) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type PewpewExpr struct {
@@ -219,7 +221,7 @@ func (ce *PewpewExpr) GetToken() lexer.Token {
 }
 
 func (ce *PewpewExpr) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type FmathExpr struct {
@@ -235,7 +237,7 @@ func (ce *FmathExpr) GetToken() lexer.Token {
 }
 
 func (ce *FmathExpr) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type BuiltinCallExpr struct {
@@ -252,7 +254,7 @@ func (ce *BuiltinCallExpr) GetToken() lexer.Token {
 }
 
 func (ce *BuiltinCallExpr) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type StandardExpr struct {
@@ -269,7 +271,7 @@ func (ce *StandardExpr) GetToken() lexer.Token {
 }
 
 func (ce *StandardExpr) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type AnonFnExpr struct {
@@ -288,7 +290,7 @@ func (afe *AnonFnExpr) GetToken() lexer.Token {
 }
 
 func (afe *AnonFnExpr) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type AnonStructExpr struct {
@@ -322,7 +324,7 @@ func (me *MatchExpr) GetToken() lexer.Token {
 }
 
 func (me *MatchExpr) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type SelfExpr struct {
@@ -339,11 +341,12 @@ func (se *SelfExpr) GetToken() lexer.Token {
 }
 
 func (se *SelfExpr) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type NewExpr struct {
 	Type  *TypeExpr
+	Generics []*TypeExpr
 	Args  []Node
 	Token lexer.Token
 }
@@ -357,12 +360,13 @@ func (ne *NewExpr) GetToken() lexer.Token {
 }
 
 func (ne *NewExpr) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type SpawnExpr struct {
 	Type  *TypeExpr
 	Args  []Node
+	Generics []*TypeExpr
 	Token lexer.Token
 }
 
@@ -375,7 +379,7 @@ func (ne *SpawnExpr) GetToken() lexer.Token {
 }
 
 func (ne *SpawnExpr) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type FieldExpr struct {
@@ -393,7 +397,7 @@ func (fe *FieldExpr) GetToken() lexer.Token {
 }
 
 func (fe *FieldExpr) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 func (fe *FieldExpr) SetProperty(prop Node) {
@@ -423,7 +427,7 @@ func (me *MemberExpr) GetToken() lexer.Token {
 }
 
 func (me *MemberExpr) GetValueType() PrimitiveValueType {
-	return Unknown
+	return me.Identifier.GetValueType()
 }
 
 func (me *MemberExpr) SetProperty(prop Node) {
@@ -457,7 +461,7 @@ func (me *MapExpr) GetToken() lexer.Token {
 }
 
 func (me *MapExpr) GetValueType() PrimitiveValueType {
-	return Unknown
+	return Invalid
 }
 
 type ListExpr struct {

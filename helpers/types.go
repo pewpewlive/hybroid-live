@@ -13,7 +13,6 @@ type LevelManifest struct {
 
 type ProjectConfig struct {
 	Name            string `toml:"name"`   // should be kebab-case
-	Target          string `toml:"target"` // ppl or else throw an error
 	OutputDirectory string `toml:"output_directory"`
 }
 

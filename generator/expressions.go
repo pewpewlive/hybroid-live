@@ -119,8 +119,14 @@ func (gen *Generator) fieldExpr(node ast.FieldExpr, scope *GenScope) string {
 	src.WriteString(gen.GenerateExpr(node.Identifier, scope))
 	
 	val := gen.GenerateExpr(node.Property, scope)
+	cut := ""
+	for i := range val {
+		if val[i] == '[' {
+			cut = val[i:]
+		}
+	}
 	if node.Index >= 0 {
-		val = fmt.Sprintf("[%v]%s", node.Index, val[len(node.Property.GetToken().Lexeme):])
+		val = fmt.Sprintf("[%v]%s", node.Index, cut)
 	}
 	src.WriteString(val) 
 	return src.String()
@@ -187,7 +193,7 @@ func (gen *Generator) selfExpr(self ast.SelfExpr, _ *GenScope) string {
 func (gen *Generator) newExpr(new ast.NewExpr, scope *GenScope) string {
 	src := StringBuilder{}
 
-	src.Append(hyStruct, gen.WriteVar(new.Type.GetToken().Lexeme), "_New(")
+	src.Append(hyStruct, gen.GenerateExpr(new.Type.Name, scope), "_New(")
 	for i, arg := range new.Args {
 		src.WriteString(gen.GenerateExpr(arg, scope))
 		if i != len(new.Args)-1 {
@@ -256,7 +262,7 @@ func (gen *Generator) envAccessExpr(node ast.EnvAccessExpr, scope *GenScope) str
 	accessed := gen.GenerateExpr(node.Accessed, scope)
 	accessed = accessed[len(gen.envName):]
 
-	return envMap[node.PathExpr.Nameify()] + accessed
+	return envMap[node.PathExpr.Path.Lexeme] + accessed
 }
 
 func (gen *Generator) spawnExpr(spawn ast.SpawnExpr, scope *GenScope) string {
@@ -291,6 +297,8 @@ func (gen *Generator) pewpewExpr(expr ast.PewpewExpr, tabbed bool, scope *GenSco
 		call := expr.Node.(*ast.CallExpr)
 		src.Append(pewpewFunctions[call.GetToken().Lexeme], "(")
 		src.WriteString(gen.GenerateArgs(call.Args, scope))
+	}else {
+		
 	}
 
 	return src.String()
@@ -314,11 +322,13 @@ func (gen *Generator) fmathExpr(expr ast.FmathExpr, scope *GenScope) string {
 var libPrefix = map[ast.StandardLibrary]string {
 	ast.StringLib: "string.",
 	ast.MathLib: "math.",
-	ast.TableLib: "taBble.",
+	ast.TableLib: "table.",
 }
 
 var libVariables = map[ast.StandardLibrary]map[string]string {
 	ast.MathLib: mathVariables,
+	ast.StringLib: stringVariables,
+	ast.TableLib: tableVariables,
 }
 
 func (gen *Generator) standardExpr(expr ast.StandardExpr, scope *GenScope) string {

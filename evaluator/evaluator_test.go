@@ -106,6 +106,7 @@ var tests = []string{
 	"test1",
 	"test_statements",
 	"test_expressions",
+	"test_string",
 }
 
 // sample test
