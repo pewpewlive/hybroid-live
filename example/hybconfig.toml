@@ -1,11 +1,10 @@
 [level]
-name = "Example Level"
+name = "THE Hybroid"
 descriptions = ["This is an example level created using Hybroid"]
 information = "https://github.com/pewpewlive/hybroid"
 entry_point = "level.hyb"
 casual = true
 
 [project]
-name = "example-level"
+name = "the-hybroid"
 output_directory = "out"
-target = "ppl"

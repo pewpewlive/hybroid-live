@@ -69,7 +69,7 @@ var pewpewVariables = map[string]*VariableVal{
 	//functions
 	"Print": {
 		Name:  "Print",
-		Value: NewFunction(NewBasicType(ast.String)),
+		Value: NewFunction(NewBasicType(ast.Object)),
 		IsConst: true,
 	},
 	"PrintDebugInfo": {

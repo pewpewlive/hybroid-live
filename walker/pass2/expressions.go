@@ -159,7 +159,8 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 		selfExpr.Property = identExpr
 		*node = selfExpr
 	}else if sc.Environment != w.Environment {
-		newNode := &ast.EnvAccessExpr{
+		var newNode ast.Node
+		newNode = &ast.EnvAccessExpr{
 			PathExpr: &ast.EnvPathExpr{
 				Path: lexer.Token{
 					Lexeme: sc.Environment.Name,
@@ -167,6 +168,30 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 				},
 			},
 			Accessed: ident,
+		}
+		if sc.Environment.Name == wkr.PewpewEnv.Name {
+			newNode = &ast.PewpewExpr{
+				Node: ident,
+			}
+		}else if sc.Environment.Name == wkr.FmathEnv.Name {
+			newNode = &ast.FmathExpr{
+				Node: ident,
+			}
+		}else if sc.Environment.Name == wkr.MathEnv.Name {
+			newNode = &ast.StandardExpr{
+				Library: ast.MathLib,
+				Node: ident,
+			}
+		}else if sc.Environment.Name == wkr.StringEnv.Name {
+			newNode = &ast.StandardExpr{
+				Library: ast.StringLib,
+				Node: ident,
+			}
+		}else if sc.Environment.Name == wkr.TableEnv.Name {
+			newNode = &ast.StandardExpr{
+				Library: ast.TableLib,
+				Node: ident,
+			}
 		}
 		*node = newNode
 	}
@@ -243,7 +268,7 @@ func CallExpr(w *wkr.Walker, val wkr.Value, node *ast.CallExpr, scope *wkr.Scope
 		val = variable.Value
 	}
 	fun, _ := val.(*wkr.FunctionVal)
-	
+
 	suppliedGenerics := GetGenerics(w, node, node.GenericArgs, fun.Generics, scope)
 	
 	args := []wkr.Type{}
@@ -279,12 +304,11 @@ func GetGenerics(w *wkr.Walker, node ast.Node, genericArgs []*ast.TypeExpr, expe
 
 	return suppliedGenerics
 }
-
 func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {// WRITES CONTEXT
 	var val wkr.Value
-	if node.Identifier.GetToken().Lexeme == "EnumTest" {
-		println("breakpoint")
-	}
+	// if node.Identifier.GetToken().Lexeme == "EnumTest" {
+	// 	println("breakpoint")
+	// }
 	if w.Context.Value.GetType().GetType() != wkr.NA {
 		scopeable, ok :=  w.Context.Value.(wkr.ScopeableValue)
 		if !ok {

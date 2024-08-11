@@ -297,6 +297,8 @@ func (gen *Generator) pewpewExpr(expr ast.PewpewExpr, tabbed bool, scope *GenSco
 		call := expr.Node.(*ast.CallExpr)
 		src.Append(pewpewFunctions[call.GetToken().Lexeme], "(")
 		src.WriteString(gen.GenerateArgs(call.Args, scope))
+	}else {
+		
 	}
 
 	return src.String()

@@ -1,0 +1,14 @@
+env Main as Level
+
+use Pewpew
+
+SetLevelSize(100f, 100f)
+
+let ship = NewShip(50f, 50f, 0)
+
+ConfigureShipWeapon(ship, struct{
+  frequency = CannonFrequency.Freq2
+  cannon = CannonType.Double
+  duration = -1
+})
+

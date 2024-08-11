@@ -42,10 +42,6 @@ func build(ctx *cli.Context, filesToBuild ...helpers.FileInformation) error {
 		return fmt.Errorf("failed parsing Hybroid config file: %v", err)
 	}
 
-	if config.Project.Target != "ppl" {
-		panic("other targets apart from 'ppl' are not implemented")
-	}
-
 	evalError := make(chan error)
 	go func(err chan error) {
 		outputDir := config.Project.OutputDirectory

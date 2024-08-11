@@ -80,6 +80,13 @@ func NewWalker(path string) *Walker {
 		Nodes:       []ast.Node{},
 		Errors:      []ast.Error{},
 		Warnings:    []ast.Warning{},
+		UsedLibraries: map[Library]bool{
+			Pewpew: false,
+			Table: false,
+			String: false,
+			Math: false,
+			Fmath: false,
+		},
 		Context: Context{
 			Node:  &ast.Improper{},
 			Value: &Unknown{},
@@ -105,13 +112,9 @@ func (w *Walker) GetEnvStmt() *ast.EnvironmentStmt {
 	return w.Nodes[0].(*ast.EnvironmentStmt)
 }
 
+// ONLY CALL THIS IF YOU ALREADY CALLED ResolveVariable
 func (w *Walker) GetVariable(s *Scope, name string) *VariableVal {
-	sc := w.ResolveVariable(s, name)
-	if sc == nil {
-		return nil
-	}
-
-	return sc.Variables[name]
+	return s.Variables[name]
 }
 
 func (w *Walker) TypeExists(name string) bool {
