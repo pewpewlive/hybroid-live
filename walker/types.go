@@ -364,9 +364,9 @@ func NewNamedType(envName string, name string, primitive ast.PrimitiveValueType)
 	return &NamedType{
 		EnvName: envName,
 		Name: name,
-		Pvt:  primitive, //
+		Pvt:  primitive,
 	}
-} // does this have to be a pointer?
+} 
 
 // Type
 func (self *NamedType) PVT() ast.PrimitiveValueType {
@@ -481,25 +481,9 @@ func (self *ObjectType) ToString() string {
 }
 
 func TypeEquals(t Type, other Type) bool {
-	// Adds support for manipulation between Enums and numbers, there might be complications with this however
-	// tIsEnum := t.PVT() == ast.Enum
-	// otherTIsEnum := other.PVT() == ast.Enum
-
-	// if !(tIsEnum && otherTIsEnum) && !(!tIsEnum && !otherTIsEnum) {
-	// 	var underlyingType Type
-	// 	var notEnum Type
-	// 	if tIsEnum {
-	// 		underlyingType = t.(*EnumType).UnderlyingType
-	// 		notEnum = other
-	// 	}else {
-	// 		underlyingType = other.(*EnumType).UnderlyingType
-	// 		notEnum = t
-	// 	}
-
-	// 	return TypeEquals(underlyingType,notEnum)
-	// }
 	tpvt := t.PVT()
 	otherpvt := other.PVT()
+
 
 	if tpvt == ast.Object {
 		return otherpvt != ast.Invalid
@@ -508,6 +492,9 @@ func TypeEquals(t Type, other Type) bool {
 	}
 
 	if t.GetType() == Named && t.PVT() == ast.Entity && other.GetType() == RawEntity {
+		return true
+	}
+	if other.GetType() == Named && other.PVT() == ast.Entity && t.GetType() == RawEntity {
 		return true
 	}
 

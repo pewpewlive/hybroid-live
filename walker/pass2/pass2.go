@@ -46,10 +46,6 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 	case *ast.CallExpr:
 		val := GetNodeValue(w, &newNode.Caller, scope)
 		CallExpr(w, val, newNode, scope)
-	case *ast.PewpewExpr:
-		PewpewExpr(w, newNode, scope)
-	case *ast.StandardExpr:
-		StandardExpr(w, newNode, scope)
 	case *ast.EnvAccessExpr:
 		_, newVersion := EnvAccessExpr(w, newNode)
 		if newVersion != nil {
@@ -65,6 +61,10 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 		AssignmentStmt(w, newNode, scope)
 	case *ast.UseStmt:
 		UseStmt(w, newNode, scope)
+	case *ast.SpawnExpr:
+		SpawnExpr(w, newNode, scope)
+	case *ast.NewExpr:
+		NewExpr(w, newNode, scope)
 	// case *ast.TypeDeclarationStmt:
 	// 	TypeDeclarationStmt(w, newNode, scope)
 	case *ast.Improper:
@@ -123,18 +123,16 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 	// case *ast.CastExpr:
 	// 	val = CastExpr(w, newNode, scope)
 	case *ast.UseStmt:
-	case *ast.PewpewExpr:
-		val = PewpewExpr(w, newNode, scope)
-	case *ast.FmathExpr:
-		val = FmathExpr(w, newNode, scope)
-	case *ast.StandardExpr:
-		val = StandardExpr(w, newNode, scope)
 	default:
 		w.Error(newNode.GetToken(), "Expected expression")
 		return &walker.Invalid{}
 	}
 
 	if scope.Node != nil {
+		if w.Context.PewpewVarFound {
+			scope.Node.Index = -1
+			return val
+		}
 		_, scope.Node.Index, _ = scope.Container.ContainsField((*node).GetToken().Lexeme)
 		scope.Node.Index += 1
 	}

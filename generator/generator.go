@@ -184,6 +184,8 @@ type Generator struct {
 	envType ast.EnvType
 	Scope   GenScope
 	Errors  []ast.Error
+	libraryVars *map[string]string
+	pewpewEnumValue *string
 }
 
 func (gen *Generator) SetUniqueEnvName(name string) {
@@ -300,9 +302,14 @@ func (gen *Generator) GenerateStmt(node ast.Node, scope *GenScope) {
 		gen.tickStmt(*newNode, scope)
 	case *ast.VariableDeclarationStmt:
 		gen.variableDeclarationStmt(*newNode, scope)
-	case *ast.UseStmt:
 	case *ast.CallExpr:
 		val := gen.callExpr(*newNode, true, scope)
+		scope.WriteString(val)
+	case *ast.SpawnExpr:
+		val := gen.spawnExpr(*newNode, true, scope)
+		scope.WriteString(val)
+	case *ast.NewExpr:
+		val := gen.newExpr(*newNode, true, scope)
 		scope.WriteString(val)
 	case *ast.FunctionDeclarationStmt:
 		gen.functionDeclarationStmt(*newNode, scope)
@@ -312,9 +319,6 @@ func (gen *Generator) GenerateStmt(node ast.Node, scope *GenScope) {
 		gen.structDeclarationStmt(*newNode, scope)
 	case *ast.EnvAccessExpr:
 		val := gen.envAccessExpr(*newNode, scope)
-		scope.WriteString(val)
-	case *ast.PewpewExpr:
-		val := gen.pewpewExpr(*newNode, true, scope)
 		scope.WriteString(val)
 	case *ast.EntityDeclarationStmt:
 		gen.entityDeclarationStmt(*newNode, scope)
@@ -350,19 +354,13 @@ func (gen *Generator) GenerateExpr(node ast.Node, scope *GenScope) string {
 	case *ast.SelfExpr:
 		return gen.selfExpr(*newNode, scope)
 	case *ast.NewExpr:
-		return gen.newExpr(*newNode, scope)
+		return gen.newExpr(*newNode, false, scope)
 	case *ast.MatchExpr:
 		return gen.matchExpr(*newNode, scope)
 	case *ast.EnvAccessExpr:
 		return gen.envAccessExpr(*newNode, scope)
 	case *ast.SpawnExpr:
-		return gen.spawnExpr(*newNode, scope)
-	case *ast.PewpewExpr:
-		return gen.pewpewExpr(*newNode, true, scope)
-	case *ast.FmathExpr:
-		return gen.fmathExpr(*newNode, scope)
-	case *ast.StandardExpr:
-		return gen.standardExpr(*newNode, scope)
+		return gen.spawnExpr(*newNode, false, scope)
 	// case *ast.CastExpr:
 	// 	return gen.castExpr(*newNode, scope)
 	}

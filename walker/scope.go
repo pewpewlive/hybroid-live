@@ -8,11 +8,14 @@ import (
 type Context struct {
 	Node  ast.Node
 	Value Value
-}
+	PewpewVarFound bool
+	PewpewVarName string
+} 
 
 func (c *Context) Clear() {
 	c.Node = &ast.Improper{}
 	c.Value = &Unknown{}
+	c.PewpewVarFound = false
 }
 
 type ScopeTagType int

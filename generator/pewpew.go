@@ -1,6 +1,6 @@
 package generator
 
-var pewpewEnums = map[string]map[string]string {
+var PewpewEnums = map[string]map[string]string {
 	"MothershipType": {
 		"Triangle": "THREE_CORNERS",
 		"Square": "FOUR_CORNERS",
@@ -43,7 +43,7 @@ var pewpewEnums = map[string]map[string]string {
 		"DoubleSwipe": "DOUBLE_SWIPE",
 		"Hemisphere": "HEMISPHERE",
 	},
-	"CannonFrequency": {
+	"CannonFreq": {
 		"Freq30": "FREQ_30",
 		"Freq15": "FREQ_15",
 		"Freq10": "FREQ_10",
@@ -68,14 +68,14 @@ var pewpewEnums = map[string]map[string]string {
 		"AtomizeExplosion": "ATOMIZE_EXPLOSION",
 	},
 	"AsteroidSize": {
-		"Small": "SMALL",
-		"Medium": "MEDIUM",
-		"Large": "LARGE",
-		"Enormous": "VERY_LARGE",
+		"S": "SMALL",
+		"M": "MEDIUM",
+		"L": "LARGE",
+		"XL": "VERY_LARGE",
 	},
 }
 
-var pewpewFunctions = map[string]string{
+var PewpewVariables = map[string]string{
 	"Print": "print",
 	"PrintDebug": "print_debug_info",
 	"SetLevelSize": "set_level_size",
@@ -152,4 +152,12 @@ var pewpewFunctions = map[string]string{
 	"SetEntityWeaponCollision": "customizable_entity_set_weapon_collision_callback",
 	"SpawnEntity": "customizable_entity_start_spawning",
 	"ExplodeEntity": "customizable_entity_start_exploding",
+
+	"MothershipType": "MothershipType",
+	"CannonFreq": "CannonFrequency",
+	"EntityType": "EntityType",
+	"CannonType": "CannonType",
+	"BombType": "BombType",
+	"WeaponType": "WeaponType",
+	"AsteroidSize": "AsteroidSize",
 }

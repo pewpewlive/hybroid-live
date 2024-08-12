@@ -2,13 +2,62 @@ env Main as Level
 
 use Pewpew
 
-SetLevelSize(100f, 100f)
+const WIDTH, HEIGHT = 1000f, 1000f
+SetLevelSize(WIDTH, 1000f)
 
-let ship = NewShip(50f, 50f, 0)
+// WIDTH -= 1f
+
+let ship = Pewpew:NewShip(50f, 50f, 0)
 
 ConfigureShipWeapon(ship, struct{
-  frequency = CannonFrequency.Freq2
-  cannon = CannonType.Double
-  duration = -1
+  frequency = CannonFreq.Freq10
+  cannon = Pewpew:CannonType.Double
 })
 
+ConfigurePlayer(0, struct{
+  shield = 5
+  camera_distance = -50f
+})
+
+/*
+
+file1.hyb
+env Main as Level
+...
+
+=================================================================================
+file2.hyb
+env Main as Level
+...
+
+*/
+
+entity Quadro {
+  
+
+  spawn(fixed x, fixed y) {
+    SetEntityPosition(self.id, x, y)
+
+    SetEntityMesh(self.id, QuadroMesh, 0)
+  }
+
+  destroy() {
+    
+  }
+}
+
+let aasdsad = spawn Quadro(0f, 0f)
+fn function(Quadro e) {
+  SetEntityPosition(e.id, 1f, 1f)
+}
+
+function(aasdsad)
+
+tick with time {
+  if GetPlayerConfig(0).has_lost == true {
+    StopGame()
+  }
+  if time % 30 == 0 {
+    NewAsteroid(WIDTH/2f, HEIGHT/2f)
+  }
+}

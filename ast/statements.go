@@ -92,6 +92,7 @@ type VariableDeclarationStmt struct {
 	Types       []*TypeExpr
 	Values      []Node
 	IsLocal     bool
+	IsConst     bool
 	Token       lexer.Token
 }
 

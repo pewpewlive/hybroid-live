@@ -145,7 +145,7 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 	}
 
 	callerType := caller.GetType()
-	if callerType != ast.Identifier && callerType != ast.CallExpression {
+	if callerType != ast.Identifier && callerType != ast.CallExpression && callerType != ast.EnvironmentAccessExpression {
 		p.error(p.peek(-1), fmt.Sprintf("cannot call unidentified value (caller: %v)", callerType))
 		return &ast.Improper{Token: p.peek(-1)}
 	}
@@ -335,53 +335,26 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 			return &ast.IdentifierExpr{Name: token, ValueType: ast.Ident}
 		}
 
-		switch token.Lexeme {
-		case "Pewpew":
-			expr := p.expression()
-
-			return &ast.PewpewExpr{
-				Node: expr,
-			}
-		case "Fmath":
-			name, ok := p.consume("expected identifier in fmath access", lexer.Identifier)
-			if !ok {
-				return ast.NewImproper(name)
-			}
-			return &ast.FmathExpr{
-				Node: p.call(&ast.IdentifierExpr{
-					Name: name,
-				}),
-			}
-		case "Math", "String", "Table":
-			name, ok := p.consume("expected identifier in %s access", lexer.Identifier)
-			if !ok {
-				return ast.NewImproper(name)
-			}
-			call := p.call(&ast.IdentifierExpr{
-				Name: name,
-			})
-			return &ast.StandardExpr{
-				Library: ast.Libraries[token.Lexeme],
-				Node:    call,
-			}
-		}
 		envPath := &ast.EnvPathExpr{
 			Path: token,
 		}
 
-		next := p.accessorExpr(ast.NA)
+		next := p.advance()
 		for p.match(lexer.Colon) {
-			envPath.Combine(next.GetToken())
-			if next.GetType() != ast.Identifier {
-				p.error(next.GetToken(), "expected identifier in environment expression")
-				return &ast.Improper{Token: next.GetToken()}
+			envPath.Combine(next)
+			if next.Type != lexer.Identifier {
+				p.error(next, "expected identifier in environment expression")
+				return &ast.Improper{Token: next}
 			}
-			next = p.accessorExpr(ast.NA)
+			next = p.advance()
 		}
 		envExpr := &ast.EnvAccessExpr{
 			PathExpr: envPath,
 		}
-		envExpr.Accessed = next
+		envExpr.Accessed = &ast.IdentifierExpr{
+			Name: next,
+			ValueType: ast.Invalid,
+		}
 
 		return envExpr
 	}

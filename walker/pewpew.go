@@ -7,7 +7,7 @@ import (
 var PewpewEnv = &Environment{
 	Name: "Pewpew",
 	Scope: Scope{
-		Variables: pewpewVariables,
+		Variables: PewpewVariables,
 		Tag: &UntaggedTag{},
 	},
 	Structs: make(map[string]*StructVal),
@@ -15,11 +15,11 @@ var PewpewEnv = &Environment{
 	CustomTypes: make(map[string]*CustomType),
 }
 
-var pewpewVariables = map[string]*VariableVal{
+var PewpewVariables = map[string]*VariableVal{
 	//enums
 	"EntityType": {
 		Name:    "EntityType",
-		Value:   EntityType,
+		Value:   PewpewEntityType,
 		IsLocal: false,
 		IsConst: true,
 	},
@@ -35,8 +35,8 @@ var pewpewVariables = map[string]*VariableVal{
 		IsLocal: false,
 		IsConst: true,
 	},
-	"CannonFrequency": {
-		Name:    "CannonFrequency",
+	"CannonFreq": {
+		Name:    "CannonFreq",
 		Value:   CannonFrequency,
 		IsLocal: false,
 		IsConst: true,
@@ -432,7 +432,7 @@ var pewpewVariables = map[string]*VariableVal{
 	},
 	"SetEntityPosition": {
 		Name: "SetEntityPosition",
-		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)),
+		Value: NewFunction(&RawEntityType{}, NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)),
 	},
 	"SetEntityRadius": {
 		Name: "SetEntityRadius",
@@ -574,7 +574,7 @@ var pewpewVariables = map[string]*VariableVal{
 	},
 }
 
-var EntityType = NewEnumVal("EntityType", false,
+var PewpewEntityType = NewEnumVal("EntityType", false,
 	"Asteroid",
 	"YellowBaf",
 	"Inertiac",
@@ -619,7 +619,7 @@ var CannonType = NewEnumVal("CannonType", false,
 	"Hemisphere",
 )
 
-var CannonFrequency = NewEnumVal("CannonFrequency", false,
+var CannonFrequency = NewEnumVal("CannonFreq", false,
 	"Freq30",
 	"Freq15",
 	"Freq10",

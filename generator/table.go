@@ -1,6 +1,6 @@
 package generator 
 
-var tableVariables = map[string]string{
+var TableVariables = map[string]string{
 	"Concat": "concat",
 	"Insert": "insert",
 	"InsertAt": "insert",

@@ -1,6 +1,6 @@
 package generator
 
-var fmathFunctions = map[string]string {
+var FmathFunctions = map[string]string {
 	"MaxFixed": "max_fixedpoint",
 	"RandomFixed": "random_fixedpoint",
 	"RandomNum": "random_int",

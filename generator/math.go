@@ -1,6 +1,6 @@
 package generator
 
-var mathVariables = map[string]string{
+var MathVariables = map[string]string{
 	"Pi": "pi",
 	"Huge": "huge",
 	"MaxInt": "maxinteger",

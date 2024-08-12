@@ -413,6 +413,7 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 			Value:   values[i],
 			Name:    ident.Lexeme,
 			IsLocal: declaration.IsLocal,
+			IsConst: declaration.IsConst,
 			Token:   ident,
 		}
 		declaredVariables = append(declaredVariables, variable)
@@ -452,11 +453,15 @@ func IfStmt(w *wkr.Walker, node *ast.IfStmt, scope *wkr.Scope) {
 func AssignmentStmt(w *wkr.Walker, assignStmt *ast.AssignmentStmt, scope *wkr.Scope) {
 	wIdents := []wkr.Value{}
 	for i := range assignStmt.Identifiers {
-		wIdents = append(wIdents, GetNodeValue(w, &assignStmt.Identifiers[i], scope))
+		val := GetNodeValue(w, &assignStmt.Identifiers[i], scope)
+		wIdents = append(wIdents, val)
 	}
 
 	for i := range assignStmt.Values {
 		value := GetNodeValue(w, &assignStmt.Values[i], scope)
+		if variable, ok := value.(*wkr.VariableVal); ok {
+			value = variable.Value
+		}
 		if i > len(wIdents)-1 {
 			break
 		}

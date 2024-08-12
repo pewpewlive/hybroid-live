@@ -1,6 +1,6 @@
 package generator 
 
-var stringVariables = map[string]string{
+var StringVariables = map[string]string{
 	"Byte": "byte",
 	"Char": "char",
 	"Find": "find",

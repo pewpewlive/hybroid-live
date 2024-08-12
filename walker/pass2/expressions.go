@@ -5,6 +5,7 @@ import (
 	"hybroid/ast"
 	"hybroid/lexer"
 	wkr "hybroid/walker"
+	"hybroid/generator"
 )
 
 func AnonStructExpr(w *wkr.Walker, node *ast.AnonStructExpr, scope *wkr.Scope) *wkr.AnonStructVal {
@@ -76,7 +77,7 @@ func BinaryExpr(w *wkr.Walker, node *ast.BinaryExpr, scope *wkr.Scope) wkr.Value
 			w.Error(node.GetToken(), fmt.Sprintf("invalid binary expression (left: %s, right: %s)", leftType.ToString(), rightType.ToString()))
 			return &wkr.Invalid{}
 		}
-		return &wkr.NumberVal{}
+		return left
 	case lexer.Concat:
 		if !wkr.TypeEquals(leftType, wkr.NewBasicType(ast.String)) && !wkr.TypeEquals(rightType, wkr.NewBasicType(ast.String)) {
 			w.Error(node.GetToken(), fmt.Sprintf("invalid concatenation: left is %s and right is %s", leftType.ToString(), rightType.ToString()))
@@ -102,6 +103,8 @@ func LiteralExpr(w *wkr.Walker, node *ast.LiteralExpr) wkr.Value {
 		return &wkr.BoolVal{}
 	case ast.Number:
 		return &wkr.NumberVal{}
+	case ast.Entity:
+		return &wkr.RawEntityVal{}
 	default:
 		return &wkr.Invalid{}
 	}
@@ -159,8 +162,7 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 		selfExpr.Property = identExpr
 		*node = selfExpr
 	}else if sc.Environment != w.Environment {
-		var newNode ast.Node
-		newNode = &ast.EnvAccessExpr{
+		*node = &ast.EnvAccessExpr{
 			PathExpr: &ast.EnvPathExpr{
 				Path: lexer.Token{
 					Lexeme: sc.Environment.Name,
@@ -169,35 +171,32 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 			},
 			Accessed: ident,
 		}
-		if sc.Environment.Name == wkr.PewpewEnv.Name {
-			newNode = &ast.PewpewExpr{
-				Node: ident,
-			}
-		}else if sc.Environment.Name == wkr.FmathEnv.Name {
-			newNode = &ast.FmathExpr{
-				Node: ident,
-			}
-		}else if sc.Environment.Name == wkr.MathEnv.Name {
-			newNode = &ast.StandardExpr{
-				Library: ast.MathLib,
-				Node: ident,
-			}
-		}else if sc.Environment.Name == wkr.StringEnv.Name {
-			newNode = &ast.StandardExpr{
-				Library: ast.StringLib,
-				Node: ident,
-			}
-		}else if sc.Environment.Name == wkr.TableEnv.Name {
-			newNode = &ast.StandardExpr{
-				Library: ast.TableLib,
-				Node: ident,
-			}
+	}
+
+	if w.Context.PewpewVarFound {
+		name, found := generator.PewpewEnums[w.Context.PewpewVarName][ident.Name.Lexeme]
+		if found {
+			ident.Name.Lexeme = name
 		}
-		*node = newNode
+	}
+
+	switch sc.Environment.Name {
+	case "Pewpew": 
+		w.Context.PewpewVarFound = true
+		w.Context.PewpewVarName = ident.Name.Lexeme
+		ident.Name.Lexeme = generator.PewpewVariables[ident.Name.Lexeme]
+	case "Fmath": 
+		ident.Name.Lexeme = generator.FmathFunctions[ident.Name.Lexeme]
+	case "Math": 
+		ident.Name.Lexeme = generator.MathVariables[ident.Name.Lexeme]
+	case "String": 
+		ident.Name.Lexeme = generator.StringVariables[ident.Name.Lexeme]
+	case "Table": 
+		ident.Name.Lexeme = generator.TableVariables[ident.Name.Lexeme]
 	}
 
 	variable.IsUsed = true
-	return variable.Value
+	return variable
 }
 
 func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr) (wkr.Value, ast.Node) {
@@ -216,6 +215,19 @@ func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr) (wkr.Value, ast.Node)
 
 	walker, found := w.Walkers[envName]
 	if !found {
+		switch envName {
+		case "Pewpew": 
+			return GetNodeValueFromExternalEnv(w, node.Accessed, wkr.PewpewEnv), nil
+		case "Fmath": 
+			return GetNodeValueFromExternalEnv(w, node.Accessed, wkr.FmathEnv), nil
+		case "Math": 
+			return GetNodeValueFromExternalEnv(w, node.Accessed, wkr.MathEnv), nil
+		case "String": 
+			return GetNodeValueFromExternalEnv(w, node.Accessed, wkr.StringEnv), nil
+		case "Table": 
+			return GetNodeValueFromExternalEnv(w, node.Accessed, wkr.TableEnv), nil
+		}
+
 		w.Error(node.GetToken(), fmt.Sprintf("Environment named '%s' doesn't exist", envName))
 		return &wkr.Invalid{}, nil
 	}
@@ -304,19 +316,25 @@ func GetGenerics(w *wkr.Walker, node ast.Node, genericArgs []*ast.TypeExpr, expe
 
 	return suppliedGenerics
 }
+
 func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {// WRITES CONTEXT
 	var val wkr.Value
-	// if node.Identifier.GetToken().Lexeme == "EnumTest" {
-	// 	println("breakpoint")
-	// }
 	if w.Context.Value.GetType().GetType() != wkr.NA {
 		scopeable, ok :=  w.Context.Value.(wkr.ScopeableValue)
 		if !ok {
 			w.Error(w.Context.Node.GetToken(), fmt.Sprintf("variable '%s' is not a struct, entity, enum or anonymous struct", w.Context.Node.GetToken().Lexeme))
 			return &wkr.Invalid{}
 		}
+
 		w.Context.Clear()
-		return GetNodeValue(w, &node.Property, scopeable.Scopify(scope, node))
+
+		val = GetNodeValue(w, &node.Property, scopeable.Scopify(scope, node))
+
+		if variable, is := val.(*wkr.VariableVal); is {
+			val = variable.Value
+		}
+		
+		return val
 	}else {
 		val = GetNodeValue(w, &node.Identifier, scope)
 	}
@@ -325,11 +343,17 @@ func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {
 		w.Error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a struct, entity, enum or anonymous struct", node.Identifier.GetToken().Lexeme))
 		return &wkr.Invalid{}
 	}
-	owner := val.(wkr.ScopeableValue)
+	if variable, is := val.(*wkr.VariableVal); is {
+		val = variable.Value
+	}
+	owner := val.(wkr.ScopeableValue) 
 	w.Context.Value = owner
 	w.Context.Node = node.Property
 	finalValue := GetNodeValue(w, &node.Property, owner.Scopify(scope, node))
 	w.Context.Clear()
+	if variable, is := finalValue.(*wkr.VariableVal); is {
+		return variable.Value
+	}
 	return finalValue
 }
 
@@ -463,9 +487,7 @@ func SpawnExpr(w *wkr.Walker, new *ast.SpawnExpr, scope *wkr.Scope) wkr.Value {
 	return val
 }
 
-func GetNodeValueFromExternalEnv(w *wkr.Walker, expr ast.Node, scope *wkr.Scope, env *wkr.Environment) wkr.Value {
-	env.Scope.Parent = scope
-	env.Scope.Attributes = scope.Attributes
+func GetNodeValueFromExternalEnv(w *wkr.Walker, expr ast.Node, env *wkr.Environment) wkr.Value {
 	val := GetNodeValue(w, &expr, &env.Scope)
 	_, isTypes := val.(*wkr.Types)
 	if !isTypes && val.GetType().PVT() == ast.Invalid {
@@ -473,30 +495,6 @@ func GetNodeValueFromExternalEnv(w *wkr.Walker, expr ast.Node, scope *wkr.Scope,
 	}
 	return val
 }
-
-func PewpewExpr(w *wkr.Walker, expr *ast.PewpewExpr, scope *wkr.Scope) wkr.Value {
-	return GetNodeValueFromExternalEnv(w, expr.Node, scope, wkr.PewpewEnv)
-}
-
-func FmathExpr(w *wkr.Walker, expr *ast.FmathExpr, scope *wkr.Scope) wkr.Value {
-	return GetNodeValueFromExternalEnv(w, expr.Node, scope, wkr.FmathEnv)
-}
-
-func StandardExpr(w *wkr.Walker, expr *ast.StandardExpr, scope *wkr.Scope) wkr.Value {
-	if expr.Library == ast.MathLib {
-		if w.Nodes[0].(*ast.EnvironmentStmt).EnvType.Type == ast.Level {
-			w.Error(expr.GetToken(), "cannot use the Math library in a Level environment")
-			return &wkr.Invalid{}
-		}
-
-		return GetNodeValueFromExternalEnv(w, expr.Node, scope, wkr.MathEnv)
-	}else if expr.Library == ast.StringLib {
-		return GetNodeValueFromExternalEnv(w, expr.Node, scope, wkr.StringEnv)
-	}else {
-		return GetNodeValueFromExternalEnv(w, expr.Node, scope, wkr.TableEnv)
-	}
-}
-
 
 // func CastExpr(w *wkr.Walker, cast *ast.CastExpr, scope *wkr.Scope) wkr.Value {
 // 	val := GetNodeValue(w, &cast.Value, scope)

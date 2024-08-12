@@ -5,7 +5,7 @@ import "hybroid/ast"
 var MathEnv = &Environment{
 	Name: "Math",
 	Scope: Scope{
-		Variables: mathVariables,
+		Variables: MathVariables,
 		Tag: &UntaggedTag{},
 	},
 	Structs: make(map[string]*StructVal),
@@ -13,7 +13,7 @@ var MathEnv = &Environment{
 	CustomTypes: make(map[string]*CustomType),
 }
 
-var mathVariables = map[string]*VariableVal{
+var MathVariables = map[string]*VariableVal{
 	"Pi": {
 		Name:  "Pi",
 		Value: &NumberVal{},

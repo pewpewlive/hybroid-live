@@ -127,6 +127,8 @@ func (gen *Generator) fieldExpr(node ast.FieldExpr, scope *GenScope) string {
 	}
 	if node.Index >= 0 {
 		val = fmt.Sprintf("[%v]%s", node.Index, cut)
+	}else {
+		val = "."+val[len(gen.envName):]
 	}
 	src.WriteString(val) 
 	return src.String()
@@ -190,9 +192,12 @@ func (gen *Generator) selfExpr(self ast.SelfExpr, _ *GenScope) string {
 	return ""
 }
 
-func (gen *Generator) newExpr(new ast.NewExpr, scope *GenScope) string {
+func (gen *Generator) newExpr(new ast.NewExpr, stmt bool, scope *GenScope) string {
 	src := StringBuilder{}
 
+	if stmt {
+		src.AppendTabbed()
+	}
 	src.Append(hyStruct, gen.GenerateExpr(new.Type.Name, scope), "_New(")
 	for i, arg := range new.Args {
 		src.WriteString(gen.GenerateExpr(arg, scope))
@@ -262,11 +267,33 @@ func (gen *Generator) envAccessExpr(node ast.EnvAccessExpr, scope *GenScope) str
 	accessed := gen.GenerateExpr(node.Accessed, scope)
 	accessed = accessed[len(gen.envName):]
 
-	return envMap[node.PathExpr.Path.Lexeme] + accessed
+	envName := node.PathExpr.Path.Lexeme
+	var prefix string
+	switch envName {
+	case "Pewpew": 
+		prefix = "pewpew."
+	case "Fmath": 
+		prefix = "fmath."
+	case "Math": 
+		prefix = "math."
+	case "String":
+		prefix = "string."
+	case "Table": 
+		prefix = "table."
+	default:
+		prefix = envMap[envName]
+	}
+
+	gen.libraryVars = nil
+	return prefix + accessed
 }
 
-func (gen *Generator) spawnExpr(spawn ast.SpawnExpr, scope *GenScope) string {
+func (gen *Generator) spawnExpr(spawn ast.SpawnExpr, stmt bool, scope *GenScope) string {
 	src := StringBuilder{}
+
+	if stmt {
+		src.AppendTabbed()
+	}
 	src.Append(hyEntity, gen.WriteVar(spawn.Type.GetToken().Lexeme), "_Spawn(")
 	for i, arg := range spawn.Args {
 		src.WriteString(gen.GenerateExpr(arg, scope))
@@ -275,76 +302,6 @@ func (gen *Generator) spawnExpr(spawn ast.SpawnExpr, scope *GenScope) string {
 		}
 	}
 	src.WriteString(")")
-	return src.String()
-}
-
-func (gen *Generator) pewpewExpr(expr ast.PewpewExpr, tabbed bool, scope *GenScope) string {
-	src := StringBuilder{}
-
-	nodeType := expr.Node.GetType()
-
-	if tabbed && nodeType == ast.CallExpression {
-		src.AppendTabbed("pewpew.")
-	}else {
-		src.WriteString("pewpew.")
-	}
-
-	if nodeType == ast.FieldExpression {
-		field := expr.Node.(*ast.FieldExpr)
-		enumName := field.Identifier.GetToken().Lexeme
-		src.Append(enumName, ".", pewpewEnums[enumName][field.Property.GetToken().Lexeme])
-	}else if nodeType == ast.CallExpression {
-		call := expr.Node.(*ast.CallExpr)
-		src.Append(pewpewFunctions[call.GetToken().Lexeme], "(")
-		src.WriteString(gen.GenerateArgs(call.Args, scope))
-	}else {
-		
-	}
-
-	return src.String()
-}
-
-func (gen *Generator) fmathExpr(expr ast.FmathExpr, scope *GenScope) string {
-	src := StringBuilder{}
-
-	src.WriteString("fmath.")
-	
-	nodeType := expr.Node.GetType()
-	if nodeType == ast.CallExpression {
-		call := expr.Node.(*ast.CallExpr)
-		src.Append(fmathFunctions[call.GetToken().Lexeme], "(")
-		src.WriteString(gen.GenerateArgs(call.Args, scope))
-	}
-
-	return src.String()
-}
-
-var libPrefix = map[ast.StandardLibrary]string {
-	ast.StringLib: "string.",
-	ast.MathLib: "math.",
-	ast.TableLib: "table.",
-}
-
-var libVariables = map[ast.StandardLibrary]map[string]string {
-	ast.MathLib: mathVariables,
-	ast.StringLib: stringVariables,
-	ast.TableLib: tableVariables,
-}
-
-func (gen *Generator) standardExpr(expr ast.StandardExpr, scope *GenScope) string {
-	src := StringBuilder{}
-
-	src.WriteString(libPrefix[expr.Library])
-	
-	nodeType := expr.Node.GetType()
-	if nodeType == ast.CallExpression {
-		call := expr.Node.(*ast.CallExpr)
-		src.Append(libVariables[expr.Library][call.GetToken().Lexeme], "(")
-		src.WriteString(gen.GenerateArgs(call.Args, scope))
-	}else {
-		src.Append(libVariables[expr.Library][expr.Node.GetToken().Lexeme])
-	}
-
 	return src.String()
 }
 

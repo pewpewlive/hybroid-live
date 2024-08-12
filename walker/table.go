@@ -5,7 +5,7 @@ import "hybroid/ast"
 var TableEnv = &Environment{
 	Name: "Table",
 	Scope: Scope{
-		Variables: tableVariables,
+		Variables: TableVariables,
 		Tag:       &UntaggedTag{},
 	},
 	Structs:     make(map[string]*StructVal),
@@ -13,7 +13,7 @@ var TableEnv = &Environment{
 	CustomTypes: make(map[string]*CustomType),
 }
 
-var tableVariables = map[string]*VariableVal{
+var TableVariables = map[string]*VariableVal{
 	"Concat": {
 		Name: "Concat",
 		Value: NewFunction(NewWrapperType(NewBasicType(ast.List), NewBasicType(ast.String)), NewBasicType(ast.String), NewBasicType(ast.Number), NewBasicType(ast.Number)).

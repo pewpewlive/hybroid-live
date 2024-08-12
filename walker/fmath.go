@@ -7,7 +7,7 @@ import (
 var FmathEnv = &Environment{
 	Name: "Fmath",
 	Scope: Scope{
-		Variables: fmathVariables,
+		Variables: FmathVariables,
 		Tag: &UntaggedTag{},
 	},
 	Structs: make(map[string]*StructVal),
@@ -15,7 +15,7 @@ var FmathEnv = &Environment{
 	CustomTypes: make(map[string]*CustomType),
 }
 
-var fmathVariables = map[string]*VariableVal{
+var FmathVariables = map[string]*VariableVal{
 	"MaxFixed": {
 		Name:  "MaxFixed",
 		Value: NewFunction().WithReturns(NewFixedPointType(ast.Fixed)),

@@ -343,6 +343,23 @@ func (p *Parser) entityDeclarationStmt() ast.Node {
 		return &ast.Improper{Token: stmt.Token}
 	}
 
+	stmt.Fields = append(stmt.Fields, ast.FieldDeclarationStmt{
+		Identifiers: []lexer.Token{
+			{
+				Lexeme: "id",
+			},
+		},
+		Values: []ast.Node{
+			&ast.LiteralExpr{
+				Value: "id",
+				ValueType: ast.Entity,
+			},
+		},
+		Types: []*ast.TypeExpr{
+			nil,
+		},
+	})
+
 	for !p.match(lexer.RightBrace) {
 		if p.match(lexer.Fn) {
 			method := p.methodDeclarationStmt(stmt.IsLocal)
@@ -877,6 +894,7 @@ func (p *Parser) variableDeclarationStmt() ast.Node { // kk
 	variable := ast.VariableDeclarationStmt{
 		Token:   p.peek(-1),
 		IsLocal: p.peek(-1).Type == lexer.Let,
+		IsConst: p.peek(-1).Type == lexer.Const,
 	}
 
 	typ, ide := p.TypeWithVar()

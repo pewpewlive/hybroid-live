@@ -59,7 +59,6 @@ const (
 	SpawnExpression             NodeType = "spawnExpression"
 
 	PewpewExpression      NodeType = "pewpewExpression"
-	PewpewCallExpression  NodeType = "pewpewCallExpression"
 	FmathExpression       NodeType = "fmathExpression"
 	BuiltinCallExpression NodeType = "builtinCallExpession"
 	StandardExpression    NodeType = "standardExpression"
@@ -102,14 +101,6 @@ const (
 	InvalidEnv EnvType = "InvalidEnv"
 )
 
-type StandardLibrary int
-
-const (
-	MathLib StandardLibrary = iota
-	StringLib
-	TableLib
-)
-
 type SelfExprType int
 
 const (
@@ -148,10 +139,4 @@ type Accessor interface {
 	GetProperty() *Node
 	SetProperty(prop Node)
 	SetIdentifier(ident Node)
-}
-
-var Libraries = map[string]StandardLibrary{
-	"Math":   MathLib,
-	"String": StringLib,
-	"Table":  TableLib,
 }

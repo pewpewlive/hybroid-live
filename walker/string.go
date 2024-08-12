@@ -5,7 +5,7 @@ import "hybroid/ast"
 var StringEnv = &Environment{
 	Name: "String",
 	Scope: Scope{
-		Variables: stringVariables,
+		Variables: StringVariables,
 		Tag: &UntaggedTag{},
 	},
 	Structs: make(map[string]*StructVal),
@@ -13,7 +13,7 @@ var StringEnv = &Environment{
 	CustomTypes: make(map[string]*CustomType),
 }
 
-var stringVariables = map[string]*VariableVal{
+var StringVariables = map[string]*VariableVal{
 	"Byte": {
 		Name:  "Byte",
 		Value: NewFunction(NewBasicType(ast.String), NewBasicType(ast.Number), NewBasicType(ast.Number)).WithReturns(NewBasicType(ast.Number)),
