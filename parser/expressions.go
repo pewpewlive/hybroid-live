@@ -127,7 +127,7 @@ func (p *Parser) unary() ast.Node {
 		right := p.unary()
 		return &ast.UnaryExpr{Operator: operator, Value: right}
 	}
-	return p.accessorExpr(ast.NA)
+	return p.accessorExpr(ast.NA, nil)
 }
 
 func (p *Parser) call(caller ast.Node) ast.Node {
@@ -159,15 +159,17 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 	return p.call(call_expr)
 }
 
-func (p *Parser) accessorExpr(nodeType ast.NodeType) ast.Node {
+func (p *Parser) accessorExpr(nodeType ast.NodeType, propIdent *ast.Node) ast.Node {
 	var ident ast.Node
 	if nodeType == ast.NA {
 		ident = p.matchExpr()
 	}else if nodeType == ast.MemberExpression {
 		ident = p.expression()
+		*propIdent = ident
 		p.consume("expected closing bracket in member expression", lexer.RightBracket)
 	}else {
 		ident = p.new()
+		*propIdent = ident
 	}
 	ident = p.call(ident)
 
@@ -197,8 +199,10 @@ func (p *Parser) accessorExpr(nodeType ast.NodeType) ast.Node {
 			Identifier: ident,
 		}
 	}
-	prop = p.accessorExpr(propNodeType)
+	var propIdentifier ast.Node
+	prop = p.accessorExpr(propNodeType, &propIdentifier)
 
+	expr.SetPropertyIdentifier(propIdentifier)
 	expr.SetProperty(prop)
 
 	return expr

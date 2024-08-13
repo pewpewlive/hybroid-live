@@ -1,5 +1,7 @@
 env QuadroMesh as Mesh
 
+use Table
+
 let a = 20
 
 pub meshes = [
@@ -12,6 +14,9 @@ pub meshes = [
 
 let mesh = meshes[1]
 
+Insert(mesh.segments, [])
 repeat 10 with i {
-  //mesh.vertexes
+  Insert(mesh.vertexes, [0, a * i])
+  Insert(mesh.segments[2], i + 2)
+  Insert(mesh.colors, 0xffffffff)
 }

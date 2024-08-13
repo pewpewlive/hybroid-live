@@ -13,6 +13,7 @@ var LibraryEnvs = map[Library]*Environment{
 	Fmath: FmathEnv,
 	Math: MathEnv,
 	String: StringEnv,
+	Table: TableEnv,
 }
 
 type Environment struct {
@@ -20,6 +21,8 @@ type Environment struct {
 	Path      string // dynamic lua path
 	Type      ast.EnvType
 	Scope     Scope
+	UsedWalkers   []*Walker
+	UsedLibraries map[Library]bool
 	Variables map[string]*VariableVal
 	Structs   map[string]*StructVal
 	Entities  map[string]*EntityVal
@@ -35,6 +38,13 @@ func NewEnvironment(path string) *Environment {
 		Path:     path,
 		Type:     ast.InvalidEnv,
 		Scope:    scope,
+		UsedLibraries: map[Library]bool{
+			Pewpew: false,
+			Table: false,
+			String: false,
+			Math: false,
+			Fmath: false,
+		},
 		Structs:  map[string]*StructVal{},
 		Entities: map[string]*EntityVal{}, 
 		CustomTypes: map[string]*CustomType{},
@@ -58,8 +68,6 @@ type Walker struct {
 	CurrentEnvironment *Environment
 	Environment   *Environment
 	Walkers       map[string]*Walker
-	UsedLibraries map[Library]bool
-	UsedWalkers   []*Walker
 	Nodes         []ast.Node
 	Errors        []ast.Error
 	Warnings      []ast.Warning
@@ -80,13 +88,6 @@ func NewWalker(path string) *Walker {
 		Nodes:       []ast.Node{},
 		Errors:      []ast.Error{},
 		Warnings:    []ast.Warning{},
-		UsedLibraries: map[Library]bool{
-			Pewpew: false,
-			Table: false,
-			String: false,
-			Math: false,
-			Fmath: false,
-		},
 		Context: Context{
 			Node:  &ast.Improper{},
 			Value: &Unknown{},
@@ -221,19 +222,19 @@ func (w *Walker) ResolveVariable(s *Scope, name string) *Scope {
 	}
 
 	if s.Parent == nil {
-		for i := range w.UsedWalkers {
-			variable := w.UsedWalkers[i].GetVariable(&w.UsedWalkers[i].Environment.Scope, name)
+		for i := range s.Environment.UsedWalkers {
+			variable := s.Environment.UsedWalkers[i].GetVariable(&s.Environment.UsedWalkers[i].Environment.Scope, name)
 			if variable != nil {
-				return &w.UsedWalkers[i].Environment.Scope
+				return &s.Environment.UsedWalkers[i].Environment.Scope
 			}
 		}
-		for k, v := range w.UsedLibraries {
+		for k, v := range s.Environment.UsedLibraries {
 			if !v {
 				continue
 			} 
 
-			variable := w.GetVariable(&LibraryEnvs[k].Scope, name)
-			if variable != nil {
+			_, ok := LibraryEnvs[k].Scope.Variables[name]
+			if ok {
 				return &LibraryEnvs[k].Scope
 			}
 		}

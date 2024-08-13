@@ -133,6 +133,11 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 			scope.Node.Index = -1
 			return val
 		}
+		// name := w.Context.Node.GetToken().Lexeme
+		// if name == "meshes" && w.GetEnvStmt().EnvType.Type == ast.MeshEnv {
+		// 	scope.Node.Index = -1
+		// 	return val
+		// }
 		_, scope.Node.Index, _ = scope.Container.ContainsField((*node).GetToken().Lexeme)
 		scope.Node.Index += 1
 	}

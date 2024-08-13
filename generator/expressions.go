@@ -117,7 +117,7 @@ func (gen *Generator) fieldExpr(node ast.FieldExpr, scope *GenScope) string {
 	src := StringBuilder{}
 
 	if node.ExprType == ast.SelfEntity {
-		src.Append(hyEntityState, gen.WriteVar(node.EntityName), "[", gen.GenerateExpr(node.Identifier, scope), "]")
+		src.Append(envMap[node.EnvName], node.EntityName, "[", gen.GenerateExpr(node.Identifier, scope), "]")
 	}else {
 		src.WriteString(gen.GenerateExpr(node.Identifier, scope))
 	}
@@ -297,7 +297,7 @@ func (gen *Generator) spawnExpr(spawn ast.SpawnExpr, stmt bool, scope *GenScope)
 	if stmt {
 		src.AppendTabbed()
 	}
-	src.Append(hyEntity, gen.WriteVar(spawn.Type.GetToken().Lexeme), "_Spawn(")
+	src.Append(gen.GenerateExpr(spawn.Type.Name, scope), "_Spawn(")
 	for i, arg := range spawn.Args {
 		src.WriteString(gen.GenerateExpr(arg, scope))
 		if i != len(spawn.Args)-1 {

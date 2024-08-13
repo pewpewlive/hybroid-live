@@ -436,19 +436,11 @@ func (self *WrapperType) GetType() ValueType {
 
 func (self *WrapperType) _eq(othr Type) bool {
 	other := othr.(*WrapperType)
-	if self.Type.GetType() != other.Type.GetType() {
+	if !TypeEquals(self.Type, other.Type) {
 		return false
 	}
 
-	if self.WrappedType.GetType() != other.WrappedType.GetType() {
-		return false
-	}
-
-	if !self.Type._eq(other.Type) {
-		return false
-	}
-
-	if !self.WrappedType._eq(other.WrappedType) {
+	if !TypeEquals(self.WrappedType, other.WrappedType) {
 		return false
 	}
 
@@ -486,9 +478,9 @@ func TypeEquals(t Type, other Type) bool {
 
 
 	if tpvt == ast.Object {
-		return otherpvt != ast.Invalid
+		return true
 	}else if otherpvt == ast.Object {
-		return tpvt != ast.Invalid
+		return true
 	}
 
 	if t.GetType() == Named && t.PVT() == ast.Entity && other.GetType() == RawEntity {

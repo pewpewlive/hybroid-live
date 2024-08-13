@@ -10,6 +10,7 @@ var FmathEnv = &Environment{
 		Variables: FmathVariables,
 		Tag: &UntaggedTag{},
 	},
+	UsedLibraries: make(map[Library]bool),
 	Structs: make(map[string]*StructVal),
 	Entities: make(map[string]*EntityVal),
 	CustomTypes: make(map[string]*CustomType),

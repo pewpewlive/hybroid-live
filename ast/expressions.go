@@ -336,8 +336,10 @@ func (ne *SpawnExpr) GetValueType() PrimitiveValueType {
 
 type FieldExpr struct {
 	Property   Node
+	PropertyIdentifier Node
 	Identifier Node
 	ExprType SelfExprType
+	EnvName    string
 	EntityName string
 	Index      int
 }
@@ -358,6 +360,10 @@ func (fe *FieldExpr) SetProperty(prop Node) {
 	fe.Property = prop
 }
 
+func (fe *FieldExpr) SetPropertyIdentifier(ident Node) {
+	fe.PropertyIdentifier = ident
+}
+
 func (fe *FieldExpr) GetProperty() *Node {
 	return &fe.Property
 }
@@ -368,6 +374,7 @@ func (fe *FieldExpr) SetIdentifier(ident Node) {
 
 type MemberExpr struct {
 	Property   Node
+	PropertyIdentifier Node
 	Identifier Node
 	IsList     bool
 }
@@ -386,6 +393,10 @@ func (me *MemberExpr) GetValueType() PrimitiveValueType {
 
 func (me *MemberExpr) SetProperty(prop Node) {
 	me.Property = prop
+}
+
+func (me *MemberExpr) SetPropertyIdentifier(ident Node) {
+	me.PropertyIdentifier = ident
 }
 
 func (me *MemberExpr) GetProperty() *Node {

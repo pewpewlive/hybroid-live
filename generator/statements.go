@@ -362,20 +362,20 @@ func (gen *Generator) spawnDeclarationStmt(node ast.EntityFunctionDeclarationStm
 
 	entityName := gen.WriteVar(entity.Name.Lexeme)
 
-	spawnScope.Append(hyEntityState, entityName, " = {}\n")
+	spawnScope.Append(entityName, " = {}\n")
 
 	// if entity.IsLocal {
 	// 	spawnScope.WriteString("local ")
 	// }
 
-	spawnScope.Append("function ", hyEntity, entityName, "_Spawn(")
+	spawnScope.Append("function ", entityName, "_Spawn(")
 
 	gen.GenerateParams(node.Params, &spawnScope)
 
 	TabsCount++
 
 	spawnScope.AppendTabbed("local id = pewpew.new_customizable_entity(", gen.WriteVar(node.Params[0].Name.Lexeme), ", ", gen.WriteVar(node.Params[1].Name.Lexeme), ")\n")
-	spawnScope.AppendTabbed(hyEntityState, entityName, "[id] = {")
+	spawnScope.AppendTabbed(entityName, "[id] = {")
 	for i, field := range entity.Fields {
 		for j, value := range field.Values {
 			if j == len(field.Values)-1 && i == len(entity.Fields)-1 {
@@ -396,9 +396,9 @@ func (gen *Generator) spawnDeclarationStmt(node ast.EntityFunctionDeclarationStm
 		case ast.WallCollision:
 			spawnScope.AppendTabbed(fmt.Sprintf("pewpew.customizable_entity_configure_wall_collision(id, true, %sHCb%d)\n", entityName, i))
 		case ast.WeaponCollision:
-			spawnScope.AppendTabbed(fmt.Sprintf("pewpew.customizable_entity_set_weapon_collision(id, %sHCb%d)\n", entityName, i))
+			spawnScope.AppendTabbed(fmt.Sprintf("pewpew.customizable_entity_set_weapon_collision_callback(id, %sHCb%d)\n", entityName, i))
 		case ast.PlayerCollision:
-			spawnScope.AppendTabbed(fmt.Sprintf("pewpew.customizable_entity_set_player_collision(id, %sHCb%d)\n", entityName, i))
+			spawnScope.AppendTabbed(fmt.Sprintf("pewpew.customizable_entity_set_player_collision_callback(id, %sHCb%d)\n", entityName, i))
 		case ast.Update:
 			spawnScope.AppendTabbed(fmt.Sprintf("pewpew.entity_set_update_callback(id, %sHCb%d)\n", entityName, i))
 		} // try?
@@ -418,7 +418,7 @@ func (gen *Generator) destroyDeclarationStmt(node ast.EntityFunctionDeclarationS
 	// 	spawnScope.WriteString("local ")
 	// }
 
-	spawnScope.Append("function ", hyEntity, gen.WriteVar(entity.Name.Lexeme), "_Destroy(id")
+	spawnScope.Append("function ", gen.WriteVar(entity.Name.Lexeme), "_Destroy(id")
 	if len(node.Params) != 0 {
 		spawnScope.Append(", ")
 	}
@@ -527,7 +527,7 @@ func (gen *Generator) methodDeclarationStmt(node ast.MethodDeclarationStmt, Stru
 func (gen *Generator) entityMethodDeclarationStmt(node ast.MethodDeclarationStmt, entity ast.EntityDeclarationStmt, scope *GenScope) {
 	methodScope := NewGenScope(scope)
 
-	methodScope.Append("function ", hyEntity, entity.Name.Lexeme, "_", node.Name.Lexeme, "(id")
+	methodScope.Append("function ", entity.Name.Lexeme, "_", node.Name.Lexeme, "(id")
 	for _, param := range node.Params {
 		methodScope.WriteString(", ")
 		methodScope.Append(gen.WriteVar(param.Name.Lexeme))

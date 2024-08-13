@@ -102,20 +102,41 @@ func check(fileName string, t *testing.T) {
 	}
 }
 
-var tests = []string{
-	"test1",
-	"test_statements",
-	"test_expressions",
-	"test_string",
-}
+// var tests = []string{
+// 	"test1",
+// 	"test_statements",
+// 	"test_expressions",
+// 	"test_string",
+// }
 
 // sample test
 func TestAll(t *testing.T) {
-	for _, test := range tests {
-		testFolderName = test
-		t.Run(test, func(t *testing.T) {
-			newEval(t)
-			check(test, t)
-		})
-	}
+	// for _, test := range tests {
+	// 	testFolderName = test
+	// 	t.Run(test, func(t *testing.T) {
+	// 		newEval(t)
+	// 		check(test, t)
+	// 	})
+	// }
+}
+
+func TestStatements(t *testing.T) {
+	testFolderName = "test_statements"
+
+	newEval(t)
+	check(testFolderName, t)
+}
+
+func TestExpressions(t *testing.T) {
+	testFolderName = "test_expressions"
+
+	newEval(t)
+	check(testFolderName, t)
+}
+
+func TestString(t *testing.T) {
+	testFolderName = "test_string"
+
+	newEval(t)
+	check("string", t)
 }

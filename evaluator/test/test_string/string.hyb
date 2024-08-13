@@ -1,7 +1,9 @@
-env String as Level
+env StringTest as Level
+
+use String
 
 let a = "string %s%v"
 
 let number b = String:Byte(a, 2, 4)
 
-let text formatted = String:Format(a, "a", 1)
+let text formatted = Format(a, "a", 1)

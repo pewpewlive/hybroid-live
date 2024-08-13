@@ -431,7 +431,7 @@ func GetContentsValueType(values []Value) Type {
 	valTypes := []Type{}
 	index := 0
 	if len(values) == 0 {
-		return InvalidType
+		return ObjectTyp
 	}
 	for _, v := range values {
 		if index == 0 {

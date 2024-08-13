@@ -1,0 +1,34 @@
+env QuadroEntity as Level
+
+use Pewpew
+
+entity Quadro {
+  number test = 1
+
+  spawn(fixed x, fixed y) {
+    self.test += 1
+
+    Pewpew:SetEntityInterpolation(self, true)
+
+    Pewpew:SetEntityPosition(self, x, y)
+
+    Pewpew:SetEntityMesh(self, QuadroMesh, 0)
+  }
+
+  destroy() {
+    
+  }
+
+  WeaponCollision(number playerIndex, WeaponType weaponType) {
+    
+  }
+
+  Update() {
+    let x, y = Pewpew:GetEntityPosition(self)
+
+    x += 1f
+    //Pewpew:Print(x)
+
+    Pewpew:SetEntityPosition(self, x, y)
+  }
+}

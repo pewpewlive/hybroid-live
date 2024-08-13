@@ -189,10 +189,11 @@ func EntityFunctionDeclarationStmt(w *wkr.Walker, node *ast.EntityFunctionDeclar
 	case ast.PlayerCollision:
 		if len(params) < 2 || len(params) > 2 || !(params[0].PVT() == ast.Number && params[1].GetType() == wkr.RawEntity) {
 			w.Error(node.Token, "first parameter must be a number (player index) and second must be an entity_id (ship id)")
-		}		
+		}
 	case ast.WeaponCollision:
-		// TODO:
-		//first need WeaponType and by extension the implementation of pewpew library
+		if len(params) < 2 || len(params) > 2 || !(params[0].PVT() == ast.Number && params[1].GetType() == wkr.Enum && params[1].(*wkr.EnumType).Name == "WeaponType") {
+			w.Error(node.Token, "first parameter must be a number (player index) and second must be a weapon_type")
+		}
 	}
 } 
 
@@ -327,27 +328,26 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 	declaredVariables := []*wkr.VariableVal{}
 
 	identsLength := len(declaration.Identifiers)
-	valuesLength := len(declaration.Values)
-	values := make([]wkr.Value, valuesLength)
+	values := make([]wkr.Value, 0)
 
-	for i := range values {
-		values[i] = &wkr.Invalid{}
-	}
-
+	index := 0
 	for i := range declaration.Values {
+		index++
 		exprValue := GetNodeValue(w, &declaration.Values[i], scope)
 		if declaration.Values[i].GetType() == ast.SelfExpression {
 			w.Error(declaration.Values[i].GetToken(), "cannot assign self to a variable")
 		}
 		if types, ok := exprValue.(*wkr.Types); ok {
-			temp := values[i:]
-			values = values[:i]
 			w.AddTypesToValues(&values, types)
-			values = append(values, temp...)
 		} else {
-			values[i] = exprValue
+			values = append(values, exprValue)
 		}
 	}
+
+	for i := index+1; i < identsLength; i++ {
+		values = append(values, &wkr.Invalid{})
+	}
+
 	trueValuesLength := len(values)
 
 	if !declaration.IsLocal && scope.Parent != nil {
@@ -718,8 +718,29 @@ func UseStmt(w *wkr.Walker, node *ast.UseStmt, scope *wkr.Scope) {
 		return
 	}
 
-	if strings.ToLower(node.Path.Path.Lexeme) == "pewpew" {
-		w.UsedLibraries[wkr.Pewpew] = true
+	path := node.Path.Path.Lexeme
+
+	switch path {
+	case "Pewpew":
+		w.Environment.UsedLibraries[wkr.Pewpew] = true
+		return;
+	}
+
+	switch path {
+	case "Pewpew": 
+		w.Environment.UsedLibraries[wkr.Pewpew] = true
+		return;
+	case "Fmath": 
+		w.Environment.UsedLibraries[wkr.Fmath] = true
+		return;
+	case "Math": 
+		w.Environment.UsedLibraries[wkr.Math] = true
+		return;
+	case "String": 
+		w.Environment.UsedLibraries[wkr.String] = true
+		return;
+	case "Table": 
+		w.Environment.UsedLibraries[wkr.Table] = true
 		return;
 	}
 
@@ -746,5 +767,5 @@ func UseStmt(w *wkr.Walker, node *ast.UseStmt, scope *wkr.Scope) {
 		return
 	}
 
-	w.UsedWalkers = append(w.UsedWalkers, walker)
+	w.Environment.UsedWalkers = append(w.Environment.UsedWalkers, walker)
 }

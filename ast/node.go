@@ -138,5 +138,6 @@ type Accessor interface {
 	Node
 	GetProperty() *Node
 	SetProperty(prop Node)
+	SetPropertyIdentifier(ident Node)
 	SetIdentifier(ident Node)
 }

@@ -96,13 +96,13 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 	}
 
 	for i, walker := range e.walkerList {
-		if walker.Walked {
-			continue
-		}
+	
 		start := time.Now()
 		fmt.Println("[Pass 2] Walking through the nodes...")
 
-		pass2.Action(walker, e.walkers)
+		if !walker.Walked {
+			pass2.Action(walker, e.walkers)
+		}
 		fmt.Printf("Pass 2 time: %v seconds\n\n", time.Since(start).Seconds())
 		if len(walker.Errors) != 0 {
 			colorstring.Printf("[red]Failed walking (%s):\n", e.files[i].Path())
