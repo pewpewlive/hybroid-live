@@ -498,10 +498,6 @@ func RepeatStmt(w *wkr.Walker, node *ast.RepeatStmt, scope *wkr.Scope) {
 	lt := wkr.NewMultiPathTag(1, repeatScope.Attributes...)
 	repeatScope.Tag = lt
 
-	if node.Variable != nil {
-		w.DeclareVariable(repeatScope, &wkr.VariableVal{Name: node.Variable.Name.Lexeme, Value: &wkr.Invalid{}, IsLocal: true}, node.Variable.Name)
-	}
-
 	end := GetNodeValue(w, &node.Iterator, scope)
 	endType := end.GetType()
 	if !parser.IsFx(endType.PVT()) && endType.PVT() != ast.Number {

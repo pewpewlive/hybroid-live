@@ -116,7 +116,11 @@ func (gen *Generator) unaryExpr(node ast.UnaryExpr, scope *GenScope) string {
 func (gen *Generator) fieldExpr(node ast.FieldExpr, scope *GenScope) string {
 	src := StringBuilder{}
 
-	src.WriteString(gen.GenerateExpr(node.Identifier, scope))
+	if node.ExprType == ast.SelfEntity {
+		src.Append(hyEntityState, gen.WriteVar(node.EntityName), "[", gen.GenerateExpr(node.Identifier, scope), "]")
+	}else {
+		src.WriteString(gen.GenerateExpr(node.Identifier, scope))
+	}
 	
 	val := gen.GenerateExpr(node.Property, scope)
 	cut := ""
@@ -187,7 +191,7 @@ func (gen *Generator) selfExpr(self ast.SelfExpr, _ *GenScope) string {
 	if self.Type == ast.SelfStruct {
 		return "Self"
 	} else if self.Type == ast.SelfEntity {
-		return "Self"
+		return "id"
 	}
 	return ""
 }
@@ -253,7 +257,6 @@ func (gen *Generator) matchExpr(match ast.MatchExpr, scope *GenScope) string {
 		caseScope.ReplaceAll()
 
 		scope.Write(caseScope.Src)
-
 	}
 
 	scope.AppendTabbed("end\n")

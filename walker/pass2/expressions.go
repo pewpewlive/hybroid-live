@@ -320,7 +320,12 @@ func GetGenerics(w *wkr.Walker, node ast.Node, genericArgs []*ast.TypeExpr, expe
 func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {// WRITES CONTEXT
 	var val wkr.Value
 	if w.Context.Value.GetType().GetType() != wkr.NA {
-		scopeable, ok :=  w.Context.Value.(wkr.ScopeableValue)
+		val = w.Context.Value
+		if (val.GetType().GetType() == wkr.Named && val.GetType().PVT() == ast.Entity) {
+			node.ExprType = ast.SelfEntity
+			node.EntityName = val.GetType().(*wkr.NamedType).Name
+		}
+		scopeable, ok :=  val.(wkr.ScopeableValue)
 		if !ok {
 			w.Error(w.Context.Node.GetToken(), fmt.Sprintf("variable '%s' is not a struct, entity, enum or anonymous struct", w.Context.Node.GetToken().Lexeme))
 			return &wkr.Invalid{}
@@ -342,6 +347,10 @@ func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {
 	if !wkr.IsOfPrimitiveType(val, ast.Struct, ast.Entity, ast.AnonStruct, ast.Enum) {
 		w.Error(node.Identifier.GetToken(), fmt.Sprintf("variable '%s' is not a struct, entity, enum or anonymous struct", node.Identifier.GetToken().Lexeme))
 		return &wkr.Invalid{}
+	}
+	if (val.GetType().GetType() == wkr.Named && val.GetType().PVT() == ast.Entity) {
+		node.ExprType = ast.SelfEntity
+		node.EntityName = val.GetType().(*wkr.NamedType).Name
 	}
 	if variable, is := val.(*wkr.VariableVal); is {
 		val = variable.Value
@@ -425,6 +434,8 @@ func SelfExpr(w *wkr.Walker, self *ast.SelfExpr, scope *wkr.Scope) wkr.Value {
 	if sc == nil {
 		entitySc, _, entityTag := wkr.ResolveTagScope[*wkr.EntityTag](scope)
 		if entitySc != nil {
+			self.Type = ast.SelfEntity
+			self.EntityName = (*entityTag).EntityType.Type.Name
 			return (*entityTag).EntityType
 		}
 

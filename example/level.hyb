@@ -7,7 +7,7 @@ SetLevelSize(WIDTH, 1000f)
 
 // WIDTH -= 1f
 
-let ship = Pewpew:NewShip(50f, 50f, 0)
+let ship = Pewpew:NewShip(WIDTH / 2f, HEIGHT / 2f, 0)
 
 ConfigureShipWeapon(ship, struct{
   frequency = CannonFreq.Freq10
@@ -18,6 +18,9 @@ ConfigurePlayer(0, struct{
   shield = 5
   camera_distance = -50f
 })
+
+let bg = NewEntity(0f, 0f)
+SetEntityMesh(bg, MapMesh, 0)
 
 /*
 
@@ -33,12 +36,13 @@ env Main as Level
 */
 
 entity Quadro {
-  
+  number test = 1
 
   spawn(fixed x, fixed y) {
-    SetEntityPosition(self.id, x, y)
+    self.test += 1
+    SetEntityPosition(self, x, y)
 
-    SetEntityMesh(self.id, QuadroMesh, 0)
+    SetEntityMesh(self, QuadroMesh, 0)
   }
 
   destroy() {
@@ -48,7 +52,8 @@ entity Quadro {
 
 let aasdsad = spawn Quadro(0f, 0f)
 fn function(Quadro e) {
-  SetEntityPosition(e.id, 1f, 1f)
+  e.test += 1
+  SetEntityPosition(e, 1f, 1f)
 }
 
 function(aasdsad)

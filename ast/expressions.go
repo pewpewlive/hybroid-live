@@ -280,6 +280,7 @@ func (me *MatchExpr) GetValueType() PrimitiveValueType {
 
 type SelfExpr struct {
 	Token lexer.Token
+	EntityName  string
 	Type  SelfExprType
 }
 
@@ -336,6 +337,8 @@ func (ne *SpawnExpr) GetValueType() PrimitiveValueType {
 type FieldExpr struct {
 	Property   Node
 	Identifier Node
+	ExprType SelfExprType
+	EntityName string
 	Index      int
 }
 

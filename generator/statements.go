@@ -78,26 +78,6 @@ func (gen *Generator) functionDeclarationStmt(node ast.FunctionDeclarationStmt, 
 	fnScope.Append("function ", gen.WriteVar(node.Name.Lexeme), "(")
 	gen.GenerateParams(node.Params, &fnScope)
 
-	/* scope src, node src
-
-	function name(a)
-
-		call(1)
-
-		local hy12455
-		if a == "a" {
-			hy12455 = 1
-			goto Leave
-		}else {
-			hy12455 = 2
-			goto Leave
-		}
-		::Leave::
-		call(hy12455)
-
-
-	*/
-
 	gen.GenerateBody(node.Body, &fnScope)
 
 	fnScope.AppendTabbed("end")
@@ -358,7 +338,7 @@ func (gen *Generator) entityDeclarationStmt(node ast.EntityDeclarationStmt, scop
 			entityScope.Append(", ")
 		}
 		gen.GenerateParams(v.Params, &entityScope)
-		entityScope.AppendETabbed("local Self = ", hyEntityState, entityName, "[id]\n")
+		//entityScope.AppendETabbed("local Self = ", hyEntityState, entityName, "[id]\n")
 		gen.GenerateBody(v.Body, &entityScope)
 		entityScope.AppendTabbed("end\n")
 	}
@@ -406,7 +386,7 @@ func (gen *Generator) spawnDeclarationStmt(node ast.EntityFunctionDeclarationStm
 		}
 	}
 	spawnScope.Append("}\n")
-	spawnScope.AppendTabbed("local Self = ", hyEntityState, entityName, "[id]\n")
+	//spawnScope.AppendTabbed("local Self = ", hyEntityState, entityName, "[id]\n")
 	TabsCount--
 	gen.GenerateBody(node.Body, &spawnScope)
 	TabsCount++
@@ -423,6 +403,7 @@ func (gen *Generator) spawnDeclarationStmt(node ast.EntityFunctionDeclarationStm
 			spawnScope.AppendTabbed(fmt.Sprintf("pewpew.entity_set_update_callback(id, %sHCb%d)\n", entityName, i))
 		} // try?
 	}
+	spawnScope.AppendTabbed("return id\n")
 	TabsCount--
 
 	spawnScope.AppendTabbed("end\n")
@@ -444,7 +425,7 @@ func (gen *Generator) destroyDeclarationStmt(node ast.EntityFunctionDeclarationS
 
 	gen.GenerateParams(node.Params, &spawnScope)
 
-	spawnScope.AppendETabbed("local Self = ", hyEntityState, gen.WriteVar(entity.Name.Lexeme), "[id]\n")
+	//spawnScope.AppendETabbed("local Self = ", hyEntityState, gen.WriteVar(entity.Name.Lexeme), "[id]\n")
 
 	gen.GenerateBody(node.Body, &spawnScope)
 
