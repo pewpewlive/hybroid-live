@@ -27,7 +27,7 @@ func (p *Parser) expression() ast.Node {
 
 func (p *Parser) fn() ast.Node {
 	if p.match(lexer.Fn) {
-		fn := &ast.AnonFnExpr{
+		fn := &ast.FunctionExpr{
 			Token: p.peek(-1),
 		}
 		if p.check(lexer.LeftParen) {
@@ -330,7 +330,7 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 	}
 
 	if allowStruct && p.match(lexer.Struct) {
-		return p.anonStruct()
+		return p.structExpr()
 	}
 
 	if p.match(lexer.Identifier) {
@@ -451,35 +451,35 @@ func (p *Parser) parseMap() ast.Node {
 	return &ast.MapExpr{Map: parsedMap, Token: token}
 }
 
-func (p *Parser) anonStruct() ast.Node {
-	anonStruct := ast.AnonStructExpr{
+func (p *Parser) structExpr() ast.Node {
+	_struct := ast.StructExpr{
 		Token:  p.peek(-1),
 		Fields: make([]*ast.FieldDeclarationStmt, 0),
 	}
 
 	_, ok := p.consume("expected opening brace in anonymous struct expression", lexer.LeftBrace)
 	if !ok {
-		return &ast.Improper{Token: anonStruct.Token}
+		return &ast.Improper{Token: _struct.Token}
 	}
 
 	for !p.match(lexer.RightBrace) {
 		field := p.fieldDeclarationStmt()
 		if field.GetType() != ast.NA {
-			anonStruct.Fields = append(anonStruct.Fields, field.(*ast.FieldDeclarationStmt))
+			_struct.Fields = append(_struct.Fields, field.(*ast.FieldDeclarationStmt))
 		} else {
 			p.error(field.GetToken(), "expected field declaration inside anonymous struct")
 		}
 		for p.match(lexer.Comma) {
 			field := p.fieldDeclarationStmt()
 			if field.GetType() != ast.NA {
-				anonStruct.Fields = append(anonStruct.Fields, field.(*ast.FieldDeclarationStmt))
+				_struct.Fields = append(_struct.Fields, field.(*ast.FieldDeclarationStmt))
 			} else {
 				p.error(field.GetToken(), "expected field declaration inside anonymous struct")
 			}
 		}
 	}
 
-	return &anonStruct
+	return &_struct
 }
 
 func (p *Parser) WrappedType() *ast.TypeExpr {

@@ -26,10 +26,10 @@ func (p *Parser) statement() ast.Node {
 		case lexer.Fn:
 			p.advance()
 			return p.functionDeclarationStmt(false)
-		case lexer.Struct:
+		case lexer.Class:
 			p.advance()
 			p.advance()
-			return p.structDeclarationStmt()
+			return p.classDeclarationStmt()
 		case lexer.Entity:
 			p.advance()
 			p.advance()
@@ -103,9 +103,9 @@ func (p *Parser) statement() ast.Node {
 	case lexer.Enum:
 		p.advance()
 		return p.enumDeclarationStmt(true)
-	case lexer.Struct:
+	case lexer.Class:
 		p.advance()
-		return p.structDeclarationStmt()
+		return p.classDeclarationStmt()
 	case lexer.Entity:
 		p.advance()
 		return p.entityDeclarationStmt()
@@ -282,8 +282,8 @@ func (p *Parser) enumDeclarationStmt(local bool) ast.Node {
 	return enumStmt
 }
 
-func (p *Parser) structDeclarationStmt() ast.Node {
-	stmt := &ast.StructDeclarationStmt{
+func (p *Parser) classDeclarationStmt() ast.Node {
+	stmt := &ast.ClassDeclarationStmt{
 		IsLocal: p.peek(-1).Type != lexer.Pub,
 	}
 	stmt.Token = p.peek(-1)

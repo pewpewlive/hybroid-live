@@ -225,39 +225,39 @@ func (ce *BuiltinCallExpr) GetValueType() PrimitiveValueType {
 	return Invalid
 }
 
-type AnonFnExpr struct {
+type FunctionExpr struct {
 	Token  lexer.Token
 	Return []*TypeExpr
 	Params []Param
 	Body   []Node
 }
 
-func (afe *AnonFnExpr) GetType() NodeType {
-	return AnonymousFunctionExpression
+func (afe *FunctionExpr) GetType() NodeType {
+	return FunctionExpression
 }
 
-func (afe *AnonFnExpr) GetToken() lexer.Token {
+func (afe *FunctionExpr) GetToken() lexer.Token {
 	return afe.Token
 }
 
-func (afe *AnonFnExpr) GetValueType() PrimitiveValueType {
+func (afe *FunctionExpr) GetValueType() PrimitiveValueType {
 	return Invalid
 }
 
-type AnonStructExpr struct {
+type StructExpr struct {
 	Token  lexer.Token
 	Fields []*FieldDeclarationStmt
 }
 
-func (ase *AnonStructExpr) GetType() NodeType {
-	return AnonymousStructExpression
+func (ase *StructExpr) GetType() NodeType {
+	return StructExpression
 }
 
-func (ase *AnonStructExpr) GetToken() lexer.Token {
+func (ase *StructExpr) GetToken() lexer.Token {
 	return ase.Token
 }
 
-func (ase *AnonStructExpr) GetValueType() PrimitiveValueType {
+func (ase *StructExpr) GetValueType() PrimitiveValueType {
 	return Struct
 }
 

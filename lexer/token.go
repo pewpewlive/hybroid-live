@@ -88,6 +88,7 @@ const (
 	Self     TokenType = "self"
 	Spawn    TokenType = "spawn"
 	Struct   TokenType = "struct"
+	Class    TokenType = "class"
 	Tick     TokenType = "tick"
 	To       TokenType = "to"
 	True     TokenType = "true"
@@ -132,6 +133,7 @@ var keywords = map[string]TokenType{
 	"self":     Self,
 	"spawn":    Spawn,
 	"struct":   Struct,
+	"class":    Class,
 	"tick":     Tick,
 	"to":       To,
 	"true":     True,

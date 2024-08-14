@@ -315,16 +315,16 @@ func (gen *Generator) enumDeclarationStmt(node ast.EnumDeclarationStmt, scope *G
 	scope.AppendTabbed("}")
 }
 
-func (gen *Generator) structDeclarationStmt(node ast.StructDeclarationStmt, scope *GenScope) {
-	structScope := NewGenScope(scope)
+func (gen *Generator) classDeclarationStmt(node ast.ClassDeclarationStmt, scope *GenScope) {
+	classScope := NewGenScope(scope)
 
 	for _, nodebody := range node.Methods {
-		gen.methodDeclarationStmt(nodebody, node, &structScope)
+		gen.methodDeclarationStmt(nodebody, node, &classScope)
 	}
 
-	gen.constructorDeclarationStmt(*node.Constructor, node, &structScope)
+	gen.constructorDeclarationStmt(*node.Constructor, node, &classScope)
 
-	scope.Write(structScope.Src)
+	scope.Write(classScope.Src)
 }
 
 func (gen *Generator) entityDeclarationStmt(node ast.EntityDeclarationStmt, scope *GenScope) {
@@ -454,7 +454,7 @@ func (gen *Generator) GenerateParams(params []ast.Param, scope *GenScope) {
 	}
 }
 
-func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, Struct ast.StructDeclarationStmt, scope *GenScope) {
+func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, class ast.ClassDeclarationStmt, scope *GenScope) {
 	src := StringBuilder{}
 
 	constructorScope := NewGenScope(scope)
@@ -463,15 +463,15 @@ func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, Struc
 	// 	constructorScope.WriteString("local ")
 	// }
 
-	constructorScope.Append("function ", hyStruct, gen.WriteVar(Struct.Name.Lexeme), "_New(")
+	constructorScope.Append("function ", hyStruct, gen.WriteVar(class.Name.Lexeme), "_New(")
 
 	gen.GenerateParams(node.Params, &constructorScope)
 
 	TabsCount++
 	src.AppendTabbed("local Self = {")
-	for i, field := range Struct.Fields {
+	for i, field := range class.Fields {
 		for j, value := range field.Values {
-			if j == len(field.Values)-1 && i == len(Struct.Fields)-1 {
+			if j == len(field.Values)-1 && i == len(class.Fields)-1 {
 				src.WriteString(gen.GenerateExpr(value, &constructorScope))
 			} else {
 				src.Append(gen.GenerateExpr(value, &constructorScope), ",")
@@ -503,7 +503,7 @@ func (gen *Generator) fieldDeclarationStmt(node ast.FieldDeclarationStmt, scope 
 	return src.String()
 }
 
-func (gen *Generator) methodDeclarationStmt(node ast.MethodDeclarationStmt, Struct ast.StructDeclarationStmt, scope *GenScope) {
+func (gen *Generator) methodDeclarationStmt(node ast.MethodDeclarationStmt, Struct ast.ClassDeclarationStmt, scope *GenScope) {
 	methodScope := NewGenScope(scope)
 
 	// if Struct.IsLocal {

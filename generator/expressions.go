@@ -150,7 +150,7 @@ func (gen *Generator) memberExpr(node ast.MemberExpr, scope *GenScope) string {
 	return src.String()
 }
 
-func (gen *Generator) anonFnExpr(fn ast.AnonFnExpr, scope *GenScope) string {
+func (gen *Generator) functionExpr(fn ast.FunctionExpr, scope *GenScope) string {
 	fnScope := NewGenScope(scope)
 
 	fnScope.WriteString("function (")
@@ -169,7 +169,7 @@ func (gen *Generator) anonFnExpr(fn ast.AnonFnExpr, scope *GenScope) string {
 	return fnScope.Src.String()
 }
 
-func (gen *Generator) anonStructExpr(node ast.AnonStructExpr, scope *GenScope) string {
+func (gen *Generator) structExpr(node ast.StructExpr, scope *GenScope) string {
 	src := StringBuilder{}
 
 	src.WriteString("{\n")

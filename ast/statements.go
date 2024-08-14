@@ -108,7 +108,7 @@ func (vds *VariableDeclarationStmt) GetValueType() PrimitiveValueType {
 	return Invalid
 }
 
-type StructDeclarationStmt struct {
+type ClassDeclarationStmt struct {
 	Token       lexer.Token
 	Name        lexer.Token
 	Fields      []FieldDeclarationStmt
@@ -117,15 +117,15 @@ type StructDeclarationStmt struct {
 	IsLocal     bool
 }
 
-func (sds *StructDeclarationStmt) GetType() NodeType {
-	return StructureDeclarationStatement
+func (sds *ClassDeclarationStmt) GetType() NodeType {
+	return ClassDeclarationStatement
 }
 
-func (sds *StructDeclarationStmt) GetToken() lexer.Token {
+func (sds *ClassDeclarationStmt) GetToken() lexer.Token {
 	return sds.Token
 }
 
-func (sds *StructDeclarationStmt) GetValueType() PrimitiveValueType {
+func (sds *ClassDeclarationStmt) GetValueType() PrimitiveValueType {
 	return Invalid
 }
 
@@ -179,7 +179,7 @@ type EnumDeclarationStmt struct {
 }
 
 func (eds *EnumDeclarationStmt) GetType() NodeType {
-	return StructureDeclarationStatement
+	return EnumDeclarationStatement
 }
 
 func (eds *EnumDeclarationStmt) GetToken() lexer.Token {

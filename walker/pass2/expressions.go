@@ -8,7 +8,7 @@ import (
 	"hybroid/generator"
 )
 
-func AnonStructExpr(w *wkr.Walker, node *ast.AnonStructExpr, scope *wkr.Scope) *wkr.AnonStructVal {
+func StructExpr(w *wkr.Walker, node *ast.StructExpr, scope *wkr.Scope) *wkr.AnonStructVal {
 	anonStructScope := wkr.NewScope(scope, &wkr.UntaggedTag{})
 	structTypeVal := wkr.NewAnonStructVal(make(map[string]wkr.Field), false)
 
@@ -19,7 +19,7 @@ func AnonStructExpr(w *wkr.Walker, node *ast.AnonStructExpr, scope *wkr.Scope) *
 	return structTypeVal
 }
 
-func AnonFnExpr(w *wkr.Walker, fn *ast.AnonFnExpr, scope *wkr.Scope) wkr.Value {
+func FunctionExpr(w *wkr.Walker, fn *ast.FunctionExpr, scope *wkr.Scope) wkr.Value {
 	returnTypes := wkr.EmptyReturn
 	for i := range fn.Return {
 		returnTypes = append(returnTypes, TypeExpr(w, fn.Return[i], scope, true))

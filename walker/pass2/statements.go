@@ -14,7 +14,7 @@ import (
 // 	w.Environment.CustomTypes[node.Alias.Lexeme] = wkr.NewCustomType(node.Alias.Lexeme, TypeExpr(w, node.AliasedType, w.Environment))
 // }
 
-func StructDeclarationStmt(w *wkr.Walker, node *ast.StructDeclarationStmt, scope *wkr.Scope) {
+func ClassDeclarationStmt(w *wkr.Walker, node *ast.ClassDeclarationStmt, scope *wkr.Scope) {
 	if node.Constructor == nil {
 		w.Error(node.Name, "structs must be declared with a constructor")
 		return

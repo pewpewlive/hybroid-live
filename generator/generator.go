@@ -315,8 +315,8 @@ func (gen *Generator) GenerateStmt(node ast.Node, scope *GenScope) {
 		gen.functionDeclarationStmt(*newNode, scope)
 	case *ast.EnumDeclarationStmt:
 		gen.enumDeclarationStmt(*newNode, scope)
-	case *ast.StructDeclarationStmt:
-		gen.structDeclarationStmt(*newNode, scope)
+	case *ast.ClassDeclarationStmt:
+		gen.classDeclarationStmt(*newNode, scope)
 	case *ast.EnvAccessExpr:
 		val := gen.envAccessExpr(*newNode, scope)
 		scope.WriteString(val)
@@ -347,10 +347,10 @@ func (gen *Generator) GenerateExpr(node ast.Node, scope *GenScope) string {
 		return gen.fieldExpr(*newNode, scope)
 	case *ast.MemberExpr:
 		return gen.memberExpr(*newNode, scope)
-	case *ast.AnonFnExpr:
-		return gen.anonFnExpr(*newNode, scope)
-	case *ast.AnonStructExpr:
-		return gen.anonStructExpr(*newNode, scope)
+	case *ast.FunctionExpr:
+		return gen.functionExpr(*newNode, scope)
+	case *ast.StructExpr:
+		return gen.structExpr(*newNode, scope)
 	case *ast.SelfExpr:
 		return gen.selfExpr(*newNode, scope)
 	case *ast.NewExpr:

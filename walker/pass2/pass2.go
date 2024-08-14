@@ -51,8 +51,8 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 		if newVersion != nil {
 			*node = newVersion
 		}
-	case *ast.StructDeclarationStmt:
-		StructDeclarationStmt(w, newNode, scope)
+	case *ast.ClassDeclarationStmt:
+		ClassDeclarationStmt(w, newNode, scope)
 	case *ast.EnumDeclarationStmt:
 		EnumDeclarationStmt(w, newNode, scope)
 	case *ast.MatchStmt:
@@ -98,10 +98,10 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 		val = CallExpr(w, callVal, newNode, scope)
 	case *ast.MapExpr:
 		val = MapExpr(w, newNode, scope)
-	case *ast.AnonFnExpr:
-		val = AnonFnExpr(w, newNode, scope)
-	case *ast.AnonStructExpr:
-		val = AnonStructExpr(w, newNode, scope)
+	case *ast.FunctionExpr:
+		val = FunctionExpr(w, newNode, scope)
+	case *ast.StructExpr:
+		val = StructExpr(w, newNode, scope)
 	case *ast.MemberExpr:
 		val = MemberExpr(w, newNode, scope)
 	case *ast.FieldExpr:
