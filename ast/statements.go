@@ -89,7 +89,7 @@ func (self *MacroDeclarationStmt) GetValueType() PrimitiveValueType {
 
 type VariableDeclarationStmt struct {
 	Identifiers []lexer.Token
-	Types       []*TypeExpr
+	Type        *TypeExpr
 	Values      []Node
 	IsLocal     bool
 	IsConst     bool
@@ -126,6 +126,25 @@ func (sds *ClassDeclarationStmt) GetToken() lexer.Token {
 }
 
 func (sds *ClassDeclarationStmt) GetValueType() PrimitiveValueType {
+	return Invalid
+}
+
+type DestroyStmt struct {
+	Identifier Node
+	Args  []Node
+	Generics []*TypeExpr
+	Token lexer.Token
+}
+
+func (ne *DestroyStmt) GetType() NodeType {
+	return DestroyStatement
+}
+
+func (ne *DestroyStmt) GetToken() lexer.Token {
+	return ne.Token
+}
+
+func (ne *DestroyStmt) GetValueType() PrimitiveValueType {
 	return Invalid
 }
 
@@ -212,7 +231,7 @@ func (cs *ConstructorStmt) GetValueType() PrimitiveValueType {
 
 type FieldDeclarationStmt struct {
 	Identifiers []lexer.Token
-	Types       []*TypeExpr
+	Type        *TypeExpr
 	Values      []Node
 	Token       lexer.Token
 }

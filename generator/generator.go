@@ -81,6 +81,7 @@ const (
 	GotoReplacement
 	ContinueReplacement
 	VariadicParamReplacement
+	VariableReplacement
 )
 
 type Range struct {

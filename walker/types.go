@@ -18,7 +18,8 @@ type ValueType int
 const (
 	Basic ValueType = iota
 	Fn
-	AnonStruct
+	Uninitialized
+	Strct
 	Named
 	Fixed
 	Wrapper // List or Map
@@ -31,6 +32,32 @@ const (
 	NA
 	NotKnown
 )
+
+type UninitializedType struct {
+	Type Type
+}
+
+func NewUnitializedType(typ Type) *UninitializedType {
+	return &UninitializedType{
+		Type: typ,
+	}
+}
+
+func (self *UninitializedType) PVT() ast.PrimitiveValueType {
+	return ast.Uninitialized
+}
+
+func (self *UninitializedType) GetType() ValueType {
+	return Uninitialized
+}
+
+func (self *UninitializedType) _eq(_ Type) bool {
+	return false
+}
+
+func (self *UninitializedType) ToString() string {
+	return "uninitialized("+self.Type.ToString()+")"
+}
 
 type VariadicType struct {
 	Type Type
@@ -58,7 +85,6 @@ func (self *VariadicType) _eq(other Type) bool {
 func (self *VariadicType) ToString() string {
 	return "..."+self.Type.ToString()
 }
-
 
 type PathType struct {
 	EnvType ast.EnvType
@@ -291,29 +317,29 @@ func (self *FixedPoint) ToString() string {
 	return string(self.Specific)
 }
 
-type AnonStructType struct {
+type StructType struct {
 	Fields map[string]Field
 	Lenient bool
 }
 
-func NewAnonStructType(fields map[string]Field, lenient bool) *AnonStructType {
-	return &AnonStructType{
+func NewStructType(fields map[string]Field, lenient bool) *StructType {
+	return &StructType{
 		Fields: fields,
 		Lenient: lenient,
 	}
 }
 
-func (self *AnonStructType) PVT() ast.PrimitiveValueType {
+func (self *StructType) PVT() ast.PrimitiveValueType {
 	return ast.AnonStruct
 }
 
-func (self *AnonStructType) GetType() ValueType {
-	return AnonStruct
+func (self *StructType) GetType() ValueType {
+	return Strct
 }
 
-func (self *AnonStructType) _eq(other Type) bool {
+func (self *StructType) _eq(other Type) bool {
 	map1 := self.Fields
-	map2 := other.(*AnonStructType).Fields
+	map2 := other.(*StructType).Fields
 	if self.Lenient {
 		return other._eq(self)
 	} 
@@ -332,7 +358,7 @@ func (self *AnonStructType) _eq(other Type) bool {
 	return true
 }
 
-func (self *AnonStructType) ToString() string {
+func (self *StructType) ToString() string {
 	src := generator.StringBuilder{}
 
 	src.WriteString("struct{")
@@ -388,12 +414,14 @@ func (self *NamedType) ToString() string {
 
 type EnumType struct {
 	Name   string
+	EnvName string
 	IsUsed bool
 }
 
-func NewEnumType(name string) *EnumType {
+func NewEnumType(envName, name string) *EnumType {
 	return &EnumType{
 		Name: name,
+		EnvName: envName,
 	}
 }
 
@@ -498,3 +526,21 @@ func TypeEquals(t Type, other Type) bool {
 }
 
 var InvalidType = NewBasicType(ast.Invalid)
+
+
+var MeshValueType = NewStructType(map[string]Field{
+	"vertexes": NewField(0, &VariableVal{
+		Name: "vertexes",
+		Value: &ListVal{ValueType: NewWrapperType(NewBasicType(ast.List), NewBasicType(ast.Number))},
+	}),
+	"segments": NewField(1, &VariableVal{
+		Name: "segments",
+		Value:  &ListVal{ValueType: NewWrapperType(NewBasicType(ast.List), NewBasicType(ast.Number))},
+	}),
+	"colors": NewField(2, &VariableVal{
+		Name: "colors",
+		Value: &ListVal{ValueType: NewBasicType(ast.Number)},
+	}),
+}, false)
+var MeshesValueType = (&ListVal{ValueType: MeshValueType,
+}).GetType()

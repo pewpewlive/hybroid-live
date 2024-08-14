@@ -1,0 +1,33 @@
+env Utils as Level
+
+use Fmath
+use Pewpew
+
+// Should be created only once 
+class Camera {
+  fixed x, y, z // Offset values
+
+  // Camera shake
+  fixed shakePower = 10f
+  fixed shakeDecay = 0.5f
+
+  new() {
+    tick {
+      Update()
+    }
+  }
+
+  fn Update() {
+    Shake()
+  }
+
+  fn Shake() {
+    x = RandomFixed(-shakePower, shakePower)
+
+    SetPlayerConfig(struct{
+      camera_x_offset = x
+    })
+
+    shakePower *= shakeDecay
+  }
+}

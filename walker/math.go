@@ -8,6 +8,7 @@ var MathEnv = &Environment{
 		Variables: MathVariables,
 		Tag: &UntaggedTag{},
 	},
+	UsedWalkers: make([]*Walker, 0),
 	UsedLibraries: make(map[Library]bool),
 	Structs: make(map[string]*StructVal),
 	Entities: make(map[string]*EntityVal),
@@ -111,14 +112,14 @@ var MathVariables = map[string]*VariableVal{
 		Value: NewFunction(NewBasicType(ast.Number)).WithReturns(NewBasicType(ast.String)),
 		IsConst: true,
 	},
-	"Max": {// TODO: CHANGE WHEN VARIADIC ARGS ARE IMPLEMENTED
+	"Max": {
 		Name:  "Max",
-		Value: NewFunction(NewBasicType(ast.Number), NewBasicType(ast.Number)).WithReturns(NewBasicType(ast.Number)),
+		Value: NewFunction(NewBasicType(ast.Number), NewVariadicType(NewBasicType(ast.Number))).WithReturns(NewBasicType(ast.Number)),
 		IsConst: true,
 	},
-	"Min": {// TODO: CHANGE WHEN VARIADIC ARGS ARE IMPLEMENTED
+	"Min": {
 		Name:  "Min",
-		Value: NewFunction(NewBasicType(ast.Number), NewBasicType(ast.Number)).WithReturns(NewBasicType(ast.Number)),
+		Value: NewFunction(NewBasicType(ast.Number), NewVariadicType(NewBasicType(ast.Number))).WithReturns(NewBasicType(ast.Number)),
 		IsConst: true,
 	},
 	"Modf": {

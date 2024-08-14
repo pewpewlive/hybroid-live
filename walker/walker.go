@@ -23,7 +23,6 @@ type Environment struct {
 	Scope     Scope
 	UsedWalkers   []*Walker
 	UsedLibraries map[Library]bool
-	Variables map[string]*VariableVal
 	Structs   map[string]*StructVal
 	Entities  map[string]*EntityVal
 	CustomTypes     map[string]*CustomType
@@ -97,8 +96,8 @@ func NewWalker(path string) *Walker {
 	return walker
 }
 
-func (w *Walker) Error(token lexer.Token, msg string) {
-	w.Errors = append(w.Errors, ast.Error{Token: token, Message: msg})
+func (w *Walker) Error(token lexer.Token, msg string, objects ...interface{}) {
+	w.Errors = append(w.Errors, ast.Error{Token: token, Message: fmt.Sprintf(msg, objects...)})
 }
 
 func (w *Walker) Warn(token lexer.Token, msg string) {
@@ -445,10 +444,22 @@ func (w *Walker) TypeToValue(_type Type) Value {
 		return val
 	case ast.AnonStruct:
 		return &AnonStructVal{
-			Fields: _type.(*AnonStructType).Fields,
+			Fields: _type.(*StructType).Fields,
 		}
 	case ast.Enum:
-		return w.GetVariable(&w.Environment.Scope, _type.(*EnumType).Name)
+		enum := _type.(*EnumType)
+		walker, found := w.Walkers[enum.EnvName]
+		var variable *VariableVal
+		switch enum.EnvName {
+		case "Pewpew": 
+			variable = PewpewEnv.Scope.Variables[enum.Name]
+		default:
+			variable = walker.GetVariable(&w.Environment.Scope, enum.Name)
+		}
+		if variable == nil {
+			panic(fmt.Sprintf("Enum variable could not be found when converting enum type to value (envName:%v, name:%v, walkerFound:%v)", enum.EnvName, enum.Name, found))
+		}
+		return variable
 	case ast.Entity:
 		val, _ := w.Walkers[_type.(*NamedType).EnvName].GetEntity(_type.ToString())
 		return val
@@ -549,6 +560,7 @@ func DetermineCallTypeString(callType ProcedureType) string {
 func SetupLibraryEnvironments() {
 	PewpewEnv.Scope.Environment = PewpewEnv	
 	FmathEnv.Scope.Environment = FmathEnv
+	MathEnv.Scope.Environment = MathEnv
 	StringEnv.Scope.Environment = StringEnv
 	TableEnv.Scope.Environment = TableEnv
 }

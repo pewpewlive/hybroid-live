@@ -212,8 +212,6 @@ type Scope struct {
 	Variables         map[string]*VariableVal
 
 	Body *[]*ast.Node
-	Node      *ast.FieldExpr
-	Container FieldContainer
 }
 
 func (sc *Scope) Is(types ...ScopeAttribute) bool {

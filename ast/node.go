@@ -16,7 +16,7 @@ const (
 
 	EntityDeclarationStatement        NodeType = "entityDeclarationStatement"
 	EntityFunctionDeclarationStatemet NodeType = "entityFunctionDeclarationStatement"
-	DestroyStmt                       NodeType = "spawnStatement"
+	DestroyStatement                  NodeType = "destroyStatement"
 
 	ConstructorStatement NodeType = "constructorStatement"
 	EnvironmentStatement NodeType = "environmentStatement"
@@ -90,6 +90,7 @@ const (
 	Path       PrimitiveValueType = "path"
 	Generic    PrimitiveValueType = "generic"
 	Invalid    PrimitiveValueType = "invalid"
+	Uninitialized PrimitiveValueType = "uninitialized"
 )
 
 type EnvType string

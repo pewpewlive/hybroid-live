@@ -5,6 +5,7 @@ import (
 	"hybroid/ast"
 	"hybroid/lexer"
 	"strconv"
+	"strings"
 )
 
 func (gen *Generator) envStmt(node ast.EnvironmentStmt, scope *GenScope) {
@@ -35,34 +36,42 @@ func (gen *Generator) ifStmt(node ast.IfStmt, scope *GenScope) {
 	scope.Write(ifScope.Src)
 }
 
-func (gen *Generator) assignmentStmt(assginStmt ast.AssignmentStmt, scope *GenScope) {
+func (gen *Generator) assignmentStmt(assignStmt ast.AssignmentStmt, scope *GenScope) {
 	src := StringBuilder{}
 
-	src.AppendTabbed()
+	preSrc := StringBuilder{}
 
-	for i, ident := range assginStmt.Identifiers {
-		ident := gen.GenerateExpr(ident, scope)
-		if i == len(assginStmt.Identifiers)-1 {
-			src.Append(ident)
-		} else {
-			src.Append(ident, ", ")
+	vars := []string{}
+
+	index := 0
+	for i := 0; i < len(assignStmt.Values); i++ {
+		src.AppendTabbed()
+		if assignStmt.Values[i].GetType() == ast.CallExpression {
+			call := assignStmt.Values[i].(*ast.CallExpr)
+			preSrc.AppendTabbed()
+			for j := range call.ReturnAmount {
+				src.Append(gen.GenerateExpr(assignStmt.Identifiers[index+j], scope))
+				vars = append(vars, GenerateVar(hyVar))
+				preSrc.WriteString(vars[j])
+				if j != call.ReturnAmount-1 {
+					preSrc.WriteString(", ")
+					src.WriteString(", ")
+				}else {
+					preSrc.Append(" = ", gen.callExpr(*call, false, scope), "\n")
+					src.Append(" = ", strings.Join(vars, ", "), "\n")
+				}
+			}
+			vars = []string{}
+			index += call.ReturnAmount
 		}
-	}
-	src.Append(" = ")
-
-	for i, rightValue := range assginStmt.Values {
-		value := gen.GenerateExpr(rightValue, scope)
-		if i > len(assginStmt.Identifiers)-1 {
-			src.Append(value)
+		if index >= len(assignStmt.Identifiers) {
 			break
 		}
-		if i == len(assginStmt.Values)-1 {
-			src.Append(value)
-		} else {
-			src.Append(value, ", ")
-		}
+		src.Append(gen.GenerateExpr(assignStmt.Identifiers[index], scope), " = ", gen.GenerateExpr(assignStmt.Values[i], scope), "\n")
+		index++
 	}
-
+	
+	scope.Write(preSrc)
 	scope.Write(src)
 }
 

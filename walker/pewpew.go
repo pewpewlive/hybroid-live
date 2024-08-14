@@ -10,6 +10,7 @@ var PewpewEnv = &Environment{
 		Variables: PewpewVariables,
 		Tag: &UntaggedTag{},
 	},
+	UsedWalkers: make([]*Walker, 0),
 	UsedLibraries: make(map[Library]bool),
 	Structs: make(map[string]*StructVal),
 	Entities: make(map[string]*EntityVal),
@@ -135,7 +136,7 @@ var PewpewVariables = map[string]*VariableVal{
 	},
 	"ConfigurePlayer": { 
 		Name:  "ConfigurePlayer",
-		Value: NewFunction(NewBasicType(ast.Number), NewAnonStructType(map[string]Field{
+		Value: NewFunction(NewBasicType(ast.Number), NewStructType(map[string]Field{
 			"has_lost": NewField(0, &VariableVal{
 				Name: "has_lost",
 				Value: &BoolVal{},
@@ -173,7 +174,7 @@ var PewpewVariables = map[string]*VariableVal{
 	},
 	"ConfigurePlayerHud": {
 		Name: "ConfigurePlayerHud",
-		Value: NewFunction(NewBasicType(ast.Number), NewAnonStructType(map[string]Field{
+		Value: NewFunction(NewBasicType(ast.Number), NewStructType(map[string]Field{
 			"TopLeftLine": NewField(0, &VariableVal{
 				Name: "TopLeftLine",
 				Value: &StringVal{},
@@ -182,7 +183,7 @@ var PewpewVariables = map[string]*VariableVal{
 	},
 	"GetPlayerConfig": {  
 		Name:  "GetPlayerConfig", 
-		Value: NewFunction(NewBasicType(ast.Number)).WithReturns(NewAnonStructType(map[string]Field{
+		Value: NewFunction(NewBasicType(ast.Number)).WithReturns(NewStructType(map[string]Field{
 			"shield": NewField(0, &VariableVal{
 				Name: "shield",
 				Value: &NumberVal{},
@@ -191,12 +192,12 @@ var PewpewVariables = map[string]*VariableVal{
 				Name: "has_lost",
 				Value: &BoolVal{},
 			}),
-		}, true)),
+		}, false)),
 		IsConst: true,
 	}, 
 	"ConfigureShipWeapon": {  
 		Name:  "ConfigureShipWeapon",
-		Value: NewFunction(&RawEntityType{}, NewAnonStructType(map[string]Field{
+		Value: NewFunction(&RawEntityType{}, NewStructType(map[string]Field{
 			"frequency": NewField(0, &VariableVal{
 				Name: "frequency",
 				Value: CannonFrequency,
@@ -249,12 +250,12 @@ var PewpewVariables = map[string]*VariableVal{
 	}, 
 	"GetEntityCount": { 
 		Name:  "GetEntityCount", 
-		Value: NewFunction(NewEnumType("EntityType")).WithReturns(NewBasicType(ast.Number)),
+		Value: NewFunction(NewEnumType("Pewpew", "EntityType")).WithReturns(NewBasicType(ast.Number)),
 		IsConst: true,
 	},
 	"GetEntityType": { 
 		Name:  "GetEntityType", 
-		Value: NewFunction(&RawEntityType{}).WithReturns(NewEnumType("EntityType")),
+		Value: NewFunction(&RawEntityType{}).WithReturns(NewEnumType("Pewpew", "EntityType")),
 		IsConst: true,
 	},
 	"PlayAmbientSound": { 
@@ -299,12 +300,12 @@ var PewpewVariables = map[string]*VariableVal{
 	},
 	"NewBomb": { 
 		Name:  "NewBomb", 
-		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewEnumType("BonusType")).WithReturns(&RawEntityType{}),
+		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewEnumType("Pewpew", "BonusType")).WithReturns(&RawEntityType{}),
 		IsConst: true,
 	},
 	"NewBonus": { // let's intergrate this with the walker now
 		Name:  "NewBonus", 
-		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewEnumType("BonusType"), NewAnonStructType(map[string]Field{
+		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewEnumType("Pewpew", "BonusType"), NewStructType(map[string]Field{
 			"box_duration": NewField(0, &VariableVal{
 				Name: "box_duration",
 				Value: &NumberVal{}, 
@@ -351,7 +352,7 @@ var PewpewVariables = map[string]*VariableVal{
 	},
 	"NewFloatingMessage": { 
 		Name:  "NewFloatingMessage", 
-		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewBasicType(ast.String), NewAnonStructType(map[string]Field{
+		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewBasicType(ast.String), NewStructType(map[string]Field{
 			"scale": NewField(0, &VariableVal{
 				Name: "scale",
 				Value: &FixedVal{ SpecificType: ast.Fixed },
@@ -380,7 +381,7 @@ var PewpewVariables = map[string]*VariableVal{
 	},
 	"NewMothership": {
 		Name: "NewMothership",
-		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewEnumType("MothershipType"), NewFixedPointType(ast.Degree)).WithReturns(&RawEntityType{}),
+		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewEnumType("Pewpew", "MothershipType"), NewFixedPointType(ast.Degree)).WithReturns(&RawEntityType{}),
 		IsConst: true,
 	},
 	"NewPointonium": {
@@ -423,8 +424,8 @@ var PewpewVariables = map[string]*VariableVal{
 		Name: "GetEntityPosition",
 		Value: NewFunction(&RawEntityType{}).WithReturns(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)),
 	},
-	"GetEntityAlive": {
-		Name: "GetEntityAlive",
+	"IsEntityAlive": {
+		Name: "IsEntityAlive",
 		Value: NewFunction(&RawEntityType{}).WithReturns(NewBasicType(ast.Bool)),
 	},
 	"IsEntityBeingDestroyed": {
@@ -449,7 +450,7 @@ var PewpewVariables = map[string]*VariableVal{
 	},
 	"EntityReactToWeapon": {
 		Name: "EntityReactToWeapon",
-		Value: NewFunction(&RawEntityType{}, NewAnonStructType(map[string]Field{
+		Value: NewFunction(&RawEntityType{}, NewStructType(map[string]Field{
 			"type": NewField(0, &VariableVal{
 				Name: "type",
 				Value: WeaponType,
@@ -510,7 +511,7 @@ var PewpewVariables = map[string]*VariableVal{
 	},
 	"ConfigureEntityMusicResponse": {
 		Name: "ConfigureEntityMusicResponse",
-		Value: NewFunction(&RawEntityType{}, NewAnonStructType(map[string]Field{
+		Value: NewFunction(&RawEntityType{}, NewStructType(map[string]Field{
 			"color_start": NewField(0, &VariableVal{
 				Name: "color_start",
 				Value: &NumberVal{},
@@ -563,7 +564,7 @@ var PewpewVariables = map[string]*VariableVal{
 	},
 	"SetEntityWeaponCollision": {
 		Name: "SetEntityWeaponCollision",
-		Value: NewFunction(&RawEntityType{}, NewFunctionType(Types{&RawEntityType{}, NewBasicType(ast.Number), NewEnumType("WeaponType")}, Types{NewBasicType(ast.Bool)})),
+		Value: NewFunction(&RawEntityType{}, NewFunctionType(Types{&RawEntityType{}, NewBasicType(ast.Number), NewEnumType("Pewpew", "WeaponType")}, Types{NewBasicType(ast.Bool)})),
 	},
 	"SpawnEntity": {
 		Name: "SpawnEntity",
@@ -575,7 +576,7 @@ var PewpewVariables = map[string]*VariableVal{
 	},
 }
 
-var PewpewEntityType = NewEnumVal("EntityType", false,
+var PewpewEntityType = NewEnumVal("Pewpew", "EntityType", false,
 	"Asteroid",
 	"YellowBaf",
 	"Inertiac",
@@ -602,7 +603,7 @@ var PewpewEntityType = NewEnumVal("EntityType", false,
 	"BonusImplosion",
 )
 
-var MothershipType = NewEnumVal("MothershipType", false,
+var MothershipType = NewEnumVal("Pewpew", "MothershipType", false,
 	"Triangle",
 	"Square",
 	"Pentagon",
@@ -610,7 +611,7 @@ var MothershipType = NewEnumVal("MothershipType", false,
 	"Heptagon",
 )
 
-var CannonType = NewEnumVal("CannonType", false,
+var CannonType = NewEnumVal("Pewpew", "CannonType", false,
 	"Single",
 	"TicToc",
 	"Double",
@@ -620,7 +621,7 @@ var CannonType = NewEnumVal("CannonType", false,
 	"Hemisphere",
 )
 
-var CannonFrequency = NewEnumVal("CannonFreq", false,
+var CannonFrequency = NewEnumVal("Pewpew", "CannonFreq", false,
 	"Freq30",
 	"Freq15",
 	"Freq10",
@@ -632,7 +633,7 @@ var CannonFrequency = NewEnumVal("CannonFreq", false,
 	"Freq1",
 )
 
-var BombType = NewEnumVal("BombType", false,
+var BombType = NewEnumVal("Pewpew", "BombType", false,
 	"Freeze",
 	"Repulsive",
 	"Atomize",
@@ -640,21 +641,21 @@ var BombType = NewEnumVal("BombType", false,
 	"SmallFreeze",
 )
 
-var BonusType = NewEnumVal("BonusType", false,
+var BonusType = NewEnumVal("Pewpew", "BonusType", false,
 	"Reinstantiation",
 	"Shield",
 	"Speed",
 	"Weapon",
 )
 
-var WeaponType = NewEnumVal("WeaponType", false,
+var WeaponType = NewEnumVal("Pewpew", "WeaponType", false,
 	"Bullet",
 	"FreezeExplosion",
 	"RepulsiveExplosion",
 	"AtomizeExplosion",
 )
 
-var AsteroidSize = NewEnumVal("AsteroidSize", false,
+var AsteroidSize = NewEnumVal("Pewpew", "AsteroidSize", false,
 	"Small",
 	"Medium",
 	"Large",

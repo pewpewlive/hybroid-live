@@ -194,6 +194,7 @@ type CallExpr struct {
 	Caller Node
 	GenericArgs []*TypeExpr
 	Args   []Node
+	ReturnAmount int
 }
 
 func (ce *CallExpr) GetType() NodeType {
@@ -323,7 +324,7 @@ type SpawnExpr struct {
 }
 
 func (ne *SpawnExpr) GetType() NodeType {
-	return NewExpession
+	return SpawnExpression
 }
 
 func (ne *SpawnExpr) GetToken() lexer.Token {

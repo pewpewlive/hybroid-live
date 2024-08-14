@@ -125,7 +125,7 @@ var PewpewVariables = map[string]string{
 	"SetRollingCubeWallCollision": "rolling_cube_set_enable_collisions_with_walls",
 	"SetUFOWallCollision": "ufo_set_enable_collisions_with_walls",
 	"GetEntityPosition": "entity_get_position",
-	"GetEntityAlive": "entity_get_is_alive",
+	"IsEntityAlive": "entity_get_is_alive",
 	"IsEntityBeingDestroyed": "entity_get_is_started_to_be_destroyed",
 	"SetEntityPosition": "entity_set_position",
 	"SetEntityRadius": "entity_set_radius",

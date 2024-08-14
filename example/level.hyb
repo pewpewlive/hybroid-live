@@ -8,9 +8,9 @@ SetLevelSize(WIDTH, 1000f)
 
 // WIDTH -= 1f
 
-let ship = Pewpew:NewShip(WIDTH / 2f, HEIGHT / 2f, 0)
+pub Ship = Pewpew:NewShip(WIDTH / 2f, HEIGHT / 2f, 0)
 
-ConfigureShipWeapon(ship, struct{
+ConfigureShipWeapon(Ship, struct{
   frequency = CannonFreq.Freq10
   cannon = Pewpew:CannonType.Double
 })
@@ -23,19 +23,13 @@ ConfigurePlayer(0, struct{
 let bg = NewEntity(0f, 0f)
 SetEntityMesh(bg, MapMesh, 0)
 
-let aasdsad = spawn QuadroEntity:Quadro(0f, 0f)
-fn function(Quadro e) {
-  e.test += 1
-  SetEntityPosition(e, 1f, 1f)
-}
-
-function(aasdsad)
+spawn QuadroEntity:Quadro(0f, 0f, Ship)
 
 tick with time {
   if GetPlayerConfig(0).has_lost == true {
     StopGame()
   }
   if time % 30 == 0 {
-    NewAsteroid(WIDTH/2f, HEIGHT/2f)
+    //NewAsteroid(WIDTH/2f, HEIGHT/2f)
   }
 }

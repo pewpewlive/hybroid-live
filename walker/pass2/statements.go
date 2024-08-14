@@ -30,7 +30,7 @@ func ClassDeclarationStmt(w *wkr.Walker, node *ast.ClassDeclarationStmt, scope *
 		generics = append(generics, wkr.NewGeneric(param.Name.Lexeme))
 	}
 
-	structVal := &wkr.StructVal{
+	classVal := &wkr.StructVal{
 		Type:    *wkr.NewNamedType(w.Environment.Name, node.Name.Lexeme, ast.Struct),
 		IsLocal: node.IsLocal,
 		Fields:  make(map[string]wkr.Field),
@@ -39,15 +39,15 @@ func ClassDeclarationStmt(w *wkr.Walker, node *ast.ClassDeclarationStmt, scope *
 		Params:  wkr.Types{},
 	}
 
-	structScope := wkr.NewScope(scope, &wkr.StructTag{StructVal: structVal}, wkr.SelfAllowing)
+	structScope := wkr.NewScope(scope, &wkr.StructTag{StructVal: classVal}, wkr.SelfAllowing)
 
 	params := make([]wkr.Type, 0)
 	for _, param := range node.Constructor.Params {
 		params = append(params, TypeExpr(w, param.Type, scope, true))
 	}
-	structVal.Params = params
+	classVal.Params = params
 
-	w.DeclareStruct(structVal)
+	w.DeclareStruct(classVal)
 
 	funcDeclaration := ast.MethodDeclarationStmt{
 		Name:    node.Constructor.Token,
@@ -58,8 +58,17 @@ func ClassDeclarationStmt(w *wkr.Walker, node *ast.ClassDeclarationStmt, scope *
 		Body:    node.Constructor.Body,
 	}
 
+	MethodDeclarationStmt(w, &funcDeclaration, classVal, structScope)
+
+	for _, v := range classVal.Fields {
+		if _, uninit := v.Var.Value.(*wkr.UninitializedVal); uninit {
+			w.Error(node.GetToken(), "all fields need to be initialized in constructor")
+			break;
+		}
+	}
+
 	for i := range node.Fields {
-		FieldDeclarationStmt(w, &node.Fields[i], structVal, structScope)
+		FieldDeclarationStmt(w, &node.Fields[i], classVal, structScope)
 	}
 
 	for i := range node.Methods {
@@ -80,14 +89,12 @@ func ClassDeclarationStmt(w *wkr.Walker, node *ast.ClassDeclarationStmt, scope *
 			Token:   node.Methods[i].GetToken(),
 		}
 		w.DeclareVariable(structScope, variable, node.Methods[i].Name)
-		structVal.Methods[variable.Name] = variable
+		classVal.Methods[variable.Name] = variable
 	}
 
 	for i := range node.Methods {
-		MethodDeclarationStmt(w, &node.Methods[i], structVal, structScope)
+		MethodDeclarationStmt(w, &node.Methods[i], classVal, structScope)
 	}
-
-	MethodDeclarationStmt(w, &funcDeclaration, structVal, structScope)
 }
 
 func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDeclarationStmt, scope *wkr.Scope) {
@@ -122,6 +129,12 @@ func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDeclarationStmt, scope
 	} else {
 		EntityFunctionDeclarationStmt(w, node.Spawner, entityVal, entityScope)
 	}
+
+	//methods
+	for i := range node.Methods {
+		MethodDeclarationStmt(w, &node.Methods[i], entityVal, entityScope)
+	}
+
 	//destroy
 	if node.Destroyer == nil {
 		w.Error(node.Token, "entities must be declared with a destroyer")
@@ -140,11 +153,6 @@ func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDeclarationStmt, scope
 				w.Error(found[k][i], fmt.Sprintf("multiple instances of the same entity function is not allowed (%s)", k))
 			}
 		}
-	}
-
-	//methods
-	for i := range node.Methods {
-		MethodDeclarationStmt(w, &node.Methods[i], entityVal, entityScope)
 	}
 }
 
@@ -175,6 +183,12 @@ func EntityFunctionDeclarationStmt(w *wkr.Walker, node *ast.EntityFunctionDeclar
 	WalkBody(w, &node.Body, ft, fnScope)
 	switch node.Type {
 	case ast.Spawn:
+		for _, v := range entityVal.Fields {
+			if _, uninit := v.Var.Value.(*wkr.UninitializedVal); uninit {
+				w.Error(node.GetToken(), "all fields need to be initialized in spawner")
+				break;
+			}
+		}
 		if len(params) < 2 || !(params[0].GetType() == wkr.Fixed && params[1].GetType() == wkr.Fixed) {
 			w.Error(node.Token, fmt.Sprintf("first two parameters of %s must be of fixed type", node.Type))
 		}
@@ -199,7 +213,7 @@ func EntityFunctionDeclarationStmt(w *wkr.Walker, node *ast.EntityFunctionDeclar
 
 func EnumDeclarationStmt(w *wkr.Walker, node *ast.EnumDeclarationStmt, scope *wkr.Scope) {
 	enumVal := &wkr.EnumVal{
-		Type: wkr.NewEnumType(node.Name.Lexeme),
+		Type: wkr.NewEnumType(scope.Environment.Name, node.Name.Lexeme),
 		Fields: make(map[string]*wkr.VariableVal),
 	}
 
@@ -233,7 +247,7 @@ func EnumDeclarationStmt(w *wkr.Walker, node *ast.EnumDeclarationStmt, scope *wk
 func FieldDeclarationStmt(w *wkr.Walker, node *ast.FieldDeclarationStmt, container wkr.FieldContainer, scope *wkr.Scope) {
 	varDecl := ast.VariableDeclarationStmt{
 		Identifiers: node.Identifiers,
-		Types:       node.Types,
+		Type:       node.Type,
 		Values:      node.Values,
 		IsLocal:     true,
 		Token:       node.Token,
@@ -327,7 +341,6 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, s
 func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclarationStmt, scope *wkr.Scope) []*wkr.VariableVal {
 	declaredVariables := []*wkr.VariableVal{}
 
-	identsLength := len(declaration.Identifiers)
 	values := make([]wkr.Value, 0)
 
 	index := 0
@@ -344,11 +357,34 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 		}
 	}
 
-	for i := index+1; i < identsLength; i++ {
-		values = append(values, &wkr.Invalid{})
-	}
-
+	identsLength := len(declaration.Identifiers)
 	trueValuesLength := len(values)
+	if identsLength < trueValuesLength {
+		w.Error(declaration.Token, "too many values given in variable declaration")
+	}else if identsLength > trueValuesLength {
+		filledAll := true
+		for i := index; i < identsLength; i++ {
+			if declaration.Type != nil {
+				typ := TypeExpr(w, declaration.Type, scope, true)
+				val := w.TypeToValue(typ)
+				_default := val.GetDefault()
+				if _default.Value == "nil" {
+					values = append(values, &wkr.UninitializedVal{Type: typ})
+				}else {
+					values = append(values, val)
+				}
+
+				declaration.Values = append(declaration.Values, _default)
+			}else {
+			w.Error(declaration.Identifiers[i], "variable is uninitialized and no explicit type was given")
+				filledAll = false
+			}
+		}
+		if !filledAll {
+			w.Error(declaration.Token, "too few values given in variable declaration")
+			return []*wkr.VariableVal{}
+		}
+	}
 
 	if !declaration.IsLocal && scope.Parent != nil {
 		w.Error(declaration.Token, "cannot declare a global variable inside a local block")
@@ -357,58 +393,39 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 		w.Error(declaration.Token, "cannot declare a global constant inside a local block")
 	}
 
-	if identsLength < trueValuesLength {
-		w.Error(declaration.Token, "too many values given in variable declaration")
-	}else if trueValuesLength > identsLength {
-		w.Error(declaration.Token, "too few values given in variable declaration")
-		return []*wkr.VariableVal{}
-	}
-
 	for i, ident := range declaration.Identifiers {
 		if ident.Lexeme == "_" {
 			continue
 		}
+		valType := values[i].GetType()
 		if w.Environment.Type == ast.MeshEnv && ident.Lexeme == "meshes" {
 			if len(declaration.Identifiers) > 1 {
 				w.Error(ident, "'meshes' variable cannot be declared with another variables")
 			}else if declaration.IsLocal {
 				w.Error(ident, "'meshes' has to be global")
 			}
-			expectedValueType := &wkr.ListVal{ValueType: wkr.NewAnonStructType(map[string]wkr.Field{
-					"vertexes": wkr.NewField(0, &wkr.VariableVal{
-						Name: "vertexes",
-						Value: &wkr.ListVal{ValueType: wkr.NewWrapperType(wkr.NewBasicType(ast.List), wkr.NewBasicType(ast.Number))},
-					}),
-					"segments": wkr.NewField(1, &wkr.VariableVal{
-						Name: "segments",
-						Value:  &wkr.ListVal{ValueType: wkr.NewWrapperType(wkr.NewBasicType(ast.List), wkr.NewBasicType(ast.Number))},
-					}),
-					"colors": wkr.NewField(2, &wkr.VariableVal{
-						Name: "colors",
-						Value: &wkr.ListVal{ValueType: wkr.NewBasicType(ast.Number)},
-					}),
-				}, true),
-			}
-			if !wkr.TypeEquals(values[i].GetType(), expectedValueType.GetType()) {
-				w.Error(ident, fmt.Sprintf("'meshes' needs to be of type %s", expectedValueType.GetType().ToString()))
+			
+			if !wkr.TypeEquals(valType, wkr.MeshesValueType) {
+				w.Error(ident, fmt.Sprintf("'meshes' needs to be of type %s", wkr.MeshesValueType.ToString()))
 			}
 		}
 
-		if declaration.Types[i] != nil {
-			valueType := values[i].GetType()
-			explicitType := TypeExpr(w, declaration.Types[i], scope, false)
-			if valueType.PVT() == ast.Object {
+		if declaration.Type != nil {
+			if valType.GetType() == wkr.Uninitialized {
+				valType = valType.(*wkr.UninitializedType).Type
+			}
+			explicitType := TypeExpr(w, declaration.Type, scope, false)
+			if valType.PVT() == ast.Object {
 				values[i] = w.TypeToValue(explicitType)
 				declaration.Values = append(declaration.Values, values[i].GetDefault()) 
-			} else if !wkr.TypeEquals(valueType, explicitType) {
-				w.Error(declaration.Values[i].GetToken(), fmt.Sprintf("Given value is %s, but explicit type is %s", valueType.ToString(), explicitType.ToString()))
+			} else if !wkr.TypeEquals(valType, explicitType) {
+				w.Error(declaration.Identifiers[i], fmt.Sprintf("Given value is %s, but explicit type is %s", valType.ToString(), explicitType.ToString()))
 			}
+		}else if valType.PVT() == ast.Invalid {
+			w.Error(declaration.Values[i].GetToken(), "value is invalid")
 		}
 
-		if values[i].GetType().PVT() == ast.Invalid {
-			w.Error(declaration.Values[i].GetToken(), "Given value is invalid")
-		}
-
+		
 		variable := &wkr.VariableVal{
 			Value:   values[i],
 			Name:    ident.Lexeme,
@@ -451,45 +468,70 @@ func IfStmt(w *wkr.Walker, node *ast.IfStmt, scope *wkr.Scope) {
 }
 
 func AssignmentStmt(w *wkr.Walker, assignStmt *ast.AssignmentStmt, scope *wkr.Scope) {
-	wIdents := []wkr.Value{}
-	for i := range assignStmt.Identifiers {
-		val := GetNodeValue(w, &assignStmt.Identifiers[i], scope)
-		wIdents = append(wIdents, val)
+	type Value struct {
+		wkr.Value
+		Index int
 	}
 
-	for i := range assignStmt.Values {
-		value := GetNodeValue(w, &assignStmt.Values[i], scope)
-		if variable, ok := value.(*wkr.VariableVal); ok {
-			value = variable.Value
+	values := []Value{}
+	index := 1
+	for i := range assignStmt.Values {// function()
+		index++
+		exprValue := GetNodeValue(w, &assignStmt.Values[i], scope)
+		if assignStmt.Values[i].GetType() == ast.SelfExpression {
+			w.Error(assignStmt.Values[i].GetToken(), "cannot assign self to a variable")
 		}
-		if i > len(wIdents)-1 {
-			break
+		if types, ok := exprValue.(*wkr.Types); ok {
+			for j := range *types {
+				values = append(values, Value{w.TypeToValue((*types)[j]), i})
+			}
+		} else {
+			values = append(values, Value{exprValue, i})
 		}
-		variableType := wIdents[i].GetType()
-		valueType := value.GetType()
-		if variableType.PVT() == ast.Invalid {
-			w.Error(assignStmt.Identifiers[i].GetToken(), "cannot assign a value to an undeclared variable")
+	}
+
+	variablesLength := len(assignStmt.Identifiers)
+	valuesLength := len(values)
+	if variablesLength < valuesLength {
+		w.Error(assignStmt.Token, "too many values given in variable declaration")
+	}else if variablesLength > valuesLength {
+		w.Error(assignStmt.Token, "too few values given in variable declaration")
+	}
+
+	for i := index; i < variablesLength; i++ {
+		values = append(values, Value{&wkr.Invalid{}, i})
+	}
+
+	for i := range assignStmt.Identifiers {
+		variable, ok := GetNodeValue(w, &assignStmt.Identifiers[i], scope).(*wkr.VariableVal)
+		if !ok {
+			w.Error(assignStmt.Identifiers[i].GetToken(), "expected variable in assignment")
+			continue
+		}
+		if variable.IsConst {
+			variableToken := assignStmt.Identifiers[i].GetToken()
+			w.Error(variableToken, "cannot modify '%s' because it is const", variableToken.Lexeme)
 			continue
 		}
 
-		if !wkr.TypeEquals(variableType, valueType) {
-			w.Error(assignStmt.Values[i].GetToken(), fmt.Sprintf("mismatched types: variable has a type of %s, but a value of %s was given to it.", variableType.ToString(), valueType.ToString()))
+		variableType := variable.GetType()
+		if thing, uninit := variable.Value.(*wkr.UninitializedVal); uninit {
+			variableType = thing.Type
 		}
 
-		variable, ok := wIdents[i].(*wkr.VariableVal)
+		valType := values[i].GetType()
+		
 
-		if ok {
-			if _, err := scope.AssignVariable(variable, value); err != nil {
-				err.Token = variable.Token
-				w.AddError(*err)
-			}
+		if !wkr.TypeEquals(variableType, valType) {
+			variableName := assignStmt.Identifiers[i].GetToken().Lexeme
+			w.Error(assignStmt.Values[values[i].Index].GetToken(), "mismatched types: '%s' is of type %s but a value of %s was given to it", variableName, variableType.ToString(), valType.ToString())
 		}
-	}
 
-	if len(assignStmt.Values) < len(assignStmt.Identifiers) {
-		w.Error(assignStmt.Values[len(assignStmt.Values)-1].GetToken(), "not enough values provided in assignment")
-	} else if len(assignStmt.Values) > len(assignStmt.Identifiers) {
-		w.Error(assignStmt.Values[len(assignStmt.Values)-1].GetToken(), "too many values provided in assignment")
+		if vr, ok := values[i].Value.(*wkr.VariableVal); ok {
+			values[i] = Value{vr.Value, values[i].Index}
+		}
+
+		variable.Value = values[i]
 	}
 }
 
@@ -768,4 +810,32 @@ func UseStmt(w *wkr.Walker, node *ast.UseStmt, scope *wkr.Scope) {
 	}
 
 	w.Environment.UsedWalkers = append(w.Environment.UsedWalkers, walker)
+}
+
+func DestroyStmt(w *wkr.Walker, node *ast.DestroyStmt, scope *wkr.Scope) {
+	val := GetNodeValue(w, &node.Identifier, scope)
+	valType := val.GetType()
+
+	if valType.PVT() == ast.Invalid {
+		w.Error(node.Identifier.GetToken(), "invalid variable given in destroy expression")
+		return
+	} else if valType.PVT() != ast.Entity {
+		w.Error(node.Identifier.GetToken(), "variable given in destroy statement is not an entity")
+		return
+	}
+
+	if variable, ok := val.(*wkr.VariableVal); ok {
+		val = variable.Value
+	}
+
+	entityVal := val.(*wkr.EntityVal)
+
+	args := make([]wkr.Type, 0)
+	for i := range node.Args {
+		args = append(args, GetNodeValue(w, &node.Args[i], scope).GetType())
+	}
+
+	suppliedGenerics := GetGenerics(w, node, node.Generics, entityVal.DestroyGenerics, scope)
+
+	w.ValidateArguments(suppliedGenerics, args, entityVal.DestroyParams, node.Token)
 }

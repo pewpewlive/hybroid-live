@@ -25,6 +25,7 @@ func (p *Parser) statement() ast.Node {
 		switch next {
 		case lexer.Fn:
 			p.advance()
+			p.advance()
 			return p.functionDeclarationStmt(false)
 		case lexer.Class:
 			p.advance()
@@ -80,6 +81,9 @@ func (p *Parser) statement() ast.Node {
 	case lexer.Break:
 		p.advance()
 		return &ast.BreakStmt{Token: p.peek(-1)}
+	case lexer.Destroy:
+		p.advance()
+		return p.destroyStmt()
 	case lexer.Continue:
 		p.advance()
 		return &ast.ContinueStmt{Token: p.peek(-1)}
@@ -423,6 +427,25 @@ func (p *Parser) entityFunctionDeclarationStmt(token lexer.Token, functionType a
 	return stmt
 }
 
+func (p *Parser) destroyStmt() ast.Node {
+	stmt := ast.DestroyStmt{
+		Token: p.peek(-1),
+	}
+
+	expr := p.self()
+	exprType := expr.GetType()
+
+	if exprType != ast.Identifier && exprType != ast.EnvironmentAccessExpression && exprType != ast.SelfExpression {
+		p.error(expr.GetToken(), "expected identifier or environment access expression")
+	}
+	stmt.Identifier = expr
+	stmt.Generics = p.genericArguments()
+	stmt.Args = p.arguments()
+
+	return &stmt
+}
+
+
 func (p *Parser) constructorDeclarationStmt() ast.Node {
 	stmt := &ast.ConstructorStmt{Token: p.peek(-1)}
 
@@ -439,27 +462,29 @@ func (p *Parser) constructorDeclarationStmt() ast.Node {
 }
 
 func (p *Parser) fieldDeclarationStmt() ast.Node {
-	stmt := ast.FieldDeclarationStmt{}
+	stmt := ast.FieldDeclarationStmt{
+		Token: p.peek(),
+	}
 
 	typ, ident := p.TypeWithVar()
 	if ident.GetType() != ast.Identifier {
+		p.error(ident.GetToken(), "expected identifier in field declaration")
 		return ast.NewImproper(ident.GetToken())
 	}
 
 	idents := []lexer.Token{ident.GetToken()}
-	types := []*ast.TypeExpr{typ}
+
+	stmt.Type = typ
 	for p.match(lexer.Comma) {
-		typ, ident := p.TypeWithVar()
-		if ident.GetType() != ast.Identifier {
-			return ast.NewImproper(ident.GetToken())
+		ident := p.advance()
+		if ident.Type != lexer.Identifier {
+			p.error(ident, "expected identifier in field declaration")
 		}
 
-		idents = append(idents, ident.GetToken())
-		types = append(types, typ)
+		idents = append(idents, ident)
 	}
 
 	stmt.Identifiers = idents
-	stmt.Types = types
 
 	if !p.match(lexer.Equal) {
 		stmt.Values = []ast.Node{}
@@ -552,8 +577,11 @@ func (p *Parser) assignmentStmt() ast.Node {
 	idents := []ast.Node{expr}
 
 	for p.match(lexer.Comma) { // memberExpr or IdentifierExpr
-		identExpr := p.expression()
-		idents = append(idents, identExpr)
+		expr := p.expression()
+		if expr.GetType() != ast.Identifier && expr.GetType() != ast.EnvironmentAccessExpression {
+			p.error(expr.GetToken(), "expected identifier or environment access expression")
+		}
+		idents = append(idents, expr)
 	}
 
 	if p.match(lexer.Equal) {
@@ -873,7 +901,7 @@ func (p *Parser) tickStmt() ast.Node {
 	return &tickStmt
 }
 
-func (p *Parser) variableDeclarationStmt() ast.Node { // kk
+func (p *Parser) variableDeclarationStmt() ast.Node {
 	variable := ast.VariableDeclarationStmt{
 		Token:   p.peek(-1),
 		IsLocal: p.peek(-1).Type == lexer.Let,
@@ -888,21 +916,18 @@ func (p *Parser) variableDeclarationStmt() ast.Node { // kk
 	}
 
 	idents := []lexer.Token{ide.GetToken()}
-	types := []*ast.TypeExpr{typ}
+	variable.Type = typ
 	for p.match(lexer.Comma) {
-		typ, ide = p.TypeWithVar()
-		if ide.GetType() != ast.Identifier {
-			ideToken := ide.GetToken()
-			p.error(ideToken, "expected identifier in variable declaration")
-			return ast.NewImproper(ideToken)
+		ide := p.advance()
+		if ide.Type != lexer.Identifier {
+			p.error(ide, "expected identifier in variable declaration")
+			return ast.NewImproper(ide)
 		}
 
-		idents = append(idents, ide.GetToken())
-		types = append(types, typ)
+		idents = append(idents, ide)
 	}
 
 	variable.Identifiers = idents
-	variable.Types = types
 
 	if !p.match(lexer.Equal) {
 		variable.Values = []ast.Node{}

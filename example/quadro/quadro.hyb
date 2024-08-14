@@ -3,32 +3,84 @@ env QuadroEntity as Level
 use Pewpew
 
 entity Quadro {
-  number test = 1
+  fixed x, y = 0f, 0f
+  fixed velX, velY = 0f, 0f
 
-  spawn(fixed x, fixed y) {
-    self.test += 1
+  number hitCooldownTimer
+  number hitCooldown = 5
 
-    Pewpew:SetEntityInterpolation(self, true)
+  number health = 20
 
-    Pewpew:SetEntityPosition(self, x, y)
+  entity ship
+  bool canHit
 
-    Pewpew:SetEntityMesh(self, QuadroMesh, 0)
+  bool isDead
+
+  spawn(fixed x, fixed y, entity ship) {
+    self.ship = ship
+
+    SetEntityInterpolation(self, true)
+
+    SetEntityPosition(self, x, y)
+
+    SetEntityMesh(self, QuadroMesh, 0)
+    SetEntityRadius(self, 10.5f)
   }
 
-  destroy() {
-    
+  destroy(fixed DEATH_POWER) {
+    ExplodeEntity(self, 10)
+  }
+
+  WallCollision(fixed normalX, fixed normalY) {
+
+  }
+  
+  PlayerCollision(number playerIndex, entity shipId) {
+    if IsEntityAlive(shipId) {
+      DamageShip(shipId, 1)
+    }
+
+    canHit = false
   }
 
   WeaponCollision(number playerIndex, WeaponType weaponType) {
-    
+    if weaponType == WeaponType.Bullet {
+      health -= 1
+    }
+
+    if health == 0 {
+      isDead = true
+      destroy self(1f)
+    }
   }
 
   Update() {
-    let x, y = Pewpew:GetEntityPosition(self)
+    UpdateCooldown()
 
-    x += 1f
-    //Pewpew:Print(x)
+    Move()
+  }
 
-    Pewpew:SetEntityPosition(self, x, y)
+  fn Move() {
+    x, y = GetEntityPosition(self)
+
+    let fixed sX, sY
+    if IsEntityAlive(ship) {
+      sX, sY = GetEntityPosition(ship) 
+    }
+
+    let dirX, dirY = FmathHelpers:Normalize(sX - x, sY - y)
+    
+
+    velX += (dirX * 10f * velX) * 0.2f + 0.01f
+    velY += (dirY * 10f * velY) * 0.2f + 0.01f
+
+    SetEntityPosition(self, x + velX * 10f, y + velY * 10f)
+  }
+
+  fn UpdateCooldown() {
+    hitCooldownTimer += 1
+    if hitCooldownTimer == hitCooldown {
+      canHit = true
+    }
   }
 }

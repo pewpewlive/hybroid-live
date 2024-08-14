@@ -133,7 +133,7 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 		_struct := sc.Tag.(*wkr.StructTag).StructVal
 		_, index, _ := _struct.ContainsField(variable.Name)
 		selfExpr := &ast.FieldExpr{
-			Index: index,
+			Index: index+1,
 			Identifier: &ast.SelfExpr{
 				Token: valueNode.GetToken(),
 				Type:  ast.SelfStruct,
@@ -149,11 +149,14 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 		entity := sc.Tag.(*wkr.EntityTag).EntityType
 		_, index, _ := entity.ContainsField(variable.Name)
 		selfExpr := &ast.FieldExpr{
-			Index: index,
+			Index: index+1,
 			Identifier: &ast.SelfExpr{
 				Token: valueNode.GetToken(),
 				Type:  ast.SelfEntity,
 			},
+			ExprType: ast.SelfEntity,
+			EntityName: entity.Type.Name,
+			EnvName: entity.Type.EnvName,
 		}
 
 		identExpr := &ast.IdentifierExpr{
@@ -242,6 +245,7 @@ func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr) (wkr.Value, ast.Node)
 	for _, v := range walker.GetEnvStmt().Requirements {
 		if v == w.Environment.Path {
 			w.Error(node.GetToken(), fmt.Sprintf("import cycle detected: this environment and '%s' are using each other", walker.Environment.Name))
+			return &wkr.Invalid{}, nil
 		}
 	}
 
@@ -300,6 +304,8 @@ func CallExpr(w *wkr.Walker, val wkr.Value, node *ast.CallExpr, scope *wkr.Scope
 		}
 	}
 
+	node.ReturnAmount = len(fun.Returns)
+
 	if len(fun.Returns) == 1 {
 		return w.TypeToValue(fun.Returns[0]) 
 	}
@@ -348,10 +354,10 @@ func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {
 	}
 	
 	newScope := scopeable.Scopify(scope, node)
+	w.Context.Value = val
+	w.Context.Node = node
+
 	propVal := GetNodeValue(w, &node.PropertyIdentifier, newScope)
-	if variable, ok := propVal.(*wkr.VariableVal); ok {
-		propVal = variable.Value
-	}
 	if propVal.GetType().PVT() == ast.Invalid {
 		ident := node.PropertyIdentifier.GetToken()
 		w.Error(ident, fmt.Sprintf("'%s' doesn't exist", ident.Lexeme))
@@ -390,7 +396,7 @@ func MemberExpr(w *wkr.Walker, node *ast.MemberExpr, scope *wkr.Scope) wkr.Value
 			w.Error(node.Property.GetToken(), "expected number inside brackets for list accessing")
 		}
 	}
-	property := w.TypeToValue(val.GetType().(*wkr.WrapperType).WrappedType)
+	property := w.TypeToValue(valType.(*wkr.WrapperType).WrappedType)
 	w.Context.Value = property
 	w.Context.Node = node.Property
 	nodePropertyType := node.Property.GetType()
@@ -447,7 +453,6 @@ func SelfExpr(w *wkr.Walker, self *ast.SelfExpr, scope *wkr.Scope) wkr.Value {
 }
 
 func NewExpr(w *wkr.Walker, new *ast.NewExpr, scope *wkr.Scope) wkr.Value {
-	w.Context.Node = new
 	_type := TypeExpr(w, new.Type, scope, false)
 
 	if _type.PVT() == ast.Invalid {
@@ -473,7 +478,6 @@ func NewExpr(w *wkr.Walker, new *ast.NewExpr, scope *wkr.Scope) wkr.Value {
 }
 
 func SpawnExpr(w *wkr.Walker, new *ast.SpawnExpr, scope *wkr.Scope) wkr.Value {
-	w.Context.Node = new
 	_type := TypeExpr(w, new.Type, scope, false)
 
 	if _type.PVT() == ast.Invalid {
@@ -558,6 +562,7 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 			for _, v := range walker.GetEnvStmt().Requirements {
 				if v == w.Environment.Path {
 					w.Error(typee.GetToken(), fmt.Sprintf("import cycle detected: this environment and '%s' are using each other", walker.Environment.Name))
+					return wkr.InvalidType
 				}
 			}
 
@@ -605,7 +610,7 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 			})
 		}
 
-		typ = wkr.NewAnonStructType(fields, false)
+		typ = wkr.NewStructType(fields, false)
 	case ast.Func:
 		params := wkr.Types{}
 

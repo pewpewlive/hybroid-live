@@ -72,7 +72,7 @@ func (self *PathVal) GetType() Type {
 }
 
 func (self *PathVal) GetDefault() *ast.LiteralExpr {
-	return &ast.LiteralExpr{Value: "DEFAULT_PATH"}
+	return &ast.LiteralExpr{Value: "nil"}
 }
 
 type AnonStructVal struct {
@@ -88,7 +88,7 @@ func NewAnonStructVal(fields map[string]Field, lenient bool)  *AnonStructVal {
 }
 
 func (self *AnonStructVal) GetType() Type {
-	return NewAnonStructType(self.Fields, self.Lenient)
+	return NewStructType(self.Fields, self.Lenient)
 }
 
 func (self *AnonStructVal) GetDefault() *ast.LiteralExpr {
@@ -128,9 +128,6 @@ func (self *AnonStructVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
 	for k, v := range self.Fields {
 		scope.Variables[k] = v.Var
 	}
-	scope.Node = expr
-	scope.Container = self
-
 	return scope
 }
 
@@ -149,7 +146,7 @@ func (self *CustomVal) GetType() Type {
 }
 
 func (self *CustomVal) GetDefault() *ast.LiteralExpr {
-	return &ast.LiteralExpr{Value: "CUSTOM_VALUE"}
+	return &ast.LiteralExpr{Value: "nil"}
 }
 
 type EnumVal struct {
@@ -157,16 +154,16 @@ type EnumVal struct {
 	Fields map[string]*VariableVal
 }
 
-func NewEnumVal(name string, isLocal bool, fields ...string) *EnumVal {
+func NewEnumVal(envName string, name string, isLocal bool, fields ...string) *EnumVal {
 	val := &EnumVal{
-		Type: NewEnumType(name),
+		Type: NewEnumType(envName, name),
 		Fields: map[string]*VariableVal{},
 	}
 	if len(fields) == 0 {
 		return val
 	}
 	for i := range fields {
-		val.Fields[fields[i]] = NewEnumFieldVar(fields[i], name, i)
+		val.Fields[fields[i]] = NewEnumFieldVar(fields[i], *val.Type, i)
 	}
 	return val
 }
@@ -202,8 +199,6 @@ func (self *EnumVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
 	scope := NewScope(parent, &UntaggedTag{})
 
 	scope.Variables = self.Fields
-	scope.Node = expr
-	scope.Container = self
 
 	return scope
 }
@@ -218,14 +213,14 @@ func (self *EnumFieldVal) GetType() Type {
 }
 
 func (self *EnumFieldVal) GetDefault() *ast.LiteralExpr {
-	return &ast.LiteralExpr{Value: "ENUM_FIELD_VAL"}
+	return &ast.LiteralExpr{Value: "nil"}
 }
 
-func NewEnumFieldVar(name string, enumName string, index int) *VariableVal {
+func NewEnumFieldVar(name string, enumType EnumType, index int) *VariableVal {
 	return &VariableVal{
 		Name: name,
 		Value: &EnumFieldVal{
-			Type: NewEnumType(enumName),
+			Type: &enumType,
 		},
 		IsLocal: true,
 		IsConst: true,
@@ -240,7 +235,7 @@ func (self *RawEntityVal) GetType() Type {
 }
 
 func (ev *RawEntityVal) GetDefault() *ast.LiteralExpr {
-	return &ast.LiteralExpr{Value: "ID"}
+	return &ast.LiteralExpr{Value: "nil"}
 }
 
 type Field struct {
@@ -280,22 +275,7 @@ func (ev *EntityVal) GetType() Type {
 }
 
 func (ev *EntityVal) GetDefault() *ast.LiteralExpr {
-	src := generator.StringBuilder{}
-
-	src.WriteString("{")
-	length := len(ev.Fields) - 1
-	i := 0
-	for _, v := range ev.Fields {
-		if i == length {
-			src.Append(v.Var.GetDefault().Value)
-		} else {
-			src.Append(v.Var.GetDefault().Value, ", ")
-		}
-		i++
-	}
-	src.WriteString("}")
-
-	return &ast.LiteralExpr{Value: src.String()}
+	return &ast.LiteralExpr{Value: "nil"}
 }
 
 // Container
@@ -334,9 +314,6 @@ func (self *EntityVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
 		scope.Variables[v.Name] = v
 	}
 
-	scope.Node = expr
-	scope.Container = self
-
 	return scope
 }
 
@@ -354,22 +331,7 @@ func (sv *StructVal) GetType() Type {
 }
 
 func (sv *StructVal) GetDefault() *ast.LiteralExpr {
-	src := generator.StringBuilder{}
-
-	src.WriteString("{")
-	length := len(sv.Fields) - 1
-	i := 0
-	for _, v := range sv.Fields {
-		if i == length {
-			src.Append(v.Var.GetDefault().Value)
-		} else {
-			src.Append(v.Var.GetDefault().Value, ", ")
-		}
-		i++
-	}
-	src.WriteString("}")
-
-	return &ast.LiteralExpr{Value: src.String()}
+	return &ast.LiteralExpr{Value: "nil"}
 }
 
 // Container
@@ -407,9 +369,6 @@ func (self *StructVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
 	for _, v := range self.Methods {
 		scope.Variables[v.Name] = v
 	}
-
-	scope.Node = expr
-	scope.Container = self
 
 	return scope
 }
@@ -501,7 +460,7 @@ func (ts Types) GetType() Type {
 }
 
 func (ts Types) GetDefault() *ast.LiteralExpr {
-	return &ast.LiteralExpr{Value: "TYPES"}
+	return &ast.LiteralExpr{Value: "nil"}
 }
 
 func (rt Types) Eq(otherRT Types) bool {
@@ -605,7 +564,19 @@ func (self *GenericVal) GetType() Type {
 }
 
 func (self *GenericVal) GetDefault() *ast.LiteralExpr {
-	return &ast.LiteralExpr{Value: "generic"}
+	return &ast.LiteralExpr{Value: "nil"}
+}
+
+type UninitializedVal struct {
+	Type Type
+}
+
+func (u *UninitializedVal) GetType() Type {
+	return NewUnitializedType(u.Type)
+}
+
+func (n *UninitializedVal) GetDefault() *ast.LiteralExpr {
+	return &ast.LiteralExpr{Value: "nil"}
 }
 
 type Invalid struct{}
@@ -615,7 +586,7 @@ func (u *Invalid) GetType() Type {
 }
 
 func (n *Invalid) GetDefault() *ast.LiteralExpr {
-	return &ast.LiteralExpr{Value: "invalid"}
+	return &ast.LiteralExpr{Value: "nil"}
 }
 
 type Unknown struct{}
@@ -625,5 +596,5 @@ func (u *Unknown) GetType() Type {
 }
 
 func (u *Unknown) GetDefault() *ast.LiteralExpr {
-	return &ast.LiteralExpr{Value: "unknown"}
+	return &ast.LiteralExpr{Value: "nil"}
 }

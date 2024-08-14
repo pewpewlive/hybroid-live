@@ -16,7 +16,7 @@ let mesh = meshes[1]
 
 Insert(mesh.segments, [])
 repeat 10 with i {
-  Insert(mesh.vertexes, [0, a * i])
+  Insert(mesh.vertexes, [Math:Sin(i) * 10, Math:Cos(i) * 10])
   Insert(mesh.segments[2], i + 2)
   Insert(mesh.colors, 0xffffffff)
 }

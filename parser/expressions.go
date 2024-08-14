@@ -568,7 +568,7 @@ func (p *Parser) Type() *ast.TypeExpr {
 		fields := p.parameters(lexer.LeftBrace, lexer.RightBrace)
 		typ = &ast.TypeExpr{Name: expr, Fields: fields}
 	case lexer.Entity:
-		typ = &ast.TypeExpr{Name: &ast.IdentifierExpr{Name: p.advance()}}
+		typ = &ast.TypeExpr{Name: &ast.IdentifierExpr{Name: exprToken}}
 	default:
 		//p.error(exprToken, "Improper type")
 		p.advance()

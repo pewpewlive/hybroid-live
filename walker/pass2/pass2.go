@@ -61,6 +61,8 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 		AssignmentStmt(w, newNode, scope)
 	case *ast.UseStmt:
 		UseStmt(w, newNode, scope)
+	case *ast.DestroyStmt:
+		DestroyStmt(w, newNode, scope)
 	case *ast.SpawnExpr:
 		SpawnExpr(w, newNode, scope)
 	case *ast.NewExpr:
@@ -128,18 +130,17 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 		return &walker.Invalid{}
 	}
 
-	if scope.Node != nil {
-		if w.Context.PewpewVarFound {
-			scope.Node.Index = -1
+	if field, ok := w.Context.Node.(*ast.FieldExpr); ok {
+		if w.Context.Value.GetType().GetType() == wkr.Strct {
+			field.Index = -1
 			return val
 		}
-		// name := w.Context.Node.GetToken().Lexeme
-		// if name == "meshes" && w.GetEnvStmt().EnvType.Type == ast.MeshEnv {
-		// 	scope.Node.Index = -1
-		// 	return val
-		// }
-		_, scope.Node.Index, _ = scope.Container.ContainsField((*node).GetToken().Lexeme)
-		scope.Node.Index += 1
+		if w.Context.PewpewVarFound {
+			field.Index = -1
+			return val
+		}
+		_, field.Index, _ = w.Context.Value.(wkr.FieldContainer).ContainsField((*node).GetToken().Lexeme)
+		field.Index += 1
 	}
 	return val
 }

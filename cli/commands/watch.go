@@ -44,7 +44,7 @@ func watch(ctx *cli.Context) error {
 					// fileName := strings.Split(filepath.Base(event.Name), ".")[0]
 					// fileExtension := filepath.Ext(event.Name)
 
-					//Build(ctx, FileInformation{directoryPath, fileName, fileExtension})
+					// Build(ctx, FileInformation{directoryPath, fileName, fileExtension})
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
