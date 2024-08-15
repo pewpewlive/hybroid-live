@@ -140,7 +140,6 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 			return val
 		}
 		_, field.Index, _ = w.Context.Value.(wkr.FieldContainer).ContainsField((*node).GetToken().Lexeme)
-		field.Index += 1
 	}
 	return val
 }

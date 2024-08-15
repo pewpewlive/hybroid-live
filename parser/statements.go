@@ -662,16 +662,17 @@ func (p *Parser) functionDeclarationStmt(IsLocal bool) ast.Node {
 
 	fnDec.IsLocal = IsLocal
 
-	ident, ok := p.consume("expected a function name", lexer.Identifier)
-	if !ok {
-		return &fnDec
-	}
+	ident, _ := p.consume("expected a function name", lexer.Identifier)
+	// if !ok {
+	// 	return &fnDec
+	// }
 
 	fnDec.Name = ident
 	fnDec.GenericParams = p.genericParameters()
 	fnDec.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
 
-	fnDec.Return = p.returnings()
+	fnDec.Return = p.returnings()// fn token{}(entity id)
+	// fn beautifulfunc<number>() {}
 
 	var success bool
 	fnDec.Body, success = p.getBody()

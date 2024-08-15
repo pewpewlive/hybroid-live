@@ -339,6 +339,8 @@ var PewpewVariables = map[string]*VariableVal{
 				Value: &FunctionVal{
 					Params: Types{
 						&RawEntityType{},
+						&RawEntityType{},
+						&RawEntityType{},
 					},
 				},
 			}),

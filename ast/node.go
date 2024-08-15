@@ -137,8 +137,10 @@ type Node interface {
 
 type Accessor interface {
 	Node
-	GetProperty() *Node
+	GetPropertyIdentifier() Node
+	GetProperty() Node
 	SetProperty(prop Node)
+	GetIdentifier() Node
 	SetPropertyIdentifier(ident Node)
 	SetIdentifier(ident Node)
 }

@@ -24,8 +24,8 @@ class Camera {
   fn Shake() {
     x = RandomFixed(-shakePower, shakePower)
 
-    SetPlayerConfig(struct{
-      camera_x_offset = x
+    ConfigurePlayer(0, struct{
+      camera_x_override = x
     })
 
     shakePower *= shakeDecay

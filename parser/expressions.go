@@ -127,7 +127,7 @@ func (p *Parser) unary() ast.Node {
 		right := p.unary()
 		return &ast.UnaryExpr{Operator: operator, Value: right}
 	}
-	return p.accessorExpr(ast.NA, nil)
+	return p.accessorExprDepth2(nil)
 }
 
 func (p *Parser) call(caller ast.Node) ast.Node {
@@ -159,53 +159,80 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 	return p.call(call_expr)
 }
 
-func (p *Parser) accessorExpr(nodeType ast.NodeType, propIdent *ast.Node) ast.Node {
-	var ident ast.Node
-	if nodeType == ast.NA {
-		ident = p.matchExpr()
-	}else if nodeType == ast.MemberExpression {
-		ident = p.expression()
-		*propIdent = ident
-		p.consume("expected closing bracket in member expression", lexer.RightBracket)
-	}else {
-		ident = p.new()
-		*propIdent = ident
+func (p *Parser) accessorExprDepth2(ident *ast.Node) ast.Node {
+	expr, call := p.accessorExpr(ident)
+
+	if call == nil {
+		return p.call(expr)
 	}
-	ident = p.call(ident)
+
+	var methodCall ast.Node
+	methodCall = &ast.MethodCallExpr{
+		Identifier: expr,
+		Call: &ast.CallExpr{
+			Caller: call,
+			GenericArgs: p.genericArguments(),
+			Args: p.arguments(),
+		},
+	}
+	
+	if p.check(lexer.Dot) || p.check(lexer.LeftBracket) {
+		return p.accessorExprDepth2(&methodCall)
+	}
+	
+	return p.call(methodCall)
+}
+
+func (p *Parser) accessorExpr(ident *ast.Node) (ast.Node, *ast.IdentifierExpr) {
+	if ident == nil {
+		expr := p.call(p.matchExpr())
+		ident = &expr
+	}
 
 	isField, isMember := p.check(lexer.Dot), p.check(lexer.LeftBracket)
 
 	if !isField && !isMember {
-		return ident
+		return *ident, nil
 	}
 
 	p.advance()
 
-	var propNodeType ast.NodeType
-	if isField {
-		propNodeType = ast.FieldExpression
-	}else {
-		propNodeType = ast.MemberExpression
-	}
-
 	var expr ast.Accessor
-	var prop ast.Node
 	if isField {
 		expr = &ast.FieldExpr{
-			Identifier: ident,
+			Identifier: *ident,
 		}
 	} else {
 		expr = &ast.MemberExpr{
-			Identifier: ident,
+			Identifier: *ident,
 		}
 	}
+
 	var propIdentifier ast.Node
-	prop = p.accessorExpr(propNodeType, &propIdentifier)
-
+	if isField {
+		propIdentifier = &ast.IdentifierExpr{Name: p.advance()}
+		if propIdentifier.GetToken().Type != lexer.Identifier {
+			p.error(propIdentifier.GetToken(), "expected identifier in field expression")
+		}
+		if p.check(lexer.LeftParen) || p.check(lexer.Less) {
+			return *ident, propIdentifier.(*ast.IdentifierExpr)
+		}
+	}else if isMember {
+		propIdentifier = p.expression()
+		p.consume("expected closing bracket in member expression", lexer.RightBracket)
+	}
+	
 	expr.SetPropertyIdentifier(propIdentifier)
-	expr.SetProperty(prop)
+	if p.check(lexer.Dot) || p.check(lexer.LeftBracket) {
+		prop, call := p.accessorExpr(&propIdentifier)
 
-	return expr
+		expr.SetProperty(prop)
+	
+		return expr, call
+	}
+	expr.SetProperty(propIdentifier)
+	
+	return expr, nil
 }
 
 func (p *Parser) matchExpr() ast.Node {

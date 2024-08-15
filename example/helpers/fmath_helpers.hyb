@@ -2,11 +2,14 @@ env FmathHelpers as Level
 
 use Fmath
 
-pub fn Length(fixed x, fixed y) -> fixed {
-  return Sqrt(x * x + y * y)
-}
+pub fn Length(fixed x, fixed y) -> fixed
+  => Sqrt(x * x + y * y)
 
 pub fn Normalize(fixed x, fixed y) -> (fixed, fixed) {
+  if x == 0f and y == 0f {
+    return 0f, 0f
+  }
+
   let len = Length(x, y)
 
   return x / len, y / len

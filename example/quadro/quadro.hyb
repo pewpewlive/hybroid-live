@@ -55,7 +55,7 @@ entity Quadro {
   }
 
   Update() {
-    UpdateCooldown()
+    self.UpdateCooldown()
 
     Move()
   }

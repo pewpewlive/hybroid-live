@@ -60,6 +60,7 @@ func (p *Parser) getParam() ast.Param {
 
 func (p *Parser) parameters(opening lexer.TokenType, closing lexer.TokenType) []ast.Param {
 	if !p.match(opening) {
+		p.error(p.peek(), "expected opening parentheses")
 		return []ast.Param{}
 	}
 

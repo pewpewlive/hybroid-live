@@ -38,9 +38,15 @@ func (p *Parser) synchronize() {
 		switch p.peek().Type {
 		case lexer.For, lexer.Fn, lexer.If, lexer.Repeat, lexer.Tick,
 			lexer.Return, lexer.Let, lexer.While, lexer.Pub, lexer.Const,
-			lexer.Break, lexer.Continue, lexer.Add, lexer.Remove:
+			lexer.Break, lexer.Continue, lexer.Add, lexer.Remove, 
+			lexer.Class:
 			return
-		}
+		case lexer.Entity:
+			if p.peek(1).Type == lexer.Identifier && p.peek(2).Type == lexer.LeftBrace {
+				return
+			}
+		}// pub fn (entity thing) { }
+		// entity yes{}
 
 		p.advance()
 	}
@@ -97,7 +103,6 @@ func (p *Parser) match(types ...lexer.TokenType) bool {
 			return true
 		}
 	}
-
 	return false
 }
 

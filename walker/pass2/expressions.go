@@ -110,6 +110,23 @@ func LiteralExpr(w *wkr.Walker, node *ast.LiteralExpr) wkr.Value {
 	}
 }
 
+func ConvertIdentifierToFieldExpr(ident *ast.IdentifierExpr, index int, exprType ast.SelfExprType, envName string, entityName string) *ast.FieldExpr {
+	fieldExpr := &ast.FieldExpr{
+		Index: index,
+		Identifier: &ast.SelfExpr{
+			Token: ident.GetToken(),
+			Type:  ast.SelfStruct,
+		},
+		ExprType: exprType,
+		EnvName: envName,
+		EntityName: entityName,
+	}
+
+	fieldExpr.Property = ident
+
+	return fieldExpr
+}
+
 func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 	valueNode := *node
 	ident := valueNode.(*ast.IdentifierExpr)
@@ -132,38 +149,13 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 	if sc.Tag.GetType() == wkr.Struct { 
 		_struct := sc.Tag.(*wkr.StructTag).StructVal
 		_, index, _ := _struct.ContainsField(variable.Name)
-		selfExpr := &ast.FieldExpr{
-			Index: index+1,
-			Identifier: &ast.SelfExpr{
-				Token: valueNode.GetToken(),
-				Type:  ast.SelfStruct,
-			},
-		}
 
-		identExpr := &ast.IdentifierExpr{
-			Name: valueNode.GetToken(),
-		}
-		selfExpr.Property = identExpr// x -> self.x
-		*node = selfExpr
+		*node = ConvertIdentifierToFieldExpr(ident, index, ast.SelfStruct, _struct.Type.EnvName, "")
 	} else if sc.Tag.GetType() == wkr.Entity {
 		entity := sc.Tag.(*wkr.EntityTag).EntityType
 		_, index, _ := entity.ContainsField(variable.Name)
-		selfExpr := &ast.FieldExpr{
-			Index: index+1,
-			Identifier: &ast.SelfExpr{
-				Token: valueNode.GetToken(),
-				Type:  ast.SelfEntity,
-			},
-			ExprType: ast.SelfEntity,
-			EntityName: entity.Type.Name,
-			EnvName: entity.Type.EnvName,
-		}
 
-		identExpr := &ast.IdentifierExpr{
-			Name: valueNode.GetToken(),
-		}
-		selfExpr.Property = identExpr
-		*node = selfExpr
+		*node = ConvertIdentifierToFieldExpr(ident, index, ast.SelfEntity, entity.Type.EnvName, entity.Type.Name)
 	}else if sc.Environment != w.Environment {
 		*node = &ast.EnvAccessExpr{
 			PathExpr: &ast.EnvPathExpr{
@@ -368,7 +360,7 @@ func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {
 	defer w.Context.Clear()
 	if node.Property.GetType() != ast.Identifier {
 		return GetNodeValue(w, &node.Property, newScope)
-	}
+	}// var1[1]["test"].method()
 	return propVal
 }
 

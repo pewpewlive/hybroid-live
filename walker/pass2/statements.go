@@ -47,6 +47,7 @@ func ClassDeclarationStmt(w *wkr.Walker, node *ast.ClassDeclarationStmt, scope *
 	}
 	classVal.Params = params
 
+	// DECLARATIONS
 	w.DeclareStruct(classVal)
 
 	funcDeclaration := ast.MethodDeclarationStmt{
@@ -58,6 +59,17 @@ func ClassDeclarationStmt(w *wkr.Walker, node *ast.ClassDeclarationStmt, scope *
 		Body:    node.Constructor.Body,
 	}
 
+	for i := range node.Fields {
+		FieldDeclarationStmt(w, &node.Fields[i], classVal, structScope)
+	}
+
+	for i := range node.Methods {
+		MethodDeclarationStmt(w, &node.Methods[i], classVal, structScope)
+	}
+
+	MethodDeclarationStmt(w, &funcDeclaration, classVal, structScope)
+
+	// WALKING
 	MethodDeclarationStmt(w, &funcDeclaration, classVal, structScope)
 
 	for _, v := range classVal.Fields {
@@ -65,31 +77,6 @@ func ClassDeclarationStmt(w *wkr.Walker, node *ast.ClassDeclarationStmt, scope *
 			w.Error(node.GetToken(), "all fields need to be initialized in constructor")
 			break;
 		}
-	}
-
-	for i := range node.Fields {
-		FieldDeclarationStmt(w, &node.Fields[i], classVal, structScope)
-	}
-
-	for i := range node.Methods {
-		params := make([]wkr.Type, 0)
-		for _, param := range node.Methods[i].Params {
-			params = append(params, TypeExpr(w, param.Type, scope, true))
-		}
-
-		ret := wkr.EmptyReturn
-		for _, typee := range node.Methods[i].Return {
-			ret = append(ret, TypeExpr(w, typee, scope, true))
-			//fmt.Printf("%s\n", ret.values[len(ret.values)-1].Type.ToString())
-		}
-		variable := &wkr.VariableVal{
-			Name:    node.Methods[i].Name.Lexeme,
-			Value:   &wkr.FunctionVal{Params: params, Returns: ret},
-			IsLocal: node.IsLocal,
-			Token:   node.Methods[i].GetToken(),
-		}
-		w.DeclareVariable(structScope, variable, node.Methods[i].Name)
-		classVal.Methods[variable.Name] = variable
 	}
 
 	for i := range node.Methods {
@@ -111,7 +98,7 @@ func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDeclarationStmt, scope
 
 	entityVal := wkr.NewEntityVal(w.Environment.Name, node.Name.Lexeme, node.IsLocal)
 
-	//fields
+	// DECLARATIONS
 	for i := range node.Fields { 
 		FieldDeclarationStmt(w, &node.Fields[i], entityVal, entityScope)
 	}
@@ -120,26 +107,32 @@ func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDeclarationStmt, scope
 
 	w.DeclareEntity(entityVal)
 
+	for i := range node.Methods {
+		MethodDeclarationStmt(w, &node.Methods[i], entityVal, entityScope)
+	}
+
 	//callbacks
 	found := map[ast.EntityFunctionType][]lexer.Token{}
+
+	if node.Destroyer == nil {
+		w.Error(node.Token, "entities must be declared with a destroyer")
+	} else {
+		EntityFunctionDeclarationStmt(w, node.Destroyer, entityVal, entityScope)
+	}
 	
-	//spawn
 	if node.Spawner == nil {
 		w.Error(node.Token, "entities must be declared with a spawner")
 	} else {
 		EntityFunctionDeclarationStmt(w, node.Spawner, entityVal, entityScope)
 	}
 
-	//methods
-	for i := range node.Methods {
-		MethodDeclarationStmt(w, &node.Methods[i], entityVal, entityScope)
+	// WALKING
+	if node.Destroyer != nil{
+		EntityFunctionDeclarationStmt(w, node.Destroyer, entityVal, entityScope)
 	}
 
-	//destroy
-	if node.Destroyer == nil {
-		w.Error(node.Token, "entities must be declared with a destroyer")
-	} else {
-		EntityFunctionDeclarationStmt(w, node.Destroyer, entityVal, entityScope)
+	for i := range node.Methods {
+		MethodDeclarationStmt(w, &node.Methods[i], entityVal, entityScope)
 	}
 
 	for i := range node.Callbacks {
@@ -180,7 +173,10 @@ func EntityFunctionDeclarationStmt(w *wkr.Walker, node *ast.EntityFunctionDeclar
 
 	w.Context.Clear()
 
-	WalkBody(w, &node.Body, ft, fnScope)
+	if node.Type != ast.Destroy || entityVal.DestroyParams != nil {
+		WalkBody(w, &node.Body, ft, fnScope)
+	}
+
 	switch node.Type {
 	case ast.Spawn:
 		for _, v := range entityVal.Fields {
@@ -195,7 +191,7 @@ func EntityFunctionDeclarationStmt(w *wkr.Walker, node *ast.EntityFunctionDeclar
 		entityVal.SpawnParams = params
 	case ast.Destroy:
 		entityVal.DestroyParams = params
-
+		entityVal.DestroyGenerics = generics
 	case ast.WallCollision:
 		if len(params) < 2 || len(params) > 2 || !(params[0].GetType() == wkr.Fixed && params[1].GetType() == wkr.Fixed) {
 			w.Error(node.Token, fmt.Sprintf("first two parameters of %s must be of fixed type", node.Type))
@@ -284,19 +280,35 @@ func FieldDeclarationStmt(w *wkr.Walker, node *ast.FieldDeclarationStmt, contain
 }
 
 func MethodDeclarationStmt(w *wkr.Walker, node *ast.MethodDeclarationStmt, container wkr.MethodContainer, scope *wkr.Scope) {
-	funcExpr := ast.FunctionDeclarationStmt{
-		Name:    node.Name,
-		Return:  node.Return,
-		Params:  node.Params,
-		GenericParams: node.Generics,
-		Body:    node.Body,
-		IsLocal: true,
-	}
+	if variable, found := container.ContainsMethod(node.Name.Lexeme); found {
+		fn := variable.Value.(*wkr.FunctionVal)
+		fnTag := &wkr.FuncTag{
+			Returns: make([]bool, 0),
+			ReturnTypes: fn.Returns,
+			
+			Generics: fn.Generics,
+		}
 
-	variable := FunctionDeclarationStmt(w, &funcExpr, scope, wkr.Method)
-	node.Body = funcExpr.Body
-	container.AddMethod(variable)
+		fnScope := wkr.NewScope(scope, fnTag, wkr.ReturnAllowing)
+
+		WalkBody(w, &node.Body, fnTag, fnScope)
+	}else {
+		funcExpr := ast.FunctionDeclarationStmt{
+			Name:    node.Name,
+			Return:  node.Return,
+			Params:  node.Params,
+			GenericParams: node.Generics,
+			Body:    node.Body,
+			IsLocal: true,
+		}
+		
+		variable := FunctionDeclarationStmt(w, &funcExpr, scope, wkr.Method)
+		container.AddMethod(variable)
+	}
 }
+
+ // entity myent
+ // fixed thing = 0f
 
 func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, scope *wkr.Scope, procType wkr.ProcedureType) *wkr.VariableVal {
 	generics := make([]*wkr.GenericType, 0)
@@ -318,21 +330,21 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, s
 	params := make([]wkr.Type, 0)
 	for i, param := range node.Params {
 		params = append(params, TypeExpr(w, param.Type, fnScope, true))
-		w.DeclareVariable(fnScope, &wkr.VariableVal{Name: param.Name.Lexeme, Value: w.TypeToValue(params[i]), IsLocal: true}, param.Name)
+		if procType == wkr.Function {
+			w.DeclareVariable(fnScope, &wkr.VariableVal{Name: param.Name.Lexeme, Value: w.TypeToValue(params[i]), IsLocal: true}, param.Name)
+		}
 	}
-
-	w.Context.Clear()
 
 	variable := &wkr.VariableVal{
 		Name:  node.Name.Lexeme,
 		Value: &wkr.FunctionVal{Params: params, Returns: ret, Generics: generics},
 		Token: node.GetToken(),
 	}
-	if procType == wkr.Function {
-		w.DeclareVariable(scope, variable, variable.Token)
-	}
+	w.DeclareVariable(scope, variable, variable.Token)
 
-	WalkBody(w, &node.Body, funcTag, fnScope)
+	if procType == wkr.Function {
+		WalkBody(w, &node.Body, funcTag, fnScope)
+	}
 
 	return variable
 }

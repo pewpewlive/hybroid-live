@@ -209,6 +209,25 @@ func (ce *CallExpr) GetValueType() PrimitiveValueType {
 	return Invalid
 }
 
+type MethodCallExpr struct {
+	TypeName   string
+	Identifier      Node
+	Call       *CallExpr
+	MethodName string
+}
+
+func (mce *MethodCallExpr) GetType() NodeType {
+	return MethodCallExpression
+}
+
+func (mce *MethodCallExpr) GetToken() lexer.Token {
+	return mce.Call.GetToken()
+}
+
+func (mce *MethodCallExpr) GetValueType() PrimitiveValueType {
+	return Invalid
+}
+
 type BuiltinCallExpr struct {
 	Name lexer.Token
 	Args []Node
@@ -357,6 +376,9 @@ func (fe *FieldExpr) GetValueType() PrimitiveValueType {
 	return Invalid
 }
 
+func (fe *FieldExpr) GetIdentifier() Node {
+	return fe.Identifier
+}
 func (fe *FieldExpr) SetProperty(prop Node) {
 	fe.Property = prop
 }
@@ -365,8 +387,12 @@ func (fe *FieldExpr) SetPropertyIdentifier(ident Node) {
 	fe.PropertyIdentifier = ident
 }
 
-func (fe *FieldExpr) GetProperty() *Node {
-	return &fe.Property
+func (fe *FieldExpr) GetPropertyIdentifier() Node {
+	return fe.PropertyIdentifier
+}
+
+func (fe *FieldExpr) GetProperty() Node {
+	return fe.Property
 }
 
 func (fe *FieldExpr) SetIdentifier(ident Node) {
@@ -392,6 +418,10 @@ func (me *MemberExpr) GetValueType() PrimitiveValueType {
 	return me.Identifier.GetValueType()
 }
 
+func (me *MemberExpr) GetIdentifier() Node {
+	return me.Identifier
+}
+
 func (me *MemberExpr) SetProperty(prop Node) {
 	me.Property = prop
 }
@@ -400,8 +430,12 @@ func (me *MemberExpr) SetPropertyIdentifier(ident Node) {
 	me.PropertyIdentifier = ident
 }
 
-func (me *MemberExpr) GetProperty() *Node {
-	return &me.Property
+func (me *MemberExpr) GetPropertyIdentifier() Node {
+	return me.PropertyIdentifier
+}
+
+func (me *MemberExpr) GetProperty() Node {
+	return me.Property
 }
 
 func (me *MemberExpr) SetIdentifier(ident Node) {

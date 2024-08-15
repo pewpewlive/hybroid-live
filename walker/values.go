@@ -116,7 +116,7 @@ func (self *AnonStructVal) AddField(variable *VariableVal) {
 
 func (self *AnonStructVal) ContainsField(name string) (*VariableVal, int, bool) {
 	if v, found := self.Fields[name]; found {
-		return v.Var, v.Index, true
+		return v.Var, v.Index+1, true
 	}
 
 	return nil, -1, false
@@ -189,7 +189,7 @@ func (self *EnumVal) AddField(variable *VariableVal) {
 
 func (self *EnumVal) ContainsField(name string) (*VariableVal, int, bool) {
 	if variable, found := self.Fields[name]; found {
-		return variable, variable.Value.(*EnumFieldVal).Index, true
+		return variable, variable.Value.(*EnumFieldVal).Index+1, true
 	}
 
 	return nil, -1, false
@@ -289,7 +289,7 @@ func (ev *EntityVal) AddMethod(variable *VariableVal) {
 
 func (ev *EntityVal) ContainsField(name string) (*VariableVal, int, bool) {
 	if variable, found := ev.Fields[name]; found {
-		return variable.Var, variable.Index, true
+		return variable.Var, variable.Index+1, true
 	}
 
 	return nil, -1, false
@@ -345,7 +345,7 @@ func (sv *StructVal) AddMethod(variable *VariableVal) {
 
 func (sv *StructVal) ContainsField(name string) (*VariableVal, int, bool) {
 	if variable, found := sv.Fields[name]; found {
-		return variable.Var, variable.Index, true
+		return variable.Var, variable.Index+1, true
 	}
 
 	return nil, -1, false
