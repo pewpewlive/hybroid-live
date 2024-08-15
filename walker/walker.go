@@ -454,7 +454,7 @@ func (w *Walker) TypeToValue(_type Type) Value {
 		case "Pewpew": 
 			variable = PewpewEnv.Scope.Variables[enum.Name]
 		default:
-			variable = walker.GetVariable(&w.Environment.Scope, enum.Name)
+			variable = walker.GetVariable(&walker.Environment.Scope, enum.Name)
 		}
 		if variable == nil {
 			panic(fmt.Sprintf("Enum variable could not be found when converting enum type to value (envName:%v, name:%v, walkerFound:%v)", enum.EnvName, enum.Name, found))

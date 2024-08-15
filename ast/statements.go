@@ -133,6 +133,8 @@ type DestroyStmt struct {
 	Identifier Node
 	Args  []Node
 	Generics []*TypeExpr
+	EntityName string
+	EnvName string
 	Token lexer.Token
 }
 

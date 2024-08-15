@@ -56,16 +56,16 @@ func FindFromList(list []*VariableVal, name string) (*VariableVal, int, bool) {
 }
 
 type PathVal struct {
-	Path string
+	Path    string
 	EnvType ast.EnvType
 }
 
 func NewPathVal(path string, envType ast.EnvType) *PathVal {
 	return &PathVal{
-		Path: path,
+		Path:    path,
 		EnvType: envType,
 	}
-} 
+}
 
 func (self *PathVal) GetType() Type {
 	return NewPathType(self.EnvType)
@@ -76,13 +76,13 @@ func (self *PathVal) GetDefault() *ast.LiteralExpr {
 }
 
 type AnonStructVal struct {
-	Fields map[string]Field
+	Fields  map[string]Field
 	Lenient bool
 }
 
-func NewAnonStructVal(fields map[string]Field, lenient bool)  *AnonStructVal {
+func NewAnonStructVal(fields map[string]Field, lenient bool) *AnonStructVal {
 	return &AnonStructVal{
-		Fields: fields,
+		Fields:  fields,
 		Lenient: lenient,
 	}
 }
@@ -116,7 +116,7 @@ func (self *AnonStructVal) AddField(variable *VariableVal) {
 
 func (self *AnonStructVal) ContainsField(name string) (*VariableVal, int, bool) {
 	if v, found := self.Fields[name]; found {
-		return v.Var, v.Index+1, true
+		return v.Var, v.Index + 1, true
 	}
 
 	return nil, -1, false
@@ -156,7 +156,7 @@ type EnumVal struct {
 
 func NewEnumVal(envName string, name string, isLocal bool, fields ...string) *EnumVal {
 	val := &EnumVal{
-		Type: NewEnumType(envName, name),
+		Type:   NewEnumType(envName, name),
 		Fields: map[string]*VariableVal{},
 	}
 	if len(fields) == 0 {
@@ -173,23 +173,21 @@ func (self *EnumVal) GetType() Type {
 }
 
 func (self *EnumVal) GetDefault() *ast.LiteralExpr {
-	src := generator.StringBuilder{}
-
-	src.Append(self.Type.Name, "[1]")
-
-	return &ast.LiteralExpr{Value: src.String()}
+	return &ast.LiteralExpr{Value: "nil"}
 }
 
 func (self *EnumVal) AddField(variable *VariableVal) {
-	if (self == nil) {
-		return;
+	if self == nil {
+		return
 	}
+	enumFieldVal := variable.Value.(*EnumFieldVal)
+	enumFieldVal.Index = len(self.Fields)
 	self.Fields[variable.Name] = variable
 }
 
 func (self *EnumVal) ContainsField(name string) (*VariableVal, int, bool) {
 	if variable, found := self.Fields[name]; found {
-		return variable, variable.Value.(*EnumFieldVal).Index+1, true
+		return variable, variable.Value.(*EnumFieldVal).Index + 1, true
 	}
 
 	return nil, -1, false
@@ -205,7 +203,7 @@ func (self *EnumVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
 
 type EnumFieldVal struct {
 	Index int
-	Type *EnumType
+	Type  *EnumType
 }
 
 func (self *EnumFieldVal) GetType() Type {
@@ -227,7 +225,6 @@ func NewEnumFieldVar(name string, enumType EnumType, index int) *VariableVal {
 	}
 }
 
-
 type RawEntityVal struct{}
 
 func (self *RawEntityVal) GetType() Type {
@@ -240,24 +237,24 @@ func (ev *RawEntityVal) GetDefault() *ast.LiteralExpr {
 
 type Field struct {
 	Index int
-	Var *VariableVal
+	Var   *VariableVal
 }
 
 func NewField(index int, val *VariableVal) Field {
 	return Field{
 		Index: index,
-		Var: val,
+		Var:   val,
 	}
 }
 
 type EntityVal struct {
-	Type          NamedType
-	IsLocal       bool
-	Fields        map[string]Field
-	Methods       map[string]*VariableVal
-	SpawnParams   Types
-	DestroyParams Types
-	SpawnGenerics []*GenericType
+	Type            NamedType
+	IsLocal         bool
+	Fields          map[string]Field
+	Methods         map[string]*VariableVal
+	SpawnParams     Types
+	DestroyParams   Types
+	SpawnGenerics   []*GenericType
 	DestroyGenerics []*GenericType
 }
 
@@ -266,7 +263,7 @@ func NewEntityVal(envName string, name string, isLocal bool) *EntityVal {
 		Type:    *NewNamedType(envName, name, ast.Entity),
 		IsLocal: isLocal,
 		Methods: make(map[string]*VariableVal),
-		Fields: make(map[string]Field, 0),
+		Fields:  make(map[string]Field, 0),
 	}
 }
 
@@ -289,7 +286,7 @@ func (ev *EntityVal) AddMethod(variable *VariableVal) {
 
 func (ev *EntityVal) ContainsField(name string) (*VariableVal, int, bool) {
 	if variable, found := ev.Fields[name]; found {
-		return variable.Var, variable.Index+1, true
+		return variable.Var, variable.Index + 1, true
 	}
 
 	return nil, -1, false
@@ -318,11 +315,11 @@ func (self *EntityVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
 }
 
 type StructVal struct {
-	Type    NamedType
-	IsLocal bool
-	Fields  map[string]Field
-	Methods map[string]*VariableVal
-	Params  Types
+	Type     NamedType
+	IsLocal  bool
+	Fields   map[string]Field
+	Methods  map[string]*VariableVal
+	Params   Types
 	Generics []*GenericType
 }
 
@@ -345,7 +342,7 @@ func (sv *StructVal) AddMethod(variable *VariableVal) {
 
 func (sv *StructVal) ContainsField(name string) (*VariableVal, int, bool) {
 	if variable, found := sv.Fields[name]; found {
-		return variable.Var, variable.Index+1, true
+		return variable.Var, variable.Index + 1, true
 	}
 
 	return nil, -1, false
@@ -493,13 +490,13 @@ func TypesToString(types []Type) string {
 
 type FunctionVal struct {
 	Generics []*GenericType
-	Params  Types
-	Returns Types
+	Params   Types
+	Returns  Types
 }
 
 func NewFunction(params ...Type) *FunctionVal {
 	return &FunctionVal{
-		Params: params,
+		Params:  params,
 		Returns: EmptyReturn,
 	}
 }
@@ -555,7 +552,7 @@ func (s *StringVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "\"\""}
 }
 
-type GenericVal struct{
+type GenericVal struct {
 	Type *GenericType
 }
 

@@ -1,0 +1,35 @@
+env Main as Level
+
+use Pewpew
+use QuadroEntity
+
+const WIDTH, HEIGHT = 1000f, 1000f
+SetLevelSize(WIDTH, 1000f)
+
+// WIDTH -= 1f
+
+pub Ship = Pewpew:NewShip(WIDTH / 2f, HEIGHT / 2f, 0)
+
+ConfigureShipWeapon(Ship, struct{
+  frequency = CannonFreq.Freq10
+  cannon = Pewpew:CannonType.Double
+})
+
+ConfigurePlayer(0, struct{
+  shield = 5
+  camera_distance = -50f
+})
+
+let bg = NewEntity(0f, 0f)
+SetEntityMesh(bg, MapMesh, 0)
+
+spawn QuadroEntity:Quadro(0f, 0f, Ship)
+
+tick with time {
+  if GetPlayerConfig(0).has_lost == true {
+    StopGame()
+  }
+  if time % 30 == 0 {
+    //NewAsteroid(WIDTH/2f, HEIGHT/2f)
+  }
+}

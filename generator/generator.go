@@ -49,10 +49,9 @@ var envCounter = 0
 
 var hyGTL = "GL"
 var hyVar = "H"
-var hyStruct = "HS"
+var hyClass = "HC"
 var hyEntity = "HE"
 var hyEntityState = "HES"
-
 
 func ResolveVarCounter(varname *StringBuilder, counter int) {
 	if counter > charsetLength-1 {
@@ -207,6 +206,10 @@ func (gen *Generator) WriteVar(name string) string {
 	return gen.envName + name
 }
 
+func (gen *Generator) WriteVarExtra(name, middle string) string {
+	return gen.envName + middle + name
+}
+
 func (gen *Generator) Clear() {
 	gen.Scope = NewGenScope(nil)
 	gen.Errors = make([]ast.Error, 0)
@@ -306,6 +309,9 @@ func (gen *Generator) GenerateStmt(node ast.Node, scope *GenScope) {
 	case *ast.CallExpr:
 		val := gen.callExpr(*newNode, true, scope)
 		scope.WriteString(val)
+	case *ast.MethodCallExpr:
+		val := gen.methodCallExpr(*newNode, true, scope)
+		scope.WriteString(val)
 	case *ast.SpawnExpr:
 		val := gen.spawnExpr(*newNode, true, scope)
 		scope.WriteString(val)
@@ -323,6 +329,8 @@ func (gen *Generator) GenerateStmt(node ast.Node, scope *GenScope) {
 		scope.WriteString(val)
 	case *ast.EntityDeclarationStmt:
 		gen.entityDeclarationStmt(*newNode, scope)
+	case *ast.DestroyStmt:
+		gen.destroyStmt(*newNode, scope)
 	}
 }
 
@@ -362,6 +370,8 @@ func (gen *Generator) GenerateExpr(node ast.Node, scope *GenScope) string {
 		return gen.envAccessExpr(*newNode, scope)
 	case *ast.SpawnExpr:
 		return gen.spawnExpr(*newNode, false, scope)
+	case *ast.MethodCallExpr:
+		return gen.methodCallExpr(*newNode, false, scope)
 	// case *ast.CastExpr:
 	// 	return gen.castExpr(*newNode, scope)
 	}

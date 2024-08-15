@@ -3,9 +3,9 @@ package pass2
 import (
 	"fmt"
 	"hybroid/ast"
+	"hybroid/generator"
 	"hybroid/lexer"
 	wkr "hybroid/walker"
-	"hybroid/generator"
 )
 
 func StructExpr(w *wkr.Walker, node *ast.StructExpr, scope *wkr.Scope) *wkr.AnonStructVal {
@@ -117,8 +117,8 @@ func ConvertIdentifierToFieldExpr(ident *ast.IdentifierExpr, index int, exprType
 			Token: ident.GetToken(),
 			Type:  ast.SelfStruct,
 		},
-		ExprType: exprType,
-		EnvName: envName,
+		ExprType:   exprType,
+		EnvName:    envName,
 		EntityName: entityName,
 	}
 
@@ -136,7 +136,7 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 		walker, found := w.Walkers[ident.Name.Lexeme]
 		if found {
 			*node = &ast.LiteralExpr{
-				Value: "\""+walker.Environment.Path+"\"",
+				Value: "\"" + walker.Environment.Path + "\"",
 			}
 			return wkr.NewPathVal(walker.Environment.Path, walker.Environment.Type)
 		}
@@ -146,7 +146,7 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 
 	variable := w.GetVariable(sc, ident.Name.Lexeme)
 
-	if sc.Tag.GetType() == wkr.Struct { 
+	if sc.Tag.GetType() == wkr.Struct {
 		_struct := sc.Tag.(*wkr.StructTag).StructVal
 		_, index, _ := _struct.ContainsField(variable.Name)
 
@@ -156,11 +156,11 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 		_, index, _ := entity.ContainsField(variable.Name)
 
 		*node = ConvertIdentifierToFieldExpr(ident, index, ast.SelfEntity, entity.Type.EnvName, entity.Type.Name)
-	}else if sc.Environment != w.Environment {
+	} else if sc.Environment != w.Environment {
 		*node = &ast.EnvAccessExpr{
 			PathExpr: &ast.EnvPathExpr{
 				Path: lexer.Token{
-					Lexeme: sc.Environment.Name,
+					Lexeme:   sc.Environment.Name,
 					Location: ident.GetToken().Location,
 				},
 			},
@@ -176,17 +176,17 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 	}
 
 	switch sc.Environment.Name {
-	case "Pewpew": 
+	case "Pewpew":
 		w.Context.PewpewVarFound = true
 		w.Context.PewpewVarName = ident.Name.Lexeme
 		ident.Name.Lexeme = generator.PewpewVariables[ident.Name.Lexeme]
-	case "Fmath": 
+	case "Fmath":
 		ident.Name.Lexeme = generator.FmathFunctions[ident.Name.Lexeme]
-	case "Math": 
+	case "Math":
 		ident.Name.Lexeme = generator.MathVariables[ident.Name.Lexeme]
-	case "String": 
+	case "String":
 		ident.Name.Lexeme = generator.StringVariables[ident.Name.Lexeme]
-	case "Table": 
+	case "Table":
 		ident.Name.Lexeme = generator.TableVariables[ident.Name.Lexeme]
 	}
 
@@ -199,25 +199,25 @@ func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr) (wkr.Value, ast.Node)
 
 	if node.Accessed.GetType() == ast.Identifier {
 		name := node.Accessed.(*ast.IdentifierExpr).Name.Lexeme
-		path := envName+"::"+name
+		path := envName + "::" + name
 		walker, found := w.Walkers[path]
 		if found {
 			return wkr.NewPathVal(walker.Environment.Path, walker.Environment.Type), &ast.LiteralExpr{
-				Value: "\""+walker.Environment.Path+"\"",
+				Value: "\"" + walker.Environment.Path + "\"",
 			}
 		}
 	}
 
 	switch envName {
-	case "Pewpew": 
+	case "Pewpew":
 		return GetNodeValueFromExternalEnv(w, node.Accessed, wkr.PewpewEnv), nil
-	case "Fmath": 
+	case "Fmath":
 		return GetNodeValueFromExternalEnv(w, node.Accessed, wkr.FmathEnv), nil
-	case "Math": 
+	case "Math":
 		return GetNodeValueFromExternalEnv(w, node.Accessed, wkr.MathEnv), nil
-	case "String": 
+	case "String":
 		return GetNodeValueFromExternalEnv(w, node.Accessed, wkr.StringEnv), nil
-	case "Table": 
+	case "Table":
 		return GetNodeValueFromExternalEnv(w, node.Accessed, wkr.TableEnv), nil
 	}
 
@@ -272,18 +272,18 @@ func ListExpr(w *wkr.Walker, node *ast.ListExpr, scope *wkr.Scope) wkr.Value {
 func CallExpr(w *wkr.Walker, val wkr.Value, node *ast.CallExpr, scope *wkr.Scope) wkr.Value {
 	valType := val.GetType().PVT()
 	if valType != ast.Func {
-		w.Error(node.Caller.GetToken(), "caller is not a function") 
-		return &wkr.Invalid{}                                       
+		w.Error(node.Caller.GetToken(), "caller is not a function")
+		return &wkr.Invalid{}
 	}
 
-	variable, it_is := val.(*wkr.VariableVal) 
+	variable, it_is := val.(*wkr.VariableVal)
 	if it_is {
 		val = variable.Value
 	}
 	fun, _ := val.(*wkr.FunctionVal)
 
 	suppliedGenerics := GetGenerics(w, node, node.GenericArgs, fun.Generics, scope)
-	
+
 	args := []wkr.Type{}
 	for i := range node.Args {
 		args = append(args, GetNodeValue(w, &node.Args[i], scope).GetType())
@@ -299,7 +299,7 @@ func CallExpr(w *wkr.Walker, val wkr.Value, node *ast.CallExpr, scope *wkr.Scope
 	node.ReturnAmount = len(fun.Returns)
 
 	if len(fun.Returns) == 1 {
-		return w.TypeToValue(fun.Returns[0]) 
+		return w.TypeToValue(fun.Returns[0])
 	}
 	return &fun.Returns
 }
@@ -311,7 +311,7 @@ func GetGenerics(w *wkr.Walker, node ast.Node, genericArgs []*ast.TypeExpr, expe
 	suppliedGenerics := map[string]wkr.Type{}
 	if receivedGenericsLength > expectedGenericsLength {
 		w.Error(node.GetToken(), "too many generic arguments supplied")
-	}else {
+	} else {
 		for i := range genericArgs {
 			suppliedGenerics[expectedGenerics[i].Name] = TypeExpr(w, genericArgs[i], scope, true)
 		}
@@ -320,12 +320,13 @@ func GetGenerics(w *wkr.Walker, node ast.Node, genericArgs []*ast.TypeExpr, expe
 	return suppliedGenerics
 }
 
-func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {// WRITES CONTEXT
+// Writes to context
+func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {
 	var scopeable wkr.ScopeableValue
 	var val wkr.Value
 	if w.Context.Node.GetType() != ast.NA {
 		val = w.Context.Value
-	}else {
+	} else {
 		val = GetNodeValue(w, &node.Identifier, scope)
 		if variable, ok := val.(*wkr.VariableVal); ok {
 			val = variable.Value
@@ -340,11 +341,11 @@ func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {
 
 	if scpbl, ok := val.(wkr.ScopeableValue); ok {
 		scopeable = scpbl
-	}else {
+	} else {
 		w.Error(node.Identifier.GetToken(), "variable is not of type class, struct, entity or enum")
 		return &wkr.Invalid{}
 	}
-	
+
 	newScope := scopeable.Scopify(scope, node)
 	w.Context.Value = val
 	w.Context.Node = node
@@ -360,15 +361,16 @@ func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {
 	defer w.Context.Clear()
 	if node.Property.GetType() != ast.Identifier {
 		return GetNodeValue(w, &node.Property, newScope)
-	}// var1[1]["test"].method()
+	} // var1[1]["test"].method()
 	return propVal
 }
 
-func MemberExpr(w *wkr.Walker, node *ast.MemberExpr, scope *wkr.Scope) wkr.Value {// WRITES CONTEXT
+// Writes to context
+func MemberExpr(w *wkr.Walker, node *ast.MemberExpr, scope *wkr.Scope) wkr.Value {
 	var val wkr.Value
 	if w.Context.Value.GetType().GetType() != wkr.NA {
 		val = w.Context.Value
-	}else {
+	} else {
 		val = GetNodeValue(w, &node.Identifier, scope)
 	}
 	valType := val.GetType()
@@ -377,13 +379,13 @@ func MemberExpr(w *wkr.Walker, node *ast.MemberExpr, scope *wkr.Scope) wkr.Value
 		w.Error(token, fmt.Sprintf("%s is not a map nor a list (found %s)", token.Lexeme, valType.ToString()))
 		return &wkr.Invalid{}
 	}
-	
+
 	if node.Property.GetValueType() != ast.Ident {
-	}else if valType.PVT() == ast.Map {
+	} else if valType.PVT() == ast.Map {
 		if node.GetValueType() != ast.String {
 			w.Error(node.Property.GetToken(), "expected string inside brackets for map accessing")
 		}
-	}else if valType.PVT() == ast.List {
+	} else if valType.PVT() == ast.List {
 		if node.GetValueType() != ast.Number {
 			w.Error(node.Property.GetToken(), "expected number inside brackets for list accessing")
 		}
@@ -395,10 +397,10 @@ func MemberExpr(w *wkr.Walker, node *ast.MemberExpr, scope *wkr.Scope) wkr.Value
 	if nodePropertyType == ast.Identifier {
 		w.Context.Clear()
 		return property
-	}else if nodePropertyType == ast.CallExpression {
+	} else if nodePropertyType == ast.CallExpression {
 		w.Context.Clear()
 		return CallExpr(w, property, node.Property.(*ast.CallExpr), scope)
-	}else if nodePropertyType == ast.LiteralExpression {
+	} else if nodePropertyType == ast.LiteralExpression {
 		w.Context.Clear()
 		return property
 	}
@@ -470,17 +472,17 @@ func NewExpr(w *wkr.Walker, new *ast.NewExpr, scope *wkr.Scope) wkr.Value {
 }
 
 func SpawnExpr(w *wkr.Walker, new *ast.SpawnExpr, scope *wkr.Scope) wkr.Value {
-	_type := TypeExpr(w, new.Type, scope, false)
+	typeExpr := TypeExpr(w, new.Type, scope, false)
 
-	if _type.PVT() == ast.Invalid {
+	if typeExpr.PVT() == ast.Invalid {
 		w.Error(new.Type.GetToken(), "invalid type given in spawn expression")
 		return &wkr.Invalid{}
-	} else if _type.PVT() != ast.Entity {
+	} else if typeExpr.PVT() != ast.Entity {
 		w.Error(new.Type.GetToken(), "type given in spawn expression is not an entity")
 		return &wkr.Invalid{}
 	}
 
-	val := w.TypeToValue(_type).(*wkr.EntityVal)
+	val := w.TypeToValue(typeExpr).(*wkr.EntityVal)
 
 	args := make([]wkr.Type, 0)
 	for i := range new.Args {
@@ -492,6 +494,60 @@ func SpawnExpr(w *wkr.Walker, new *ast.SpawnExpr, scope *wkr.Scope) wkr.Value {
 	w.ValidateArguments(suppliedGenerics, args, val.SpawnParams, new.Token)
 
 	return val
+}
+
+func MethodCallExpr(w *wkr.Walker, mcall *ast.MethodCallExpr, scope *wkr.Scope) (wkr.Value, ast.Node) {
+	val := GetNodeValue(w, &mcall.Identifier, scope)
+	if variable, ok := val.(*wkr.VariableVal); ok {
+		val = variable.Value
+	}
+	valType := val.GetType()
+
+	if valType.PVT() == ast.Invalid {
+		w.Error(mcall.Identifier.GetToken(), "value is invalid")
+		return &wkr.Invalid{}, mcall
+	}
+
+	if structVal, ok := val.(*wkr.StructVal); ok {
+		mcall.EnvName = structVal.Type.EnvName
+		mcall.TypeName = structVal.Type.Name
+		mcall.ExprType = ast.SelfStruct
+	}else if entityVal, ok := val.(*wkr.EntityVal); ok {
+		mcall.EnvName = entityVal.Type.EnvName
+		mcall.TypeName = entityVal.Type.Name
+		mcall.ExprType = ast.SelfEntity
+	}
+
+	callToken := mcall.Call.Caller.GetToken()
+	if methodContainer, ok := val.(wkr.MethodContainer); ok {
+		method, found := methodContainer.ContainsMethod(callToken.Lexeme)
+
+		mcall.MethodName = callToken.Lexeme
+
+		if found {
+			return CallExpr(w, method, mcall.Call, scope), mcall
+		}
+	}
+	if fieldContainer, ok := val.(wkr.FieldContainer); ok && valType.PVT() != ast.Enum {
+		_, _, found := fieldContainer.ContainsField(callToken.Lexeme)
+
+		if found {
+			fieldExpr := &ast.FieldExpr{
+				Property: mcall.Call,
+				PropertyIdentifier: mcall.Call.Caller,
+				Identifier: mcall.Identifier,
+			}
+
+			return FieldExpr(w, fieldExpr, scope), fieldExpr
+		}
+	} else {
+		w.Error(mcall.Identifier.GetToken(), "value is not of type class or entity")
+		return &wkr.Invalid{}, mcall
+	}
+
+	w.Error(mcall.GetToken(), "no method found")
+
+	return &wkr.Invalid{}, mcall
 }
 
 func GetNodeValueFromExternalEnv(w *wkr.Walker, expr ast.Node, env *wkr.Environment) wkr.Value {
@@ -519,7 +575,7 @@ func GetNodeValueFromExternalEnv(w *wkr.Walker, expr ast.Node, env *wkr.Environm
 // 	}
 
 // 	return wkr.NewCustomVal(cstm)
-// } 
+// }
 
 func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) wkr.Type {
 	if typee == nil {
@@ -535,22 +591,22 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 		var env *wkr.Environment
 		if !found {
 			switch path {
-			case "Pewpew": 
+			case "Pewpew":
 				env = wkr.PewpewEnv
-			case "Fmath": 
+			case "Fmath":
 				env = wkr.FmathEnv
-			case "Math": 
+			case "Math":
 				env = wkr.MathEnv
-			case "String": 
+			case "String":
 				env = wkr.StringEnv
-			case "Table": 
+			case "Table":
 				env = wkr.TableEnv
 			default:
 				w.Error(expr.GetToken(), "Environment name so doesn't exist")
 				return wkr.InvalidType
 			}
-			
-		}else {
+
+		} else {
 			for _, v := range walker.GetEnvStmt().Requirements {
 				if v == w.Environment.Path {
 					w.Error(typee.GetToken(), fmt.Sprintf("import cycle detected: this environment and '%s' are using each other", walker.Environment.Name))
@@ -566,7 +622,7 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 
 			env = walker.Environment
 		}
-	
+
 		ident := &ast.IdentifierExpr{Name: expr.Accessed.GetToken(), ValueType: ast.Invalid}
 		typ = TypeExpr(w, &ast.TypeExpr{Name: ident}, &env.Scope, throw)
 		if typee.IsVariadic {
@@ -607,7 +663,7 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 		params := wkr.Types{}
 
 		for _, v := range typee.Params {
-			params = append(params, TypeExpr(w, v, scope, throw))
+			params = append(params, TypeExpr(w, v.Type, scope, throw))
 		}
 
 		returns := wkr.Types{}
@@ -638,7 +694,7 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 			typ = customType
 			break
 		}
-		if val := w.GetVariable(scope, typeName); val != nil {
+		if val := w.GetVariable(&w.Environment.Scope, typeName); val != nil {
 			if val.GetType().PVT() == ast.Enum {
 				typ = val.GetType()
 				break
@@ -646,7 +702,7 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 		}
 
 		sc, _, fnTag := wkr.ResolveTagScope[*wkr.FuncTag](scope)
-		
+
 		if sc != nil {
 			fnTag := *fnTag
 			for _, v := range fnTag.Generics {
@@ -667,8 +723,8 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 			}
 		}
 
-		for k, v := range scope.Environment.UsedLibraries {// use Pewpew
-			if !v {// WeaponType
+		for k, v := range scope.Environment.UsedLibraries { // use Pewpew
+			if !v { // WeaponType
 				continue
 			}
 
@@ -677,21 +733,20 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 				types[wkr.LibraryEnvs[k].Name] = typ
 			}
 		}
-		
 
 		if len(types) > 1 {
 			errorMsg := "conflicting types between: "
 			for k, v := range types {
-				errorMsg += k+":"+v.ToString()+", "
+				errorMsg += k + ":" + v.ToString() + ", "
 			}
 			errorMsg = errorMsg[:len(errorMsg)-1]
 			w.Error(typee.GetToken(), errorMsg)
-		}else if len(types) == 1 {
+		} else if len(types) == 1 {
 			for k, v := range types {
 				typee.Name = &ast.EnvAccessExpr{
 					PathExpr: &ast.EnvPathExpr{
 						Path: lexer.Token{
-							Lexeme: k,
+							Lexeme:   k,
 							Location: typee.Name.GetToken().Location,
 						},
 					},

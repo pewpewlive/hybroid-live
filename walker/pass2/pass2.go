@@ -46,6 +46,8 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 	case *ast.CallExpr:
 		val := GetNodeValue(w, &newNode.Caller, scope)
 		CallExpr(w, val, newNode, scope)
+	case *ast.MethodCallExpr:
+		_, *node = MethodCallExpr(w, newNode, scope)
 	case *ast.EnvAccessExpr:
 		_, newVersion := EnvAccessExpr(w, newNode)
 		if newVersion != nil {
@@ -98,6 +100,8 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 	case *ast.CallExpr:
 		callVal := GetNodeValue(w, &newNode.Caller, scope)
 		val = CallExpr(w, callVal, newNode, scope)
+	case *ast.MethodCallExpr:
+		val, *node = MethodCallExpr(w, newNode, scope)
 	case *ast.MapExpr:
 		val = MapExpr(w, newNode, scope)
 	case *ast.FunctionExpr:

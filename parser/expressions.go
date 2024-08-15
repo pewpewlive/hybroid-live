@@ -145,7 +145,7 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 	}
 
 	callerType := caller.GetType()
-	if callerType != ast.Identifier && callerType != ast.CallExpression && callerType != ast.EnvironmentAccessExpression {
+	if callerType != ast.Identifier && callerType != ast.CallExpression && callerType != ast.EnvironmentAccessExpression && callerType != ast.MemberExpression {
 		p.error(p.peek(-1), fmt.Sprintf("cannot call unidentified value (caller: %v)", callerType))
 		return &ast.Improper{Token: p.peek(-1)}
 	}
@@ -479,44 +479,47 @@ func (p *Parser) parseMap() ast.Node {
 }
 
 func (p *Parser) structExpr() ast.Node {
-	_struct := ast.StructExpr{
+	structExpr := ast.StructExpr{
 		Token:  p.peek(-1),
 		Fields: make([]*ast.FieldDeclarationStmt, 0),
 	}
 
-	_, ok := p.consume("expected opening brace in anonymous struct expression", lexer.LeftBrace)
+	_, ok := p.consume("expected opening brace in struct", lexer.LeftBrace)
 	if !ok {
-		return &ast.Improper{Token: _struct.Token}
+		return &ast.Improper{Token: structExpr.Token}
+	}
+	if p.match(lexer.RightBrace) {
+		return &structExpr
+	}
+	field := p.fieldDeclarationStmt()
+	if field.GetType() != ast.NA {
+		structExpr.Fields = append(structExpr.Fields, field.(*ast.FieldDeclarationStmt))
+	} else {
+		p.error(field.GetToken(), "expected field declaration inside struct")
 	}
 
-	for !p.match(lexer.RightBrace) {
+	for p.match(lexer.SemiColon) {
 		field := p.fieldDeclarationStmt()
 		if field.GetType() != ast.NA {
-			_struct.Fields = append(_struct.Fields, field.(*ast.FieldDeclarationStmt))
+			structExpr.Fields = append(structExpr.Fields, field.(*ast.FieldDeclarationStmt))
 		} else {
-			p.error(field.GetToken(), "expected field declaration inside anonymous struct")
-		}
-		for p.match(lexer.Comma) {
-			field := p.fieldDeclarationStmt()
-			if field.GetType() != ast.NA {
-				_struct.Fields = append(_struct.Fields, field.(*ast.FieldDeclarationStmt))
-			} else {
-				p.error(field.GetToken(), "expected field declaration inside anonymous struct")
-			}
+			p.error(field.GetToken(), "expected field declaration inside struct")
 		}
 	}
 
-	return &_struct
+	p.consume("expected closing brace in struct", lexer.RightBrace)
+
+	return &structExpr
 }
 
 func (p *Parser) WrappedType() *ast.TypeExpr {
-	typee := ast.TypeExpr{}
+	typeExpr := ast.TypeExpr{}
 	if p.check(lexer.Greater) {
 		p.error(p.peek(), "empty wrapped type")
-		return &typee
+		return &typeExpr
 	}
-	expr2 := p.Type()
-	return expr2
+	
+	return p.Type()
 }
 
 func (p *Parser) Type() *ast.TypeExpr {
@@ -573,25 +576,11 @@ func (p *Parser) Type() *ast.TypeExpr {
 		typ.Name = expr
 	case lexer.Fn:
 		typ = &ast.TypeExpr{}
-		p.advance()
-		params := make([]*ast.TypeExpr, 0) // yes
-		typ.Returns = make([]*ast.TypeExpr, 0)
-		if p.match(lexer.LeftParen) { // because this fucks up
-			if !p.match(lexer.RightParen) {
-				params = append(params, p.Type())
-
-				for p.match(lexer.Comma) {
-					params = append(params, p.Type())
-				}
-				p.consume("expected closing parenthesis in 'fn(...'", lexer.RightParen)
-			}
-		}
-
-		typ.Params = params
+		//p.advance()
+		typ.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
 		typ.Returns = p.returnings()
 		typ.Name = expr
 	case lexer.Struct:
-		p.advance()
 		fields := p.parameters(lexer.LeftBrace, lexer.RightBrace)
 		typ = &ast.TypeExpr{Name: expr, Fields: fields}
 	case lexer.Entity:

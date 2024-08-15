@@ -136,7 +136,7 @@ func (ue *UnaryExpr) GetValueType() PrimitiveValueType {
 type TypeExpr struct {
 	WrappedType *TypeExpr
 	Name        Node
-	Params      []*TypeExpr
+	Params      []Param
 	Returns     []*TypeExpr
 	Fields      []Param
 	IsVariadic  bool
@@ -210,7 +210,9 @@ func (ce *CallExpr) GetValueType() PrimitiveValueType {
 }
 
 type MethodCallExpr struct {
+	EnvName string
 	TypeName   string
+	ExprType  SelfExprType
 	Identifier      Node
 	Call       *CallExpr
 	MethodName string

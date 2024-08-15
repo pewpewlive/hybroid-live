@@ -3,10 +3,12 @@ local E_a = 1
 
 if true then
 	E_a = 2
+
 end
 
 if true then
 	E_a = 2
+
 end
 
 while true do
@@ -16,10 +18,12 @@ while true do
 end
 if true then
 	E_a = 2
+
 end
 
 local function E_test()
 	E_a = 2
+
 end
 local function E_test2()
 	if true then

@@ -65,7 +65,7 @@ func (p *Parser) parameters(opening lexer.TokenType, closing lexer.TokenType) []
 	}
 
 	var args []ast.Param
-	if p.match(lexer.RightParen) {
+	if p.match(closing) {
 		args = make([]ast.Param, 0)
 	} else {
 		args = append(args, p.getParam())

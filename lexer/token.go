@@ -17,6 +17,7 @@ const (
 	At             TokenType = "at"             // @
 	Pipe           TokenType = "pipe"           // |
 	Colon          TokenType = "colon"          // :
+	SemiColon      TokenType = "semicolon"      // ;
 	DoubleColon    TokenType = "doubleColon"    // ::
 	Dot            TokenType = "dot"            // .
 	Concat         TokenType = "concat"         // ..

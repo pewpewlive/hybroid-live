@@ -253,9 +253,10 @@ func (l *Lexer) scanToken() {
 		} else {
 			l.addToken(BackSlash, "")
 		}
-
+	case ';':
+		l.addToken(SemiColon, "")
 	// Whitespace characters
-	case ' ', ';', '\r', '\t':
+	case ' ', '\r', '\t':
 		break
 
 	// Increment line count when hitting new line
