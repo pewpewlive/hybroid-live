@@ -38,14 +38,14 @@ func (p *Parser) synchronize() {
 		switch p.peek().Type {
 		case lexer.For, lexer.Fn, lexer.If, lexer.Repeat, lexer.Tick,
 			lexer.Return, lexer.Let, lexer.While, lexer.Pub, lexer.Const,
-			lexer.Break, lexer.Continue, lexer.Add, lexer.Remove, 
+			lexer.Break, lexer.Continue, lexer.Add, lexer.Remove,
 			lexer.Class:
 			return
 		case lexer.Entity:
 			if p.peek(1).Type == lexer.Identifier && p.peek(2).Type == lexer.LeftBrace {
 				return
 			}
-		}// pub fn (entity thing) { }
+		} // pub fn (entity thing) { }
 		// entity yes{}
 
 		p.advance()
@@ -72,6 +72,18 @@ func (p *Parser) advance() lexer.Token {
 		p.current++
 	}
 	return t
+}
+
+// Advances by one into the next token and returns the previous token before advancing
+func (p *Parser) disadvance(amount int) lexer.Token {
+	if p.current > 0 {
+		p.current -= amount
+	}
+	return p.tokens[p.current]
+}
+
+func (p *Parser) getCurrent() int {
+	return p.current
 }
 
 // Peeks into the current token or peeks at the token that is offset from the current position by the given offset

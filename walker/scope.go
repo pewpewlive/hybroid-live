@@ -6,11 +6,11 @@ import (
 )
 
 type Context struct {
-	Node  ast.Node
-	Value Value
+	Node           ast.Node
+	Value          Value
 	PewpewVarFound bool
-	PewpewVarName string
-} 
+	PewpewVarName  string
+}
 
 func (c *Context) Clear() {
 	c.Node = &ast.Improper{}
@@ -55,11 +55,11 @@ func (ut *UntaggedTag) GetType() ScopeTagType {
 	return Untagged
 }
 
-type StructTag struct {
-	StructVal *StructVal
+type ClassTag struct {
+	Val *ClassVal
 }
 
-func (st *StructTag) GetType() ScopeTagType {
+func (st *ClassTag) GetType() ScopeTagType {
 	return Struct
 }
 
@@ -75,7 +75,7 @@ type FuncTag struct {
 	Returns     []bool
 	ReturnTypes Types
 
-	Generics    []*GenericType
+	Generics []*GenericType
 }
 
 func (et *FuncTag) GetType() ScopeTagType {
@@ -209,7 +209,7 @@ type Scope struct {
 	Tag        ScopeTag
 	Attributes ScopeAttributes
 
-	Variables         map[string]*VariableVal
+	Variables map[string]*VariableVal
 
 	Body *[]*ast.Node
 }

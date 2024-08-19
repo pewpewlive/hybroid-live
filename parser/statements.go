@@ -21,6 +21,11 @@ func (p *Parser) statement() ast.Node {
 	token := p.peek().Type
 	next := p.peek(1).Type
 
+	varDecl := p.variableDeclarationStmt()
+	if varDecl != nil {
+		return varDecl
+	}
+
 	if token == lexer.Pub {
 		switch next {
 		case lexer.Fn:
@@ -60,9 +65,9 @@ func (p *Parser) statement() ast.Node {
 	case lexer.Env:
 		p.advance()
 		return p.envStmt()
-	case lexer.Let, lexer.Pub, lexer.Const:
-		p.advance()
-		return p.variableDeclarationStmt()
+	//case lexer.Let, lexer.Pub, lexer.Const:
+	//p.advance()
+	//return p.variableDeclarationStmt()
 	case lexer.Add:
 		p.advance()
 		return p.addToStmt()
@@ -445,7 +450,6 @@ func (p *Parser) destroyStmt() ast.Node {
 	return &stmt
 }
 
-
 func (p *Parser) constructorDeclarationStmt() ast.Node {
 	stmt := &ast.ConstructorStmt{Token: p.peek(-1)}
 
@@ -671,7 +675,7 @@ func (p *Parser) functionDeclarationStmt(IsLocal bool) ast.Node {
 	fnDec.GenericParams = p.genericParameters()
 	fnDec.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
 
-	fnDec.Return = p.returnings()// fn token{}(entity id)
+	fnDec.Return = p.returnings() // fn token{}(entity id)
 	// fn beautifulfunc<number>() {}
 
 	var success bool
@@ -888,7 +892,7 @@ func (p *Parser) tickStmt() ast.Node {
 		if identExpr.GetType() != ast.Identifier {
 			p.error(identExpr.GetToken(), "expected identifier expression after keyword 'with'")
 			return &tickStmt
-		}else {
+		} else {
 			tickStmt.Variable = identExpr.(*ast.IdentifierExpr)
 		}
 	}
@@ -904,12 +908,70 @@ func (p *Parser) tickStmt() ast.Node {
 
 func (p *Parser) variableDeclarationStmt() ast.Node {
 	variable := ast.VariableDeclarationStmt{
-		Token:   p.peek(-1),
-		IsLocal: p.peek(-1).Type == lexer.Let,
-		IsConst: p.peek(-1).Type == lexer.Const,
+		Token:   p.peek(),
+		IsLocal: true,
+		IsConst: false,
 	}
 
-	typ, ide := p.TypeWithVar()
+	var typ *ast.TypeExpr
+	var ide ast.Node
+	nextToken := p.peek().Type
+
+	if nextToken == lexer.Const {
+		variable.Token = p.advance()
+		variable.IsLocal = false
+		variable.IsConst = true
+
+		typ, ide = p.TypeWithVar()
+
+	} else if nextToken == lexer.Let {
+		variable.Token = p.advance()
+		variable.IsLocal = true
+		variable.IsConst = false
+
+		typ, ide = p.TypeWithVar()
+
+	} else if nextToken == lexer.Pub {
+		current := p.getCurrent()
+
+		variable.Token = p.advance()
+		variable.IsLocal = false
+		variable.IsConst = false
+
+		typ, ide = p.TypeWithVar()
+
+		nextToken = p.peek().Type
+
+		if nextToken == lexer.Less || nextToken == lexer.LeftBrace || nextToken == lexer.LeftParen {
+			p.disadvance(p.getCurrent() - current)
+
+			return nil
+		}
+	} else {
+		current := p.getCurrent()
+
+		if !p.PeekIsType() {
+			return nil
+		}
+
+		typ = p.Type()
+		token := p.advance()
+		if token.Type != lexer.Identifier {
+			p.disadvance(p.getCurrent() - current)
+
+			return nil
+		}
+		ide = &ast.IdentifierExpr{Name: token, ValueType: ast.Invalid}
+
+		nextToken = p.peek().Type
+
+		if nextToken == lexer.Less || nextToken == lexer.LeftBrace || nextToken == lexer.LeftParen {
+			p.disadvance(p.getCurrent() - current)
+
+			return nil
+		}
+	}
+
 	if ide.GetType() != ast.Identifier {
 		ideToken := ide.GetToken()
 		p.error(ideToken, "expected identifier in variable declaration")

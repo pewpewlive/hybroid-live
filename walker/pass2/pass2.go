@@ -3,11 +3,10 @@ package pass2 // THE ACTUAL WALKING
 import (
 	"hybroid/ast"
 	"hybroid/lexer"
-	"hybroid/walker"
 	wkr "hybroid/walker"
 )
 
-func Action(w *walker.Walker, wlkrs map[string]*walker.Walker) {
+func Action(w *wkr.Walker, wlkrs map[string]*wkr.Walker) {
 	w.Walkers = wlkrs
 
 	scope := &w.Environment.Scope
@@ -15,7 +14,7 @@ func Action(w *walker.Walker, wlkrs map[string]*walker.Walker) {
 		WalkNode(w, &w.Nodes[i], scope)
 	}
 
-	w.Walked = true;
+	w.Walked = true
 }
 
 func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
@@ -81,8 +80,8 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 	}
 }
 
-func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.Value {
-	var val walker.Value
+func GetNodeValue(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
+	var val wkr.Value
 
 	switch newNode := (*node).(type) {
 	case *ast.LiteralExpr:
@@ -131,7 +130,7 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 	case *ast.UseStmt:
 	default:
 		w.Error(newNode.GetToken(), "Expected expression")
-		return &walker.Invalid{}
+		return &wkr.Invalid{}
 	}
 
 	if field, ok := w.Context.Node.(*ast.FieldExpr); ok {
@@ -143,7 +142,9 @@ func GetNodeValue(w *walker.Walker, node *ast.Node, scope *walker.Scope) walker.
 			field.Index = -1
 			return val
 		}
-		_, field.Index, _ = w.Context.Value.(wkr.FieldContainer).ContainsField((*node).GetToken().Lexeme)
+		if container, ok := w.Context.Value.(wkr.FieldContainer); ok {
+			_, field.Index, _ = container.ContainsField((*node).GetToken().Lexeme)
+		}
 	}
 	return val
 }
@@ -205,7 +206,7 @@ func WalkParams(w *wkr.Walker, parameters []ast.Param, scope *wkr.Scope, declare
 
 	if len(variadicParams) > 1 {
 		w.Error(parameters[0].Name, "can only have one vartiadic parameter")
-	}else if len(variadicParams) != 0 {
+	} else if len(variadicParams) != 0 {
 		for k, v := range variadicParams {
 			if v != len(parameters)-1 {
 				w.Error(k, "variadic parameter should be last")

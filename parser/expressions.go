@@ -151,9 +151,9 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 	}
 
 	call_expr := &ast.CallExpr{
-		Caller: caller,
+		Caller:      caller,
 		GenericArgs: args,
-		Args:   p.arguments(),
+		Args:        p.arguments(),
 	}
 
 	return p.call(call_expr)
@@ -170,16 +170,16 @@ func (p *Parser) accessorExprDepth2(ident *ast.Node) ast.Node {
 	methodCall = &ast.MethodCallExpr{
 		Identifier: expr,
 		Call: &ast.CallExpr{
-			Caller: call,
+			Caller:      call,
 			GenericArgs: p.genericArguments(),
-			Args: p.arguments(),
+			Args:        p.arguments(),
 		},
 	}
-	
+
 	if p.check(lexer.Dot) || p.check(lexer.LeftBracket) {
 		return p.accessorExprDepth2(&methodCall)
 	}
-	
+
 	return p.call(methodCall)
 }
 
@@ -217,21 +217,21 @@ func (p *Parser) accessorExpr(ident *ast.Node) (ast.Node, *ast.IdentifierExpr) {
 		if p.check(lexer.LeftParen) || p.check(lexer.Less) {
 			return *ident, propIdentifier.(*ast.IdentifierExpr)
 		}
-	}else if isMember {
+	} else if isMember {
 		propIdentifier = p.expression()
 		p.consume("expected closing bracket in member expression", lexer.RightBracket)
 	}
-	
+
 	expr.SetPropertyIdentifier(propIdentifier)
 	if p.check(lexer.Dot) || p.check(lexer.LeftBracket) {
 		prop, call := p.accessorExpr(&propIdentifier)
 
 		expr.SetProperty(prop)
-	
+
 		return expr, call
 	}
 	expr.SetProperty(propIdentifier)
-	
+
 	return expr, nil
 }
 
@@ -383,7 +383,7 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 			PathExpr: envPath,
 		}
 		envExpr.Accessed = &ast.IdentifierExpr{
-			Name: next,
+			Name:      next,
 			ValueType: ast.Invalid,
 		}
 
@@ -518,7 +518,7 @@ func (p *Parser) WrappedType() *ast.TypeExpr {
 		p.error(p.peek(), "empty wrapped type")
 		return &typeExpr
 	}
-	
+
 	return p.Type()
 }
 
@@ -546,9 +546,9 @@ func (p *Parser) Type() *ast.TypeExpr {
 			Name: next,
 		}
 		expr = envAccess
-	}else {
+	} else {
 		expr = &ast.IdentifierExpr{
-			Name: token,
+			Name:      token,
 			ValueType: ast.Invalid,
 		}
 	}
@@ -577,7 +577,16 @@ func (p *Parser) Type() *ast.TypeExpr {
 	case lexer.Fn:
 		typ = &ast.TypeExpr{}
 		//p.advance()
-		typ.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
+		p.consume("expected opening parenthesis", lexer.LeftParen)
+		if !p.match(lexer.RightParen) {
+			_typ := p.Type()
+			typ.Params = append(typ.Params, _typ)
+			for p.match(lexer.Comma) {
+				_typ = p.Type()
+				typ.Params = append(typ.Params, _typ)
+			}
+			p.consume("expected closing parenthesis", lexer.RightParen)
+		}
 		typ.Returns = p.returnings()
 		typ.Name = expr
 	case lexer.Struct:

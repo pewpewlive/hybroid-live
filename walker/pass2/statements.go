@@ -30,7 +30,7 @@ func ClassDeclarationStmt(w *wkr.Walker, node *ast.ClassDeclarationStmt, scope *
 		generics = append(generics, wkr.NewGeneric(param.Name.Lexeme))
 	}
 
-	classVal := &wkr.StructVal{
+	classVal := &wkr.ClassVal{
 		Type:     *wkr.NewNamedType(w.Environment.Name, node.Name.Lexeme, ast.Struct),
 		IsLocal:  node.IsLocal,
 		Fields:   make(map[string]wkr.Field),
@@ -39,16 +39,16 @@ func ClassDeclarationStmt(w *wkr.Walker, node *ast.ClassDeclarationStmt, scope *
 		Params:   wkr.Types{},
 	}
 
-	structScope := wkr.NewScope(scope, &wkr.StructTag{StructVal: classVal}, wkr.SelfAllowing)
+	// DECLARATIONS
+	w.DeclareClass(classVal)
+
+	classScope := wkr.NewScope(scope, &wkr.ClassTag{Val: classVal}, wkr.SelfAllowing)
 
 	params := make([]wkr.Type, 0)
 	for _, param := range node.Constructor.Params {
 		params = append(params, TypeExpr(w, param.Type, scope, true))
 	}
 	classVal.Params = params
-
-	// DECLARATIONS
-	w.DeclareStruct(classVal)
 
 	funcDeclaration := ast.MethodDeclarationStmt{
 		Name:     node.Constructor.Token,
@@ -60,27 +60,27 @@ func ClassDeclarationStmt(w *wkr.Walker, node *ast.ClassDeclarationStmt, scope *
 	}
 
 	for i := range node.Fields {
-		FieldDeclarationStmt(w, &node.Fields[i], classVal, structScope)
+		FieldDeclarationStmt(w, &node.Fields[i], classVal, classScope)
 	}
 
 	for i := range node.Methods {
-		MethodDeclarationStmt(w, &node.Methods[i], classVal, structScope)
+		MethodDeclarationStmt(w, &node.Methods[i], classVal, classScope)
 	}
 
-	MethodDeclarationStmt(w, &funcDeclaration, classVal, structScope)
+	MethodDeclarationStmt(w, &funcDeclaration, classVal, classScope)
 
 	// WALKING
-	MethodDeclarationStmt(w, &funcDeclaration, classVal, structScope)
+	MethodDeclarationStmt(w, &funcDeclaration, classVal, classScope)
 
 	for _, v := range classVal.Fields {
 		if _, uninit := v.Var.Value.(*wkr.UninitializedVal); uninit {
-			w.Error(node.GetToken(), "all fields need to be initialized in constructor")
+			w.Error(node.GetToken(), "all fields need to be initialized in constructor (found '%s')", v.Var.Name)
 			break
 		}
 	}
 
 	for i := range node.Methods {
-		MethodDeclarationStmt(w, &node.Methods[i], classVal, structScope)
+		MethodDeclarationStmt(w, &node.Methods[i], classVal, classScope)
 	}
 }
 
@@ -270,12 +270,7 @@ func FieldDeclarationStmt(w *wkr.Walker, node *ast.FieldDeclarationStmt, contain
 	variables := VariableDeclarationStmt(w, &varDecl, scope)
 	node.Values = varDecl.Values
 	for i := range variables {
-		variable, _, found := container.ContainsField(variables[i].Name)
-		if found {
-			variable.Value = variables[i].Value
-		} else {
-			container.AddField(variables[i])
-		}
+		container.AddField(variables[i])
 	}
 }
 
@@ -306,9 +301,6 @@ func MethodDeclarationStmt(w *wkr.Walker, node *ast.MethodDeclarationStmt, conta
 		container.AddMethod(variable)
 	}
 }
-
-// entity myent
-// fixed thing = 0f
 
 func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, scope *wkr.Scope, procType wkr.ProcedureType) *wkr.VariableVal {
 	generics := make([]*wkr.GenericType, 0)
@@ -358,9 +350,9 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 	for i := range declaration.Values {
 		index++
 		exprValue := GetNodeValue(w, &declaration.Values[i], scope)
-		if declaration.Values[i].GetType() == ast.SelfExpression {
-			w.Error(declaration.Values[i].GetToken(), "cannot assign self to a variable")
-		}
+		// if declaration.Values[i].GetType() == ast.SelfExpression {
+		// 	w.Error(declaration.Values[i].GetToken(), "cannot assign self to a variable")
+		// }
 		if types, ok := exprValue.(*wkr.Types); ok {
 			w.AddTypesToValues(&values, types)
 		} else {
@@ -488,9 +480,9 @@ func AssignmentStmt(w *wkr.Walker, assignStmt *ast.AssignmentStmt, scope *wkr.Sc
 	for i := range assignStmt.Values { // function()
 		index++
 		exprValue := GetNodeValue(w, &assignStmt.Values[i], scope)
-		if assignStmt.Values[i].GetType() == ast.SelfExpression {
-			w.Error(assignStmt.Values[i].GetToken(), "cannot assign self to a variable")
-		}
+		// if assignStmt.Values[i].GetType() == ast.SelfExpression {
+		// 	w.Error(assignStmt.Values[i].GetToken(), "cannot assign self to a variable")
+		// }
 		if types, ok := exprValue.(*wkr.Types); ok {
 			for j := range *types {
 				values = append(values, Value{w.TypeToValue((*types)[j]), i})

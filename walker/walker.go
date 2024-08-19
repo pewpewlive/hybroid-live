@@ -10,22 +10,22 @@ import (
 
 var LibraryEnvs = map[Library]*Environment{
 	Pewpew: PewpewEnv,
-	Fmath: FmathEnv,
-	Math: MathEnv,
+	Fmath:  FmathEnv,
+	Math:   MathEnv,
 	String: StringEnv,
-	Table: TableEnv,
+	Table:  TableEnv,
 }
 
 type Environment struct {
-	Name      string
-	Path      string // dynamic lua path
-	Type      ast.EnvType
-	Scope     Scope
+	Name          string
+	Path          string // dynamic lua path
+	Type          ast.EnvType
+	Scope         Scope
 	UsedWalkers   []*Walker
 	UsedLibraries map[Library]bool
-	Structs   map[string]*StructVal
-	Entities  map[string]*EntityVal
-	CustomTypes     map[string]*CustomType
+	Structs       map[string]*ClassVal
+	Entities      map[string]*EntityVal
+	CustomTypes   map[string]*CustomType
 }
 
 func NewEnvironment(path string) *Environment {
@@ -34,18 +34,18 @@ func NewEnvironment(path string) *Environment {
 		Variables: map[string]*VariableVal{},
 	}
 	global := &Environment{
-		Path:     path,
-		Type:     ast.InvalidEnv,
-		Scope:    scope,
+		Path:  path,
+		Type:  ast.InvalidEnv,
+		Scope: scope,
 		UsedLibraries: map[Library]bool{
 			Pewpew: false,
-			Table: false,
+			Table:  false,
 			String: false,
-			Math: false,
-			Fmath: false,
+			Math:   false,
+			Fmath:  false,
 		},
-		Structs:  map[string]*StructVal{},
-		Entities: map[string]*EntityVal{}, 
+		Structs:     map[string]*ClassVal{},
+		Entities:    map[string]*EntityVal{},
 		CustomTypes: map[string]*CustomType{},
 	}
 
@@ -65,13 +65,13 @@ const (
 
 type Walker struct {
 	CurrentEnvironment *Environment
-	Environment   *Environment
-	Walkers       map[string]*Walker
-	Nodes         []ast.Node
-	Errors        []ast.Error
-	Warnings      []ast.Warning
-	Context       Context
-	Walked        bool
+	Environment        *Environment
+	Walkers            map[string]*Walker
+	Nodes              []ast.Node
+	Errors             []ast.Error
+	Warnings           []ast.Warning
+	Context            Context
+	Walked             bool
 }
 
 // var pewpewEnv = &Environment{
@@ -128,7 +128,7 @@ func (w *Walker) TypeExists(name string) bool {
 	return false
 }
 
-func (w *Walker) GetStruct(name string) (*StructVal, bool) {
+func (w *Walker) GetStruct(name string) (*ClassVal, bool) {
 	structType, found := w.Environment.Structs[name]
 	if !found {
 		//w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s", name, " exists"))
@@ -182,7 +182,7 @@ func (s *Scope) AssignVariable(variable *VariableVal, value Value) (Value, *ast.
 		return &Invalid{}, &ast.Error{Message: "cannot assign to a constant variable"}
 	}
 
-	variable.Value = value
+	//variable.Value = value
 
 	return variable, nil
 }
@@ -197,7 +197,7 @@ func (w *Walker) DeclareVariable(s *Scope, value *VariableVal, token lexer.Token
 	return value, true
 }
 
-func (w *Walker) DeclareStruct(structVal *StructVal) bool {
+func (w *Walker) DeclareClass(structVal *ClassVal) bool {
 	if _, found := w.Environment.Structs[structVal.Type.Name]; found {
 		return false
 	}
@@ -230,7 +230,7 @@ func (w *Walker) ResolveVariable(s *Scope, name string) *Scope {
 		for k, v := range s.Environment.UsedLibraries {
 			if !v {
 				continue
-			} 
+			}
 
 			_, ok := LibraryEnvs[k].Scope.Variables[name]
 			if ok {
@@ -272,7 +272,7 @@ func (sc *Scope) ResolveReturnable() *ExitableTag {
 }
 
 func (w *Walker) ValidateArguments(generics map[string]Type, args []Type, params []Type, callToken lexer.Token) (int, bool) {
-	
+
 	paramCount := len(params)
 	if paramCount > len(args) {
 		w.Error(callToken, "too few arguments given in call")
@@ -283,27 +283,26 @@ func (w *Walker) ValidateArguments(generics map[string]Type, args []Type, params
 		if i >= paramCount-1 {
 			if params[paramCount-1].GetType() == Variadic {
 				param = params[paramCount-1].(*VariadicType).Type
-			}else if i > paramCount-1 {
+			} else if i > paramCount-1 {
 				w.Error(callToken, "too many arguments given in call")
 				return -1, true
-			}else {
+			} else {
 				param = params[i]
 			}
-		}else {
+		} else {
 			param = params[i]
-		} 
-
+		}
 
 		if typFound, found := ResolveGenericType(&param); found {
 			generic := (*typFound).(*GenericType)
 			if typ, found := generics[generic.Name]; found {
 				*typFound = typ
-			}else {
+			} else {
 				generics[generic.Name] = ResolveMatchingType(param, typeVal)
 				param = typeVal
 			}
 		}
-	
+
 		if !TypeEquals(param, typeVal) {
 			w.Error(callToken, fmt.Sprintf("argument is of type %s, but should be %s", typeVal.ToString(), param.ToString()))
 			return i, false
@@ -325,7 +324,7 @@ func ResolveGenericType(typ *Type) (*Type, bool) {
 }
 
 func ResolveMatchingType(predefinedType Type, receivedType Type) Type {
-	if (predefinedType.GetType() == Wrapper && receivedType.GetType() == Wrapper) {
+	if predefinedType.GetType() == Wrapper && receivedType.GetType() == Wrapper {
 		wrapper1 := predefinedType.(*WrapperType)
 		wrapper2 := receivedType.(*WrapperType)
 
@@ -413,7 +412,7 @@ func (w *Walker) TypeToValue(_type Type) Value {
 	if _type.GetType() == Variadic {
 		return &ListVal{
 			ValueType: _type.(*VariadicType).Type,
-			Values: make([]Value, 0),
+			Values:    make([]Value, 0),
 		}
 	}
 	switch _type.PVT() {
@@ -451,7 +450,7 @@ func (w *Walker) TypeToValue(_type Type) Value {
 		walker, found := w.Walkers[enum.EnvName]
 		var variable *VariableVal
 		switch enum.EnvName {
-		case "Pewpew": 
+		case "Pewpew":
 			variable = PewpewEnv.Scope.Variables[enum.Name]
 		default:
 			variable = walker.GetVariable(&walker.Environment.Scope, enum.Name)
@@ -558,7 +557,7 @@ func DetermineCallTypeString(callType ProcedureType) string {
 }
 
 func SetupLibraryEnvironments() {
-	PewpewEnv.Scope.Environment = PewpewEnv	
+	PewpewEnv.Scope.Environment = PewpewEnv
 	FmathEnv.Scope.Environment = FmathEnv
 	MathEnv.Scope.Environment = MathEnv
 	StringEnv.Scope.Environment = StringEnv

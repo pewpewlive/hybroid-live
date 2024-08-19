@@ -55,7 +55,7 @@ entity Quadro {
   }
 
   Update() {
-    self.UpdateCooldown()
+    UpdateCooldown()
 
     Move()
   }
@@ -63,14 +63,13 @@ entity Quadro {
   fn Move() {
     x, y = GetEntityPosition(self)
 
-    let fixed sX, sY
+    fixed sX, sY
     if IsEntityAlive(ship) {
       sX, sY = GetEntityPosition(ship) 
     }
 
-    let dirX, dirY = FmathHelpers:Normalize(sX - x, sY - y)
+    fixed dirX, dirY = FmathHelpers:Normalize(sX - x, sY - y)
     
-
     velX += (dirX * 10f * velX) * 0.2f + 0.01f
     velY += (dirY * 10f * velY) * 0.2f + 0.01f
 

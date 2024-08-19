@@ -147,15 +147,31 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 	variable := w.GetVariable(sc, ident.Name.Lexeme)
 
 	if sc.Tag.GetType() == wkr.Struct {
-		_struct := sc.Tag.(*wkr.StructTag).StructVal
-		_, index, _ := _struct.ContainsField(variable.Name)
+		_class := sc.Tag.(*wkr.ClassTag).Val
+		field, index, found := _class.ContainsField(variable.Name)
 
-		*node = ConvertIdentifierToFieldExpr(ident, index, ast.SelfStruct, _struct.Type.EnvName, "")
+		*node = ConvertIdentifierToFieldExpr(ident, index, ast.SelfStruct, _class.Type.EnvName, "")
+
+		if found {
+			return field
+		}
+		method, found := _class.Methods[variable.Name]
+		if found {
+			return method
+		}
 	} else if sc.Tag.GetType() == wkr.Entity {
 		entity := sc.Tag.(*wkr.EntityTag).EntityType
-		_, index, _ := entity.ContainsField(variable.Name)
+		field, index, found := entity.ContainsField(variable.Name)
 
 		*node = ConvertIdentifierToFieldExpr(ident, index, ast.SelfEntity, entity.Type.EnvName, entity.Type.Name)
+
+		if found {
+			return field
+		}
+		method, found := entity.Methods[variable.Name]
+		if found {
+			return method
+		}
 	} else if sc.Environment != w.Environment {
 		*node = &ast.EnvAccessExpr{
 			PathExpr: &ast.EnvPathExpr{
@@ -328,10 +344,17 @@ func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {
 		val = w.Context.Value
 	} else {
 		val = GetNodeValue(w, &node.Identifier, scope)
-		if variable, ok := val.(*wkr.VariableVal); ok {
-			val = variable.Value
-		}
 	}
+	//if variable, ok := val.(*wkr.VariableVal); ok {
+	variable, ok := val.(*wkr.VariableVal)
+	for ok {
+		//if ok {
+		val = variable.Value
+		//}
+		variable, ok = variable.Value.(*wkr.VariableVal)
+	}
+	//val = variable.Value
+	//}
 	if val.GetType().GetType() == wkr.Named && val.GetType().PVT() == ast.Entity {
 		node.ExprType = ast.SelfEntity
 		named := val.GetType().(*wkr.NamedType)
@@ -429,7 +452,7 @@ func SelfExpr(w *wkr.Walker, self *ast.SelfExpr, scope *wkr.Scope) wkr.Value {
 		return &wkr.Invalid{}
 	}
 
-	sc, _, structTag := wkr.ResolveTagScope[*wkr.StructTag](scope) // TODO: CHECK FOR ENTITY SCOPE
+	sc, _, structTag := wkr.ResolveTagScope[*wkr.ClassTag](scope) // TODO: CHECK FOR ENTITY SCOPE
 
 	if sc == nil {
 		entitySc, _, entityTag := wkr.ResolveTagScope[*wkr.EntityTag](scope)
@@ -443,7 +466,7 @@ func SelfExpr(w *wkr.Walker, self *ast.SelfExpr, scope *wkr.Scope) wkr.Value {
 	}
 
 	(*self).Type = ast.SelfStruct
-	return (*structTag).StructVal
+	return (*structTag).Val
 }
 
 func NewExpr(w *wkr.Walker, new *ast.NewExpr, scope *wkr.Scope) wkr.Value {
@@ -457,7 +480,7 @@ func NewExpr(w *wkr.Walker, new *ast.NewExpr, scope *wkr.Scope) wkr.Value {
 		return &wkr.Invalid{}
 	}
 
-	val := w.TypeToValue(_type).(*wkr.StructVal)
+	val := w.TypeToValue(_type).(*wkr.ClassVal)
 
 	args := make([]wkr.Type, 0)
 	for i := range new.Args {
@@ -508,11 +531,11 @@ func MethodCallExpr(w *wkr.Walker, mcall *ast.MethodCallExpr, scope *wkr.Scope) 
 		return &wkr.Invalid{}, mcall
 	}
 
-	if structVal, ok := val.(*wkr.StructVal); ok {
+	if structVal, ok := val.(*wkr.ClassVal); ok {
 		mcall.EnvName = structVal.Type.EnvName
 		mcall.TypeName = structVal.Type.Name
 		mcall.ExprType = ast.SelfStruct
-	}else if entityVal, ok := val.(*wkr.EntityVal); ok {
+	} else if entityVal, ok := val.(*wkr.EntityVal); ok {
 		mcall.EnvName = entityVal.Type.EnvName
 		mcall.TypeName = entityVal.Type.Name
 		mcall.ExprType = ast.SelfEntity
@@ -533,9 +556,9 @@ func MethodCallExpr(w *wkr.Walker, mcall *ast.MethodCallExpr, scope *wkr.Scope) 
 
 		if found {
 			fieldExpr := &ast.FieldExpr{
-				Property: mcall.Call,
+				Property:           mcall.Call,
 				PropertyIdentifier: mcall.Call.Caller,
-				Identifier: mcall.Identifier,
+				Identifier:         mcall.Identifier,
 			}
 
 			return FieldExpr(w, fieldExpr, scope), fieldExpr
@@ -663,7 +686,7 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 		params := wkr.Types{}
 
 		for _, v := range typee.Params {
-			params = append(params, TypeExpr(w, v.Type, scope, throw))
+			params = append(params, TypeExpr(w, v, scope, throw))
 		}
 
 		returns := wkr.Types{}

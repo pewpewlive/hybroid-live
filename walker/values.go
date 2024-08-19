@@ -55,6 +55,9 @@ func FindFromList(list []*VariableVal, name string) (*VariableVal, int, bool) {
 	return nil, -1, false
 }
 
+// this will check if it actually has a scopable value inside of it if not then its invalid
+//func (v *VariableVal) Scopify()
+
 type PathVal struct {
 	Path    string
 	EnvType ast.EnvType
@@ -314,7 +317,7 @@ func (self *EntityVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
 	return scope
 }
 
-type StructVal struct {
+type ClassVal struct {
 	Type     NamedType
 	IsLocal  bool
 	Fields   map[string]Field
@@ -323,24 +326,24 @@ type StructVal struct {
 	Generics []*GenericType
 }
 
-func (sv *StructVal) GetType() Type {
+func (sv *ClassVal) GetType() Type {
 	return &sv.Type
 }
 
-func (sv *StructVal) GetDefault() *ast.LiteralExpr {
+func (sv *ClassVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "nil"}
 }
 
 // Container
-func (sv *StructVal) AddField(variable *VariableVal) {
+func (sv *ClassVal) AddField(variable *VariableVal) {
 	sv.Fields[variable.Name] = NewField(len(sv.Fields), variable)
 }
 
-func (sv *StructVal) AddMethod(variable *VariableVal) {
+func (sv *ClassVal) AddMethod(variable *VariableVal) {
 	sv.Methods[variable.Name] = variable
 }
 
-func (sv *StructVal) ContainsField(name string) (*VariableVal, int, bool) {
+func (sv *ClassVal) ContainsField(name string) (*VariableVal, int, bool) {
 	if variable, found := sv.Fields[name]; found {
 		return variable.Var, variable.Index + 1, true
 	}
@@ -348,7 +351,7 @@ func (sv *StructVal) ContainsField(name string) (*VariableVal, int, bool) {
 	return nil, -1, false
 }
 
-func (sv *StructVal) ContainsMethod(name string) (*VariableVal, bool) {
+func (sv *ClassVal) ContainsMethod(name string) (*VariableVal, bool) {
 	if variable, found := sv.Methods[name]; found {
 		return variable, true
 	}
@@ -356,7 +359,7 @@ func (sv *StructVal) ContainsMethod(name string) (*VariableVal, bool) {
 	return nil, false
 }
 
-func (self *StructVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
+func (self *ClassVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
 	scope := NewScope(parent, &UntaggedTag{})
 
 	for _, v := range self.Fields {

@@ -8,11 +8,11 @@ var TableEnv = &Environment{
 		Variables: TableVariables,
 		Tag:       &UntaggedTag{},
 	},
-	UsedWalkers: make([]*Walker, 0),
+	UsedWalkers:   make([]*Walker, 0),
 	UsedLibraries: make(map[Library]bool),
-	Structs:     make(map[string]*StructVal),
-	Entities:    make(map[string]*EntityVal),
-	CustomTypes: make(map[string]*CustomType),
+	Structs:       make(map[string]*ClassVal),
+	Entities:      make(map[string]*EntityVal),
+	CustomTypes:   make(map[string]*CustomType),
 }
 
 var TableVariables = map[string]*VariableVal{
@@ -23,23 +23,23 @@ var TableVariables = map[string]*VariableVal{
 		IsConst: true,
 	},
 	"Insert": {
-		Name: "Insert",
-		Value: NewFunction(NewWrapperType(NewBasicType(ast.List), NewGeneric("T")), NewGeneric("T")).WithGenerics(NewGeneric("T")),
+		Name:    "Insert",
+		Value:   NewFunction(NewWrapperType(NewBasicType(ast.List), NewGeneric("T")), NewGeneric("T")).WithGenerics(NewGeneric("T")),
 		IsConst: true,
 	},
 	"InsertAt": {
-		Name: "InsertAt",
-		Value: NewFunction(NewWrapperType(NewBasicType(ast.List), NewGeneric("T")), NewBasicType(ast.Number), NewGeneric("T")).WithGenerics(NewGeneric("T")),
+		Name:    "InsertAt",
+		Value:   NewFunction(NewWrapperType(NewBasicType(ast.List), NewGeneric("T")), NewBasicType(ast.Number), NewGeneric("T")).WithGenerics(NewGeneric("T")),
 		IsConst: true,
 	},
 	"Remove": {
-		Name: "Remove",
-		Value: NewFunction(NewWrapperType(NewBasicType(ast.List), NewGeneric("T")), NewBasicType(ast.Number)),
+		Name:    "Remove",
+		Value:   NewFunction(NewWrapperType(NewBasicType(ast.List), NewGeneric("T")), NewBasicType(ast.Number)),
 		IsConst: true,
 	},
 	"Sort": {
-		Name: "Sort",
-		Value: NewFunction(NewWrapperType(NewBasicType(ast.List), NewGeneric("T"))),
+		Name:    "Sort",
+		Value:   NewFunction(NewWrapperType(NewBasicType(ast.List), NewGeneric("T"))),
 		IsConst: true,
 	},
-}// Table.Insert(list, 9)
+} // Table.Insert(list, 9)

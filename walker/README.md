@@ -21,8 +21,8 @@ It's used to abstract any kind of value, including numbers, booleans, nil, strin
 
 ##### **Methods:**
 
-1. `Type GetType()` - returns the type of the value in the form of a Type value
-2. `GetDefault() ast.LiteralExpr` - returns the default value in the form of a literal expression node
+1. `GetType() -> Type` - returns the type of the value in the form of a Type value
+2. `GetDefault() -> *ast.LiteralExpr` - returns the default value in the form of a literal expression node
 
 ##### **Implementations:**
 

@@ -42,7 +42,7 @@ func (epe *EnvPathExpr) GetValueType() PrimitiveValueType {
 }
 
 func (epe *EnvPathExpr) Combine(token lexer.Token) {
-	epe.Path.Lexeme += ":"+token.Lexeme
+	epe.Path.Lexeme += ":" + token.Lexeme
 	epe.Path.Location.ColEnd = token.Location.ColEnd
 	epe.Path.Location.LineEnd = token.Location.LineEnd
 }
@@ -136,7 +136,7 @@ func (ue *UnaryExpr) GetValueType() PrimitiveValueType {
 type TypeExpr struct {
 	WrappedType *TypeExpr
 	Name        Node
-	Params      []Param
+	Params      []*TypeExpr
 	Returns     []*TypeExpr
 	Fields      []Param
 	IsVariadic  bool
@@ -191,9 +191,9 @@ func (be *BinaryExpr) GetValueType() PrimitiveValueType {
 }
 
 type CallExpr struct {
-	Caller Node
-	GenericArgs []*TypeExpr
-	Args   []Node
+	Caller       Node
+	GenericArgs  []*TypeExpr
+	Args         []Node
 	ReturnAmount int
 }
 
@@ -210,10 +210,10 @@ func (ce *CallExpr) GetValueType() PrimitiveValueType {
 }
 
 type MethodCallExpr struct {
-	EnvName string
+	EnvName    string
 	TypeName   string
-	ExprType  SelfExprType
-	Identifier      Node
+	ExprType   SelfExprType
+	Identifier Node
 	Call       *CallExpr
 	MethodName string
 }
@@ -301,9 +301,9 @@ func (me *MatchExpr) GetValueType() PrimitiveValueType {
 }
 
 type SelfExpr struct {
-	Token lexer.Token
-	EntityName  string
-	Type  SelfExprType
+	Token      lexer.Token
+	EntityName string
+	Type       SelfExprType
 }
 
 func (se *SelfExpr) GetType() NodeType {
@@ -319,10 +319,10 @@ func (se *SelfExpr) GetValueType() PrimitiveValueType {
 }
 
 type NewExpr struct {
-	Type  *TypeExpr
+	Type     *TypeExpr
 	Generics []*TypeExpr
-	Args  []Node
-	Token lexer.Token
+	Args     []Node
+	Token    lexer.Token
 }
 
 func (ne *NewExpr) GetType() NodeType {
@@ -338,10 +338,10 @@ func (ne *NewExpr) GetValueType() PrimitiveValueType {
 }
 
 type SpawnExpr struct {
-	Type  *TypeExpr
-	Args  []Node
+	Type     *TypeExpr
+	Args     []Node
 	Generics []*TypeExpr
-	Token lexer.Token
+	Token    lexer.Token
 }
 
 func (ne *SpawnExpr) GetType() NodeType {
@@ -357,13 +357,13 @@ func (ne *SpawnExpr) GetValueType() PrimitiveValueType {
 }
 
 type FieldExpr struct {
-	Property   Node
+	Property           Node
 	PropertyIdentifier Node
-	Identifier Node
-	ExprType SelfExprType
-	EnvName    string
-	EntityName string
-	Index      int
+	Identifier         Node
+	ExprType           SelfExprType
+	EnvName            string
+	EntityName         string
+	Index              int
 }
 
 func (fe *FieldExpr) GetType() NodeType {
@@ -402,10 +402,10 @@ func (fe *FieldExpr) SetIdentifier(ident Node) {
 }
 
 type MemberExpr struct {
-	Property   Node
+	Property           Node
 	PropertyIdentifier Node
-	Identifier Node
-	IsList     bool
+	Identifier         Node
+	IsList             bool
 }
 
 func (me *MemberExpr) GetType() NodeType {

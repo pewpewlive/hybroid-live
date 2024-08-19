@@ -56,7 +56,7 @@ func (gen *Generator) assignmentStmt(assignStmt ast.AssignmentStmt, scope *GenSc
 				if j != call.ReturnAmount-1 {
 					preSrc.WriteString(", ")
 					src.WriteString(", ")
-				}else {
+				} else {
 					preSrc.Append(" = ", gen.callExpr(*call, false, scope), "\n")
 					src.Append(" = ", strings.Join(vars, ", "), "\n")
 				}
@@ -70,7 +70,7 @@ func (gen *Generator) assignmentStmt(assignStmt ast.AssignmentStmt, scope *GenSc
 		src.Append(gen.GenerateExpr(assignStmt.Identifiers[index], scope), " = ", gen.GenerateExpr(assignStmt.Values[i], scope), "\n")
 		index++
 	}
-	
+
 	scope.Write(preSrc)
 	scope.Write(src)
 }
@@ -273,21 +273,20 @@ func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclaratio
 		values = append(values, gen.GenerateExpr(expr, scope))
 	}
 
-	isLocal := declaration.Token.Type == lexer.Let
 	src := StringBuilder{}
 	src2 := StringBuilder{}
-	if isLocal {
+	if declaration.IsLocal {
 		src.AppendTabbed("local ")
 	} else {
 		src.AppendTabbed("")
 	}
 	for i, ident := range declaration.Identifiers {
 		if i == len(declaration.Identifiers)-1 && len(values) != 0 {
-			src.Append(fmt.Sprintf("%s = ", gen.GenerateExpr(&ast.IdentifierExpr{Name:ident}, scope)))
+			src.Append(fmt.Sprintf("%s = ", gen.GenerateExpr(&ast.IdentifierExpr{Name: ident}, scope)))
 		} else if i == len(declaration.Identifiers)-1 {
-			src.Append(gen.GenerateExpr(&ast.IdentifierExpr{Name:ident}, scope))
+			src.Append(gen.GenerateExpr(&ast.IdentifierExpr{Name: ident}, scope))
 		} else {
-			src.Append(fmt.Sprintf("%s, ", gen.GenerateExpr(&ast.IdentifierExpr{Name:ident}, scope)))
+			src.Append(fmt.Sprintf("%s, ", gen.GenerateExpr(&ast.IdentifierExpr{Name: ident}, scope)))
 		}
 	}
 	for i := range values {
@@ -389,7 +388,7 @@ func (gen *Generator) spawnDeclarationStmt(node ast.EntityFunctionDeclarationStm
 	TabsCount--
 	gen.GenerateBody(node.Body, &spawnScope)
 	TabsCount++
-	
+
 	for i, v := range entity.Callbacks {
 		switch v.Type {
 		case ast.WallCollision:
@@ -433,7 +432,7 @@ func (gen *Generator) GenerateParams(params []ast.Param, scope *GenScope) {
 		if param.Type.IsVariadic {
 			scope.WriteString("...")
 			variadicParam = gen.WriteVar(param.Name.Lexeme)
-		}else {
+		} else {
 			scope.Append(gen.WriteVar(param.Name.Lexeme))
 		}
 		if i != len(params)-1 {

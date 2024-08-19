@@ -1,14 +1,24 @@
 env ExpressionsText as Level
 
+entity sadfsadgf
+entity aasd {
+    spawn(fixed x, fixed y) {}
+    destroy() {}
+}
+entity aasd12 = Pewpew:NewEntity(0f, 0f)
+
+fn(fixed, number) adf
+
 let a = 1
 let b = [1,2,3]
+list<fixed> asdsdssdds = [2f, 3f, 4f]
 let c = {a = {b = fn() -> number => 2}}
 let d = struct{a = 1; b = 2; c = 3}
-let e = true
-let f = false
-let g = !true
-let g2 = !!!!false
-let h = -1
+const e = true
+pub bool f = false
+pub g = !true
+bool g2 = !!!!false
+const number h = -1
 let i = fn() {}
 let j = fn() -> number => 2
 let k = fn(fixed param) -> bool {
@@ -42,8 +52,11 @@ class Test {
     number a = 1
     fixed b = 2f
     EnumTest c = EnumTest.Four
+    Test test = new Test()
 
-    new() {}
+    new() {
+        test = self
+    }
 
     fn method(struct{number field1, bool field2, EnumTest field3} param1) -> bool {
         return false
@@ -51,6 +64,10 @@ class Test {
 
     fn method1(bool... param1) -> bool {
         return false
+    }
+
+    fn method3() -> Test {
+        return self        
     }
 }
 
@@ -63,6 +80,17 @@ let u = c["a"]["b"]()
 let v = {
     a = [struct{field = [new Test(), new Test()]; field2 = 2d}]
 }
+
+EnumTest aasdsad = EnumTest.One
+if aasdsad == EnumTest.One {
+
+}
+
+Test asdasdads = p.test
+
+EnumTest enumsss = asdasdads.c
+EnumTest enumss = p.test.c
+
 // let x = v["a"].field[2].c
 
 // entity EntityTest {
