@@ -19,7 +19,8 @@ func RunApp() {
 			commands.Build(),
 			commands.Initialize(),
 			commands.Watch(),
-			commands.Lsp(),
+			// LSP is not yet implemented
+			// commands.Lsp(),
 		},
 	}
 
