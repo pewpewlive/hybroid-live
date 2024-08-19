@@ -562,11 +562,6 @@ func (p *Parser) Type() *ast.TypeExpr {
 	exprToken := expr.GetToken()
 
 	switch exprToken.Type {
-	// case lexer.DotDotDot:
-	// 	p.advance()
-	// 	typ := p.Type()
-	// 	typ.IsVariadic = true
-	// 	return typ
 	case lexer.Identifier:
 		typ = &ast.TypeExpr{}
 		if p.match(lexer.Less) { // map<number>
@@ -577,12 +572,14 @@ func (p *Parser) Type() *ast.TypeExpr {
 	case lexer.Fn:
 		typ = &ast.TypeExpr{}
 		//p.advance()
-		p.consume("expected opening parenthesis", lexer.LeftParen)
+		if !p.match(lexer.LeftParen) {
+			break
+		}
 		if !p.match(lexer.RightParen) {
 			_typ := p.Type()
 			typ.Params = append(typ.Params, _typ)
 			for p.match(lexer.Comma) {
-				_typ = p.Type()
+				_typ := p.Type()
 				typ.Params = append(typ.Params, _typ)
 			}
 			p.consume("expected closing parenthesis", lexer.RightParen)
