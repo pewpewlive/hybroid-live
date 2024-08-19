@@ -51,12 +51,25 @@ _API_MAPPING = {
     "VERY_LARGE": "Huge",
 }
 
+_PARAM_MAPPING = {}
+
+_TYPE_MAPPING = {
+    types.APIType.BOOL: "bool",
+    types.APIType.NUMBER: "number",
+    types.APIType.FIXED: "fixed",
+    types.APIType.STRING: "text",
+    types.APIType.LIST: "list",
+    types.APIType.MAP: "struct",
+    types.APIType.CALLBACK: "fn",
+    types.APIType.RAW_ENTITY: "entity",
+}
+
 
 def _generate_enum(enum: types.APIEnum) -> str:
     enum_template = f'var {enum.name} = NewEnumVal("{enum.name}", false,\n'
     enum_template += ",\n".join(
         [
-            f'\t"{_API_MAPPING.get(value, helpers.convert_case(value))}"'
+            f'\t"{_API_MAPPING.get(value, helpers.convert_to_pascal_case(value))}"'
             for value in enum.values
         ]
     )
@@ -120,7 +133,7 @@ def _generate_enum_docs(enum: types.APIEnum) -> str:
     enum_template = f"### `{enum.name}`\n"
     enum_template += "".join(
         [
-            f"\n- `{_API_MAPPING.get(value, helpers.convert_case(value))}`"
+            f"\n- `{_API_MAPPING.get(value, helpers.convert_to_pascal_case(value))}`"
             for value in enum.values
         ]
     )
@@ -128,9 +141,58 @@ def _generate_enum_docs(enum: types.APIEnum) -> str:
     return enum_template
 
 
+def _handle_params(parameters: list[types.APIParameter]):
+    params = []
+    for param in parameters:
+        if param.type == types.APIType.MAP:
+            params.append(
+                "struct {\n  %s\n}" % "\n  ".join(_handle_params(param.map_entries))
+            )
+        else:
+            params.append(
+                _TYPE_MAPPING.get(param.type, "unknown")
+                + " "
+                + _PARAM_MAPPING.get(
+                    param.name, helpers.convert_to_camel_case(param.name)
+                )
+            )
+
+    return params
+
+
+def _generate_function_docs(function: types.APIFunction) -> str:
+    processed_name = _API_MAPPING.get(
+        function.name, helpers.convert_to_pascal_case(function.name)
+    )
+    return_types = (
+        (
+            "-> "
+            + ", ".join(
+                [
+                    _TYPE_MAPPING.get(return_type.type, "unknown")
+                    for return_type in function.return_types
+                ]
+            )
+        )
+        if len(function.return_types) > 0
+        else ""
+    )
+    function_template = f"### `{processed_name}`\n"
+    function_template += f"```rs\n{processed_name}({', '.join(_handle_params(function.parameters))}) {return_types}\n```\n"
+    function_template += (
+        f"{helpers.find_snake_in_docs_and_convert(function.description)}"
+    )
+
+    return function_template
+
+
 def generate_docs(pewpew_lib: dict) -> str:
     enums = [types.APIEnum(enum) for enum in pewpew_lib["enums"]]
     functions = [types.APIFunction(function) for function in pewpew_lib["functions"]]
 
     generated_enums = [_generate_enum_docs(enum) for enum in enums]
-    return _PEWPEW_DOCS_TEMPLATE % ("\n\n".join(generated_enums), "To Be Added.")
+    generated_functions = [_generate_function_docs(function) for function in functions]
+    return _PEWPEW_DOCS_TEMPLATE % (
+        "\n\n".join(generated_enums),
+        "\n\n".join(generated_functions),
+    )

@@ -4,12 +4,12 @@ from . import types, pewpew, fmath
 
 
 def _generate_api(lib, output):
-    with open(f"api_{lib}.gen.go", mode="x") as f:
+    with open(f"api_{lib}.gen.go", mode="x", encoding="utf-8") as f:
         f.write(output)
 
 
 def _generate_docs(lib, output):
-    with open(f"{lib}.gen.md", mode="x") as f:
+    with open(f"{lib}.gen.md", mode="x", encoding="utf-8") as f:
         f.write(output)
 
 
