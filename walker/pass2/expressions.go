@@ -345,16 +345,9 @@ func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {
 	} else {
 		val = GetNodeValue(w, &node.Identifier, scope)
 	}
-	//if variable, ok := val.(*wkr.VariableVal); ok {
-	variable, ok := val.(*wkr.VariableVal)
-	for ok {
-		//if ok {
+	if variable, ok := val.(*wkr.VariableVal); ok {
 		val = variable.Value
-		//}
-		variable, ok = variable.Value.(*wkr.VariableVal)
 	}
-	//val = variable.Value
-	//}
 	if val.GetType().GetType() == wkr.Named && val.GetType().PVT() == ast.Entity {
 		node.ExprType = ast.SelfEntity
 		named := val.GetType().(*wkr.NamedType)

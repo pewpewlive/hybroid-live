@@ -23,9 +23,13 @@ func IsFx(valueType ast.PrimitiveValueType) bool {
 }
 
 func (p *Parser) PeekIsType() bool {
-	token := p.peek()
+	tokenType := p.peek().Type
 
-	return !(token.Type != lexer.Identifier && token.Type != lexer.Fn && token.Type != lexer.Struct && token.Type != lexer.Entity/* && lexer.Type != lexer.DotDotDot*/)
+	if tokenType == lexer.Fn {
+		return p.peek(1).Type == lexer.LeftParen
+	}
+
+	return !(tokenType != lexer.Identifier && tokenType != lexer.Fn && tokenType != lexer.Struct && tokenType != lexer.Entity /* && lexer.Type != lexer.DotDotDot*/)
 }
 
 func (p *Parser) getOp(opEqual lexer.Token) lexer.Token {
@@ -87,7 +91,7 @@ func (p *Parser) genericParameters() []*ast.IdentifierExpr {
 	token := p.advance()
 	if token.Type != lexer.Identifier {
 		p.error(token, "expected identifier in generic parameters")
-	}else {
+	} else {
 		params = append(params, &ast.IdentifierExpr{Name: token, ValueType: ast.Invalid})
 	}
 
@@ -95,7 +99,7 @@ func (p *Parser) genericParameters() []*ast.IdentifierExpr {
 		token := p.advance()
 		if token.Type != lexer.Identifier {
 			p.error(token, "expected identifier in generic parameters")
-		}else {
+		} else {
 			params = append(params, &ast.IdentifierExpr{Name: token, ValueType: ast.Invalid})
 		}
 	}

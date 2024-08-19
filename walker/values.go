@@ -35,6 +35,7 @@ type VariableVal struct {
 	IsUsed  bool
 	IsConst bool
 	IsLocal bool
+	IsInit  bool
 	Token   lexer.Token
 }
 
@@ -564,18 +565,6 @@ func (self *GenericVal) GetType() Type {
 }
 
 func (self *GenericVal) GetDefault() *ast.LiteralExpr {
-	return &ast.LiteralExpr{Value: "nil"}
-}
-
-type UninitializedVal struct {
-	Type Type
-}
-
-func (u *UninitializedVal) GetType() Type {
-	return NewUnitializedType(u.Type)
-}
-
-func (n *UninitializedVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "nil"}
 }
 

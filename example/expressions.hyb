@@ -1,5 +1,57 @@
 env ExpressionsText as Level
 
+enum EnumTest {
+    One,
+    Two,
+    Three,
+    Four
+}
+class Test {
+    number a = 1
+    fixed b = 2f
+    EnumTest c = EnumTest.Four
+    Test test// = new Test()
+    list<list<map<Test>>> tests = [[{ xd = new Test() }]]
+
+    new() {
+        test = self
+    }
+
+    fn method(struct{number field1, bool field2, EnumTest field3} param1) -> bool {
+        return false
+    }
+
+    fn method1(bool... param1) -> bool {
+        return false
+    }
+
+    fn method3() -> Test {
+        return self        
+    }
+    fn method2() -> list<list<map<Test>>> {
+        return tests      
+    }
+}
+
+let p = new Test()// variable: classVal
+Test asdasdads = p.test // variable: variable: classVal
+
+Test assddxxx = p // variable: variable: classVal
+EnumTest enumsss = asdasdads.c // 
+EnumTest enumss = p.test.c
+
+let asdsss = p.test.tests[0][0]
+//[4][5][0][0]["xd"]
+bool bizh = p.method2()[0][0]["xd"].method3().method3().test.tests[0][0]["xd"].method2()[0][0]["xd"].method3().method3().method(struct{
+    field1, field2, field3 = 1, true, EnumTest.One
+})
+
+fn function(EnumTest param) {
+    if param == EnumTest.One {
+
+    }
+}
+
 entity sadfsadgf
 entity aasd {
     spawn(fixed x, fixed y) {}
@@ -41,37 +93,7 @@ let n = [
 ]
 let o = "string"
 
-enum EnumTest {
-    One,
-    Two,
-    Three,
-    Four
-}
 
-class Test {
-    number a = 1
-    fixed b = 2f
-    EnumTest c = EnumTest.Four
-    Test test = new Test()
-
-    new() {
-        test = self
-    }
-
-    fn method(struct{number field1, bool field2, EnumTest field3} param1) -> bool {
-        return false
-    }
-
-    fn method1(bool... param1) -> bool {
-        return false
-    }
-
-    fn method3() -> Test {
-        return self        
-    }
-}
-
-let p = new Test()
 let q = p.a
 let r = p.b
 let s = p.method(struct{field1 = 1; field2 = true; field3 = EnumTest.One})
@@ -86,10 +108,6 @@ if aasdsad == EnumTest.One {
 
 }
 
-Test asdasdads = p.test
-
-EnumTest enumsss = asdasdads.c
-EnumTest enumss = p.test.c
 
 // let x = v["a"].field[2].c
 

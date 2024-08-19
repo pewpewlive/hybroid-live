@@ -18,7 +18,6 @@ type ValueType int
 const (
 	Basic ValueType = iota
 	Fn
-	Uninitialized
 	Strct
 	Named
 	Fixed
@@ -32,32 +31,6 @@ const (
 	NA
 	NotKnown
 )
-
-type UninitializedType struct {
-	Type Type
-}
-
-func NewUnitializedType(typ Type) *UninitializedType {
-	return &UninitializedType{
-		Type: typ,
-	}
-}
-
-func (self *UninitializedType) PVT() ast.PrimitiveValueType {
-	return ast.Uninitialized
-}
-
-func (self *UninitializedType) GetType() ValueType {
-	return Uninitialized
-}
-
-func (self *UninitializedType) _eq(_ Type) bool {
-	return false
-}
-
-func (self *UninitializedType) ToString() string {
-	return "uninitialized("+self.Type.ToString()+")"
-}
 
 type VariadicType struct {
 	Type Type
@@ -83,7 +56,7 @@ func (self *VariadicType) _eq(other Type) bool {
 }
 
 func (self *VariadicType) ToString() string {
-	return "..."+self.Type.ToString()
+	return "..." + self.Type.ToString()
 }
 
 type PathType struct {
@@ -114,13 +87,13 @@ func (self *PathType) ToString() string {
 }
 
 type CustomType struct {
-	Name string
+	Name           string
 	UnderlyingType Type
 }
 
 func NewCustomType(name string, underlyingType Type) *CustomType {
 	return &CustomType{
-		Name: name,
+		Name:           name,
 		UnderlyingType: underlyingType,
 	}
 }
@@ -139,7 +112,7 @@ func (self *CustomType) _eq(other Type) bool {
 }
 
 func (self *CustomType) ToString() string {
-	return self.Name+"("+self.UnderlyingType.ToString()+")"
+	return self.Name + "(" + self.UnderlyingType.ToString() + ")"
 }
 
 type FunctionType struct {
@@ -216,7 +189,7 @@ func (self *FunctionType) ToString() string {
 	return src.String()
 }
 
-type GenericType struct{
+type GenericType struct {
 	Name string
 }
 
@@ -318,13 +291,13 @@ func (self *FixedPoint) ToString() string {
 }
 
 type StructType struct {
-	Fields map[string]Field
+	Fields  map[string]Field
 	Lenient bool
 }
 
 func NewStructType(fields map[string]Field, lenient bool) *StructType {
 	return &StructType{
-		Fields: fields,
+		Fields:  fields,
 		Lenient: lenient,
 	}
 }
@@ -342,7 +315,7 @@ func (self *StructType) _eq(other Type) bool {
 	map2 := other.(*StructType).Fields
 	if self.Lenient {
 		return other._eq(self)
-	} 
+	}
 
 	for k, v := range map1 {
 		containsK := false
@@ -380,19 +353,19 @@ func (self *StructType) ToString() string {
 }
 
 type NamedType struct {
-	Pvt    ast.PrimitiveValueType
+	Pvt     ast.PrimitiveValueType
 	EnvName string
-	Name   string
-	IsUsed bool
+	Name    string
+	IsUsed  bool
 }
 
 func NewNamedType(envName string, name string, primitive ast.PrimitiveValueType) *NamedType {
 	return &NamedType{
 		EnvName: envName,
-		Name: name,
-		Pvt:  primitive,
+		Name:    name,
+		Pvt:     primitive,
 	}
-} 
+}
 
 // Type
 func (self *NamedType) PVT() ast.PrimitiveValueType {
@@ -413,14 +386,14 @@ func (self *NamedType) ToString() string {
 }
 
 type EnumType struct {
-	Name   string
+	Name    string
 	EnvName string
-	IsUsed bool
+	IsUsed  bool
 }
 
 func NewEnumType(envName, name string) *EnumType {
 	return &EnumType{
-		Name: name,
+		Name:    name,
 		EnvName: envName,
 	}
 }
@@ -504,10 +477,9 @@ func TypeEquals(t Type, other Type) bool {
 	tpvt := t.PVT()
 	otherpvt := other.PVT()
 
-
 	if tpvt == ast.Object {
 		return true
-	}else if otherpvt == ast.Object {
+	} else if otherpvt == ast.Object {
 		return true
 	}
 
@@ -527,20 +499,18 @@ func TypeEquals(t Type, other Type) bool {
 
 var InvalidType = NewBasicType(ast.Invalid)
 
-
 var MeshValueType = NewStructType(map[string]Field{
 	"vertexes": NewField(0, &VariableVal{
-		Name: "vertexes",
+		Name:  "vertexes",
 		Value: &ListVal{ValueType: NewWrapperType(NewBasicType(ast.List), NewBasicType(ast.Number))},
 	}),
 	"segments": NewField(1, &VariableVal{
-		Name: "segments",
-		Value:  &ListVal{ValueType: NewWrapperType(NewBasicType(ast.List), NewBasicType(ast.Number))},
+		Name:  "segments",
+		Value: &ListVal{ValueType: NewWrapperType(NewBasicType(ast.List), NewBasicType(ast.Number))},
 	}),
 	"colors": NewField(2, &VariableVal{
-		Name: "colors",
+		Name:  "colors",
 		Value: &ListVal{ValueType: NewBasicType(ast.Number)},
 	}),
 }, false)
-var MeshesValueType = (&ListVal{ValueType: MeshValueType,
-}).GetType()
+var MeshesValueType = (&ListVal{ValueType: MeshValueType}).GetType()
