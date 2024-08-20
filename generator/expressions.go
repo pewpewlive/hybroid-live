@@ -131,7 +131,7 @@ func (gen *Generator) fieldExpr(node ast.FieldExpr, scope *GenScope) string {
 	src := StringBuilder{}
 
 	if node.ExprType == ast.SelfEntity {
-		src.Append(envMap[node.EnvName], node.EntityName, "[", gen.GenerateExpr(node.Identifier, scope), "]")
+		src.Append(envMap[node.EnvName], hyEntity, node.EntityName, "[id]")
 	}else {
 		src.WriteString(gen.GenerateExpr(node.Identifier, scope))
 	}

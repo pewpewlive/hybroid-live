@@ -418,8 +418,7 @@ func (p *Parser) list() ast.Node {
 		p.error(p.peek(), "expected expression")
 	}
 	list = append(list, exprInList)
-	for !p.match(lexer.RightBracket) {
-		p.consume("expected ',' after expression", lexer.Comma)
+	for p.match(lexer.Comma) {
 
 		exprInList := p.expression()
 		if exprInList.GetType() == ast.NA {
@@ -428,6 +427,7 @@ func (p *Parser) list() ast.Node {
 		}
 		list = append(list, exprInList)
 	}
+	p.consume("expected ']' after contents", lexer.RightBracket)
 
 	return &ast.ListExpr{ValueType: ast.List, List: list, Token: token}
 }
@@ -496,14 +496,19 @@ func (p *Parser) structExpr() ast.Node {
 		structExpr.Fields = append(structExpr.Fields, field.(*ast.FieldDeclarationStmt))
 	} else {
 		p.error(field.GetToken(), "expected field declaration inside struct")
+		return ast.NewImproper(field.GetToken())
 	}
 
 	for p.match(lexer.SemiColon) {
+		if p.match(lexer.RightBrace) {
+			return &structExpr
+		}
 		field := p.fieldDeclarationStmt()
 		if field.GetType() != ast.NA {
 			structExpr.Fields = append(structExpr.Fields, field.(*ast.FieldDeclarationStmt))
 		} else {
 			p.error(field.GetToken(), "expected field declaration inside struct")
+			return ast.NewImproper(field.GetToken())
 		}
 	}
 

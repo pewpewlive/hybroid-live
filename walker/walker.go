@@ -113,8 +113,9 @@ func (w *Walker) GetEnvStmt() *ast.EnvironmentStmt {
 }
 
 // ONLY CALL THIS IF YOU ALREADY CALLED ResolveVariable
-func (w *Walker) GetVariable(s *Scope, name string) *VariableVal {
-	return s.Variables[name]
+func (w *Walker) GetVariable(s *Scope, name string) (*VariableVal, bool) {
+	variable := s.Variables[name]
+	return variable, s.Environment.Name != w.Environment.Name && variable.IsLocal
 }
 
 func (w *Walker) TypeExists(name string) bool {
@@ -222,7 +223,7 @@ func (w *Walker) ResolveVariable(s *Scope, name string) *Scope {
 
 	if s.Parent == nil {
 		for i := range s.Environment.UsedWalkers {
-			variable := s.Environment.UsedWalkers[i].GetVariable(&s.Environment.UsedWalkers[i].Environment.Scope, name)
+			variable, _ := s.Environment.UsedWalkers[i].GetVariable(&s.Environment.UsedWalkers[i].Environment.Scope, name)
 			if variable != nil {
 				return &s.Environment.UsedWalkers[i].Environment.Scope
 			}
@@ -402,6 +403,13 @@ func (w *Walker) ValidateReturnValues(_return Types, expectReturn Types) string 
 	}
 	return ""
 }
+
+func (w *Walker) CheckAccessibility(s *Scope, isLocal bool, node ast.Node) {
+	if s.Environment.Name != w.Environment.Name && isLocal {
+		w.Error(node.GetToken(), "Not allowed to access a local variable/type from a different environment")
+	}
+}
+
 func (w *Walker) TypeToValue(_type Type) Value {
 	if _type.GetType() == RawEntity {
 		return &RawEntityVal{}
@@ -453,7 +461,7 @@ func (w *Walker) TypeToValue(_type Type) Value {
 		case "Pewpew":
 			variable = PewpewEnv.Scope.Variables[enum.Name]
 		default:
-			variable = walker.GetVariable(&walker.Environment.Scope, enum.Name)
+			variable, _ = walker.GetVariable(&walker.Environment.Scope, enum.Name)
 		}
 		if variable == nil {
 			panic(fmt.Sprintf("Enum variable could not be found when converting enum type to value (envName:%v, name:%v, walkerFound:%v)", enum.EnvName, enum.Name, found))

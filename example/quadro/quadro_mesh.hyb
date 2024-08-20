@@ -6,9 +6,9 @@ let a = 20
 
 pub meshes = [
   struct {
-    vertexes = [[-a, -a], [a, -a], [a, a], [-a, a]]
-    segments = [[0, 1, 2, 3, 0]]
-    colors = [0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff]
+    vertexes = [[-a, -a], [a, -a], [a, a], [-a, a]];
+    segments = [[0, 1, 2, 3, 0]];
+    colors = [0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff];
   }
 ]
 

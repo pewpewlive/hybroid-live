@@ -144,7 +144,10 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 		return &wkr.Invalid{}
 	}
 
-	variable := w.GetVariable(sc, ident.Name.Lexeme)
+	variable, notAllowed := w.GetVariable(sc, ident.Name.Lexeme)
+	if notAllowed {
+		w.Error(ident.GetToken(), "Not allowed to access a local variable from a different environment")
+	}
 
 	if sc.Tag.GetType() == wkr.Struct {
 		_class := sc.Tag.(*wkr.ClassTag).Val
@@ -700,19 +703,23 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 		typeName := typee.Name.GetToken().Lexeme
 		if entityVal, found := scope.Environment.Entities[typeName]; found {
 			typ = entityVal.GetType()
+			w.CheckAccessibility(scope, entityVal.IsLocal, typee)
 			break
 		}
 		if structVal, found := scope.Environment.Structs[typeName]; found {
 			typ = structVal.GetType()
+			w.CheckAccessibility(scope, structVal.IsLocal, typee)
 			break
 		}
 		if customType, found := scope.Environment.CustomTypes[typeName]; found {
 			typ = customType
+			//w.CheckAccessibility(scope, customType.IsLocal, typee)
 			break
 		}
-		if val := w.GetVariable(&w.Environment.Scope, typeName); val != nil {
+		if val, _ := w.GetVariable(&scope.Environment.Scope, typeName); val != nil {
 			if val.GetType().PVT() == ast.Enum {
 				typ = val.GetType()
+				w.CheckAccessibility(scope, val.IsLocal, typee)
 				break
 			}
 		}
@@ -739,8 +746,8 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 			}
 		}
 
-		for k, v := range scope.Environment.UsedLibraries { // use Pewpew
-			if !v { // WeaponType
+		for k, v := range scope.Environment.UsedLibraries { 
+			if !v { 
 				continue
 			}
 

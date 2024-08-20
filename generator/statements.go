@@ -338,7 +338,7 @@ func (gen *Generator) classDeclarationStmt(node ast.ClassDeclarationStmt, scope 
 func (gen *Generator) entityDeclarationStmt(node ast.EntityDeclarationStmt, scope *GenScope) {
 	entityScope := NewGenScope(scope)
 
-	entityName := gen.WriteVar(node.Name.Lexeme)
+	entityName := gen.WriteVarExtra(node.Name.Lexeme, hyEntity)
 
 	for i, v := range node.Callbacks {
 		entityScope.AppendTabbed(fmt.Sprintf("local function %sHCb%d", entityName, i), "(id")

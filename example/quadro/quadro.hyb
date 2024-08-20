@@ -2,7 +2,7 @@ env QuadroEntity as Level
 
 use Pewpew
 
-entity Quadro {
+pub entity Quadro {
   fixed x, y = 0f, 0f
   fixed velX, velY = 0f, 0f
 
