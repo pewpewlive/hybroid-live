@@ -110,7 +110,7 @@ func LiteralExpr(w *wkr.Walker, node *ast.LiteralExpr) wkr.Value {
 	}
 }
 
-func ConvertIdentifierToFieldExpr(ident *ast.IdentifierExpr, index int, exprType ast.SelfExprType, envName string, entityName string) *ast.FieldExpr {
+func ConvertNodeToFieldExpr(ident ast.Node, index int, exprType ast.SelfExprType, envName string, entityName string) *ast.FieldExpr {
 	fieldExpr := &ast.FieldExpr{
 		Index: index,
 		Identifier: &ast.SelfExpr{
@@ -125,6 +125,21 @@ func ConvertIdentifierToFieldExpr(ident *ast.IdentifierExpr, index int, exprType
 	fieldExpr.Property = ident
 
 	return fieldExpr
+}
+
+func ConvertCallToMethodCall(call *ast.CallExpr, exprType ast.SelfExprType, envName string, name string) *ast.MethodCallExpr {
+	copy := *call
+	return &ast.MethodCallExpr{
+		EnvName: envName,
+		TypeName: name,
+		ExprType: exprType,
+		Identifier: &ast.SelfExpr{
+			EntityName: name,
+			Type: exprType,
+		},
+		Call: &copy,
+		MethodName: call.Caller.GetToken().Lexeme,
+	}
 }
 
 func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
@@ -150,23 +165,31 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 	}
 
 	if sc.Tag.GetType() == wkr.Struct {
-		_class := sc.Tag.(*wkr.ClassTag).Val
-		field, index, found := _class.ContainsField(variable.Name)
+		class := sc.Tag.(*wkr.ClassTag).Val
+		if variable.Value.GetType().GetType() == wkr.Fn {
+			w.Context.Value2 = class
+			return variable
+		}
+		field, index, found := class.ContainsField(variable.Name)
 
-		*node = ConvertIdentifierToFieldExpr(ident, index, ast.SelfStruct, _class.Type.EnvName, "")
+		*node = ConvertNodeToFieldExpr(ident, index, ast.SelfStruct, class.Type.EnvName, "")
 
 		if found {
 			return field
 		}
-		method, found := _class.Methods[variable.Name]
+		method, found := class.Methods[variable.Name]
 		if found {
 			return method
 		}
 	} else if sc.Tag.GetType() == wkr.Entity {
 		entity := sc.Tag.(*wkr.EntityTag).EntityType
+		if variable.Value.GetType().GetType() == wkr.Fn {
+			w.Context.Value2 = entity
+			return variable
+		}
 		field, index, found := entity.ContainsField(variable.Name)
 
-		*node = ConvertIdentifierToFieldExpr(ident, index, ast.SelfEntity, entity.Type.EnvName, entity.Type.Name)
+		*node = ConvertNodeToFieldExpr(ident, index, ast.SelfEntity, entity.Type.EnvName, entity.Type.Name)
 
 		if found {
 			return field
@@ -288,12 +311,39 @@ func ListExpr(w *wkr.Walker, node *ast.ListExpr, scope *wkr.Scope) wkr.Value {
 	return &value
 }
 
-func CallExpr(w *wkr.Walker, val wkr.Value, node *ast.CallExpr, scope *wkr.Scope) wkr.Value {
+func CallExpr(w *wkr.Walker, val wkr.Value, node *ast.CallExpr, scope *wkr.Scope) (wkr.Value, ast.Node) {
 	valType := val.GetType().PVT()
 	if valType != ast.Func {
 		w.Error(node.Caller.GetToken(), "caller is not a function")
-		return &wkr.Invalid{}
+		return &wkr.Invalid{}, node
 	}
+
+	var finalNode ast.Node
+	finalNode = node
+
+	if entity, ok := w.Context.Value2.(*wkr.EntityVal); ok {
+		caller := node.Caller.GetToken().Lexeme
+		_, contains := entity.ContainsMethod(caller)
+		if !contains {
+			_, index, _ := entity.ContainsField(caller)
+			finalNode = ConvertNodeToFieldExpr(node, index, ast.SelfEntity, entity.Type.EnvName, entity.Type.Name)
+			goto skip
+		}
+		finalNode = ConvertCallToMethodCall(node, ast.SelfEntity, entity.Type.EnvName, entity.Type.Name)
+		w.Context.Value2 = &wkr.Unknown{}
+	}else if class, ok := w.Context.Value2.(*wkr.ClassVal); ok {
+		caller := node.Caller.GetToken().Lexeme
+		_, contains := class.ContainsMethod(caller)
+		if !contains {
+			_, index, _ := class.ContainsField(caller)
+			finalNode = ConvertNodeToFieldExpr(node, index, ast.SelfStruct, class.Type.EnvName, class.Type.Name)
+			goto skip
+		}
+		finalNode = ConvertCallToMethodCall(node, ast.SelfStruct, class.Type.EnvName, class.Type.Name)
+		w.Context.Value2 = &wkr.Unknown{}
+	}
+
+	skip:
 
 	variable, it_is := val.(*wkr.VariableVal)
 	if it_is {
@@ -318,9 +368,9 @@ func CallExpr(w *wkr.Walker, val wkr.Value, node *ast.CallExpr, scope *wkr.Scope
 	node.ReturnAmount = len(fun.Returns)
 
 	if len(fun.Returns) == 1 {
-		return w.TypeToValue(fun.Returns[0])
+		return w.TypeToValue(fun.Returns[0]), finalNode
 	}
-	return &fun.Returns
+	return &fun.Returns, finalNode
 }
 
 func GetGenerics(w *wkr.Walker, node ast.Node, genericArgs []*ast.TypeExpr, expectedGenerics []*wkr.GenericType, scope *wkr.Scope) map[string]wkr.Type {
@@ -418,7 +468,9 @@ func MemberExpr(w *wkr.Walker, node *ast.MemberExpr, scope *wkr.Scope) wkr.Value
 		return property
 	} else if nodePropertyType == ast.CallExpression {
 		w.Context.Clear()
-		return CallExpr(w, property, node.Property.(*ast.CallExpr), scope)
+		val, newNode := CallExpr(w, property, node.Property.(*ast.CallExpr), scope)
+		node.Property = newNode
+		return val
 	} else if nodePropertyType == ast.LiteralExpression {
 		w.Context.Clear()
 		return property
@@ -544,7 +596,8 @@ func MethodCallExpr(w *wkr.Walker, mcall *ast.MethodCallExpr, scope *wkr.Scope) 
 		mcall.MethodName = callToken.Lexeme
 
 		if found {
-			return CallExpr(w, method, mcall.Call, scope), mcall
+			val, _ :=  CallExpr(w, method, mcall.Call, scope)
+			return val, mcall
 		}
 	}
 	if fieldContainer, ok := val.(wkr.FieldContainer); ok && valType.PVT() != ast.Enum {

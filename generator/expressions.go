@@ -34,8 +34,11 @@ func (gen *Generator) literalExpr(node ast.LiteralExpr) string {
 }
 
 func (gen *Generator) identifierExpr(node ast.IdentifierExpr, _ *GenScope) string {
-	if (gen.envType == ast.MeshEnv && node.Name.Lexeme == "meshes"){
+	if (gen.envType == ast.MeshEnv && node.Name.Lexeme == "meshes") {
 		return "meshes"
+	}
+	if (gen.envType == ast.SoundEnv && node.Name.Lexeme == "sounds") {
+		return "sounds"
 	}
 	return gen.WriteVar(node.Name.Lexeme)
 }
@@ -320,7 +323,7 @@ func (gen *Generator) spawnExpr(spawn ast.SpawnExpr, stmt bool, scope *GenScope)
 	name := gen.GenerateExpr(spawn.Type.Name, scope)
 	fullLength := len(name)
 	cut := name[fullLength-length:]
-	src.Append(name[:fullLength-length], hyClass, cut, "_Spawn(")
+	src.Append(name[:fullLength-length], hyEntity, cut, "_Spawn(")
 	for i, arg := range spawn.Args {
 		src.WriteString(gen.GenerateExpr(arg, scope))
 		if i != len(spawn.Args)-1 {

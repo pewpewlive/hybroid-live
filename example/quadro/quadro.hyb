@@ -4,12 +4,12 @@ use Pewpew
 
 pub entity Quadro {
   fixed x, y = 0f, 0f
-  fixed velX, velY = 0f, 0f
+  fixed velX, velY = 0.01f, 0.01f
 
   number hitCooldownTimer
-  number hitCooldown = 5
+  number hitCooldown = 10
 
-  number health = 20
+  number health = 5
 
   entity ship
   bool canHit
@@ -24,61 +24,69 @@ pub entity Quadro {
     SetEntityPosition(self, x, y)
 
     SetEntityMesh(self, QuadroMesh, 0)
-    SetEntityRadius(self, 10.5f)
+    SetEntityRadius(self, 15f)
   }
 
-  destroy(fixed DEATH_POWER) {
+  destroy() {
+    PlaySound(QuadroSound, 1, x, y)
     ExplodeEntity(self, 10)
   }
 
   WallCollision(fixed normalX, fixed normalY) {
-
+    velX = -velX * 0.8f
+    velY = -velY * 0.8f
   }
   
   PlayerCollision(number playerIndex, entity shipId) {
-    if IsEntityAlive(shipId) {
+    if IsEntityAlive(shipId) and canHit {
       DamageShip(shipId, 1)
     }
 
     canHit = false
   }
 
-  WeaponCollision(number playerIndex, WeaponType weaponType) {
+  WeaponCollision(number playerIndex, WeaponType weaponType) -> bool {
     if weaponType == WeaponType.Bullet {
       health -= 1
+      if health > 0 {
+        PlaySound(QuadroSound, 0, x, y)
+      }
+    }
+    
+    if health <= 0 and !isDead {
+      isDead = true
+      destroy self()
     }
 
-    if health == 0 {
-      isDead = true
-      destroy self(1f)
-    }
+    return true
   }
 
   Update() {
+    x, y = GetEntityPosition(self)
+
     UpdateCooldown()
 
     Move()
   }
 
   fn Move() {
-    x, y = GetEntityPosition(self)
+    if !isDead and IsEntityAlive(ship) {
+      fixed sX, sY = GetEntityPosition(ship) 
 
-    fixed sX, sY
-    if IsEntityAlive(ship) {
-      sX, sY = GetEntityPosition(ship) 
+      fixed dirX, dirY = FmathHelpers:Normalize(sX - x, sY - y)
+      
+      velX += dirX * 3f 
+      velY += dirY * 3f
     }
-
-    fixed dirX, dirY = FmathHelpers:Normalize(sX - x, sY - y)
-    
-    velX += (dirX * 10f * velX) * 0.2f + 0.01f
-    velY += (dirY * 10f * velY) * 0.2f + 0.01f
 
     SetEntityPosition(self, x + velX * 10f, y + velY * 10f)
   }
 
   fn UpdateCooldown() {
-    hitCooldownTimer += 1
-    if hitCooldownTimer == hitCooldown {
+    hitCooldownTimer -= 1
+    
+    if hitCooldownTimer <= 0 {
+      hitCooldownTimer = hitCooldown
       canHit = true
     }
   }

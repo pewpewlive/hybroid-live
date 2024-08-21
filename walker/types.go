@@ -148,7 +148,7 @@ func (self *FunctionType) _eq(other Type) bool {
 	if len(self.Returns) != len(ft.Returns) {
 		return false
 	}
-	for i := range self.Returns { // aight
+	for i := range self.Returns {
 		if !TypeEquals(self.Returns[i], ft.Returns[i]) {
 			return false
 		}
@@ -177,7 +177,7 @@ func (self *FunctionType) ToString() string {
 	}
 
 	src.WriteString(" ")
-	length = len(self.Params)
+	length = len(self.Returns)
 	for i := range self.Returns {
 		if i == length-1 {
 			src.WriteString(self.Returns[i].ToString())
@@ -473,6 +473,90 @@ func (self *ObjectType) ToString() string {
 	return "NotAnyType"
 }
 
+type FuncSignature struct {
+	Generics []*GenericType
+	Params []Type
+	Returns []Type
+}
+
+func NewFuncSignature(generics ...*GenericType) *FuncSignature {
+	return &FuncSignature{
+		Generics: generics,
+		Params: []Type{},
+		Returns: []Type{},
+	}
+}
+
+func (self *FuncSignature) WithParams(params ...Type) *FuncSignature {
+	self.Params = params
+	return self
+}
+
+func (self *FuncSignature) WithReturns(returns ...Type) *FuncSignature {
+	self.Returns = returns
+	return self
+}
+
+func (self *FuncSignature) ToString() string {
+	src := generator.StringBuilder{}
+
+	src.WriteString("fn")
+
+	if len(self.Generics) != 0 {
+		src.WriteString("<")
+		for i := range self.Generics {
+			src.WriteString(self.Generics[i].ToString())
+		}
+		src.WriteString(">")
+	}
+	if len(self.Params) != 0 {
+		src.WriteString("(")
+		for i := range self.Params {
+			src.WriteString(self.Params[i].ToString())
+			if i != len(self.Params)-1 {
+				src.WriteString(", ")
+			}
+		}
+		src.WriteString(")")
+	}
+	retLength := len(self.Returns)
+	if retLength != 0 {
+		src.WriteString(" -> ")
+		if retLength != 1 {
+			src.WriteString("(")
+		}
+		for i := range self.Returns {
+			src.WriteString(self.Returns[i].ToString())
+		}
+		if retLength != 1 {
+			src.WriteString(")")
+		}
+	}
+
+	return src.String()
+}
+
+func (self *FuncSignature) Equals(other *FuncSignature) bool {
+	if len(self.Params) != len(other.Params) {
+		return false
+	}
+	for i := range self.Params {
+		if !TypeEquals(self.Params[i], other.Params[i]) {
+			return false
+		}
+	}
+	if len(self.Returns) != len(other.Returns) {
+		return false
+	}
+	for i := range self.Returns {
+		if !TypeEquals(self.Returns[i], other.Returns[i]) {
+			return false
+		}
+	}
+
+	return true
+}
+
 func TypeEquals(t Type, other Type) bool {
 	tpvt := t.PVT()
 	otherpvt := other.PVT()
@@ -514,3 +598,22 @@ var MeshValueType = NewStructType(map[string]Field{
 	}),
 }, false)
 var MeshesValueType = (&ListVal{ValueType: MeshValueType}).GetType()
+
+var SoundsValueType = NewStructType(map[string]Field{
+	"vertexes": NewField(0, &VariableVal{
+		Name:  "vertexes",
+		Value: &ListVal{ValueType: NewWrapperType(NewBasicType(ast.List), NewBasicType(ast.Number))},
+	}),
+})
+
+var SoundsValueType = (&ListVal{ValueType: }).GetType()
+
+var WeaponCollisionSign = NewFuncSignature().
+	WithParams(NewBasicType(ast.Number), NewEnumType("Pewpew", "WeaponType")).
+	WithReturns(NewBasicType(ast.Bool))
+
+var PlayerCollisionSign = NewFuncSignature().
+	WithParams(NewBasicType(ast.Number), &RawEntityType{})
+
+var WallCollisionSign = NewFuncSignature().
+	WithParams(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed))

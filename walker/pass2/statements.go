@@ -156,10 +156,16 @@ func EntityFunctionDeclarationStmt(w *wkr.Walker, node *ast.EntityFunctionDeclar
 		generics = append(generics, wkr.NewGeneric(param.Name.Lexeme))
 	}
 
+	ret := []wkr.Type{}
+
+	for i := range node.Returns {
+		ret = append(ret, TypeExpr(w, node.Returns[i], scope, true))
+	}
+
 	ft := &wkr.FuncTag{
 		Generics:    generics,
-		ReturnTypes: wkr.EmptyReturn,
-		Returns:     make([]bool, 0),
+		ReturnTypes: ret,
+		Returns:     make([]bool, len(ret)),
 	}
 	fnScope := wkr.NewScope(scope, ft, wkr.ReturnAllowing)
 	params := WalkParams(w, node.Params, scope, func(name lexer.Token, value wkr.Value) {
@@ -171,10 +177,18 @@ func EntityFunctionDeclarationStmt(w *wkr.Walker, node *ast.EntityFunctionDeclar
 		}, name)
 	})
 
+	funcSign := wkr.NewFuncSignature().
+		WithParams(params...).
+		WithReturns(ret...)
+
 	w.Context.Clear()
 
 	if node.Type != ast.Destroy || entityVal.DestroyParams != nil {
 		WalkBody(w, &node.Body, ft, fnScope)
+
+		if !ft.GetIfExits(wkr.Return) && len(ft.ReturnTypes) != 0 {
+			w.Error(node.GetToken(), "not all code paths return")
+		}
 	}
 
 	switch node.Type {
@@ -186,23 +200,26 @@ func EntityFunctionDeclarationStmt(w *wkr.Walker, node *ast.EntityFunctionDeclar
 			}
 		}
 		if len(params) < 2 || !(params[0].GetType() == wkr.Fixed && params[1].GetType() == wkr.Fixed) {
-			w.Error(node.Token, fmt.Sprintf("first two parameters of %s must be of fixed type", node.Type))
+			w.Error(node.Token, "first two parameters of %s must be of fixed type", node.Type)
+		}
+		if len(ret) != 0 {
+			w.Error(node.Token, "spawner must have no return types")
 		}
 		entityVal.SpawnParams = params
 	case ast.Destroy:
 		entityVal.DestroyParams = params
 		entityVal.DestroyGenerics = generics
 	case ast.WallCollision:
-		if len(params) < 2 || len(params) > 2 || !(params[0].GetType() == wkr.Fixed && params[1].GetType() == wkr.Fixed) {
-			w.Error(node.Token, fmt.Sprintf("first two parameters of %s must be of fixed type", node.Type))
+		if !funcSign.Equals(wkr.WallCollisionSign) {
+			w.Error(node.Token, "wrong function signature: expected %s", wkr.WallCollisionSign.ToString())
 		}
 	case ast.PlayerCollision:
-		if len(params) < 2 || len(params) > 2 || !(params[0].PVT() == ast.Number && params[1].GetType() == wkr.RawEntity) {
-			w.Error(node.Token, "first parameter must be a number (player index) and second must be an entity_id (ship id)")
+		if !funcSign.Equals(wkr.PlayerCollisionSign) {
+			w.Error(node.Token, "wrong function signature: expected %s", wkr.PlayerCollisionSign.ToString())
 		}
 	case ast.WeaponCollision:
-		if len(params) < 2 || len(params) > 2 || !(params[0].PVT() == ast.Number && params[1].GetType() == wkr.Enum && params[1].(*wkr.EnumType).Name == "WeaponType") {
-			w.Error(node.Token, "first parameter must be a number (player index) and second must be a weapon_type")
+		if !funcSign.Equals(wkr.WeaponCollisionSign) {
+			w.Error(node.Token, "wrong function signature: expected %s", wkr.WeaponCollisionSign.ToString())
 		}
 	}
 }
@@ -336,6 +353,10 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, s
 
 	if procType == wkr.Function {
 		WalkBody(w, &node.Body, funcTag, fnScope)
+
+		if !funcTag.GetIfExits(wkr.Return) && len(ret) != 0 {
+			w.Error(node.GetToken(), "not all code paths return")
+		}
 	}
 
 	return variable
@@ -406,7 +427,7 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 		valType := types[i]
 		if w.Environment.Type == ast.MeshEnv && ident.Lexeme == "meshes" {
 			if len(declaration.Identifiers) > 1 {
-				w.Error(ident, "'meshes' variable cannot be declared with another variables")
+				w.Error(ident, "'meshes' variable cannot be declared with other variables")
 			} else if declaration.IsLocal {
 				w.Error(ident, "'meshes' has to be global")
 			}
@@ -414,6 +435,18 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 			if !wkr.TypeEquals(valType, wkr.MeshesValueType) {
 				w.Error(ident, fmt.Sprintf("'meshes' needs to be of type %s", wkr.MeshesValueType.ToString()))
 			}
+		}
+
+		if w.Environment.Type == ast.SoundEnv && ident.Lexeme == "sounds" {
+			if len(declaration.Identifiers) > 1 {
+				w.Error(ident, "'sounds' variable cannot be declared with other variables")
+			} else if declaration.IsLocal {
+				w.Error(ident, "'sounds' has to be global")
+			}
+
+			// if !wkr.TypeEquals(valType, wkr.MeshesValueType) {
+			// 	w.Error(ident, fmt.Sprintf("'sounds' needs to be of type %s", wkr.MeshesValueType.ToString()))
+			// }
 		}
 
 		if declaration.Type == nil && types[i] == nil {

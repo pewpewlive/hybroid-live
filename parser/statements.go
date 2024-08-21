@@ -422,6 +422,7 @@ func (p *Parser) entityFunctionDeclarationStmt(token lexer.Token, functionType a
 
 	stmt.Generics = p.genericParameters()
 	stmt.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
+	stmt.Returns = p.returnings()
 
 	var success bool
 	stmt.Body, success = p.getBody()

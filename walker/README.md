@@ -33,12 +33,13 @@ type VariableVal struct {
   Value   Value
   IsUsed  bool
   IsConst bool
+  IsInit  bool
   Node    ast.Node
 }
 ```
-###### StructVal
+###### ClassVal
 ```go
-type StructVal struct {
+type ClassVal struct {
   Type         *NamedType
   Params       []Type // of the constructor
   Fields       []*VariableVal

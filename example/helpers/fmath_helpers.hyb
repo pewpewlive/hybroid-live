@@ -12,5 +12,9 @@ pub fn Normalize(fixed x, fixed y) -> (fixed, fixed) {
 
   let len = Length(x, y)
 
+  if len == 0f {
+    return 0f, 0f
+  }
+
   return x / len, y / len
 }

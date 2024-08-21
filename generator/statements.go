@@ -558,12 +558,10 @@ func (gen *Generator) destroyStmt(node ast.DestroyStmt, scope *GenScope) {
 	src := StringBuilder{}
 
 	src.AppendTabbed()
-	src.Append(envMap[node.EnvName], hyEntity, node.EntityName, "_Destroy(")
-	for i, arg := range node.Args {
+	src.Append(envMap[node.EnvName], hyEntity, node.EntityName, "_Destroy(", gen.GenerateExpr(node.Identifier, scope))
+	for _, arg := range node.Args {
+		src.WriteString(", ")
 		src.WriteString(gen.GenerateExpr(arg, scope))
-		if i != len(node.Args)-1 {
-			src.WriteString(", ")
-		}
 	}
 	src.WriteString(")")
 	scope.Write(src)

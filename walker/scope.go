@@ -8,6 +8,7 @@ import (
 type Context struct {
 	Node           ast.Node
 	Value          Value
+	Value2         Value
 	PewpewVarFound bool
 	PewpewVarName  string
 }

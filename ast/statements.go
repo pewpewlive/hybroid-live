@@ -177,6 +177,7 @@ type EntityFunctionDeclarationStmt struct {
 	Type   EntityFunctionType
 	Generics []*IdentifierExpr
 	Params []Param
+	Returns []*TypeExpr
 	Body   []Node
 	Token  lexer.Token
 }

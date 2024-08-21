@@ -90,6 +90,7 @@ func NewWalker(path string) *Walker {
 		Context: Context{
 			Node:  &ast.Improper{},
 			Value: &Unknown{},
+			Value2: &Unknown{},
 		},
 	}
 	walker.CurrentEnvironment = walker.Environment
