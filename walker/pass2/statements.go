@@ -433,7 +433,7 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 			}
 
 			if !wkr.TypeEquals(valType, wkr.MeshesValueType) {
-				w.Error(ident, fmt.Sprintf("'meshes' needs to be of type %s", wkr.MeshesValueType.ToString()))
+				w.Error(ident, "'meshes' needs to be of type %s", wkr.MeshesValueType.ToString())
 			}
 		}
 
@@ -444,9 +444,9 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 				w.Error(ident, "'sounds' has to be global")
 			}
 
-			// if !wkr.TypeEquals(valType, wkr.MeshesValueType) {
-			// 	w.Error(ident, fmt.Sprintf("'sounds' needs to be of type %s", wkr.MeshesValueType.ToString()))
-			// }
+			if !wkr.TypeEquals(valType, wkr.SoundsValueType) {
+				w.Error(ident, "'sounds' needs to be of type %s", wkr.SoundsValueType.ToString())
+			}
 		}
 
 		if declaration.Type == nil && types[i] == nil {
@@ -455,7 +455,7 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 		if declaration.Type != nil && types[i] != nil {
 			explicitType := TypeExpr(w, declaration.Type, scope, false)
 			if !wkr.TypeEquals(valType, explicitType) {
-				w.Error(declaration.Identifiers[i], fmt.Sprintf("Given value is %s, but explicit type is %s", valType.ToString(), explicitType.ToString()))
+				w.Error(declaration.Identifiers[i], "Given value is %s, but explicit type is %s", valType.ToString(), explicitType.ToString())
 			}
 		} else if types[i] != nil && valType.PVT() == ast.Invalid {
 			w.Error(declaration.Values[i].GetToken(), "value is invalid")

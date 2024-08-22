@@ -92,7 +92,7 @@ func NewAnonStructVal(fields map[string]Field, lenient bool) *AnonStructVal {
 }
 
 func (self *AnonStructVal) GetType() Type {
-	return NewStructType(self.Fields, self.Lenient)
+	return NewStructTypeWithFields(self.Fields, self.Lenient)
 }
 
 func (self *AnonStructVal) GetDefault() *ast.LiteralExpr {

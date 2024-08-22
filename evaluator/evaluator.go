@@ -125,7 +125,13 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 
 		//e.gen.Scope.Src.Grow(len(sourceFile))
 		e.gen.SetEnv(walker.Environment.Name, walker.Environment.Type)
-		e.gen.Generate(walker.Nodes)
+		if e.files[i].FileName == "level" {
+			e.gen.GenerateWithBuiltins(walker.Nodes)
+		}else if e.walkerList[i].Environment.Type  != ast.Level {
+			e.gen.Generate(walker.Nodes, e.walkerList[i].Environment.UsedBuiltinVars)
+		}else {
+			e.gen.Generate(walker.Nodes, []string{})
+		}
 		if len(e.gen.Errors) != 0 {
 			colorstring.Println("[red]Failed generating:")
 			printAlerts(e.files[i].Path(), e.gen.GetErrors())

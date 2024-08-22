@@ -134,7 +134,11 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 	hasGenerics := false
 	args := []*ast.TypeExpr{}
 	if p.check(lexer.Less) {
-		args = p.genericArguments()
+		var ok bool
+		args, ok = p.genericArguments()
+		if !ok {
+			return caller
+		}
 		hasGenerics = false
 	}
 	if !p.check(lexer.LeftParen) {
@@ -166,12 +170,13 @@ func (p *Parser) accessorExprDepth2(ident *ast.Node) ast.Node {
 		return p.call(expr)
 	}
 
-	var methodCall ast.Node
-	methodCall = &ast.MethodCallExpr{
+	args, _ := p.genericArguments()
+
+	var methodCall ast.Node = &ast.MethodCallExpr{
 		Identifier: expr,
 		Call: &ast.CallExpr{
 			Caller:      call,
-			GenericArgs: p.genericArguments(),
+			GenericArgs: args,
 			Args:        p.arguments(),
 		},
 	}

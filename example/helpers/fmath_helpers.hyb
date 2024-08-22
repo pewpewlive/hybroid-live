@@ -18,3 +18,14 @@ pub fn Normalize(fixed x, fixed y) -> (fixed, fixed) {
 
   return x / len, y / len
 }
+
+pub fn Clamp(fixed val, fixed min, fixed max) -> fixed {
+  if val > max {
+    return max
+  }
+  if val < min {
+    return min
+  }
+
+  return val
+}

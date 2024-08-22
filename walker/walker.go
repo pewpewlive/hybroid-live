@@ -23,9 +23,20 @@ type Environment struct {
 	Scope         Scope
 	UsedWalkers   []*Walker
 	UsedLibraries map[Library]bool
+	UsedBuiltinVars []string
 	Structs       map[string]*ClassVal
 	Entities      map[string]*EntityVal
 	CustomTypes   map[string]*CustomType
+}
+
+func (e *Environment) AddBuiltinVar(name string) {
+	for _, v := range e.UsedBuiltinVars {
+		if v == name {
+			return
+		}
+	}
+
+	e.UsedBuiltinVars = append(e.UsedBuiltinVars, name)
 }
 
 func NewEnvironment(path string) *Environment {
@@ -115,7 +126,11 @@ func (w *Walker) GetEnvStmt() *ast.EnvironmentStmt {
 
 // ONLY CALL THIS IF YOU ALREADY CALLED ResolveVariable
 func (w *Walker) GetVariable(s *Scope, name string) (*VariableVal, bool) {
-	variable := s.Variables[name]
+	variable, ok := s.Variables[name]
+
+	if !ok {
+		return nil, false
+	}
 	return variable, s.Environment.Name != w.Environment.Name && variable.IsLocal
 }
 
@@ -223,6 +238,10 @@ func (w *Walker) ResolveVariable(s *Scope, name string) *Scope {
 	}
 
 	if s.Parent == nil {
+		_, ok := BuiltinEnv.Scope.Variables[name]
+		if ok {
+			return &BuiltinEnv.Scope
+		}
 		for i := range s.Environment.UsedWalkers {
 			variable, _ := s.Environment.UsedWalkers[i].GetVariable(&s.Environment.UsedWalkers[i].Environment.Scope, name)
 			if variable != nil {
@@ -571,4 +590,5 @@ func SetupLibraryEnvironments() {
 	MathEnv.Scope.Environment = MathEnv
 	StringEnv.Scope.Environment = StringEnv
 	TableEnv.Scope.Environment = TableEnv
+	BuiltinEnv.Scope.Environment = BuiltinEnv
 }

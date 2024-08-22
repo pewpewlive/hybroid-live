@@ -109,10 +109,11 @@ func (p *Parser) genericParameters() []*ast.IdentifierExpr {
 	return params
 }
 
-func (p *Parser) genericArguments() []*ast.TypeExpr {
+func (p *Parser) genericArguments() ([]*ast.TypeExpr, bool) {
+	current := p.getCurrent()
 	params := []*ast.TypeExpr{}
 	if !p.match(lexer.Less) {
-		return params
+		return params, false
 	}
 
 	params = append(params, p.Type())
@@ -121,9 +122,12 @@ func (p *Parser) genericArguments() []*ast.TypeExpr {
 		params = append(params, p.Type())
 	}
 
-	p.consume("expected '>' in generic args", lexer.Greater)
+	if !p.match(lexer.Greater) {
+		p.disadvance(p.getCurrent()-current)
+		return params, false
+	}
 
-	return params
+	return params, true
 }
 
 func (p *Parser) arguments() []ast.Node {

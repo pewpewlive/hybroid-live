@@ -1,4 +1,37 @@
-function split(str, pat)
+package generator
+
+var functions = map[string]string{
+	"ToString": ToStringFunction,
+	"ParseSound": ParseSoundFunction,
+}
+
+var ToStringFunction = 
+`function ToString(value)
+	local str
+	if type(value) == "table" then
+		str = "{"
+		if #value == 0 then
+			for k, v in pairs(value) do
+				str = str .. k .. ": " .. ToString(v) .. ", "
+			end
+		else
+			for _, v in ipairs(value) do
+				str = str .. ToString(v) .. ", "
+			end
+		end
+		if str ~= "{" then
+			str = string.sub(str, 0, string.len(str)-2)
+		end
+		str = str .. "}"
+	else
+		str = value
+	end
+	return str
+end
+`
+
+var ParseSoundFunction = 
+`function split(str, pat)
    local t = {}  -- NOTE: use {n = 0} in Lua-5.0
    local fpat = "(.-)" .. pat
    local last_end = 1
@@ -17,7 +50,7 @@ function split(str, pat)
    return t
 end
 
-function parseSound(link)
+function ParseSound(link)
   local parts = split(link, '%%22')
   local sound = {}
 
@@ -39,14 +72,4 @@ function parseSound(link)
   end
   return sound
 end
-
--- function EditedSound(sound, new_kvs)
---     local sound_copy = {}
---     for k,v in pairs(sound) do
---       sound_copy[k] = v
---     end
---     for k,v in pairs(new_kvs) do
---       sound_copy[k] = v
---     end
---     return sound_copy
---   end
+`

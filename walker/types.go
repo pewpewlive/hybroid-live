@@ -295,7 +295,18 @@ type StructType struct {
 	Lenient bool
 }
 
-func NewStructType(fields map[string]Field, lenient bool) *StructType {
+func NewStructType(fields []*VariableVal, lenient bool) *StructType {
+	mapfields := map[string]Field{}
+	for i := range fields {
+		mapfields[fields[i].Name] = Field{Var: fields[i], Index: i}
+	}
+	return &StructType{
+		Fields:  mapfields,
+		Lenient: lenient,
+	}
+}
+
+func NewStructTypeWithFields(fields map[string]Field, lenient bool) *StructType {
 	return &StructType{
 		Fields:  fields,
 		Lenient: lenient,
@@ -322,6 +333,7 @@ func (self *StructType) _eq(other Type) bool {
 		for k2, v2 := range map2 {
 			if k == k2 && TypeEquals(v.Var.GetType(), v2.Var.GetType()) {
 				containsK = true
+				break
 			}
 		}
 		if !containsK {
@@ -583,30 +595,177 @@ func TypeEquals(t Type, other Type) bool {
 
 var InvalidType = NewBasicType(ast.Invalid)
 
-var MeshValueType = NewStructType(map[string]Field{
-	"vertexes": NewField(0, &VariableVal{
+var MeshValueType = NewStructType([]*VariableVal{
+	{
 		Name:  "vertexes",
 		Value: &ListVal{ValueType: NewWrapperType(NewBasicType(ast.List), NewBasicType(ast.Number))},
-	}),
-	"segments": NewField(1, &VariableVal{
+	},
+	{
 		Name:  "segments",
 		Value: &ListVal{ValueType: NewWrapperType(NewBasicType(ast.List), NewBasicType(ast.Number))},
-	}),
-	"colors": NewField(2, &VariableVal{
+	},
+	{
 		Name:  "colors",
 		Value: &ListVal{ValueType: NewBasicType(ast.Number)},
-	}),
+	},
 }, false)
 var MeshesValueType = (&ListVal{ValueType: MeshValueType}).GetType()
 
-var SoundsValueType = NewStructType(map[string]Field{
-	"vertexes": NewField(0, &VariableVal{
-		Name:  "vertexes",
-		Value: &ListVal{ValueType: NewWrapperType(NewBasicType(ast.List), NewBasicType(ast.Number))},
-	}),
-})
-
-var SoundsValueType = (&ListVal{ValueType: }).GetType()
+var SoundValueType = NewStructType([]*VariableVal{
+	{
+		Name:  "attack",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "decay",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "sustain",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "sustainPunch",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "amplification",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "harmonics",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "harmonicsFalloff",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "tremoloDepth",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "tremoloFrequency",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "frequency",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "frequencyDeltaSweep",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "frequencyJump1Onset",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "frequencyJump2Onset",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "frequencyJump1Amount",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "frequencyJump2Amount",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "frequencySweep",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "vibratoFrequency",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "vibratoDepth",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "flangerOffset",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "flangerOffsetSweep",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "repeatFrequency",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "lowPassCutoff",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "lowPassCutoffSweep",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "highPassCutoff",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "highPassCutoffSweep",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "bitCrush",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "bitCrushSweep",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "squareDuty",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "squareDutySweep",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "harmonicsFalloff",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "normalization",
+		Value: &BoolVal{},
+	},
+	{
+		Name:  "interpolateNoise",
+		Value: &BoolVal{},
+	},
+	{
+		Name:  "compression",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "harmonics",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "harmonicsFalloff",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "repeatFrequency",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "sampleRate",
+		Value: &NumberVal{},
+	},
+	{
+		Name:  "waveform",
+		Value: &StringVal{},
+	},
+}, true)
+var SoundsValueType = (&ListVal{ValueType: SoundValueType}).GetType()
 
 var WeaponCollisionSign = NewFuncSignature().
 	WithParams(NewBasicType(ast.Number), NewEnumType("Pewpew", "WeaponType")).

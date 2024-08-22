@@ -230,20 +230,19 @@ func (mce *MethodCallExpr) GetValueType() PrimitiveValueType {
 	return Invalid
 }
 
-type BuiltinCallExpr struct {
+type BuiltinExpr struct {
 	Name lexer.Token
-	Args []Node
 }
 
-func (ce *BuiltinCallExpr) GetType() NodeType {
-	return BuiltinCallExpression
+func (ce *BuiltinExpr) GetType() NodeType {
+	return BuiltinExpression
 }
 
-func (ce *BuiltinCallExpr) GetToken() lexer.Token {
+func (ce *BuiltinExpr) GetToken() lexer.Token {
 	return ce.Name
 }
 
-func (ce *BuiltinCallExpr) GetValueType() PrimitiveValueType {
+func (ce *BuiltinExpr) GetValueType() PrimitiveValueType {
 	return Invalid
 }
 

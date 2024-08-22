@@ -3,7 +3,6 @@ package generator
 import (
 	"fmt"
 	"hybroid/ast"
-	"hybroid/lexer"
 	"math"
 	"strconv"
 	"strings"
@@ -13,9 +12,9 @@ import (
 // 	return fmt.Sprintf("Error: %v, at line: %v (%v)", ge.Message, ge.Token.Location.LineStart, ge.Token.ToString())
 // }
 
-func (gen *Generator) error(token lexer.Token, message string) {
-	gen.Errors = append(gen.Errors, ast.Error{Token: token, Message: message})
-}
+// func (gen *Generator) error(token lexer.Token, message string) {
+// 	gen.Errors = append(gen.Errors, ast.Error{Token: token, Message: message})
+// }
 
 type StringBuilder struct {
 	strings.Builder
@@ -51,7 +50,6 @@ var hyGTL = "GL"
 var hyVar = "H"
 var hyClass = "HC"
 var hyEntity = "HE"
-var hyEntityState = "HES"
 
 func ResolveVarCounter(varname *StringBuilder, counter int) {
 	if counter > charsetLength-1 {
@@ -185,7 +183,6 @@ type Generator struct {
 	Scope   GenScope
 	Errors  []ast.Error
 	libraryVars *map[string]string
-	pewpewEnumValue *string
 }
 
 func (gen *Generator) SetUniqueEnvName(name string) {
@@ -232,7 +229,19 @@ func (gen *Generator) GetSrc() string {
 	return gen.Scope.Src.String()
 }
 
-func (gen *Generator) Generate(program []ast.Node) {
+func (gen *Generator) Generate(program []ast.Node, builtins []string) {
+	for i := range builtins {
+		gen.Scope.WriteString(functions[builtins[i]])
+	}
+	for _, node := range program {
+		gen.GenerateStmt(node, &gen.Scope)
+		gen.Scope.WriteString("\n")
+	}
+}
+
+func (gen *Generator) GenerateWithBuiltins(program []ast.Node) {
+	gen.Scope.WriteString(ParseSoundFunction)
+	gen.Scope.WriteString(ToStringFunction)
 	for _, node := range program {
 		gen.GenerateStmt(node, &gen.Scope)
 		gen.Scope.WriteString("\n")
@@ -372,6 +381,8 @@ func (gen *Generator) GenerateExpr(node ast.Node, scope *GenScope) string {
 		return gen.spawnExpr(*newNode, false, scope)
 	case *ast.MethodCallExpr:
 		return gen.methodCallExpr(*newNode, false, scope)
+	case *ast.BuiltinExpr:
+		return gen.builtinExpr(*newNode)
 	// case *ast.CastExpr:
 	// 	return gen.castExpr(*newNode, scope)
 	}

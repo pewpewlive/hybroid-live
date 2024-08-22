@@ -63,12 +63,13 @@ func (gen *Generator) assignmentStmt(assignStmt ast.AssignmentStmt, scope *GenSc
 			}
 			vars = []string{}
 			index += call.ReturnAmount
+		}else {
+			src.Append(gen.GenerateExpr(assignStmt.Identifiers[index], scope), " = ", gen.GenerateExpr(assignStmt.Values[i], scope), "\n")
+			index++
 		}
 		if index >= len(assignStmt.Identifiers) {
 			break
 		}
-		src.Append(gen.GenerateExpr(assignStmt.Identifiers[index], scope), " = ", gen.GenerateExpr(assignStmt.Values[i], scope), "\n")
-		index++
 	}
 
 	scope.Write(preSrc)

@@ -60,7 +60,7 @@ const (
 
 	PewpewExpression      NodeType = "pewpewExpression"
 	FmathExpression       NodeType = "fmathExpression"
-	BuiltinCallExpression NodeType = "builtinCallExpession"
+	BuiltinExpression     NodeType = "builtinExpression"
 	StandardExpression    NodeType = "standardExpression"
 
 	Identifier NodeType = "identifier"

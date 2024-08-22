@@ -198,7 +198,12 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 		if found {
 			return method
 		}
-	} else if sc.Environment != w.Environment {
+	} else if sc.Environment.Name == "Builtin" {
+		scope.Environment.AddBuiltinVar(ident.Name.Lexeme)
+		*node = &ast.BuiltinExpr{
+			Name: ident.Name,
+		}
+	}else if sc.Environment.Name != w.Environment.Name {
 		*node = &ast.EnvAccessExpr{
 			PathExpr: &ast.EnvPathExpr{
 				Path: lexer.Token{
@@ -720,10 +725,10 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 	case ast.Enum:
 		typ = wkr.NewBasicType(ast.Enum)
 	case ast.AnonStruct:
-		fields := map[string]wkr.Field{}
+		fields := []*wkr.VariableVal{}
 
-		for i, v := range typee.Fields {
-			fields[v.Name.Lexeme] = wkr.NewField(i, &wkr.VariableVal{
+		for _, v := range typee.Fields {
+			fields = append(fields, &wkr.VariableVal{
 				Name:  v.Name.Lexeme,
 				Value: w.TypeToValue(TypeExpr(w, v.Type, scope, throw)),
 				Token: v.Name,

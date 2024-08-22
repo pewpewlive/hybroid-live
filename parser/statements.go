@@ -445,7 +445,7 @@ func (p *Parser) destroyStmt() ast.Node {
 		p.error(expr.GetToken(), "expected identifier or environment access expression")
 	}
 	stmt.Identifier = expr
-	stmt.Generics = p.genericArguments()
+	stmt.Generics, _ = p.genericArguments()
 	stmt.Args = p.arguments()
 
 	return &stmt
@@ -588,24 +588,32 @@ func (p *Parser) assignmentStmt() ast.Node {
 		}
 		idents = append(idents, expr)
 	}
-
+	values := []ast.Node{}
 	if p.match(lexer.Equal) {
-		values := []ast.Node{p.expression()}
+		expr2 := p.expression()
+		values = append(values, expr2)
 		for p.match(lexer.Comma) {
 			expr2 := p.expression()
-
 			values = append(values, expr2)
 		}
 		expr = &ast.AssignmentStmt{Identifiers: idents, Values: values, Token: p.peek(-1)}
 	} else if p.match(lexer.PlusEqual, lexer.MinusEqual, lexer.SlashEqual, lexer.StarEqual, lexer.CaretEqual, lexer.ModuloEqual) {
 		assignOp := p.peek(-1)
 		op := p.getOp(assignOp)
-		if len(idents) > 1 {
-			p.error(assignOp, "cannot assign to multiple variables with this operator")
+
+		expr2 := p.expression()
+		binExpr := p.createBinExpr(idents[len(values)], op, op.Type, op.Lexeme, &ast.GroupExpr{Expr: expr2, ValueType: expr2.GetValueType(), Token: expr2.GetToken()})
+		values = append(values, binExpr)
+		// if len(idents) > 1 {
+		// 	p.error(assignOp, "cannot assign to multiple variables with this operator")
+		// }
+		for p.match(lexer.Comma) {
+			expr2 := p.expression()
+			binExpr := p.createBinExpr(idents[len(values)], op, op.Type, op.Lexeme, &ast.GroupExpr{Expr: expr2, ValueType: expr2.GetValueType(), Token: expr2.GetToken()})
+
+			values = append(values, binExpr)
 		}
-		expr2 := p.term()
-		binExpr := p.createBinExpr(expr, op, op.Type, op.Lexeme, &ast.GroupExpr{Expr: expr2, ValueType: expr2.GetValueType(), Token: expr2.GetToken()})
-		expr = &ast.AssignmentStmt{Identifiers: idents, Values: []ast.Node{binExpr}, Token: assignOp}
+		expr = &ast.AssignmentStmt{Identifiers: idents, Values: values, Token: assignOp}
 	}
 
 	return expr
