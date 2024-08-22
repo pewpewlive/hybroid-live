@@ -496,7 +496,36 @@ func MapExpr(w *wkr.Walker, node *ast.MapExpr, scope *wkr.Scope) wkr.Value {
 }
 
 func UnaryExpr(w *wkr.Walker, node *ast.UnaryExpr, scope *wkr.Scope) wkr.Value {
-	return GetNodeValue(w, &node.Value, scope)
+	val :=  GetNodeValue(w, &node.Value, scope)
+	valType := val.GetType()
+	valPVT := valType.PVT()
+
+	token := node.GetToken()
+
+	if valPVT == ast.Invalid {
+		w.Error(token, "value is invalid")
+		return val
+	}
+
+	switch node.Operator.Type { 
+	case lexer.Bang:
+		if valPVT != ast.Bool {
+			w.Error(token, "value must be a bool to be negated")
+		}
+	case lexer.Hash:
+		if valType.GetType() == wkr.Wrapper && valType.(*wkr.WrapperType).Type.PVT() != ast.List {
+			w.Error(token, "value must be a list")
+		}else if valType.GetType() != wkr.Wrapper {
+			w.Error(token, "value must be a list")
+		}
+		return &wkr.NumberVal{}
+	case lexer.Minus:
+		if valPVT != ast.Number && valType.GetType() != wkr.Fixed {
+			w.Error(token, "value must be a number or fixed")
+		}
+	}
+
+	return val
 }
 
 func SelfExpr(w *wkr.Walker, self *ast.SelfExpr, scope *wkr.Scope) wkr.Value {

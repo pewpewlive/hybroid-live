@@ -29,35 +29,24 @@ pub entity Quadro {
   }
 
   destroy() {
+    isDead = true
+    canHit = false
+    hitCooldownTimer = 999999999
+    
     PlaySound(QuadroSound, 1, x, y)
     ExplodeEntity(self, 10)
   }
 
   WallCollision(fixed normalX, fixed normalY) {
-    /*
-      dirToCenter = Vector2(self.position.x - width/2,self.position.y - height/2)
+    if isDead
+      return;
 
-      v = math.sqrt(self.velocity.x * self.velocity.x + self.velocity.y * self.velocity.y)
-      angleToCollisionPoint = math.atan2(-dirToCenter.y,dirToCenter.x)
-      oldAngle = math.atan2(-self.velocity.y,self.velocity.x)
-      newAngle = 2 * angleToCollisionPoint - oldAngle
-      self.velocity = Vector2(-v * math.cos(newAngle),v * math.sin(newAngle))
-    */
-    velX = -velX * 0.8f
-    velY = -velY * 0.8f
-
-    fixed len = Length(velX, velY)
-
-    fixed normalAngle = Fmath:Atan2(-normalY, normalX)
-    fixed oldAngle = Fmath:Atan2(-velX, velY)
-    fixed newAngle = 2f * normalAngle - oldAngle
-
-    velY, velX = Fmath:Sincos(newAngle)
-    velY, velX *= len, len
+    velX, velY = Reflect(velX, velY, normalX, normalY)
   }
   
   PlayerCollision(number playerIndex, entity shipId) {
     if IsEntityAlive(shipId) and canHit {
+      velX, velY = -velX * 1.5f, -velY * 1.5f
       DamageShip(shipId, 1)
     }
 
@@ -76,11 +65,10 @@ pub entity Quadro {
     }
     
     if health <= 0 {
-      isDead = true
-      canHit = false
+      
       destroy self()
     }
-
+  
     return true
   }
 
@@ -93,28 +81,26 @@ pub entity Quadro {
   }
 
   fn Move() {
+    fixed length = 1f
     if !isDead and IsEntityAlive(ship) {
       fixed sX, sY = GetEntityPosition(ship) 
-
-      fixed length = Length(sX - x, sY - y) * 0.002f
-      length *= length
+      fixed dX, dY = sX - x, sY - y
+      length = Length(dX, dY)
       Print(length)
 
-      fixed dirX, dirY = Normalize(sX - x, sY - y)
-      
-      velX += dirX * length
-      velY += dirY * length
-
-      velX, velY = Clamp(velX, -speed, speed), Clamp(velY, -speed, speed)
+      velX += dX / length
+      velY += dY / length
+      velX *= 0.9f
+      velY *= 0.9f
     }
-
     SetEntityPosition(self, x + velX, y + velY)
   }
 
   fn UpdateCooldown() {
-    hitCooldownTimer -= 1
+    if !canHit 
+      hitCooldownTimer -= 1
     
-    if hitCooldownTimer <= 0 {
+    if hitCooldownTimer <= 0 and !canHit {
       hitCooldownTimer = 10
       canHit = true
     }

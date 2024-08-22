@@ -6,12 +6,25 @@ enum EnumTest {
     Three,
     Four
 }
+
+fn returnTest() {
+    if true
+        return
+
+    let cool = 0
+}
+
 class Test {
     number a = 1
     fixed b = 2f
     EnumTest c = EnumTest.Four
     Test test// = new Test()
-    list<list<map<Test>>> tests = [[{ xd = new Test() }]]
+    list<list<struct{Test xd, fn() -> Test s}>> tests = [[struct{ xd = new Test(); s = fn() -> Test { 
+        return new Test()
+    } }]]
+    fn() -> Test bizhhh = fn() -> Test { 
+        return new Test()
+    }
 
     new() {
         test = self
@@ -31,6 +44,11 @@ class Test {
     fn method2() -> list<list<map<Test>>> {
         return tests      
     }
+    fn method4() -> fn() -> Test {
+        return fn() -> Test {
+            return self
+        } 
+    }
 }
 
 let p = new Test()// variable: classVal
@@ -42,7 +60,7 @@ EnumTest enumss = p.test.c
 
 let asdsss = p.test.tests[0][0]
 //[4][5][0][0]["xd"]
-bool bizh = p.method2()[0][0]["xd"].method3().method3().test.tests[0][0]["xd"].method2()[0][0]["xd"].method3().method3().method(struct{
+bool bizh = p.method2()[0][0].xd.method3().method3().test.tests[0][0].xd.method2()[0][0].xd.method3().method3().method(struct{
     field1, field2, field3 = 1, true, EnumTest.One
 })
 

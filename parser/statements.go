@@ -126,6 +126,10 @@ func (p *Parser) statement() ast.Node {
 		return p.matchStmt(false)
 	}
 
+	if p.peek().Type == lexer.SemiColon {
+		return ast.NewImproper(p.advance())
+	}
+
 	expr := p.expression()
 
 	if expr.GetType() == ast.NA {
@@ -423,12 +427,15 @@ func (p *Parser) entityFunctionDeclarationStmt(token lexer.Token, functionType a
 	stmt.Generics = p.genericParameters()
 	stmt.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
 	stmt.Returns = p.returnings()
+	p.Context.FunctionReturns = append(p.Context.FunctionReturns, len(stmt.Returns))
 
 	var success bool
 	stmt.Body, success = p.getBody()
 	if !success {
 		return ast.NewImproper(stmt.Token)
 	}
+
+	p.Context.FunctionReturns = p.Context.FunctionReturns[:len(p.Context.FunctionReturns)-1]
 
 	return stmt
 }
@@ -622,10 +629,13 @@ func (p *Parser) assignmentStmt() ast.Node {
 func (p *Parser) returnStmt() ast.Node {
 	returnStmt := &ast.ReturnStmt{
 		Token: p.peek(-1),
+		Args: []ast.Node{},
 	}
 
-	args, _ := p.returnArgs()
-	returnStmt.Args = args
+	if p.Context.FunctionReturns[len(p.Context.FunctionReturns)-1] != 0 {
+		args, _ := p.returnArgs()
+		returnStmt.Args = args
+	}
 
 	return returnStmt
 }
@@ -633,10 +643,10 @@ func (p *Parser) returnStmt() ast.Node {
 func (p *Parser) returnArgs() ([]ast.Node, bool) {
 	args := []ast.Node{}
 	expr := p.expression()
-	if expr.GetType() == ast.NA {
+	if expr.GetType() == ast.NA { // return;
 		return args, false
 	}
-	args = append(args, expr)
+	args = append(args, expr) // return;
 	for p.match(lexer.Comma) {
 		expr = p.expression()
 		if expr.GetType() == ast.NA {
@@ -684,14 +694,16 @@ func (p *Parser) functionDeclarationStmt(IsLocal bool) ast.Node {
 	fnDec.GenericParams = p.genericParameters()
 	fnDec.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
 
-	fnDec.Return = p.returnings() // fn token{}(entity id)
-	// fn beautifulfunc<number>() {}
+	fnDec.Return = p.returnings()
+	p.Context.FunctionReturns = append(p.Context.FunctionReturns, len(fnDec.Return))
 
 	var success bool
 	fnDec.Body, success = p.getBody()
 	if !success {
 		return ast.NewImproper(fnDec.Name)
 	}
+
+	p.Context.FunctionReturns = p.Context.FunctionReturns[:len(p.Context.FunctionReturns)-1]
 
 	return &fnDec
 }

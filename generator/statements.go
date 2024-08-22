@@ -168,7 +168,7 @@ func (gen *Generator) repeatStmt(node ast.RepeatStmt, scope *GenScope) {
 	end := gen.GenerateExpr(node.Iterator, scope)
 	start := gen.GenerateExpr(node.Start, scope)
 	skip := gen.GenerateExpr(node.Skip, scope)
-	if node.Variable.GetValueType() != ast.Invalid {
+	if node.Variable != nil {
 		variable := gen.GenerateExpr(node.Variable, &repeatScope)
 		repeatScope.AppendTabbed("for ", variable, " = ", start, ", ", end, ", ", skip, " do\n")
 	} else {

@@ -144,6 +144,7 @@ func (gen *Generator) fieldExpr(node ast.FieldExpr, scope *GenScope) string {
 	for i := range val {
 		if val[i] == '[' {
 			cut = val[i:]
+			break
 		}
 	}
 	if node.Index >= 0 {
@@ -160,8 +161,8 @@ func (gen *Generator) memberExpr(node ast.MemberExpr, scope *GenScope) string {
 
 	src.WriteString(gen.GenerateExpr(node.Identifier, scope))
 	val := gen.GenerateExpr(node.Property, scope)
-	name := node.Property.GetToken().Lexeme
-	val = fmt.Sprintf("[%s]%s", val[:len(name)], val[len(name):])
+	name := gen.GenerateExpr(node.PropertyIdentifier, scope)
+	val = fmt.Sprintf("[%s]%s", name, val[len(name):])
 	src.WriteString(val)
 
 	return src.String()
@@ -350,7 +351,11 @@ func (gen *Generator) methodCallExpr(methodCall ast.MethodCallExpr, stmt bool, s
 	for i := range methodCall.Call.Args {
 		src.Append(", ", gen.GenerateExpr(methodCall.Call.Args[i], scope))
 	}
-	src.WriteString(")\n")
+	if stmt {
+		src.WriteString(")\n")
+	}else {
+		src.WriteString(")")
+	}
 
 	return src.String()
 }

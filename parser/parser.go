@@ -10,14 +10,22 @@ type Parser struct {
 	current int
 	tokens  []lexer.Token
 	Errors  []ast.Error
+	Context ParserContext
+}
+
+type ParserContext struct {
+	FunctionReturns []int
 }
 
 func NewParser() Parser {
 	return Parser{
-		make([]ast.Node, 0),
-		0,
-		make([]lexer.Token, 0),
-		make([]ast.Error, 0),
+		program: make([]ast.Node, 0),
+		current: 0,
+		tokens: make([]lexer.Token, 0),
+		Errors: make([]ast.Error, 0),
+		Context: ParserContext{
+			FunctionReturns: make([]int, 0),
+		},
 	}
 }
 

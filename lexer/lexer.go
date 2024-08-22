@@ -149,6 +149,8 @@ func (l *Lexer) scanToken() {
 		}
 	case '@':
 		l.addToken(At, "")
+	case '#':
+		l.addToken(Hash, "")
 	case '|':
 		l.addToken(Pipe, "")
 	case '.':

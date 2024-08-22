@@ -56,9 +56,6 @@ func (p *Parser) getParam() ast.Param {
 	if ide.GetType() != ast.Identifier {
 		p.error(ide.GetToken(), "expected identifier as parameter")
 	}
-	if typ == nil {
-		p.error(ide.GetToken(), "parameters need to be declared with a type before the name")
-	}
 	return ast.Param{Type: typ, Name: ide.GetToken()}
 }
 
@@ -72,9 +69,30 @@ func (p *Parser) parameters(opening lexer.TokenType, closing lexer.TokenType) []
 	if p.match(closing) {
 		args = make([]ast.Param, 0)
 	} else {
-		args = append(args, p.getParam())
+		var previous *ast.TypeExpr
+		param := p.getParam()
+		if param.Type == nil {
+			if len(args) == 0 {
+				p.error(param.Name, "parameter need to be declared with a type before the name")
+			}else  {
+				param.Type = previous
+			}
+		}else {
+			previous = param.Type
+		}
+		args = append(args, param)
 		for p.match(lexer.Comma) {
-			args = append(args, p.getParam())
+			param := p.getParam()
+			if param.Type == nil {
+				if len(args) == 0 {
+					p.error(param.Name, "parameter need to be declared with a type before the name")
+				}else  {
+					param.Type = previous
+				}
+			}else {
+				previous = param.Type
+			}
+			args = append(args, param)
 		}
 		p.consume(fmt.Sprintf("expected %s after an identifier", string(closing)), closing)
 	}

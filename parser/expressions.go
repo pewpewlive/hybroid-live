@@ -37,12 +37,15 @@ func (p *Parser) fn() ast.Node {
 			p.error(p.peek(), "expected opening parenthesis for parameters")
 		}
 		fn.Return = p.returnings()
+		p.Context.FunctionReturns = append(p.Context.FunctionReturns, len(fn.Return))
 
 		var success bool
 		fn.Body, success = p.getBody()
 		if !success {
 			return ast.NewImproper(fn.Token)
 		}
+		p.Context.FunctionReturns = p.Context.FunctionReturns[:len(p.Context.FunctionReturns)-1]
+
 		return fn
 	} else {
 		return p.multiComparison()
@@ -122,7 +125,7 @@ func (p *Parser) concat() ast.Node {
 }
 
 func (p *Parser) unary() ast.Node {
-	if p.match(lexer.Bang, lexer.Minus) {
+	if p.match(lexer.Bang, lexer.Minus, lexer.Hash) {
 		operator := p.peek(-1)
 		right := p.unary()
 		return &ast.UnaryExpr{Operator: operator, Value: right}

@@ -253,15 +253,15 @@ type FunctionExpr struct {
 	Body   []Node
 }
 
-func (afe *FunctionExpr) GetType() NodeType {
+func (fe *FunctionExpr) GetType() NodeType {
 	return FunctionExpression
 }
 
-func (afe *FunctionExpr) GetToken() lexer.Token {
-	return afe.Token
+func (fe *FunctionExpr) GetToken() lexer.Token {
+	return fe.Token
 }
 
-func (afe *FunctionExpr) GetValueType() PrimitiveValueType {
+func (fe *FunctionExpr) GetValueType() PrimitiveValueType {
 	return Invalid
 }
 

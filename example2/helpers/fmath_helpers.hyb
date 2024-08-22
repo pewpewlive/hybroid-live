@@ -1,0 +1,52 @@
+env FmathHelpers as Level 
+
+use Fmath
+
+pub fn Length(fixed x, fixed y) -> fixed
+  => Sqrt(x * x + y * y)
+
+pub fn Normalize(fixed x, fixed y) -> (fixed, fixed) {
+  if x == 0f and y == 0f {
+    return 0f, 0f
+  }
+
+  let len = Length(x, y)
+
+  if len == 0f {
+    return 0f, 0f
+  }
+
+  return x / len, y / len
+}
+
+pub fn Clamp(fixed val, fixed min, fixed max) -> fixed {
+  if val > max {
+    return max
+  }
+  if val < min {
+    return min
+  }
+
+  return val
+}
+
+pub fn Lerp(fixed a, b, t) -> fixed 
+  => a + (b - a) * t
+
+pub fn InvLerp(fixed a, b, v) -> fixed 
+  => (b-a)/(v-a)
+
+pub fn Dot(fixed x, y, nX, nY) -> fixed
+  => x * nX + y * nY
+
+pub fn Reflect(fixed x, y, nX, nY) -> (fixed, fixed) {
+  fixed dot = Dot(x, y, nX, nY) * 2f // move_x = move_x - (wall_normal_x * dot_product_move)
+  //−(2(n · v) n − v)
+  //x = -2f * dot * nX
+  //y = -2f * dot * nY
+  x -= nX * dot
+  y -= nY * dot
+  //x = -(2f * (nX * x) * (nX - x))
+  //y = -(2f * (nY * y) * (nY - y))
+  return x, y 
+}

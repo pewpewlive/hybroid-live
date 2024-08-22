@@ -7,6 +7,7 @@ type TokenType string
 const (
 	// Tokens
 
+	Hash           TokenType = "hash"           // #
 	LeftParen      TokenType = "leftParen"      // (
 	RightParen     TokenType = "rightParen"     // )
 	LeftBrace      TokenType = "leftBrace"      // {

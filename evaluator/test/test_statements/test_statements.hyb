@@ -20,8 +20,10 @@ fn test()
 
 fn test2() -> number 
   if true {
+    return 1
+  }else {
     return 2
-  } 
+  }
 
 fn test3() -> (number, number)
   return 2, 3

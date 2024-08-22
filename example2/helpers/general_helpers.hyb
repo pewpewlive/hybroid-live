@@ -1,0 +1,25 @@
+env PewHelper as Level
+
+use Fmath
+use Table
+use Pewpew
+
+fn AddPolyWall(struct{fixed x, y} center, fixed radius, number sides) {
+    let x = center.x
+    let y = center.y
+    list<struct{fixed x, y}> vertices 
+    let angle = Tau()/ToFixed(sides)
+    let sin, cos = Sincos(angle)
+    repeat sides {
+        Insert(vertices, struct{x = x + radius * cos; y = y + radius * sin})
+        angle = angle + Tau()/ToFixed(sides)
+        sin, cos = Sincos(angle)
+    }
+    for i, _ in vertices {
+        if i == #vertices {
+            AddWall(vertices[i].x, vertices[i].y, vertices[1].x, vertices[1].y)
+        } else {
+            AddWall(vertices[i].x, vertices[i].y, vertices[i+1].x, vertices[i+1].y)
+        }
+    }// [4]["a"] // [4][0][0]["a"]
+}
