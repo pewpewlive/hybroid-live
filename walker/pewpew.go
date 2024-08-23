@@ -214,6 +214,10 @@ var PewpewVariables = map[string]*VariableVal{
 		Name:    "GetAllEntities",
 		Value:   NewFunction().WithReturns(NewWrapperType(NewBasicType(ast.List), &RawEntityType{})),
 	},
+	"GetEntitiesCollidingWithDisk": {
+		Name:    "GetEntitiesCollidingWithDisk",
+		Value:   NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)),
+	},
 	"GetEntitiesInRadius": {
 		Name:    "GetEntitiesInRadius",
 		Value:   NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)).WithReturns(NewWrapperType(NewBasicType(ast.List), &RawEntityType{})),
@@ -419,10 +423,10 @@ var PewpewVariables = map[string]*VariableVal{
 				Value: &FixedVal{SpecificType: ast.Fixed},
 			},
 			{
-				Name:  "PlayerIndex",
+				Name:  "player_index",
 				Value: &NumberVal{},
 			},
-		}, true)),
+		}, false)),
 	},
 	"SetEntityInterpolation": {
 		Name:  "SetEntityInterpolation",
@@ -511,7 +515,11 @@ var PewpewVariables = map[string]*VariableVal{
 	},
 	"ConfigureEntityWallCollision": {
 		Name:  "ConfigureEntityWallCollision",
-		Value: NewFunction(&RawEntityType{}, NewBasicType(ast.Bool), NewFunctionType(Types{&RawEntityType{}, NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)}, Types{})),
+		Value: NewFunction(&RawEntityType{}, NewBasicType(ast.Bool), NewFunctionType(Types{NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)}, Types{})),
+	},
+	"SetEntityWallCollision": {
+		Name: "SetEntityWallCollision",
+		Value: NewFunction(&RawEntityType{}, NewBasicType(ast.Bool)),
 	},
 	"SetEntityPlayerCollision": {
 		Name:  "SetEntityPlayerCollision",

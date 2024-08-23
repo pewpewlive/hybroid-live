@@ -5,8 +5,8 @@ use MathHelper
 use Table
 use Math
 
-const radius = 23
-const height = 15
+const radius = 10
+const height = 28
 const lineAmount = 40
 const frequency = 5
 const frames = 60
@@ -14,23 +14,34 @@ const frames = 60
 const linesTillPeak = lineAmount / frequency
 const step = (linesTillPeak * 10) / frames
 
-Meshes animation
+Meshes animation// 0x0000ff30, 0x00ffffff
 
-repeat frames with i {
-  Mesh mesh
-  repeat lineAmount with j {
-    let angle = (Pi * 2 * j) / lineAmount
-    let currentHeight = radius+ParametricInvLerp(0, linesTillPeak, j+step*i, MathHelper:SineWave)*height
-    //Pewpew:Print("Current: "..currentHeight)
-    Insert(mesh.vertexes, [Cos(angle)*radius, Sin(angle)*radius])
-    Insert(mesh.vertexes, [Cos(angle)*currentHeight, Sin(angle)*currentHeight])
-    Insert(mesh.colors, 0xffffff30)
-    Insert(mesh.colors, 0xffffffff)
+fn WeirdAhhMesh(number color, color2) {
+  repeat frames with i {
+    Mesh mesh
+    repeat lineAmount with j {
+      let angle = (Pi * 2 * j) / lineAmount
+      let currentHeight = radius+ParametricInvLerp(0, linesTillPeak, j+step*i, MathHelper:SineWave)*height
+      //Pewpew:Print("Current: "..currentHeight)
+      Insert(mesh.vertexes, [Cos(angle)*radius, Sin(angle)*radius])
+      Insert(mesh.vertexes, [Cos(angle)*currentHeight, Sin(angle)*currentHeight])
+      Insert(mesh.colors, color)
+      Insert(mesh.colors, color2)
+
+      // Insert(mesh.vertexes, [Sin(angle)*radius, 0, Cos(angle)*radius])
+      // Insert(mesh.vertexes, [Sin(angle)*currentHeight*0.5, 0, Cos(angle)*currentHeight])
+      // Insert(mesh.colors, 0x0000ff30)
+      // Insert(mesh.colors, 0x00ffff99)
+
+      //AddStar(meshes[1], [0,0,0], 3, 0x5500ffff, 0x5500ff55, 10, 0)
+    }
+    repeat to #mesh.vertexes by 2 with i {
+      Insert(mesh.segments, [i-1, i])
+    }
+    Insert(animation, mesh)
   }
-  repeat to #mesh.vertexes by 2 with i {
-    Insert(mesh.segments, [i-1, i])
-  }
-  Insert(animation, mesh)
 }
+WeirdAhhMesh(0x0000ff30, 0x00ffffff)
+WeirdAhhMesh(0xff000030, 0xffff00ff)
 
 pub meshes = animation

@@ -606,7 +606,6 @@ func (p *Parser) Type() *ast.TypeExpr {
 		typ = &ast.TypeExpr{Name: &ast.IdentifierExpr{Name: exprToken}}
 	default:
 		//p.error(exprToken, "Improper type")
-		p.advance()
 		typ = &ast.TypeExpr{Name: expr}
 	}
 	typ.IsVariadic = p.match(lexer.DotDotDot)

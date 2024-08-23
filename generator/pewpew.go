@@ -148,6 +148,7 @@ var PewpewVariables = map[string]string{
 	"RotateEntityMesh": "customizable_entity_add_rotation_to_mesh",
 	"SetEntityVisibilityRadius": "customizable_entity_set_visibility_radius",
 	"ConfigureEntityWallCollision": "customizable_entity_configure_wall_collision",
+	"SetEntityWallCollision":"customizable_entity_configure_wall_collision",
 	"SetEntityPlayerCollision": "customizable_entity_set_player_collision_callback",
 	"SetEntityWeaponCollision": "customizable_entity_set_weapon_collision_callback",
 	"SpawnEntity": "customizable_entity_start_spawning",

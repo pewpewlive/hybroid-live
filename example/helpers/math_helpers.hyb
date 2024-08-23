@@ -2,6 +2,17 @@ env MathHelper as Mesh
 
 use Math
 
+pub fn Clamp(number n, min, max) -> number {
+    if n < min {
+        return min
+    }
+    if n > max {
+        return max
+    }
+
+    return n
+}
+
 pub fn Wrap(number n, min, max) -> number {
     while n > max {
         n -= max

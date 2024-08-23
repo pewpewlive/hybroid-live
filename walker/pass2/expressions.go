@@ -126,6 +126,11 @@ func ConvertNodeToFieldExpr(ident ast.Node, index int, exprType ast.SelfExprType
 	}
 
 	fieldExpr.Property = ident
+	if access, ok := ident.(ast.Accessor); ok {
+		fieldExpr.PropertyIdentifier = access.GetIdentifier()
+	}else {
+		fieldExpr.PropertyIdentifier = &ast.IdentifierExpr{Name: ident.GetToken()}
+	}
 
 	return fieldExpr
 }

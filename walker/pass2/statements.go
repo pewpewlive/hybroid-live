@@ -545,10 +545,14 @@ func AssignmentStmt(w *wkr.Walker, assignStmt *ast.AssignmentStmt, scope *wkr.Sc
 	}
 
 	for i := range assignStmt.Identifiers {
-		variable, ok := GetNodeValue(w, &assignStmt.Identifiers[i], scope).(*wkr.VariableVal)
+		value := GetNodeValue(w, &assignStmt.Identifiers[i], scope)
+		variable, ok := value.(*wkr.VariableVal)
 		if !ok {
-			w.Error(assignStmt.Identifiers[i].GetToken(), "expected variable in assignment")
-			continue
+			variable = &wkr.VariableVal{
+				Name: "",
+				Value: value,
+				IsInit: true,
+			}
 		}
 		if variable.IsConst {
 			variableToken := assignStmt.Identifiers[i].GetToken()

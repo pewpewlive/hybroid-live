@@ -210,7 +210,11 @@ func (p *Parser) TypeWasVar(typ *ast.TypeExpr) *ast.IdentifierExpr {
 func (p *Parser) TypeWithVar() (*ast.TypeExpr, ast.Node) {
 	typ := p.Type()
 
-	node := p.primary(true)
+	if typ.Name != nil && typ.Name.GetToken().Lexeme == "type" {
+		print("")
+	}
+
+	node := p.primary(false)
 
 	if node.GetType() != ast.Identifier {
 		if ident := p.TypeWasVar(typ); ident != nil {

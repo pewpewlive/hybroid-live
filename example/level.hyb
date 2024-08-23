@@ -21,7 +21,9 @@ ConfigurePlayer(0, playerConfig)
 let bg = NewEntity(0f, 0f)
 SetEntityMesh(bg, MapMesh, 0)
 
-spawn SuperInertiac(0f, 0f, Ship)
+repeat 4 {
+  spawn SuperInertiac(Fmath:RandomFixed(0f, 1000f), Fmath:RandomFixed(0f, 1000f), Ship)
+}
 
 AddWall(750f, 250f, 500f, 500f)
 
@@ -29,8 +31,8 @@ tick with time {
   if GetPlayerConfig(0).has_lost == true {
     StopGame()
   }
-  if time % 30 == 0 {
+  if time % 4 == 0 {
     //Print(ToString(playerConfig))
-    //NewAsteroid(WIDTH/2f, HEIGHT/2f)
+    NewAsteroid(WIDTH/2f, HEIGHT/2f)
   }
 }
