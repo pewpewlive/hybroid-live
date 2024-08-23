@@ -220,10 +220,10 @@ func (gen *Generator) forStmt(node ast.ForStmt, scope *GenScope) {
 		pairs = "ipairs"
 	}
 	iterator := gen.GenerateExpr(node.Iterator, scope)
-	if len(node.KeyValuePair) == 1 {
+	if node.KeyValuePair[0] != nil && node.KeyValuePair[1] == nil {
 		key := gen.GenerateExpr(node.KeyValuePair[0], &forScope)
 		forScope.Append(key, ", _ in  ", pairs, " (", iterator, ") do\n")
-	} else if len(node.KeyValuePair) == 2 {
+	} else if node.KeyValuePair[1] != nil {
 		key := gen.GenerateExpr(node.KeyValuePair[0], &forScope)
 		value := gen.GenerateExpr(node.KeyValuePair[1], &forScope)
 		forScope.Append(key, ", ", value, " in ", pairs, "(", iterator, ") do\n")

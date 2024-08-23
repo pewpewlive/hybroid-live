@@ -74,7 +74,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		if len(e.parser.Errors) != 0 {
 			colorstring.Println("[red]Syntax error found:")
 			for _, err := range e.parser.Errors {
-				e.writeSyntaxAlert(string(sourceFile), err)
+				e.writeSyntaxAlert(e.files[i].Path(), string(sourceFile), err)
 				colorstring.Printf("[red]Error: %+v\n", err)
 			}
 			return fmt.Errorf("failed to parse source file")
@@ -172,13 +172,13 @@ func printAlerts[T ast.Alert](filePath string, errs []T) {
 	fmt.Println()
 }
 
-func (e *Evaluator) writeSyntaxAlert(source string, errMsg ast.Alert) {
+func (e *Evaluator) writeSyntaxAlert(filePath, source string, errMsg ast.Alert) {
 	token := errMsg.GetToken()
 
 	sourceLines := strings.Split(source, "\n")
 	line := sourceLines[token.Location.LineStart-1]
 
-	fmt.Printf("line: %v in file \n", token.Location.LineStart)
+	fmt.Printf("line: %v in %s \n", token.Location.LineStart, filePath)
 	fmt.Println(line)
 	if token.Location.ColStart-6 < 0 {
 		fmt.Printf("%s^%s\n", strings.Repeat(" ", token.Location.ColStart-1), strings.Repeat("-", 5))

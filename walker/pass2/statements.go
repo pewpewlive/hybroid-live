@@ -14,6 +14,10 @@ import (
 // 	w.Environment.CustomTypes[node.Alias.Lexeme] = wkr.NewCustomType(node.Alias.Lexeme, TypeExpr(w, node.AliasedType, w.Environment))
 // }
 
+func AliasDeclarationStmt(w *wkr.Walker, node *ast.AliasDeclarationStmt, scope *wkr.Scope) {
+	w.Environment.AliasTypes[node.Alias.Lexeme] = wkr.NewAliasType(node.Alias.Lexeme, TypeExpr(w, node.AliasedType, &w.Environment.Scope, true))
+}
+
 func ClassDeclarationStmt(w *wkr.Walker, node *ast.ClassDeclarationStmt, scope *wkr.Scope) {
 	if node.Constructor == nil {
 		w.Error(node.Name, "structs must be declared with a constructor")
@@ -265,24 +269,6 @@ func FieldDeclarationStmt(w *wkr.Walker, node *ast.FieldDeclarationStmt, contain
 		IsLocal:     true,
 		Token:       node.Token,
 	}
-	// structType := container.GetType()
-	// if len(node.Types) != 0 {
-	// 	for i := range node.Types {
-	// 		explicitType := TypeExpr(w, node.Types[i], w.Environment)
-	// 		if wkr.TypeEquals(explicitType, structType) {
-	// 			w.Error(node.Types[i].GetToken(), "cannot have a field with a value type of its struct")
-	// 			return
-	// 		}
-	// 	}
-	// } else if len(node.Types) != 0 {
-	// 	for i := range node.Values {
-	// 		valType := GetNodeValue(w, &node.Values[i], scope).GetType()
-	// 		if wkr.TypeEquals(valType, structType) {
-	// 			w.Error(node.Types[i].GetToken(), "cannot have a field with a value type of its struct")
-	// 			return
-	// 		}
-	// 	}
-	// }
 
 	variables := VariableDeclarationStmt(w, &varDecl, scope)
 	node.Values = varDecl.Values
@@ -348,6 +334,7 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, s
 		Name:  node.Name.Lexeme,
 		Value: &wkr.FunctionVal{Params: params, Returns: ret, Generics: generics},
 		Token: node.GetToken(),
+		IsLocal: node.IsLocal,
 	}
 	w.DeclareVariable(scope, variable, variable.Token)
 
@@ -469,7 +456,15 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 				val = w.TypeToValue(TypeExpr(w, declaration.Type, scope, false))
 			}
 		} else {
-			val = w.TypeToValue(types[i])
+			if types[i].GetType() == wkr.Wrapper && types[i].(*wkr.WrapperType).WrappedType.PVT() == ast.Object {
+				if declaration.Type == nil  {
+					w.Error(declaration.Identifiers[i], "cannot infer the wrapped type of the map/list")
+				}else {
+					val = w.TypeToValue(TypeExpr(w, declaration.Type, scope, false))
+				}
+			}else {
+				val = w.TypeToValue(types[i])
+			}
 		}
 
 		variable := &wkr.VariableVal{
@@ -647,7 +642,7 @@ func ForloopStmt(w *wkr.Walker, node *ast.ForStmt, scope *wkr.Scope) {
 	wrapper, ok := valType.(*wkr.WrapperType)
 	if !ok {
 		w.Error(node.Iterator.GetToken(), "iterator must be of type map or list")
-	} else if len(node.KeyValuePair) == 2 {
+	} else if node.KeyValuePair[1] != nil {
 		node.OrderedIteration = wrapper.PVT() == ast.List
 		w.DeclareVariable(forScope,
 			&wkr.VariableVal{Name: node.KeyValuePair[1].Name.Lexeme, Value: w.TypeToValue(wrapper.WrappedType)},
@@ -838,6 +833,11 @@ func UseStmt(w *wkr.Walker, node *ast.UseStmt, scope *wkr.Scope) {
 
 	if !found {
 		w.Error(node.GetToken(), fmt.Sprintf("Environment named '%s' doesn't exist", envName))
+		return
+	}
+
+	if walker.Environment.Path == "/dynamic/level.lua" {
+		w.Environment.UsedWalkers = append(w.Environment.UsedWalkers, walker)
 		return
 	}
 

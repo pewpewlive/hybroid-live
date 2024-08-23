@@ -25,6 +25,7 @@ const (
 	RawEntity
 	Enum
 	CstmType
+	Alias
 	Variadic
 	Generic
 	Path
@@ -84,6 +85,34 @@ func (self *PathType) _eq(other Type) bool {
 
 func (self *PathType) ToString() string {
 	return string(self.EnvType)
+}
+
+type AliasType struct {
+	Name           string
+	UnderlyingType Type
+}
+
+func NewAliasType(name string, underlyingType Type) *AliasType {
+	return &AliasType{
+		Name:           name,
+		UnderlyingType: underlyingType,
+	}
+}
+
+func (self *AliasType) PVT() ast.PrimitiveValueType {
+	return self.UnderlyingType.PVT()
+}
+
+func (self *AliasType) GetType() ValueType {
+	return self.UnderlyingType.GetType()
+}
+
+func (self *AliasType) _eq(other Type) bool {
+	return TypeEquals(other, self.UnderlyingType)
+}
+
+func (self *AliasType) ToString() string {
+	return self.Name + "(alias for " + self.UnderlyingType.ToString() + ")"
 }
 
 type CustomType struct {
@@ -570,8 +599,16 @@ func (self *FuncSignature) Equals(other *FuncSignature) bool {
 }
 
 func TypeEquals(t Type, other Type) bool {
+	ttype := t.GetType() 
+	othertype := other.GetType()
 	tpvt := t.PVT()
 	otherpvt := other.PVT()
+
+	/*
+	if (ttype == Fixed && otherpvt == ast.Number) || (othertype == Fixed && tpvt == ast.Number) {
+		return true
+	}
+	*/
 
 	if tpvt == ast.Object {
 		return true
@@ -579,10 +616,10 @@ func TypeEquals(t Type, other Type) bool {
 		return true
 	}
 
-	if t.GetType() == Named && t.PVT() == ast.Entity && other.GetType() == RawEntity {
+	if ttype == Named && tpvt == ast.Entity && othertype == RawEntity {
 		return true
 	}
-	if other.GetType() == Named && other.PVT() == ast.Entity && t.GetType() == RawEntity {
+	if othertype == Named && otherpvt == ast.Entity && ttype == RawEntity {
 		return true
 	}
 
@@ -595,18 +632,20 @@ func TypeEquals(t Type, other Type) bool {
 
 var InvalidType = NewBasicType(ast.Invalid)
 
+var numberListVal = &ListVal{ValueType: NewBasicType(ast.Number)}
+var vertexesVal = &ListVal{ValueType: numberListVal.GetType()}
 var MeshValueType = NewStructType([]*VariableVal{
 	{
 		Name:  "vertexes",
-		Value: &ListVal{ValueType: NewWrapperType(NewBasicType(ast.List), NewBasicType(ast.Number))},
+		Value: vertexesVal,
 	},
 	{
 		Name:  "segments",
-		Value: &ListVal{ValueType: NewWrapperType(NewBasicType(ast.List), NewBasicType(ast.Number))},
+		Value: vertexesVal,
 	},
 	{
 		Name:  "colors",
-		Value: &ListVal{ValueType: NewBasicType(ast.Number)},
+		Value: numberListVal,
 	},
 }, false)
 var MeshesValueType = (&ListVal{ValueType: MeshValueType}).GetType()

@@ -13,6 +13,7 @@ var StringEnv = &Environment{
 	Structs:       make(map[string]*ClassVal),
 	Entities:      make(map[string]*EntityVal),
 	CustomTypes:   make(map[string]*CustomType),
+	AliasTypes:    make(map[string]*AliasType),
 }
 
 var StringVariables = map[string]*VariableVal{

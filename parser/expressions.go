@@ -57,7 +57,7 @@ func (p *Parser) multiComparison() ast.Node {
 
 	if p.isMultiComparison() {
 		operator := p.peek(-1)
-		right := p.comparison()
+		right := p.multiComparison()
 		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: ast.Bool}
 	}
 
@@ -102,7 +102,7 @@ func (p *Parser) term() ast.Node {
 func (p *Parser) factor() ast.Node {
 	expr := p.concat()
 
-	if p.match(lexer.Star, lexer.Slash, lexer.Caret, lexer.Modulo) {
+	if p.match(lexer.Star, lexer.Slash, lexer.Caret, lexer.Modulo, lexer.BackSlash) {
 		operator := p.peek(-1)
 		right := p.factor()
 

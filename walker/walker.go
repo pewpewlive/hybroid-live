@@ -5,7 +5,6 @@ import (
 	"hybroid/ast"
 	"hybroid/helpers"
 	"hybroid/lexer"
-	"hybroid/parser"
 )
 
 var LibraryEnvs = map[Library]*Environment{
@@ -27,6 +26,7 @@ type Environment struct {
 	Structs       map[string]*ClassVal
 	Entities      map[string]*EntityVal
 	CustomTypes   map[string]*CustomType
+	AliasTypes    map[string]*AliasType
 }
 
 func (e *Environment) AddBuiltinVar(name string) {
@@ -58,6 +58,7 @@ func NewEnvironment(path string) *Environment {
 		Structs:     map[string]*ClassVal{},
 		Entities:    map[string]*EntityVal{},
 		CustomTypes: map[string]*CustomType{},
+		AliasTypes:    make(map[string]*AliasType),
 	}
 
 	global.Scope.Environment = global
@@ -361,12 +362,22 @@ func ResolveMatchingType(predefinedType Type, receivedType Type) Type {
 
 func (w *Walker) DetermineValueType(left Type, right Type) Type {
 	if TypeEquals(left, right) {
+		if left.GetType() == Fixed {
+			return left
+		}
 		return right
 	}
-	if parser.IsFx(left.PVT()) && parser.IsFx(right.PVT()) {
-		return left
+	if left.GetType() == Fixed {
+		if right.GetType() == Fixed || right.PVT() == ast.Number {
+			return left
+		}
 	}
-
+	if right.GetType() == Fixed {
+		if left.GetType() == Fixed || left.PVT() == ast.Number {
+			return right
+		}
+	}
+	
 	return InvalidType
 }
 

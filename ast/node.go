@@ -13,6 +13,7 @@ const (
 	EnumDeclarationStatement      NodeType = "enumDeclarationStatement"
 	MacroDeclarationStatement     NodeType = "macroDeclarationStatement"
 	//TypeDeclarationStatement      NodeType = "typeDeclarationStatement"
+	AliasDeclarationStatement     NodeType = "aliasDeclarationStatement"
 
 	EntityDeclarationStatement        NodeType = "entityDeclarationStatement"
 	EntityFunctionDeclarationStatemet NodeType = "entityFunctionDeclarationStatement"

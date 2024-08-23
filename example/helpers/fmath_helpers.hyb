@@ -34,7 +34,7 @@ pub fn Lerp(fixed a, b, t) -> fixed
   => a + (b - a) * t
 
 pub fn InvLerp(fixed a, b, v) -> fixed 
-  => (b-a)/(v-a)
+  => (v-a)/(b-a)
 
 pub fn Dot(fixed x, y, nX, nY) -> fixed
   => x * nX + y * nY

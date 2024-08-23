@@ -1,0 +1,14 @@
+env SPMesh as Mesh
+
+use Table
+use Graphix
+
+let a = 20
+
+pub meshes = [
+  NewMesh()
+]
+// number sides, color, radius, startAngle
+AddFlatPoly(meshes[1], [0,0,0], 8, 0xffffffff, 25, 0)
+//AddStar(meshes[1], [0,0,0], 3, 0xff00ffff, 0xff00ff55, 35, 10, 0)
+//AddStar(meshes[1], [0,0,0], 8, 0xff00ffff, 20, 15, 0)

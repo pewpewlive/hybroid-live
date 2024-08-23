@@ -1,0 +1,115 @@
+env Graphix as Mesh
+
+use Table
+
+pub fn NewMesh() -> Mesh {
+  return struct{
+    Vertexes vertexes;
+    Segments segments;
+    Colors colors;
+  }
+}
+
+// function helper.add_line_to_mesh(mesh, vertexes, colors, close_loop)
+//   local vertex_count = #mesh.vertexes
+//   local color_count = #mesh.colors
+//   local segment_count = #mesh.segments
+//   local number_of_new_segments = #vertexes - 1
+//   local segments = {}
+
+//   for i = 1, #vertexes do
+//     table.insert(mesh.vertexes, vertexes[i])
+//     table.insert(mesh.colors, colors[i])
+//   end
+
+//   table.insert(segments, vertex_count)
+//   for i = 1, number_of_new_segments do
+//     table.insert(segments, vertex_count + i)
+//   end
+//   if close_loop then
+//     table.insert(segments, vertex_count)
+//   end
+//   table.insert(mesh.segments, segments)
+// end
+
+pub fn AddLine(Mesh mesh, Vertexes vertexes, Colors colors, bool closeLoop) {
+  let vertexCount = #mesh.vertexes
+  let colorCount = #mesh.colors
+  let segmentCount = #mesh.segments
+
+  let numberOfNewSegments = #vertexes - 1
+  Segment segment = []
+  
+  repeat with i to #vertexes {
+    Insert(mesh.vertexes, vertexes[i])
+    Insert(mesh.colors, colors[i])
+  }
+
+  Insert(segment, vertexCount)
+  repeat with i to numberOfNewSegments {
+    Insert(segment, vertexCount + i)
+  }
+
+  if closeLoop {
+    Insert(segment, vertexCount)
+  }
+  Insert(mesh.segments, segment)
+}
+
+pub fn AddFlatPoly(Mesh mesh, Vertex center, number sides, color, radius, startAngle) {
+  if sides <= 2
+    return
+
+  Vertexes vertexes 
+  Colors colors
+
+  number z
+  if #center >= 3 {
+    z = center[3]
+  }
+
+  repeat sides with i {
+    let angle = (Math:Pi * 2 * i) / sides + startAngle
+    Insert(vertexes, [center[1] + radius * Math:Cos(angle), center[2] + radius * Math:Sin(angle), z])
+    Insert(colors, color)
+  }
+
+  AddLine(mesh, vertexes, colors, true)
+}
+
+pub fn AddStar(Mesh mesh, Vertex center, number sides, color, insetColor, radius, insetRadius, startAngle) {
+  if sides <= 2
+    return
+
+  sides *= 2
+
+  Vertexes vertexes 
+  Colors colors
+
+  number x = center[1]
+  number y = center[2]
+  number z
+  if #center >= 3 {
+    z = center[3]
+  }
+
+  number currentRadius
+  number currentColor
+
+  repeat sides with i {
+    if i % 2 == 0 {
+      currentRadius = insetRadius
+      currentColor = insetColor
+    }
+    else {
+      currentRadius = radius
+      currentColor = color
+    } 
+
+    let angle = (Math:Pi * 2 * i) / sides + startAngle
+    Insert(vertexes, [x + currentRadius * Math:Cos(angle), y + currentRadius * Math:Sin(angle), z])
+    Insert(colors, currentColor)
+  }
+
+  AddLine(mesh, vertexes, colors, true)
+}

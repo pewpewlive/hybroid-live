@@ -1,0 +1,34 @@
+env ShipEntity as Level
+
+use Pewpew
+use Utils
+
+entity Ship {
+  entity shipID
+  Camera cam = new Camera()
+
+  spawn(fixed x, y) {
+    shipID = NewShip(x, y, 0)
+
+    ConfigureShipWeapon(shipID, struct{
+      frequency, cannon = CannonFreq.Freq10, CannonType.Double
+    })
+
+    let playerConfig = struct{
+      shield, camera_distance = 5, -50f
+    }
+
+    ConfigurePlayer(0, playerConfig)
+  }
+
+  destroy() {
+
+  }
+
+  Update() {
+    cam.shipX, cam.shipY = GetEntityPosition(shipID) 
+    cam.Update()
+  }
+}
+
+Ship SHIP

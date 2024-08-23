@@ -69,6 +69,25 @@ func (self *MacroDeclarationStmt) GetValueType() PrimitiveValueType {
 	return Invalid
 }
 
+type AliasDeclarationStmt struct {
+	IsLocal bool
+	Token lexer.Token
+	Alias lexer.Token
+	AliasedType *TypeExpr
+}
+
+func (vds *AliasDeclarationStmt) GetType() NodeType {
+	return AliasDeclarationStatement
+}
+
+func (vds *AliasDeclarationStmt) GetToken() lexer.Token {
+	return vds.Token
+}
+
+func (vds *AliasDeclarationStmt) GetValueType() PrimitiveValueType {
+	return Invalid
+}
+
 // type TypeDeclarationStmt struct {
 // 	AliasedType *TypeExpr
 // 	Alias lexer.Token

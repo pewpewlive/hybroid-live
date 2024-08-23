@@ -13,6 +13,30 @@ var BuiltinEnv = &Environment{
 	Structs:       make(map[string]*ClassVal),
 	Entities:      make(map[string]*EntityVal),
 	CustomTypes:   make(map[string]*CustomType),
+	AliasTypes:    map[string]*AliasType{
+		"Mesh": NewAliasType("Mesh", MeshValueType),
+		"Meshes": NewAliasType("Meshes", MeshesValueType),
+		"Vertex": NewAliasType("Vertex", numberListVal.GetType()),
+		"Vertexes": NewAliasType("Vertexes", vertexesVal.GetType()),
+		"Segments": NewAliasType("Segments", vertexesVal.GetType()),
+		"Segment": NewAliasType("Segment", numberListVal.GetType()),
+		"Colors": NewAliasType("Segments", numberListVal.GetType()),
+		"Center": NewAliasType("Center", NewStructType([]*VariableVal{
+			{
+				Name: "x",
+				Value: &NumberVal{},
+			},
+			{
+				Name: "y",
+				Value: &NumberVal{},
+			},
+			{
+				Name: "z",
+				Value: &NumberVal{},
+			},
+		}, false)),
+		"Sound": NewAliasType("Sound", SoundValueType),
+	},
 }
 
 var BuiltinVariables = map[string]*VariableVal{

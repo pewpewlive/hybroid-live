@@ -12,6 +12,8 @@ func (gen *Generator) binaryExpr(node ast.BinaryExpr, scope *GenScope) string {
 	switch node.Operator.Type {
 	case lexer.BangEqual:
 		op = "~="
+	case lexer.BackSlash:
+		op = "//"
 	default:
 		op = node.Operator.Lexeme
 	}

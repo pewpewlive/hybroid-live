@@ -1,0 +1,59 @@
+env MathHelper as Mesh
+
+use Math
+
+pub fn Wrap(number n, min, max) -> number {
+    while n > max {
+        n -= max
+    }
+    while n < min {
+        n += max
+    }
+    //Pewpew:Print("Wrapped: "..n)
+    return n
+}
+
+pub fn Lerp(number a, b, t) -> number {
+    return a+(b-a)*t
+}
+
+pub fn InvLerp(number a, b, v) -> number 
+    => Wrap((v-a)/(b-a), 0, 1)
+
+enum ParamType {
+    Squared,
+    Rooted,
+    Linear
+}
+
+alias Parameter = struct{number x, y, ParamType pt}
+alias Parameters = list<Parameter>
+
+pub SineWave = [
+    struct{x, y = 0, 0     ; pt = ParamType.Linear},
+    struct{x, y = 0.25, 0.5; pt = ParamType.Linear},
+    struct{x, y = 0.5, 1   ; pt = ParamType.Rooted},
+    struct{x, y = 0.75, 0.5; pt = ParamType.Rooted},
+    struct{x, y = 1, 0     ; pt = ParamType.Linear}
+]
+
+pub fn ParametricInvLerp(number a, b, v, Parameters parameters) -> number {
+    let linearT = InvLerp(a, b, v)
+
+    for i, v in parameters {
+        if i == 1 
+            continue
+        
+        if linearT <= v.x {
+            linearT = Lerp(parameters[i-1].y, v.y, InvLerp(parameters[i-1].x, v.x, linearT))
+            linearT = match v.pt {
+                ParamType.Squared => linearT*linearT
+                ParamType.Rooted =>  Sqrt(linearT)
+                else => linearT
+            }
+            break
+        }
+    }    
+
+    return linearT
+}

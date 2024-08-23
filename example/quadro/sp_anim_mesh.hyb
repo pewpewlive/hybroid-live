@@ -1,0 +1,36 @@
+env SPAnim as Mesh
+
+use Graphix
+use MathHelper
+use Table
+use Math
+
+const radius = 23
+const height = 15
+const lineAmount = 40
+const frequency = 5
+const frames = 60
+
+const linesTillPeak = lineAmount / frequency
+const step = (linesTillPeak * 10) / frames
+
+Meshes animation
+
+repeat frames with i {
+  Mesh mesh
+  repeat lineAmount with j {
+    let angle = (Pi * 2 * j) / lineAmount
+    let currentHeight = radius+ParametricInvLerp(0, linesTillPeak, j+step*i, MathHelper:SineWave)*height
+    //Pewpew:Print("Current: "..currentHeight)
+    Insert(mesh.vertexes, [Cos(angle)*radius, Sin(angle)*radius])
+    Insert(mesh.vertexes, [Cos(angle)*currentHeight, Sin(angle)*currentHeight])
+    Insert(mesh.colors, 0xffffff30)
+    Insert(mesh.colors, 0xffffffff)
+  }
+  repeat to #mesh.vertexes by 2 with i {
+    Insert(mesh.segments, [i-1, i])
+  }
+  Insert(animation, mesh)
+}
+
+pub meshes = animation

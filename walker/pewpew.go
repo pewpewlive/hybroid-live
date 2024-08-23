@@ -15,6 +15,7 @@ var PewpewEnv = &Environment{
 	Structs:       make(map[string]*ClassVal),
 	Entities:      make(map[string]*EntityVal),
 	CustomTypes:   make(map[string]*CustomType),
+	AliasTypes:    make(map[string]*AliasType),
 }
 
 var PewpewVariables = map[string]*VariableVal{
@@ -461,7 +462,7 @@ var PewpewVariables = map[string]*VariableVal{
 	},
 	"SetEntityMeshAngle": {
 		Name:  "SetEntityMeshAngle",
-		Value: NewFunction(&RawEntityType{}, NewFixedPointType(ast.Fixed)),
+		Value: NewFunction(&RawEntityType{}, NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)),
 	},
 	"ConfigureEntityMusicResponse": {
 		Name: "ConfigureEntityMusicResponse",

@@ -69,6 +69,8 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 		SpawnExpr(w, newNode, scope)
 	case *ast.NewExpr:
 		NewExpr(w, newNode, scope)
+	case *ast.AliasDeclarationStmt:
+		AliasDeclarationStmt(w, newNode, scope)
 	// case *ast.TypeDeclarationStmt:
 	// 	TypeDeclarationStmt(w, newNode, scope)
 	case *ast.Improper:

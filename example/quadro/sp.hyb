@@ -1,0 +1,236 @@
+env SuperInertiacEntity as Level
+
+use Pewpew
+use FmathHelpers
+
+pub entity SuperInertiac {
+  fixed x, y = 0f, 0f
+  fixed velX, velY = 0.01f, 0.01f
+
+  number hitCooldownTimer
+
+  number dashCooldown
+  number dashPraparationTimer
+  bool isPreparingDash
+
+  number health = 5
+
+  entity ship
+  bool canHit
+
+  bool isDead
+  
+  number maxFrames = 60
+  number frames
+
+  fixed ringAmount = 3f
+  list<entity> rings
+
+  entity predictionLine
+
+  spawn(fixed x, fixed y, entity ship) {
+    self.ship = ship
+
+    SetEntityInterpolation(self, true)
+
+    SetEntityPosition(self, x, y)
+
+    SetEntityColor(self, 0x00ffffff)
+    SetEntityMesh(self, SPAnim, 0)
+    SetEntityRadius(self, 25f)
+    
+    predictionLine = NewEntity(x, y)
+    SetEntityMesh(predictionLine, SPPredLineMesh, 1)
+    SetEntityInterpolation(predictionLine, true)
+
+    repeat from ringAmount to 1f by -1f with i {
+      entity ring = NewEntity(x, y)
+      Table:Insert(rings, ring)
+      fixed t = InvLerp(4f, 1f, i)
+      SetEntityMeshScale(ring, t)
+      SetEntityMesh(ring, SPMesh, 0)
+      SetEntityInterpolation(ring, true)
+      SetEntityColor(ring, ColorHelpers:MakeColor(0, Fmath:ToNum(255 * t), 255, 255))
+    }
+  }
+
+  destroy() {
+    isDead = true
+    canHit = false
+    hitCooldownTimer = 999999999
+    
+    PlaySound(SPSound, 1, x, y)
+    ExplodeEntity(self, 10)
+
+    for i, v in rings{
+      ExplodeEntity(rings[i], 10)
+    }
+  }
+
+  WallCollision(fixed normalX, fixed normalY) {
+    if !IsEntityAlive(ship) or isDead 
+      velX, velY *= 0.7f, 0.7f
+    
+    if isDead 
+      return 
+
+    velX, velY = Reflect(velX, velY, normalX, normalY)
+  }
+  
+  PlayerCollision(number playerIndex, entity shipId) {
+    if IsEntityAlive(shipId) and canHit {
+      velX, velY = -velX * 1.5f, -velY * 1.5f
+      DamageShip(shipId, 1)
+    }
+
+    canHit = false
+  }
+
+  WeaponCollision(number playerIndex, WeaponType weaponType) -> bool {
+    if isDead 
+      return false
+
+    if weaponType == WeaponType.Bullet {
+      health -= 1
+      if health > 0 {
+        PlaySound(SPSound, 0, x, y)
+      }
+    }
+    
+    if health <= 0 {
+      
+      destroy self()
+    }
+  
+    return true
+  }
+
+  Update() {
+    x, y = GetEntityPosition(self)
+
+    UpdateCooldown()
+  
+    Move()
+    if dashPraparationTimer <= 0 {
+      isPreparingDash = false
+      dashPraparationTimer = 25
+      Dash()
+    }
+
+    UpdatePredicitonLine()
+    UpdateVisuals()
+  }
+
+  fn Move() {
+    fixed length = 1f
+
+    if !isDead and IsEntityAlive(ship) and !isPreparingDash {
+      fixed sX, sY = GetEntityPosition(ship) 
+      fixed dX, dY = Normalize(sX - x, sY - y)
+
+      velX += dX * 1.7f
+      velY += dY * 1.7f
+      velX *= 0.95f
+      velY *= 0.95f
+    } else if isDead or !IsEntityAlive(ship) or isPreparingDash {
+      velX, velY *= 0.95f, 0.95f
+    }
+
+    x, y += velX, velY
+    SetEntityPosition(self, x, y)
+    SetEntityPosition(predictionLine, x, y)
+    
+
+    for i, _ in rings {
+      fixed r1x, r1y = GetEntityPosition(rings[i])
+      fixed fixedI = Fmath:ToFixed(i)-1f
+      fixed fixedT = Clamp(InvLerp(-1.5f, 3f, fixedI), 0f, 1f)
+      SetEntityPosition(rings[i], Lerp(r1x, x, fixedT), Lerp(r1y, y, fixedT))
+    }
+  }
+
+  fn Dash() {
+    //fixed pDY, pDX = GetPlayerMovementPrediction()
+
+    if isDead or !IsEntityAlive(ship) 
+      return 
+
+    fixed sX, sY = GetEntityPosition(ship)
+    fixed dX, dY = sX - x, sY - y
+    fixed sMovAngle, sMovDist, _, _ = GetPlayerInputs(0) 
+
+    fixed mag = Length(dX, dY)
+    fixed sMovDY, sMovDX = Fmath:Sincos(sMovAngle)
+    fixed predMovX, predMovY = sMovDX * sMovDist * 100f, sMovDY * sMovDist * 100f
+    predMovX, predMovY = -predMovX, -predMovY
+
+    fixed pDX, pDY = Normalize((dX - predMovX - velX), (dY - predMovY - velY)) 
+
+    velX = pDX * 40f
+    velY = pDY * 40f
+
+    SetEntityMesh(predictionLine, SPPredLineMesh, 1)
+    CreateExplosion(x, y, 0x1144aaff, 1f, 20)
+    CreateExplosion(x, y, 0x330099ff, 1f, 20)
+    CreateExplosion(x, y, 0x0044aaff, 1f, 20)
+  }
+
+  fn UpdateCooldown() {
+    if !canHit 
+      hitCooldownTimer -= 1
+    
+    if hitCooldownTimer <= 0 and !canHit {
+      hitCooldownTimer = 10
+      canHit = true
+    }
+
+    if !isPreparingDash
+      dashCooldown -= 1
+
+    if dashCooldown <= 0 and !isPreparingDash {
+      isPreparingDash = true
+      dashCooldown = 90
+    }
+
+    if isPreparingDash {
+      SetEntityMesh(predictionLine, SPPredLineMesh, 0)
+      dashPraparationTimer -= 1
+    }
+  }
+
+  fn UpdateVisuals() {
+    if !isDead {
+      SetEntityFlippingMeshes(self, SPAnim, frames % maxFrames, MathHelper:Wrap(frames % maxFrames + 1, 0, 59))
+      frames += 1 
+    }
+
+    fixed magnitude = Length(velX, velY) * 0.02f
+
+    if magnitude == 0f 
+      return
+
+    RotateEntityMesh(self, magnitude*magnitude + 0.1f, Fmath:RandomFixed(0f, 1f), Fmath:RandomFixed(0f, 1f), Fmath:RandomFixed(0f, 0.5f))
+    for i in rings {
+      RotateEntityMesh(rings[i], magnitude*magnitude + 0.1f, Fmath:RandomFixed(0.5f, 1f), Fmath:RandomFixed(0.5f, 1f), Fmath:RandomFixed(0f, 1f))
+    }
+  }
+
+  fn UpdatePredicitonLine() {
+    //fixed pDY, pDX = GetPlayerMovementPrediction()
+    if isDead or !IsEntityAlive(ship) 
+      return 
+
+    fixed sX, sY = GetEntityPosition(ship)
+    fixed dX, dY = sX - x, sY - y
+    fixed sMovAngle, sMovDist, _, _ = GetPlayerInputs(0) 
+
+    fixed mag = Length(dX, dY)
+    fixed sMovDY, sMovDX = Fmath:Sincos(sMovAngle)
+    fixed predMovX, predMovY = sMovDX * sMovDist * 100f, sMovDY * sMovDist * 100f
+    predMovX, predMovY = -predMovX, -predMovY
+
+    fixed pDX, pDY = Normalize((dX - predMovX - velX), (dY - predMovY - velY)) 
+
+    SetEntityMeshAngle(predictionLine, Fmath:Atan2(pDY, pDX), 0f, 0f, 1f)
+  }
+}

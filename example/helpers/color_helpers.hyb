@@ -1,0 +1,15 @@
+env ColorHelpers as Mesh
+
+// function helper.make_color(r, g, b, a)
+//   local color = r * 256 + g
+//   color = color * 256 + b
+//   color = color * 256 + a
+//   return color
+// end
+
+pub fn MakeColor(number r, g, b, a) -> number {
+    let color = r * 256 + g
+    color = color * 256 + b
+    color = color * 256 + a
+    return color
+}

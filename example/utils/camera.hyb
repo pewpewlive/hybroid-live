@@ -6,16 +6,13 @@ use Pewpew
 // Should be created only once 
 class Camera {
   fixed x, y, z // Offset values
+  fixed shipX, shipY 
 
   // Camera shake
   fixed shakePower = 10f
   fixed shakeDecay = 0.5f
 
-  new() {
-    tick {
-      Update()
-    }
-  }
+  new() {}
 
   fn Update() {
     Shake()
@@ -25,7 +22,8 @@ class Camera {
     x = RandomFixed(-shakePower, shakePower)
 
     ConfigurePlayer(0, struct{
-      camera_x_override = x
+      camera_x_override = shipX + x;
+      camera_y_override = shipY + y
     })
 
     shakePower *= shakeDecay

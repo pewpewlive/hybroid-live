@@ -22,7 +22,7 @@ class Test {
     list<list<struct{Test xd, fn() -> Test s}>> tests = [[struct{ xd = new Test(); s = fn() -> Test { 
         return new Test()
     } }]]
-    fn() -> Test bizhhh = fn() -> Test { 
+    bizhhh = fn() -> Test { 
         return new Test()
     }
 
@@ -41,7 +41,7 @@ class Test {
     fn method3() -> Test {
         return self        
     }
-    fn method2() -> list<list<map<Test>>> {
+    fn method2() -> list<list<struct{Test xd, fn() -> Test s}>> {
         return tests      
     }
     fn method4() -> fn() -> Test {
@@ -51,11 +51,11 @@ class Test {
     }
 }
 
-let p = new Test()// variable: classVal
-Test asdasdads = p.test // variable: variable: classVal
+let p = new Test()l
+Test asdasdads = p.test
 
-Test assddxxx = p // variable: variable: classVal
-EnumTest enumsss = asdasdads.c // 
+Test assddxxx = p 
+EnumTest enumsss = asdasdads.c 
 EnumTest enumss = p.test.c
 
 let asdsss = p.test.tests[0][0]

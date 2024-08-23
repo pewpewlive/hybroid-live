@@ -51,6 +51,8 @@ func MatchExpr(w *wkr.Walker, node *ast.MatchExpr, scope *wkr.Scope) wkr.Value {
 	matchScope.Tag = &wkr.MatchExprTag{YieldValues: make(wkr.Types, 0)}
 	mpt := wkr.NewMultiPathTag(casesLength)
 
+	GetNodeValue(w, &node.MatchStmt.ExprToMatch, scope)
+
 	for i := range node.MatchStmt.Cases {
 		caseScope := wkr.NewScope(matchScope, mpt)
 		GetNodeValue(w, &node.MatchStmt.Cases[i].Expression, matchScope)
@@ -69,7 +71,7 @@ func BinaryExpr(w *wkr.Walker, node *ast.BinaryExpr, scope *wkr.Scope) wkr.Value
 	leftType, rightType := left.GetType(), right.GetType()
 	op := node.Operator
 	switch op.Type {
-	case lexer.Plus, lexer.Minus, lexer.Caret, lexer.Star, lexer.Slash, lexer.Modulo:
+	case lexer.Plus, lexer.Minus, lexer.Caret, lexer.Star, lexer.Slash, lexer.Modulo, lexer.BackSlash:
 		w.ValidateArithmeticOperands(leftType, rightType, node)
 		typ := w.DetermineValueType(leftType, rightType)
 
@@ -77,7 +79,8 @@ func BinaryExpr(w *wkr.Walker, node *ast.BinaryExpr, scope *wkr.Scope) wkr.Value
 			w.Error(node.GetToken(), fmt.Sprintf("invalid binary expression (left: %s, right: %s)", leftType.ToString(), rightType.ToString()))
 			return &wkr.Invalid{}
 		}
-		return left
+
+		return w.TypeToValue(typ)
 	case lexer.Concat:
 		if !wkr.TypeEquals(leftType, wkr.NewBasicType(ast.String)) && !wkr.TypeEquals(rightType, wkr.NewBasicType(ast.String)) {
 			w.Error(node.GetToken(), fmt.Sprintf("invalid concatenation: left is %s and right is %s", leftType.ToString(), rightType.ToString()))
@@ -246,7 +249,7 @@ func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr) (wkr.Value, ast.Node)
 
 	if node.Accessed.GetType() == ast.Identifier {
 		name := node.Accessed.(*ast.IdentifierExpr).Name.Lexeme
-		path := envName + "::" + name
+		path := envName + ":" + name
 		walker, found := w.Walkers[path]
 		if found {
 			return wkr.NewPathVal(walker.Environment.Path, walker.Environment.Type), &ast.LiteralExpr{
@@ -274,9 +277,16 @@ func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr) (wkr.Value, ast.Node)
 		return &wkr.Invalid{}, nil
 	}
 
+
 	if walker.Environment.Name == w.Environment.Name {
 		w.Error(node.GetToken(), "cannot access self")
 		return &wkr.Invalid{}, nil
+	}else if walker.Environment.Path == "/dynamic/level.lua" {
+		if !walker.Walked {
+			Action(walker, w.Walkers)
+		}
+		value := GetNodeValue(w, &node.Accessed, &walker.Environment.Scope)
+		return value, nil
 	}
 
 	envStmt := w.GetEnvStmt()
@@ -454,13 +464,13 @@ func MemberExpr(w *wkr.Walker, node *ast.MemberExpr, scope *wkr.Scope) wkr.Value
 		return &wkr.Invalid{}
 	}
 
-	if node.Property.GetValueType() != ast.Ident {
-	} else if valType.PVT() == ast.Map {
-		if node.GetValueType() != ast.String {
+	propValPVT := GetNodeValue(w, &node.PropertyIdentifier, scope).GetType().PVT()
+	if valType.PVT() == ast.Map {
+		if propValPVT != ast.String {
 			w.Error(node.Property.GetToken(), "expected string inside brackets for map accessing")
 		}
 	} else if valType.PVT() == ast.List {
-		if node.GetValueType() != ast.Number {
+		if propValPVT != ast.Number {
 			w.Error(node.Property.GetToken(), "expected number inside brackets for list accessing")
 		}
 	}
@@ -712,7 +722,13 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 				return wkr.InvalidType
 			}
 
-		} else {
+		} else if walker.Environment.Path == "/dynamic/level.lua" {
+			if !walker.Walked {
+				Action(walker, w.Walkers)
+			}
+			env = walker.Environment
+		}else {
+			
 			for _, v := range walker.GetEnvStmt().Requirements {
 				if v == w.Environment.Path {
 					w.Error(typee.GetToken(), fmt.Sprintf("import cycle detected: this environment and '%s' are using each other", walker.Environment.Name))
@@ -803,6 +819,11 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 			//w.CheckAccessibility(scope, customType.IsLocal, typee)
 			break
 		}
+		if aliasType, found := scope.Environment.AliasTypes[typeName]; found {
+			typ = aliasType.UnderlyingType
+
+			break
+		}
 		if val, _ := w.GetVariable(&scope.Environment.Scope, typeName); val != nil {
 			if val.GetType().PVT() == ast.Enum {
 				typ = val.GetType()
@@ -844,27 +865,49 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 			}
 		}
 
-		if len(types) > 1 {
-			errorMsg := "conflicting types between: "
-			for k, v := range types {
-				errorMsg += k + ":" + v.ToString() + ", "
+		// if len(types) > 1 {
+		// 	errorMsg := "conflicting types between: "
+		// 	for k, v := range types {
+		// 		errorMsg += k + ":" + v.ToString() + ", "
+		// 	}
+		// 	errorMsg = errorMsg[:len(errorMsg)-1]
+		// 	w.Error(typee.GetToken(), errorMsg)
+		// } else if len(types) == 1 {
+		// 	for k, v := range types {
+		// 		typee.Name = &ast.EnvAccessExpr{
+		// 			PathExpr: &ast.EnvPathExpr{
+		// 				Path: lexer.Token{
+		// 					Lexeme:   k,
+		// 					Location: typee.Name.GetToken().Location,
+		// 				},
+		// 			},
+		// 			Accessed: &ast.IdentifierExpr{
+		// 				Name: typee.Name.GetToken(),
+		// 			},
+		// 		}
+		// 		return v
+		// 	}
+		// }
+		for k, v := range types {
+			typee.Name = &ast.EnvAccessExpr{
+				PathExpr: &ast.EnvPathExpr{
+					Path: lexer.Token{
+						Lexeme:   k,
+						Location: typee.Name.GetToken().Location,
+					},
+				},
+				Accessed: &ast.IdentifierExpr{
+					Name: typee.Name.GetToken(),
+				},
 			}
-			errorMsg = errorMsg[:len(errorMsg)-1]
-			w.Error(typee.GetToken(), errorMsg)
-		} else if len(types) == 1 {
-			for k, v := range types {
-				typee.Name = &ast.EnvAccessExpr{
-					PathExpr: &ast.EnvPathExpr{
-						Path: lexer.Token{
-							Lexeme:   k,
-							Location: typee.Name.GetToken().Location,
-						},
-					},
-					Accessed: &ast.IdentifierExpr{
-						Name: typee.Name.GetToken(),
-					},
-				}
-				return v
+			return v
+		}
+
+		if len(scope.Environment.UsedLibraries) != 0 {
+			if alias, found := wkr.BuiltinEnv.AliasTypes[typeName]; found {
+				typ = alias.UnderlyingType
+	
+				break
 			}
 		}
 

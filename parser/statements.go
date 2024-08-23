@@ -18,16 +18,21 @@ func (p *Parser) statement() ast.Node {
 			}
 		}
 	}()
-	token := p.peek().Type
-	next := p.peek(1).Type
-
+	
 	varDecl := p.variableDeclarationStmt()
 	if varDecl != nil {
 		return varDecl
 	}
 
+	token := p.peek().Type
+	next := p.peek(1).Type
+	
 	if token == lexer.Pub {
 		switch next {
+		case lexer.Alias:
+			p.advance()
+			p.advance()
+			return p.AliasDeclarationStmt(false)
 		case lexer.Fn:
 			p.advance()
 			p.advance()
@@ -59,15 +64,15 @@ func (p *Parser) statement() ast.Node {
 	// case lexer.Type:
 	// 	p.advance()
 	// 	return p.TypeDeclarationStmt(true)
+	case lexer.Alias:
+		p.advance()
+		return p.AliasDeclarationStmt(true)
 	case lexer.Macro:
 		p.advance()
 		return p.macroDeclarationStmt()
 	case lexer.Env:
 		p.advance()
 		return p.envStmt()
-	//case lexer.Let, lexer.Pub, lexer.Const:
-	//p.advance()
-	//return p.variableDeclarationStmt()
 	case lexer.Add:
 		p.advance()
 		return p.addToStmt()
@@ -161,6 +166,29 @@ func (p *Parser) statement() ast.Node {
 // 		Token: typeToken,
 // 	}
 // }
+
+func (p *Parser) AliasDeclarationStmt(isLocal bool) ast.Node {
+	typeToken := p.peek(-1)
+	name, ok := p.consume("expected identifier in alias declaration", lexer.Identifier)
+	if !ok {
+		return ast.NewImproper(name)
+	}
+	if token, ok := p.consume("expected '=' after identifier in alias declaration", lexer.Equal); !ok {
+		return ast.NewImproper(token)
+	}
+
+	if !p.PeekIsType() {
+		return ast.NewImproper(p.peek())
+	}
+	aliased := p.Type()
+
+	return &ast.AliasDeclarationStmt{
+		Alias: name,
+		AliasedType: aliased,
+		Token: typeToken,
+		IsLocal: isLocal,
+	}
+}
 
 func (p *Parser) macroDeclarationStmt() ast.Node {
 	name, ok := p.consume("expected identifier after 'macro' keyword", lexer.Identifier)
@@ -585,14 +613,10 @@ func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) *ast.IfS
 
 func (p *Parser) assignmentStmt() ast.Node {
 	expr := p.expression()
-
 	idents := []ast.Node{expr}
 
 	for p.match(lexer.Comma) { // memberExpr or IdentifierExpr
 		expr := p.expression()
-		if expr.GetType() != ast.Identifier && expr.GetType() != ast.EnvironmentAccessExpression {
-			p.error(expr.GetToken(), "expected identifier or environment access expression")
-		}
 		idents = append(idents, expr)
 	}
 	values := []ast.Node{}
