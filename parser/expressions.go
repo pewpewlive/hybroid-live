@@ -130,7 +130,41 @@ func (p *Parser) unary() ast.Node {
 		right := p.unary()
 		return &ast.UnaryExpr{Operator: operator, Value: right}
 	}
-	return p.accessorExprDepth2(nil)
+	return p.entity()
+}
+
+func (p *Parser) entity() ast.Node {
+	variable := p.accessorExprDepth2(nil)
+	var expr ast.Node
+	current := p.getCurrent()
+
+	var conv *lexer.Token
+	if p.match(lexer.Equal) {
+		token := variable.GetToken()
+		conv = &token
+
+		expr = p.accessorExprDepth2(nil)
+	}else {
+		expr = variable
+	}
+	if p.match(lexer.Is, lexer.Isnt) {
+		if conv != nil && variable.GetType() != ast.Identifier {
+			p.error(variable.GetToken(), "expected identifier in entity expression")
+		}
+		op := p.peek(-1)
+		typ := p.Type()
+		return &ast.EntityExpr{
+			Expr: expr,
+			Type: typ,
+			ConvertedVarName: conv,
+			Token: expr.GetToken(),
+			Operator: op,
+		}
+	}
+
+	p.disadvance(p.getCurrent() - current)
+
+	return variable
 }
 
 func (p *Parser) call(caller ast.Node) ast.Node {

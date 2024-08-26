@@ -39,8 +39,8 @@ const (
 	EnvironmentPathExpression   NodeType = "environmentPathExpression"
 	EnvironmentAccessExpression NodeType = "environmentAccessExpression"
 	EnvironmentTypeExpression   NodeType = "environmentTypeExpression"
-	FunctionExpression NodeType = "functionExpression"
-	StructExpression   NodeType = "structExpression"
+	FunctionExpression          NodeType = "functionExpression"
+	StructExpression            NodeType = "structExpression"
 	LiteralExpression           NodeType = "literalExpression"
 	UnaryExpression             NodeType = "unaryExpression"
 	BinaryExpression            NodeType = "binaryExpression"
@@ -58,6 +58,7 @@ const (
 	SelfExpression              NodeType = "selfExpression"
 	NewExpession                NodeType = "newExpession"
 	SpawnExpression             NodeType = "spawnExpression"
+	EntityExpression            NodeType = "entityExpression"
 
 	PewpewExpression      NodeType = "pewpewExpression"
 	FmathExpression       NodeType = "fmathExpression"

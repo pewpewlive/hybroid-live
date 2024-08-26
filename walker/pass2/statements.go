@@ -482,16 +482,31 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 	return declaredVariables
 }
 
+func DeclareConversion(w *wkr.Walker, scope *wkr.Scope) {
+	if len(w.Context.Conversions) == 1 {
+		conv := w.Context.Conversions[0]
+		w.DeclareVariable(scope, &wkr.VariableVal{
+			Name: conv.Name.Lexeme,
+			Value: conv.Entity,
+			IsInit: true,
+		}, conv.Name)
+	}	
+	w.Context.Conversions = make([]wkr.EntityConversion, 0)
+}
+
 func IfStmt(w *wkr.Walker, node *ast.IfStmt, scope *wkr.Scope) {
 	length := len(node.Elseifs) + 2
 	mpt := wkr.NewMultiPathTag(length, scope.Attributes...)
 	multiPathScope := wkr.NewScope(scope, mpt)
 	ifScope := wkr.NewScope(multiPathScope, &wkr.UntaggedTag{})
 
+	w.Context.Conversions = make([]wkr.EntityConversion, 0)
+
 	boolExpr := GetNodeValue(w, &node.BoolExpr, scope)
 	if boolExpr.GetType().PVT() != ast.Bool {
 		w.Error(node.BoolExpr.GetToken(), "if condition is not a comparison")
 	}
+	DeclareConversion(w, ifScope)
 	WalkBody(w, &node.Body, mpt, ifScope)
 
 	for i := range node.Elseifs {
@@ -500,6 +515,7 @@ func IfStmt(w *wkr.Walker, node *ast.IfStmt, scope *wkr.Scope) {
 			w.Error(node.Elseifs[i].BoolExpr.GetToken(), "if condition is not a comparison")
 		}
 		ifScope := wkr.NewScope(multiPathScope, &wkr.UntaggedTag{})
+		DeclareConversion(w, ifScope)
 		WalkBody(w, &node.Elseifs[i].Body, mpt, ifScope)
 	}
 

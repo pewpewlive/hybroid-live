@@ -66,6 +66,47 @@ func MatchExpr(w *wkr.Walker, node *ast.MatchExpr, scope *wkr.Scope) wkr.Value {
 	return yieldValues
 }
 
+func EntityExpr(w *wkr.Walker, node *ast.EntityExpr, scope *wkr.Scope) wkr.Value {
+	val := GetNodeValue(w, &node.Expr, scope)
+	typ := TypeExpr(w, node.Type, scope, false)
+
+	if ident, ok := node.Type.Name.(*ast.IdentifierExpr); ok {
+		switch ident.Name.Lexeme {
+		case "Asteroid", "YellowBaf", "Inertiac", "Mothership",
+		"MothershipBullet", "RollingCube", "RollingSphere",
+		"Ufo", "Wary", "Crowder", "Ship", "Bomb", "BlueBaf",
+		"RedBaf", "WaryMissile", "UfoBullet", "PlayerBullet",
+		"BombExplosion", "PlayerExplosion", "Bonus", "FloatingMessage",
+		"Pointonium", "BonusImplosion":
+			typ = &wkr.RawEntityType{}
+			node.OfficialEntityType = true
+		}
+	}
+
+	if typ.PVT() != ast.Entity {
+		w.Error(node.Token, "type given in entity expression is not an entity type")
+	}else if !node.OfficialEntityType {
+		varName := lexer.Token{}
+		if node.ConvertedVarName != nil {
+			varName = *node.ConvertedVarName
+			w.Context.Conversions = append(w.Context.Conversions, wkr.NewEntityConversion(varName, w.TypeToValue(typ).(*wkr.EntityVal)))
+		}else if len(w.Context.Conversions) != 0 {
+			w.Context.Conversions = append(w.Context.Conversions, wkr.NewEntityConversion(varName, w.TypeToValue(typ).(*wkr.EntityVal)))
+		}
+		entityVal := w.TypeToValue(typ).(*wkr.EntityVal)
+		node.EntityName = entityVal.Type.Name
+		node.EnvName = entityVal.Type.EnvName
+	}else if node.ConvertedVarName != nil {
+		w.Error(*node.ConvertedVarName, "can't convert an entity to an official entity")
+	}
+
+	if val.GetType().GetType() != wkr.RawEntity {
+		w.Error(node.Token, "value given in entity expression is not an entity")
+	}
+
+	return &wkr.BoolVal{}
+}
+
 func BinaryExpr(w *wkr.Walker, node *ast.BinaryExpr, scope *wkr.Scope) wkr.Value {
 	left, right := GetNodeValue(w, &node.Left, scope), GetNodeValue(w, &node.Right, scope)
 	leftType, rightType := left.GetType(), right.GetType()
@@ -88,6 +129,14 @@ func BinaryExpr(w *wkr.Walker, node *ast.BinaryExpr, scope *wkr.Scope) wkr.Value
 		}
 		return &wkr.StringVal{}
 	default:
+		if op.Type == lexer.Or {
+			if node.Left.GetType() == ast.EntityExpression && node.Left.(*ast.EntityExpr).ConvertedVarName != nil {
+				w.Error(node.Left.GetToken(), "conversion of entity is not possible in a binary expression with 'or' operator")
+			}else if node.Right.GetType() == ast.EntityExpression && node.Right.(*ast.EntityExpr).ConvertedVarName != nil {
+				w.Error(node.Right.GetToken(), "conversion of entity is not possible in a binary expression with 'or' operator")
+			}
+		}
+	
 		if !wkr.TypeEquals(leftType, rightType) {
 			w.Error(node.GetToken(), fmt.Sprintf("invalid comparison: types are not the same (left: %s, right: %s)", leftType.ToString(), rightType.ToString()))
 			return &wkr.Invalid{}
@@ -387,8 +436,10 @@ func CallExpr(w *wkr.Walker, val wkr.Value, node *ast.CallExpr, scope *wkr.Scope
 
 	node.ReturnAmount = len(fun.Returns)
 
-	if len(fun.Returns) == 1 {
+	if node.ReturnAmount == 1 {
 		return w.TypeToValue(fun.Returns[0]), finalNode
+	}else if node.ReturnAmount == 0 {
+		return &wkr.Invalid{}, finalNode
 	}
 	return &fun.Returns, finalNode
 }

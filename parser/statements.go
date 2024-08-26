@@ -615,6 +615,10 @@ func (p *Parser) assignmentStmt() ast.Node {
 	expr := p.expression()
 	idents := []ast.Node{expr}
 
+	if expr.GetToken().Lexeme == "predMovX" {
+		print("breakpoint")
+	}
+
 	for p.match(lexer.Comma) { // memberExpr or IdentifierExpr
 		expr := p.expression()
 		idents = append(idents, expr)

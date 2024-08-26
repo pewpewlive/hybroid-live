@@ -145,12 +145,16 @@ func (gs *GenScope) ReplaceAll() {
 }
 
 func NewGenScope(scope *GenScope) GenScope {
-	return GenScope{
+	new := GenScope{
 		Parent:          scope,
 		Src:             StringBuilder{},
 		Replacements:    []Replacement{},
 		ReplaceSettings: map[ReplaceType]string{},
 	}
+
+	new.Src = StringBuilder{}
+
+	return new
 }
 
 func (gs *GenScope) Write(src StringBuilder) {
@@ -181,6 +185,7 @@ type Generator struct {
 	envName string
 	envType ast.EnvType
 	Scope   GenScope
+	Future  string
 	Errors  []ast.Error
 	libraryVars *map[string]string
 }
@@ -250,6 +255,8 @@ func (gen *Generator) GenerateWithBuiltins(program []ast.Node) {
 
 func (gen *Generator) GenerateBody(program []ast.Node, scope *GenScope) {
 	TabsCount += 1
+	scope.Src.AppendTabbed(gen.Future)
+	gen.Future = ""
 	for _, node := range program {
 		gen.GenerateStmt(node, scope)
 		scope.Src.WriteString("\n")
@@ -347,6 +354,8 @@ func (gen *Generator) GenerateExpr(node ast.Node, scope *GenScope) string {
 	switch newNode := node.(type) {
 	case *ast.LiteralExpr:
 		return gen.literalExpr(*newNode)
+	case *ast.EntityExpr:
+		return gen.entityExpr(*newNode, scope)
 	case *ast.BinaryExpr:
 		return gen.binaryExpr(*newNode, scope)
 	case *ast.IdentifierExpr:

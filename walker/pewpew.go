@@ -216,7 +216,7 @@ var PewpewVariables = map[string]*VariableVal{
 	},
 	"GetEntitiesCollidingWithDisk": {
 		Name:    "GetEntitiesCollidingWithDisk",
-		Value:   NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)),
+		Value:   NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)).WithReturns(NewWrapperType(NewBasicType(ast.List), &RawEntityType{})),
 	},
 	"GetEntitiesInRadius": {
 		Name:    "GetEntitiesInRadius",

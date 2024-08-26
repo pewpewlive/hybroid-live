@@ -6,6 +6,34 @@ import (
 	"hybroid/lexer"
 )
 
+func (gen *Generator) entityExpr(node ast.EntityExpr, scope *GenScope) string {
+	src := StringBuilder{}
+	var op string
+	switch node.Operator.Type {
+	case lexer.Is:
+		op = "~="
+	case lexer.Isnt:
+		op = "=="
+	default:
+		op = node.Operator.Lexeme
+	}
+	if node.OfficialEntityType {
+		src.Append("pewpew.get_entity_type(", gen.GenerateExpr(node.Expr, scope), ") ", op, " ", "pewpew.EntityType.", PewpewEnums["EntityType"][node.Type.GetToken().Lexeme])
+		return src.String()
+	}
+	expr := gen.GenerateExpr(node.Expr, scope)
+	
+	src.Append(envMap[node.EnvName], hyEntity, node.EntityName, "[", expr, "] ", op, " nil")
+
+	if node.ConvertedVarName != nil {
+		preSrc := StringBuilder{}
+
+		preSrc.Append("local ", node.ConvertedVarName.Lexeme, " = ", expr, "\n")
+		gen.Future = preSrc.String()
+	}
+	return src.String()
+}
+
 func (gen *Generator) binaryExpr(node ast.BinaryExpr, scope *GenScope) string {
 	left, right := gen.GenerateExpr(node.Left, scope), gen.GenerateExpr(node.Right, scope)
 	var op string

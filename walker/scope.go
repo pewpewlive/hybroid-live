@@ -3,7 +3,20 @@ package walker
 import (
 	"hybroid/ast"
 	"hybroid/helpers"
+	"hybroid/lexer"
 )
+
+type EntityConversion struct {
+	Name lexer.Token
+	Entity *EntityVal
+}
+
+func NewEntityConversion(name lexer.Token, val *EntityVal) EntityConversion {
+	return EntityConversion{
+		Name: name,
+		Entity: val,
+	}
+}
 
 type Context struct {
 	Node           ast.Node
@@ -11,6 +24,7 @@ type Context struct {
 	Value2         Value
 	PewpewVarFound bool
 	PewpewVarName  string
+	Conversions    []EntityConversion
 }
 
 func (c *Context) Clear() {

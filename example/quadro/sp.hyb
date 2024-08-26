@@ -5,7 +5,9 @@ use FmathHelpers
 
 pub entity SuperInertiac {
   fixed x, y = 0f, 0f
-  fixed velX, velY = 0.01f, 0.01f
+  fixed velX, velY = 0f, 0f
+  fixed acceleration = 2f
+  fixed dashSpeed = 2f
 
   number hitCooldownTimer
 
@@ -41,6 +43,7 @@ pub entity SuperInertiac {
   spawn(fixed x, fixed y, entity ship) {
     self.ship = ship
 
+    //EntityStartSpawning(self, 60)
     SetEntityInterpolation(self, true)
 
     SetEntityPosition(self, x, y)
@@ -158,8 +161,12 @@ pub entity SuperInertiac {
         if v == self {
           continue
         }
-        EntityReactToWeapon(v, struct{
-          type = WeaponType.Bullet;
+        if converted = v is SuperInertiac {
+          destroy converted()
+          continue
+        }
+        EntityReactToWeapon(v, struct{ // if quadro is Quadro
+          type = WeaponType.Bullet; // if Pewpew:GetCustomizableEntityType(quadro) == Quadro { } 
           x = velX;
           y = velY;
           player_index = -1
@@ -185,10 +192,9 @@ pub entity SuperInertiac {
 
       velX += dX * 1.7f
       velY += dY * 1.7f
-      velX *= 0.95f
-      velY *= 0.95f
-    } else if isDead or !IsEntityAlive(ship) or isPreparingDash {
       velX, velY *= 0.95f, 0.95f
+    } else if isDead or !IsEntityAlive(ship) or isPreparingDash {
+      velX, velY *= 0.80f, 0.80f
     }
 
     x, y += velX, velY

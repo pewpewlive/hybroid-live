@@ -154,6 +154,29 @@ func (te *TypeExpr) GetValueType() PrimitiveValueType {
 	return Invalid
 }
 
+type EntityExpr struct {
+	Expr Node
+	Type *TypeExpr
+	ConvertedVarName *lexer.Token
+	OfficialEntityType bool
+	EntityName string
+	EnvName string
+	Operator lexer.Token
+	Token lexer.Token
+}
+
+func (ge *EntityExpr) GetType() NodeType {
+	return GroupingExpression
+}
+
+func (ge *EntityExpr) GetToken() lexer.Token {
+	return ge.Token
+}
+
+func (ge *EntityExpr) GetValueType() PrimitiveValueType {
+	return Invalid
+}
+
 type GroupExpr struct {
 	Expr      Node
 	ValueType PrimitiveValueType

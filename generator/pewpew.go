@@ -102,6 +102,7 @@ var PewpewVariables = map[string]string{
 	"GetEntitiesInRadius": "get_entities_colliding_with_disk", 
 	"GetEntityCount": "get_entity_count",
 	"GetEntityType": "get_entity_type",
+	"GetEntitiesCollidingWithDisk": "get_entities_colliding_with_disk",
 	"CreateExplosion": "create_explosion",
 	"NewAsteroid": "new_asteroid",
 	"NewAsteroidWithSize": "new_asteroid_with_size", 

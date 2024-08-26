@@ -122,6 +122,8 @@ func GetNodeValue(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 		val = SelfExpr(w, newNode, scope)
 	case *ast.MatchExpr:
 		val = MatchExpr(w, newNode, scope)
+	case *ast.EntityExpr:
+		val = EntityExpr(w, newNode, scope)
 	case *ast.EnvAccessExpr:
 		var newVersion ast.Node
 		val, newVersion = EnvAccessExpr(w, newNode)

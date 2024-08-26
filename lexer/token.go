@@ -60,6 +60,8 @@ const (
 
 	// Keywords
 
+	Is       TokenType = "is"
+	Isnt     TokenType = "isnt"
 	Alias    TokenType = "alias"
 	Add      TokenType = "add"
 	And      TokenType = "and"
@@ -106,6 +108,8 @@ const (
 )
 
 var keywords = map[string]TokenType{
+	"is":       Is,
+	"isnt":     Isnt,
 	"alias":    Alias,
 	"add":      Add,
 	"and":      And,
