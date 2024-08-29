@@ -1,0 +1,9 @@
+env IZMesh as Mesh
+
+use Graphix
+
+pub meshes = [
+    NewMesh()
+]
+// Mesh mesh, Vertex center, number sides, color, insetColor, radius, insetRadius, startAngle
+AddStar(meshes[1], [0, 0], 15, 0x0030cc70, 0x0000a525, 50, 40, 0)

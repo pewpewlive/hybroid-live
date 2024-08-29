@@ -660,6 +660,10 @@ func (p *Parser) returnStmt() ast.Node {
 		Args: []ast.Node{},
 	}
 
+	if len(p.Context.FunctionReturns) == 0 {
+		return returnStmt
+	}
+
 	if p.Context.FunctionReturns[len(p.Context.FunctionReturns)-1] != 0 {
 		args, _ := p.returnArgs()
 		returnStmt.Args = args
@@ -889,27 +893,26 @@ func (p *Parser) forStmt() ast.Node {
 		Token: p.peek(-1),
 	}
 
-	if p.peek().Type == lexer.Identifier &&
-		p.peek(1).Type == lexer.Comma {
+	if p.peek().Type == lexer.Identifier && p.peek(1).Type == lexer.Comma {
 		identExpr := p.expression()
 		if identExpr.GetType() != ast.Identifier {
 			p.error(identExpr.GetToken(), "expected identifier expression after keyword 'for'")
 		} else {
-			forStmt.KeyValuePair[0] = identExpr.(*ast.IdentifierExpr)
+			forStmt.First = identExpr.(*ast.IdentifierExpr)
 		}
 		p.match(lexer.Comma)
 		identExpr = p.expression()
 		if identExpr.GetType() != ast.Identifier {
 			p.error(identExpr.GetToken(), "expected identifier expression after a comma")
 		} else {
-			forStmt.KeyValuePair[1] = identExpr.(*ast.IdentifierExpr)
+			forStmt.Second = identExpr.(*ast.IdentifierExpr)
 		}
 	} else {
 		identExpr := p.expression()
 		if identExpr.GetType() != ast.Identifier {
 			p.error(identExpr.GetToken(), "expected identifier expression after keyword 'for'")
 		} else {
-			forStmt.KeyValuePair[0] = identExpr.(*ast.IdentifierExpr)
+			forStmt.First = identExpr.(*ast.IdentifierExpr)
 		}
 	}
 

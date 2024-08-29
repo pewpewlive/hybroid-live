@@ -7,12 +7,12 @@ use Math
 
 const radius = 10
 const height = 28
-const lineAmount = 40
+const lineAmount = 30
 const frequency = 5
 const frames = 60
 
 const linesTillPeak = lineAmount / frequency
-const step = (linesTillPeak * 10) / frames
+const step = (linesTillPeak * 4) / frames
 
 Meshes animation// 0x0000ff30, 0x00ffffff
 

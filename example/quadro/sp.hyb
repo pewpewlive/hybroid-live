@@ -2,6 +2,7 @@ env SuperInertiacEntity as Level
 
 use Pewpew
 use FmathHelpers
+use ShipEntity
 
 pub entity SuperInertiac {
   fixed x, y = 0f, 0f
@@ -17,7 +18,6 @@ pub entity SuperInertiac {
 
   number health = 70
 
-  entity ship
   bool canHit
 
   bool isDead
@@ -40,10 +40,8 @@ pub entity SuperInertiac {
 
   fixed radius = 25f
 
-  spawn(fixed x, fixed y, entity ship) {
-    self.ship = ship
-
-    //EntityStartSpawning(self, 60)
+  spawn(fixed x, fixed y) {
+    SpawnEntity(self, 60)
     SetEntityInterpolation(self, true)
 
     SetEntityPosition(self, x, y)
@@ -96,7 +94,7 @@ pub entity SuperInertiac {
     if isDead 
       return 
     
-    if !IsEntityAlive(ship) 
+    if !IsEntityAlive(SHIP.id) 
       velX, velY *= 0.7f, 0.7f
 
     velX, velY = Reflect(velX, velY, normalX, normalY)
@@ -117,6 +115,14 @@ pub entity SuperInertiac {
     canHit = false
   }
 
+  fn Bounce(entity e, fixed intensity) {
+    if IsEntityAlive(e) {
+      fixed sX, sY = GetEntityPosition(e) 
+      fixed dX, dY = Normalize(x - sX, y - sY)
+      velX, velY += dX * intensity, dY * intensity
+    }
+  }
+
   WeaponCollision(number playerIndex, WeaponType weaponType) -> bool {
     if isDead 
       return false
@@ -124,11 +130,7 @@ pub entity SuperInertiac {
     if weaponType == WeaponType.Bullet {
       health -= 1
       if health > 0 {
-        if IsEntityAlive(ship) {
-          fixed sX, sY = GetEntityPosition(ship) 
-          fixed dX, dY = Normalize(x - sX, y - sY)
-          velX, velY += dX * 1.1f, dY * 1.1f
-        }
+        Bounce(SHIP.id, 1.1f)
 
         hit = true
         PlaySound(SPSound, 1+health, x, y)
@@ -161,8 +163,15 @@ pub entity SuperInertiac {
         if v == self {
           continue
         }
-        if converted = v is SuperInertiac {
-          destroy converted()
+        if converted = v is SuperInertiac and IsEntityAlive(v) {
+          if converted.isDead {
+            continue
+          }
+          if Length(converted.velX, converted.velY) > Length(velX, velY) {
+            Bounce(converted, 1.2f)
+            destroy converted()
+            continue
+          }
           continue
         }
         EntityReactToWeapon(v, struct{ // if quadro is Quadro
@@ -186,14 +195,14 @@ pub entity SuperInertiac {
   fn Move() {
     fixed length = 1f
 
-    if !isDead and IsEntityAlive(ship) and !isPreparingDash {
-      fixed sX, sY = GetEntityPosition(ship) 
+    if !isDead and IsEntityAlive(SHIP.id) and !isPreparingDash {
+      fixed sX, sY = GetEntityPosition(SHIP.id) 
       fixed dX, dY = Normalize(sX - x, sY - y)
 
       velX += dX * 1.7f
       velY += dY * 1.7f
       velX, velY *= 0.95f, 0.95f
-    } else if isDead or !IsEntityAlive(ship) or isPreparingDash {
+    } else if isDead or !IsEntityAlive(SHIP.id) or isPreparingDash {
       velX, velY *= 0.80f, 0.80f
     }
 
@@ -219,7 +228,7 @@ pub entity SuperInertiac {
   fn Dash() {
     //fixed pDY, pDX = GetPlayerMovementPrediction()
 
-    if isDead or !IsEntityAlive(ship) 
+    if isDead or !IsEntityAlive(SHIP.id) 
       return 
 
     velX = pdX * 40f
@@ -267,10 +276,10 @@ pub entity SuperInertiac {
 
     fixed magnitude = Length(velX, velY) * 0.02f
 
-    if magnitude == 0f 
-      return
+    // if magnitude == 0f 
+    //   return
 
-    RotateEntityMesh(self, magnitude*magnitude + 0.1f, Fmath:RandomFixed(0f, 1f), Fmath:RandomFixed(0f, 1f), Fmath:RandomFixed(0f, 0.5f))
+    RotateEntityMesh(self, magnitude*magnitude + 0.1f, Fmath:RandomFixed(0f, 1f), Fmath:RandomFixed(0f, 1f), 0f)
     
     if !isDead {
       frames[1] += 1 
@@ -280,7 +289,7 @@ pub entity SuperInertiac {
     SetEntityFlippingMeshes(self, SPAnim, frames[1] % maxFrames + frameOffset, MathHelper:Wrap(frames[1] % maxFrames + 1 + frameOffset, frameOffset, 59+frameOffset))
     for i in rings {
       SetEntityFlippingMeshes(rings[i], SPAnim, frames[i+1] % maxFrames + frameOffset, MathHelper:Wrap(frames[i+1] % maxFrames + 1 + frameOffset, frameOffset, 59+frameOffset))
-      RotateEntityMesh(rings[i], magnitude*magnitude + 0.1f, axises[i].x, axises[i].y, axises[i].z)
+      RotateEntityMesh(rings[i], magnitude*magnitude + 0.1f, axises[i].x, axises[i].y, 0f)
       if !isDead {
         frames[i+1] += 1
         frames[1] = MathHelper:Wrap(frames[1], 0, 59)
@@ -290,10 +299,10 @@ pub entity SuperInertiac {
 
   fn UpdatePredicitonLine() {
     //fixed pDY, pDX = GetPlayerMovementPrediction()
-    if isDead or !IsEntityAlive(ship) 
+    if isDead or !IsEntityAlive(SHIP.id) 
       return 
 
-    fixed sX, sY = GetEntityPosition(ship)
+    fixed sX, sY = GetEntityPosition(SHIP.id)
     fixed dX, dY = sX - x, sY - y
     fixed sMovAngle, sMovDist, _, _ = GetPlayerInputs(0) 
 

@@ -167,7 +167,7 @@ func ConvertNodeToFieldExpr(ident ast.Node, index int, exprType ast.SelfExprType
 		Index: index,
 		Identifier: &ast.SelfExpr{
 			Token: ident.GetToken(),
-			Type:  ast.SelfStruct,
+			Type:  exprType,
 		},
 		ExprType:   exprType,
 		EnvName:    envName,
@@ -281,9 +281,11 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 
 	switch sc.Environment.Name {
 	case "Pewpew":
-		w.Context.PewpewVarFound = true
-		w.Context.PewpewVarName = ident.Name.Lexeme
 		ident.Name.Lexeme = generator.PewpewVariables[ident.Name.Lexeme]
+		if variable.GetType().GetType() != wkr.Fn {
+			w.Context.PewpewVarFound = true
+			w.Context.PewpewVarName = ident.Name.Lexeme
+		}
 	case "Fmath":
 		ident.Name.Lexeme = generator.FmathFunctions[ident.Name.Lexeme]
 	case "Math":
@@ -314,8 +316,14 @@ func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr) (wkr.Value, ast.Node)
 
 	switch envName {
 	case "Pewpew":
+		if w.Environment.Type != ast.Level {
+			w.Error(node.GetToken(), "cannot use the pewpew library in a non-level environment")
+		}
 		return GetNodeValueFromExternalEnv(w, node.Accessed, wkr.PewpewEnv), nil
 	case "Fmath":
+		if w.Environment.Type != ast.Level {
+			w.Error(node.GetToken(), "cannot use the fmath library in a non-level environment")
+		}
 		return GetNodeValueFromExternalEnv(w, node.Accessed, wkr.FmathEnv), nil
 	case "Math":
 		return GetNodeValueFromExternalEnv(w, node.Accessed, wkr.MathEnv), nil
@@ -462,6 +470,9 @@ func GetGenerics(w *wkr.Walker, node ast.Node, genericArgs []*ast.TypeExpr, expe
 
 // Writes to context
 func FieldExpr(w *wkr.Walker, node *ast.FieldExpr, scope *wkr.Scope) wkr.Value {
+	if node.Identifier.GetToken().Lexeme == "converted" {
+		print("brekpoint")
+	}
 	var scopeable wkr.ScopeableValue
 	var val wkr.Value
 	if w.Context.Node.GetType() != ast.NA {

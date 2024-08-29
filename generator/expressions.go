@@ -28,7 +28,7 @@ func (gen *Generator) entityExpr(node ast.EntityExpr, scope *GenScope) string {
 	if node.ConvertedVarName != nil {
 		preSrc := StringBuilder{}
 
-		preSrc.Append("local ", node.ConvertedVarName.Lexeme, " = ", expr, "\n")
+		preSrc.Append("local ", gen.WriteVar(node.ConvertedVarName.Lexeme), " = ", expr, "\n")
 		gen.Future = preSrc.String()
 	}
 	return src.String()
@@ -164,7 +164,7 @@ func (gen *Generator) fieldExpr(node ast.FieldExpr, scope *GenScope) string {
 	src := StringBuilder{}
 
 	if node.ExprType == ast.SelfEntity {
-		src.Append(envMap[node.EnvName], hyEntity, node.EntityName, "[id]")
+		src.Append(envMap[node.EnvName], hyEntity, node.EntityName, "[", gen.GenerateExpr(node.Identifier, scope), "]")
 	}else {
 		src.WriteString(gen.GenerateExpr(node.Identifier, scope))
 	}
@@ -230,7 +230,7 @@ func (gen *Generator) structExpr(node ast.StructExpr, scope *GenScope) string {
 		src.WriteString("\n")
 	}
 	TabsCount -= 1
-	src.AppendTabbed("\n}")
+	src.AppendTabbed("}")
 
 	return src.String()
 }

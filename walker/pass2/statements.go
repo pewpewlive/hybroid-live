@@ -289,6 +289,10 @@ func MethodDeclarationStmt(w *wkr.Walker, node *ast.MethodDeclarationStmt, conta
 
 		fnScope := wkr.NewScope(scope, fnTag, wkr.ReturnAllowing)
 
+		for i, param := range node.Params {
+			w.DeclareVariable(fnScope, &wkr.VariableVal{Name: param.Name.Lexeme, Value: w.TypeToValue(fn.Params[i]), IsLocal: true, IsInit: true}, param.Name)
+		}
+
 		WalkBody(w, &node.Body, fnTag, fnScope)
 	} else {
 		funcExpr := ast.FunctionDeclarationStmt{
@@ -306,6 +310,9 @@ func MethodDeclarationStmt(w *wkr.Walker, node *ast.MethodDeclarationStmt, conta
 }
 
 func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, scope *wkr.Scope, procType wkr.ProcedureType) *wkr.VariableVal {
+	if node.Name.Lexeme == "Bounce" {
+		print("breakpoint")
+	}
 	generics := make([]*wkr.GenericType, 0)
 
 	for _, param := range node.GenericParams {
@@ -325,9 +332,7 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, s
 	params := make([]wkr.Type, 0)
 	for i, param := range node.Params {
 		params = append(params, TypeExpr(w, param.Type, fnScope, true))
-		if procType == wkr.Function {
-			w.DeclareVariable(fnScope, &wkr.VariableVal{Name: param.Name.Lexeme, Value: w.TypeToValue(params[i]), IsLocal: true, IsInit: true}, param.Name)
-		}
+		w.DeclareVariable(fnScope, &wkr.VariableVal{Name: param.Name.Lexeme, Value: w.TypeToValue(params[i]), IsLocal: true, IsInit: true}, param.Name)
 	}
 
 	variable := &wkr.VariableVal{
@@ -653,20 +658,19 @@ func ForloopStmt(w *wkr.Walker, node *ast.ForStmt, scope *wkr.Scope) {
 	lt := wkr.NewMultiPathTag(1, forScope.Attributes...)
 	forScope.Tag = lt
 
-	if len(node.KeyValuePair) != 0 {
-		w.DeclareVariable(forScope,
-			&wkr.VariableVal{Name: node.KeyValuePair[0].Name.Lexeme, Value: &wkr.NumberVal{}},
-			node.KeyValuePair[0].Name)
-	}
+	w.DeclareVariable(forScope,
+		&wkr.VariableVal{Name: node.First.Name.Lexeme, Value: &wkr.NumberVal{}},
+		node.First.Name)
+
 	valType := GetNodeValue(w, &node.Iterator, scope).GetType()
 	wrapper, ok := valType.(*wkr.WrapperType)
 	if !ok {
 		w.Error(node.Iterator.GetToken(), "iterator must be of type map or list")
-	} else if node.KeyValuePair[1] != nil {
+	} else if node.Second != nil {
 		node.OrderedIteration = wrapper.PVT() == ast.List
 		w.DeclareVariable(forScope,
-			&wkr.VariableVal{Name: node.KeyValuePair[1].Name.Lexeme, Value: w.TypeToValue(wrapper.WrappedType)},
-			node.KeyValuePair[1].Name)
+			&wkr.VariableVal{Name: node.Second.Name.Lexeme, Value: w.TypeToValue(wrapper.WrappedType)},
+			node.Second.Name)
 	}
 
 	WalkBody(w, &node.Body, lt, forScope)
@@ -831,9 +835,15 @@ func UseStmt(w *wkr.Walker, node *ast.UseStmt, scope *wkr.Scope) {
 
 	switch path {
 	case "Pewpew":
+		if w.Environment.Type != ast.Level {
+			w.Error(node.GetToken(), "cannot use the pewpew library in a non-level environment")
+		}
 		w.Environment.UsedLibraries[wkr.Pewpew] = true
 		return
 	case "Fmath":
+		if w.Environment.Type != ast.Level {
+			w.Error(node.GetToken(), "cannot use the fmath library in a non-level environment")
+		}
 		w.Environment.UsedLibraries[wkr.Fmath] = true
 		return
 	case "Math":

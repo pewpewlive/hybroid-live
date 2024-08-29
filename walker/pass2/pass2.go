@@ -147,6 +147,7 @@ func GetNodeValue(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 		}
 		if w.Context.PewpewVarFound {
 			field.Index = -1
+			w.Context.PewpewVarFound = false
 			return val
 		}
 		if container, ok := w.Context.Value.(wkr.FieldContainer); ok {

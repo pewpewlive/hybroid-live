@@ -220,15 +220,12 @@ func (gen *Generator) forStmt(node ast.ForStmt, scope *GenScope) {
 		pairs = "ipairs"
 	}
 	iterator := gen.GenerateExpr(node.Iterator, scope)
-	if node.KeyValuePair[0] != nil && node.KeyValuePair[1] == nil {
-		key := gen.GenerateExpr(node.KeyValuePair[0], &forScope)
+	key := gen.GenerateExpr(node.First, &forScope)
+	if node.Second == nil {
 		forScope.Append(key, ", _ in  ", pairs, " (", iterator, ") do\n")
-	} else if node.KeyValuePair[1] != nil {
-		key := gen.GenerateExpr(node.KeyValuePair[0], &forScope)
-		value := gen.GenerateExpr(node.KeyValuePair[1], &forScope)
+	}else {
+		value := gen.GenerateExpr(node.Second, &forScope)
 		forScope.Append(key, ", ", value, " in ", pairs, "(", iterator, ") do\n")
-	} else {
-		forScope.Append("_, _ in ", pairs, "(", iterator, ") do\n")
 	}
 	gotoLabel := GenerateVar(hyGTL)
 	forScope.ReplaceSettings = map[ReplaceType]string{

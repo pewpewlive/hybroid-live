@@ -402,7 +402,8 @@ func (fs *WhileStmt) GetValueType() PrimitiveValueType {
 
 type ForStmt struct {
 	Iterator         Node
-	KeyValuePair     [2]*IdentifierExpr
+	First            *IdentifierExpr
+	Second           *IdentifierExpr
 	OrderedIteration bool
 	Body             []Node
 	Token            lexer.Token

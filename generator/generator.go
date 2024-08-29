@@ -255,8 +255,10 @@ func (gen *Generator) GenerateWithBuiltins(program []ast.Node) {
 
 func (gen *Generator) GenerateBody(program []ast.Node, scope *GenScope) {
 	TabsCount += 1
-	scope.Src.AppendTabbed(gen.Future)
-	gen.Future = ""
+	if gen.Future != "" {
+		scope.Src.AppendTabbed(gen.Future)
+		gen.Future = ""
+	}
 	for _, node := range program {
 		gen.GenerateStmt(node, scope)
 		scope.Src.WriteString("\n")
