@@ -43,7 +43,7 @@ var PewpewEnums = map[string]map[string]string {
 		"DoubleSwipe": "DOUBLE_SWIPE",
 		"Hemisphere": "HEMISPHERE",
 	},
-	"CannonFreq": {
+	"CannonFrequency": {
 		"Freq30": "FREQ_30",
 		"Freq15": "FREQ_15",
 		"Freq10": "FREQ_10",

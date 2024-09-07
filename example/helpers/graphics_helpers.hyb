@@ -10,27 +10,24 @@ pub fn NewMesh() -> Mesh {
   }
 }
 
-// function helper.add_line_to_mesh(mesh, vertexes, colors, close_loop)
-//   local vertex_count = #mesh.vertexes
-//   local color_count = #mesh.colors
-//   local segment_count = #mesh.segments
-//   local number_of_new_segments = #vertexes - 1
-//   local segments = {}
+pub fn Scale(Mesh mesh, number modifier) {
+  for _, v in mesh.vertexes {
+    for i, _ in v {
+      v[i] *= modifier
+    }
+  }
+}
 
-//   for i = 1, #vertexes do
-//     table.insert(mesh.vertexes, vertexes[i])
-//     table.insert(mesh.colors, colors[i])
-//   end
-
-//   table.insert(segments, vertex_count)
-//   for i = 1, number_of_new_segments do
-//     table.insert(segments, vertex_count + i)
-//   end
-//   if close_loop then
-//     table.insert(segments, vertex_count)
-//   end
-//   table.insert(mesh.segments, segments)
-// end
+pub fn ScaleAxis(Mesh mesh, Vertex mods) {
+  for _, v in mesh.vertexes {
+    for i, _ in v {
+      if #mods < i {
+        continue
+      }
+      v[i] *= mods[i]
+    }
+  }
+}
 
 pub fn AddLine(Mesh mesh, Vertexes vertexes, Colors colors, bool closeLoop) {
   let vertexCount = #mesh.vertexes

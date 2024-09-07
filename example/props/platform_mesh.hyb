@@ -1,0 +1,12 @@
+env PlatformMesh as Mesh
+
+use Graphix
+
+const SIZE = 100
+
+pub meshes = [
+  NewMesh()
+]
+
+AddFlatPoly(meshes[1], [0,0], 6, 0xffffffff, SIZE, 0)
+ScaleAxis(meshes[1], [1.5, 1])

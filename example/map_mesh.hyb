@@ -1,11 +1,11 @@
 env MapMesh as Mesh
 
-const WIDTH, HEIGHT = 1000, 1000
+use Graphix
+
+const SIZE = 1400
 
 pub meshes = [
-  struct {
-    vertexes = [[0,0], [WIDTH,0], [WIDTH,HEIGHT], [0,HEIGHT]];
-    segments = [[0,1,2,3,0]];
-    colors = [0xffffffff, 0xffff00ff, 0xff00ffff, 0xff0000ff];
-  }
+  NewMesh()
 ]
+// Mesh mesh, Vertex center, number sides, color, radius, startAngle
+AddFlatPoly(meshes[1], [SIZE/2, SIZE/2], 6, 0xffffffff, SIZE/2, 0)

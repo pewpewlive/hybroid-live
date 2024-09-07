@@ -4,7 +4,7 @@ use Fmath
 use Table
 use Pewpew
 
-fn AddPolyWall(struct{fixed x, y} center, fixed radius, number sides) {
+pub fn AddPolyWall(struct{fixed x, y} center, fixed radius, number sides) {
     let x = center.x
     let y = center.y
     list<struct{fixed x, y}> vertices 

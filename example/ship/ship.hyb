@@ -17,7 +17,8 @@ pub entity Ship {
     ConfigurePlayer(0, playerConfig)
 
     ConfigureShipWeapon(id, struct{
-      frequency, cannon = CannonFreq.Freq10, CannonType.Double;
+      cannon = CannonType.Double;
+      frequency = CannonFreq.Freq10;
     })
   }
 

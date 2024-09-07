@@ -1,0 +1,11 @@
+env ConveyorMesh as Mesh
+
+use Graphix
+
+const SIZE = 450
+
+pub meshes = [
+  NewMesh()
+]
+// Mesh mesh, Vertex center, number sides, color, radius, startAngle
+AddFlatPoly(meshes[1], [MapMesh:SIZE/2, MapMesh:SIZE/2], 6, 0xffffff90, SIZE, 0)

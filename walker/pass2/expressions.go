@@ -909,13 +909,25 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 				}
 			}
 		}
+		
+		if len(scope.Environment.UsedLibraries) != 0 {
+			if alias, found := wkr.BuiltinEnv.AliasTypes[typeName]; found {
+				typ = alias.UnderlyingType
+				break
+			}
+		}
+
+		if scope.Environment.Name != w.Environment.Name {
+			typ = wkr.InvalidType
+			break
+		}
 
 		types := map[string]wkr.Type{}
 		for i := range scope.Environment.UsedWalkers {
 			if !scope.Environment.UsedWalkers[i].Walked {
 				Action(scope.Environment.UsedWalkers[i], w.Walkers)
 			}
-			typ := TypeExpr(scope.Environment.UsedWalkers[i], typee, &scope.Environment.UsedWalkers[i].Environment.Scope, false)
+			typ := TypeExpr(w, typee, &scope.Environment.UsedWalkers[i].Environment.Scope, false)
 			if typ.PVT() != ast.Invalid {
 				types[scope.Environment.UsedWalkers[i].Environment.Name] = typ
 			}
@@ -968,14 +980,6 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 				},
 			}
 			return v
-		}
-
-		if len(scope.Environment.UsedLibraries) != 0 {
-			if alias, found := wkr.BuiltinEnv.AliasTypes[typeName]; found {
-				typ = alias.UnderlyingType
-	
-				break
-			}
 		}
 
 		typ = wkr.InvalidType

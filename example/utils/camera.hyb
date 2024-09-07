@@ -4,7 +4,7 @@ use Fmath
 use Pewpew
 
 // Should be created only once 
-class Camera {
+pub class Camera {
   fixed x, y, z // Offset values
   fixed shipX, shipY 
 
