@@ -13,6 +13,8 @@ func (p *Parser) statement() ast.Node {
 			if _, ok := errMsg.(ast.Error); ok {
 				//p. = true
 				p.synchronize()
+			} else if _, ok := errMsg.(ParserError); ok {
+				p.synchronize()
 			} else {
 				panic(errMsg)
 			}
@@ -257,6 +259,10 @@ func (p *Parser) macroDeclarationStmt() ast.Node {
 func (p *Parser) envStmt() ast.Node {
 	stmt := ast.EnvironmentStmt{}
 
+	if p.Context.EnvStatement != nil {
+		p.error(p.peek(), "cannot redeclare environment")
+	}
+
 	expr := p.EnvPathExpr()
 	if expr.GetType() != ast.EnvironmentPathExpression {
 		p.error(expr.GetToken(), "expected environment path expression")
@@ -276,6 +282,7 @@ func (p *Parser) envStmt() ast.Node {
 	envPathExpr, _ := expr.(*ast.EnvPathExpr)
 	stmt.EnvType = envTypeExpr
 	stmt.Env = envPathExpr
+	p.Context.EnvStatement = &stmt
 
 	return &stmt
 }

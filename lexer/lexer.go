@@ -33,7 +33,7 @@ func (l *Lexer) AssignSource(src []byte) {
 
 func (l *Lexer) handleString() {
 	hasMultilineStr := false
-	quoteStartCol := l.columnCurrent + 1
+	stringStartCol := l.columnCurrent
 
 	for l.peek() != '"' && !l.isAtEnd() {
 		if l.peek() == '\\' && l.peekNext() == '"' {
@@ -50,10 +50,10 @@ func (l *Lexer) handleString() {
 	}
 
 	if l.isAtEnd() {
-		l.Alert(&alerts.UnterminatedString{}, tokens.Token{}, newLocation(l.lineStart, quoteStartCol, l.lineStart, quoteStartCol+1))
+		l.Alert(&alerts.UnterminatedString{}, tokens.Token{}, newLocation(l.lineStart, stringStartCol, l.lineStart, stringStartCol))
 		return
 	} else if hasMultilineStr {
-		l.Alert(&alerts.MultilineString{}, tokens.Token{}, newLocation(l.lineStart, quoteStartCol, l.lineCurrent, l.columnCurrent))
+		l.Alert(&alerts.MultilineString{}, tokens.Token{}, newLocation(l.lineStart, stringStartCol, l.lineCurrent, l.columnCurrent))
 	}
 
 	l.advance()
@@ -99,7 +99,7 @@ func (l *Lexer) handleNumber() {
 
 	var postfix string
 	postfixStart := l.current
-	postfixColumn := l.columnCurrent
+	postfixColumn := l.columnCurrent + 1
 
 	for isAlphabetical(l.peek()) {
 		l.advance()

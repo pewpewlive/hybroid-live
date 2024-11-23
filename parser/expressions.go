@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"hybroid/alerts"
 	"hybroid/ast"
 	"hybroid/tokens"
 	"strings"
@@ -34,7 +35,8 @@ func (p *Parser) fn() ast.Node {
 			fn.Params = p.parameters(tokens.LeftParen, tokens.RightParen)
 		} else {
 			fn.Params = make([]ast.Param, 0)
-			p.error(p.peek(), "expected opening parenthesis for parameters")
+			p.Alert(&alerts.ExpectedParenthesis{}, p.peek(), p.peek().Location, "(")
+			//p.error(p.peek(), "expected opening parenthesis for parameters")
 		}
 		fn.Return = p.returnings()
 		p.Context.FunctionReturns = append(p.Context.FunctionReturns, len(fn.Return))
@@ -352,8 +354,9 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 	if p.match(tokens.Number, tokens.Fixed, tokens.FixedPoint, tokens.Degree, tokens.Radian, tokens.String) {
 		literal := p.peek(-1)
 		var valueType ast.PrimitiveValueType
-		env, ok := p.program[0].(*ast.EnvironmentStmt)
-		if ok {
+		env := p.Context.EnvStatement
+
+		if env != nil {
 			envType := env.EnvType.Type
 			allowFX := envType == ast.Level
 			switch literal.Type {

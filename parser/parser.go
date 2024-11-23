@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"hybroid/alerts"
 	"hybroid/ast"
 	"hybroid/tokens"
@@ -17,6 +18,7 @@ type Parser struct {
 }
 
 type ParserContext struct {
+	EnvStatement    *ast.EnvironmentStmt
 	FunctionReturns []int
 }
 
@@ -26,6 +28,7 @@ func NewParser() Parser {
 		current: 0,
 		tokens:  make([]tokens.Token, 0),
 		Context: ParserContext{
+			EnvStatement:    nil,
 			FunctionReturns: make([]int, 0),
 		},
 	}
@@ -35,11 +38,33 @@ func (p *Parser) AssignTokens(tokens []tokens.Token) {
 	p.tokens = tokens
 }
 
-// Appends an error to the ParserErrors
+type ParserError struct{}
+
 func (p *Parser) error(token tokens.Token, msg string) {
 	errMsg := ast.Error{Token: token, Message: msg}
+	fmt.Printf("%s\n", errMsg.Message)
 	p.Errors = append(p.Errors, errMsg)
-	panic(errMsg.Message)
+	panic(errMsg)
+}
+
+func (p *Parser) Alert(alertType alerts.Alert, args ...any) {
+	p.AlertC(alertType, args...)
+
+	if alertType.GetAlertType() == alerts.Error {
+		panic(ParserError{})
+	}
+}
+
+func (p *Parser) InstntiatedAlert(alert alerts.Alert) {
+	p.Alerts = append(p.Alerts, alert)
+
+	if alert.GetAlertType() == alerts.Error {
+		panic(ParserError{})
+	}
+}
+
+func (p *Parser) NoPanicAlert(alert alerts.Alert, args ...any) {
+	p.AlertC(alert, args...)
 }
 
 func (p *Parser) synchronize() {
@@ -146,10 +171,10 @@ func (p *Parser) consume(message string, types ...tokens.TokenType) (tokens.Toke
 	return token, false // error
 }
 
-func (p *Parser) consumeNew(message alerts.Alert, types ...tokens.TokenType) (tokens.Token, bool) {
+func (p *Parser) consumeNew(alert alerts.Alert, types ...tokens.TokenType) (tokens.Token, bool) {
 	if p.isAtEnd() {
 		token := p.peek()
-		//p.error(token, message)
+		p.InstntiatedAlert(alert)
 		return token, false // error
 	}
 	for _, tokenType := range types {
@@ -158,18 +183,38 @@ func (p *Parser) consumeNew(message alerts.Alert, types ...tokens.TokenType) (to
 		}
 	}
 	token := p.advance()
-	//p.error(token, message)
+	p.InstntiatedAlert(alert)
 	return token, false // error
 }
 
 func (p *Parser) ParseTokens() []ast.Node {
-	statement := p.statement()
-	p.program = append(p.program, statement)
-	if statement.GetType() != ast.EnvironmentStatement {
-		p.error(statement.GetToken(), "expected environment as the first statement in a file")
+	defer func() {
+		if errMsg := recover(); errMsg != nil {
+			if _, ok := errMsg.(ast.Error); ok {
+			} else if _, ok := errMsg.(ParserError); ok {
+			} else {
+				panic(errMsg)
+			}
+		}
+	}()
+
+	if p.peek().Type != tokens.Env {
+		p.NoPanicAlert(&alerts.ExpectedEnvironment{}, p.peek(), p.peek().Location)
+		// unsynchronizable error.
+		// if there is no env you cannot know which numbers are allowed
+		return []ast.Node{}
 	}
+	envStmt := p.statement()
+	if envStmt.GetType() == ast.NA {
+		return []ast.Node{}
+	}
+	p.program = append(p.program, envStmt)
+
 	for !p.isAtEnd() {
 		statement := p.statement()
+		if statement == nil {
+			continue
+		}
 		if statement.GetType() != ast.NA {
 			p.program = append(p.program, statement)
 		}

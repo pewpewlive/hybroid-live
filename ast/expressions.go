@@ -66,15 +66,15 @@ type MacroCallExpr struct {
 	Caller *CallExpr
 }
 
-func (self *MacroCallExpr) GetType() NodeType {
+func (mce *MacroCallExpr) GetType() NodeType {
 	return MacroCallExpression
 }
 
-func (self *MacroCallExpr) GetToken() tokens.Token {
-	return self.Caller.GetToken()
+func (mce *MacroCallExpr) GetToken() tokens.Token {
+	return mce.Caller.GetToken()
 }
 
-func (self *MacroCallExpr) GetValueType() PrimitiveValueType {
+func (mce *MacroCallExpr) GetValueType() PrimitiveValueType {
 	return Invalid
 }
 

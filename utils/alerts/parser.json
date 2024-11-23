@@ -7,5 +7,20 @@
     },
     "message": "Expected '%s'",
     "message_format": ["Symbol"]
+  },
+  {
+    "name": "ExpectedEnvironment",
+    "type": "Error",
+    "message": "Expected environment statement",
+    "note": "environment statement has to be the first statement in any hybroid file. example: env HellloWorld as Level"
+  },
+  {
+    "name": "ExpectedIdentifier",
+    "type": "Error",
+    "params": {
+      "Symbol": "string"
+    },
+    "message": "Expected '%s'",
+    "message_format": ["Symbol"]
   }
 ]

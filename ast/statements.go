@@ -2,9 +2,9 @@ package ast
 
 import "hybroid/tokens"
 
-type EnvironmentStmt struct { // ig
+type EnvironmentStmt struct {
 	EnvType      *EnvTypeExpr
-	Env          *EnvPathExpr // skill issue ig
+	Env          *EnvPathExpr
 	Requirements Paths
 }
 
@@ -55,15 +55,15 @@ type MacroDeclarationStmt struct {
 	Tokens    []tokens.Token
 }
 
-func (self *MacroDeclarationStmt) GetType() NodeType {
+func (mds *MacroDeclarationStmt) GetType() NodeType {
 	return MacroDeclarationStatement
 }
 
-func (self *MacroDeclarationStmt) GetToken() tokens.Token {
-	return self.Name
+func (mds *MacroDeclarationStmt) GetToken() tokens.Token {
+	return mds.Name
 }
 
-func (self *MacroDeclarationStmt) GetValueType() PrimitiveValueType {
+func (mds *MacroDeclarationStmt) GetValueType() PrimitiveValueType {
 	return Invalid
 }
 

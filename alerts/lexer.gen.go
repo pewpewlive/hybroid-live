@@ -106,7 +106,7 @@ func (inp *InvalidNumberPostfix) GetLocations() []tokens.TokenLocation {
 }
 
 func (inp *InvalidNumberPostfix) GetNote() string {
-  return "a valid postfix is 'f', 'fx', 'r' or 'd'"
+  return "a valid postfix is either 'f', 'fx', 'r' or 'd'"
 }
 
 func (inp *InvalidNumberPostfix) GetAlertType() AlertType {

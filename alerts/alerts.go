@@ -63,6 +63,25 @@ func (ah *AlertHandler) Alert(alertType Alert, args ...any) {
 	ah.Alerts = append(ah.Alerts, alert.Addr().Interface().(Alert))
 }
 
+// used when the function name is redeclared (example: parser alert)
+func (ah *AlertHandler) AlertC(alertType Alert, args ...any) {
+	ah.Alert(alertType, args...)
+}
+
+// returns an instance of alert instead of adding it to alerts
+func (ah *AlertHandler) InstAlert(alertType Alert, args ...any) Alert {
+	ah.HasAlerts = true
+
+	alert := reflect.ValueOf(alertType).Elem()
+
+	for i, arg := range args {
+		alert.Field(i).Set(reflect.ValueOf(arg))
+	}
+
+	return alert.Addr().Interface().(Alert)
+	//ah.Alerts = append(ah.Alerts, alert.Addr().Interface().(Alert))
+}
+
 func (ah *AlertHandler) PrintAlerts(alertStage AlertStage, source []byte, sourcePath string) {
 	ah.Source = source
 
@@ -92,7 +111,7 @@ func (ah *AlertHandler) SortTypes() {
 }
 
 func (ah *AlertHandler) PrintMessage(alert Alert) {
-	fmt.Printf("%s.\n", alert.GetMessage())
+	colorstring.Printf("[red]error:[default] %s.\n", alert.GetMessage())
 }
 
 func (ah *AlertHandler) PrintLocation(alert Alert) {
@@ -126,39 +145,27 @@ func (ah *AlertHandler) PrintCodeSnippet(alert Alert) {
 					shortt = "..."
 				}
 				colorstring.Printf("[cyan]%d |[default]   %s[dark_gray]...[default]%s[dark_gray]%s[reset]\n", lineCount, start, content, shortt)
-				colorstring.Printf("[cyan]%s |[light_red]   %s%s\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat(" ", len(start)+23), strings.Repeat("^", location.ColEnd-location.ColStart))
+				colorstring.Printf("[cyan]%s |[light_red]   %s%s\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat(" ", len(start)+22), strings.Repeat("^", location.ColEnd-location.ColStart+1))
 			} else {
 				colorstring.Printf("[cyan]%d |[default]   %s\n", lineCount, line)
-				colorstring.Printf("[cyan]%s |[light_red]   %s%s\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat(" ", location.ColStart), strings.Repeat("^", location.ColEnd-location.ColStart))
-			}
+				colorstring.Printf("[cyan]%s |[light_red]   %s%s\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat(" ", location.ColStart-1), strings.Repeat("^", location.ColEnd-location.ColStart+1))
+			} // TODO: move prints into separate functions
 		}
 
 		// handles multiple line errors
 		if lineCount == location.LineStart && lineCount != location.LineEnd && ah.Source[i] == '\n' {
 			snippetStart := ah.Source[i-columnCount+1 : i-1]
 
-			colorstring.Printf("[cyan]%d |[default]   %s\n", lineCount, string(snippetStart))
-			colorstring.Printf("[cyan]%s |[light_red]  %s^\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat("_", location.ColStart))
+			colorstring.Printf("[cyan]%d%s |[default]  %s\n", lineCount, strings.Repeat(" ", len(strconv.Itoa(location.LineEnd))), string(snippetStart))
+			colorstring.Printf("[cyan]%s |[light_red]  %s^\n", strings.Repeat(" ", len(strconv.Itoa(location.LineEnd))), strings.Repeat("_", location.ColStart-1))
 		}
 
 		if lineCount != location.LineStart && lineCount == location.LineEnd && ah.Source[i] == '\n' {
 			snippetEnd := ah.Source[i-columnCount+1 : i-1]
 
-			// if location.LineEnd-location.LineStart < 2 {
-			// 	colorstring.Printf("[cyan]%d |[default]   %s\n", lineCount, string(snippetEnd))
-			// 	colorstring.Printf("[cyan]%s |[red] |%s^\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat("_", location.ColEnd+1))
-
-			// 	colorstring.Printf("[cyan]%d |[default] | %s\n", lineCount, string(snippetEnd))
-			// 	colorstring.Printf("[cyan]%s |[red] |%s^\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat("_", location.ColEnd+1))
-			// 	continue
-			// }
-
-			// colorstring.Printf("[cyan]%d |[default]   %s\n", lineCount, string(snippetEnd))
-			// colorstring.Printf("[cyan]%s |[red] |%s^\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat("_", location.ColEnd+1))
-
 			colorstring.Printf("[dark_gray]...[default]%s[light_red]|\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))))
 			colorstring.Printf("[cyan]%d |[light_red] | [default]%s\n", lineCount, string(snippetEnd))
-			colorstring.Printf("[cyan]%s |[light_red] |%s^\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat("_", location.ColEnd))
+			colorstring.Printf("[cyan]%s |[light_red] |%s^\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat("_", location.ColEnd-1))
 		}
 
 		if ah.Source[i] == '\n' {
@@ -172,7 +179,7 @@ func (ah *AlertHandler) PrintCodeSnippet(alert Alert) {
 
 func (ah *AlertHandler) PrintNote(alert Alert) {
 	if alert.GetNote() != "" {
-		colorstring.Printf("[cyan]%s = note:[default] %s\n", strings.Repeat(" ", len(strconv.Itoa(ah.currentLine))), alert.GetNote())
+		colorstring.Printf("[cyan]%s= note:[default] %s\n", strings.Repeat(" ", len(strconv.Itoa(ah.currentLine))), alert.GetNote())
 		return
 	}
 

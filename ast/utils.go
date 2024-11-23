@@ -6,13 +6,16 @@ import (
 	"os"
 	"strings"
 )
+
 type NodeDrawer interface {
 	DrawNode(str *strings.Builder, depth int) *strings.Builder
 }
+
 func DrawNodes(nodes []Node) {
 	cwd, erre := os.Getwd()
 
 	if erre != nil {
+		panic(erre)
 		//error
 	}
 
@@ -21,7 +24,7 @@ func DrawNodes(nodes []Node) {
 	if err != nil {
 		fmt.Print(err.Error())
 	}
-	
+
 	writeErr := os.WriteFile(cwd+"/astdebug.json", out, 0644)
 
 	if writeErr != nil {

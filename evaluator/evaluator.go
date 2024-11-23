@@ -81,6 +81,9 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 			}
 			return fmt.Errorf("failed to parse source file")
 		}
+		if e.parser.HasAlerts {
+			return fmt.Errorf("failed to parse source file")
+		}
 		fmt.Printf("Parsing time: %v seconds\n\n", time.Since(start).Seconds())
 
 		//ast.DrawNodes(prog)

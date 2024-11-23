@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"hybroid/alerts"
 	"hybroid/ast"
 	"hybroid/tokens"
 )
@@ -61,7 +62,8 @@ func (p *Parser) getParam() ast.Param {
 
 func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) []ast.Param {
 	if !p.match(opening) {
-		p.error(p.peek(), "expected opening parentheses")
+		p.Alert(&alerts.ExpectedParenthesis{}, p.peek(), p.peek().Location, "(")
+		//p.error(p.peek(), "expected opening parentheses")
 		return []ast.Param{}
 	}
 
