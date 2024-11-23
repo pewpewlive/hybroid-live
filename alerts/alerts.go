@@ -37,6 +37,7 @@ type Alert interface {
 }
 
 type AlertHandler struct {
+	Source string
 	Alerts []Alert
 }
 
@@ -74,6 +75,42 @@ func (ah *AlertHandler) PrintNote(alert Alert) {
 	if alert.GetNote() != "" {
 		fmt.Printf("%s\n", alert.GetNote())
 	}
+}
+
+func CombineLocations(locations []tokens.TokenLocation) tokens.TokenLocation {
+	if len(locations) == 0 {
+		return tokens.TokenLocation{}
+	}
+	location := locations[0]
+
+	for i, v := range locations {
+		if i == 0 {
+			continue
+		}
+
+		if v.ColStart < location.ColStart {
+			location.ColStart = v.ColStart
+		}
+		if v.ColEnd > location.ColEnd {
+			location.ColEnd = v.ColEnd
+		}
+		if v.LineStart < location.LineStart {
+			location.LineStart = v.LineStart
+		}
+		if v.LineEnd > location.LineEnd {
+			location.LineEnd = v.LineEnd
+		}
+	}
+
+	return location
+}
+
+func (ah *AlertHandler) GetCodeSnippet(location tokens.TokenLoclocation) string {
+
+}
+
+func (ah *AlertHandler) ReadSource() {
+
 }
 
 // type Alert interface {

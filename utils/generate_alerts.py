@@ -1,6 +1,6 @@
 import json
 import os
-import re
+import re 
 
 _FILE_TEMPLATE = """// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 

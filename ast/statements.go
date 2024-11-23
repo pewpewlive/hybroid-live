@@ -2,9 +2,9 @@ package ast
 
 import "hybroid/tokens"
 
-type EnvironmentStmt struct {
+type EnvironmentStmt struct { // ig
 	EnvType      *EnvTypeExpr
-	Env          *EnvPathExpr
+	Env          *EnvPathExpr // skill issue ig
 	Requirements Paths
 }
 
@@ -69,8 +69,8 @@ func (self *MacroDeclarationStmt) GetValueType() PrimitiveValueType {
 
 type AliasDeclarationStmt struct {
 	IsLocal     bool
-	Token       lexer.Token
-	Alias       lexer.Token
+	Token       tokens.Token
+	Alias       tokens.Token
 	AliasedType *TypeExpr
 }
 
@@ -78,7 +78,7 @@ func (vds *AliasDeclarationStmt) GetType() NodeType {
 	return AliasDeclarationStatement
 }
 
-func (vds *AliasDeclarationStmt) GetToken() lexer.Token {
+func (vds *AliasDeclarationStmt) GetToken() tokens.Token {
 	return vds.Token
 }
 
