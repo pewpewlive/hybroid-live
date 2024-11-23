@@ -1,15 +1,17 @@
 package parser
 
 import (
+	"hybroid/alerts"
 	"hybroid/ast"
 	"hybroid/tokens"
 )
 
 type Parser struct {
+	errors.AlertHandler
+
 	program []ast.Node
 	current int
 	tokens  []tokens.Token
-	Errors  []ast.Error
 	Context ParserContext
 }
 
@@ -22,7 +24,6 @@ func NewParser() Parser {
 		program: make([]ast.Node, 0),
 		current: 0,
 		tokens:  make([]tokens.Token, 0),
-		Errors:  make([]ast.Error, 0),
 		Context: ParserContext{
 			FunctionReturns: make([]int, 0),
 		},
@@ -34,11 +35,10 @@ func (p *Parser) AssignTokens(tokens []tokens.Token) {
 }
 
 // Appends an error to the ParserErrors
-func (p *Parser) error(token tokens.Token, msg string) {
-	errMsg := ast.Error{Token: token, Message: msg}
-	p.Errors = append(p.Errors, errMsg)
-	//panic(errMsg.Message)
-}
+//func (p *Parser) error(token tokens.Token, msg string) {
+//	errMsg := ast.Error{Token: token, Message: msg}
+//panic(errMsg.Message)
+//}
 
 func (p *Parser) synchronize() {
 	p.advance()
@@ -127,7 +127,7 @@ func (p *Parser) match(types ...tokens.TokenType) bool {
 }
 
 // Consumes a list of tokens, advancing if they match and returns true. Consume also advances if none of the tokens were able to match, and returns false
-func (p *Parser) consume(message string, types ...tokens.TokenType) (tokens.Token, bool) {
+func (p *Parser) consume(message alerts.Alert, types ...tokens.TokenType) (tokens.Token, bool) {
 	if p.isAtEnd() {
 		token := p.peek()
 		p.error(token, message)

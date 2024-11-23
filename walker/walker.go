@@ -80,10 +80,10 @@ type Walker struct {
 	Environment        *Environment
 	Walkers            map[string]*Walker
 	Nodes              []ast.Node
-	Errors             []ast.Error
-	Warnings           []ast.Warning
-	Context            Context
-	Walked             bool
+	//Errors             []ast.Error
+	//Warnings           []ast.Warning
+	Context Context
+	Walked  bool
 }
 
 // var pewpewEnv = &Environment{
@@ -97,8 +97,8 @@ func NewWalker(path string) *Walker {
 	walker := &Walker{
 		Environment: NewEnvironment(path),
 		Nodes:       []ast.Node{},
-		Errors:      []ast.Error{},
-		Warnings:    []ast.Warning{},
+		//Errors:      []ast.Error{},
+		//Warnings:    []ast.Warning{},
 		Context: Context{
 			Node:   &ast.Improper{},
 			Value:  &Unknown{},
@@ -149,7 +149,7 @@ func (w *Walker) TypeExists(name string) bool {
 func (w *Walker) GetStruct(name string) (*ClassVal, bool) {
 	structType, found := w.Environment.Structs[name]
 	if !found {
-		//w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s", name, " exists"))
+		w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s", name, " exists"))
 		return nil, false
 	}
 
@@ -163,7 +163,7 @@ func (w *Walker) GetStruct(name string) (*ClassVal, bool) {
 func (w *Walker) GetEntity(name string) (*EntityVal, bool) {
 	entityType, found := w.Environment.Entities[name]
 	if !found {
-		//w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s", name, " exists"))
+		w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s", name, " exists"))
 		return nil, false
 	}
 
@@ -382,7 +382,6 @@ func (w *Walker) DetermineValueType(left Type, right Type) Type {
 }
 
 func (w *Walker) ValidateArithmeticOperands(left Type, right Type, expr *ast.BinaryExpr) bool {
-	//fmt.Printf("Validating operands: %v (%v) and %v (%v)\n", left.Val, left.Type, right.Val, right.Type)
 	if left.PVT() == ast.Invalid {
 		w.Error(expr.Left.GetToken(), "cannot perform arithmetic on Invalid value")
 		return false
@@ -414,7 +413,6 @@ func returnsAreValid(list1 []Type, list2 []Type) bool {
 	}
 
 	for i, v := range list1 {
-		fmt.Printf("%s compared to %s\n", list1[i].ToString(), list2[i].ToString())
 		if !TypeEquals(v, list2[i]) {
 			return false
 		}

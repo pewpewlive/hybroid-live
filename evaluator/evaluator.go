@@ -12,7 +12,6 @@ import (
 	"hybroid/walker/pass2"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/mitchellh/colorstring"
@@ -60,7 +59,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		e.lexer.Tokenize()
 		if len(e.lexer.Errors) != 0 {
 			fmt.Println("[red]Failed tokenizing:")
-			printAlerts(e.files[i].Path(), e.lexer.Errors)
+			e.lexer.Errors
 			return fmt.Errorf("failed to tokenize source file")
 		}
 
@@ -127,9 +126,9 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		e.gen.SetEnv(walker.Environment.Name, walker.Environment.Type)
 		if e.files[i].FileName == "level" {
 			e.gen.GenerateWithBuiltins(walker.Nodes)
-		}else if e.walkerList[i].Environment.Type  != ast.Level {
+		} else if e.walkerList[i].Environment.Type != ast.Level {
 			e.gen.Generate(walker.Nodes, e.walkerList[i].Environment.UsedBuiltinVars)
-		}else {
+		} else {
 			e.gen.Generate(walker.Nodes, []string{})
 		}
 		if len(e.gen.Errors) != 0 {
@@ -155,35 +154,4 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 	e.walkers = make(map[string]*walker.Walker)
 
 	return nil
-}
-
-func printAlerts[T ast.Alert](filePath string, errs []T) {
-	for _, err := range errs {
-		tokenLocation := err.GetToken().Location
-		str := fmt.Sprintf("%s in %s at line %v (%v-%v): %s\n",
-			err.GetHeader(),
-			filePath,
-			tokenLocation.LineStart,
-			tokenLocation.ColStart,
-			tokenLocation.ColEnd,
-			err.GetMessage())
-		fmt.Print(colorstring.Color(str))
-	}
-	fmt.Println()
-}
-
-func (e *Evaluator) writeSyntaxAlert(filePath, source string, errMsg ast.Alert) {
-	token := errMsg.GetToken()
-
-	sourceLines := strings.Split(source, "\n")
-	line := sourceLines[token.Location.LineStart-1]
-
-	fmt.Printf("line: %v in %s \n", token.Location.LineStart, filePath)
-	fmt.Println(line)
-	if token.Location.ColStart-6 < 0 {
-		fmt.Printf("%s^%s\n", strings.Repeat(" ", token.Location.ColStart-1), strings.Repeat("-", 5))
-	} else {
-		fmt.Printf("%s%s^\n", strings.Repeat(" ", token.Location.ColStart-6), strings.Repeat("-", 5))
-	}
-	fmt.Println("message: " + errMsg.GetMessage() + "\n")
 }

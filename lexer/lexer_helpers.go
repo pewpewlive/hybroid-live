@@ -5,28 +5,6 @@ import (
 	"strconv"
 )
 
-type LexerError struct {
-	TokenType tokens.TokenType
-	Location  tokens.TokenLocation
-	Message   string
-}
-
-func (le LexerError) GetToken() tokens.Token {
-	return tokens.Token{Type: le.TokenType, Location: le.Location}
-}
-
-func (le LexerError) GetHeader() string {
-	return "[red]Error"
-}
-
-func (le LexerError) GetMessage() string {
-	return le.Message
-}
-
-func (l *Lexer) lexerError(message string) {
-	l.Errors = append(l.Errors, LexerError{tokens.Eof, tokens.TokenLocation{LineStart: l.line, LineEnd: l.line, ColStart: l.columnStart, ColEnd: l.columnCurrent}, message})
-}
-
 func (l *Lexer) advance() byte {
 	t := l.source[l.current]
 	l.current++

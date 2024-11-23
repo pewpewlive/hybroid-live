@@ -1,0 +1,40 @@
+[
+  {
+    "name": "MultilineString",
+    "type": "Error",
+    "message": "multiline strings are not allowed"
+  },
+  {
+    "name": "UnterminatedString",
+    "type": "Error",
+    "message": "unterminated string"
+  },
+  {
+    "name": "MalformedNumber",
+    "type": "Error",
+    "params": {
+      "Number": "string"
+    },
+    "message": "malformed number: '%s'",
+    "message_format": ["Number"]
+  },
+  {
+    "name": "InvalidNumberPostfix",
+    "type": "Error",
+    "params": {
+      "Postfix": "string"
+    },
+    "message": "invalid number postfix: '%s'",
+    "message_format": ["Postfix"],
+    "note": "valid number postfixes: 1f, 1fx, 1r, 1d"
+  },
+  {
+    "name": "UnsupportedCharacter",
+    "type": "Error",
+    "params": {
+      "Character": "string"
+    },
+    "message": "unsupported character: '%s'",
+    "message_format": ["Character"]
+  }
+]

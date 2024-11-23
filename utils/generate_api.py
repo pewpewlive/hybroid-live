@@ -24,6 +24,7 @@ if __name__ == "__main__":
 
     # Generate API!
     generate_api_for_libs(pewpew_lib, fmath_lib)
+    print("[+] API generated!")
 
     # Generation for docs
     # Go to the docs directory where the following steps will be executed
@@ -36,3 +37,4 @@ if __name__ == "__main__":
 
     # Generate docs!
     generate_docs_for_libs(pewpew_lib, fmath_lib)
+    print("[+] Docs generated!")

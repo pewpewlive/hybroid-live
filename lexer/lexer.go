@@ -2,19 +2,29 @@ package lexer
 
 import (
 	"fmt"
+	"hybroid/alerts"
 	"hybroid/tokens"
 )
 
 type Lexer struct {
+	alerts.AlertHandler
+
 	Tokens []tokens.Token
 	source []byte
-	Errors []LexerError
 
 	start, current, line, columnStart, columnCurrent int
 }
 
 func NewLexer() Lexer {
-	return Lexer{make([]tokens.Token, 0), make([]byte, 0), make([]LexerError, 0), 0, 0, 1, 0, 0}
+	return Lexer{
+		Tokens:        make([]tokens.Token, 0),
+		source:        make([]byte, 0),
+		start:         0,
+		current:       0,
+		line:          1,
+		columnStart:   0,
+		columnCurrent: 0,
+	}
 }
 
 func (l *Lexer) AssignSource(src []byte) {
@@ -30,14 +40,14 @@ func (l *Lexer) handleString() {
 			l.line++
 			l.columnStart = 0
 			l.columnCurrent = 0
-			l.lexerError("multiline strings are not allowed")
+			l.Alert(&alerts.MultilineString{})
 		}
 
 		l.advance()
 	}
 
 	if l.isAtEnd() {
-		l.lexerError("unterminated string")
+		l.Alert(&alerts.UnterminatedString{})
 		return
 	}
 
