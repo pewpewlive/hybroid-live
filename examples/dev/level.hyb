@@ -1,0 +1,7 @@
+env Main as Level
+
+fn a (number thing) -> number {
+    return 1 + "a"
+}
+
+number a = 100

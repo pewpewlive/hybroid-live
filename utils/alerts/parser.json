@@ -20,10 +20,20 @@
     "message": "Expected identifier"
   },
   {
-    "name": "ExpectedParameterTypeBeforeIdentifier",
+    "name": "ExpectedType",
     "type": "Error",
     "message": "Expected type",
-    "note": "parameters need to be declared with a type before them. example: number %s",
+    "note": "this needs to be declared with a type. example: number %s",
     "note_format": ["Token.Lexeme"]
+  },
+  {
+    "name": "ExpectedExpression",
+    "type": "Error",
+    "message": "Expected expression"
+  },
+  {
+    "name": "ExpectedExpressionOrBody",
+    "type": "Error",
+    "message": "Expected expression or body"
   }
 ]

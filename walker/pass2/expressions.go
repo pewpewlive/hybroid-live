@@ -86,7 +86,7 @@ func EntityExpr(w *wkr.Walker, node *ast.EntityExpr, scope *wkr.Scope) wkr.Value
 	if typ.PVT() != ast.Entity {
 		w.Error(node.Token, "type given in entity expression is not an entity type")
 	} else if !node.OfficialEntityType {
-		varName := lexer.Token{}
+		varName := tokens.Token{}
 		if node.ConvertedVarName != nil {
 			varName = *node.ConvertedVarName
 			w.Context.Conversions = append(w.Context.Conversions, wkr.NewEntityConversion(varName, w.TypeToValue(typ).(*wkr.EntityVal)))
@@ -129,7 +129,7 @@ func BinaryExpr(w *wkr.Walker, node *ast.BinaryExpr, scope *wkr.Scope) wkr.Value
 		}
 		return &wkr.StringVal{}
 	default:
-		if op.Type == lexer.Or {
+		if op.Type == tokens.Or {
 			if node.Left.GetType() == ast.EntityExpression && node.Left.(*ast.EntityExpr).ConvertedVarName != nil {
 				w.Error(node.Left.GetToken(), "conversion of entity is not possible in a binary expression with 'or' operator")
 			} else if node.Right.GetType() == ast.EntityExpression && node.Right.(*ast.EntityExpr).ConvertedVarName != nil {

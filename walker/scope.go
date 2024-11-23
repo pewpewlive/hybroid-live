@@ -3,17 +3,17 @@ package walker
 import (
 	"hybroid/ast"
 	"hybroid/helpers"
-	"hybroid/lexer"
+	"hybroid/tokens"
 )
 
 type EntityConversion struct {
-	Name lexer.Token
+	Name   tokens.Token
 	Entity *EntityVal
 }
 
-func NewEntityConversion(name lexer.Token, val *EntityVal) EntityConversion {
+func NewEntityConversion(name tokens.Token, val *EntityVal) EntityConversion {
 	return EntityConversion{
-		Name: name,
+		Name:   name,
 		Entity: val,
 	}
 }

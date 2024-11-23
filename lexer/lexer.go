@@ -27,6 +27,10 @@ func NewLexer() Lexer {
 	}
 }
 
+func (l *Lexer) Alert(alertType alerts.Alert, args ...any) {
+	l.Alert_(alertType, args...)
+}
+
 func (l *Lexer) AssignSource(src []byte) {
 	l.source = src
 }

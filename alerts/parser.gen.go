@@ -99,32 +99,92 @@ func (ei *ExpectedIdentifier) GetAlertType() AlertType {
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type ExpectedParameterTypeBeforeIdentifier struct {
+type ExpectedType struct {
   Token tokens.Token
   Location tokens.TokenLocation
 }
 
-func (eptbi *ExpectedParameterTypeBeforeIdentifier) GetMessage() string {
+func (et *ExpectedType) GetMessage() string {
   return "Expected type"
 }
 
-func (eptbi *ExpectedParameterTypeBeforeIdentifier) GetTokens() []tokens.Token {
-  return []tokens.Token{eptbi.Token}
+func (et *ExpectedType) GetTokens() []tokens.Token {
+  return []tokens.Token{et.Token}
 }
 
-func (eptbi *ExpectedParameterTypeBeforeIdentifier) GetLocations() []tokens.TokenLocation {
-  return []tokens.TokenLocation{eptbi.Location}
+func (et *ExpectedType) GetLocations() []tokens.TokenLocation {
+  return []tokens.TokenLocation{et.Location}
 }
 
-func (eptbi *ExpectedParameterTypeBeforeIdentifier) GetNote() string {
-  return fmt.Sprintf("parameters need to be declared with a type before them. example: number %s", eptbi.Token.Lexeme)
+func (et *ExpectedType) GetNote() string {
+  return fmt.Sprintf("this needs to be declared with a type. example: number %s", et.Token.Lexeme)
 }
 
-func (eptbi *ExpectedParameterTypeBeforeIdentifier) GetName() string {
-  return "ExpectedParameterTypeBeforeIdentifier"
+func (et *ExpectedType) GetName() string {
+  return "ExpectedType"
 }
 
-func (eptbi *ExpectedParameterTypeBeforeIdentifier) GetAlertType() AlertType {
+func (et *ExpectedType) GetAlertType() AlertType {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type ExpectedExpression struct {
+  Token tokens.Token
+  Location tokens.TokenLocation
+}
+
+func (ee *ExpectedExpression) GetMessage() string {
+  return "Expected expression"
+}
+
+func (ee *ExpectedExpression) GetTokens() []tokens.Token {
+  return []tokens.Token{ee.Token}
+}
+
+func (ee *ExpectedExpression) GetLocations() []tokens.TokenLocation {
+  return []tokens.TokenLocation{ee.Location}
+}
+
+func (ee *ExpectedExpression) GetNote() string {
+  return ""
+}
+
+func (ee *ExpectedExpression) GetName() string {
+  return "ExpectedExpression"
+}
+
+func (ee *ExpectedExpression) GetAlertType() AlertType {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type ExpectedExpressionOrBody struct {
+  Token tokens.Token
+  Location tokens.TokenLocation
+}
+
+func (eeob *ExpectedExpressionOrBody) GetMessage() string {
+  return "Expected expression"
+}
+
+func (eeob *ExpectedExpressionOrBody) GetTokens() []tokens.Token {
+  return []tokens.Token{eeob.Token}
+}
+
+func (eeob *ExpectedExpressionOrBody) GetLocations() []tokens.TokenLocation {
+  return []tokens.TokenLocation{eeob.Location}
+}
+
+func (eeob *ExpectedExpressionOrBody) GetNote() string {
+  return ""
+}
+
+func (eeob *ExpectedExpressionOrBody) GetName() string {
+  return "ExpectedExpressionOrBody"
+}
+
+func (eeob *ExpectedExpressionOrBody) GetAlertType() AlertType {
   return Error
 }
 

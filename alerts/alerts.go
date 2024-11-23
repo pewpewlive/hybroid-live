@@ -60,35 +60,27 @@ type AlertHandler struct {
 	currentLine int
 }
 
-func (ah *AlertHandler) Alert(alertType Alert, args ...any) {
-	ah.HasAlerts = true
-
+func (ah *AlertHandler) NewAlert(alertType Alert, args ...any) Alert {
 	alert := reflect.ValueOf(alertType).Elem()
 
 	for i, arg := range args {
-		alert.Field(i).Set(reflect.ValueOf(arg))
-	}
-
-	ah.Alerts = append(ah.Alerts, alert.Addr().Interface().(Alert))
-}
-
-// used when the function name is redeclared (example: parser alert)
-func (ah *AlertHandler) AlertC(alertType Alert, args ...any) {
-	ah.Alert(alertType, args...)
-}
-
-// returns an instance of alert instead of adding it to alerts
-func (ah *AlertHandler) InstAlert(alertType Alert, args ...any) Alert {
-	ah.HasAlerts = true
-
-	alert := reflect.ValueOf(alertType).Elem()
-
-	for i, arg := range args {
+		if reflect.TypeOf(arg) != alert.Field(i).Type() {
+			panic(fmt.Sprintf("Attempt to construct %s{} field `%s` of type `%s`, with `%s` at %d\n", alert.Type().Name(), reflect.TypeOf(alertType).Elem().Field(i).Name, alert.Field(i).Type(), reflect.TypeOf(arg), i+1))
+		}
 		alert.Field(i).Set(reflect.ValueOf(arg))
 	}
 
 	return alert.Addr().Interface().(Alert)
-	//ah.Alerts = append(ah.Alerts, alert.Addr().Interface().(Alert))
+}
+
+func (ah *AlertHandler) Alert_(alertType Alert, args ...any) {
+	ah.HasAlerts = true
+	ah.Alerts = append(ah.Alerts, ah.NewAlert(alertType, args...))
+}
+
+func (ah *AlertHandler) AlertI_(alertType Alert) {
+	ah.HasAlerts = true
+	ah.Alerts = append(ah.Alerts, alertType)
 }
 
 func (ah *AlertHandler) PrintAlerts(alertStage AlertStage, source []byte, sourcePath string) {

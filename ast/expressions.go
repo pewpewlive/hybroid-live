@@ -153,21 +153,21 @@ func (te *TypeExpr) GetValueType() PrimitiveValueType {
 }
 
 type EntityExpr struct {
-	Expr Node
-	Type *TypeExpr
-	ConvertedVarName *lexer.Token
+	Expr               Node
+	Type               *TypeExpr
+	ConvertedVarName   *tokens.Token
 	OfficialEntityType bool
-	EntityName string
-	EnvName string
-	Operator lexer.Token
-	Token lexer.Token
+	EntityName         string
+	EnvName            string
+	Operator           tokens.Token
+	Token              tokens.Token
 }
 
 func (ge *EntityExpr) GetType() NodeType {
 	return GroupingExpression
 }
 
-func (ge *EntityExpr) GetToken() lexer.Token {
+func (ge *EntityExpr) GetToken() tokens.Token {
 	return ge.Token
 }
 

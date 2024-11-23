@@ -73,15 +73,15 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		prog := e.parser.ParseTokens()
 		if e.parser.HasAlerts {
 			e.parser.PrintAlerts(alerts.Parser, sourceFile, sourcePath)
+
 		}
 		if len(e.parser.Errors) != 0 {
 			colorstring.Println("[red]Syntax error")
 			for _, err := range e.parser.Errors {
 				colorstring.Printf("[red]Error: %+v\n", err)
 			}
-			return fmt.Errorf("failed to parse source file")
 		}
-		if e.parser.HasAlerts {
+		if e.parser.HasAlerts || len(e.parser.Errors) != 0 {
 			return fmt.Errorf("failed to parse source file")
 		}
 		fmt.Printf("Parsing time: %v seconds\n\n", time.Since(start).Seconds())

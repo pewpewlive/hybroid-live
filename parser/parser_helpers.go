@@ -73,7 +73,7 @@ func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) 
 		param := p.getParam()
 		if param.Type == nil {
 			if len(args) == 0 {
-				p.Alert(&alerts.ExpectedParameterTypeBeforeIdentifier{}, p.peek(-1), p.peek(-1).Location) //param.Name, "parameter need to be declared with a type before the name")
+				p.Alert(&alerts.ExpectedType{}, p.peek(-1), p.peek(-1).Location) //param.Name, "parameter need to be declared with a type before the name")
 			} else {
 				param.Type = previous
 			}
@@ -85,7 +85,7 @@ func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) 
 			param := p.getParam()
 			if param.Type == nil {
 				if len(args) == 0 {
-					p.Alert(&alerts.ExpectedParameterTypeBeforeIdentifier{}, p.peek(-1), p.peek(-1).Location)
+					p.Alert(&alerts.ExpectedType{}, p.peek(-1), p.peek(-1).Location)
 				} else {
 					param.Type = previous
 				}
@@ -94,7 +94,7 @@ func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) 
 			}
 			args = append(args, param)
 		}
-		p.consumeNew(p.InstAlert(&alerts.ExpectedParenthesis{}, p.peek(), p.peek().Location, ")"), closing)
+		p.consume(p.NewAlert(&alerts.ExpectedParenthesis{}, p.peek(), p.peek().Location, ")"), closing)
 	}
 
 	return args
@@ -122,7 +122,7 @@ func (p *Parser) genericParameters() []*ast.IdentifierExpr {
 		}
 	}
 
-	p.consume("expected '>' in generic parameters", tokens.Greater)
+	p.consumeOld("expected '>' in generic parameters", tokens.Greater)
 
 	return params
 }
@@ -149,7 +149,7 @@ func (p *Parser) genericArguments() ([]*ast.TypeExpr, bool) {
 }
 
 func (p *Parser) arguments() []ast.Node {
-	if _, ok := p.consume("expected opening paren", tokens.LeftParen); !ok {
+	if _, ok := p.consumeOld("expected opening paren", tokens.LeftParen); !ok {
 		return nil
 	}
 
@@ -163,7 +163,7 @@ func (p *Parser) arguments() []ast.Node {
 			arg := p.expression()
 			args = append(args, arg)
 		}
-		p.consume("expected closing paren after arguments", tokens.RightParen)
+		p.consumeOld("expected closing paren after arguments", tokens.RightParen)
 	}
 
 	return args
@@ -189,7 +189,7 @@ func (p *Parser) returnings() []*ast.TypeExpr {
 		ret = append(ret, p.Type())
 	}
 	if isList {
-		p.consume("expected closing parenthesis", tokens.RightParen)
+		p.consumeOld("expected closing parenthesis", tokens.RightParen)
 	}
 	return ret
 }

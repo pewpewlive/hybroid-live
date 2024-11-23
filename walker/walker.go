@@ -83,8 +83,8 @@ type Walker struct {
 	Environment        *Environment
 	Walkers            map[string]*Walker
 	Nodes              []ast.Node
-	//Errors             []ast.Error
-	//Warnings           []ast.Warning
+	// Errors             []ast.Error
+	// Warnings           []ast.Warning
 	Context Context
 	Walked  bool
 }

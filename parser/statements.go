@@ -1,17 +1,19 @@
 package parser
 
 import (
+	"hybroid/alerts"
 	"hybroid/ast"
 	"hybroid/tokens"
 )
 
-func (p *Parser) statement() ast.Node {
+func (p *Parser) statement() (returnNode ast.Node) {
+	returnNode = &ast.Improper{Token: p.peek()}
+
 	defer func() {
 		if errMsg := recover(); errMsg != nil {
 			// If the error is a parseError, synchronize to
 			// the next statement. If not, propagate the panic.
 			if _, ok := errMsg.(ast.Error); ok {
-				//p. = true
 				p.synchronize()
 			} else if _, ok := errMsg.(ParserError); ok {
 				p.synchronize()
@@ -23,7 +25,8 @@ func (p *Parser) statement() ast.Node {
 
 	varDecl := p.variableDeclarationStmt()
 	if varDecl != nil {
-		return varDecl
+		returnNode = varDecl
+		return
 	}
 
 	token := p.peek().Type
@@ -34,110 +37,139 @@ func (p *Parser) statement() ast.Node {
 		case tokens.Alias:
 			p.advance()
 			p.advance()
-			return p.AliasDeclarationStmt(false)
+			returnNode = p.AliasDeclarationStmt(false)
+			return
 		case tokens.Fn:
 			p.advance()
 			p.advance()
-			return p.functionDeclarationStmt(false)
+			returnNode = p.functionDeclarationStmt(false)
+			return
 		case tokens.Class:
 			p.advance()
 			p.advance()
-			return p.classDeclarationStmt(false)
+			returnNode = p.classDeclarationStmt(false)
+			return
 		case tokens.Entity:
 			p.advance()
 			p.advance()
-			return p.entityDeclarationStmt(false)
+			returnNode = p.entityDeclarationStmt(false)
+			return
 		case tokens.Enum:
 			p.advance()
 			p.advance()
-			return p.enumDeclarationStmt(false)
+			returnNode = p.enumDeclarationStmt(false)
+			return
 			// case tokens.Type:
 			// 	p.advance()
 			// 	p.advance()
-			// 	return p.TypeDeclarationStmt(false)
+			// 	node = p.TypeDeclarationStmt(false)
 		}
 	}
 
 	if token == tokens.Struct && next != tokens.Identifier { // wait yeah idk
-		return p.expression()
+		returnNode = p.expression()
+		return
 	}
 
 	switch token {
 	// case tokens.Type:
 	// 	p.advance()
-	// 	return p.TypeDeclarationStmt(true)
+	// 	node = p.TypeDeclarationStmt(true)
 	case tokens.Alias:
 		p.advance()
-		return p.AliasDeclarationStmt(true)
+		returnNode = p.AliasDeclarationStmt(true)
+		return
 	case tokens.Macro:
 		p.advance()
-		return p.macroDeclarationStmt()
+		returnNode = p.macroDeclarationStmt()
+		return
 	case tokens.Env:
 		p.advance()
-		return p.envStmt()
+		returnNode = p.envStmt()
+		return
 	//case tokens.Let, tokens.Pub, tokens.Const:
 	//p.advance()
-	//return p.variableDeclarationStmt()
+	//node = p.variableDeclarationStmt()
 	case tokens.Add:
 		p.advance()
-		return p.addToStmt()
+		returnNode = p.addToStmt()
+		return
 	case tokens.Remove:
 		p.advance()
-		return p.removeFromStmt()
+		returnNode = p.removeFromStmt()
+		return
 	case tokens.Fn:
 		p.advance()
-		return p.functionDeclarationStmt(true)
+		returnNode = p.functionDeclarationStmt(true)
+		return
 	case tokens.Return:
 		p.advance()
-		return p.returnStmt()
+		returnNode = p.returnStmt()
+		return
 	case tokens.Yield:
 		p.advance()
-		return p.yieldStmt()
+		returnNode = p.yieldStmt()
+		return
 	case tokens.Break:
 		p.advance()
-		return &ast.BreakStmt{Token: p.peek(-1)}
+		returnNode = &ast.BreakStmt{Token: p.peek(-1)}
+		return
 	case tokens.Destroy:
 		p.advance()
-		return p.destroyStmt()
+		returnNode = p.destroyStmt()
+		return
 	case tokens.Continue:
 		p.advance()
-		return &ast.ContinueStmt{Token: p.peek(-1)}
+		returnNode = &ast.ContinueStmt{Token: p.peek(-1)}
+		return
 	case tokens.Identifier, tokens.Self:
-		return p.assignmentStmt()
+		returnNode = p.assignmentStmt()
+		return
 	case tokens.If:
 		p.advance()
-		return p.ifStmt(false, false, false)
+		returnNode = p.ifStmt(false, false, false)
+		return
 	case tokens.Repeat:
 		p.advance()
-		return p.repeatStmt()
+		returnNode = p.repeatStmt()
+		return
 	case tokens.For:
 		p.advance()
-		return p.forStmt()
+		returnNode = p.forStmt()
+		return
 	case tokens.Tick:
 		p.advance()
-		return p.tickStmt()
+		returnNode = p.tickStmt()
+		return
 	case tokens.Use:
 		p.advance()
-		return p.useStmt()
+		returnNode = p.useStmt()
+		return
 	case tokens.Enum:
 		p.advance()
-		return p.enumDeclarationStmt(true)
+		returnNode = p.enumDeclarationStmt(true)
+		return
 	case tokens.Class:
 		p.advance()
-		return p.classDeclarationStmt(true)
+		returnNode = p.classDeclarationStmt(true)
+		return
 	case tokens.Entity:
 		p.advance()
-		return p.entityDeclarationStmt(true)
+		returnNode = p.entityDeclarationStmt(true)
+		return
 	case tokens.While:
 		p.advance()
-		return p.whileStmt()
+		returnNode = p.whileStmt()
+		return
 	case tokens.Match:
 		p.advance()
-		return p.matchStmt(false)
+		returnNode = p.matchStmt(false)
+		return
 	}
 
 	if p.peek().Type == tokens.SemiColon {
-		return ast.NewImproper(p.advance())
+		returnNode = ast.NewImproper(p.advance())
+		return
 	}
 
 	expr := p.expression()
@@ -147,7 +179,8 @@ func (p *Parser) statement() ast.Node {
 		p.advance()
 	}
 
-	return expr
+	returnNode = expr
+	return
 }
 
 // func (p *Parser) TypeDeclarationStmt(isLocal bool) ast.Node {
@@ -174,11 +207,11 @@ func (p *Parser) statement() ast.Node {
 
 func (p *Parser) AliasDeclarationStmt(isLocal bool) ast.Node {
 	typeToken := p.peek(-1)
-	name, ok := p.consume("expected identifier in alias declaration", tokens.Identifier)
+	name, ok := p.consumeOld("expected identifier in alias declaration", tokens.Identifier)
 	if !ok {
 		return ast.NewImproper(name)
 	}
-	if token, ok := p.consume("expected '=' after identifier in alias declaration", tokens.Equal); !ok {
+	if token, ok := p.consumeOld("expected '=' after identifier in alias declaration", tokens.Equal); !ok {
 		return ast.NewImproper(token)
 	}
 
@@ -196,7 +229,7 @@ func (p *Parser) AliasDeclarationStmt(isLocal bool) ast.Node {
 }
 
 func (p *Parser) macroDeclarationStmt() ast.Node {
-	name, ok := p.consume("expected identifier after 'macro' keyword", tokens.Identifier)
+	name, ok := p.consumeOld("expected identifier after 'macro' keyword", tokens.Identifier)
 	if !ok {
 		return ast.NewImproper(name)
 	}
@@ -204,7 +237,7 @@ func (p *Parser) macroDeclarationStmt() ast.Node {
 	macroDeclaration := &ast.MacroDeclarationStmt{
 		Name: name,
 	}
-	p.consume("expected opening parenthesis", tokens.LeftParen)
+	p.consumeOld("expected opening parenthesis", tokens.LeftParen)
 	params := []tokens.Token{}
 	token := p.peek()
 	if token.Type == tokens.RightParen {
@@ -213,14 +246,14 @@ func (p *Parser) macroDeclarationStmt() ast.Node {
 		p.advance()
 		params = append(params, token)
 		for p.match(tokens.Colon) {
-			name, ok = p.consume("expected identifier as parameter", tokens.Identifier)
+			name, ok = p.consumeOld("expected identifier as parameter", tokens.Identifier)
 			if !ok {
 				return ast.NewImproper(name)
 			}
 			params = append(params, name)
 		}
 		macroDeclaration.Params = params
-		p.consume("expected closing parenthesis", tokens.RightParen)
+		p.consumeOld("expected closing parenthesis", tokens.RightParen)
 	} else {
 		p.advance()
 		p.error(token, "expected either identifier or closing parenthesis after opening parenthesis")
@@ -269,7 +302,7 @@ func (p *Parser) envStmt() ast.Node {
 		return &ast.Improper{Token: expr.GetToken()}
 	}
 
-	if _, ok := p.consume("expected keyword 'as' after envrionment expression", tokens.As); !ok {
+	if _, ok := p.consumeOld("expected keyword 'as' after envrionment expression", tokens.As); !ok {
 		return &ast.Improper{Token: expr.GetToken()}
 	}
 
@@ -301,7 +334,7 @@ func (p *Parser) enumDeclarationStmt(local bool) ast.Node {
 
 	enumStmt.Name = ident.GetToken()
 
-	p.consume("expected opening of a body", tokens.LeftBrace)
+	p.consumeOld("expected opening of a body", tokens.LeftBrace)
 
 	if p.match(tokens.RightBrace) {
 		enumStmt.Fields = make([]tokens.Token, 0)
@@ -328,7 +361,7 @@ func (p *Parser) enumDeclarationStmt(local bool) ast.Node {
 
 	enumStmt.Fields = fields
 
-	p.consume("expected body closure", tokens.RightBrace)
+	p.consumeOld("expected body closure", tokens.RightBrace)
 
 	return enumStmt
 }
@@ -339,7 +372,7 @@ func (p *Parser) classDeclarationStmt(isLocal bool) ast.Node {
 	}
 	stmt.Token = p.peek(-1)
 
-	name, ok := p.consume("expected the name of the structure", tokens.Identifier)
+	name, ok := p.consumeOld("expected the name of the structure", tokens.Identifier)
 
 	if ok {
 		stmt.Name = name
@@ -347,7 +380,7 @@ func (p *Parser) classDeclarationStmt(isLocal bool) ast.Node {
 		return &ast.Improper{Token: stmt.Token}
 	}
 
-	_, ok = p.consume("expected opening of the struct body", tokens.LeftBrace)
+	_, ok = p.consumeOld("expected opening of the struct body", tokens.LeftBrace)
 	if !ok {
 		return &ast.Improper{Token: stmt.Token}
 	}
@@ -382,14 +415,14 @@ func (p *Parser) entityDeclarationStmt(isLocal bool) ast.Node {
 		Token:   p.peek(-1),
 	}
 
-	name, ok := p.consume("expected the name of the entity", tokens.Identifier)
+	name, ok := p.consumeOld("expected the name of the entity", tokens.Identifier)
 
 	if !ok {
 		return &ast.Improper{Token: stmt.Token}
 	}
 	stmt.Name = name
 
-	_, ok = p.consume("expected opening of the struct body", tokens.LeftBrace)
+	_, ok = p.consumeOld("expected opening of the struct body", tokens.LeftBrace)
 	if !ok {
 		return &ast.Improper{Token: stmt.Token}
 	}
@@ -543,14 +576,16 @@ func (p *Parser) fieldDeclarationStmt() ast.Node {
 
 	expr := p.expression()
 	if expr.GetType() == ast.NA {
-		p.error(p.peek(), "expected expression")
+		p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
+		//p.error(p.peek(), "expected expression")
 	}
 
 	exprs := []ast.Node{expr}
 	for p.match(tokens.Comma) {
 		expr = p.expression()
 		if expr.GetType() == ast.NA {
-			p.error(p.peek(), "expected expression")
+			p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
+			// p.error(p.peek(), "expected expression")
 		}
 		exprs = append(exprs, expr)
 	}
@@ -688,7 +723,8 @@ func (p *Parser) returnArgs() ([]ast.Node, bool) {
 	for p.match(tokens.Comma) {
 		expr = p.expression()
 		if expr.GetType() == ast.NA {
-			p.error(p.peek(), "expected expression")
+			p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
+			// p.error(p.peek(), "expected expression")
 		}
 		args = append(args, expr)
 	}
@@ -709,7 +745,8 @@ func (p *Parser) yieldStmt() ast.Node {
 	for p.match(tokens.Comma) {
 		expr = p.expression()
 		if expr.GetType() == ast.NA {
-			p.error(p.peek(), "expected expression")
+			p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
+			// p.error(p.peek(), "expected expression")
 		}
 		args = append(args, expr)
 	}
@@ -723,7 +760,7 @@ func (p *Parser) functionDeclarationStmt(IsLocal bool) ast.Node {
 
 	fnDec.IsLocal = IsLocal
 
-	ident, _ := p.consume("expected a function name", tokens.Identifier)
+	ident, _ := p.consumeOld("expected a function name", tokens.Identifier)
 	// if !ok {
 	// 	return &fnDec
 	// }
@@ -753,14 +790,15 @@ func (p *Parser) addToStmt() ast.Node {
 
 	add.Value = p.expression()
 	if add.GetType() == ast.NA {
-		p.error(p.peek(), "expected expression")
+		p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
+		// p.error(p.peek(), "expected expression")
 	}
 
-	if _, ok := p.consume("expected keyword 'to' after expression in an 'add' statement", tokens.To); !ok {
+	if _, ok := p.consumeOld("expected keyword 'to' after expression in an 'add' statement", tokens.To); !ok {
 		return &add
 	}
 
-	if ident, ok := p.consume("expected identifier after keyword 'to'", tokens.Identifier); ok {
+	if ident, ok := p.consumeOld("expected identifier after keyword 'to'", tokens.Identifier); ok {
 		add.Identifier = ident.Lexeme
 	}
 
@@ -774,14 +812,15 @@ func (p *Parser) removeFromStmt() ast.Node {
 
 	remove.Value = p.expression()
 	if remove.GetType() == ast.NA {
-		p.error(p.peek(), "expected expression")
+		p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
+		// p.error(p.peek(), "expected expression")
 	}
 
-	if _, ok := p.consume("expected keyword 'from' after expression in a 'remove' statement", tokens.From); !ok {
+	if _, ok := p.consumeOld("expected keyword 'from' after expression in a 'remove' statement", tokens.From); !ok {
 		return &remove
 	}
 
-	if ident, ok := p.consume("expected identifier after keyword 'from'", tokens.Identifier); ok {
+	if ident, ok := p.consumeOld("expected identifier after keyword 'from'", tokens.Identifier); ok {
 		remove.Identifier = ident.Lexeme
 	}
 
@@ -923,7 +962,7 @@ func (p *Parser) forStmt() ast.Node {
 		}
 	}
 
-	p.consume("expected keyword 'in' after for loop variables", tokens.In)
+	p.consumeOld("expected keyword 'in' after for loop variables", tokens.In)
 
 	forStmt.Iterator = p.expression()
 
@@ -1058,14 +1097,16 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 
 	expr := p.expression()
 	if expr.GetType() == ast.NA {
-		p.error(p.peek(), "expected expression")
+		p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
+		// p.error(p.peek(), "expected expression")
 	}
 
 	exprs := []ast.Node{expr}
 	for p.match(tokens.Comma) {
 		expr = p.expression()
 		if expr.GetType() == ast.NA {
-			p.error(p.peek(), "expected expression")
+			p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
+			// p.error(p.peek(), "expected expression")
 		}
 		exprs = append(exprs, expr)
 	}
@@ -1092,7 +1133,7 @@ func (p *Parser) matchStmt(isExpr bool) *ast.MatchStmt {
 
 	matchStmt.ExprToMatch = p.expression()
 
-	p.consume("expected opening of the match body", tokens.LeftBrace)
+	p.consumeOld("expected opening of the match body", tokens.LeftBrace)
 
 	caseStmts, stop := p.caseStmt(isExpr)
 	for !stop {
@@ -1106,7 +1147,7 @@ func (p *Parser) matchStmt(isExpr bool) *ast.MatchStmt {
 	}
 	matchStmt.Cases = append(matchStmt.Cases, caseStmts...)
 
-	p.consume("expected closing of the match body", tokens.RightBrace)
+	p.consumeOld("expected closing of the match body", tokens.RightBrace)
 
 	return &matchStmt
 }
@@ -1135,7 +1176,7 @@ func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
 		}
 	}
 
-	p.consume("expected fat arrow after expression in case", tokens.FatArrow)
+	p.consumeOld("expected fat arrow after expression in case", tokens.FatArrow)
 
 	if p.check(tokens.LeftBrace) {
 		body, _ := p.getBody()
@@ -1145,13 +1186,15 @@ func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
 	} else {
 		expr := p.expression()
 		if expr.GetType() == ast.NA {
-			p.error(expr.GetToken(), "expected expression or '{' after fat arrow")
+			p.Alert(&alerts.ExpectedExpressionOrBody{}, p.peek(), p.peek().Location)
+			//p.error(expr.GetToken(), "expected expression or '{' after fat arrow")
 		}
 		args := []ast.Node{expr}
 		for p.match(tokens.Comma) {
 			expr = p.expression()
 			if expr.GetType() == ast.NA {
-				p.error(expr.GetToken(), "expected expression")
+				p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
+				//p.error(expr.GetToken(), "expected expression")
 			}
 			args = append(args, expr)
 		}

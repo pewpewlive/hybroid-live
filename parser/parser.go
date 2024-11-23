@@ -48,23 +48,19 @@ func (p *Parser) error(token tokens.Token, msg string) {
 }
 
 func (p *Parser) Alert(alertType alerts.Alert, args ...any) {
-	p.AlertC(alertType, args...)
+	p.Alert_(alertType, args...)
 
 	if alertType.GetAlertType() == alerts.Error {
 		panic(ParserError{})
 	}
 }
 
-func (p *Parser) InstntiatedAlert(alert alerts.Alert) {
-	p.Alerts = append(p.Alerts, alert)
+func (p *Parser) AlertI(alert alerts.Alert) {
+	p.AlertI_(alert)
 
 	if alert.GetAlertType() == alerts.Error {
 		panic(ParserError{})
 	}
-}
-
-func (p *Parser) NoPanicAlert(alert alerts.Alert, args ...any) {
-	p.AlertC(alert, args...)
 }
 
 func (p *Parser) synchronize() {
@@ -155,7 +151,7 @@ func (p *Parser) match(types ...tokens.TokenType) bool {
 
 // Takes a list of tokens, advancing if the next token matches with any token from the list and returns true.
 // Consume also advances if none of the tokens were able to match, and returns false
-func (p *Parser) consume(message string, types ...tokens.TokenType) (tokens.Token, bool) {
+func (p *Parser) consumeOld(message string, types ...tokens.TokenType) (tokens.Token, bool) {
 	if p.isAtEnd() {
 		token := p.peek()
 		p.error(token, message)
@@ -171,10 +167,10 @@ func (p *Parser) consume(message string, types ...tokens.TokenType) (tokens.Toke
 	return token, false // error
 }
 
-func (p *Parser) consumeNew(alert alerts.Alert, types ...tokens.TokenType) (tokens.Token, bool) {
+func (p *Parser) consume(alert alerts.Alert, types ...tokens.TokenType) (tokens.Token, bool) {
 	if p.isAtEnd() {
 		token := p.peek()
-		p.InstntiatedAlert(alert)
+		p.AlertI(alert)
 		return token, false // error
 	}
 	for _, tokenType := range types {
@@ -183,7 +179,7 @@ func (p *Parser) consumeNew(alert alerts.Alert, types ...tokens.TokenType) (toke
 		}
 	}
 	token := p.advance()
-	p.InstntiatedAlert(alert)
+	p.AlertI(alert)
 	return token, false // error
 }
 
@@ -218,7 +214,7 @@ func (p *Parser) GetEnv() bool {
 	}()
 
 	if p.peek().Type != tokens.Env {
-		p.NoPanicAlert(&alerts.ExpectedEnvironment{}, p.peek(), p.peek().Location)
+		p.Alert_(&alerts.ExpectedEnvironment{}, p.peek(), p.peek().Location)
 		// unsynchronizable error.
 		// if there is no env you cannot know which numbers are allowed
 		return true
@@ -252,7 +248,7 @@ func (p *Parser) getBody() ([]ast.Node, bool) {
 		body = []ast.Node{p.statement()}
 		return body, true
 	}
-	if _, success := p.consume("expected opening of the body", tokens.LeftBrace); !success {
+	if _, success := p.consumeOld("expected opening of the body", tokens.LeftBrace); !success {
 		return body, false
 	}
 

@@ -7,6 +7,6 @@ import (
 
 func main() {
 	cwd, _ := os.Getwd()
-	os.Chdir(cwd + "/example")
+	os.Chdir(cwd + "/examples/" + os.Args[2])
 	cli.RunApp()
 }
