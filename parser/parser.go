@@ -126,7 +126,7 @@ func (p *Parser) peek(offset ...int) tokens.Token {
 	if offset == nil {
 		return p.tokens[p.current]
 	} else {
-		if p.current+offset[0] >= len(p.tokens)-1 {
+		if p.current+offset[0] >= len(p.tokens)-1 || p.current+offset[0] < 1 {
 			return p.tokens[p.current]
 		}
 		return p.tokens[p.current+offset[0]]
@@ -188,6 +188,25 @@ func (p *Parser) consumeNew(alert alerts.Alert, types ...tokens.TokenType) (toke
 }
 
 func (p *Parser) ParseTokens() []ast.Node {
+	failed := p.GetEnv()
+	if failed {
+		return []ast.Node{}
+	}
+
+	for !p.isAtEnd() {
+		statement := p.statement()
+		if statement == nil {
+			continue
+		}
+		if statement.GetType() != ast.NA {
+			p.program = append(p.program, statement)
+		}
+	}
+
+	return p.program
+}
+
+func (p *Parser) GetEnv() bool {
 	defer func() {
 		if errMsg := recover(); errMsg != nil {
 			if _, ok := errMsg.(ast.Error); ok {
@@ -202,25 +221,16 @@ func (p *Parser) ParseTokens() []ast.Node {
 		p.NoPanicAlert(&alerts.ExpectedEnvironment{}, p.peek(), p.peek().Location)
 		// unsynchronizable error.
 		// if there is no env you cannot know which numbers are allowed
-		return []ast.Node{}
+		return true
 	}
 	envStmt := p.statement()
 	if envStmt.GetType() == ast.NA {
-		return []ast.Node{}
+		return true
 	}
+
 	p.program = append(p.program, envStmt)
 
-	for !p.isAtEnd() {
-		statement := p.statement()
-		if statement == nil {
-			continue
-		}
-		if statement.GetType() != ast.NA {
-			p.program = append(p.program, statement)
-		}
-	}
-
-	return p.program
+	return false
 }
 
 func (p *Parser) getBody() ([]ast.Node, bool) {

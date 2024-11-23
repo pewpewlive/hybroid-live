@@ -30,6 +30,10 @@ func (ep *ExpectedParenthesiss) GetNote() string {
   return ""
 }
 
+func (ep *ExpectedParenthesiss) GetName() string {
+  return "ExpectedParenthesiss"
+}
+
 func (ep *ExpectedParenthesiss) GetAlertType() AlertType {
   return Error
 }

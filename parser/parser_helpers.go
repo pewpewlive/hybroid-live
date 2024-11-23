@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"hybroid/alerts"
 	"hybroid/ast"
 	"hybroid/tokens"
@@ -63,7 +62,6 @@ func (p *Parser) getParam() ast.Param {
 func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) []ast.Param {
 	if !p.match(opening) {
 		p.Alert(&alerts.ExpectedParenthesis{}, p.peek(), p.peek().Location, "(")
-		//p.error(p.peek(), "expected opening parentheses")
 		return []ast.Param{}
 	}
 
@@ -75,7 +73,7 @@ func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) 
 		param := p.getParam()
 		if param.Type == nil {
 			if len(args) == 0 {
-				p.error(param.Name, "parameter need to be declared with a type before the name")
+				p.Alert(&alerts.ExpectedParameterTypeBeforeIdentifier{}, p.peek(-1), p.peek(-1).Location) //param.Name, "parameter need to be declared with a type before the name")
 			} else {
 				param.Type = previous
 			}
@@ -87,7 +85,7 @@ func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) 
 			param := p.getParam()
 			if param.Type == nil {
 				if len(args) == 0 {
-					p.error(param.Name, "parameter need to be declared with a type before the name")
+					p.Alert(&alerts.ExpectedParameterTypeBeforeIdentifier{}, p.peek(-1), p.peek(-1).Location)
 				} else {
 					param.Type = previous
 				}
@@ -96,7 +94,7 @@ func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) 
 			}
 			args = append(args, param)
 		}
-		p.consume(fmt.Sprintf("expected %s after an identifier", string(closing)), closing)
+		p.consumeNew(p.InstAlert(&alerts.ExpectedParenthesis{}, p.peek(), p.peek().Location, ")"), closing)
 	}
 
 	return args
@@ -110,7 +108,7 @@ func (p *Parser) genericParameters() []*ast.IdentifierExpr {
 
 	token := p.advance()
 	if token.Type != tokens.Identifier {
-		p.error(token, "expected identifier in generic parameters")
+		p.error(token, "expected type identifier in generic parameters")
 	} else {
 		params = append(params, &ast.IdentifierExpr{Name: token, ValueType: ast.Invalid})
 	}
@@ -118,7 +116,7 @@ func (p *Parser) genericParameters() []*ast.IdentifierExpr {
 	for p.match(tokens.Comma) {
 		token := p.advance()
 		if token.Type != tokens.Identifier {
-			p.error(token, "expected identifier in generic parameters")
+			p.error(token, "expected type identifier in generic parameters")
 		} else {
 			params = append(params, &ast.IdentifierExpr{Name: token, ValueType: ast.Invalid})
 		}

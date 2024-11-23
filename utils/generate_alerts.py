@@ -106,6 +106,12 @@ class Alert:
                 "string",
                 f"return {_format_string(self.note, self.note_format, self.receiver)}",
             ],
+            [
+                "GetName",
+                "",
+                "string",
+                f"return \"{self.name}\""
+            ],
             ["GetAlertType", "", "AlertType", f"return {self.type}"],
         ]
 

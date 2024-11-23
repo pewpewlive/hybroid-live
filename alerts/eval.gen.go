@@ -30,6 +30,10 @@ func (ep *ExpectedPaarenthesissss) GetNote() string {
   return ""
 }
 
+func (ep *ExpectedPaarenthesissss) GetName() string {
+  return "ExpectedPaarenthesissss"
+}
+
 func (ep *ExpectedPaarenthesissss) GetAlertType() AlertType {
   return Error
 }

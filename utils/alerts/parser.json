@@ -12,15 +12,18 @@
     "name": "ExpectedEnvironment",
     "type": "Error",
     "message": "Expected environment statement",
-    "note": "environment statement has to be the first statement in any hybroid file. example: env HellloWorld as Level"
+    "note": "environment statement has to be the first statement in any hybroid file. example: env HelloWorld as Level"
   },
   {
     "name": "ExpectedIdentifier",
     "type": "Error",
-    "params": {
-      "Symbol": "string"
-    },
-    "message": "Expected '%s'",
-    "message_format": ["Symbol"]
+    "message": "Expected identifier"
+  },
+  {
+    "name": "ExpectedParameterTypeBeforeIdentifier",
+    "type": "Error",
+    "message": "Expected type",
+    "note": "parameters need to be declared with a type before them. example: number %s",
+    "note_format": ["Token.Lexeme"]
   }
 ]

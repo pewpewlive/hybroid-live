@@ -29,6 +29,10 @@ func (ms *MultilineString) GetNote() string {
   return ""
 }
 
+func (ms *MultilineString) GetName() string {
+  return "MultilineString"
+}
+
 func (ms *MultilineString) GetAlertType() AlertType {
   return Error
 }
@@ -53,6 +57,10 @@ func (us *UnterminatedString) GetLocations() []tokens.TokenLocation {
 
 func (us *UnterminatedString) GetNote() string {
   return ""
+}
+
+func (us *UnterminatedString) GetName() string {
+  return "UnterminatedString"
 }
 
 func (us *UnterminatedString) GetAlertType() AlertType {
@@ -82,6 +90,10 @@ func (mn *MalformedNumber) GetNote() string {
   return ""
 }
 
+func (mn *MalformedNumber) GetName() string {
+  return "MalformedNumber"
+}
+
 func (mn *MalformedNumber) GetAlertType() AlertType {
   return Error
 }
@@ -109,6 +121,10 @@ func (inp *InvalidNumberPostfix) GetNote() string {
   return "a valid postfix is either 'f', 'fx', 'r' or 'd'"
 }
 
+func (inp *InvalidNumberPostfix) GetName() string {
+  return "InvalidNumberPostfix"
+}
+
 func (inp *InvalidNumberPostfix) GetAlertType() AlertType {
   return Error
 }
@@ -134,6 +150,10 @@ func (uc *UnsupportedCharacter) GetLocations() []tokens.TokenLocation {
 
 func (uc *UnsupportedCharacter) GetNote() string {
   return ""
+}
+
+func (uc *UnsupportedCharacter) GetName() string {
+  return "UnsupportedCharacter"
 }
 
 func (uc *UnsupportedCharacter) GetAlertType() AlertType {
