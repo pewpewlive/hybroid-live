@@ -1,15 +1,18 @@
 package lexer
 
-import "strconv"
+import (
+	"hybroid/tokens"
+	"strconv"
+)
 
 type LexerError struct {
-	TokenType TokenType
-	Location  TokenLocation
+	TokenType tokens.TokenType
+	Location  tokens.TokenLocation
 	Message   string
 }
 
-func (le LexerError) GetToken() Token {
-	return Token{Type: le.TokenType, Location: le.Location}
+func (le LexerError) GetToken() tokens.Token {
+	return tokens.Token{Type: le.TokenType, Location: le.Location}
 }
 
 func (le LexerError) GetHeader() string {
@@ -21,7 +24,7 @@ func (le LexerError) GetMessage() string {
 }
 
 func (l *Lexer) lexerError(message string) {
-	l.Errors = append(l.Errors, LexerError{Eof, TokenLocation{LineStart: l.line, LineEnd: l.line, ColStart: l.columnStart, ColEnd: l.columnCurrent}, message})
+	l.Errors = append(l.Errors, LexerError{tokens.Eof, tokens.TokenLocation{LineStart: l.line, LineEnd: l.line, ColStart: l.columnStart, ColEnd: l.columnCurrent}, message})
 }
 
 func (l *Lexer) advance() byte {
@@ -39,9 +42,9 @@ func (l *Lexer) isAtEndNext() bool {
 	return l.current+1 >= len(l.source)
 }
 
-func (l *Lexer) addToken(token TokenType, literal string) {
+func (l *Lexer) addToken(token tokens.TokenType, literal string) {
 	text := string(l.source)[l.start:l.current]
-	l.Tokens = append(l.Tokens, Token{Type: token, Lexeme: text, Literal: literal, Location: TokenLocation{LineStart: l.line, LineEnd: l.line, ColStart: l.columnStart + 1, ColEnd: l.columnCurrent + 1}})
+	l.Tokens = append(l.Tokens, tokens.Token{Type: token, Lexeme: text, Literal: literal, Location: tokens.TokenLocation{LineStart: l.line, LineEnd: l.line, ColStart: l.columnStart + 1, ColEnd: l.columnCurrent + 1}})
 }
 
 func (l *Lexer) matchChar(expected byte) bool {

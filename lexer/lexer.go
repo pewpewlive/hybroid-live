@@ -2,10 +2,11 @@ package lexer
 
 import (
 	"fmt"
+	"hybroid/tokens"
 )
 
 type Lexer struct {
-	Tokens []Token
+	Tokens []tokens.Token
 	source []byte
 	Errors []LexerError
 
@@ -13,7 +14,7 @@ type Lexer struct {
 }
 
 func NewLexer() Lexer {
-	return Lexer{make([]Token, 0), make([]byte, 0), make([]LexerError, 0), 0, 0, 1, 0, 0}
+	return Lexer{make([]tokens.Token, 0), make([]byte, 0), make([]LexerError, 0), 0, 0, 1, 0, 0}
 }
 
 func (l *Lexer) AssignSource(src []byte) {
@@ -43,7 +44,7 @@ func (l *Lexer) handleString() {
 	l.advance()
 
 	value := string(l.source)[l.start+1 : l.current-1]
-	l.addToken(String, value)
+	l.addToken(tokens.String, value)
 }
 
 func (l *Lexer) handleNumber() {
@@ -55,7 +56,7 @@ func (l *Lexer) handleNumber() {
 			l.advance()
 		}
 
-		l.addToken(Number, string(l.source[l.start:l.current]))
+		l.addToken(tokens.Number, string(l.source[l.start:l.current]))
 
 		return
 	}
@@ -92,15 +93,15 @@ func (l *Lexer) handleNumber() {
 	switch postfix {
 
 	case "f":
-		l.addToken(Fixed, strNum)
+		l.addToken(tokens.Fixed, strNum)
 	case "fx":
-		l.addToken(FixedPoint, strNum)
+		l.addToken(tokens.FixedPoint, strNum)
 	case "r":
-		l.addToken(Radian, strNum)
+		l.addToken(tokens.Radian, strNum)
 	case "d":
-		l.addToken(Degree, strNum)
+		l.addToken(tokens.Degree, strNum)
 	case "":
-		l.addToken(Number, strNum)
+		l.addToken(tokens.Number, strNum)
 	default:
 		l.lexerError(fmt.Sprintf("invalid postfix '%s'", postfix))
 	}
@@ -113,13 +114,13 @@ func (l *Lexer) handleIdentifier() {
 
 	text := string(l.source)[l.start:l.current]
 
-	val, ok := KeywordToToken(text)
+	val, ok := tokens.KeywordToToken(text)
 	if ok {
 		l.addToken(val, "")
 		return
 	}
 
-	l.addToken(Identifier, "")
+	l.addToken(tokens.Identifier, "")
 }
 
 func (l *Lexer) scanToken() {
@@ -128,98 +129,98 @@ func (l *Lexer) scanToken() {
 	switch c {
 
 	case '{':
-		l.addToken(LeftBrace, "")
+		l.addToken(tokens.LeftBrace, "")
 	case '}':
-		l.addToken(RightBrace, "")
+		l.addToken(tokens.RightBrace, "")
 	case '(':
-		l.addToken(LeftParen, "")
+		l.addToken(tokens.LeftParen, "")
 	case ')':
-		l.addToken(RightParen, "")
+		l.addToken(tokens.RightParen, "")
 	case '[':
-		l.addToken(LeftBracket, "")
+		l.addToken(tokens.LeftBracket, "")
 	case ']':
-		l.addToken(RightBracket, "")
+		l.addToken(tokens.RightBracket, "")
 	case ',':
-		l.addToken(Comma, "")
+		l.addToken(tokens.Comma, "")
 	case ':':
 		if l.matchChar(':') {
-			l.addToken(DoubleColon, "")
+			l.addToken(tokens.DoubleColon, "")
 		} else {
-			l.addToken(Colon, "")
+			l.addToken(tokens.Colon, "")
 		}
 	case '@':
-		l.addToken(At, "")
+		l.addToken(tokens.At, "")
 	case '#':
-		l.addToken(Hash, "")
+		l.addToken(tokens.Hash, "")
 	case '|':
-		l.addToken(Pipe, "")
+		l.addToken(tokens.Pipe, "")
 	case '.':
 		if l.matchChar('.') {
 			if l.matchChar('.') {
-				l.addToken(DotDotDot, "")
-			}else {
-				l.addToken(Concat, "")
+				l.addToken(tokens.DotDotDot, "")
+			} else {
+				l.addToken(tokens.Concat, "")
 			}
 		} else {
-			l.addToken(Dot, "")
+			l.addToken(tokens.Dot, "")
 		}
 	case '+':
 		if l.matchChar('=') {
-			l.addToken(PlusEqual, "")
+			l.addToken(tokens.PlusEqual, "")
 		} else {
-			l.addToken(Plus, "")
+			l.addToken(tokens.Plus, "")
 		}
 	case '-':
 		if l.matchChar('=') {
-			l.addToken(MinusEqual, "")
+			l.addToken(tokens.MinusEqual, "")
 		} else if l.matchChar('>') {
-			l.addToken(ThinArrow, "")
+			l.addToken(tokens.ThinArrow, "")
 		} else {
-			l.addToken(Minus, "")
+			l.addToken(tokens.Minus, "")
 		}
 	case '^':
 		if l.matchChar('=') {
-			l.addToken(CaretEqual, "")
+			l.addToken(tokens.CaretEqual, "")
 		} else {
-			l.addToken(Caret, "")
+			l.addToken(tokens.Caret, "")
 		}
 	case '*':
 		if l.matchChar('=') {
-			l.addToken(StarEqual, "")
+			l.addToken(tokens.StarEqual, "")
 		} else {
-			l.addToken(Star, "")
+			l.addToken(tokens.Star, "")
 		}
 	case '=':
 		if l.matchChar('=') {
-			l.addToken(EqualEqual, "")
+			l.addToken(tokens.EqualEqual, "")
 		} else if l.matchChar('>') {
-			l.addToken(FatArrow, "")
+			l.addToken(tokens.FatArrow, "")
 		} else {
-			l.addToken(Equal, "")
+			l.addToken(tokens.Equal, "")
 		}
 	case '!':
 		if l.matchChar('=') {
-			l.addToken(BangEqual, "")
+			l.addToken(tokens.BangEqual, "")
 		} else {
-			l.addToken(Bang, "")
+			l.addToken(tokens.Bang, "")
 		}
 	case '<':
 		if l.matchChar('=') {
-			l.addToken(LessEqual, "")
+			l.addToken(tokens.LessEqual, "")
 		} else {
-			l.addToken(Less, "")
+			l.addToken(tokens.Less, "")
 		}
 	case '>':
 		if l.matchChar('=') {
-			l.addToken(GreaterEqual, "")
+			l.addToken(tokens.GreaterEqual, "")
 		} else {
-			l.addToken(Greater, "")
+			l.addToken(tokens.Greater, "")
 		}
 	case '%':
 		if l.matchChar('=') {
-			l.addToken(ModuloEqual, "")
+			l.addToken(tokens.ModuloEqual, "")
 		} else {
-			l.addToken(Modulo, "")
+			l.addToken(tokens.Modulo, "")
 		}
 
 	case '/':
@@ -243,20 +244,20 @@ func (l *Lexer) scanToken() {
 			l.advance()
 		} else {
 			if l.matchChar('=') {
-				l.addToken(SlashEqual, "")
+				l.addToken(tokens.SlashEqual, "")
 			} else {
-				l.addToken(Slash, "")
+				l.addToken(tokens.Slash, "")
 			}
 		}
 
 	case '\\':
 		if l.matchChar('=') {
-			l.addToken(BackSlashEqual, "")
+			l.addToken(tokens.BackSlashEqual, "")
 		} else {
-			l.addToken(BackSlash, "")
+			l.addToken(tokens.BackSlash, "")
 		}
 	case ';':
-		l.addToken(SemiColon, "")
+		l.addToken(tokens.SemiColon, "")
 	// Whitespace characters
 	case ' ', '\r', '\t':
 		break
@@ -288,8 +289,11 @@ func (l *Lexer) Tokenize() {
 		l.scanToken()
 	}
 
-	l.Tokens = append(l.Tokens, Token{
-		Eof, "", "", TokenLocation{
+	l.Tokens = append(l.Tokens, tokens.Token{
+		Type:    tokens.Eof,
+		Lexeme:  "",
+		Literal: "",
+		Location: tokens.TokenLocation{
 			LineStart: l.line,
 			LineEnd:   l.line,
 			ColStart:  l.columnCurrent + 1,

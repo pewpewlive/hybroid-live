@@ -1,17 +1,17 @@
 package ast
 
-import "hybroid/lexer"
+import "hybroid/tokens"
 
 type NodeType string
 
 const (
-	VariableDeclarationStatement  NodeType = "variableDeclarationStatement"
-	FunctionDeclarationStatement  NodeType = "functionDeclarationStatement"
-	ClassDeclarationStatement     NodeType = "classDeclarationStatement"
-	FieldDeclarationStatement     NodeType = "fieldDeclarationStatement"
-	MethodDeclarationStatement    NodeType = "methodDeclarationStatement"
-	EnumDeclarationStatement      NodeType = "enumDeclarationStatement"
-	MacroDeclarationStatement     NodeType = "macroDeclarationStatement"
+	VariableDeclarationStatement NodeType = "variableDeclarationStatement"
+	FunctionDeclarationStatement NodeType = "functionDeclarationStatement"
+	ClassDeclarationStatement    NodeType = "classDeclarationStatement"
+	FieldDeclarationStatement    NodeType = "fieldDeclarationStatement"
+	MethodDeclarationStatement   NodeType = "methodDeclarationStatement"
+	EnumDeclarationStatement     NodeType = "enumDeclarationStatement"
+	MacroDeclarationStatement    NodeType = "macroDeclarationStatement"
 	//TypeDeclarationStatement      NodeType = "typeDeclarationStatement"
 	AliasDeclarationStatement     NodeType = "aliasDeclarationStatement"
 
@@ -73,34 +73,34 @@ const (
 type PrimitiveValueType string
 
 const (
-	Object     PrimitiveValueType = "object"
-	Number     PrimitiveValueType = "number"
-	String     PrimitiveValueType = "string"
-	Bool       PrimitiveValueType = "bool"
-	FixedPoint PrimitiveValueType = "fixedPoint"
-	Fixed      PrimitiveValueType = "fixed"
-	Radian     PrimitiveValueType = "radian"
-	Degree     PrimitiveValueType = "degree"
-	List       PrimitiveValueType = "list"
-	Map        PrimitiveValueType = "map"
-	Func       PrimitiveValueType = "func"
-	Entity     PrimitiveValueType = "entity"
-	Struct     PrimitiveValueType = "struct"
-	AnonStruct PrimitiveValueType = "anonStruct"
-	Ident      PrimitiveValueType = "ident"
-	Enum       PrimitiveValueType = "enum"
-	Path       PrimitiveValueType = "path"
-	Generic    PrimitiveValueType = "generic"
-	Invalid    PrimitiveValueType = "invalid"
+	Object        PrimitiveValueType = "object"
+	Number        PrimitiveValueType = "number"
+	String        PrimitiveValueType = "string"
+	Bool          PrimitiveValueType = "bool"
+	FixedPoint    PrimitiveValueType = "fixedPoint"
+	Fixed         PrimitiveValueType = "fixed"
+	Radian        PrimitiveValueType = "radian"
+	Degree        PrimitiveValueType = "degree"
+	List          PrimitiveValueType = "list"
+	Map           PrimitiveValueType = "map"
+	Func          PrimitiveValueType = "func"
+	Entity        PrimitiveValueType = "entity"
+	Struct        PrimitiveValueType = "struct"
+	AnonStruct    PrimitiveValueType = "anonStruct"
+	Ident         PrimitiveValueType = "ident"
+	Enum          PrimitiveValueType = "enum"
+	Path          PrimitiveValueType = "path"
+	Generic       PrimitiveValueType = "generic"
+	Invalid       PrimitiveValueType = "invalid"
 	Uninitialized PrimitiveValueType = "uninitialized"
 )
 
 type EnvType string
 
 const (
-	MeshEnv EnvType = "MeshEnv"
-	Level EnvType = "LevelEnv"
-	SoundEnv EnvType = "SoundEnv"
+	MeshEnv    EnvType = "MeshEnv"
+	Level      EnvType = "LevelEnv"
+	SoundEnv   EnvType = "SoundEnv"
 	InvalidEnv EnvType = "InvalidEnv"
 )
 
@@ -133,7 +133,7 @@ type Paths []string
 
 type Node interface {
 	GetType() NodeType
-	GetToken() lexer.Token
+	GetToken() tokens.Token
 	GetValueType() PrimitiveValueType
 }
 

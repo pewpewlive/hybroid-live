@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"hybroid/ast"
 	"hybroid/generator"
-	"hybroid/lexer"
+	"hybroid/tokens"
 )
 
 type ScopeableValue interface {
@@ -36,7 +36,7 @@ type VariableVal struct {
 	IsConst bool
 	IsLocal bool
 	IsInit  bool
-	Token   lexer.Token
+	Token   tokens.Token
 }
 
 func (v *VariableVal) GetType() Type {

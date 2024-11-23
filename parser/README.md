@@ -16,7 +16,7 @@ The `Parser` holds the tokens ready to be converted, an index pointing to the cu
 type Parser struct {
  program []ast.Node
  current int
- tokens  []lexer.Token
+ tokens  []tokens.Token
  Errors  []ast.Error
 }
 ```
@@ -27,17 +27,17 @@ type Parser struct {
 
 #### **Methods:**
 
-1. `AssignTokens(tokens []lexer.Token)` - Assigns a list of tokens (returned by the tokenizer) to be parsed.
-2. `error(token lexer.Token, msg string)` - Appends an error with the following `token` and `msg` to the parser list of errors.
+1. `AssignTokens(tokens []tokens.Token)` - Assigns a list of tokens (returned by the tokenizer) to be parsed.
+2. `error(token tokens.Token, msg string)` - Appends an error with the following `token` and `msg` to the parser list of errors.
 3. `synchronize()` - A method that tries to synchronize the parser back with the next tokens that are valid.
 4. `isMultiComparison() -> bool` - Checks if the current token is either an `and` or `or` keyword.
 5. `isComparison() -> bool` - Checks if the current token is either of these: `>`, `>=`, `<`, `<=`, `!=`, `==`.
 6. `isAtEnd() -> bool` - Checks if the current position the parser is at is the End Of File.
-7. `advance() -> lexer.Token` - Advances by one into the next token and returns the previous token before advancing.
-8. `peek(offset ...int) -> lexer.Token` - Peeks into the current token or peeks at the token that is offset from the current position by the given optional `offset`.
-9. `check(tokenType lexer.TokenType) -> bool` - Checks if the current token is the specified `tokenType`. Note: returns false if it's the End Of File.
-10. `match(types ...lexer.TokenType) -> bool` - Matches the given list of tokens and advances if they match.
-11. `consume(message string, types ...lexer.TokenType) -> (lexer.Token, bool)` - Consumes a list of tokens, advancing if they match and returns true. It also advances if none of the tokens were able to match, and returns false. Note: it creates errors with the specified `message` if necessary.
+7. `advance() -> tokens.Token` - Advances by one into the next token and returns the previous token before advancing.
+8. `peek(offset ...int) -> tokens.Token` - Peeks into the current token or peeks at the token that is offset from the current position by the given optional `offset`.
+9. `check(tokenType tokens.TokenType) -> bool` - Checks if the current token is the specified `tokenType`. Note: returns false if it's the End Of File.
+10. `match(types ...tokens.TokenType) -> bool` - Matches the given list of tokens and advances if they match.
+11. `consume(message string, types ...tokens.TokenType) -> (tokens.Token, bool)` - Consumes a list of tokens, advancing if they match and returns true. It also advances if none of the tokens were able to match, and returns false. Note: it creates errors with the specified `message` if necessary.
 12. `ParseTokens() -> []ast.Node` - Parses the assigned tokens, and returns a program (list of `ast.Node`s) for it to be later walked.
 
 ## `parser_helpers.go`
@@ -47,9 +47,11 @@ The file that holds all of the necessary helpers for the [Parser](https://github
 This file adds additional methods to [Parser](https://github.com/pewpewlive/hybroid/blob/master/parser/README.md#parsergo).
 
 ### **Methods:**
+
 Σ
-1. `createBinExpr(left ast.Node, operator lexer.Token, tokenType lexer.TokenType, lexeme string, right ast.Node) -> ast.Node` - Evaluates the value type, creates a `BinaryExpr` with the respective parameters, and returns it.
-2. `getOp(opEqual lexer.Token) -> lexer.Token` - Returns the respective operation when using assignment operators. For example: if given `lexer.MinusEqual` (`-=`), it returns `lexer.Minus`.
+
+1. `createBinExpr(left ast.Node, operator tokens.Token, tokenType tokens.TokenType, lexeme string, right ast.Node) -> ast.Node` - Evaluates the value type, creates a `BinaryExpr` with the respective parameters, and returns it.
+2. `getOp(opEqual tokens.Token) -> tokens.Token` - Returns the respective operation when using assignment operators. For example: if given `tokens.MinusEqual` (`-=`), it returns `tokens.Minus`.
 3. `getParam() -> ast.Param` - Attempts to get the current token (that is an identifier) and its type. Returns an `ast.Param` type with the respective values.
 4. `parameters() -> []ast.Param` - Returns a list of `ast.Param`s. Uses `getParam()` under the hood to get all of the parameters. Note: throws errors if the expression is missing parentheses. <!-- FIXME: Think of a better description -->
 5. `arguments() -> []ast.Node` - Returns a list of `ast.Param`s. Uses `getParam()` under the hood to get all of the parameters. Note: throws errors if the expression is missing parentheses. <!-- FIXME: Think of a better description -->
@@ -63,9 +65,8 @@ This file adds additional methods to [Parser](https://github.com/pewpewlive/hybr
 ### **Methods:**
 
 1. `statement() -> ast.Node` - Switches on tokens to get into correct function for handling the token, if this function gets an error it will try to synchronize to find as much errors as possible.
-2. `macroDeclarationStmt() -> ast.Node` - Creates an `ast.MacroDeclarationStmt` (CITATION NEEDED). For this to be called the `lexer.Macro` token must have been found.
+2. `macroDeclarationStmt() -> ast.Node` - Creates an `ast.MacroDeclarationStmt` (CITATION NEEDED). For this to be called the `tokens.Macro` token must have been found.
 3. `envStmt() -> ast.Node` - Creates an [ast.EnvironmentStmt](https://github.com/pewpewlive/hybroid/blob/master/ast/README.md#environmentstmt).
-4. 
+4.
 
 ## `expressions.go`
-

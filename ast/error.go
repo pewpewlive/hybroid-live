@@ -1,20 +1,19 @@
 package ast
 
-import "hybroid/lexer"
-
+import "hybroid/tokens"
 
 type Alert interface {
-	GetToken() lexer.Token
+	GetToken() tokens.Token
 	GetHeader() string
 	GetMessage() string
 }
 
 type Error struct {
-	Token   lexer.Token
+	Token   tokens.Token
 	Message string
 }
 
-func (e Error) GetToken() lexer.Token {
+func (e Error) GetToken() tokens.Token {
 	return e.Token
 }
 
@@ -27,11 +26,11 @@ func (e Error) GetHeader() string {
 }
 
 type Warning struct {
-	Token   lexer.Token
+	Token   tokens.Token
 	Message string
 }
 
-func (w Warning) GetToken() lexer.Token {
+func (w Warning) GetToken() tokens.Token {
 	return w.Token
 }
 

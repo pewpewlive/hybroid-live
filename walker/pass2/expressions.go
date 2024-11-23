@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"hybroid/ast"
 	"hybroid/generator"
-	"hybroid/lexer"
+	"hybroid/tokens"
 	wkr "hybroid/walker"
 )
 
@@ -73,11 +73,11 @@ func EntityExpr(w *wkr.Walker, node *ast.EntityExpr, scope *wkr.Scope) wkr.Value
 	if ident, ok := node.Type.Name.(*ast.IdentifierExpr); ok {
 		switch ident.Name.Lexeme {
 		case "Asteroid", "YellowBaf", "Inertiac", "Mothership",
-		"MothershipBullet", "RollingCube", "RollingSphere",
-		"Ufo", "Wary", "Crowder", "Ship", "Bomb", "BlueBaf",
-		"RedBaf", "WaryMissile", "UfoBullet", "PlayerBullet",
-		"BombExplosion", "PlayerExplosion", "Bonus", "FloatingMessage",
-		"Pointonium", "BonusImplosion":
+			"MothershipBullet", "RollingCube", "RollingSphere",
+			"Ufo", "Wary", "Crowder", "Ship", "Bomb", "BlueBaf",
+			"RedBaf", "WaryMissile", "UfoBullet", "PlayerBullet",
+			"BombExplosion", "PlayerExplosion", "Bonus", "FloatingMessage",
+			"Pointonium", "BonusImplosion":
 			typ = &wkr.RawEntityType{}
 			node.OfficialEntityType = true
 		}
@@ -85,18 +85,18 @@ func EntityExpr(w *wkr.Walker, node *ast.EntityExpr, scope *wkr.Scope) wkr.Value
 
 	if typ.PVT() != ast.Entity {
 		w.Error(node.Token, "type given in entity expression is not an entity type")
-	}else if !node.OfficialEntityType {
+	} else if !node.OfficialEntityType {
 		varName := lexer.Token{}
 		if node.ConvertedVarName != nil {
 			varName = *node.ConvertedVarName
 			w.Context.Conversions = append(w.Context.Conversions, wkr.NewEntityConversion(varName, w.TypeToValue(typ).(*wkr.EntityVal)))
-		}else if len(w.Context.Conversions) != 0 {
+		} else if len(w.Context.Conversions) != 0 {
 			w.Context.Conversions = append(w.Context.Conversions, wkr.NewEntityConversion(varName, w.TypeToValue(typ).(*wkr.EntityVal)))
 		}
 		entityVal := w.TypeToValue(typ).(*wkr.EntityVal)
 		node.EntityName = entityVal.Type.Name
 		node.EnvName = entityVal.Type.EnvName
-	}else if node.ConvertedVarName != nil {
+	} else if node.ConvertedVarName != nil {
 		w.Error(*node.ConvertedVarName, "can't convert an entity to an official entity")
 	}
 
@@ -112,7 +112,7 @@ func BinaryExpr(w *wkr.Walker, node *ast.BinaryExpr, scope *wkr.Scope) wkr.Value
 	leftType, rightType := left.GetType(), right.GetType()
 	op := node.Operator
 	switch op.Type {
-	case lexer.Plus, lexer.Minus, lexer.Caret, lexer.Star, lexer.Slash, lexer.Modulo, lexer.BackSlash:
+	case tokens.Plus, tokens.Minus, tokens.Caret, tokens.Star, tokens.Slash, tokens.Modulo, tokens.BackSlash:
 		w.ValidateArithmeticOperands(leftType, rightType, node)
 		typ := w.DetermineValueType(leftType, rightType)
 
@@ -122,7 +122,7 @@ func BinaryExpr(w *wkr.Walker, node *ast.BinaryExpr, scope *wkr.Scope) wkr.Value
 		}
 
 		return w.TypeToValue(typ)
-	case lexer.Concat:
+	case tokens.Concat:
 		if !wkr.TypeEquals(leftType, wkr.NewBasicType(ast.String)) && !wkr.TypeEquals(rightType, wkr.NewBasicType(ast.String)) {
 			w.Error(node.GetToken(), fmt.Sprintf("invalid concatenation: left is %s and right is %s", leftType.ToString(), rightType.ToString()))
 			return &wkr.Invalid{}
@@ -132,11 +132,11 @@ func BinaryExpr(w *wkr.Walker, node *ast.BinaryExpr, scope *wkr.Scope) wkr.Value
 		if op.Type == lexer.Or {
 			if node.Left.GetType() == ast.EntityExpression && node.Left.(*ast.EntityExpr).ConvertedVarName != nil {
 				w.Error(node.Left.GetToken(), "conversion of entity is not possible in a binary expression with 'or' operator")
-			}else if node.Right.GetType() == ast.EntityExpression && node.Right.(*ast.EntityExpr).ConvertedVarName != nil {
+			} else if node.Right.GetType() == ast.EntityExpression && node.Right.(*ast.EntityExpr).ConvertedVarName != nil {
 				w.Error(node.Right.GetToken(), "conversion of entity is not possible in a binary expression with 'or' operator")
 			}
 		}
-	
+
 		if !wkr.TypeEquals(leftType, rightType) {
 			w.Error(node.GetToken(), fmt.Sprintf("invalid comparison: types are not the same (left: %s, right: %s)", leftType.ToString(), rightType.ToString()))
 			return &wkr.Invalid{}
@@ -177,7 +177,7 @@ func ConvertNodeToFieldExpr(ident ast.Node, index int, exprType ast.SelfExprType
 	fieldExpr.Property = ident
 	if access, ok := ident.(ast.Accessor); ok {
 		fieldExpr.PropertyIdentifier = access.GetIdentifier()
-	}else {
+	} else {
 		fieldExpr.PropertyIdentifier = &ast.IdentifierExpr{Name: ident.GetToken()}
 	}
 
@@ -187,14 +187,14 @@ func ConvertNodeToFieldExpr(ident ast.Node, index int, exprType ast.SelfExprType
 func ConvertCallToMethodCall(call *ast.CallExpr, exprType ast.SelfExprType, envName string, name string) *ast.MethodCallExpr {
 	copy := *call
 	return &ast.MethodCallExpr{
-		EnvName: envName,
+		EnvName:  envName,
 		TypeName: name,
 		ExprType: exprType,
 		Identifier: &ast.SelfExpr{
 			EntityName: name,
-			Type: exprType,
+			Type:       exprType,
 		},
-		Call: &copy,
+		Call:       &copy,
 		MethodName: call.Caller.GetToken().Lexeme,
 	}
 }
@@ -260,10 +260,10 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 		*node = &ast.BuiltinExpr{
 			Name: ident.Name,
 		}
-	}else if sc.Environment.Name != w.Environment.Name {
+	} else if sc.Environment.Name != w.Environment.Name {
 		*node = &ast.EnvAccessExpr{
 			PathExpr: &ast.EnvPathExpr{
-				Path: lexer.Token{
+				Path: tokens.Token{
 					Lexeme:   sc.Environment.Name,
 					Location: ident.GetToken().Location,
 				},
@@ -339,11 +339,10 @@ func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr) (wkr.Value, ast.Node)
 		return &wkr.Invalid{}, nil
 	}
 
-
 	if walker.Environment.Name == w.Environment.Name {
 		w.Error(node.GetToken(), "cannot access self")
 		return &wkr.Invalid{}, nil
-	}else if walker.Environment.Path == "/dynamic/level.lua" {
+	} else if walker.Environment.Path == "/dynamic/level.lua" {
 		if !walker.Walked {
 			Action(walker, w.Walkers)
 		}
@@ -408,7 +407,7 @@ func CallExpr(w *wkr.Walker, val wkr.Value, node *ast.CallExpr, scope *wkr.Scope
 		}
 		finalNode = ConvertCallToMethodCall(node, ast.SelfEntity, entity.Type.EnvName, entity.Type.Name)
 		w.Context.Value2 = &wkr.Unknown{}
-	}else if class, ok := w.Context.Value2.(*wkr.ClassVal); ok {
+	} else if class, ok := w.Context.Value2.(*wkr.ClassVal); ok {
 		caller := node.Caller.GetToken().Lexeme
 		_, contains := class.ContainsMethod(caller)
 		if !contains {
@@ -420,7 +419,7 @@ func CallExpr(w *wkr.Walker, val wkr.Value, node *ast.CallExpr, scope *wkr.Scope
 		w.Context.Value2 = &wkr.Unknown{}
 	}
 
-	skip:
+skip:
 
 	variable, it_is := val.(*wkr.VariableVal)
 	if it_is {
@@ -446,7 +445,7 @@ func CallExpr(w *wkr.Walker, val wkr.Value, node *ast.CallExpr, scope *wkr.Scope
 
 	if node.ReturnAmount == 1 {
 		return w.TypeToValue(fun.Returns[0]), finalNode
-	}else if node.ReturnAmount == 0 {
+	} else if node.ReturnAmount == 0 {
 		return &wkr.Invalid{}, finalNode
 	}
 	return &fun.Returns, finalNode
@@ -573,7 +572,7 @@ func MapExpr(w *wkr.Walker, node *ast.MapExpr, scope *wkr.Scope) wkr.Value {
 }
 
 func UnaryExpr(w *wkr.Walker, node *ast.UnaryExpr, scope *wkr.Scope) wkr.Value {
-	val :=  GetNodeValue(w, &node.Value, scope)
+	val := GetNodeValue(w, &node.Value, scope)
 	valType := val.GetType()
 	valPVT := valType.PVT()
 
@@ -584,7 +583,7 @@ func UnaryExpr(w *wkr.Walker, node *ast.UnaryExpr, scope *wkr.Scope) wkr.Value {
 		return val
 	}
 
-	switch node.Operator.Type { 
+	switch node.Operator.Type {
 	case lexer.Bang:
 		if valPVT != ast.Bool {
 			w.Error(token, "value must be a bool to be negated")
@@ -592,7 +591,7 @@ func UnaryExpr(w *wkr.Walker, node *ast.UnaryExpr, scope *wkr.Scope) wkr.Value {
 	case lexer.Hash:
 		if valType.GetType() == wkr.Wrapper && valType.(*wkr.WrapperType).Type.PVT() != ast.List {
 			w.Error(token, "value must be a list")
-		}else if valType.GetType() != wkr.Wrapper {
+		} else if valType.GetType() != wkr.Wrapper {
 			w.Error(token, "value must be a list")
 		}
 		return &wkr.NumberVal{}
@@ -707,7 +706,7 @@ func MethodCallExpr(w *wkr.Walker, mcall *ast.MethodCallExpr, scope *wkr.Scope) 
 		mcall.MethodName = callToken.Lexeme
 
 		if found {
-			val, _ :=  CallExpr(w, method, mcall.Call, scope)
+			val, _ := CallExpr(w, method, mcall.Call, scope)
 			return val, mcall
 		}
 	}
@@ -794,8 +793,8 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 				Action(walker, w.Walkers)
 			}
 			env = walker.Environment
-		}else {
-			
+		} else {
+
 			for _, v := range walker.GetEnvStmt().Requirements {
 				if v == w.Environment.Path {
 					w.Error(typee.GetToken(), fmt.Sprintf("import cycle detected: this environment and '%s' are using each other", walker.Environment.Name))
@@ -820,7 +819,7 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 		return typ
 	}
 
-	if typee.Name.GetToken().Type == lexer.Entity {
+	if typee.Name.GetToken().Type == tokens.Entity {
 		typ = &wkr.RawEntityType{}
 		if typee.IsVariadic {
 			return wkr.NewVariadicType(typ)
@@ -909,7 +908,7 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 				}
 			}
 		}
-		
+
 		if len(scope.Environment.UsedLibraries) != 0 {
 			if alias, found := wkr.BuiltinEnv.AliasTypes[typeName]; found {
 				typ = alias.UnderlyingType
@@ -933,8 +932,8 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 			}
 		}
 
-		for k, v := range scope.Environment.UsedLibraries { 
-			if !v { 
+		for k, v := range scope.Environment.UsedLibraries {
+			if !v {
 				continue
 			}
 
@@ -970,7 +969,7 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 		for k, v := range types {
 			typee.Name = &ast.EnvAccessExpr{
 				PathExpr: &ast.EnvPathExpr{
-					Path: lexer.Token{
+					Path: tokens.Token{
 						Lexeme:   k,
 						Location: typee.Name.GetToken().Location,
 					},
@@ -980,6 +979,14 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 				},
 			}
 			return v
+		}
+
+		if len(scope.Environment.UsedLibraries) != 0 {
+			if alias, found := wkr.BuiltinEnv.AliasTypes[typeName]; found {
+				typ = alias.UnderlyingType
+
+				break
+			}
 		}
 
 		typ = wkr.InvalidType

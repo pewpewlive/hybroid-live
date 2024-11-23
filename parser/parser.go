@@ -2,13 +2,13 @@ package parser
 
 import (
 	"hybroid/ast"
-	"hybroid/lexer"
+	"hybroid/tokens"
 )
 
 type Parser struct {
 	program []ast.Node
 	current int
-	tokens  []lexer.Token
+	tokens  []tokens.Token
 	Errors  []ast.Error
 	Context ParserContext
 }
@@ -21,20 +21,20 @@ func NewParser() Parser {
 	return Parser{
 		program: make([]ast.Node, 0),
 		current: 0,
-		tokens: make([]lexer.Token, 0),
-		Errors: make([]ast.Error, 0),
+		tokens:  make([]tokens.Token, 0),
+		Errors:  make([]ast.Error, 0),
 		Context: ParserContext{
 			FunctionReturns: make([]int, 0),
 		},
 	}
 }
 
-func (p *Parser) AssignTokens(tokens []lexer.Token) {
+func (p *Parser) AssignTokens(tokens []tokens.Token) {
 	p.tokens = tokens
 }
 
 // Appends an error to the ParserErrors
-func (p *Parser) error(token lexer.Token, msg string) {
+func (p *Parser) error(token tokens.Token, msg string) {
 	errMsg := ast.Error{Token: token, Message: msg}
 	p.Errors = append(p.Errors, errMsg)
 	//panic(errMsg.Message)
@@ -44,13 +44,13 @@ func (p *Parser) synchronize() {
 	p.advance()
 	for !p.isAtEnd() {
 		switch p.peek().Type {
-		case lexer.For, lexer.Fn, lexer.If, lexer.Repeat, lexer.Tick,
-			lexer.Return, lexer.Let, lexer.While, lexer.Pub, lexer.Const,
-			lexer.Break, lexer.Continue, lexer.Add, lexer.Remove,
-			lexer.Class:
+		case tokens.For, tokens.Fn, tokens.If, tokens.Repeat, tokens.Tick,
+			tokens.Return, tokens.Let, tokens.While, tokens.Pub, tokens.Const,
+			tokens.Break, tokens.Continue, tokens.Add, tokens.Remove,
+			tokens.Class:
 			return
-		case lexer.Entity:
-			if p.peek(1).Type == lexer.Identifier && p.peek(2).Type == lexer.LeftBrace {
+		case tokens.Entity:
+			if p.peek(1).Type == tokens.Identifier && p.peek(2).Type == tokens.LeftBrace {
 				return
 			}
 		} // pub fn (entity thing) { }
@@ -61,20 +61,20 @@ func (p *Parser) synchronize() {
 }
 
 func (p *Parser) isMultiComparison() bool {
-	return p.match(lexer.And, lexer.Or)
+	return p.match(tokens.And, tokens.Or)
 }
 
 func (p *Parser) isComparison() bool {
-	return p.match(lexer.Greater, lexer.GreaterEqual, lexer.Less, lexer.LessEqual, lexer.BangEqual, lexer.EqualEqual)
+	return p.match(tokens.Greater, tokens.GreaterEqual, tokens.Less, tokens.LessEqual, tokens.BangEqual, tokens.EqualEqual)
 }
 
 // Checks if the current position the parser is at is the End Of File
 func (p *Parser) isAtEnd() bool {
-	return p.peek().Type == lexer.Eof
+	return p.peek().Type == tokens.Eof
 }
 
 // Advances by one into the next token and returns the previous token before advancing
-func (p *Parser) advance() lexer.Token {
+func (p *Parser) advance() tokens.Token {
 	t := p.tokens[p.current]
 	if p.current < len(p.tokens)-1 {
 		p.current++
@@ -83,7 +83,7 @@ func (p *Parser) advance() lexer.Token {
 }
 
 // Advances by one into the next token and returns the previous token before advancing
-func (p *Parser) disadvance(amount int) lexer.Token {
+func (p *Parser) disadvance(amount int) tokens.Token {
 	if p.current > 0 {
 		p.current -= amount
 	}
@@ -95,7 +95,7 @@ func (p *Parser) getCurrent() int {
 }
 
 // Peeks into the current token or peeks at the token that is offset from the current position by the given offset
-func (p *Parser) peek(offset ...int) lexer.Token {
+func (p *Parser) peek(offset ...int) tokens.Token {
 	if offset == nil {
 		return p.tokens[p.current]
 	} else {
@@ -107,7 +107,7 @@ func (p *Parser) peek(offset ...int) lexer.Token {
 }
 
 // Checks if the current type is the specified token type. Returns false if it's the End Of File
-func (p *Parser) check(tokenType lexer.TokenType) bool {
+func (p *Parser) check(tokenType tokens.TokenType) bool {
 	if p.isAtEnd() {
 		return false
 	}
@@ -116,7 +116,7 @@ func (p *Parser) check(tokenType lexer.TokenType) bool {
 }
 
 // Matches the given list of tokens and advances if they match.
-func (p *Parser) match(types ...lexer.TokenType) bool {
+func (p *Parser) match(types ...tokens.TokenType) bool {
 	for _, tokenType := range types {
 		if p.check(tokenType) {
 			p.advance()
@@ -127,7 +127,7 @@ func (p *Parser) match(types ...lexer.TokenType) bool {
 }
 
 // Consumes a list of tokens, advancing if they match and returns true. Consume also advances if none of the tokens were able to match, and returns false
-func (p *Parser) consume(message string, types ...lexer.TokenType) (lexer.Token, bool) {
+func (p *Parser) consume(message string, types ...tokens.TokenType) (tokens.Token, bool) {
 	if p.isAtEnd() {
 		token := p.peek()
 		p.error(token, message)
@@ -161,7 +161,7 @@ func (p *Parser) ParseTokens() []ast.Node {
 
 func (p *Parser) getBody() ([]ast.Node, bool) {
 	body := make([]ast.Node, 0)
-	if p.match(lexer.FatArrow) {
+	if p.match(tokens.FatArrow) {
 		args, ok := p.returnArgs()
 		if !ok {
 			p.error(p.peek(), "expected return arguments")
@@ -174,16 +174,16 @@ func (p *Parser) getBody() ([]ast.Node, bool) {
 			},
 		}
 		return body, true
-	} else if !p.check(lexer.LeftBrace) {
+	} else if !p.check(tokens.LeftBrace) {
 		body = []ast.Node{p.statement()}
 		return body, true
 	}
-	if _, success := p.consume("expected opening of the body", lexer.LeftBrace); !success {
+	if _, success := p.consume("expected opening of the body", tokens.LeftBrace); !success {
 		return body, false
 	}
 
-	for !p.match(lexer.RightBrace) { // passed that
-		if p.peek().Type == lexer.Eof {
+	for !p.match(tokens.RightBrace) { // passed that
+		if p.peek().Type == tokens.Eof {
 			p.error(p.peek(), "expected body closure")
 			return body, false
 		}

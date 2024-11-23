@@ -2,7 +2,7 @@ package pass2 // THE ACTUAL WALKING
 
 import (
 	"hybroid/ast"
-	"hybroid/lexer"
+	"hybroid/tokens"
 	wkr "hybroid/walker"
 )
 
@@ -200,8 +200,8 @@ func TypeifyNodeList(w *wkr.Walker, nodes *[]ast.Node, scope *wkr.Scope) []wkr.T
 	return arguments
 }
 
-func WalkParams(w *wkr.Walker, parameters []ast.Param, scope *wkr.Scope, declare func(name lexer.Token, value wkr.Value)) []wkr.Type {
-	variadicParams := make(map[lexer.Token]int)
+func WalkParams(w *wkr.Walker, parameters []ast.Param, scope *wkr.Scope, declare func(name tokens.Token, value wkr.Value)) []wkr.Type {
+	variadicParams := make(map[tokens.Token]int)
 	params := make([]wkr.Type, 0)
 	for i, param := range parameters {
 		params = append(params, TypeExpr(w, param.Type, scope, false))

@@ -182,11 +182,11 @@ func (gs *GenScope) AppendTabbed(strs ...string) {
 }
 
 type Generator struct {
-	envName string
-	envType ast.EnvType
-	Scope   GenScope
-	Future  string
-	Errors  []ast.Error
+	envName     string
+	envType     ast.EnvType
+	Scope       GenScope
+	Future      string
+	Errors      []ast.Error
 	libraryVars *map[string]string
 }
 
@@ -392,10 +392,8 @@ func (gen *Generator) GenerateExpr(node ast.Node, scope *GenScope) string {
 		return gen.spawnExpr(*newNode, false, scope)
 	case *ast.MethodCallExpr:
 		return gen.methodCallExpr(*newNode, false, scope)
-	case *ast.BuiltinExpr:
-		return gen.builtinExpr(*newNode)
-	// case *ast.CastExpr:
-	// 	return gen.castExpr(*newNode, scope)
+		// case *ast.CastExpr:
+		// 	return gen.castExpr(*newNode, scope)
 	}
 
 	return ""

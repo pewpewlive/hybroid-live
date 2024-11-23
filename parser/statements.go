@@ -2,7 +2,7 @@ package parser
 
 import (
 	"hybroid/ast"
-	"hybroid/lexer"
+	"hybroid/tokens"
 )
 
 func (p *Parser) statement() ast.Node {
@@ -18,7 +18,7 @@ func (p *Parser) statement() ast.Node {
 			}
 		}
 	}()
-	
+
 	varDecl := p.variableDeclarationStmt()
 	if varDecl != nil {
 		return varDecl
@@ -26,107 +26,110 @@ func (p *Parser) statement() ast.Node {
 
 	token := p.peek().Type
 	next := p.peek(1).Type
-	
-	if token == lexer.Pub {
+
+	if token == tokens.Pub {
 		switch next {
-		case lexer.Alias:
+		case tokens.Alias:
 			p.advance()
 			p.advance()
 			return p.AliasDeclarationStmt(false)
-		case lexer.Fn:
+		case tokens.Fn:
 			p.advance()
 			p.advance()
 			return p.functionDeclarationStmt(false)
-		case lexer.Class:
+		case tokens.Class:
 			p.advance()
 			p.advance()
 			return p.classDeclarationStmt(false)
-		case lexer.Entity:
+		case tokens.Entity:
 			p.advance()
 			p.advance()
 			return p.entityDeclarationStmt(false)
-		case lexer.Enum:
+		case tokens.Enum:
 			p.advance()
 			p.advance()
 			return p.enumDeclarationStmt(false)
-			// case lexer.Type:
+			// case tokens.Type:
 			// 	p.advance()
 			// 	p.advance()
 			// 	return p.TypeDeclarationStmt(false)
 		}
 	}
 
-	if token == lexer.Struct && next != lexer.Identifier { // wait yeah idk
+	if token == tokens.Struct && next != tokens.Identifier { // wait yeah idk
 		return p.expression()
 	}
 
 	switch token {
-	// case lexer.Type:
+	// case tokens.Type:
 	// 	p.advance()
 	// 	return p.TypeDeclarationStmt(true)
-	case lexer.Alias:
+	case tokens.Alias:
 		p.advance()
 		return p.AliasDeclarationStmt(true)
-	case lexer.Macro:
+	case tokens.Macro:
 		p.advance()
 		return p.macroDeclarationStmt()
-	case lexer.Env:
+	case tokens.Env:
 		p.advance()
 		return p.envStmt()
-	case lexer.Add:
+	//case tokens.Let, tokens.Pub, tokens.Const:
+	//p.advance()
+	//return p.variableDeclarationStmt()
+	case tokens.Add:
 		p.advance()
 		return p.addToStmt()
-	case lexer.Remove:
+	case tokens.Remove:
 		p.advance()
 		return p.removeFromStmt()
-	case lexer.Fn:
+	case tokens.Fn:
 		p.advance()
 		return p.functionDeclarationStmt(true)
-	case lexer.Return:
+	case tokens.Return:
 		p.advance()
 		return p.returnStmt()
-	case lexer.Yield:
+	case tokens.Yield:
 		p.advance()
 		return p.yieldStmt()
-	case lexer.Break:
+	case tokens.Break:
 		p.advance()
 		return &ast.BreakStmt{Token: p.peek(-1)}
-	case lexer.Destroy:
+	case tokens.Destroy:
 		p.advance()
 		return p.destroyStmt()
-	case lexer.Continue:
+	case tokens.Continue:
 		p.advance()
 		return &ast.ContinueStmt{Token: p.peek(-1)}
-	case lexer.Identifier, lexer.Self:
+	case tokens.Identifier, tokens.Self:
 		return p.assignmentStmt()
-	case lexer.If:
+	case tokens.If:
 		p.advance()
 		return p.ifStmt(false, false, false)
-	case lexer.Repeat:
+	case tokens.Repeat:
 		p.advance()
 		return p.repeatStmt()
-	case lexer.For:
+	case tokens.For:
 		p.advance()
 		return p.forStmt()
-	case lexer.Tick:
+	case tokens.Tick:
 		p.advance()
 		return p.tickStmt()
-	case lexer.Use:
+	case tokens.Use:
 		p.advance()
 		return p.useStmt()
-	case lexer.Enum:
+	case tokens.Enum:
 		p.advance()
 		return p.enumDeclarationStmt(true)
-	case lexer.Class:
+	case tokens.Class:
 		p.advance()
 		return p.classDeclarationStmt(true)
-	case lexer.Entity:
+	case tokens.Entity:
 		p.advance()
 		return p.entityDeclarationStmt(true)
-	case lexer.While:
+	case tokens.While:
 		p.advance()
 		return p.whileStmt()
-	case lexer.Match:
+	case tokens.Match:
 		p.advance()
 		return p.matchStmt(false)
 	}
@@ -147,11 +150,11 @@ func (p *Parser) statement() ast.Node {
 
 // func (p *Parser) TypeDeclarationStmt(isLocal bool) ast.Node {
 // 	typeToken := p.peek(-1)
-// 	name, ok := p.consume("expected identifier in type declaration", lexer.Identifier)
+// 	name, ok := p.consume("expected identifier in type declaration", tokens.Identifier)
 // 	if !ok {
 // 		return ast.NewImproper(name)
 // 	}
-// 	if token, ok := p.consume("expected '=' after identifier in type declaration", lexer.Equal); !ok {
+// 	if token, ok := p.consume("expected '=' after identifier in type declaration", tokens.Equal); !ok {
 // 		return ast.NewImproper(token)
 // 	}
 
@@ -183,15 +186,15 @@ func (p *Parser) AliasDeclarationStmt(isLocal bool) ast.Node {
 	aliased := p.Type()
 
 	return &ast.AliasDeclarationStmt{
-		Alias: name,
+		Alias:       name,
 		AliasedType: aliased,
-		Token: typeToken,
-		IsLocal: isLocal,
+		Token:       typeToken,
+		IsLocal:     isLocal,
 	}
 }
 
 func (p *Parser) macroDeclarationStmt() ast.Node {
-	name, ok := p.consume("expected identifier after 'macro' keyword", lexer.Identifier)
+	name, ok := p.consume("expected identifier after 'macro' keyword", tokens.Identifier)
 	if !ok {
 		return ast.NewImproper(name)
 	}
@@ -199,41 +202,41 @@ func (p *Parser) macroDeclarationStmt() ast.Node {
 	macroDeclaration := &ast.MacroDeclarationStmt{
 		Name: name,
 	}
-	p.consume("expected opening parenthesis", lexer.LeftParen)
-	params := []lexer.Token{}
+	p.consume("expected opening parenthesis", tokens.LeftParen)
+	params := []tokens.Token{}
 	token := p.peek()
-	if token.Type == lexer.RightParen {
+	if token.Type == tokens.RightParen {
 		p.advance()
-	} else if token.Type == lexer.Identifier {
+	} else if token.Type == tokens.Identifier {
 		p.advance()
 		params = append(params, token)
-		for p.match(lexer.Colon) {
-			name, ok = p.consume("expected identifier as parameter", lexer.Identifier)
+		for p.match(tokens.Colon) {
+			name, ok = p.consume("expected identifier as parameter", tokens.Identifier)
 			if !ok {
 				return ast.NewImproper(name)
 			}
 			params = append(params, name)
 		}
 		macroDeclaration.Params = params
-		p.consume("expected closing parenthesis", lexer.RightParen)
+		p.consume("expected closing parenthesis", tokens.RightParen)
 	} else {
 		p.advance()
 		p.error(token, "expected either identifier or closing parenthesis after opening parenthesis")
 		return ast.NewImproper(token)
 	}
 
-	if !p.match(lexer.FatArrow) {
+	if !p.match(tokens.FatArrow) {
 		p.error(p.peek(), "expected fat arrow in macro declaration")
 		return ast.NewImproper(p.peek())
 	}
-	if p.match(lexer.LeftBrace) {
+	if p.match(tokens.LeftBrace) {
 		macroDeclaration.MacroType = ast.ProgramExpansion
 		nestedBrace := 0
-		for !(p.peek().Type == lexer.RightBrace && nestedBrace <= 0) {
+		for !(p.peek().Type == tokens.RightBrace && nestedBrace <= 0) {
 			t := p.advance()
-			if t.Type == lexer.LeftBrace {
+			if t.Type == tokens.LeftBrace {
 				nestedBrace++
-			} else if t.Type == lexer.RightBrace {
+			} else if t.Type == tokens.RightBrace {
 				nestedBrace--
 			}
 			macroDeclaration.Tokens = append(macroDeclaration.Tokens, t)
@@ -260,7 +263,7 @@ func (p *Parser) envStmt() ast.Node {
 		return &ast.Improper{Token: expr.GetToken()}
 	}
 
-	if _, ok := p.consume("expected keyword 'as' after envrionment expression", lexer.As); !ok {
+	if _, ok := p.consume("expected keyword 'as' after envrionment expression", tokens.As); !ok {
 		return &ast.Improper{Token: expr.GetToken()}
 	}
 
@@ -291,10 +294,10 @@ func (p *Parser) enumDeclarationStmt(local bool) ast.Node {
 
 	enumStmt.Name = ident.GetToken()
 
-	p.consume("expected opening of a body", lexer.LeftBrace)
+	p.consume("expected opening of a body", tokens.LeftBrace)
 
-	if p.match(lexer.RightBrace) {
-		enumStmt.Fields = make([]lexer.Token, 0)
+	if p.match(tokens.RightBrace) {
+		enumStmt.Fields = make([]tokens.Token, 0)
 		return enumStmt
 	}
 
@@ -303,9 +306,9 @@ func (p *Parser) enumDeclarationStmt(local bool) ast.Node {
 		p.error(expr.GetToken(), "expected identifier in enum declaration")
 		return &ast.Improper{Token: expr.GetToken()}
 	}
-	fields := []lexer.Token{expr.GetToken()}
-	for p.match(lexer.Comma) {
-		if p.check(lexer.RightBrace) {
+	fields := []tokens.Token{expr.GetToken()}
+	for p.match(tokens.Comma) {
+		if p.check(tokens.RightBrace) {
 			break
 		}
 		expr = p.expression()
@@ -318,7 +321,7 @@ func (p *Parser) enumDeclarationStmt(local bool) ast.Node {
 
 	enumStmt.Fields = fields
 
-	p.consume("expected body closure", lexer.RightBrace)
+	p.consume("expected body closure", tokens.RightBrace)
 
 	return enumStmt
 }
@@ -329,7 +332,7 @@ func (p *Parser) classDeclarationStmt(isLocal bool) ast.Node {
 	}
 	stmt.Token = p.peek(-1)
 
-	name, ok := p.consume("expected the name of the structure", lexer.Identifier)
+	name, ok := p.consume("expected the name of the structure", tokens.Identifier)
 
 	if ok {
 		stmt.Name = name
@@ -337,18 +340,18 @@ func (p *Parser) classDeclarationStmt(isLocal bool) ast.Node {
 		return &ast.Improper{Token: stmt.Token}
 	}
 
-	_, ok = p.consume("expected opening of the struct body", lexer.LeftBrace)
+	_, ok = p.consume("expected opening of the struct body", tokens.LeftBrace)
 	if !ok {
 		return &ast.Improper{Token: stmt.Token}
 	}
 	stmt.Methods = []ast.MethodDeclarationStmt{}
-	for !p.match(lexer.RightBrace) {
-		if p.match(lexer.Fn) {
+	for !p.match(tokens.RightBrace) {
+		if p.match(tokens.Fn) {
 			method, ok := p.methodDeclarationStmt(stmt.IsLocal).(*ast.MethodDeclarationStmt)
 			if ok {
 				stmt.Methods = append(stmt.Methods, *method)
 			}
-		} else if p.match(lexer.New) {
+		} else if p.match(tokens.New) {
 			construct, ok := p.constructorDeclarationStmt().(*ast.ConstructorStmt)
 			if ok {
 				stmt.Constructor = construct
@@ -372,27 +375,27 @@ func (p *Parser) entityDeclarationStmt(isLocal bool) ast.Node {
 		Token:   p.peek(-1),
 	}
 
-	name, ok := p.consume("expected the name of the entity", lexer.Identifier)
+	name, ok := p.consume("expected the name of the entity", tokens.Identifier)
 
 	if !ok {
 		return &ast.Improper{Token: stmt.Token}
 	}
 	stmt.Name = name
 
-	_, ok = p.consume("expected opening of the struct body", lexer.LeftBrace)
+	_, ok = p.consume("expected opening of the struct body", tokens.LeftBrace)
 	if !ok {
 		return &ast.Improper{Token: stmt.Token}
 	}
 
-	for !p.match(lexer.RightBrace) {
-		if p.match(lexer.Fn) {
+	for !p.match(tokens.RightBrace) {
+		if p.match(tokens.Fn) {
 			method := p.methodDeclarationStmt(stmt.IsLocal)
 			if method.GetType() != ast.MethodDeclarationStatement {
 				stmt.Methods = append(stmt.Methods, *method.(*ast.MethodDeclarationStmt))
 			}
 			continue
 		}
-		if p.match(lexer.Spawn) {
+		if p.match(tokens.Spawn) {
 			spawner := p.entityFunctionDeclarationStmt(p.peek(-1), ast.Spawn)
 			if spawner.GetType() != ast.NA {
 				stmt.Spawner = spawner.(*ast.EntityFunctionDeclarationStmt)
@@ -400,14 +403,14 @@ func (p *Parser) entityDeclarationStmt(isLocal bool) ast.Node {
 			continue
 		}
 
-		if p.match(lexer.Destroy) {
+		if p.match(tokens.Destroy) {
 			destroyer := p.entityFunctionDeclarationStmt(p.peek(-1), ast.Destroy)
 			if destroyer.GetType() != ast.NA {
 				stmt.Destroyer = destroyer.(*ast.EntityFunctionDeclarationStmt)
 			}
 			continue
 		}
-		if p.check(lexer.Identifier) {
+		if p.check(tokens.Identifier) {
 			switch p.peek().Lexeme {
 			case "WeaponCollision":
 				cb := p.entityFunctionDeclarationStmt(p.advance(), ast.WeaponCollision)
@@ -446,14 +449,14 @@ func (p *Parser) entityDeclarationStmt(isLocal bool) ast.Node {
 	return stmt
 }
 
-func (p *Parser) entityFunctionDeclarationStmt(token lexer.Token, functionType ast.EntityFunctionType) ast.Node {
+func (p *Parser) entityFunctionDeclarationStmt(token tokens.Token, functionType ast.EntityFunctionType) ast.Node {
 	stmt := &ast.EntityFunctionDeclarationStmt{
 		Type:  functionType,
 		Token: token,
 	}
 
 	stmt.Generics = p.genericParameters()
-	stmt.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
+	stmt.Params = p.parameters(tokens.LeftParen, tokens.RightParen)
 	stmt.Returns = p.returnings()
 	p.Context.FunctionReturns = append(p.Context.FunctionReturns, len(stmt.Returns))
 
@@ -490,7 +493,7 @@ func (p *Parser) constructorDeclarationStmt() ast.Node {
 	stmt := &ast.ConstructorStmt{Token: p.peek(-1)}
 
 	stmt.Generics = p.genericParameters()
-	stmt.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
+	stmt.Params = p.parameters(tokens.LeftParen, tokens.RightParen)
 	stmt.Return = p.returnings()
 	var success bool
 	stmt.Body, success = p.getBody()
@@ -512,12 +515,12 @@ func (p *Parser) fieldDeclarationStmt() ast.Node {
 		return ast.NewImproper(ident.GetToken())
 	}
 
-	idents := []lexer.Token{ident.GetToken()}
+	idents := []tokens.Token{ident.GetToken()}
 
 	stmt.Type = typ
-	for p.match(lexer.Comma) {
+	for p.match(tokens.Comma) {
 		ident := p.advance()
-		if ident.Type != lexer.Identifier {
+		if ident.Type != tokens.Identifier {
 			p.error(ident, "expected identifier in field declaration")
 		}
 
@@ -526,7 +529,7 @@ func (p *Parser) fieldDeclarationStmt() ast.Node {
 
 	stmt.Identifiers = idents
 
-	if !p.match(lexer.Equal) {
+	if !p.match(tokens.Equal) {
 		stmt.Values = []ast.Node{}
 		return &stmt
 	}
@@ -537,7 +540,7 @@ func (p *Parser) fieldDeclarationStmt() ast.Node {
 	}
 
 	exprs := []ast.Node{expr}
-	for p.match(lexer.Comma) {
+	for p.match(tokens.Comma) {
 		expr = p.expression()
 		if expr.GetType() == ast.NA {
 			p.error(p.peek(), "expected expression")
@@ -575,14 +578,14 @@ func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) *ast.IfS
 	var expr ast.Node
 	if !is_else {
 		expr = p.multiComparison()
-		// if exprType == ast.Identifier && !(p.isMultiComparison() || p.check(lexer.LeftBrace)) {
-		// 	for !p.check(lexer.LeftBrace) {
+		// if exprType == ast.Identifier && !(p.isMultiComparison() || p.check(tokens.LeftBrace)) {
+		// 	for !p.check(tokens.LeftBrace) {
 		// 		p.advance()
 		// 	}
 		// }
 		// if exprType != ast.BinaryExpression && exprType != ast.Identifier && exprType != ast.UnaryExpression {
 		// 	p.error(expr.GetToken(), "if condition is not a valid expression")
-		// 	for !p.check(lexer.LeftBrace) {
+		// 	for !p.check(tokens.LeftBrace) {
 		// 		p.advance()
 		// 	}
 		// }
@@ -593,12 +596,12 @@ func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) *ast.IfS
 	if is_else || is_elseif {
 		return &ifStm
 	}
-	for p.match(lexer.Else) {
+	for p.match(tokens.Else) {
 		if else_exists {
 			p.error(p.peek(-1), "cannot have two else statements in an if statement")
 		}
 		var ifbody *ast.IfStmt
-		if p.match(lexer.If) {
+		if p.match(tokens.If) {
 			ifbody = p.ifStmt(else_exists, false, true)
 			ifStm.Elseifs = append(ifStm.Elseifs, ifbody)
 		} else {
@@ -615,24 +618,20 @@ func (p *Parser) assignmentStmt() ast.Node {
 	expr := p.expression()
 	idents := []ast.Node{expr}
 
-	if expr.GetToken().Lexeme == "predMovX" {
-		print("breakpoint")
-	}
-
-	for p.match(lexer.Comma) { // memberExpr or IdentifierExpr
+	for p.match(tokens.Comma) { // memberExpr or IdentifierExpr
 		expr := p.expression()
 		idents = append(idents, expr)
 	}
 	values := []ast.Node{}
-	if p.match(lexer.Equal) {
+	if p.match(tokens.Equal) {
 		expr2 := p.expression()
 		values = append(values, expr2)
-		for p.match(lexer.Comma) {
+		for p.match(tokens.Comma) {
 			expr2 := p.expression()
 			values = append(values, expr2)
 		}
 		expr = &ast.AssignmentStmt{Identifiers: idents, Values: values, Token: p.peek(-1)}
-	} else if p.match(lexer.PlusEqual, lexer.MinusEqual, lexer.SlashEqual, lexer.StarEqual, lexer.CaretEqual, lexer.ModuloEqual) {
+	} else if p.match(tokens.PlusEqual, tokens.MinusEqual, tokens.SlashEqual, tokens.StarEqual, tokens.CaretEqual, tokens.ModuloEqual) {
 		assignOp := p.peek(-1)
 		op := p.getOp(assignOp)
 
@@ -657,7 +656,7 @@ func (p *Parser) assignmentStmt() ast.Node {
 func (p *Parser) returnStmt() ast.Node {
 	returnStmt := &ast.ReturnStmt{
 		Token: p.peek(-1),
-		Args: []ast.Node{},
+		Args:  []ast.Node{},
 	}
 
 	if len(p.Context.FunctionReturns) == 0 {
@@ -678,8 +677,8 @@ func (p *Parser) returnArgs() ([]ast.Node, bool) {
 	if expr.GetType() == ast.NA { // return;
 		return args, false
 	}
-	args = append(args, expr) // return;
-	for p.match(lexer.Comma) {
+	args = append(args, expr)
+	for p.match(tokens.Comma) {
 		expr = p.expression()
 		if expr.GetType() == ast.NA {
 			p.error(p.peek(), "expected expression")
@@ -694,13 +693,13 @@ func (p *Parser) yieldStmt() ast.Node {
 		Token: p.peek(-1),
 	}
 
-	if p.peek().Type == lexer.RightBrace {
+	if p.peek().Type == tokens.RightBrace {
 		return &yieldStmt
 	}
 	args := []ast.Node{}
 	expr := p.expression()
 	args = append(args, expr)
-	for p.match(lexer.Comma) {
+	for p.match(tokens.Comma) {
 		expr = p.expression()
 		if expr.GetType() == ast.NA {
 			p.error(p.peek(), "expected expression")
@@ -717,14 +716,14 @@ func (p *Parser) functionDeclarationStmt(IsLocal bool) ast.Node {
 
 	fnDec.IsLocal = IsLocal
 
-	ident, _ := p.consume("expected a function name", lexer.Identifier)
+	ident, _ := p.consume("expected a function name", tokens.Identifier)
 	// if !ok {
 	// 	return &fnDec
 	// }
 
 	fnDec.Name = ident
 	fnDec.GenericParams = p.genericParameters()
-	fnDec.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
+	fnDec.Params = p.parameters(tokens.LeftParen, tokens.RightParen)
 
 	fnDec.Return = p.returnings()
 	p.Context.FunctionReturns = append(p.Context.FunctionReturns, len(fnDec.Return))
@@ -750,11 +749,11 @@ func (p *Parser) addToStmt() ast.Node {
 		p.error(p.peek(), "expected expression")
 	}
 
-	if _, ok := p.consume("expected keyword 'to' after expression in an 'add' statement", lexer.To); !ok {
+	if _, ok := p.consume("expected keyword 'to' after expression in an 'add' statement", tokens.To); !ok {
 		return &add
 	}
 
-	if ident, ok := p.consume("expected identifier after keyword 'to'", lexer.Identifier); ok {
+	if ident, ok := p.consume("expected identifier after keyword 'to'", tokens.Identifier); ok {
 		add.Identifier = ident.Lexeme
 	}
 
@@ -771,11 +770,11 @@ func (p *Parser) removeFromStmt() ast.Node {
 		p.error(p.peek(), "expected expression")
 	}
 
-	if _, ok := p.consume("expected keyword 'from' after expression in a 'remove' statement", lexer.From); !ok {
+	if _, ok := p.consume("expected keyword 'from' after expression in a 'remove' statement", tokens.From); !ok {
 		return &remove
 	}
 
-	if ident, ok := p.consume("expected identifier after keyword 'from'", lexer.Identifier); ok {
+	if ident, ok := p.consume("expected identifier after keyword 'from'", tokens.Identifier); ok {
 		remove.Identifier = ident.Lexeme
 	}
 
@@ -788,12 +787,12 @@ func (p *Parser) repeatStmt() ast.Node {
 	}
 
 	gotIterator := false
-	if p.check(lexer.Number) ||
-		p.check(lexer.Fixed) ||
-		p.check(lexer.FixedPoint) ||
-		p.check(lexer.Radian) ||
-		p.check(lexer.Degree) ||
-		p.check(lexer.Identifier) {
+	if p.check(tokens.Number) ||
+		p.check(tokens.Fixed) ||
+		p.check(tokens.FixedPoint) ||
+		p.check(tokens.Radian) ||
+		p.check(tokens.Degree) ||
+		p.check(tokens.Identifier) {
 
 		repeatStmt.Iterator = p.expression()
 		gotIterator = true
@@ -808,7 +807,7 @@ func (p *Parser) repeatStmt() ast.Node {
 	startAssigned := false
 
 	for i := 0; i < 4; i++ {
-		if p.match(lexer.With) {
+		if p.match(tokens.With) {
 			identExpr := p.expression()
 			if variableAssigned {
 				p.error(p.peek(-1), "duplicate keyword 'with' in repeat statement")
@@ -819,7 +818,7 @@ func (p *Parser) repeatStmt() ast.Node {
 			} else {
 				repeatStmt.Variable = identExpr.(*ast.IdentifierExpr)
 			}
-		} else if p.match(lexer.To) {
+		} else if p.match(tokens.To) {
 			if iteratorAssgined {
 				p.error(p.peek(-1), "duplicate keyword 'to' in repeat statement")
 			}
@@ -832,7 +831,7 @@ func (p *Parser) repeatStmt() ast.Node {
 					p.error(repeatStmt.Iterator.GetToken(), "unknown expression after keyword 'to'")
 				}
 			}
-		} else if p.match(lexer.By) {
+		} else if p.match(tokens.By) {
 			if skipAssigned {
 				p.error(p.peek(-1), "duplicate keyword 'by' in repeat statement")
 			}
@@ -841,7 +840,7 @@ func (p *Parser) repeatStmt() ast.Node {
 			if repeatStmt.Skip.GetType() == ast.NA {
 				p.error(repeatStmt.Skip.GetToken(), "unknown expression after keyword 'by'")
 			}
-		} else if p.match(lexer.From) {
+		} else if p.match(tokens.From) {
 			if startAssigned {
 				p.error(p.peek(-1), "duplicate keyword 'from' in repeat statement")
 			}
@@ -893,14 +892,15 @@ func (p *Parser) forStmt() ast.Node {
 		Token: p.peek(-1),
 	}
 
-	if p.peek().Type == lexer.Identifier && p.peek(1).Type == lexer.Comma {
+	if p.peek().Type == tokens.Identifier &&
+		p.peek(1).Type == tokens.Comma {
 		identExpr := p.expression()
 		if identExpr.GetType() != ast.Identifier {
 			p.error(identExpr.GetToken(), "expected identifier expression after keyword 'for'")
 		} else {
 			forStmt.First = identExpr.(*ast.IdentifierExpr)
 		}
-		p.match(lexer.Comma)
+		p.match(tokens.Comma)
 		identExpr = p.expression()
 		if identExpr.GetType() != ast.Identifier {
 			p.error(identExpr.GetToken(), "expected identifier expression after a comma")
@@ -916,7 +916,7 @@ func (p *Parser) forStmt() ast.Node {
 		}
 	}
 
-	p.consume("expected keyword 'in' after for loop variables", lexer.In)
+	p.consume("expected keyword 'in' after for loop variables", tokens.In)
 
 	forStmt.Iterator = p.expression()
 
@@ -939,7 +939,7 @@ func (p *Parser) tickStmt() ast.Node {
 		Token: p.peek(-1),
 	}
 
-	if p.match(lexer.With) {
+	if p.match(tokens.With) {
 		identExpr := p.expression()
 		if identExpr.GetType() != ast.Identifier {
 			p.error(identExpr.GetToken(), "expected identifier expression after keyword 'with'")
@@ -969,21 +969,21 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 	var ide ast.Node
 	nextToken := p.peek().Type
 
-	if nextToken == lexer.Const {
+	if nextToken == tokens.Const {
 		variable.Token = p.advance()
 		variable.IsLocal = false
 		variable.IsConst = true
 
 		typ, ide = p.TypeWithVar()
 
-	} else if nextToken == lexer.Let {
+	} else if nextToken == tokens.Let {
 		variable.Token = p.advance()
 		variable.IsLocal = true
 		variable.IsConst = false
 
 		typ, ide = p.TypeWithVar()
 
-	} else if nextToken == lexer.Pub {
+	} else if nextToken == tokens.Pub {
 		current := p.getCurrent()
 
 		variable.Token = p.advance()
@@ -994,7 +994,7 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 
 		nextToken = p.peek().Type
 
-		if nextToken == lexer.Less || nextToken == lexer.LeftBrace || nextToken == lexer.LeftParen {
+		if nextToken == tokens.Less || nextToken == tokens.LeftBrace || nextToken == tokens.LeftParen {
 			p.disadvance(p.getCurrent() - current)
 
 			return nil
@@ -1008,7 +1008,7 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 
 		typ = p.Type()
 		token := p.advance()
-		if token.Type != lexer.Identifier {
+		if token.Type != tokens.Identifier {
 			p.disadvance(p.getCurrent() - current)
 
 			return nil
@@ -1017,7 +1017,7 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 
 		nextToken = p.peek().Type
 
-		if nextToken == lexer.Less || nextToken == lexer.LeftBrace || nextToken == lexer.LeftParen {
+		if nextToken == tokens.Less || nextToken == tokens.LeftBrace || nextToken == tokens.LeftParen {
 			p.disadvance(p.getCurrent() - current)
 
 			return nil
@@ -1030,11 +1030,11 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 		return ast.NewImproper(ideToken)
 	}
 
-	idents := []lexer.Token{ide.GetToken()}
+	idents := []tokens.Token{ide.GetToken()}
 	variable.Type = typ
-	for p.match(lexer.Comma) {
+	for p.match(tokens.Comma) {
 		ide := p.advance()
-		if ide.Type != lexer.Identifier {
+		if ide.Type != tokens.Identifier {
 			p.error(ide, "expected identifier in variable declaration")
 			return ast.NewImproper(ide)
 		}
@@ -1044,7 +1044,7 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 
 	variable.Identifiers = idents
 
-	if !p.match(lexer.Equal) {
+	if !p.match(tokens.Equal) {
 		variable.Values = []ast.Node{}
 		return &variable
 	}
@@ -1055,7 +1055,7 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 	}
 
 	exprs := []ast.Node{expr}
-	for p.match(lexer.Comma) {
+	for p.match(tokens.Comma) {
 		expr = p.expression()
 		if expr.GetType() == ast.NA {
 			p.error(p.peek(), "expected expression")
@@ -1085,7 +1085,7 @@ func (p *Parser) matchStmt(isExpr bool) *ast.MatchStmt {
 
 	matchStmt.ExprToMatch = p.expression()
 
-	p.consume("expected opening of the match body", lexer.LeftBrace)
+	p.consume("expected opening of the match body", tokens.LeftBrace)
 
 	caseStmts, stop := p.caseStmt(isExpr)
 	for !stop {
@@ -1099,7 +1099,7 @@ func (p *Parser) matchStmt(isExpr bool) *ast.MatchStmt {
 	}
 	matchStmt.Cases = append(matchStmt.Cases, caseStmts...)
 
-	p.consume("expected closing of the match body", lexer.RightBrace)
+	p.consume("expected closing of the match body", tokens.RightBrace)
 
 	return &matchStmt
 }
@@ -1108,7 +1108,7 @@ func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
 	caseStmts := []ast.CaseStmt{}
 
 	caseStmt := ast.CaseStmt{}
-	if p.match(lexer.Else) {
+	if p.match(tokens.Else) {
 		caseStmt.Expression = &ast.IdentifierExpr{
 			Name:      p.peek(-1),
 			ValueType: ast.Object,
@@ -1120,7 +1120,7 @@ func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
 		return caseStmts, true
 	}
 	caseStmts = append(caseStmts, caseStmt)
-	for p.match(lexer.Comma) {
+	for p.match(tokens.Comma) {
 		caseStmt.Expression = p.expression()
 		caseStmts = append(caseStmts, caseStmt)
 		if caseStmt.Expression.GetType() == ast.NA {
@@ -1128,9 +1128,9 @@ func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
 		}
 	}
 
-	p.consume("expected fat arrow after expression in case", lexer.FatArrow)
+	p.consume("expected fat arrow after expression in case", tokens.FatArrow)
 
-	if p.check(lexer.LeftBrace) {
+	if p.check(tokens.LeftBrace) {
 		body, _ := p.getBody()
 		for i := range caseStmts {
 			caseStmts[i].Body = body
@@ -1141,7 +1141,7 @@ func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
 			p.error(expr.GetToken(), "expected expression or '{' after fat arrow")
 		}
 		args := []ast.Node{expr}
-		for p.match(lexer.Comma) {
+		for p.match(tokens.Comma) {
 			expr = p.expression()
 			if expr.GetType() == ast.NA {
 				p.error(expr.GetToken(), "expected expression")
@@ -1167,7 +1167,7 @@ func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
 			caseStmts[i].Body = body
 		}
 	}
-	if p.check(lexer.RightBrace) {
+	if p.check(tokens.RightBrace) {
 		return caseStmts, true
 	}
 

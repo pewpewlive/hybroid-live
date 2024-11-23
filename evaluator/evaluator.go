@@ -96,7 +96,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 	}
 
 	for i, walker := range e.walkerList {
-	
+
 		start := time.Now()
 		fmt.Println("[Pass 2] Walking through the nodes...")
 

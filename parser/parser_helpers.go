@@ -3,15 +3,15 @@ package parser
 import (
 	"fmt"
 	"hybroid/ast"
-	"hybroid/lexer"
+	"hybroid/tokens"
 )
 
 // Creates a BinaryExpr
-func (p *Parser) createBinExpr(left ast.Node, operator lexer.Token, tokenType lexer.TokenType, lexeme string, right ast.Node) ast.Node {
+func (p *Parser) createBinExpr(left ast.Node, operator tokens.Token, tokenType tokens.TokenType, lexeme string, right ast.Node) ast.Node {
 	valueType := p.determineValueType(left, right)
 	return &ast.BinaryExpr{
 		Left:      left,
-		Operator:  lexer.Token{Type: tokenType, Lexeme: lexeme, Literal: "", Location: operator.Location},
+		Operator:  tokens.Token{Type: tokenType, Lexeme: lexeme, Literal: "", Location: operator.Location},
 		Right:     right,
 		ValueType: valueType,
 	}
@@ -25,29 +25,29 @@ func IsFx(valueType ast.PrimitiveValueType) bool {
 func (p *Parser) PeekIsType() bool {
 	tokenType := p.peek().Type
 
-	if tokenType == lexer.Fn {
-		return p.peek(1).Type == lexer.LeftParen
+	if tokenType == tokens.Fn {
+		return p.peek(1).Type == tokens.LeftParen
 	}
 
-	return !(tokenType != lexer.Identifier && tokenType != lexer.Fn && tokenType != lexer.Struct && tokenType != lexer.Entity /* && lexer.Type != lexer.DotDotDot*/)
+	return !(tokenType != tokens.Identifier && tokenType != tokens.Fn && tokenType != tokens.Struct && tokenType != tokens.Entity /* && tokens.Type != tokens.DotDotDot*/)
 }
 
-func (p *Parser) getOp(opEqual lexer.Token) lexer.Token {
+func (p *Parser) getOp(opEqual tokens.Token) tokens.Token {
 	switch opEqual.Type {
-	case lexer.PlusEqual:
-		return lexer.Token{Type: lexer.Plus, Location: opEqual.Location, Literal: opEqual.Literal, Lexeme: "+"}
-	case lexer.MinusEqual:
-		return lexer.Token{Type: lexer.Minus, Location: opEqual.Location, Literal: opEqual.Literal, Lexeme: "-"}
-	case lexer.SlashEqual:
-		return lexer.Token{Type: lexer.Slash, Location: opEqual.Location, Literal: opEqual.Literal, Lexeme: "/"}
-	case lexer.StarEqual:
-		return lexer.Token{Type: lexer.Star, Location: opEqual.Location, Literal: opEqual.Literal, Lexeme: "*"}
-	case lexer.CaretEqual:
-		return lexer.Token{Type: lexer.Caret, Location: opEqual.Location, Literal: opEqual.Literal, Lexeme: "^"}
-	case lexer.ModuloEqual:
-		return lexer.Token{Type: lexer.Modulo, Location: opEqual.Location, Literal: opEqual.Literal, Lexeme: "%"}
+	case tokens.PlusEqual:
+		return tokens.Token{Type: tokens.Plus, Location: opEqual.Location, Literal: opEqual.Literal, Lexeme: "+"}
+	case tokens.MinusEqual:
+		return tokens.Token{Type: tokens.Minus, Location: opEqual.Location, Literal: opEqual.Literal, Lexeme: "-"}
+	case tokens.SlashEqual:
+		return tokens.Token{Type: tokens.Slash, Location: opEqual.Location, Literal: opEqual.Literal, Lexeme: "/"}
+	case tokens.StarEqual:
+		return tokens.Token{Type: tokens.Star, Location: opEqual.Location, Literal: opEqual.Literal, Lexeme: "*"}
+	case tokens.CaretEqual:
+		return tokens.Token{Type: tokens.Caret, Location: opEqual.Location, Literal: opEqual.Literal, Lexeme: "^"}
+	case tokens.ModuloEqual:
+		return tokens.Token{Type: tokens.Modulo, Location: opEqual.Location, Literal: opEqual.Literal, Lexeme: "%"}
 	default:
-		return lexer.Token{}
+		return tokens.Token{}
 	}
 }
 
@@ -59,7 +59,7 @@ func (p *Parser) getParam() ast.Param {
 	return ast.Param{Type: typ, Name: ide.GetToken()}
 }
 
-func (p *Parser) parameters(opening lexer.TokenType, closing lexer.TokenType) []ast.Param {
+func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) []ast.Param {
 	if !p.match(opening) {
 		p.error(p.peek(), "expected opening parentheses")
 		return []ast.Param{}
@@ -74,22 +74,22 @@ func (p *Parser) parameters(opening lexer.TokenType, closing lexer.TokenType) []
 		if param.Type == nil {
 			if len(args) == 0 {
 				p.error(param.Name, "parameter need to be declared with a type before the name")
-			}else  {
+			} else {
 				param.Type = previous
 			}
-		}else {
+		} else {
 			previous = param.Type
 		}
 		args = append(args, param)
-		for p.match(lexer.Comma) {
+		for p.match(tokens.Comma) {
 			param := p.getParam()
 			if param.Type == nil {
 				if len(args) == 0 {
 					p.error(param.Name, "parameter need to be declared with a type before the name")
-				}else  {
+				} else {
 					param.Type = previous
 				}
-			}else {
+			} else {
 				previous = param.Type
 			}
 			args = append(args, param)
@@ -102,27 +102,27 @@ func (p *Parser) parameters(opening lexer.TokenType, closing lexer.TokenType) []
 
 func (p *Parser) genericParameters() []*ast.IdentifierExpr {
 	params := []*ast.IdentifierExpr{}
-	if !p.match(lexer.Less) {
+	if !p.match(tokens.Less) {
 		return params
 	}
 
 	token := p.advance()
-	if token.Type != lexer.Identifier {
+	if token.Type != tokens.Identifier {
 		p.error(token, "expected identifier in generic parameters")
 	} else {
 		params = append(params, &ast.IdentifierExpr{Name: token, ValueType: ast.Invalid})
 	}
 
-	for p.match(lexer.Comma) {
+	for p.match(tokens.Comma) {
 		token := p.advance()
-		if token.Type != lexer.Identifier {
+		if token.Type != tokens.Identifier {
 			p.error(token, "expected identifier in generic parameters")
 		} else {
 			params = append(params, &ast.IdentifierExpr{Name: token, ValueType: ast.Invalid})
 		}
 	}
 
-	p.consume("expected '>' in generic parameters", lexer.Greater)
+	p.consume("expected '>' in generic parameters", tokens.Greater)
 
 	return params
 }
@@ -130,18 +130,18 @@ func (p *Parser) genericParameters() []*ast.IdentifierExpr {
 func (p *Parser) genericArguments() ([]*ast.TypeExpr, bool) {
 	current := p.getCurrent()
 	params := []*ast.TypeExpr{}
-	if !p.match(lexer.Less) {
+	if !p.match(tokens.Less) {
 		return params, false
 	}
 
 	params = append(params, p.Type())
 
-	for p.match(lexer.Comma) {
+	for p.match(tokens.Comma) {
 		params = append(params, p.Type())
 	}
 
-	if !p.match(lexer.Greater) {
-		p.disadvance(p.getCurrent()-current)
+	if !p.match(tokens.Greater) {
+		p.disadvance(p.getCurrent() - current)
 		return params, false
 	}
 
@@ -149,21 +149,21 @@ func (p *Parser) genericArguments() ([]*ast.TypeExpr, bool) {
 }
 
 func (p *Parser) arguments() []ast.Node {
-	if _, ok := p.consume("expected opening paren", lexer.LeftParen); !ok {
+	if _, ok := p.consume("expected opening paren", tokens.LeftParen); !ok {
 		return nil
 	}
 
 	var args []ast.Node
-	if p.match(lexer.RightParen) {
+	if p.match(tokens.RightParen) {
 		args = make([]ast.Node, 0)
 	} else {
 		arg := p.expression()
 		args = append(args, arg)
-		for p.match(lexer.Comma) {
+		for p.match(tokens.Comma) {
 			arg := p.expression()
 			args = append(args, arg)
 		}
-		p.consume("expected closing paren after arguments", lexer.RightParen)
+		p.consume("expected closing paren after arguments", tokens.RightParen)
 	}
 
 	return args
@@ -171,25 +171,25 @@ func (p *Parser) arguments() []ast.Node {
 
 func (p *Parser) returnings() []*ast.TypeExpr {
 	ret := make([]*ast.TypeExpr, 0)
-	if !p.match(lexer.ThinArrow) {
+	if !p.match(tokens.ThinArrow) {
 		return ret
 	}
 	isList := false
-	if p.match(lexer.LeftParen) {
+	if p.match(tokens.LeftParen) {
 		isList = true
 	}
 	if !p.PeekIsType() {
 		return ret
 	}
 	ret = append(ret, p.Type())
-	for isList && p.match(lexer.Comma) {
+	for isList && p.match(tokens.Comma) {
 		if !p.PeekIsType() {
 			return ret
 		}
 		ret = append(ret, p.Type())
 	}
 	if isList {
-		p.consume("expected closing parenthesis", lexer.RightParen)
+		p.consume("expected closing parenthesis", tokens.RightParen)
 	}
 	return ret
 }

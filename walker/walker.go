@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"hybroid/ast"
 	"hybroid/helpers"
-	"hybroid/lexer"
+	"hybroid/tokens"
 )
 
 var LibraryEnvs = map[Library]*Environment{
@@ -16,17 +16,17 @@ var LibraryEnvs = map[Library]*Environment{
 }
 
 type Environment struct {
-	Name          string
-	Path          string // dynamic lua path
-	Type          ast.EnvType
-	Scope         Scope
-	UsedWalkers   []*Walker
-	UsedLibraries map[Library]bool
+	Name            string
+	Path            string // dynamic lua path
+	Type            ast.EnvType
+	Scope           Scope
+	UsedWalkers     []*Walker
+	UsedLibraries   map[Library]bool
 	UsedBuiltinVars []string
-	Structs       map[string]*ClassVal
-	Entities      map[string]*EntityVal
-	CustomTypes   map[string]*CustomType
-	AliasTypes    map[string]*AliasType
+	Structs         map[string]*ClassVal
+	Entities        map[string]*EntityVal
+	CustomTypes     map[string]*CustomType
+	AliasTypes      map[string]*AliasType
 }
 
 func (e *Environment) AddBuiltinVar(name string) {
@@ -58,7 +58,7 @@ func NewEnvironment(path string) *Environment {
 		Structs:     map[string]*ClassVal{},
 		Entities:    map[string]*EntityVal{},
 		CustomTypes: map[string]*CustomType{},
-		AliasTypes:    make(map[string]*AliasType),
+		AliasTypes:  make(map[string]*AliasType),
 	}
 
 	global.Scope.Environment = global
@@ -100,8 +100,8 @@ func NewWalker(path string) *Walker {
 		Errors:      []ast.Error{},
 		Warnings:    []ast.Warning{},
 		Context: Context{
-			Node:  &ast.Improper{},
-			Value: &Unknown{},
+			Node:   &ast.Improper{},
+			Value:  &Unknown{},
 			Value2: &Unknown{},
 		},
 	}
@@ -109,11 +109,11 @@ func NewWalker(path string) *Walker {
 	return walker
 }
 
-func (w *Walker) Error(token lexer.Token, msg string, objects ...interface{}) {
+func (w *Walker) Error(token tokens.Token, msg string, objects ...interface{}) {
 	w.Errors = append(w.Errors, ast.Error{Token: token, Message: fmt.Sprintf(msg, objects...)})
 }
 
-func (w *Walker) Warn(token lexer.Token, msg string) {
+func (w *Walker) Warn(token tokens.Token, msg string) {
 	w.Warnings = append(w.Warnings, ast.Warning{Token: token, Message: msg})
 }
 
@@ -205,7 +205,7 @@ func (s *Scope) AssignVariable(variable *VariableVal, value Value) (Value, *ast.
 	return variable, nil
 }
 
-func (w *Walker) DeclareVariable(s *Scope, value *VariableVal, token lexer.Token) (*VariableVal, bool) {
+func (w *Walker) DeclareVariable(s *Scope, value *VariableVal, token tokens.Token) (*VariableVal, bool) {
 	if varFound, found := s.Variables[value.Name]; found {
 		w.Error(token, fmt.Sprintf("variable with name '%s' already exists", varFound.Name))
 		return varFound, false
@@ -293,7 +293,7 @@ func (sc *Scope) ResolveReturnable() *ExitableTag {
 	return sc.Parent.ResolveReturnable()
 }
 
-func (w *Walker) ValidateArguments(generics map[string]Type, args []Type, params []Type, callToken lexer.Token) (int, bool) {
+func (w *Walker) ValidateArguments(generics map[string]Type, args []Type, params []Type, callToken tokens.Token) (int, bool) {
 
 	paramCount := len(params)
 	if paramCount > len(args) {
@@ -377,7 +377,7 @@ func (w *Walker) DetermineValueType(left Type, right Type) Type {
 			return right
 		}
 	}
-	
+
 	return InvalidType
 }
 

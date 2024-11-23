@@ -3,7 +3,7 @@ package parser
 import (
 	"fmt"
 	"hybroid/ast"
-	"hybroid/lexer"
+	"hybroid/tokens"
 	"strings"
 )
 
@@ -12,7 +12,7 @@ func (p *Parser) expression() ast.Node {
 }
 
 // func (p *Parser) cast(node ast.Node) ast.Node {
-// 	if p.match(lexer.As) {
+// 	if p.match(tokens.As) {
 // 		if !p.PeekIsType() {
 // 			p.error(p.peek(), "expected type after 'as'")
 // 		}
@@ -26,12 +26,12 @@ func (p *Parser) expression() ast.Node {
 // }
 
 func (p *Parser) fn() ast.Node {
-	if p.match(lexer.Fn) {
+	if p.match(tokens.Fn) {
 		fn := &ast.FunctionExpr{
 			Token: p.peek(-1),
 		}
-		if p.check(lexer.LeftParen) {
-			fn.Params = p.parameters(lexer.LeftParen, lexer.RightParen)
+		if p.check(tokens.LeftParen) {
+			fn.Params = p.parameters(tokens.LeftParen, tokens.RightParen)
 		} else {
 			fn.Params = make([]ast.Param, 0)
 			p.error(p.peek(), "expected opening parenthesis for parameters")
@@ -90,7 +90,7 @@ func (p *Parser) determineValueType(left ast.Node, right ast.Node) ast.Primitive
 func (p *Parser) term() ast.Node {
 	expr := p.factor()
 
-	if p.match(lexer.Plus, lexer.Minus) {
+	if p.match(tokens.Plus, tokens.Minus) {
 		operator := p.peek(-1)
 		right := p.term()
 		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: p.determineValueType(expr, right)}
@@ -102,7 +102,7 @@ func (p *Parser) term() ast.Node {
 func (p *Parser) factor() ast.Node {
 	expr := p.concat()
 
-	if p.match(lexer.Star, lexer.Slash, lexer.Caret, lexer.Modulo, lexer.BackSlash) {
+	if p.match(tokens.Star, tokens.Slash, tokens.Caret, tokens.Modulo, tokens.BackSlash) {
 		operator := p.peek(-1)
 		right := p.factor()
 
@@ -115,7 +115,7 @@ func (p *Parser) factor() ast.Node {
 func (p *Parser) concat() ast.Node {
 	expr := p.unary()
 
-	if p.match(lexer.Concat) {
+	if p.match(tokens.Concat) {
 		operator := p.peek(-1)
 		right := p.concat()
 		return &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: p.determineValueType(expr, right)}
@@ -125,7 +125,7 @@ func (p *Parser) concat() ast.Node {
 }
 
 func (p *Parser) unary() ast.Node {
-	if p.match(lexer.Bang, lexer.Minus, lexer.Hash) {
+	if p.match(tokens.Bang, tokens.Minus, tokens.Hash) {
 		operator := p.peek(-1)
 		right := p.unary()
 		return &ast.UnaryExpr{Operator: operator, Value: right}
@@ -170,7 +170,7 @@ func (p *Parser) entity() ast.Node {
 func (p *Parser) call(caller ast.Node) ast.Node {
 	hasGenerics := false
 	args := []*ast.TypeExpr{}
-	if p.check(lexer.Less) {
+	if p.check(tokens.Less) {
 		var ok bool
 		args, ok = p.genericArguments()
 		if !ok {
@@ -178,7 +178,7 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 		}
 		hasGenerics = false
 	}
-	if !p.check(lexer.LeftParen) {
+	if !p.check(tokens.LeftParen) {
 		if hasGenerics {
 			p.error(p.peek(), "expected call arguments after generic arguments")
 		}
@@ -218,7 +218,7 @@ func (p *Parser) accessorExprDepth2(ident *ast.Node) ast.Node {
 		},
 	}
 
-	if p.check(lexer.Dot) || p.check(lexer.LeftBracket) {
+	if p.check(tokens.Dot) || p.check(tokens.LeftBracket) {
 		return p.accessorExprDepth2(&methodCall)
 	}
 
@@ -231,7 +231,7 @@ func (p *Parser) accessorExpr(ident *ast.Node) (ast.Node, *ast.IdentifierExpr) {
 		ident = &expr
 	}
 
-	isField, isMember := p.check(lexer.Dot), p.check(lexer.LeftBracket)
+	isField, isMember := p.check(tokens.Dot), p.check(tokens.LeftBracket)
 
 	if !isField && !isMember {
 		return *ident, nil
@@ -253,19 +253,19 @@ func (p *Parser) accessorExpr(ident *ast.Node) (ast.Node, *ast.IdentifierExpr) {
 	var propIdentifier ast.Node
 	if isField {
 		propIdentifier = &ast.IdentifierExpr{Name: p.advance()}
-		if propIdentifier.GetToken().Type != lexer.Identifier {
+		if propIdentifier.GetToken().Type != tokens.Identifier {
 			p.error(propIdentifier.GetToken(), "expected identifier in field expression")
 		}
-		if p.check(lexer.LeftParen) || p.check(lexer.Less) {
+		if p.check(tokens.LeftParen) || p.check(tokens.Less) {
 			return *ident, propIdentifier.(*ast.IdentifierExpr)
 		}
 	} else if isMember {
 		propIdentifier = p.expression()
-		p.consume("expected closing bracket in member expression", lexer.RightBracket)
+		p.consume("expected closing bracket in member expression", tokens.RightBracket)
 	}
 
 	expr.SetPropertyIdentifier(propIdentifier)
-	if p.check(lexer.Dot) || p.check(lexer.LeftBracket) {
+	if p.check(tokens.Dot) || p.check(tokens.LeftBracket) {
 		prop, call := p.accessorExpr(&propIdentifier)
 
 		expr.SetProperty(prop)
@@ -278,7 +278,7 @@ func (p *Parser) accessorExpr(ident *ast.Node) (ast.Node, *ast.IdentifierExpr) {
 }
 
 func (p *Parser) matchExpr() ast.Node {
-	if p.match(lexer.Match) {
+	if p.match(tokens.Match) {
 		return &ast.MatchExpr{MatchStmt: *p.matchStmt(true)}
 	}
 
@@ -286,7 +286,7 @@ func (p *Parser) matchExpr() ast.Node {
 }
 
 func (p *Parser) macroCall() ast.Node {
-	if p.match(lexer.At) {
+	if p.match(tokens.At) {
 		macroCall := &ast.MacroCallExpr{}
 		caller := p.primary(true)
 		callerType := caller.GetType()
@@ -302,7 +302,7 @@ func (p *Parser) macroCall() ast.Node {
 }
 
 func (p *Parser) new() ast.Node {
-	if p.match(lexer.New) {
+	if p.match(tokens.New) {
 		expr := ast.NewExpr{
 			Token: p.peek(-1),
 		}
@@ -317,7 +317,7 @@ func (p *Parser) new() ast.Node {
 }
 
 func (p *Parser) spawn() ast.Node {
-	if p.match(lexer.Spawn) {
+	if p.match(tokens.Spawn) {
 		expr := ast.SpawnExpr{
 			Token: p.peek(-1),
 		}
@@ -332,7 +332,7 @@ func (p *Parser) spawn() ast.Node {
 }
 
 func (p *Parser) self() ast.Node {
-	if p.match(lexer.Self) {
+	if p.match(tokens.Self) {
 		return &ast.SelfExpr{
 			Token: p.peek(-1),
 		}
@@ -342,14 +342,14 @@ func (p *Parser) self() ast.Node {
 }
 
 func (p *Parser) primary(allowStruct bool) ast.Node {
-	if p.match(lexer.False) {
+	if p.match(tokens.False) {
 		return &ast.LiteralExpr{Value: "false", ValueType: ast.Bool, Token: p.peek(-1)}
 	}
-	if p.match(lexer.True) {
+	if p.match(tokens.True) {
 		return &ast.LiteralExpr{Value: "true", ValueType: ast.Bool, Token: p.peek(-1)}
 	}
 
-	if p.match(lexer.Number, lexer.Fixed, lexer.FixedPoint, lexer.Degree, lexer.Radian, lexer.String) {
+	if p.match(tokens.Number, tokens.Fixed, tokens.FixedPoint, tokens.Degree, tokens.Radian, tokens.String) {
 		literal := p.peek(-1)
 		var valueType ast.PrimitiveValueType
 		env, ok := p.program[0].(*ast.EnvironmentStmt)
@@ -357,32 +357,32 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 			envType := env.EnvType.Type
 			allowFX := envType == ast.Level
 			switch literal.Type {
-			case lexer.Number:
+			case tokens.Number:
 				if allowFX && strings.ContainsRune(literal.Lexeme, '.') {
 					p.error(literal, "cannot have a float in a level or shared environment")
 				}
 				valueType = ast.Number
-			case lexer.Fixed:
+			case tokens.Fixed:
 				if !allowFX {
 					p.error(literal, "cannot have a fixed in a mesh or sound environment")
 				}
 				valueType = ast.Fixed
-			case lexer.FixedPoint:
+			case tokens.FixedPoint:
 				if !allowFX {
 					p.error(literal, "cannot have a fixedpoint in a mesh, sound environment")
 				}
 				valueType = ast.FixedPoint
-			case lexer.Degree:
+			case tokens.Degree:
 				if !allowFX {
 					p.error(literal, "cannot have a degree, sound environment")
 				}
 				valueType = ast.Degree
-			case lexer.Radian:
+			case tokens.Radian:
 				if !allowFX {
 					p.error(literal, "cannot have a radian in a mesh or sound environment")
 				}
 				valueType = ast.Radian
-			case lexer.String:
+			case tokens.String:
 				valueType = ast.String
 			}
 		}
@@ -390,21 +390,21 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 		return &ast.LiteralExpr{Value: literal.Literal, ValueType: valueType, Token: literal}
 	}
 
-	if p.match(lexer.LeftBrace) {
+	if p.match(tokens.LeftBrace) {
 		return p.parseMap()
 	}
 
-	if p.match(lexer.LeftBracket) {
+	if p.match(tokens.LeftBracket) {
 		return p.list()
 	}
 
-	if allowStruct && p.match(lexer.Struct) {
+	if allowStruct && p.match(tokens.Struct) {
 		return p.structExpr()
 	}
 
-	if p.match(lexer.Identifier) {
+	if p.match(tokens.Identifier) {
 		token := p.peek(-1)
-		if !p.match(lexer.Colon) {
+		if !p.match(tokens.Colon) {
 			return &ast.IdentifierExpr{Name: token, ValueType: ast.Ident}
 		}
 
@@ -413,9 +413,9 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 		}
 
 		next := p.advance()
-		for p.match(lexer.Colon) {
+		for p.match(tokens.Colon) {
 			envPath.Combine(next)
-			if next.Type != lexer.Identifier {
+			if next.Type != tokens.Identifier {
 				p.error(next, "expected identifier in environment expression")
 				return &ast.Improper{Token: next}
 			}
@@ -432,17 +432,17 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 		return envExpr
 	}
 
-	if p.match(lexer.LeftParen) {
+	if p.match(tokens.LeftParen) {
 		token := p.peek(-1)
 		expr := p.expression()
 		if expr.GetType() == ast.NA {
 			p.error(p.peek(), "expected expression")
 		}
-		p.consume("expected ')' after expression", lexer.RightParen)
+		p.consume("expected ')' after expression", tokens.RightParen)
 		return &ast.GroupExpr{Expr: expr, Token: token, ValueType: expr.GetValueType()}
 	}
 
-	if p.match(lexer.Self) {
+	if p.match(tokens.Self) {
 		return &ast.IdentifierExpr{Name: p.peek(-1)}
 	}
 
@@ -452,7 +452,7 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 func (p *Parser) list() ast.Node {
 	token := p.peek(-1)
 	list := make([]ast.Node, 0)
-	if p.match(lexer.RightBracket) {
+	if p.match(tokens.RightBracket) {
 		return &ast.ListExpr{ValueType: ast.List, List: list, Token: token}
 	}
 	exprInList := p.expression()
@@ -460,8 +460,7 @@ func (p *Parser) list() ast.Node {
 		p.error(p.peek(), "expected expression")
 	}
 	list = append(list, exprInList)
-	for p.match(lexer.Comma) {
-
+	for p.match(tokens.Comma) {
 		exprInList := p.expression()
 		if exprInList.GetType() == ast.NA {
 			p.error(p.peek(), "expected expression")
@@ -469,18 +468,18 @@ func (p *Parser) list() ast.Node {
 		}
 		list = append(list, exprInList)
 	}
-	p.consume("expected ']' after contents", lexer.RightBracket)
+	p.consume("expected ']' after contents", tokens.RightBracket)
 
 	return &ast.ListExpr{ValueType: ast.List, List: list, Token: token}
 }
 
 func (p *Parser) parseMap() ast.Node {
 	token := p.peek(-1)
-	parsedMap := make(map[lexer.Token]ast.Property, 0)
-	for !p.check(lexer.RightBrace) {
+	parsedMap := make(map[tokens.Token]ast.Property, 0)
+	for !p.check(tokens.RightBrace) {
 		key := p.primary(true)
 
-		var newKey lexer.Token
+		var newKey tokens.Token
 		switch key := key.(type) {
 		case *ast.IdentifierExpr:
 			newKey = key.GetToken()
@@ -495,7 +494,7 @@ func (p *Parser) parseMap() ast.Node {
 			return &ast.Improper{Token: p.peek(-1)}
 		}
 
-		if _, ok := p.consume("expected '=' after map key", lexer.Equal); !ok {
+		if _, ok := p.consume("expected '=' after map key", tokens.Equal); !ok {
 			return &ast.Improper{Token: p.peek(-1)}
 		}
 
@@ -504,12 +503,12 @@ func (p *Parser) parseMap() ast.Node {
 			p.error(p.peek(), "expected expression")
 		}
 
-		if p.peek().Type == lexer.RightBrace {
+		if p.peek().Type == tokens.RightBrace {
 			parsedMap[newKey] = ast.Property{Expr: expr, Type: expr.GetValueType()}
 			break
 		}
 
-		if _, ok := p.consume("expected ',' after expression", lexer.Comma); !ok {
+		if _, ok := p.consume("expected ',' after expression", tokens.Comma); !ok {
 			return &ast.Improper{Token: p.peek(-1)}
 		}
 
@@ -526,11 +525,11 @@ func (p *Parser) structExpr() ast.Node {
 		Fields: make([]*ast.FieldDeclarationStmt, 0),
 	}
 
-	_, ok := p.consume("expected opening brace in struct", lexer.LeftBrace)
+	_, ok := p.consume("expected opening brace in struct", tokens.LeftBrace)
 	if !ok {
 		return &ast.Improper{Token: structExpr.Token}
 	}
-	if p.match(lexer.RightBrace) {
+	if p.match(tokens.RightBrace) {
 		return &structExpr
 	}
 	field := p.fieldDeclarationStmt()
@@ -541,8 +540,8 @@ func (p *Parser) structExpr() ast.Node {
 		return ast.NewImproper(field.GetToken())
 	}
 
-	for p.match(lexer.SemiColon) {
-		if p.match(lexer.RightBrace) {
+	for p.match(tokens.SemiColon) {
+		if p.match(tokens.RightBrace) {
 			return &structExpr
 		}
 		field := p.fieldDeclarationStmt()
@@ -554,14 +553,14 @@ func (p *Parser) structExpr() ast.Node {
 		}
 	}
 
-	p.consume("expected closing brace in struct", lexer.RightBrace)
+	p.consume("expected closing brace in struct", tokens.RightBrace)
 
 	return &structExpr
 }
 
 func (p *Parser) WrappedType() *ast.TypeExpr {
 	typeExpr := ast.TypeExpr{}
-	if p.check(lexer.Greater) {
+	if p.check(tokens.Greater) {
 		p.error(p.peek(), "empty wrapped type")
 		return &typeExpr
 	}
@@ -572,8 +571,8 @@ func (p *Parser) WrappedType() *ast.TypeExpr {
 func (p *Parser) Type() *ast.TypeExpr {
 	var expr ast.Node
 	token := p.advance()
-	if p.match(lexer.Colon) {
-		if token.Type != lexer.Identifier {
+	if p.match(tokens.Colon) {
+		if token.Type != tokens.Identifier {
 			p.error(token, "expected identifier")
 		}
 		envAccess := &ast.EnvAccessExpr{
@@ -582,9 +581,9 @@ func (p *Parser) Type() *ast.TypeExpr {
 			},
 		}
 		next := p.advance()
-		for p.match(lexer.Colon) {
+		for p.match(tokens.Colon) {
 			envAccess.PathExpr.Combine(next)
-			if next.Type != lexer.Identifier {
+			if next.Type != tokens.Identifier {
 				p.error(next, "expected identifier in environment expression")
 			}
 			next = p.advance()
@@ -603,46 +602,46 @@ func (p *Parser) Type() *ast.TypeExpr {
 	var typ *ast.TypeExpr
 	if expr.GetType() == ast.EnvironmentAccessExpression {
 		typ = &ast.TypeExpr{Name: expr}
-		typ.IsVariadic = p.match(lexer.DotDotDot)
+		typ.IsVariadic = p.match(tokens.DotDotDot)
 		return typ
 	}
 	exprToken := expr.GetToken()
 
 	switch exprToken.Type {
-	case lexer.Identifier:
+	case tokens.Identifier:
 		typ = &ast.TypeExpr{}
-		if p.match(lexer.Less) { // map<number>
+		if p.match(tokens.Less) { // map<number>
 			typ.WrappedType = p.WrappedType()
-			p.consume("expected '>'", lexer.Greater)
+			p.consume("expected '>'", tokens.Greater)
 		}
 		typ.Name = expr
-	case lexer.Fn:
+	case tokens.Fn:
 		typ = &ast.TypeExpr{}
 		//p.advance()
-		if !p.match(lexer.LeftParen) {
+		if !p.match(tokens.LeftParen) {
 			break
 		}
-		if !p.match(lexer.RightParen) {
+		if !p.match(tokens.RightParen) {
 			_typ := p.Type()
 			typ.Params = append(typ.Params, _typ)
-			for p.match(lexer.Comma) {
+			for p.match(tokens.Comma) {
 				_typ := p.Type()
 				typ.Params = append(typ.Params, _typ)
 			}
-			p.consume("expected closing parenthesis", lexer.RightParen)
+			p.consume("expected closing parenthesis", tokens.RightParen)
 		}
 		typ.Returns = p.returnings()
 		typ.Name = expr
-	case lexer.Struct:
-		fields := p.parameters(lexer.LeftBrace, lexer.RightBrace)
+	case tokens.Struct:
+		fields := p.parameters(tokens.LeftBrace, tokens.RightBrace)
 		typ = &ast.TypeExpr{Name: expr, Fields: fields}
-	case lexer.Entity:
+	case tokens.Entity:
 		typ = &ast.TypeExpr{Name: &ast.IdentifierExpr{Name: exprToken}}
 	default:
 		//p.error(exprToken, "Improper type")
 		typ = &ast.TypeExpr{Name: expr}
 	}
-	typ.IsVariadic = p.match(lexer.DotDotDot)
+	typ.IsVariadic = p.match(tokens.DotDotDot)
 
 	return typ
 }
@@ -661,7 +660,7 @@ func StringToEnvType(name string) ast.EnvType {
 }
 
 func (p *Parser) EnvType() *ast.EnvTypeExpr {
-	name, ok := p.consume("expected identifier for a environment type expr", lexer.Identifier)
+	name, ok := p.consume("expected identifier for a environment type expr", tokens.Identifier)
 
 	if !ok {
 		return &ast.EnvTypeExpr{Type: ast.InvalidEnv, Token: name}
@@ -677,7 +676,7 @@ func (p *Parser) EnvType() *ast.EnvTypeExpr {
 }
 
 func (p *Parser) EnvPathExpr() ast.Node {
-	ident, ok := p.consume("expected identifier for an environment path", lexer.Identifier)
+	ident, ok := p.consume("expected identifier for an environment path", tokens.Identifier)
 
 	if !ok {
 		return &ast.Improper{Token: ident}
@@ -687,8 +686,8 @@ func (p *Parser) EnvPathExpr() ast.Node {
 		Path: ident,
 	}
 
-	for p.match(lexer.Colon) {
-		ident, ok = p.consume("expected identifier in environment path", lexer.Identifier)
+	for p.match(tokens.Colon) {
+		ident, ok = p.consume("expected identifier in environment path", tokens.Identifier)
 		if !ok {
 			return &ast.Improper{Token: envPath.GetToken()}
 		}

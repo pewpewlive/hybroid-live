@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"hybroid/ast"
 	"hybroid/helpers"
-	"hybroid/lexer"
 	"hybroid/parser"
+	"hybroid/tokens"
 	wkr "hybroid/walker"
 	"strings"
 )
@@ -116,7 +116,7 @@ func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDeclarationStmt, scope
 	}
 
 	//callbacks
-	found := map[ast.EntityFunctionType][]lexer.Token{}
+	found := map[ast.EntityFunctionType][]tokens.Token{}
 
 	if node.Destroyer == nil {
 		w.Error(node.Token, "entities must be declared with a destroyer")
@@ -172,7 +172,7 @@ func EntityFunctionDeclarationStmt(w *wkr.Walker, node *ast.EntityFunctionDeclar
 		Returns:     make([]bool, len(ret)),
 	}
 	fnScope := wkr.NewScope(scope, ft, wkr.ReturnAllowing)
-	params := WalkParams(w, node.Params, scope, func(name lexer.Token, value wkr.Value) {
+	params := WalkParams(w, node.Params, scope, func(name tokens.Token, value wkr.Value) {
 		w.DeclareVariable(fnScope, &wkr.VariableVal{
 			Name:    name.Lexeme,
 			Value:   value,
@@ -407,7 +407,7 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 	if !declaration.IsLocal && scope.Parent != nil {
 		w.Error(declaration.Token, "cannot declare a global variable inside a local block")
 	}
-	if declaration.Token.Type == lexer.Const && scope.Parent != nil {
+	if declaration.Token.Type == tokens.Const && scope.Parent != nil {
 		w.Error(declaration.Token, "cannot declare a global constant inside a local block")
 	}
 

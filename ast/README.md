@@ -14,15 +14,15 @@ Alert is used to abstract errors and warnings.
 
 ```go
 type Alert interface {
-	GetToken() lexer.Token
-	GetHeader() string
-	GetMessage() string
+ GetToken() tokens.Token
+ GetHeader() string
+ GetMessage() string
 }
 ```
 
 ##### **Methods:**
 
-1. `GetToken() -> lexer.Token` - Returns the [lexer.Token]() (CITATION NEEDED) that the alert holds.
+1. `GetToken() -> tokens.Token` - Returns the [tokens.Token]() (CITATION NEEDED) that the alert holds.
 2. `GetHeader() -> string` - Returns "[red]Error" if it's an error and "[yellow]Warning" if it's a warning. This is used to prefix the message of the alert and it also colors the string appropriately.
 3. `GetMessage() -> string` - Returns the message of the alert.
 
@@ -34,8 +34,8 @@ This is used in the parser and walker.
 
 ```go
 type Error struct {
-	Token   lexer.Token
-	Message string
+ Token   tokens.Token
+ Message string
 }
 ```
 
@@ -45,8 +45,8 @@ This is used in the walker only.
 
 ```go
 type Warning struct {
-	Token   lexer.Token
-	Message string
+ Token   tokens.Token
+ Message string
 }
 ```
 
@@ -60,67 +60,67 @@ type Warning struct {
 type NodeType string
 
 const (
-	VariableDeclarationStatement  NodeType = "variableDeclarationStatement"
-	FunctionDeclarationStatement  NodeType = "functionDeclarationStatement"
-	StructureDeclarationStatement NodeType = "structureDeclarationStatement"
-	FieldDeclarationStatement     NodeType = "fieldDeclarationStatement"
-	MethodDeclarationStatement    NodeType = "methodDeclarationStatement"
-	EnumDeclarationStatement      NodeType = "enumDeclarationStatement"
-	MacroDeclarationStatement     NodeType = "macroDeclarationStatement"
+ VariableDeclarationStatement  NodeType = "variableDeclarationStatement"
+ FunctionDeclarationStatement  NodeType = "functionDeclarationStatement"
+ StructureDeclarationStatement NodeType = "structureDeclarationStatement"
+ FieldDeclarationStatement     NodeType = "fieldDeclarationStatement"
+ MethodDeclarationStatement    NodeType = "methodDeclarationStatement"
+ EnumDeclarationStatement      NodeType = "enumDeclarationStatement"
+ MacroDeclarationStatement     NodeType = "macroDeclarationStatement"
 
-	EntityDeclarationStatement        NodeType = "entityDeclarationStatement"
-	EntityFunctionDeclarationStatemet NodeType = "entityFunctionDeclarationStatement"
-	DestroyStmt                       NodeType = "spawnStatement"
+ EntityDeclarationStatement        NodeType = "entityDeclarationStatement"
+ EntityFunctionDeclarationStatemet NodeType = "entityFunctionDeclarationStatement"
+ DestroyStmt                       NodeType = "spawnStatement"
 
-	ConstructorStatement NodeType = "constructorStatement"
-	EnvironmentStatement NodeType = "environmentStatement"
-	AssignmentStatement  NodeType = "assignmentStatement"
-	RepeatStatement      NodeType = "repeatStatement"
-	WhileStatement       NodeType = "whileStatement"
-	ForStatement         NodeType = "forStatement"
-	TickStatement        NodeType = "tickStatement"
-	IfStatement          NodeType = "ifStatement"
-	UseStatement         NodeType = "useStatement"
-	AddStatement         NodeType = "addStatement"
-	RemoveStatement      NodeType = "removeStatement"
-	BreakStatement       NodeType = "breakStatement"
-	ContinueStatement    NodeType = "continueStatement"
-	ReturnStatement      NodeType = "returnStatement"
-	YieldStatement       NodeType = "yieldStatement"
-	MatchStatement       NodeType = "matchStatement"
+ ConstructorStatement NodeType = "constructorStatement"
+ EnvironmentStatement NodeType = "environmentStatement"
+ AssignmentStatement  NodeType = "assignmentStatement"
+ RepeatStatement      NodeType = "repeatStatement"
+ WhileStatement       NodeType = "whileStatement"
+ ForStatement         NodeType = "forStatement"
+ TickStatement        NodeType = "tickStatement"
+ IfStatement          NodeType = "ifStatement"
+ UseStatement         NodeType = "useStatement"
+ AddStatement         NodeType = "addStatement"
+ RemoveStatement      NodeType = "removeStatement"
+ BreakStatement       NodeType = "breakStatement"
+ ContinueStatement    NodeType = "continueStatement"
+ ReturnStatement      NodeType = "returnStatement"
+ YieldStatement       NodeType = "yieldStatement"
+ MatchStatement       NodeType = "matchStatement"
 
-	EnvironmentPathExpression   NodeType = "environmentPathExpression"
-	EnvironmentAccessExpression NodeType = "environmentAccessExpression"
-	EnvironmentTypeExpression   NodeType = "environmentTypeExpression"
-	AnonymousFunctionExpression NodeType = "anonymousFunctionExpression"
-	AnonymousStructExpression   NodeType = "anonymousStructExpression"
-	LiteralExpression           NodeType = "literalExpression"
-	UnaryExpression             NodeType = "unaryExpression"
-	BinaryExpression            NodeType = "binaryExpression"
-	GroupingExpression          NodeType = "groupingExpression"
-	ListExpression              NodeType = "listExpression"
-	MapExpression               NodeType = "mapExpression"
-	CallExpression              NodeType = "callExpression"
-	MethodCallExpression        NodeType = "methodCallExpression"
-	MacroCallExpression         NodeType = "macroCallExpression"
-	MatchExpression             NodeType = "matchExpression"
-	FieldExpression             NodeType = "fieldExpression"
-	MemberExpression            NodeType = "memberExpression"
-	ParentExpression            NodeType = "parentExpression"
-	TypeExpression              NodeType = "typeExpression"
-	SelfExpression              NodeType = "selfExpression"
-	NewExpession                NodeType = "newExpession"
-	SpawnExpression             NodeType = "spawnExpression"
-	
-	PewpewExpression            NodeType = "pewpewExpression"
-	PewpewCallExpression        NodeType = "pewpewCallExpression"
-	FmathExpression         NodeType = "fmathExpression"
-	BuiltinCallExpression       NodeType = "builtinCallExpession"
-	StandardExpression      NodeType = "standardExpression"
+ EnvironmentPathExpression   NodeType = "environmentPathExpression"
+ EnvironmentAccessExpression NodeType = "environmentAccessExpression"
+ EnvironmentTypeExpression   NodeType = "environmentTypeExpression"
+ AnonymousFunctionExpression NodeType = "anonymousFunctionExpression"
+ AnonymousStructExpression   NodeType = "anonymousStructExpression"
+ LiteralExpression           NodeType = "literalExpression"
+ UnaryExpression             NodeType = "unaryExpression"
+ BinaryExpression            NodeType = "binaryExpression"
+ GroupingExpression          NodeType = "groupingExpression"
+ ListExpression              NodeType = "listExpression"
+ MapExpression               NodeType = "mapExpression"
+ CallExpression              NodeType = "callExpression"
+ MethodCallExpression        NodeType = "methodCallExpression"
+ MacroCallExpression         NodeType = "macroCallExpression"
+ MatchExpression             NodeType = "matchExpression"
+ FieldExpression             NodeType = "fieldExpression"
+ MemberExpression            NodeType = "memberExpression"
+ ParentExpression            NodeType = "parentExpression"
+ TypeExpression              NodeType = "typeExpression"
+ SelfExpression              NodeType = "selfExpression"
+ NewExpession                NodeType = "newExpession"
+ SpawnExpression             NodeType = "spawnExpression"
+ 
+ PewpewExpression            NodeType = "pewpewExpression"
+ PewpewCallExpression        NodeType = "pewpewCallExpression"
+ FmathExpression         NodeType = "fmathExpression"
+ BuiltinCallExpression       NodeType = "builtinCallExpession"
+ StandardExpression      NodeType = "standardExpression"
 
-	Identifier NodeType = "identifier"
+ Identifier NodeType = "identifier"
 
-	NA NodeType = "notAssessed"
+ NA NodeType = "notAssessed"
 )
 ```
 
@@ -130,24 +130,24 @@ const (
 type PrimitiveValueType string
 
 const (
-	Unknown     PrimitiveValueType = "unknown"
-	Number      PrimitiveValueType = "number"
-	String      PrimitiveValueType = "string"
-	Bool        PrimitiveValueType = "bool"
-	FixedPoint  PrimitiveValueType = "fixedPoint"
-	Fixed       PrimitiveValueType = "fixed"
-	Radian      PrimitiveValueType = "radian"
-	Degree      PrimitiveValueType = "degree"
-	List        PrimitiveValueType = "list"
-	Map         PrimitiveValueType = "map"
-	Func        PrimitiveValueType = "func"
-	Entity      PrimitiveValueType = "entity"
-	Struct      PrimitiveValueType = "struct"
-	AnonStruct  PrimitiveValueType = "anonStruct"
-	Ident       PrimitiveValueType = "ident"
-	Enum        PrimitiveValueType = "enum"
-	Unresolved  PrimitiveValueType = "unresolved"
-	Invalid     PrimitiveValueType = "invalid"
+ Unknown     PrimitiveValueType = "unknown"
+ Number      PrimitiveValueType = "number"
+ String      PrimitiveValueType = "string"
+ Bool        PrimitiveValueType = "bool"
+ FixedPoint  PrimitiveValueType = "fixedPoint"
+ Fixed       PrimitiveValueType = "fixed"
+ Radian      PrimitiveValueType = "radian"
+ Degree      PrimitiveValueType = "degree"
+ List        PrimitiveValueType = "list"
+ Map         PrimitiveValueType = "map"
+ Func        PrimitiveValueType = "func"
+ Entity      PrimitiveValueType = "entity"
+ Struct      PrimitiveValueType = "struct"
+ AnonStruct  PrimitiveValueType = "anonStruct"
+ Ident       PrimitiveValueType = "ident"
+ Enum        PrimitiveValueType = "enum"
+ Unresolved  PrimitiveValueType = "unresolved"
+ Invalid     PrimitiveValueType = "invalid"
 )
 ```
 
@@ -161,9 +161,9 @@ This enum refers to the lua standard libraries that [ppl-utils](https://github.c
 type StandardLibrary int
 
 const (
-	MathLib StandardLibrary = iota
-	StringLib
-	TableLib 
+ MathLib StandardLibrary = iota
+ StringLib
+ TableLib 
 )
 ```
 
@@ -175,10 +175,10 @@ The type of the environment.
 type EnvType int
 
 const (
-	Mesh EnvType = iota
-	Level
-	Sound
-	InvalidEnv
+ Mesh EnvType = iota
+ Level
+ Sound
+ InvalidEnv
 )
 ```
 
@@ -190,8 +190,8 @@ Whenever using `self`, does it refer to an entity or a struct?
 type SelfExprType int
 
 const (
-	SelfStruct SelfExprType = iota
-	SelfEntity
+ SelfStruct SelfExprType = iota
+ SelfEntity
 )
 ```
 
@@ -203,8 +203,8 @@ Does the macro expand to an expression, or to a list of statements?
 type MacroType int
 
 const (
-	ExpressionExpansion MacroType = iota
-	ProgramExpansion
+ ExpressionExpansion MacroType = iota
+ ProgramExpansion
 )
 ```
 
@@ -216,12 +216,12 @@ Used in [EntityFunctionDeclarationStmt](https://github.com/pewpewlive/hybroid/bl
 type EntityFunctionType string
 
 const (
-	WeaponCollision EntityFunctionType = "weaponCollision"
-	WallCollision   EntityFunctionType = "wallCollision"
-	PlayerCollision EntityFunctionType = "playerCollision"
-	Update          EntityFunctionType = "update"
-	Destroy         EntityFunctionType = "destroy"
-	Spawn           EntityFunctionType = "spawn"
+ WeaponCollision EntityFunctionType = "weaponCollision"
+ WallCollision   EntityFunctionType = "wallCollision"
+ PlayerCollision EntityFunctionType = "playerCollision"
+ Update          EntityFunctionType = "update"
+ Destroy         EntityFunctionType = "destroy"
+ Spawn           EntityFunctionType = "spawn"
 )
 ```
 
@@ -243,16 +243,16 @@ Node is the abstracted essence of a collection of tokens.
 
 ```go
 type Node interface {
-	GetType() NodeType
-	GetToken() lexer.Token
-	GetValueType() PrimitiveValueType
+ GetType() NodeType
+ GetToken() tokens.Token
+ GetValueType() PrimitiveValueType
 }
 ```
 
 ##### **Methods:**
 
 1. `GetType() -> NodeType` - Returns the type of the node.
-2. `GetToken() -> lexer.Token` - Returns the main token of the node.
+2. `GetToken() -> tokens.Token` - Returns the main token of the node.
 3. `GetValueType() -> PrimitiveValueType` - Returns the PVT of the node. When it's a statement it returns `Invalid`.
 
 ##### **Implementations:**
@@ -267,17 +267,18 @@ For the node expression implementations, please refer to [expressions.go](https:
 
 ```go
 type Accessor interface {
-	Node
-	GetOwner() *Accessor
-	GetProperty() *Node
-	SetOwner(owner Accessor)
-	SetProperty(prop Node)
-	SetIdentifier(ident Node)
-	Copy() Accessor
+ Node
+ GetOwner() *Accessor
+ GetProperty() *Node
+ SetOwner(owner Accessor)
+ SetProperty(prop Node)
+ SetIdentifier(ident Node)
+ Copy() Accessor
 }
 ```
 
 ##### **Methods:**
+
 1. `GetOwner() -> *Accessor` - Returns the owner of the node. Can be `nil`.
 2. `GetProperty() -> *Node` - Returns the property of the node. Can be `nil`.
 3. `SetOwner(owner Accessor)` - Set's the node's owner to the given `owner` parameter.
@@ -288,6 +289,7 @@ type Accessor interface {
 ##### **Implementations:**
 
 ###### [MemberExpr](https://github.com/pewpewlive/hybroid/blob/master/ast/README.md#memberexpr)
+
 ###### [FieldExpr](https://github.com/pewpewlive/hybroid/blob/master/ast/README.md#fieldExpr)
 
 ### Variables
@@ -296,9 +298,9 @@ type Accessor interface {
 
 ```go
 var Libraries = map[string]StandardLibrary{
-	"Math": MathLib,
-	"String": StringLib,
-	"Table": TableLib,
+ "Math": MathLib,
+ "String": StringLib,
+ "Table": TableLib,
 }
 ```
 
@@ -310,48 +312,50 @@ This file contains the implementations of [Node](https://github.com/pewpewlive/h
 
 #### **_EnvTypeExpr_**
 
-
 ```go
 type EnvTypeExpr struct {
-	Type  EnvType
-	Token lexer.Token
+ Type  EnvType
+ Token tokens.Token
 }
 ```
 
 In code:
+
 ```
 env Path as Level
 env Path as Mesh
 env Path as Sound
-			^^^^^
+   ^^^^^
 ```
 
 #### **_EnvPathExpr_**
 
 ```go
 type EnvPathExpr struct {
-	SubPaths []string
+ SubPaths []string
 }
 ```
 
 In code:
+
 ```
 env Path as Level
-	^^^^
+ ^^^^
 env Path::Subpath as Level
-	^^^^^^^^^^^^^
+ ^^^^^^^^^^^^^
 ```
 
 #### **_EnvAccessExpr_**
 
 ```go
 type EnvAccessExpr struct {
-	PathExpr *EnvPathExpr
-	Accessed Node
+ PathExpr *EnvPathExpr
+ Accessed Node
 }
 ```
 
 In code:
+
 ```
 let a = Path::expression
 ```
@@ -360,12 +364,13 @@ let a = Path::expression
 
 ```go
 type MacroCallExpr struct {
-	Caller *CallExpr
+ Caller *CallExpr
 }
 
 ```
 
 In code:
+
 ```
 @MacroCall()
 ```
@@ -374,36 +379,38 @@ In code:
 
 ```go
 type LiteralExpr struct {
-	Value     string
-	ValueType PrimitiveValueType
-	Token     lexer.Token
+ Value     string
+ ValueType PrimitiveValueType
+ Token     tokens.Token
 }
 ```
 
 In code:
+
 ```
 let a = "text"
-		^^^^^^
+  ^^^^^^
 let b = 1
-		^
+  ^
 let c, d = true, false
-		   ^^^^  ^^^^^
+     ^^^^  ^^^^^
 ```
 
 #### **_UnaryExpr_**
 
 ```go
 type UnaryExpr struct {
-	Value     Node
-	Operator  lexer.Token
-	ValueType PrimitiveValueType
+ Value     Node
+ Operator  tokens.Token
+ ValueType PrimitiveValueType
 }
 ```
 
 In code:
+
 ```
 let a = -1
-		^^
+  ^^
 let b = !true
 ```
 
@@ -411,20 +418,21 @@ let b = !true
 
 ```go
 type TypeExpr struct {
-	WrappedType *TypeExpr
-	Name        Node
-	Params      []*TypeExpr
-	Returns     []*TypeExpr
-	Fields      []Param
+ WrappedType *TypeExpr
+ Name        Node
+ Params      []*TypeExpr
+ Returns     []*TypeExpr
+ Fields      []Param
 }
 ```
 
 In code:
+
 ```
 fn function(Type param) {}
-			^^^^
+   ^^^^
 let Type a
-	^^^^
+ ^^^^
 
 let list<Type> b
     ^^^^^^^^^^
@@ -436,45 +444,48 @@ let map<fixed> c
 
 ```go
 type GroupExpr struct {
-	Expr      Node
-	ValueType PrimitiveValueType
-	Token     lexer.Token
+ Expr      Node
+ ValueType PrimitiveValueType
+ Token     tokens.Token
 }
 ```
 
 In code:
+
 ```
 let a = (1f-5f)*9f
-		^^^^^^^
+  ^^^^^^^
 ```
 
 #### **_BinaryExpr_**
 
 ```go
 type BinaryExpr struct {
-	Left, Right Node
-	Operator    lexer.Token
-	ValueType   PrimitiveValueType
+ Left, Right Node
+ Operator    tokens.Token
+ ValueType   PrimitiveValueType
 }
 ```
 
 In code:
+
 ```
 let a = 1-5
-		^^^
+  ^^^
 ```
 
 #### **_CallExpr_**
 
 ```go
 type CallExpr struct {
-	Name lexer.Token
-	Caller     Node
-	Args       []Node
+ Name tokens.Token
+ Caller     Node
+ Args       []Node
 }
 ```
 
 In code:
+
 ```
 Call()
 ```
@@ -483,11 +494,12 @@ Call()
 
 ```go
 type PewpewExpr struct {
-	Node Node
+ Node Node
 }
 ```
 
 In code:
+
 ```
 pewpew::expression
 ```
@@ -496,11 +508,12 @@ pewpew::expression
 
 ```go
 type FmathExpr struct {
-	Node Node
+ Node Node
 }
 ```
 
 In code:
+
 ```
 fmath::expression
 ```
@@ -509,8 +522,8 @@ fmath::expression
 
 ```go
 type BuiltinCallExpr struct {
-	Name lexer.Token
-	Args []Node
+ Name tokens.Token
+ Args []Node
 }
 ```
 
@@ -518,12 +531,13 @@ type BuiltinCallExpr struct {
 
 ```go
 type StandardExpr struct {
-	Library StandardLibrary
-	Node Node
+ Library StandardLibrary
+ Node Node
 }
 ```
 
 In code:
+
 ```
 table::expression
 math::expression
@@ -534,51 +548,54 @@ string::expression
 
 ```go
 type AnonFnExpr struct {
-	Token  lexer.Token
-	Return []*TypeExpr
-	Params []Param
-	Body   []Node
+ Token  tokens.Token
+ Return []*TypeExpr
+ Params []Param
+ Body   []Node
 }
 ```
 
 In code:
+
 ```
 let a = fn(fixed param) {}
-		^^^^^^^^^^^^^^^^^^
+  ^^^^^^^^^^^^^^^^^^
 ```
 
 #### **_AnonStructExpr_**
 
 ```go
 type AnonStructExpr struct {
-	Token  lexer.Token
-	Fields []*FieldDeclarationStmt
+ Token  tokens.Token
+ Fields []*FieldDeclarationStmt
 }
 ```
 
 In code:
+
 ```
 let a = struct { x = 0fx }
-		^^^^^^^^^^^^^^^^^^
+  ^^^^^^^^^^^^^^^^^^
 ```
 
 #### **_MatchExpr_**
 
 ```go
 type MatchExpr struct {
-	MatchStmt    MatchStmt
-	ReturnAmount int
+ MatchStmt    MatchStmt
+ ReturnAmount int
 }
 ```
 
 In code:
+
 ```
 let a = match expression {
-	expression => {
-		yield 1
-	}
-	expression => 2
-	_ => 3
+ expression => {
+  yield 1
+ }
+ expression => 2
+ _ => 3
 }
 ```
 
@@ -586,12 +603,13 @@ let a = match expression {
 
 ```go
 type SelfExpr struct {
-	Token lexer.Token
-	Type  SelfExprType
+ Token tokens.Token
+ Type  SelfExprType
 }
 ```
 
 In code:
+
 ```
 self.expression
 
@@ -603,17 +621,18 @@ let a = self
 
 ```go
 type MethodCallExpr struct {
-	TypeName   string
-	OwnerType  SelfExprType
-	Owner      Node
-	Call       Node
-	MethodName string
-	Args       []Node
-	Token      lexer.Token
+ TypeName   string
+ OwnerType  SelfExprType
+ Owner      Node
+ Call       Node
+ MethodName string
+ Args       []Node
+ Token      tokens.Token
 }
 ```
 
 In code:
+
 ```
 self.call()
 ```
@@ -622,46 +641,49 @@ self.call()
 
 ```go
 type NewExpr struct {
-	Type  *TypeExpr
-	Args  []Node
-	Token lexer.Token
+ Type  *TypeExpr
+ Args  []Node
+ Token tokens.Token
 }
 ```
 
 In code:
+
 ```
 let instance = new Struct()
-			   ^^^^^^^^^^^^
+      ^^^^^^^^^^^^
 ```
 
 #### **_SpawnExpr_**
 
 ```go
 type SpawnExpr struct {
-	Type  *TypeExpr
-	Args  []Node
-	Token lexer.Token
+ Type  *TypeExpr
+ Args  []Node
+ Token tokens.Token
 }
 ```
 
 In code:
+
 ```
 let instance = spawn Entity()
-			   ^^^^^^^^^^^^^^
+      ^^^^^^^^^^^^^^
 ```
 
 #### **_FieldExpr_**
 
 ```go
 type FieldExpr struct {
-	Owner      Accessor
-	Property   Node
-	Identifier Node
-	Index      int
+ Owner      Accessor
+ Property   Node
+ Identifier Node
+ Index      int
 }
 ```
 
 In code:
+
 ```
 owner.property
 ```
@@ -670,14 +692,15 @@ owner.property
 
 ```go
 type MemberExpr struct {
-	Owner      Accessor
-	Property   Node
-	Identifier Node
-	IsList     bool
+ Owner      Accessor
+ Property   Node
+ Identifier Node
+ IsList     bool
 }
 ```
 
 In code:
+
 ```
 map["property"]
 list[index]
@@ -689,16 +712,17 @@ Refer to [here](https://github.com/pewpewlive/hybroid/blob/master/ast/README.md#
 
 ```go
 type MapExpr struct {
-	Token lexer.Token
-	Map   map[lexer.Token]Property
+ Token tokens.Token
+ Map   map[tokens.Token]Property
 }
 ```
 
 In code:
+
 ```
 let map<text> a = {
-	property1 = "text",
-	property2 = "text2"
+ property1 = "text",
+ property2 = "text2"
 }
 ```
 
@@ -706,13 +730,14 @@ let map<text> a = {
 
 ```go
 type ListExpr struct {
-	List      []Node
-	ValueType PrimitiveValueType
-	Token     lexer.Token
+ List      []Node
+ ValueType PrimitiveValueType
+ Token     tokens.Token
 }
 ```
 
 In code:
+
 ```
 let a = [1,2,3]
 ```
@@ -721,28 +746,29 @@ let a = [1,2,3]
 
 ```go
 type IdentifierExpr struct {
-	Name      lexer.Token
-	ValueType PrimitiveValueType
+ Name      tokens.Token
+ ValueType PrimitiveValueType
 }
 ```
 
 In code:
+
 ```
 let a = identifier
-		^^^^^^^^^^
+  ^^^^^^^^^^
 ```
 
 #### **_Improper_**
 
 ```go
 type Improper struct {
-	Token lexer.Token
+ Token tokens.Token
 }
 ```
 
 ##### **Constructor:**
 
-`NewImproper(token lexer.Token) -> *Improper` - Creates an Improper node with the given `token` parameter.
+`NewImproper(token tokens.Token) -> *Improper` - Creates an Improper node with the given `token` parameter.
 
 ### Structs
 
@@ -752,8 +778,8 @@ Used in [MapExpr](https://github.com/pewpewlive/hybroid/blob/master/ast/README.m
 
 ```go
 type Property struct {
-	Expr Node
-	Type PrimitiveValueType
+ Expr Node
+ Type PrimitiveValueType
 }
 ```
 
@@ -767,9 +793,9 @@ This file contains the implementations of [Node](https://github.com/pewpewlive/h
 
 ```go
 type EnvironmentStmt struct {
-	EnvType      *EnvTypeExpr
-	Env          *EnvPathExpr
-	Requirements Paths
+ EnvType      *EnvTypeExpr
+ Env          *EnvPathExpr
+ Requirements Paths
 }
 ```
 
@@ -781,13 +807,14 @@ type EnvironmentStmt struct {
 
 ```go
 type AssignmentStmt struct {
-	Values      []Node
-	Identifiers []Node
-	Token       lexer.Token
+ Values      []Node
+ Identifiers []Node
+ Token       tokens.Token
 }
 ```
 
 In code:
+
 ```
 variable = expression
 ```
@@ -796,17 +823,18 @@ variable = expression
 
 ```go
 type MacroDeclarationStmt struct {
-	Name      lexer.Token
-	Params    []lexer.Token
-	MacroType MacroType
-	Tokens    []lexer.Token
+ Name      tokens.Token
+ Params    []tokens.Token
+ MacroType MacroType
+ Tokens    []tokens.Token
 }
 ```
 
 In code:
+
 ```
 macro name() => {
-	...
+ ...
 }
 
 macro name() => ...
@@ -818,15 +846,16 @@ The first one describes a macro that expands to a list of statements, while the 
 
 ```go
 type VariableDeclarationStmt struct {
-	Identifiers []lexer.Token
-	Types       []*TypeExpr
-	Values      []Node
-	IsLocal     bool
-	Token       lexer.Token
+ Identifiers []tokens.Token
+ Types       []*TypeExpr
+ Values      []Node
+ IsLocal     bool
+ Token       tokens.Token
 }
 ```
 
 In code:
+
 ```
 let a = 1
 let fixed b = 2
@@ -836,58 +865,59 @@ let fixed b = 2
 
 ```go
 type StructDeclarationStmt struct {
-	Token       lexer.Token
-	Name        lexer.Token
-	Fields      []FieldDeclarationStmt
-	Constructor *ConstructorStmt
-	Methods     []MethodDeclarationStmt
-	IsLocal     bool
+ Token       tokens.Token
+ Name        tokens.Token
+ Fields      []FieldDeclarationStmt
+ Constructor *ConstructorStmt
+ Methods     []MethodDeclarationStmt
+ IsLocal     bool
 }
 ```
 
 In code:
+
 ```
 struct Name {
-	new() {
+ new() {
 
-	}
+ }
 
-	fn method() {
+ fn method() {
 
-	}
+ }
 }
 ```
-
 
 #### **_EntityDeclarationStmt_**
 
 ```go
 type EntityDeclarationStmt struct {
-	Token     lexer.Token
-	Name      lexer.Token
-	Fields    []FieldDeclarationStmt
-	Spawner   *EntityFunctionDeclarationStmt
-	Destroyer *EntityFunctionDeclarationStmt
-	Callbacks []*EntityFunctionDeclarationStmt
-	Methods   []MethodDeclarationStmt
-	IsLocal   bool
+ Token     tokens.Token
+ Name      tokens.Token
+ Fields    []FieldDeclarationStmt
+ Spawner   *EntityFunctionDeclarationStmt
+ Destroyer *EntityFunctionDeclarationStmt
+ Callbacks []*EntityFunctionDeclarationStmt
+ Methods   []MethodDeclarationStmt
+ IsLocal   bool
 }
 ```
 
 In code:
+
 ```
 entity Name {
-	spawn() {
+ spawn() {
 
-	}
+ }
 
-	destroy() {
+ destroy() {
 
-	}
+ }
 
-	fn method() {
-		
-	}
+ fn method() {
+  
+ }
 }
 ```
 
@@ -895,21 +925,22 @@ entity Name {
 
 ```go
 type EntityFunctionDeclarationStmt struct {
-	Type   EntityFunctionType
-	Params []Param
-	Body   []Node
-	Token  lexer.Token
+ Type   EntityFunctionType
+ Params []Param
+ Body   []Node
+ Token  tokens.Token
 }
 ```
 
 In code:
+
 ```
 spawn() {
 
 }
 
 destroy() {
-	
+ 
 }
 
 WeaponCollision() {
@@ -929,18 +960,19 @@ WallCollision() {
 
 ```go
 type EnumDeclarationStmt struct {
-	Name    lexer.Token
-	Fields  []lexer.Token
-	IsLocal bool
+ Name    tokens.Token
+ Fields  []tokens.Token
+ IsLocal bool
 }
 ```
 
 In code:
+
 ```
 enum Name {
-	Field1,
-	Field2,
-	Field3
+ Field1,
+ Field2,
+ Field3
 }
 ```
 
@@ -948,14 +980,15 @@ enum Name {
 
 ```go
 type ConstructorStmt struct {
-	Token  lexer.Token
-	Body   []Node
-	Return []*TypeExpr
-	Params []Param
+ Token  tokens.Token
+ Body   []Node
+ Return []*TypeExpr
+ Params []Param
 }
 ```
 
 In code:
+
 ```
 new() {
 
@@ -966,14 +999,15 @@ new() {
 
 ```go
 type FieldDeclarationStmt struct {
-	Identifiers []lexer.Token
-	Types       []*TypeExpr
-	Values      []Node
-	Token       lexer.Token
+ Identifiers []tokens.Token
+ Types       []*TypeExpr
+ Values      []Node
+ Token       tokens.Token
 }
 ```
 
 In code:
+
 ```
 a = 1
 fixed b = 2f
@@ -985,15 +1019,16 @@ Please refer to [here](https://github.com/pewpewlive/hybroid/blob/master/ast/REA
 
 ```go
 type FunctionDeclarationStmt struct {
-	Name    lexer.Token
-	Return  []*TypeExpr
-	Params  []Param
-	IsLocal bool
-	Body    []Node
+ Name    tokens.Token
+ Return  []*TypeExpr
+ Params  []Param
+ IsLocal bool
+ Body    []Node
 }
 ```
 
 In code:
+
 ```
 fn name(text param1) bool {
 }
@@ -1003,16 +1038,17 @@ fn name(text param1) bool {
 
 ```go
 type MethodDeclarationStmt struct {
-	Owner   lexer.Token
-	Name    lexer.Token
-	Return  []*TypeExpr
-	Params  []Param
-	IsLocal bool
-	Body    []Node
+ Owner   tokens.Token
+ Name    tokens.Token
+ Return  []*TypeExpr
+ Params  []Param
+ IsLocal bool
+ Body    []Node
 }
 ```
 
 In code:
+
 ```
 fn name(text param1) bool {
 }
@@ -1024,20 +1060,21 @@ Please refer to [here](https://github.com/pewpewlive/hybroid/blob/master/ast/REA
 
 ```go
 type MatchStmt struct {
-	ExprToMatch Node
-	Cases       []CaseStmt
-	HasDefault  bool
+ ExprToMatch Node
+ Cases       []CaseStmt
+ HasDefault  bool
 }
 ```
 
 In code:
+
 ```
 match expression {
-	expression => {
-		return 1
-	}
-	expression => 2
-	_ => 3
+ expression => {
+  return 1
+ }
+ expression => 2
+ _ => 3
 }
 ```
 
@@ -1045,15 +1082,16 @@ match expression {
 
 ```go
 type IfStmt struct {
-	BoolExpr Node
-	Body     []Node
-	Elseifs  []*IfStmt
-	Else     *IfStmt
-	Token    lexer.Token
+ BoolExpr Node
+ Body     []Node
+ Elseifs  []*IfStmt
+ Else     *IfStmt
+ Token    tokens.Token
 }
 ```
 
 In code:
+
 ```
 if condtion {
 
@@ -1064,21 +1102,21 @@ if condtion {
 }
 ```
 
-
 #### **_RepeatStmt_**
 
 ```go
 type RepeatStmt struct {
-	Iterator Node
-	Skip     Node
-	Start    Node
-	Variable *IdentifierExpr
-	Body     []Node
-	Token    lexer.Token
+ Iterator Node
+ Skip     Node
+ Start    Node
+ Variable *IdentifierExpr
+ Body     []Node
+ Token    tokens.Token
 }
 ```
 
 In code:
+
 ```
 repeat 10 {
 
@@ -1097,13 +1135,14 @@ repeat to 10 from 6 by 2 {
 
 ```go
 type WhileStmt struct {
-	Condtion Node
-	Body     []Node
-	Token    lexer.Token
+ Condtion Node
+ Body     []Node
+ Token    tokens.Token
 }
 ```
 
 In code:
+
 ```
 while condtion {
 
@@ -1114,15 +1153,16 @@ while condtion {
 
 ```go
 type ForStmt struct {
-	Iterator         Node
-	KeyValuePair     [2]*IdentifierExpr
-	OrderedIteration bool
-	Body             []Node
-	Token            lexer.Token
+ Iterator         Node
+ KeyValuePair     [2]*IdentifierExpr
+ OrderedIteration bool
+ Body             []Node
+ Token            tokens.Token
 }
 ```
 
 In code:
+
 ```
 for index, value in list {
 
@@ -1137,13 +1177,14 @@ for key, value in map {
 
 ```go
 type TickStmt struct {
-	Variable IdentifierExpr
-	Body     []Node
-	Token    lexer.Token
+ Variable IdentifierExpr
+ Body     []Node
+ Token    tokens.Token
 }
 ```
 
 In code:
+
 ```
 tick {
 
@@ -1158,12 +1199,13 @@ tick with time {
 
 ```go
 type ReturnStmt struct {
-	Args  []Node
-	Token lexer.Token
+ Args  []Node
+ Token tokens.Token
 }
 ```
 
 In code:
+
 ```
 return expression
 ```
@@ -1172,12 +1214,13 @@ return expression
 
 ```go
 type YieldStmt struct {
-	Args  []Node
-	Token lexer.Token
+ Args  []Node
+ Token tokens.Token
 }
 ```
 
 In code:
+
 ```
 yield expression
 ```
@@ -1186,11 +1229,12 @@ yield expression
 
 ```go
 type BreakStmt struct {
-	Token lexer.Token
+ Token tokens.Token
 }
 ```
 
 In code:
+
 ```
 break
 ```
@@ -1199,11 +1243,12 @@ break
 
 ```go
 type ContinueStmt struct {
-	Token lexer.Token
+ Token tokens.Token
 }
 ```
 
 In code:
+
 ```
 continue
 ```
@@ -1212,13 +1257,14 @@ continue
 
 ```go
 type AddStmt struct {
-	Value      Node
-	Identifier string
-	Token      lexer.Token
+ Value      Node
+ Identifier string
+ Token      tokens.Token
 }
 ```
 
 In code:
+
 ```
 add expression to list
 ```
@@ -1227,13 +1273,14 @@ add expression to list
 
 ```go
 type RemoveStmt struct {
-	Value      Node
-	Identifier string
-	Token      lexer.Token
+ Value      Node
+ Identifier string
+ Token      tokens.Token
 }
 ```
 
 In code:
+
 ```
 remove expression from list
 ```
@@ -1242,11 +1289,12 @@ remove expression from list
 
 ```go
 type UseStmt struct {
-	Path *EnvPathExpr
+ Path *EnvPathExpr
 }
 ```
 
 In code:
+
 ```
 use Path
 use Path::Subpath
@@ -1260,8 +1308,8 @@ Used in [FunctionDeclarationStmt](https://github.com/pewpewlive/hybroid/blob/mas
 
 ```go
 type Param struct {
-	Type *TypeExpr
-	Name lexer.Token
+ Type *TypeExpr
+ Name tokens.Token
 }
 ```
 
@@ -1271,7 +1319,7 @@ Used in [MatchStmt](https://github.com/pewpewlive/hybroid/blob/master/ast/README
 
 ```go
 type CaseStmt struct {
-	Expression Node
-	Body       []Node
+ Expression Node
+ Body       []Node
 }
 ```

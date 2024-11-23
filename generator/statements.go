@@ -3,7 +3,7 @@ package generator
 import (
 	"fmt"
 	"hybroid/ast"
-	"hybroid/lexer"
+	"hybroid/tokens"
 	"strconv"
 	"strings"
 )
@@ -525,7 +525,7 @@ func (gen *Generator) entityMethodDeclarationStmt(node ast.MethodDeclarationStmt
 
 func (gen *Generator) matchStmt(node ast.MatchStmt, scope *GenScope) {
 	ifStmt := ast.IfStmt{
-		BoolExpr: &ast.BinaryExpr{Left: node.ExprToMatch, Operator: lexer.Token{Type: lexer.EqualEqual, Lexeme: "=="}, Right: node.Cases[0].Expression},
+		BoolExpr: &ast.BinaryExpr{Left: node.ExprToMatch, Operator: tokens.Token{Type: tokens.EqualEqual, Lexeme: "=="}, Right: node.Cases[0].Expression},
 		Body:     node.Cases[0].Body,
 	}
 	has_default := false
@@ -537,7 +537,7 @@ func (gen *Generator) matchStmt(node ast.MatchStmt, scope *GenScope) {
 			continue
 		}
 		elseIfStmt := ast.IfStmt{
-			BoolExpr: &ast.BinaryExpr{Left: node.ExprToMatch, Operator: lexer.Token{Type: lexer.EqualEqual, Lexeme: "=="}, Right: node.Cases[i].Expression},
+			BoolExpr: &ast.BinaryExpr{Left: node.ExprToMatch, Operator: tokens.Token{Type: tokens.EqualEqual, Lexeme: "=="}, Right: node.Cases[i].Expression},
 			Body:     node.Cases[i].Body,
 		}
 		ifStmt.Elseifs = append(ifStmt.Elseifs, &elseIfStmt)

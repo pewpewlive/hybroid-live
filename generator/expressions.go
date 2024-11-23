@@ -3,16 +3,16 @@ package generator
 import (
 	"fmt"
 	"hybroid/ast"
-	"hybroid/lexer"
+	"hybroid/tokens"
 )
 
 func (gen *Generator) entityExpr(node ast.EntityExpr, scope *GenScope) string {
 	src := StringBuilder{}
 	var op string
 	switch node.Operator.Type {
-	case lexer.Is:
+	case tokens.Is:
 		op = "~="
-	case lexer.Isnt:
+	case tokens.Isnt:
 		op = "=="
 	default:
 		op = node.Operator.Lexeme
@@ -22,7 +22,7 @@ func (gen *Generator) entityExpr(node ast.EntityExpr, scope *GenScope) string {
 		return src.String()
 	}
 	expr := gen.GenerateExpr(node.Expr, scope)
-	
+
 	src.Append(envMap[node.EnvName], hyEntity, node.EntityName, "[", expr, "] ", op, " nil")
 
 	if node.ConvertedVarName != nil {
@@ -38,7 +38,7 @@ func (gen *Generator) binaryExpr(node ast.BinaryExpr, scope *GenScope) string {
 	left, right := gen.GenerateExpr(node.Left, scope), gen.GenerateExpr(node.Right, scope)
 	var op string
 	switch node.Operator.Type {
-	case lexer.BangEqual:
+	case tokens.BangEqual:
 		op = "~="
 	case lexer.BackSlash:
 		op = "//"
@@ -64,10 +64,10 @@ func (gen *Generator) literalExpr(node ast.LiteralExpr) string {
 }
 
 func (gen *Generator) identifierExpr(node ast.IdentifierExpr, _ *GenScope) string {
-	if (gen.envType == ast.MeshEnv && node.Name.Lexeme == "meshes") {
+	if gen.envType == ast.MeshEnv && node.Name.Lexeme == "meshes" {
 		return "meshes"
 	}
-	if (gen.envType == ast.SoundEnv && node.Name.Lexeme == "sounds") {
+	if gen.envType == ast.SoundEnv && node.Name.Lexeme == "sounds" {
 		return "sounds"
 	}
 	return gen.WriteVar(node.Name.Lexeme)
@@ -132,7 +132,7 @@ func (gen *Generator) mapExpr(node ast.MapExpr, scope *GenScope) string {
 
 		ident := k.Lexeme
 
-		if k.Type == lexer.String {
+		if k.Type == tokens.String {
 			ident = k.Literal
 		}
 
@@ -165,10 +165,10 @@ func (gen *Generator) fieldExpr(node ast.FieldExpr, scope *GenScope) string {
 
 	if node.ExprType == ast.SelfEntity {
 		src.Append(envMap[node.EnvName], hyEntity, node.EntityName, "[", gen.GenerateExpr(node.Identifier, scope), "]")
-	}else {
+	} else {
 		src.WriteString(gen.GenerateExpr(node.Identifier, scope))
 	}
-	
+
 	val := gen.GenerateExpr(node.Property, scope)
 	cut := ""
 	for i := range val {
@@ -179,10 +179,10 @@ func (gen *Generator) fieldExpr(node ast.FieldExpr, scope *GenScope) string {
 	}
 	if node.Index >= 0 {
 		val = fmt.Sprintf("[%v]%s", node.Index, cut)
-	}else {
-		val = "."+val[len(gen.envName):]
+	} else {
+		val = "." + val[len(gen.envName):]
 	}
-	src.WriteString(val) 
+	src.WriteString(val)
 	return src.String()
 }
 
@@ -255,7 +255,7 @@ func (gen *Generator) newExpr(new ast.NewExpr, stmt bool, scope *GenScope) strin
 	name := gen.GenerateExpr(new.Type.Name, scope)
 	fullLength := len(name)
 	cut := name[fullLength-length:]
-	src.Append(name[:fullLength-length], hyClass, cut,  "_New(")
+	src.Append(name[:fullLength-length], hyClass, cut, "_New(")
 	for i, arg := range new.Args {
 		src.WriteString(gen.GenerateExpr(arg, scope))
 		if i != len(new.Args)-1 {
@@ -326,15 +326,15 @@ func (gen *Generator) envAccessExpr(node ast.EnvAccessExpr, scope *GenScope) str
 	envName := node.PathExpr.Path.Lexeme
 	var prefix string
 	switch envName {
-	case "Pewpew": 
+	case "Pewpew":
 		prefix = "pewpew."
-	case "Fmath": 
+	case "Fmath":
 		prefix = "fmath."
-	case "Math": 
+	case "Math":
 		prefix = "math."
 	case "String":
 		prefix = "string."
-	case "Table": 
+	case "Table":
 		prefix = "table."
 	default:
 		prefix = envMap[envName]
@@ -374,7 +374,7 @@ func (gen *Generator) methodCallExpr(methodCall ast.MethodCallExpr, stmt bool, s
 	var extra string
 	if methodCall.ExprType == ast.SelfStruct {
 		extra = hyClass
-	}else {
+	} else {
 		extra = hyEntity
 	}
 	src.Append(envMap[methodCall.EnvName], extra, methodCall.TypeName, "_", methodCall.MethodName, "(", gen.GenerateExpr(methodCall.Identifier, scope))
@@ -383,7 +383,7 @@ func (gen *Generator) methodCallExpr(methodCall ast.MethodCallExpr, stmt bool, s
 	}
 	if stmt {
 		src.WriteString(")\n")
-	}else {
+	} else {
 		src.WriteString(")")
 	}
 
