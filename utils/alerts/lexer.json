@@ -26,7 +26,7 @@
     },
     "message": "invalid number postfix: '%s'",
     "message_format": ["Postfix"],
-    "note": "valid number postfixes: 1f, 1fx, 1r, 1d"
+    "note": "a valid postfix is either 'f', 'fx', 'r' or 'd'"
   },
   {
     "name": "UnsupportedCharacter",

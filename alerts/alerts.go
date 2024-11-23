@@ -43,11 +43,12 @@ type Alert interface {
 }
 
 type AlertHandler struct {
-	Source     []byte
-	SourcePath string
+	Source []byte
 
 	Alerts    []Alert
 	HasAlerts bool
+
+	currentLine int
 }
 
 func (ah *AlertHandler) Alert(alertType Alert, args ...any) {
@@ -64,35 +65,27 @@ func (ah *AlertHandler) Alert(alertType Alert, args ...any) {
 
 func (ah *AlertHandler) PrintAlerts(alertStage AlertStage, source []byte, sourcePath string) {
 	ah.Source = source
-	ah.SourcePath = sourcePath
 
+	var errMsg string
 	switch alertStage {
 	case Lexer, Parser:
-		colorstring.Print("[red]Syntax error")
+		errMsg = "[red]Syntax error:"
 	case Walker, Eval:
-		colorstring.Print("[red]Compilation error")
+		errMsg = "[red]Compilation error:"
 	}
 
-	fmt.Printf(" in file: %s", sourcePath)
-
 	for _, alert := range ah.Alerts {
+		colorstring.Print(errMsg)
+		fmt.Printf(" %s", sourcePath)
 		ah.PrintLocation(alert)
 		ah.PrintMessage(alert)
 		ah.PrintCodeSnippet(alert)
 		ah.PrintNote(alert)
-
-		ah.Finish()
+		fmt.Println()
 	}
+
+	ah.Finish()
 }
-
-// func (ah *AlertHandler) PrintAlert(alert Alert) {
-// 	ah.PrintLocation(alert)
-// 	ah.PrintMessage(alert)
-// 	ah.PrintCodeSnippet(alert)
-// 	ah.PrintNote(alert)
-
-// 	ah.Finish()
-// }
 
 func (ah *AlertHandler) SortTypes() {
 	//TODO: error and warning sorting
@@ -104,7 +97,7 @@ func (ah *AlertHandler) PrintMessage(alert Alert) {
 
 func (ah *AlertHandler) PrintLocation(alert Alert) {
 	location := CombineLocations(alert.GetLocations())
-	fmt.Printf(" at line: %d\n", location.LineStart)
+	fmt.Printf(": %d\n", location.LineStart)
 }
 
 func (ah *AlertHandler) PrintCodeSnippet(alert Alert) {
@@ -115,20 +108,58 @@ func (ah *AlertHandler) PrintCodeSnippet(alert Alert) {
 	for i := 0; i < len(ah.Source); i++ {
 		columnCount += 1
 
-		if lineCount == location.LineStart && lineCount == location.LineEnd && ah.Source[i] == '\n' { // handles single line errors
-			snippet := ah.Source[i-columnCount+1 : i-1]
-
-			fmt.Printf("%d |   %s\n", lineCount, string(snippet))
-			fmt.Printf("%s |   %s%s", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat(" ", location.ColStart), strings.Repeat("^", location.ColEnd-location.ColStart))
+		// handles single line errors
+		if lineCount == location.LineStart && lineCount == location.LineEnd && ah.Source[i] == '\n' {
+			line := ah.Source[i-columnCount+1 : i-1]
+			if location.ColStart > 80 {
+				start := string(line[0:30])
+				var content string
+				short := false
+				if location.ColEnd+20 > columnCount && columnCount < 120 {
+					content = string(line[location.ColStart-20 : columnCount-1])
+				} else {
+					content = string(line[location.ColStart-20 : location.ColEnd+20])
+					short = true
+				}
+				var shortt string
+				if short {
+					shortt = "..."
+				}
+				colorstring.Printf("[cyan]%d |[default]   %s[dark_gray]...[default]%s[dark_gray]%s[reset]\n", lineCount, start, content, shortt)
+				colorstring.Printf("[cyan]%s |[light_red]   %s%s\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat(" ", len(start)+23), strings.Repeat("^", location.ColEnd-location.ColStart))
+			} else {
+				colorstring.Printf("[cyan]%d |[default]   %s\n", lineCount, line)
+				colorstring.Printf("[cyan]%s |[light_red]   %s%s\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat(" ", location.ColStart), strings.Repeat("^", location.ColEnd-location.ColStart))
+			}
 		}
 
-		// if lineCount == location.LineStart && lineCount != location.LineEnd && ah.Source[i] == '\n' { // handles multiple line errors
-		// 	snippet := ah.Source[i-columnCount+1 : i-1]
+		// handles multiple line errors
+		if lineCount == location.LineStart && lineCount != location.LineEnd && ah.Source[i] == '\n' {
+			snippetStart := ah.Source[i-columnCount+1 : i-1]
 
-		// 	fmt.Printf("%d |   %s\n", lineCount, string(snippet))
-		// 	//fmt.Printf("%d", location.ColStart)
-		// 	fmt.Printf("  |   %s%s", strings.Repeat(" ", location.ColStart), strings.Repeat("^", location.ColEnd-location.ColStart))
-		// }
+			colorstring.Printf("[cyan]%d |[default]   %s\n", lineCount, string(snippetStart))
+			colorstring.Printf("[cyan]%s |[light_red]  %s^\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat("_", location.ColStart))
+		}
+
+		if lineCount != location.LineStart && lineCount == location.LineEnd && ah.Source[i] == '\n' {
+			snippetEnd := ah.Source[i-columnCount+1 : i-1]
+
+			// if location.LineEnd-location.LineStart < 2 {
+			// 	colorstring.Printf("[cyan]%d |[default]   %s\n", lineCount, string(snippetEnd))
+			// 	colorstring.Printf("[cyan]%s |[red] |%s^\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat("_", location.ColEnd+1))
+
+			// 	colorstring.Printf("[cyan]%d |[default] | %s\n", lineCount, string(snippetEnd))
+			// 	colorstring.Printf("[cyan]%s |[red] |%s^\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat("_", location.ColEnd+1))
+			// 	continue
+			// }
+
+			// colorstring.Printf("[cyan]%d |[default]   %s\n", lineCount, string(snippetEnd))
+			// colorstring.Printf("[cyan]%s |[red] |%s^\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat("_", location.ColEnd+1))
+
+			colorstring.Printf("[dark_gray]...[default]%s[light_red]|\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))))
+			colorstring.Printf("[cyan]%d |[light_red] | [default]%s\n", lineCount, string(snippetEnd))
+			colorstring.Printf("[cyan]%s |[light_red] |%s^\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat("_", location.ColEnd))
+		}
 
 		if ah.Source[i] == '\n' {
 			lineCount += 1
@@ -136,13 +167,16 @@ func (ah *AlertHandler) PrintCodeSnippet(alert Alert) {
 		}
 	}
 
-	fmt.Print("\n\n")
+	ah.currentLine = lineCount
 }
 
 func (ah *AlertHandler) PrintNote(alert Alert) {
 	if alert.GetNote() != "" {
-		fmt.Printf("%s\n", alert.GetNote())
+		colorstring.Printf("[cyan]%s = note:[default] %s\n", strings.Repeat(" ", len(strconv.Itoa(ah.currentLine))), alert.GetNote())
+		return
 	}
+
+	fmt.Print("\n")
 }
 
 func CombineLocations(locations []tokens.TokenLocation) tokens.TokenLocation {

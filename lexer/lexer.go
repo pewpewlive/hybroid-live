@@ -33,6 +33,7 @@ func (l *Lexer) AssignSource(src []byte) {
 
 func (l *Lexer) handleString() {
 	hasMultilineStr := false
+	quoteStartCol := l.columnCurrent + 1
 
 	for l.peek() != '"' && !l.isAtEnd() {
 		if l.peek() == '\\' && l.peekNext() == '"' {
@@ -48,13 +49,11 @@ func (l *Lexer) handleString() {
 		l.advance()
 	}
 
-	if hasMultilineStr {
-		l.Alert(&alerts.MultilineString{}, tokens.Token{}, newLocation(l.lineStart, l.columnStart, l.lineCurrent, l.columnCurrent))
-	}
-
 	if l.isAtEnd() {
-		l.Alert(&alerts.UnterminatedString{}, tokens.Token{}, newLocation(l.lineStart, l.columnStart, l.lineCurrent, l.columnCurrent))
+		l.Alert(&alerts.UnterminatedString{}, tokens.Token{}, newLocation(l.lineStart, quoteStartCol, l.lineStart, quoteStartCol+1))
 		return
+	} else if hasMultilineStr {
+		l.Alert(&alerts.MultilineString{}, tokens.Token{}, newLocation(l.lineStart, quoteStartCol, l.lineCurrent, l.columnCurrent))
 	}
 
 	l.advance()
@@ -100,6 +99,7 @@ func (l *Lexer) handleNumber() {
 
 	var postfix string
 	postfixStart := l.current
+	postfixColumn := l.columnCurrent
 
 	for isAlphabetical(l.peek()) {
 		l.advance()
@@ -119,7 +119,7 @@ func (l *Lexer) handleNumber() {
 	case "":
 		l.addToken(tokens.Number, strNum)
 	default:
-		l.Alert(&alerts.InvalidNumberPostfix{}, tokens.Token{}, newLocation(l.lineStart, l.columnStart, l.lineCurrent, l.columnCurrent), postfix)
+		l.Alert(&alerts.InvalidNumberPostfix{}, tokens.Token{}, newLocation(l.lineStart, postfixColumn, l.lineCurrent, l.columnCurrent), postfix)
 	}
 }
 

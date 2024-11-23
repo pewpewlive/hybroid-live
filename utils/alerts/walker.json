@@ -1,11 +1,11 @@
 [
   {
-    "name": "ExpectedParenthesis",
+    "name": "ExpectedParenthesiss",
     "type": "Error",
     "params": {
-      "Symbol": "string" 
+      "Symbol": "string"
     },
     "message": "Expected '%s'",
-    "message_format": ["Symbol"]  
+    "message_format": ["Symbol"]
   }
-] 
+]
