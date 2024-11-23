@@ -2,6 +2,7 @@ package generator
 
 import (
 	"fmt"
+	"hybroid/alerts"
 	"hybroid/ast"
 	"math"
 	"strconv"
@@ -182,6 +183,8 @@ func (gs *GenScope) AppendTabbed(strs ...string) {
 }
 
 type Generator struct {
+	alerts.AlertHandler // ideally should not be ever triggered here, but if triggered something has gone really wrong
+
 	envName     string
 	envType     ast.EnvType
 	Scope       GenScope

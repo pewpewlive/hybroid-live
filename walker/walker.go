@@ -2,6 +2,7 @@ package walker
 
 import (
 	"fmt"
+	"hybroid/alerts"
 	"hybroid/ast"
 	"hybroid/helpers"
 	"hybroid/tokens"
@@ -76,6 +77,8 @@ const (
 )
 
 type Walker struct {
+	alerts.AlertHandler
+
 	CurrentEnvironment *Environment
 	Environment        *Environment
 	Walkers            map[string]*Walker
@@ -110,15 +113,15 @@ func NewWalker(path string) *Walker {
 }
 
 func (w *Walker) Error(token tokens.Token, msg string, objects ...interface{}) {
-	w.Errors = append(w.Errors, ast.Error{Token: token, Message: fmt.Sprintf(msg, objects...)})
+	//w.Errors = append(w.Errors, ast.Error{Token: token, Message: fmt.Sprintf(msg, objects...)})
 }
 
 func (w *Walker) Warn(token tokens.Token, msg string) {
-	w.Warnings = append(w.Warnings, ast.Warning{Token: token, Message: msg})
+	//w.Warnings = append(w.Warnings, ast.Warning{Token: token, Message: msg})
 }
 
 func (w *Walker) AddError(err ast.Error) {
-	w.Errors = append(w.Errors, err)
+	//w.Errors = append(w.Errors, err)
 }
 
 func (w *Walker) GetEnvStmt() *ast.EnvironmentStmt {
@@ -149,7 +152,7 @@ func (w *Walker) TypeExists(name string) bool {
 func (w *Walker) GetStruct(name string) (*ClassVal, bool) {
 	structType, found := w.Environment.Structs[name]
 	if !found {
-		w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s", name, " exists"))
+		w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s exists", name))
 		return nil, false
 	}
 
@@ -163,7 +166,7 @@ func (w *Walker) GetStruct(name string) (*ClassVal, bool) {
 func (w *Walker) GetEntity(name string) (*EntityVal, bool) {
 	entityType, found := w.Environment.Entities[name]
 	if !found {
-		w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s", name, " exists"))
+		w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s exists", name))
 		return nil, false
 	}
 

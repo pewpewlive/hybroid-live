@@ -53,12 +53,12 @@ func readExpectedFile(fileName string, t *testing.T) string {
 	return string(source)
 }
 
-func checkFiles(generated, expected string, t *testing.T) {
-	if generated != expected {
-		t.Errorf("Test case failed: expected %v\ngot\n%v", generated, expected)
-		t.Fail()
-	}
-}
+// func checkFiles(generated, expected string, t *testing.T) {
+// 	if generated != expected {
+// 		t.Errorf("Test case failed: expected %v\ngot\n%v", generated, expected)
+// 		t.Fail()
+// 	}
+// }
 
 // useful minifier code
 func minify(str string) string {

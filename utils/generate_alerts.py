@@ -107,7 +107,6 @@ class Alert:
                 f"return {_format_string(self.note, self.note_format, self.receiver)}",
             ],
             ["GetAlertType", "", "AlertType", f"return {self.type}"],
-            ["GetAlertStage", "", "AlertStage", f"return {self.stage}"],
         ]
 
         for function in alert_functions:

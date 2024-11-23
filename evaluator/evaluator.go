@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+	"hybroid/alerts"
 	"hybroid/ast"
 	"hybroid/generator"
 	"hybroid/helpers"
@@ -47,7 +48,8 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 	walker.SetupLibraryEnvironments()
 
 	for i := range e.walkerList {
-		sourceFile, err := os.ReadFile(filepath.Join(cwd, e.files[i].Path()))
+		sourcePath := e.files[i].Path()
+		sourceFile, err := os.ReadFile(filepath.Join(cwd, sourcePath))
 		if err != nil {
 			return fmt.Errorf("failed to read source file: %v", err)
 		}
@@ -57,9 +59,8 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 
 		e.lexer.AssignSource(sourceFile)
 		e.lexer.Tokenize()
-		if len(e.lexer.Errors) != 0 {
-			fmt.Println("[red]Failed tokenizing:")
-			e.lexer.Errors
+		if e.lexer.HasAlerts {
+			e.lexer.PrintAlerts(alerts.Lexer, sourceFile, sourcePath)
 			return fmt.Errorf("failed to tokenize source file")
 		}
 
@@ -70,10 +71,12 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 
 		e.parser.AssignTokens(e.lexer.Tokens)
 		prog := e.parser.ParseTokens()
+		if e.parser.HasAlerts {
+			e.parser.PrintAlerts(alerts.Parser, sourceFile, sourcePath)
+		}
 		if len(e.parser.Errors) != 0 {
-			colorstring.Println("[red]Syntax error found:")
+			colorstring.Println("[red]Syntax error")
 			for _, err := range e.parser.Errors {
-				e.writeSyntaxAlert(e.files[i].Path(), string(sourceFile), err)
 				colorstring.Printf("[red]Error: %+v\n", err)
 			}
 			return fmt.Errorf("failed to parse source file")
@@ -94,7 +97,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		e.parser = parser.NewParser()
 	}
 
-	for i, walker := range e.walkerList {
+	for _, walker := range e.walkerList {
 
 		start := time.Now()
 		fmt.Println("[Pass 2] Walking through the nodes...")
@@ -103,14 +106,12 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 			pass2.Action(walker, e.walkers)
 		}
 		fmt.Printf("Pass 2 time: %v seconds\n\n", time.Since(start).Seconds())
-		if len(walker.Errors) != 0 {
-			colorstring.Printf("[red]Failed walking (%s):\n", e.files[i].Path())
-			printAlerts(e.files[i].Path(), walker.Errors)
-			return fmt.Errorf("failed to walk through the nodes")
-		}
-		if len(walker.Warnings) != 0 {
-			printAlerts(e.files[i].Path(), walker.Warnings)
-		}
+		// if walker.HasAlerts == true {
+		// 	colorstring.Printf("[red]Failed walking (%s):\n", e.files[i].Path())
+
+		// 	printAlerts(e.files[i].Path(), walker.Errors)
+		// 	return fmt.Errorf("failed to walk through the nodes")
+		// }
 	}
 
 	fmt.Println("Preparing values for generation...")
@@ -131,10 +132,10 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		} else {
 			e.gen.Generate(walker.Nodes, []string{})
 		}
-		if len(e.gen.Errors) != 0 {
-			colorstring.Println("[red]Failed generating:")
-			printAlerts(e.files[i].Path(), e.gen.GetErrors())
-		}
+		// if len(e.gen.Errors) != 0 {
+		// 	colorstring.Println("[red]Failed generating:")
+		// 	printAlerts(e.files[i].Path(), e.gen.GetErrors())
+		// }
 		fmt.Printf("Generating time: %v seconds\n", time.Since(start).Seconds())
 
 		err := os.MkdirAll(filepath.Join(cwd, outputDir, e.files[i].DirectoryPath), os.ModePerm)

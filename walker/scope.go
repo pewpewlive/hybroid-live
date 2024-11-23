@@ -93,26 +93,26 @@ type FuncTag struct {
 	Generics []*GenericType
 }
 
-func (et *FuncTag) GetType() ScopeTagType {
+func (ft *FuncTag) GetType() ScopeTagType {
 	return Func
 }
 
-func (et *FuncTag) SetExit(state bool, etype ExitType) {
+func (ft *FuncTag) SetExit(state bool, etype ExitType) {
 	if etype != Return && etype != All {
 		return
 	}
-	et.Returns = append(et.Returns, state)
+	ft.Returns = append(ft.Returns, state)
 }
 
-func (self *FuncTag) GetIfExits(et ExitType) bool {
+func (ft *FuncTag) GetIfExits(et ExitType) bool {
 	if et != Return && et != All {
 		return false
 	}
-	if len(self.Returns) == 0 {
+	if len(ft.Returns) == 0 {
 		return false
 	}
 
-	for _, v := range self.Returns {
+	for _, v := range ft.Returns {
 		if v {
 			return true
 		}
@@ -134,8 +134,8 @@ func (met *MatchExprTag) SetExit(state bool, typ ExitType) {
 	met.Mpt.SetExit(state, typ)
 }
 
-func (self *MatchExprTag) GetIfExits(et ExitType) bool {
-	return self.Mpt.GetIfExits(et)
+func (met *MatchExprTag) GetIfExits(et ExitType) bool {
+	return met.Mpt.GetIfExits(et)
 }
 
 type MultiPathTag struct {

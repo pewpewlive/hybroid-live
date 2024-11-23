@@ -134,7 +134,7 @@ func (p *Parser) statement() ast.Node {
 		return p.matchStmt(false)
 	}
 
-	if p.peek().Type == lexer.SemiColon {
+	if p.peek().Type == tokens.SemiColon {
 		return ast.NewImproper(p.advance())
 	}
 
@@ -172,11 +172,11 @@ func (p *Parser) statement() ast.Node {
 
 func (p *Parser) AliasDeclarationStmt(isLocal bool) ast.Node {
 	typeToken := p.peek(-1)
-	name, ok := p.consume("expected identifier in alias declaration", lexer.Identifier)
+	name, ok := p.consume("expected identifier in alias declaration", tokens.Identifier)
 	if !ok {
 		return ast.NewImproper(name)
 	}
-	if token, ok := p.consume("expected '=' after identifier in alias declaration", lexer.Equal); !ok {
+	if token, ok := p.consume("expected '=' after identifier in alias declaration", tokens.Equal); !ok {
 		return ast.NewImproper(token)
 	}
 
@@ -641,7 +641,7 @@ func (p *Parser) assignmentStmt() ast.Node {
 		// if len(idents) > 1 {
 		// 	p.error(assignOp, "cannot assign to multiple variables with this operator")
 		// }
-		for p.match(lexer.Comma) {
+		for p.match(tokens.Comma) {
 			expr2 := p.expression()
 			binExpr := p.createBinExpr(idents[len(values)], op, op.Type, op.Lexeme, &ast.GroupExpr{Expr: expr2, ValueType: expr2.GetValueType(), Token: expr2.GetToken()})
 

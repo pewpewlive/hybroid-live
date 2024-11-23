@@ -34,7 +34,3 @@ func (ep *ExpectedPaarenthesis) GetAlertType() AlertType {
   return Error
 }
 
-func (ep *ExpectedPaarenthesis) GetAlertStage() AlertStage {
-  return Eval
-}
-

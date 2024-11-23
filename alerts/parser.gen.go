@@ -34,7 +34,3 @@ func (ep *ExpectedParenthesis) GetAlertType() AlertType {
   return Error
 }
 
-func (ep *ExpectedParenthesis) GetAlertStage() AlertStage {
-  return Parser
-}
-

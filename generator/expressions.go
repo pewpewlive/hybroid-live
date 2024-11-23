@@ -40,7 +40,7 @@ func (gen *Generator) binaryExpr(node ast.BinaryExpr, scope *GenScope) string {
 	switch node.Operator.Type {
 	case tokens.BangEqual:
 		op = "~="
-	case lexer.BackSlash:
+	case tokens.BackSlash:
 		op = "//"
 	default:
 		op = node.Operator.Lexeme
@@ -390,9 +390,9 @@ func (gen *Generator) methodCallExpr(methodCall ast.MethodCallExpr, stmt bool, s
 	return src.String()
 }
 
-func (gen *Generator) builtinExpr(builtin ast.BuiltinExpr) string {
-	return builtin.Name.Lexeme
-}
+// func (gen *Generator) builtinExpr(builtin ast.BuiltinExpr) string {
+// 	return builtin.Name.Lexeme
+// }
 
 // func (gen *Generator) castExpr(cast ast.CastExpr, scope *GenScope) string {
 // 	return gen.GenerateExpr(cast.Value, scope)

@@ -1,0 +1,36 @@
+env Main as Level
+
+use Pewpew
+use SuperInertiacEntity
+
+const WIDTH, HEIGHT = 1000f, 1000f
+SetLevelSize(WIDTH, 1000f)
+
+pub Ship = Pewpew:NewShip(WIDTH / 2f, HEIGHT / 2f, 0)
+
+ConfigureShipWeapon(Ship, struct{
+  frequency, cannon = CannonFreq.Freq10, Pewpew:CannonType.Double
+})
+let playerConfig = struct{
+  shield, camera_distance = 5, -50f
+}
+ConfigurePlayer(0, playerConfig)
+
+//SetShipSpeed(Ship, 1f, 1f, -1)
+
+let bg = NewEntity(0f, 0f)
+SetEntityMesh(bg, MapMesh, 0)
+
+spawn SuperInertiac(0f, 0f, Ship)
+
+AddWall(750f, 250f, 500f, 500f)
+
+tick with time {
+  if GetPlayerConfig(0).has_lost == true {
+    StopGame()
+  }
+  if time % 30 == 0 {
+    //Print(ToString(playerConfig))
+    //NewAsteroid(WIDTH/2f, HEIGHT/2f)
+  }
+}

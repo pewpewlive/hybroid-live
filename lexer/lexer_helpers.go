@@ -22,7 +22,7 @@ func (l *Lexer) isAtEndNext() bool {
 
 func (l *Lexer) addToken(token tokens.TokenType, literal string) {
 	text := string(l.source)[l.start:l.current]
-	l.Tokens = append(l.Tokens, tokens.Token{Type: token, Lexeme: text, Literal: literal, Location: tokens.TokenLocation{LineStart: l.line, LineEnd: l.line, ColStart: l.columnStart + 1, ColEnd: l.columnCurrent + 1}})
+	l.Tokens = append(l.Tokens, tokens.Token{Type: token, Lexeme: text, Literal: literal, Location: tokens.TokenLocation{LineStart: l.lineStart, LineEnd: l.lineCurrent, ColStart: l.columnStart + 1, ColEnd: l.columnCurrent + 1}})
 }
 
 func (l *Lexer) matchChar(expected byte) bool {
@@ -76,4 +76,8 @@ func tryParseNum(strNum string) bool {
 	_, ok := strconv.ParseFloat(strNum, 64)
 
 	return ok == nil
+}
+
+func newLocation(lineStart, columnStart, lineCurrent, columnCurrent int) tokens.TokenLocation {
+	return tokens.TokenLocation{LineStart: lineStart, ColStart: columnStart, LineEnd: lineCurrent, ColEnd: columnCurrent}
 }

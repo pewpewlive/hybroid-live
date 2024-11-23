@@ -43,7 +43,7 @@ func TestBasic(t *testing.T) {
 	lexer.AssignSource(readFile("./tests/test_basic.hyb", t))
 
 	lexer.Tokenize()
-	for _, err := range lexer.Errors {
+	for _, err := range lexer.Alerts {
 		t.Errorf("Test failed tokenizing: %v\n", err)
 	}
 
@@ -70,7 +70,7 @@ func TestTickBlocks(t *testing.T) {
 	lexer.AssignSource(readFile("./tests/test_tick_blocks.hyb", t))
 
 	lexer.Tokenize()
-	for _, err := range lexer.Errors {
+	for _, err := range lexer.Alerts {
 		t.Errorf("Test failed tokenizing: %v\n", err)
 	}
 
@@ -105,7 +105,7 @@ func TestMatchStatement(t *testing.T) {
 	lexer.AssignSource(readFile("./tests/test_match_statement.hyb", t))
 
 	lexer.Tokenize()
-	for _, err := range lexer.Errors {
+	for _, err := range lexer.Alerts {
 		t.Errorf("Test failed tokenizing: %v\n", err)
 	}
 
@@ -164,7 +164,7 @@ func TestNumberLiterals(t *testing.T) {
 	lexer.AssignSource(readFile("./tests/test_number_literals.hyb", t))
 
 	lexer.Tokenize()
-	for _, err := range lexer.Errors {
+	for _, err := range lexer.Alerts {
 		t.Errorf("Test failed tokenizing: %v\n", err)
 	}
 
@@ -234,7 +234,7 @@ func TestStringLiterals(t *testing.T) {
 	lexer.AssignSource(readFile("./tests/test_string_literals.hyb", t))
 
 	lexer.Tokenize()
-	for _, err := range lexer.Errors {
+	for _, err := range lexer.Alerts {
 		t.Errorf("Test failed tokenizing: %v\n", err)
 	}
 

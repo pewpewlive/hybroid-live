@@ -4,13 +4,19 @@ import (
 	"fmt"
 	"hybroid/tokens"
 	"reflect"
+	"strings"
+
+	"github.com/mitchellh/colorstring"
 )
 
 type AlertStage int
 
 const (
+	// Syntax error
 	Lexer AlertStage = iota
 	Parser
+
+	// Compile error
 	Walker
 	Eval
 )
@@ -31,17 +37,21 @@ type Alert interface {
 	GetNote() string
 
 	GetAlertType() AlertType
-	GetAlertStage() AlertStage
 
 	// AddTokens(...tokens.Token)
 }
 
 type AlertHandler struct {
-	Source string
-	Alerts []Alert
+	Source     []byte
+	SourcePath string
+
+	Alerts    []Alert
+	HasAlerts bool
 }
 
 func (ah *AlertHandler) Alert(alertType Alert, args ...any) {
+	ah.HasAlerts = true
+
 	alert := reflect.ValueOf(alertType).Elem()
 
 	for i, arg := range args {
@@ -51,24 +61,82 @@ func (ah *AlertHandler) Alert(alertType Alert, args ...any) {
 	ah.Alerts = append(ah.Alerts, alert.Addr().Interface().(Alert))
 }
 
-func (ah *AlertHandler) PrintAlerts() {
+func (ah *AlertHandler) PrintAlerts(alertStage AlertStage, source []byte, sourcePath string) {
+	ah.Source = source
+	ah.SourcePath = sourcePath
+
+	switch alertStage {
+	case Lexer, Parser:
+		colorstring.Print("[red]Syntax error")
+	case Walker, Eval:
+		colorstring.Print("[red]Compilation error")
+	}
+
+	fmt.Printf(" in file: %s", sourcePath)
+
 	for _, alert := range ah.Alerts {
-		ah.PrintAlert(alert)
+		ah.PrintLocation(alert)
+		ah.PrintMessage(alert)
+		ah.PrintCodeSnippet(alert)
+		ah.PrintNote(alert)
+
+		ah.Finish()
 	}
 }
 
-func (ah *AlertHandler) PrintAlert(alert Alert) {
-	ah.PrintMessage(alert)
-	ah.PrintCodeSnippet(alert)
-	ah.PrintNote(alert)
+// func (ah *AlertHandler) PrintAlert(alert Alert) {
+// 	ah.PrintLocation(alert)
+// 	ah.PrintMessage(alert)
+// 	ah.PrintCodeSnippet(alert)
+// 	ah.PrintNote(alert)
+
+// 	ah.Finish()
+// }
+
+func (ah *AlertHandler) SortTypes() {
+	//TODO: error and warning sorting
 }
 
 func (ah *AlertHandler) PrintMessage(alert Alert) {
-	fmt.Printf("%s\n", alert.GetMessage())
+	fmt.Printf("%s.\n", alert.GetMessage())
+}
+
+func (ah *AlertHandler) PrintLocation(alert Alert) {
+	location := CombineLocations(alert.GetLocations())
+	fmt.Printf(" at line: %d\n", location.LineStart)
 }
 
 func (ah *AlertHandler) PrintCodeSnippet(alert Alert) {
+	lineCount := 1
+	columnCount := 0
+	location := CombineLocations(alert.GetLocations())
 
+	for i := 0; i < len(ah.Source); i++ {
+		columnCount += 1
+
+		if lineCount == location.LineStart && lineCount == location.LineEnd && ah.Source[i] == '\n' { // handles single line errors
+			snippet := ah.Source[i-columnCount+1 : i-1]
+
+			fmt.Printf("%d |   %s\n", lineCount, string(snippet))
+			//fmt.Printf("%d", location.ColStart)
+			fmt.Printf("  |   %s%s", strings.Repeat(" ", location.ColStart), strings.Repeat("^", location.ColEnd-location.ColStart))
+		}
+
+		// if lineCount == location.LineStart && lineCount != location.LineEnd && ah.Source[i] == '\n' { // handles multiple line errors
+		// 	snippet := ah.Source[i-columnCount+1 : i-1]
+
+		// 	fmt.Printf("%d |   %s\n", lineCount, string(snippet))
+		// 	//fmt.Printf("%d", location.ColStart)
+		// 	fmt.Printf("  |   %s%s", strings.Repeat(" ", location.ColStart), strings.Repeat("^", location.ColEnd-location.ColStart))
+		// }
+
+		if ah.Source[i] == '\n' {
+			lineCount += 1
+			columnCount = 0
+		}
+	}
+
+	fmt.Print("\n\n")
 }
 
 func (ah *AlertHandler) PrintNote(alert Alert) {
@@ -105,12 +173,12 @@ func CombineLocations(locations []tokens.TokenLocation) tokens.TokenLocation {
 	return location
 }
 
-func (ah *AlertHandler) GetCodeSnippet(location tokens.TokenLoclocation) string {
-
+func (ah *AlertHandler) GetCodeSnippet(location tokens.TokenLocation) string {
+	return ""
 }
 
-func (ah *AlertHandler) ReadSource() {
-
+func (ah *AlertHandler) Finish() {
+	ah.Source = []byte{}
 }
 
 // type Alert interface {

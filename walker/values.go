@@ -71,11 +71,11 @@ func NewPathVal(path string, envType ast.EnvType) *PathVal {
 	}
 }
 
-func (self *PathVal) GetType() Type {
-	return NewPathType(self.EnvType)
+func (pv *PathVal) GetType() Type {
+	return NewPathType(pv.EnvType)
 }
 
-func (self *PathVal) GetDefault() *ast.LiteralExpr {
+func (pv *PathVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "nil"}
 }
 
@@ -91,17 +91,17 @@ func NewAnonStructVal(fields map[string]Field, lenient bool) *AnonStructVal {
 	}
 }
 
-func (self *AnonStructVal) GetType() Type {
-	return NewStructTypeWithFields(self.Fields, self.Lenient)
+func (asv *AnonStructVal) GetType() Type {
+	return NewStructTypeWithFields(asv.Fields, asv.Lenient)
 }
 
-func (self *AnonStructVal) GetDefault() *ast.LiteralExpr {
+func (asv *AnonStructVal) GetDefault() *ast.LiteralExpr {
 	src := generator.StringBuilder{}
 
 	src.WriteString("{")
-	length := len(self.Fields) - 1
+	length := len(asv.Fields) - 1
 	index := 0
-	for k, v := range self.Fields {
+	for k, v := range asv.Fields {
 		if index == length {
 			src.Append(k, " = ", v.Var.GetDefault().Value)
 		} else {
@@ -114,22 +114,22 @@ func (self *AnonStructVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: src.String()}
 }
 
-func (self *AnonStructVal) AddField(variable *VariableVal) {
-	self.Fields[variable.Name] = NewField(len(self.Fields), variable)
+func (asv *AnonStructVal) AddField(variable *VariableVal) {
+	asv.Fields[variable.Name] = NewField(len(asv.Fields), variable)
 }
 
-func (self *AnonStructVal) ContainsField(name string) (*VariableVal, int, bool) {
-	if v, found := self.Fields[name]; found {
+func (asv *AnonStructVal) ContainsField(name string) (*VariableVal, int, bool) {
+	if v, found := asv.Fields[name]; found {
 		return v.Var, v.Index + 1, true
 	}
 
 	return nil, -1, false
 }
 
-func (self *AnonStructVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
+func (asv *AnonStructVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
 	scope := NewScope(parent, &UntaggedTag{})
 
-	for k, v := range self.Fields {
+	for k, v := range asv.Fields {
 		scope.Variables[k] = v.Var
 	}
 	return scope
@@ -145,11 +145,11 @@ func NewCustomVal(typ *CustomType) *CustomVal {
 	}
 }
 
-func (self *CustomVal) GetType() Type {
-	return self.Type
+func (cv *CustomVal) GetType() Type {
+	return cv.Type
 }
 
-func (self *CustomVal) GetDefault() *ast.LiteralExpr {
+func (cv *CustomVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "nil"}
 }
 
@@ -172,35 +172,35 @@ func NewEnumVal(envName string, name string, isLocal bool, fields ...string) *En
 	return val
 }
 
-func (self *EnumVal) GetType() Type {
-	return self.Type
+func (ev *EnumVal) GetType() Type {
+	return ev.Type
 }
 
-func (self *EnumVal) GetDefault() *ast.LiteralExpr {
+func (ev *EnumVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "nil"}
 }
 
-func (self *EnumVal) AddField(variable *VariableVal) {
-	if self == nil {
+func (ev *EnumVal) AddField(variable *VariableVal) {
+	if ev == nil {
 		return
 	}
 	enumFieldVal := variable.Value.(*EnumFieldVal)
-	enumFieldVal.Index = len(self.Fields)
-	self.Fields[variable.Name] = variable
+	enumFieldVal.Index = len(ev.Fields)
+	ev.Fields[variable.Name] = variable
 }
 
-func (self *EnumVal) ContainsField(name string) (*VariableVal, int, bool) {
-	if variable, found := self.Fields[name]; found {
+func (ev *EnumVal) ContainsField(name string) (*VariableVal, int, bool) {
+	if variable, found := ev.Fields[name]; found {
 		return variable, variable.Value.(*EnumFieldVal).Index + 1, true
 	}
 
 	return nil, -1, false
 }
 
-func (self *EnumVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
+func (ev *EnumVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
 	scope := NewScope(parent, &UntaggedTag{})
 
-	scope.Variables = self.Fields
+	scope.Variables = ev.Fields
 
 	return scope
 }
@@ -210,11 +210,11 @@ type EnumFieldVal struct {
 	Type  *EnumType
 }
 
-func (self *EnumFieldVal) GetType() Type {
-	return self.Type
+func (efv *EnumFieldVal) GetType() Type {
+	return efv.Type
 }
 
-func (self *EnumFieldVal) GetDefault() *ast.LiteralExpr {
+func (efv *EnumFieldVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "nil"}
 }
 
@@ -231,11 +231,11 @@ func NewEnumFieldVar(name string, enumType EnumType, index int) *VariableVal {
 
 type RawEntityVal struct{}
 
-func (self *RawEntityVal) GetType() Type {
+func (rev *RawEntityVal) GetType() Type {
 	return &RawEntityType{}
 }
 
-func (ev *RawEntityVal) GetDefault() *ast.LiteralExpr {
+func (rev *RawEntityVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "nil"}
 }
 
@@ -304,14 +304,14 @@ func (ev *EntityVal) ContainsMethod(name string) (*VariableVal, bool) {
 	return nil, false
 }
 
-func (self *EntityVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
+func (ev *EntityVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
 	scope := NewScope(parent, &UntaggedTag{})
 
-	for _, v := range self.Fields {
+	for _, v := range ev.Fields {
 		scope.Variables[v.Var.Name] = v.Var
 	}
 
-	for _, v := range self.Methods {
+	for _, v := range ev.Methods {
 		scope.Variables[v.Name] = v
 	}
 
@@ -327,47 +327,47 @@ type ClassVal struct {
 	Generics []*GenericType
 }
 
-func (sv *ClassVal) GetType() Type {
-	return &sv.Type
+func (cv *ClassVal) GetType() Type {
+	return &cv.Type
 }
 
-func (sv *ClassVal) GetDefault() *ast.LiteralExpr {
+func (cv *ClassVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "nil"}
 }
 
 // Container
-func (sv *ClassVal) AddField(variable *VariableVal) {
-	sv.Fields[variable.Name] = NewField(len(sv.Fields), variable)
+func (cv *ClassVal) AddField(variable *VariableVal) {
+	cv.Fields[variable.Name] = NewField(len(cv.Fields), variable)
 }
 
-func (sv *ClassVal) AddMethod(variable *VariableVal) {
-	sv.Methods[variable.Name] = variable
+func (cv *ClassVal) AddMethod(variable *VariableVal) {
+	cv.Methods[variable.Name] = variable
 }
 
-func (sv *ClassVal) ContainsField(name string) (*VariableVal, int, bool) {
-	if variable, found := sv.Fields[name]; found {
+func (cv *ClassVal) ContainsField(name string) (*VariableVal, int, bool) {
+	if variable, found := cv.Fields[name]; found {
 		return variable.Var, variable.Index + 1, true
 	}
 
 	return nil, -1, false
 }
 
-func (sv *ClassVal) ContainsMethod(name string) (*VariableVal, bool) {
-	if variable, found := sv.Methods[name]; found {
+func (cv *ClassVal) ContainsMethod(name string) (*VariableVal, bool) {
+	if variable, found := cv.Methods[name]; found {
 		return variable, true
 	}
 
 	return nil, false
 }
 
-func (self *ClassVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
+func (cv *ClassVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
 	scope := NewScope(parent, &UntaggedTag{})
 
-	for _, v := range self.Fields {
+	for _, v := range cv.Fields {
 		scope.Variables[v.Var.Name] = v.Var
 	}
 
-	for _, v := range self.Methods {
+	for _, v := range cv.Methods {
 		scope.Variables[v.Name] = v
 	}
 
@@ -379,11 +379,11 @@ type MapVal struct {
 	Members    []Value
 }
 
-func (m *MapVal) GetType() Type {
-	return NewWrapperType(NewBasicType(ast.Map), m.MemberType)
+func (mv *MapVal) GetType() Type {
+	return NewWrapperType(NewBasicType(ast.Map), mv.MemberType)
 }
 
-func (m *MapVal) GetDefault() *ast.LiteralExpr {
+func (mv *MapVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "{}"}
 }
 
@@ -560,11 +560,11 @@ type GenericVal struct {
 	Type *GenericType
 }
 
-func (self *GenericVal) GetType() Type {
-	return self.Type
+func (gv *GenericVal) GetType() Type {
+	return gv.Type
 }
 
-func (self *GenericVal) GetDefault() *ast.LiteralExpr {
+func (gv *GenericVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "nil"}
 }
 

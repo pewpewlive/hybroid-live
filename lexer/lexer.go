@@ -1,7 +1,6 @@
 package lexer
 
 import (
-	"fmt"
 	"hybroid/alerts"
 	"hybroid/tokens"
 )
@@ -12,7 +11,7 @@ type Lexer struct {
 	Tokens []tokens.Token
 	source []byte
 
-	start, current, line, columnStart, columnCurrent int
+	start, current, lineStart, lineCurrent, columnStart, columnCurrent int
 }
 
 func NewLexer() Lexer {
@@ -21,7 +20,8 @@ func NewLexer() Lexer {
 		source:        make([]byte, 0),
 		start:         0,
 		current:       0,
-		line:          1,
+		lineStart:     1,
+		lineCurrent:   1,
 		columnStart:   0,
 		columnCurrent: 0,
 	}
@@ -32,22 +32,28 @@ func (l *Lexer) AssignSource(src []byte) {
 }
 
 func (l *Lexer) handleString() {
+	hasMultilineStr := false
+
 	for l.peek() != '"' && !l.isAtEnd() {
 		if l.peek() == '\\' && l.peekNext() == '"' {
 			l.advance()
 		}
 		if l.peek() == '\n' {
-			l.line++
+			l.lineCurrent++
 			l.columnStart = 0
 			l.columnCurrent = 0
-			l.Alert(&alerts.MultilineString{})
+			hasMultilineStr = true
 		}
 
 		l.advance()
 	}
 
+	if hasMultilineStr {
+		l.Alert(&alerts.MultilineString{}, tokens.Token{}, newLocation(l.lineStart, l.columnStart, l.lineCurrent, l.columnCurrent))
+	}
+
 	if l.isAtEnd() {
-		l.Alert(&alerts.UnterminatedString{})
+		l.Alert(&alerts.UnterminatedString{}, tokens.Token{}, newLocation(l.lineStart, l.columnStart, l.lineCurrent, l.columnCurrent))
 		return
 	}
 
@@ -87,7 +93,7 @@ func (l *Lexer) handleNumber() {
 
 	strNum := string(l.source[l.start:l.current])
 	if !tryParseNum(strNum) {
-		l.lexerError(fmt.Sprintf("invalid number `%s`", strNum))
+		l.Alert(&alerts.MalformedNumber{}, tokens.Token{}, newLocation(l.lineStart, l.columnStart, l.lineCurrent, l.columnCurrent))
 		return
 	}
 	// Evaluate if it is a postfix: `fx`, `r`, `d`
@@ -113,7 +119,7 @@ func (l *Lexer) handleNumber() {
 	case "":
 		l.addToken(tokens.Number, strNum)
 	default:
-		l.lexerError(fmt.Sprintf("invalid postfix '%s'", postfix))
+		l.Alert(&alerts.InvalidNumberPostfix{}, tokens.Token{}, newLocation(l.lineStart, l.columnStart, l.lineCurrent, l.columnCurrent), postfix)
 	}
 }
 
@@ -242,7 +248,7 @@ func (l *Lexer) scanToken() {
 			// Handle multiline comments
 			for (l.peek() != '*' || l.peekNext() != '/') && !l.isAtEnd() {
 				if l.peek() == '\n' {
-					l.line++
+					l.lineCurrent++
 					l.columnStart = 0
 					l.columnCurrent = 0
 				}
@@ -272,9 +278,9 @@ func (l *Lexer) scanToken() {
 	case ' ', '\r', '\t':
 		break
 
-	// Increment line count when hitting new line
+	// Increment lineCurrent count when hitting new lineCurrent
 	case '\n':
-		l.line++
+		l.lineCurrent++
 		l.columnStart = 0
 		l.columnCurrent = 0
 
@@ -287,7 +293,7 @@ func (l *Lexer) scanToken() {
 		} else if isAlphabetical(c) {
 			l.handleIdentifier()
 		} else {
-			l.lexerError(fmt.Sprintf("unexpected character '%c'", c))
+			l.Alert(&alerts.UnsupportedCharacter{}, tokens.Token{}, newLocation(l.lineStart, l.columnStart, l.lineCurrent, l.columnCurrent), c)
 		}
 	}
 }
@@ -295,6 +301,7 @@ func (l *Lexer) scanToken() {
 func (l *Lexer) Tokenize() {
 	for !l.isAtEnd() {
 		l.start = l.current
+		l.lineStart = l.lineCurrent
 		l.columnStart = l.columnCurrent
 		l.scanToken()
 	}
@@ -304,8 +311,8 @@ func (l *Lexer) Tokenize() {
 		Lexeme:  "",
 		Literal: "",
 		Location: tokens.TokenLocation{
-			LineStart: l.line,
-			LineEnd:   l.line,
+			LineStart: l.lineCurrent,
+			LineEnd:   l.lineCurrent,
 			ColStart:  l.columnCurrent + 1,
 			ColEnd:    l.columnCurrent + 1,
 		},

@@ -584,18 +584,18 @@ func UnaryExpr(w *wkr.Walker, node *ast.UnaryExpr, scope *wkr.Scope) wkr.Value {
 	}
 
 	switch node.Operator.Type {
-	case lexer.Bang:
+	case tokens.Bang:
 		if valPVT != ast.Bool {
 			w.Error(token, "value must be a bool to be negated")
 		}
-	case lexer.Hash:
+	case tokens.Hash:
 		if valType.GetType() == wkr.Wrapper && valType.(*wkr.WrapperType).Type.PVT() != ast.List {
 			w.Error(token, "value must be a list")
 		} else if valType.GetType() != wkr.Wrapper {
 			w.Error(token, "value must be a list")
 		}
 		return &wkr.NumberVal{}
-	case lexer.Minus:
+	case tokens.Minus:
 		if valPVT != ast.Number && valType.GetType() != wkr.Fixed {
 			w.Error(token, "value must be a number or fixed")
 		}

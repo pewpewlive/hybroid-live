@@ -43,21 +43,21 @@ func NewVariadicType(typ Type) *VariadicType {
 	}
 }
 
-func (self *VariadicType) PVT() ast.PrimitiveValueType {
-	return self.Type.PVT()
+func (vt *VariadicType) PVT() ast.PrimitiveValueType {
+	return vt.Type.PVT()
 }
 
-func (self *VariadicType) GetType() ValueType {
+func (vt *VariadicType) GetType() ValueType {
 	return Variadic
 }
 
-func (self *VariadicType) _eq(other Type) bool {
+func (vt *VariadicType) _eq(other Type) bool {
 	path := other.(*VariadicType)
-	return self.Type == path.Type
+	return vt.Type == path.Type
 }
 
-func (self *VariadicType) ToString() string {
-	return "..." + self.Type.ToString()
+func (vt *VariadicType) ToString() string {
+	return "..." + vt.Type.ToString()
 }
 
 type PathType struct {
@@ -70,21 +70,21 @@ func NewPathType(envType ast.EnvType) *PathType {
 	}
 }
 
-func (self *PathType) PVT() ast.PrimitiveValueType {
+func (pt *PathType) PVT() ast.PrimitiveValueType {
 	return ast.Path
 }
 
-func (self *PathType) GetType() ValueType {
+func (pt *PathType) GetType() ValueType {
 	return Path
 }
 
-func (self *PathType) _eq(other Type) bool {
+func (pt *PathType) _eq(other Type) bool {
 	path := other.(*PathType)
-	return self.EnvType == path.EnvType
+	return pt.EnvType == path.EnvType
 }
 
-func (self *PathType) ToString() string {
-	return string(self.EnvType)
+func (pt *PathType) ToString() string {
+	return string(pt.EnvType)
 }
 
 type AliasType struct {
@@ -99,20 +99,20 @@ func NewAliasType(name string, underlyingType Type) *AliasType {
 	}
 }
 
-func (self *AliasType) PVT() ast.PrimitiveValueType {
-	return self.UnderlyingType.PVT()
+func (at *AliasType) PVT() ast.PrimitiveValueType {
+	return at.UnderlyingType.PVT()
 }
 
-func (self *AliasType) GetType() ValueType {
-	return self.UnderlyingType.GetType()
+func (at *AliasType) GetType() ValueType {
+	return at.UnderlyingType.GetType()
 }
 
-func (self *AliasType) _eq(other Type) bool {
-	return TypeEquals(other, self.UnderlyingType)
+func (at *AliasType) _eq(other Type) bool {
+	return TypeEquals(other, at.UnderlyingType)
 }
 
-func (self *AliasType) ToString() string {
-	return self.Name + "(alias for " + self.UnderlyingType.ToString() + ")"
+func (at *AliasType) ToString() string {
+	return at.Name + "(alias for " + at.UnderlyingType.ToString() + ")"
 }
 
 type CustomType struct {
@@ -127,21 +127,21 @@ func NewCustomType(name string, underlyingType Type) *CustomType {
 	}
 }
 
-func (self *CustomType) PVT() ast.PrimitiveValueType {
-	return self.UnderlyingType.PVT()
+func (ct *CustomType) PVT() ast.PrimitiveValueType {
+	return ct.UnderlyingType.PVT()
 }
 
-func (self *CustomType) GetType() ValueType {
+func (ct *CustomType) GetType() ValueType {
 	return CstmType
 }
 
-func (self *CustomType) _eq(other Type) bool {
+func (ct *CustomType) _eq(other Type) bool {
 	ret := other.(*CustomType)
-	return ret.Name == self.Name
+	return ret.Name == ct.Name
 }
 
-func (self *CustomType) ToString() string {
-	return self.Name + "(" + self.UnderlyingType.ToString() + ")"
+func (ct *CustomType) ToString() string {
+	return ct.Name + "(" + ct.UnderlyingType.ToString() + ")"
 }
 
 type FunctionType struct {
@@ -156,29 +156,29 @@ func NewFunctionType(params Types, returns Types) *FunctionType {
 	}
 }
 
-func (self *FunctionType) PVT() ast.PrimitiveValueType {
+func (ft *FunctionType) PVT() ast.PrimitiveValueType {
 	return ast.Func
 }
 
-func (self *FunctionType) GetType() ValueType {
+func (ft *FunctionType) GetType() ValueType {
 	return Fn
 }
 
-func (self *FunctionType) _eq(other Type) bool {
-	ft := other.(*FunctionType)
-	if len(self.Params) != len(ft.Params) {
+func (ft *FunctionType) _eq(other Type) bool {
+	otherFT := other.(*FunctionType)
+	if len(ft.Params) != len(otherFT.Params) {
 		return false
 	}
-	for i := range self.Params {
-		if !TypeEquals(self.Params[i], ft.Params[i]) {
+	for i := range ft.Params {
+		if !TypeEquals(ft.Params[i], otherFT.Params[i]) {
 			return false
 		}
 	}
-	if len(self.Returns) != len(ft.Returns) {
+	if len(ft.Returns) != len(otherFT.Returns) {
 		return false
 	}
-	for i := range self.Returns {
-		if !TypeEquals(self.Returns[i], ft.Returns[i]) {
+	for i := range ft.Returns {
+		if !TypeEquals(ft.Returns[i], otherFT.Returns[i]) {
 			return false
 		}
 	}
@@ -186,32 +186,32 @@ func (self *FunctionType) _eq(other Type) bool {
 	return true
 }
 
-func (self *FunctionType) ToString() string {
+func (ft *FunctionType) ToString() string {
 	src := generator.StringBuilder{}
 
 	src.WriteString("fn(")
 
-	length := len(self.Params)
-	for i := range self.Params {
+	length := len(ft.Params)
+	for i := range ft.Params {
 		if i == length-1 {
-			src.WriteString(self.Params[i].ToString())
+			src.WriteString(ft.Params[i].ToString())
 		} else {
-			src.Append(self.Params[i].ToString(), ", ")
+			src.Append(ft.Params[i].ToString(), ", ")
 		}
 	}
 	src.WriteString(")")
 
-	if len(self.Returns) == 0 {
+	if len(ft.Returns) == 0 {
 		return src.String()
 	}
 
 	src.WriteString(" ")
-	length = len(self.Returns)
-	for i := range self.Returns {
+	length = len(ft.Returns)
+	for i := range ft.Returns {
 		if i == length-1 {
-			src.WriteString(self.Returns[i].ToString())
+			src.WriteString(ft.Returns[i].ToString())
 		} else {
-			src.Append(self.Returns[i].ToString(), ", ")
+			src.Append(ft.Returns[i].ToString(), ", ")
 		}
 	}
 
@@ -222,21 +222,21 @@ type GenericType struct {
 	Name string
 }
 
-func (self *GenericType) PVT() ast.PrimitiveValueType {
+func (gt *GenericType) PVT() ast.PrimitiveValueType {
 	return ast.Generic
 }
 
-func (self *GenericType) GetType() ValueType {
+func (gt *GenericType) GetType() ValueType {
 	return Generic
 }
 
-func (self *GenericType) _eq(other Type) bool {
+func (gt *GenericType) _eq(other Type) bool {
 	g := other.(*GenericType)
-	return g.Name == self.Name
+	return g.Name == gt.Name
 }
 
-func (self *GenericType) ToString() string {
-	return self.Name
+func (gt *GenericType) ToString() string {
+	return gt.Name
 }
 
 func NewGeneric(name string) *GenericType {
@@ -247,20 +247,20 @@ func NewGeneric(name string) *GenericType {
 
 type RawEntityType struct{}
 
-func (self *RawEntityType) PVT() ast.PrimitiveValueType {
+func (ret *RawEntityType) PVT() ast.PrimitiveValueType {
 	return ast.Entity
 }
 
-func (self *RawEntityType) GetType() ValueType {
+func (ret *RawEntityType) GetType() ValueType {
 	return RawEntity
 }
 
-func (self *RawEntityType) _eq(other Type) bool {
-	ret := other.(*RawEntityType)
-	return ret.GetType() == RawEntity
+func (ret *RawEntityType) _eq(other Type) bool {
+	otherRET := other.(*RawEntityType)
+	return otherRET.GetType() == RawEntity
 }
 
-func (self *RawEntityType) ToString() string {
+func (ret *RawEntityType) ToString() string {
 	return string(ast.Entity)
 }
 
@@ -275,21 +275,21 @@ func NewBasicType(pvt ast.PrimitiveValueType) *BasicType {
 }
 
 // Type
-func (self *BasicType) PVT() ast.PrimitiveValueType {
-	return self.PrimitiveType
+func (bt *BasicType) PVT() ast.PrimitiveValueType {
+	return bt.PrimitiveType
 }
 
-func (self *BasicType) GetType() ValueType {
+func (bt *BasicType) GetType() ValueType {
 	return Basic
 }
 
-func (self *BasicType) _eq(other Type) bool {
+func (bt *BasicType) _eq(other Type) bool {
 	basic := other.(*BasicType)
-	return self.PrimitiveType == basic.PrimitiveType
+	return bt.PrimitiveType == basic.PrimitiveType
 }
 
-func (self *BasicType) ToString() string {
-	return string(self.PrimitiveType)
+func (bt *BasicType) ToString() string {
+	return string(bt.PrimitiveType)
 }
 
 type FixedPoint struct {
@@ -303,20 +303,20 @@ func NewFixedPointType(specific ast.PrimitiveValueType) *FixedPoint {
 }
 
 // Type
-func (self *FixedPoint) PVT() ast.PrimitiveValueType {
-	return self.Specific
+func (fp *FixedPoint) PVT() ast.PrimitiveValueType {
+	return fp.Specific
 }
 
-func (self *FixedPoint) GetType() ValueType {
+func (fp *FixedPoint) GetType() ValueType {
 	return Fixed
 }
 
-func (self *FixedPoint) _eq(other Type) bool {
+func (fp *FixedPoint) _eq(other Type) bool {
 	return true
 }
 
-func (self *FixedPoint) ToString() string {
-	return string(self.Specific)
+func (fp *FixedPoint) ToString() string {
+	return string(fp.Specific)
 }
 
 type StructType struct {
@@ -342,19 +342,19 @@ func NewStructTypeWithFields(fields map[string]Field, lenient bool) *StructType 
 	}
 }
 
-func (self *StructType) PVT() ast.PrimitiveValueType {
+func (st *StructType) PVT() ast.PrimitiveValueType {
 	return ast.AnonStruct
 }
 
-func (self *StructType) GetType() ValueType {
+func (st *StructType) GetType() ValueType {
 	return Strct
 }
 
-func (self *StructType) _eq(other Type) bool {
-	map1 := self.Fields
+func (st *StructType) _eq(other Type) bool {
+	map1 := st.Fields
 	map2 := other.(*StructType).Fields
-	if self.Lenient {
-		return other._eq(self)
+	if st.Lenient {
+		return other._eq(st)
 	}
 
 	for k, v := range map1 {
@@ -372,13 +372,13 @@ func (self *StructType) _eq(other Type) bool {
 	return true
 }
 
-func (self *StructType) ToString() string {
+func (st *StructType) ToString() string {
 	src := generator.StringBuilder{}
 
 	src.WriteString("struct{")
-	length := len(self.Fields) - 1
+	length := len(st.Fields) - 1
 	index := 0
-	for k, v := range self.Fields {
+	for k, v := range st.Fields {
 		if index == length {
 			_type := v.Var.Value.GetType()
 			src.Append(_type.ToString(), " ", k)
@@ -409,21 +409,21 @@ func NewNamedType(envName string, name string, primitive ast.PrimitiveValueType)
 }
 
 // Type
-func (self *NamedType) PVT() ast.PrimitiveValueType {
-	return self.Pvt
+func (nt *NamedType) PVT() ast.PrimitiveValueType {
+	return nt.Pvt
 }
 
-func (self *NamedType) GetType() ValueType {
+func (nt *NamedType) GetType() ValueType {
 	return Named
 }
 
-func (self *NamedType) _eq(othr Type) bool {
+func (nt *NamedType) _eq(othr Type) bool {
 	other := othr.(*NamedType)
-	return self.Name == other.Name
+	return nt.Name == other.Name
 }
 
-func (self *NamedType) ToString() string {
-	return self.Name
+func (nt *NamedType) ToString() string {
+	return nt.Name
 }
 
 type EnumType struct {
@@ -439,20 +439,20 @@ func NewEnumType(envName, name string) *EnumType {
 	}
 }
 
-func (self *EnumType) PVT() ast.PrimitiveValueType {
+func (et *EnumType) PVT() ast.PrimitiveValueType {
 	return ast.Enum
 }
 
-func (self *EnumType) GetType() ValueType {
+func (et *EnumType) GetType() ValueType {
 	return Enum
 }
 
-func (self *EnumType) _eq(other Type) bool {
-	return self.Name == other.(*EnumType).Name
+func (et *EnumType) _eq(other Type) bool {
+	return et.Name == other.(*EnumType).Name
 }
 
-func (self *EnumType) ToString() string {
-	return self.Name
+func (et *EnumType) ToString() string {
+	return et.Name
 }
 
 type WrapperType struct {
@@ -468,29 +468,29 @@ func NewWrapperType(_type Type, wrapped Type) *WrapperType {
 }
 
 // Type
-func (self *WrapperType) PVT() ast.PrimitiveValueType {
-	return self.Type.PVT()
+func (wt *WrapperType) PVT() ast.PrimitiveValueType {
+	return wt.Type.PVT()
 }
 
-func (self *WrapperType) GetType() ValueType {
+func (wt *WrapperType) GetType() ValueType {
 	return Wrapper
 }
 
-func (self *WrapperType) _eq(othr Type) bool {
+func (wt *WrapperType) _eq(othr Type) bool {
 	other := othr.(*WrapperType)
-	if !TypeEquals(self.Type, other.Type) {
+	if !TypeEquals(wt.Type, other.Type) {
 		return false
 	}
 
-	if !TypeEquals(self.WrappedType, other.WrappedType) {
+	if !TypeEquals(wt.WrappedType, other.WrappedType) {
 		return false
 	}
 
 	return true
 }
 
-func (self *WrapperType) ToString() string {
-	return self.Type.ToString() + "<" + self.WrappedType.ToString() + ">"
+func (wt *WrapperType) ToString() string {
+	return wt.Type.ToString() + "<" + wt.WrappedType.ToString() + ">"
 }
 
 type ObjectType struct{}
@@ -498,76 +498,76 @@ type ObjectType struct{}
 var ObjectTyp = &ObjectType{}
 
 // Type
-func (self *ObjectType) PVT() ast.PrimitiveValueType {
+func (ot *ObjectType) PVT() ast.PrimitiveValueType {
 	return ast.Object
 }
 
-func (self *ObjectType) GetType() ValueType {
+func (ot *ObjectType) GetType() ValueType {
 	return NA
 }
 
-func (self *ObjectType) _eq(_ Type) bool {
+func (ot *ObjectType) _eq(_ Type) bool {
 	return false
 }
 
-func (self *ObjectType) ToString() string {
+func (ot *ObjectType) ToString() string {
 	return "NotAnyType"
 }
 
 type FuncSignature struct {
 	Generics []*GenericType
-	Params []Type
-	Returns []Type
+	Params   []Type
+	Returns  []Type
 }
 
 func NewFuncSignature(generics ...*GenericType) *FuncSignature {
 	return &FuncSignature{
 		Generics: generics,
-		Params: []Type{},
-		Returns: []Type{},
+		Params:   []Type{},
+		Returns:  []Type{},
 	}
 }
 
-func (self *FuncSignature) WithParams(params ...Type) *FuncSignature {
-	self.Params = params
-	return self
+func (fs *FuncSignature) WithParams(params ...Type) *FuncSignature {
+	fs.Params = params
+	return fs
 }
 
-func (self *FuncSignature) WithReturns(returns ...Type) *FuncSignature {
-	self.Returns = returns
-	return self
+func (fs *FuncSignature) WithReturns(returns ...Type) *FuncSignature {
+	fs.Returns = returns
+	return fs
 }
 
-func (self *FuncSignature) ToString() string {
+func (fs *FuncSignature) ToString() string {
 	src := generator.StringBuilder{}
 
 	src.WriteString("fn")
 
-	if len(self.Generics) != 0 {
+	if len(fs.Generics) != 0 {
 		src.WriteString("<")
-		for i := range self.Generics {
-			src.WriteString(self.Generics[i].ToString())
+		for i := range fs.Generics {
+			src.WriteString(fs.Generics[i].ToString())
 		}
 		src.WriteString(">")
 	}
-	if len(self.Params) != 0 {
+	if len(fs.Params) != 0 {
 		src.WriteString("(")
-		for i := range self.Params {
-			src.WriteString(self.Params[i].ToString())
-			if i != len(self.Params)-1 {
+		for i := range fs.Params {
+			src.WriteString(fs.Params[i].ToString())
+			if i != len(fs.Params)-1 {
 				src.WriteString(", ")
 			}
 		}
 		src.WriteString(")")
 	}
-	retLength := len(self.Returns)
+	retLength := len(fs.Returns)
 	if retLength != 0 {
 		src.WriteString(" -> ")
 		if retLength != 1 {
 			src.WriteString("(")
 		}
-		for i := range self.Returns {
-			src.WriteString(self.Returns[i].ToString())
+		for i := range fs.Returns {
+			src.WriteString(fs.Returns[i].ToString())
 		}
 		if retLength != 1 {
 			src.WriteString(")")
@@ -577,20 +577,20 @@ func (self *FuncSignature) ToString() string {
 	return src.String()
 }
 
-func (self *FuncSignature) Equals(other *FuncSignature) bool {
-	if len(self.Params) != len(other.Params) {
+func (fs *FuncSignature) Equals(other *FuncSignature) bool {
+	if len(fs.Params) != len(other.Params) {
 		return false
 	}
-	for i := range self.Params {
-		if !TypeEquals(self.Params[i], other.Params[i]) {
+	for i := range fs.Params {
+		if !TypeEquals(fs.Params[i], other.Params[i]) {
 			return false
 		}
 	}
-	if len(self.Returns) != len(other.Returns) {
+	if len(fs.Returns) != len(other.Returns) {
 		return false
 	}
-	for i := range self.Returns {
-		if !TypeEquals(self.Returns[i], other.Returns[i]) {
+	for i := range fs.Returns {
+		if !TypeEquals(fs.Returns[i], other.Returns[i]) {
 			return false
 		}
 	}
@@ -599,15 +599,15 @@ func (self *FuncSignature) Equals(other *FuncSignature) bool {
 }
 
 func TypeEquals(t Type, other Type) bool {
-	ttype := t.GetType() 
+	ttype := t.GetType()
 	othertype := other.GetType()
 	tpvt := t.PVT()
 	otherpvt := other.PVT()
 
 	/*
-	if (ttype == Fixed && otherpvt == ast.Number) || (othertype == Fixed && tpvt == ast.Number) {
-		return true
-	}
+		if (ttype == Fixed && otherpvt == ast.Number) || (othertype == Fixed && tpvt == ast.Number) {
+			return true
+		}
 	*/
 
 	if tpvt == ast.Object {

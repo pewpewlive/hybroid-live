@@ -7,11 +7,12 @@ import (
 )
 
 type Parser struct {
-	errors.AlertHandler
+	alerts.AlertHandler
 
 	program []ast.Node
 	current int
 	tokens  []tokens.Token
+	Errors  []ast.Error
 	Context ParserContext
 }
 
@@ -35,10 +36,11 @@ func (p *Parser) AssignTokens(tokens []tokens.Token) {
 }
 
 // Appends an error to the ParserErrors
-//func (p *Parser) error(token tokens.Token, msg string) {
-//	errMsg := ast.Error{Token: token, Message: msg}
-//panic(errMsg.Message)
-//}
+func (p *Parser) error(token tokens.Token, msg string) {
+	errMsg := ast.Error{Token: token, Message: msg}
+	p.Errors = append(p.Errors, errMsg)
+	panic(errMsg.Message)
+}
 
 func (p *Parser) synchronize() {
 	p.advance()
@@ -126,8 +128,9 @@ func (p *Parser) match(types ...tokens.TokenType) bool {
 	return false
 }
 
-// Consumes a list of tokens, advancing if they match and returns true. Consume also advances if none of the tokens were able to match, and returns false
-func (p *Parser) consume(message alerts.Alert, types ...tokens.TokenType) (tokens.Token, bool) {
+// Takes a list of tokens, advancing if the next token matches with any token from the list and returns true.
+// Consume also advances if none of the tokens were able to match, and returns false
+func (p *Parser) consume(message string, types ...tokens.TokenType) (tokens.Token, bool) {
 	if p.isAtEnd() {
 		token := p.peek()
 		p.error(token, message)
@@ -140,6 +143,22 @@ func (p *Parser) consume(message alerts.Alert, types ...tokens.TokenType) (token
 	}
 	token := p.advance()
 	p.error(token, message)
+	return token, false // error
+}
+
+func (p *Parser) consumeNew(message alerts.Alert, types ...tokens.TokenType) (tokens.Token, bool) {
+	if p.isAtEnd() {
+		token := p.peek()
+		//p.error(token, message)
+		return token, false // error
+	}
+	for _, tokenType := range types {
+		if p.check(tokenType) {
+			return p.advance(), true
+		}
+	}
+	token := p.advance()
+	//p.error(token, message)
 	return token, false // error
 }
 

@@ -33,10 +33,6 @@ func (ms *MultilineString) GetAlertType() AlertType {
   return Error
 }
 
-func (ms *MultilineString) GetAlertStage() AlertStage {
-  return Lexer
-}
-
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type UnterminatedString struct {
   Token tokens.Token
@@ -61,10 +57,6 @@ func (us *UnterminatedString) GetNote() string {
 
 func (us *UnterminatedString) GetAlertType() AlertType {
   return Error
-}
-
-func (us *UnterminatedString) GetAlertStage() AlertStage {
-  return Lexer
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
@@ -94,10 +86,6 @@ func (mn *MalformedNumber) GetAlertType() AlertType {
   return Error
 }
 
-func (mn *MalformedNumber) GetAlertStage() AlertStage {
-  return Lexer
-}
-
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidNumberPostfix struct {
   Token tokens.Token
@@ -125,10 +113,6 @@ func (inp *InvalidNumberPostfix) GetAlertType() AlertType {
   return Error
 }
 
-func (inp *InvalidNumberPostfix) GetAlertStage() AlertStage {
-  return Lexer
-}
-
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type UnsupportedCharacter struct {
   Token tokens.Token
@@ -154,9 +138,5 @@ func (uc *UnsupportedCharacter) GetNote() string {
 
 func (uc *UnsupportedCharacter) GetAlertType() AlertType {
   return Error
-}
-
-func (uc *UnsupportedCharacter) GetAlertStage() AlertStage {
-  return Lexer
 }
 
