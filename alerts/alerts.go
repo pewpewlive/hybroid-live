@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hybroid/tokens"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/mitchellh/colorstring"
@@ -118,8 +119,7 @@ func (ah *AlertHandler) PrintCodeSnippet(alert Alert) {
 			snippet := ah.Source[i-columnCount+1 : i-1]
 
 			fmt.Printf("%d |   %s\n", lineCount, string(snippet))
-			//fmt.Printf("%d", location.ColStart)
-			fmt.Printf("  |   %s%s", strings.Repeat(" ", location.ColStart), strings.Repeat("^", location.ColEnd-location.ColStart))
+			fmt.Printf("%s |   %s%s", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat(" ", location.ColStart), strings.Repeat("^", location.ColEnd-location.ColStart))
 		}
 
 		// if lineCount == location.LineStart && lineCount != location.LineEnd && ah.Source[i] == '\n' { // handles multiple line errors
