@@ -61,7 +61,7 @@ func (p *Parser) getParam() ast.Param {
 
 func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) []ast.Param {
 	if !p.match(opening) {
-		p.Alert(&alerts.ExpectedParenthesis{}, p.peek(), p.peek().Location, "(")
+		p.Alert(&alerts.ExpectedEnclosingMark{}, p.peek(), p.peek().Location, string(opening))
 		return []ast.Param{}
 	}
 
@@ -94,7 +94,7 @@ func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) 
 			}
 			args = append(args, param)
 		}
-		p.consume(p.NewAlert(&alerts.ExpectedParenthesis{}, p.peek(), p.peek().Location, ")"), closing)
+		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, p.peek(), p.peek().Location, string(closing)), closing)
 	}
 
 	return args

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mitchellh/colorstring"
+	color "github.com/mitchellh/colorstring"
 )
 
 type AlertStage int
@@ -45,7 +45,7 @@ type Alert interface {
 	// Empty string means no note will be printed
 	GetNote() string
 
-	GetName() string
+	GetID() string
 	GetAlertType() AlertType
 
 	// AddTokens(...tokens.Token)
@@ -65,7 +65,7 @@ func (ah *AlertHandler) NewAlert(alertType Alert, args ...any) Alert {
 
 	for i, arg := range args {
 		if reflect.TypeOf(arg) != alert.Field(i).Type() {
-			panic(fmt.Sprintf("Attempt to construct %s{} field `%s` of type `%s`, with `%s` at %d\n", alert.Type().Name(), reflect.TypeOf(alertType).Elem().Field(i).Name, alert.Field(i).Type(), reflect.TypeOf(arg), i+1))
+			panic(fmt.Sprintf("Attempt to construct %s{} field `%s` of type `%s`, with `%s` at %d", alert.Type().Name(), reflect.TypeOf(alertType).Elem().Field(i).Name, alert.Field(i).Type(), reflect.TypeOf(arg), i+1))
 		}
 		alert.Field(i).Set(reflect.ValueOf(arg))
 	}
@@ -89,17 +89,16 @@ func (ah *AlertHandler) PrintAlerts(alertStage AlertStage, source []byte, source
 	var errMsg string
 	switch alertStage {
 	case Lexer, Parser:
-		errMsg = "[red]Syntax error:"
+		errMsg = "[light_red]Syntax error[%s]: "
 	case Walker, Eval:
-		errMsg = "[red]Compilation error:"
+		errMsg = "[light_red]Compilation error[%s]: "
 	}
 
 	for _, alert := range ah.Alerts {
-		colorstring.Print(errMsg)
-		colorstring.Printf(" [light_gray]%s[default] in %s", alert.GetName(), sourcePath)
-		ah.PrintLocation(alert)
-		ah.PrintMessage(alert)
+		color.Printf(errMsg, alert.GetID())
+		ah.PrintLocation(alert, sourcePath)
 		ah.PrintCodeSnippet(alert)
+		ah.PrintMessage(alert)
 		ah.PrintNote(alert)
 		fmt.Println()
 	}
@@ -112,12 +111,12 @@ func (ah *AlertHandler) SortTypes() {
 }
 
 func (ah *AlertHandler) PrintMessage(alert Alert) {
-	colorstring.Printf("[red]message:[default] %s.\n", alert.GetMessage())
+	color.Println(alert.GetMessage())
 }
 
-func (ah *AlertHandler) PrintLocation(alert Alert) {
+func (ah *AlertHandler) PrintLocation(alert Alert, file string) {
 	location := CombineLocations(alert.GetLocations())
-	fmt.Printf(": %d\n", location.LineStart)
+	color.Printf("%s:%d:%d\n", file, location.LineStart, location.ColStart)
 }
 
 func (ah *AlertHandler) PrintCodeSnippet(alert Alert) {
@@ -136,16 +135,18 @@ func (ah *AlertHandler) PrintCodeSnippet(alert Alert) {
 		if lineCount == location.LineStart && lineCount != location.LineEnd && ah.Source[i] == '\n' {
 			snippetStart := ah.Source[i-columnCount+1 : i-1]
 
-			colorstring.Printf("[cyan]%d%s |[default]   %s\n", lineCount, strings.Repeat(" ", len(strconv.Itoa(location.LineEnd))-1), string(snippetStart))
-			colorstring.Printf("[cyan]%s |[light_red]  %s^\n", strings.Repeat(" ", len(strconv.Itoa(location.LineEnd))), strings.Repeat("_", location.ColStart))
+			color.Printf("[cyan]%*s |\n", len(strconv.Itoa(location.LineEnd)), "")
+			color.Printf("[cyan]%*d |[default]   %s\n", len(strconv.Itoa(location.LineEnd)), lineCount, string(snippetStart))
+			color.Printf("[cyan]%*s |[light_red]  %s^\n", len(strconv.Itoa(location.LineEnd)), "", strings.Repeat("_", location.ColStart))
 		}
 
 		if lineCount != location.LineStart && lineCount == location.LineEnd && ah.Source[i] == '\n' {
 			snippetEnd := ah.Source[i-columnCount+1 : i-1]
 
-			colorstring.Printf("[dark_gray]...[default]%s[light_red]|\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))))
-			colorstring.Printf("[cyan]%d |[light_red] | [default]%s\n", lineCount, string(snippetEnd))
-			colorstring.Printf("[cyan]%s |[light_red] |%s^\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat("_", location.ColEnd))
+			color.Printf("[cyan]%*s |\n", len(strconv.Itoa(location.LineEnd)), "")
+			color.Printf("[dark_gray]...[default]%s[light_red]|\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))))
+			color.Printf("[cyan]%d |[light_red] | [default]%s\n", lineCount, string(snippetEnd))
+			color.Printf("[cyan]%s |[light_red] |%s^\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat("_", location.ColEnd-1))
 		}
 
 		if ah.Source[i] == '\n' {
@@ -159,7 +160,7 @@ func (ah *AlertHandler) PrintCodeSnippet(alert Alert) {
 
 func (ah *AlertHandler) PrintNote(alert Alert) {
 	if alert.GetNote() != "" {
-		colorstring.Printf("[cyan]%s= note:[default] %s\n", strings.Repeat(" ", len(strconv.Itoa(ah.currentLine))), alert.GetNote())
+		color.Printf("[cyan] %s= note:[default] %s\n", strings.Repeat(" ", len(strconv.Itoa(ah.currentLine))), alert.GetNote())
 		return
 	}
 
@@ -205,7 +206,6 @@ func (ah *AlertHandler) Finish() {
 func (ah *AlertHandler) snippetPrintSingleLine(index, columnCount, lineCount int, location tokens.TokenLocation) {
 	line := ah.Source[index-columnCount+1 : index-1]
 	if location.ColStart > 80 {
-		start := string(line[0:30])
 		var content string
 		short := false
 		if location.ColEnd+20 > columnCount && columnCount < 120 {
@@ -219,11 +219,13 @@ func (ah *AlertHandler) snippetPrintSingleLine(index, columnCount, lineCount int
 			shortt = "..."
 		}
 		// TODO: move prints into separate functions
-		colorstring.Printf("[cyan]%d |[default]   %s[dark_gray]...[default]%s[dark_gray]%s[reset]\n", lineCount, start, content, shortt)
-		colorstring.Printf("[cyan]%s |[light_red]   %s%s\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat(" ", len(start)+22), strings.Repeat("^", location.ColEnd-location.ColStart+1))
+		color.Printf("[cyan]%*s |\n", len(strconv.Itoa(location.LineEnd)), "")
+		color.Printf("[cyan]%d |[default]   [dark_gray]...[default]%s[dark_gray]%s[reset]\n", lineCount, content, shortt)
+		color.Printf("[cyan]%s |[light_red]   %s%s\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat(" ", 22), strings.Repeat("^", location.ColEnd-location.ColStart+1))
 	} else {
-		colorstring.Printf("[cyan]%d |[default]   %s\n", lineCount, line)
-		colorstring.Printf("[cyan]%s |[light_red]   %s%s\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat(" ", location.ColStart-1), strings.Repeat("^", location.ColEnd-location.ColStart+1))
+		color.Printf("[cyan]%*s |\n", len(strconv.Itoa(location.LineEnd)), "")
+		color.Printf("[cyan]%d |[default]   %s\n", lineCount, line)
+		color.Printf("[cyan]%s |[light_red]   %s%s\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat(" ", location.ColStart-1), strings.Repeat("^", location.ColEnd-location.ColStart+1))
 	}
 }
 

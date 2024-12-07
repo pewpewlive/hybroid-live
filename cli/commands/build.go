@@ -75,7 +75,6 @@ func build(ctx *cli.Context, filesToBuild ...helpers.FileInformation) error {
 		}
 
 		for _, file := range filesToBuild {
-			fmt.Printf("%v", file)
 			eval.AssignFile(file)
 		}
 		err <- eval.Action(cwd, outputDir)

@@ -29,8 +29,8 @@ func (ms *MultilineString) GetNote() string {
   return ""
 }
 
-func (ms *MultilineString) GetName() string {
-  return "MultilineString"
+func (ms *MultilineString) GetID() string {
+  return "hyb001"
 }
 
 func (ms *MultilineString) GetAlertType() AlertType {
@@ -59,8 +59,8 @@ func (us *UnterminatedString) GetNote() string {
   return ""
 }
 
-func (us *UnterminatedString) GetName() string {
-  return "UnterminatedString"
+func (us *UnterminatedString) GetID() string {
+  return "hyb002"
 }
 
 func (us *UnterminatedString) GetAlertType() AlertType {
@@ -90,8 +90,8 @@ func (mn *MalformedNumber) GetNote() string {
   return ""
 }
 
-func (mn *MalformedNumber) GetName() string {
-  return "MalformedNumber"
+func (mn *MalformedNumber) GetID() string {
+  return "hyb003"
 }
 
 func (mn *MalformedNumber) GetAlertType() AlertType {
@@ -121,8 +121,8 @@ func (inp *InvalidNumberPostfix) GetNote() string {
   return "a valid postfix is either 'f', 'fx', 'r' or 'd'"
 }
 
-func (inp *InvalidNumberPostfix) GetName() string {
-  return "InvalidNumberPostfix"
+func (inp *InvalidNumberPostfix) GetID() string {
+  return "hyb004"
 }
 
 func (inp *InvalidNumberPostfix) GetAlertType() AlertType {
@@ -152,8 +152,8 @@ func (uc *UnsupportedCharacter) GetNote() string {
   return ""
 }
 
-func (uc *UnsupportedCharacter) GetName() string {
-  return "UnsupportedCharacter"
+func (uc *UnsupportedCharacter) GetID() string {
+  return "hyb005"
 }
 
 func (uc *UnsupportedCharacter) GetAlertType() AlertType {

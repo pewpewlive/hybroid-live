@@ -8,33 +8,33 @@ import (
 )
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type ExpectedParenthesis struct {
+type ExpectedEnclosingMark struct {
   Token tokens.Token
   Location tokens.TokenLocation
-  Symbol string
+  Mark string
 }
 
-func (ep *ExpectedParenthesis) GetMessage() string {
-  return fmt.Sprintf("Expected '%s'", ep.Symbol)
+func (eem *ExpectedEnclosingMark) GetMessage() string {
+  return fmt.Sprintf("Expected '%s'", eem.Mark)
 }
 
-func (ep *ExpectedParenthesis) GetTokens() []tokens.Token {
-  return []tokens.Token{ep.Token}
+func (eem *ExpectedEnclosingMark) GetTokens() []tokens.Token {
+  return []tokens.Token{eem.Token}
 }
 
-func (ep *ExpectedParenthesis) GetLocations() []tokens.TokenLocation {
-  return []tokens.TokenLocation{ep.Location}
+func (eem *ExpectedEnclosingMark) GetLocations() []tokens.TokenLocation {
+  return []tokens.TokenLocation{eem.Location}
 }
 
-func (ep *ExpectedParenthesis) GetNote() string {
+func (eem *ExpectedEnclosingMark) GetNote() string {
   return ""
 }
 
-func (ep *ExpectedParenthesis) GetName() string {
-  return "ExpectedParenthesis"
+func (eem *ExpectedEnclosingMark) GetID() string {
+  return "hyb001"
 }
 
-func (ep *ExpectedParenthesis) GetAlertType() AlertType {
+func (eem *ExpectedEnclosingMark) GetAlertType() AlertType {
   return Error
 }
 
@@ -60,8 +60,8 @@ func (ee *ExpectedEnvironment) GetNote() string {
   return "environment statement has to be the first statement in any hybroid file. example: env HelloWorld as Level"
 }
 
-func (ee *ExpectedEnvironment) GetName() string {
-  return "ExpectedEnvironment"
+func (ee *ExpectedEnvironment) GetID() string {
+  return "hyb002"
 }
 
 func (ee *ExpectedEnvironment) GetAlertType() AlertType {
@@ -90,8 +90,8 @@ func (ei *ExpectedIdentifier) GetNote() string {
   return ""
 }
 
-func (ei *ExpectedIdentifier) GetName() string {
-  return "ExpectedIdentifier"
+func (ei *ExpectedIdentifier) GetID() string {
+  return "hyb003"
 }
 
 func (ei *ExpectedIdentifier) GetAlertType() AlertType {
@@ -120,8 +120,8 @@ func (et *ExpectedType) GetNote() string {
   return fmt.Sprintf("this needs to be declared with a type. example: number %s", et.Token.Lexeme)
 }
 
-func (et *ExpectedType) GetName() string {
-  return "ExpectedType"
+func (et *ExpectedType) GetID() string {
+  return "hyb004"
 }
 
 func (et *ExpectedType) GetAlertType() AlertType {
@@ -150,8 +150,8 @@ func (ee *ExpectedExpression) GetNote() string {
   return ""
 }
 
-func (ee *ExpectedExpression) GetName() string {
-  return "ExpectedExpression"
+func (ee *ExpectedExpression) GetID() string {
+  return "hyb005"
 }
 
 func (ee *ExpectedExpression) GetAlertType() AlertType {
@@ -165,7 +165,7 @@ type ExpectedExpressionOrBody struct {
 }
 
 func (eeob *ExpectedExpressionOrBody) GetMessage() string {
-  return "Expected expression"
+  return "Expected expression or body"
 }
 
 func (eeob *ExpectedExpressionOrBody) GetTokens() []tokens.Token {
@@ -180,8 +180,8 @@ func (eeob *ExpectedExpressionOrBody) GetNote() string {
   return ""
 }
 
-func (eeob *ExpectedExpressionOrBody) GetName() string {
-  return "ExpectedExpressionOrBody"
+func (eeob *ExpectedExpressionOrBody) GetID() string {
+  return "hyb006"
 }
 
 func (eeob *ExpectedExpressionOrBody) GetAlertType() AlertType {

@@ -30,8 +30,8 @@ func (ep *ExpectedPaarenthesissss) GetNote() string {
   return ""
 }
 
-func (ep *ExpectedPaarenthesissss) GetName() string {
-  return "ExpectedPaarenthesissss"
+func (ep *ExpectedPaarenthesissss) GetID() string {
+  return "hyb001"
 }
 
 func (ep *ExpectedPaarenthesissss) GetAlertType() AlertType {

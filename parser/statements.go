@@ -1,9 +1,12 @@
 package parser
 
 import (
+	"fmt"
 	"hybroid/alerts"
 	"hybroid/ast"
 	"hybroid/tokens"
+	"os"
+	"runtime/debug"
 )
 
 func (p *Parser) statement() (returnNode ast.Node) {
@@ -18,7 +21,9 @@ func (p *Parser) statement() (returnNode ast.Node) {
 			} else if _, ok := errMsg.(ParserError); ok {
 				p.synchronize()
 			} else {
-				panic(errMsg)
+				fmt.Printf("panic: %s\nstacktrace:\n", errMsg)
+				debug.PrintStack()
+				os.Exit(1)
 			}
 		}
 	}()

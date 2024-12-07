@@ -35,7 +35,7 @@ func (p *Parser) fn() ast.Node {
 			fn.Params = p.parameters(tokens.LeftParen, tokens.RightParen)
 		} else {
 			fn.Params = make([]ast.Param, 0)
-			p.Alert(&alerts.ExpectedParenthesis{}, p.peek(), p.peek().Location, "(")
+			p.Alert(&alerts.ExpectedEnclosingMark{}, p.peek(), p.peek().Location, "(")
 			//p.error(p.peek(), "expected opening parenthesis for parameters")
 		}
 		fn.Return = p.returnings()
@@ -450,7 +450,7 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 		return &ast.IdentifierExpr{Name: p.peek(-1)}
 	}
 
-	p.Alert(&alerts.ExpectedExpression{}, p.peek(-1), p.peek(-1).Location)
+	p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
 	return &ast.Improper{Token: p.peek()}
 }
 

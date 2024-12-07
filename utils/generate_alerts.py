@@ -1,6 +1,6 @@
 import json
 import os
-import re 
+import re
 
 _FILE_TEMPLATE = """// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 
@@ -43,8 +43,9 @@ class Alert:
     message_format: list[str]
     note: str
     note_format: list[str]
+    id: int
 
-    def __init__(self, raw: dict, stage: str):
+    def __init__(self, raw: dict, stage: str, id: int):
         self.name = raw.get("name", None)
         assert self.name is not None, f"Name must not be None, Raw info: {raw}"
 
@@ -68,6 +69,8 @@ class Alert:
         )  # Empty means that the alert will not print out a note
 
         self.note_format = raw.get("note_format", [])
+
+        self.id = id
 
     def generate_str(self) -> str:
         type_template = "type {} struct {{\n  {}\n}}"
@@ -106,12 +109,7 @@ class Alert:
                 "string",
                 f"return {_format_string(self.note, self.note_format, self.receiver)}",
             ],
-            [
-                "GetName",
-                "",
-                "string",
-                f"return \"{self.name}\""
-            ],
+            ["GetID", "", "string", 'return "hyb{:03d}"'.format(self.id)],
             ["GetAlertType", "", "AlertType", f"return {self.type}"],
         ]
 
@@ -125,8 +123,10 @@ class Alert:
 
 def _generate_alerts(raw: dict, stage: str) -> str:
     alerts = []
+    id = 1
     for alert in raw:
-        alerts.append(Alert(alert, stage).generate_str())
+        alerts.append(Alert(alert, stage, id).generate_str())
+        id += 1
 
     return _FILE_TEMPLATE + "// AUTO-GENERATED, DO NOT MANUALLY MODIFY!\n".join(alerts)
 

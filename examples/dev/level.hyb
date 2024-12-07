@@ -1,7 +1,7 @@
 env Main as Level
 
-fn a (number thing) -> number {
-    return 1 + "a"
+fn a number thing) -> number {
+    match thing {
+     6 =>
+    }
 }
-
-number a = 100

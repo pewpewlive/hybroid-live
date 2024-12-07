@@ -57,7 +57,7 @@ func (l *Lexer) handleString() {
 		l.Alert(&alerts.UnterminatedString{}, tokens.Token{}, newLocation(l.lineStart, stringStartCol, l.lineStart, stringStartCol))
 		return
 	} else if hasMultilineStr {
-		l.Alert(&alerts.MultilineString{}, tokens.Token{}, newLocation(l.lineStart, stringStartCol, l.lineCurrent, l.columnCurrent))
+		l.Alert(&alerts.MultilineString{}, tokens.Token{}, newLocation(l.lineStart, stringStartCol, l.lineCurrent, l.columnCurrent+1))
 	}
 
 	l.advance()

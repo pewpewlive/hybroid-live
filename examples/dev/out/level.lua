@@ -63,7 +63,8 @@ function ToString(value)
 end
 
 local function E_a(E_thing)
-	return 1 + "a"
-end
-local E_a = 100
+	if E_thing == 6 then
+		return 9
+	end
 
+end

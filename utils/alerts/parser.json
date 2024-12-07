@@ -1,12 +1,12 @@
 [
   {
-    "name": "ExpectedParenthesis",
+    "name": "ExpectedEnclosingMark",
     "type": "Error",
     "params": {
-      "Symbol": "string"
+      "Mark": "string"
     },
     "message": "Expected '%s'",
-    "message_format": ["Symbol"]
+    "message_format": ["Mark"]
   },
   {
     "name": "ExpectedEnvironment",
