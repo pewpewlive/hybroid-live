@@ -177,15 +177,26 @@ func (p *Parser) statement() (returnNode ast.Node) {
 		return
 	}
 
-	expr := p.expression()
+	expr := p.expressionStatement() // chou xe cha za guan xia xio big chilling, shau xio bing chilling
 
 	if expr.GetType() == ast.NA {
-		p.error(p.peek(), "expected statement")
+		p.Alert(&alerts.ExpectedStatement{}, expr.GetToken(), expr.GetToken().Location)
+		//p.error(p.peek(), "expected statement") // we need to create new error type
 		p.advance()
 	}
 
 	returnNode = expr
 	return
+}
+
+func (p *Parser) expressionStatement() ast.Node {
+	expr := p.expression()
+	typ := expr.GetType()
+	if typ != ast.CallExpression || typ != ast.MethodCallExpression || typ != ast.MacroCallExpression {
+		return &ast.Improper{Token: expr.GetToken()} // the error is not shown correctly
+	}
+
+	return expr
 }
 
 // func (p *Parser) TypeDeclarationStmt(isLocal bool) ast.Node {
@@ -366,7 +377,7 @@ func (p *Parser) enumDeclarationStmt(local bool) ast.Node {
 
 	enumStmt.Fields = fields
 
-	p.consumeOld("expected body closure", tokens.RightBrace)
+	p.consumeOld("expected body closure", tokens.RightBrace) // here wait this is enum, nvm
 
 	return enumStmt
 }
@@ -695,6 +706,8 @@ func (p *Parser) assignmentStmt() ast.Node {
 			values = append(values, binExpr)
 		}
 		expr = &ast.AssignmentStmt{Identifiers: idents, Values: values, Token: assignOp}
+	} else {
+		p.Alert(&alerts.ExpectedStatement{}, expr.GetToken(), expr.GetToken().Location)
 	}
 
 	return expr

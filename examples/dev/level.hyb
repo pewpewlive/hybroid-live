@@ -1,7 +1,8 @@
 env Main as Level
 
-fn a number thing) -> number {
-    match thing {
-     6 =>
-    }
+if true 
+    number a = 0
+
+fn a(number thing) -> number {
+    0 
 }

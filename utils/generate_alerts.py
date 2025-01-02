@@ -8,7 +8,6 @@ package alerts
 
 import (
   "fmt"
-  "hybroid/tokens"
 )
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
@@ -38,6 +37,7 @@ class Alert:
     receiver: str
     type: str
     stage: str
+    display_type: str
     params: dict[str, str]
     message: str
     message_format: list[str]
@@ -54,9 +54,12 @@ class Alert:
         self.type = raw.get("type", None)
         assert self.type is not None, f"Type must not be None, Raw info: {raw}"
 
-        self.stage = stage
+        self.stage = stage # i think we do, multiline? im thinking that you may want to show a part of code that doesnt need to be underlined at all
 
-        self.params = {"Token": "tokens.Token", "Location": "tokens.TokenLocation"}
+        self.display_type = raw.get("display_type", None)
+        assert self.display_type is not None, f"Display type must not be None, Raw info: {raw}"
+
+        self.params = {"Specifier": self.display_type}
         self.params = self.params | raw.get("params", {})
 
         self.message = raw.get("message", None)
@@ -92,16 +95,10 @@ class Alert:
                 f"return {_format_string(self.message, self.message_format, self.receiver)}",
             ],
             [
-                "GetTokens",
+                "GetSpecifier",
                 "",
-                "[]tokens.Token",
-                f"return []tokens.Token{{{self.receiver}.Token}}",
-            ],
-            [
-                "GetLocations",
-                "",
-                "[]tokens.TokenLocation",
-                f"return []tokens.TokenLocation{{{self.receiver}.Location}}",
+                "SnippetSpecifier",
+                f"return &{self.receiver}.Specifier"
             ],
             [
                 "GetNote",

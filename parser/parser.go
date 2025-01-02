@@ -64,13 +64,13 @@ func (p *Parser) AlertI(alert alerts.Alert) {
 }
 
 func (p *Parser) synchronize() {
-	p.advance()
+	//p.advance()
 	for !p.isAtEnd() {
 		switch p.peek().Type {
 		case tokens.For, tokens.Fn, tokens.If, tokens.Repeat, tokens.Tick,
 			tokens.Return, tokens.Let, tokens.While, tokens.Pub, tokens.Const,
 			tokens.Break, tokens.Continue, tokens.Add, tokens.Remove,
-			tokens.Class:
+			tokens.Class, tokens.RightBrace:
 			return
 		case tokens.Entity:
 			if p.peek(1).Type == tokens.Identifier && p.peek(2).Type == tokens.LeftBrace {
@@ -251,10 +251,12 @@ func (p *Parser) getBody() ([]ast.Node, bool) {
 	if _, success := p.consumeOld("expected opening of the body", tokens.LeftBrace); !success {
 		return body, false
 	}
+	start := p.peek(-1)
 
 	for !p.match(tokens.RightBrace) { // passed that
-		if p.peek().Type == tokens.Eof {
-			p.error(p.peek(), "expected body closure")
+		if p.peek().Type == tokens.Eof { // i say we debug and see the token content
+			p.Alert(&alerts.ExpectedClosure{}, start, start.Location, string(tokens.RightBrace)) // no,
+			//p.error(p.peek(), "expected body closure")// so we generate expected body closure error
 			return body, false
 		}
 

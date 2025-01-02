@@ -4,13 +4,11 @@ package alerts
 
 import (
   "fmt"
-  "hybroid/tokens"
 )
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ExpectedParenthesiss struct {
-  Token tokens.Token
-  Location tokens.TokenLocation
+  Specifier Singleline
   Symbol string
 }
 
@@ -18,12 +16,8 @@ func (ep *ExpectedParenthesiss) GetMessage() string {
   return fmt.Sprintf("Expected '%s'", ep.Symbol)
 }
 
-func (ep *ExpectedParenthesiss) GetTokens() []tokens.Token {
-  return []tokens.Token{ep.Token}
-}
-
-func (ep *ExpectedParenthesiss) GetLocations() []tokens.TokenLocation {
-  return []tokens.TokenLocation{ep.Location}
+func (ep *ExpectedParenthesiss) GetSpecifier() SnippetSpecifier {
+  return &ep.Specifier
 }
 
 func (ep *ExpectedParenthesiss) GetNote() string {

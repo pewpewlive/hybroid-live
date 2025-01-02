@@ -63,8 +63,5 @@ function ToString(value)
 end
 
 local function E_a(E_thing)
-	if E_thing == 6 then
-		return 9
-	end
 
 end

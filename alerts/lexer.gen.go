@@ -4,25 +4,19 @@ package alerts
 
 import (
   "fmt"
-  "hybroid/tokens"
 )
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type MultilineString struct {
-  Token tokens.Token
-  Location tokens.TokenLocation
+  Specifier Singleline
 }
 
 func (ms *MultilineString) GetMessage() string {
   return "multiline strings are not allowed"
 }
 
-func (ms *MultilineString) GetTokens() []tokens.Token {
-  return []tokens.Token{ms.Token}
-}
-
-func (ms *MultilineString) GetLocations() []tokens.TokenLocation {
-  return []tokens.TokenLocation{ms.Location}
+func (ms *MultilineString) GetSpecifier() SnippetSpecifier {
+  return &ms.Specifier
 }
 
 func (ms *MultilineString) GetNote() string {
@@ -39,20 +33,15 @@ func (ms *MultilineString) GetAlertType() AlertType {
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type UnterminatedString struct {
-  Token tokens.Token
-  Location tokens.TokenLocation
+  Specifier Singleline
 }
 
 func (us *UnterminatedString) GetMessage() string {
   return "unterminated string"
 }
 
-func (us *UnterminatedString) GetTokens() []tokens.Token {
-  return []tokens.Token{us.Token}
-}
-
-func (us *UnterminatedString) GetLocations() []tokens.TokenLocation {
-  return []tokens.TokenLocation{us.Location}
+func (us *UnterminatedString) GetSpecifier() SnippetSpecifier {
+  return &us.Specifier
 }
 
 func (us *UnterminatedString) GetNote() string {
@@ -69,8 +58,7 @@ func (us *UnterminatedString) GetAlertType() AlertType {
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type MalformedNumber struct {
-  Token tokens.Token
-  Location tokens.TokenLocation
+  Specifier Singleline
   Number string
 }
 
@@ -78,12 +66,8 @@ func (mn *MalformedNumber) GetMessage() string {
   return fmt.Sprintf("malformed number: '%s'", mn.Number)
 }
 
-func (mn *MalformedNumber) GetTokens() []tokens.Token {
-  return []tokens.Token{mn.Token}
-}
-
-func (mn *MalformedNumber) GetLocations() []tokens.TokenLocation {
-  return []tokens.TokenLocation{mn.Location}
+func (mn *MalformedNumber) GetSpecifier() SnippetSpecifier {
+  return &mn.Specifier
 }
 
 func (mn *MalformedNumber) GetNote() string {
@@ -100,8 +84,7 @@ func (mn *MalformedNumber) GetAlertType() AlertType {
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidNumberPostfix struct {
-  Token tokens.Token
-  Location tokens.TokenLocation
+  Specifier Singleline
   Postfix string
 }
 
@@ -109,12 +92,8 @@ func (inp *InvalidNumberPostfix) GetMessage() string {
   return fmt.Sprintf("invalid number postfix: '%s'", inp.Postfix)
 }
 
-func (inp *InvalidNumberPostfix) GetTokens() []tokens.Token {
-  return []tokens.Token{inp.Token}
-}
-
-func (inp *InvalidNumberPostfix) GetLocations() []tokens.TokenLocation {
-  return []tokens.TokenLocation{inp.Location}
+func (inp *InvalidNumberPostfix) GetSpecifier() SnippetSpecifier {
+  return &inp.Specifier
 }
 
 func (inp *InvalidNumberPostfix) GetNote() string {
@@ -131,8 +110,7 @@ func (inp *InvalidNumberPostfix) GetAlertType() AlertType {
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type UnsupportedCharacter struct {
-  Token tokens.Token
-  Location tokens.TokenLocation
+  Specifier Singleline
   Character string
 }
 
@@ -140,12 +118,8 @@ func (uc *UnsupportedCharacter) GetMessage() string {
   return fmt.Sprintf("unsupported character: '%s'", uc.Character)
 }
 
-func (uc *UnsupportedCharacter) GetTokens() []tokens.Token {
-  return []tokens.Token{uc.Token}
-}
-
-func (uc *UnsupportedCharacter) GetLocations() []tokens.TokenLocation {
-  return []tokens.TokenLocation{uc.Location}
+func (uc *UnsupportedCharacter) GetSpecifier() SnippetSpecifier {
+  return &uc.Specifier
 }
 
 func (uc *UnsupportedCharacter) GetNote() string {

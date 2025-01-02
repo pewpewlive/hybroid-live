@@ -39,8 +39,9 @@ TODO: add fix snippet
 
 type Alert interface {
 	GetMessage() string
-	GetTokens() []tokens.Token
-	GetLocations() []tokens.TokenLocation
+	//GetTokens() []tokens.Token
+	//GetLocations() []tokens.TokenLocation
+	GetSpecifier() SnippetSpecifier
 
 	// Empty string means no note will be printed
 	GetNote() string
@@ -115,39 +116,42 @@ func (ah *AlertHandler) PrintMessage(alert Alert) {
 }
 
 func (ah *AlertHandler) PrintLocation(alert Alert, file string) {
-	location := CombineLocations(alert.GetLocations())
+	location := CombineLocations(alert.GetSpecifier().GetTokens())
 	color.Printf("%s:%d:%d\n", file, location.LineStart, location.ColStart)
 }
 
 func (ah *AlertHandler) PrintCodeSnippet(alert Alert) {
 	lineCount := 1
 	columnCount := 0
-	location := CombineLocations(alert.GetLocations())
+	specifier := alert.GetSpecifier()
+	location := CombineLocations(specifier.GetTokens()) // how will this work
+
+	// Alert(&err, Multiple{tk, tk2, tk3}, Fix{"thing"}, Singleline{tk1})
 
 	for i := 0; i < len(ah.Source); i++ {
 		columnCount += 1
 
-		if lineCount == location.LineStart && lineCount == location.LineEnd && ah.Source[i] == '\n' {
-			ah.snippetPrintSingleLine(i, columnCount, lineCount, location)
+		if lineCount == location.LineStart && ah.Source[i] == '\n' {
+			println(specifier.GetSnippet(string(ah.Source), i, columnCount, lineCount))
 		}
 
-		// handles multiple line errors
-		if lineCount == location.LineStart && lineCount != location.LineEnd && ah.Source[i] == '\n' {
-			snippetStart := ah.Source[i-columnCount+1 : i-1]
+		// // handles multiple line errors
+		// if lineCount == location.LineStart && lineCount != location.LineEnd && ah.Source[i] == '\n' {
+		// 	snippetStart := ah.Source[i-columnCount+1 : i-1]
 
-			color.Printf("[cyan]%*s |\n", len(strconv.Itoa(location.LineEnd)), "")
-			color.Printf("[cyan]%*d |[default]   %s\n", len(strconv.Itoa(location.LineEnd)), lineCount, string(snippetStart))
-			color.Printf("[cyan]%*s |[light_red]  %s^\n", len(strconv.Itoa(location.LineEnd)), "", strings.Repeat("_", location.ColStart))
-		}
+		// 	color.Printf("[cyan]%*s |\n", len(strconv.Itoa(location.LineEnd)), "")
+		// 	color.Printf("[cyan]%*d |[default]   %s\n", len(strconv.Itoa(location.LineEnd)), lineCount, string(snippetStart))
+		// 	color.Printf("[cyan]%*s |[light_red]  %s^\n", len(strconv.Itoa(location.LineEnd)), "", strings.Repeat("_", location.ColStart))
+		// } // so for
 
-		if lineCount != location.LineStart && lineCount == location.LineEnd && ah.Source[i] == '\n' {
-			snippetEnd := ah.Source[i-columnCount+1 : i-1]
+		// if lineCount != location.LineStart && lineCount == location.LineEnd && ah.Source[i] == '\n' {
+		// 	snippetEnd := ah.Source[i-columnCount+1 : i-1]
 
-			color.Printf("[cyan]%*s |\n", len(strconv.Itoa(location.LineEnd)), "")
-			color.Printf("[dark_gray]...[default]%s[light_red]|\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))))
-			color.Printf("[cyan]%d |[light_red] | [default]%s\n", lineCount, string(snippetEnd))
-			color.Printf("[cyan]%s |[light_red] |%s^\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat("_", location.ColEnd-1))
-		}
+		// 	//color.Printf("[cyan]%*s |\n", len(strconv.Itoa(location.LineEnd)), "")
+		// 	color.Printf("[dark_gray]...[default]%s[light_red]|\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))))
+		// 	color.Printf("[cyan]%d |[light_red] | [default]%s\n", lineCount, string(snippetEnd))
+		// 	color.Printf("[cyan]%s |[light_red] |%s^\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat("_", location.ColEnd-1))
+		// }
 
 		if ah.Source[i] == '\n' {
 			lineCount += 1
@@ -167,28 +171,29 @@ func (ah *AlertHandler) PrintNote(alert Alert) {
 	fmt.Print("\n")
 }
 
-func CombineLocations(locations []tokens.TokenLocation) tokens.TokenLocation {
-	if len(locations) == 0 {
+func CombineLocations(tks []tokens.Token) tokens.TokenLocation {
+	if len(tks) == 0 {
 		return tokens.TokenLocation{}
 	}
-	location := locations[0]
+	location := tks[0].Location
 
-	for i, v := range locations {
+	for i, v := range tks {
+		loc := v.Location
 		if i == 0 {
 			continue
 		}
 
-		if v.ColStart < location.ColStart {
-			location.ColStart = v.ColStart
+		if loc.ColStart < location.ColStart {
+			location.ColStart = loc.ColStart
 		}
-		if v.ColEnd > location.ColEnd {
-			location.ColEnd = v.ColEnd
+		if loc.ColEnd > location.ColEnd {
+			location.ColEnd = loc.ColEnd
 		}
-		if v.LineStart < location.LineStart {
-			location.LineStart = v.LineStart
+		if loc.LineStart < location.LineStart {
+			location.LineStart = loc.LineStart
 		}
-		if v.LineEnd > location.LineEnd {
-			location.LineEnd = v.LineEnd
+		if loc.LineEnd > location.LineEnd {
+			location.LineEnd = loc.LineEnd
 		}
 	}
 
@@ -201,32 +206,6 @@ func (ah *AlertHandler) GetCodeSnippet(location tokens.TokenLocation) string {
 
 func (ah *AlertHandler) Finish() {
 	ah.Source = []byte{}
-}
-
-func (ah *AlertHandler) snippetPrintSingleLine(index, columnCount, lineCount int, location tokens.TokenLocation) {
-	line := ah.Source[index-columnCount+1 : index-1]
-	if location.ColStart > 80 {
-		var content string
-		short := false
-		if location.ColEnd+20 > columnCount && columnCount < 120 {
-			content = string(line[location.ColStart-20 : columnCount-1])
-		} else {
-			content = string(line[location.ColStart-20 : location.ColEnd+20])
-			short = true
-		}
-		var shortt string
-		if short {
-			shortt = "..."
-		}
-		// TODO: move prints into separate functions
-		color.Printf("[cyan]%*s |\n", len(strconv.Itoa(location.LineEnd)), "")
-		color.Printf("[cyan]%d |[default]   [dark_gray]...[default]%s[dark_gray]%s[reset]\n", lineCount, content, shortt)
-		color.Printf("[cyan]%s |[light_red]   %s%s\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat(" ", 22), strings.Repeat("^", location.ColEnd-location.ColStart+1))
-	} else {
-		color.Printf("[cyan]%*s |\n", len(strconv.Itoa(location.LineEnd)), "")
-		color.Printf("[cyan]%d |[default]   %s\n", lineCount, line)
-		color.Printf("[cyan]%s |[light_red]   %s%s\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat(" ", location.ColStart-1), strings.Repeat("^", location.ColEnd-location.ColStart+1))
-	}
 }
 
 func (ah *AlertHandler) snippetPrintMultiLine() {

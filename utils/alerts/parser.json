@@ -2,6 +2,7 @@
   {
     "name": "ExpectedEnclosingMark",
     "type": "Error",
+    "display_type": "Singleline",
     "params": {
       "Mark": "string"
     },
@@ -11,29 +12,50 @@
   {
     "name": "ExpectedEnvironment",
     "type": "Error",
+    "display_type": "Singleline",
     "message": "Expected environment statement",
     "note": "environment statement has to be the first statement in any hybroid file. example: env HelloWorld as Level"
   },
   {
     "name": "ExpectedIdentifier",
     "type": "Error",
+    "display_type": "Singleline",
     "message": "Expected identifier"
   },
   {
     "name": "ExpectedType",
     "type": "Error",
+    "display_type": "Singleline",
     "message": "Expected type",
     "note": "this needs to be declared with a type. example: number %s",
-    "note_format": ["Token.Lexeme"]
+    "note_format": ["Specifier.GetTokens()[0].Lexeme"]
   },
   {
     "name": "ExpectedExpression",
     "type": "Error",
+    "display_type": "Singleline",
     "message": "Expected expression"
   },
   {
     "name": "ExpectedExpressionOrBody",
     "type": "Error",
+    "display_type": "Singleline",
     "message": "Expected expression or body"
+  },
+  {
+    "name": "ExpectedStatement",
+    "type": "Error",
+    "display_type": "Singleline",
+    "message": "Expected statement"
+  },
+  {
+    "name":"ExpectedClosure",
+    "type":"Error",
+    "display_type": "Multiline",
+    "params": {
+      "Mark": "string"
+    },
+    "message": "Expected closure: '%s'",
+    "message_format": ["Mark"]
   }
 ]

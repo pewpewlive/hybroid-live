@@ -2,6 +2,7 @@
   {
     "name": "ExpectedParenthesiss",
     "type": "Error",
+    "display_type": "Singleline",
     "params": {
       "Symbol": "string"
     },
