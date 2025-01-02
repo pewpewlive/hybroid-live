@@ -4,5 +4,6 @@ if true
     number a = 0
 
 fn a(number thing) -> number {
-    0 
-}
+    number o = 0
+    number p = 2 
+    number v = 5

@@ -180,7 +180,7 @@ func (p *Parser) statement() (returnNode ast.Node) {
 	expr := p.expressionStatement() // chou xe cha za guan xia xio big chilling, shau xio bing chilling
 
 	if expr.GetType() == ast.NA {
-		p.Alert(&alerts.ExpectedStatement{}, expr.GetToken(), expr.GetToken().Location)
+		p.Alert(&alerts.ExpectedStatement{}, alerts.Singleline{expr.GetToken()})
 		//p.error(p.peek(), "expected statement") // we need to create new error type
 		p.advance()
 	}
@@ -707,7 +707,7 @@ func (p *Parser) assignmentStmt() ast.Node {
 		}
 		expr = &ast.AssignmentStmt{Identifiers: idents, Values: values, Token: assignOp}
 	} else {
-		p.Alert(&alerts.ExpectedStatement{}, expr.GetToken(), expr.GetToken().Location)
+		p.Alert(&alerts.ExpectedStatement{}, alerts.Singleline{expr.GetToken()})
 	}
 
 	return expr

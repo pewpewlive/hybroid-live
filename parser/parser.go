@@ -255,7 +255,7 @@ func (p *Parser) getBody() ([]ast.Node, bool) {
 
 	for !p.match(tokens.RightBrace) { // passed that
 		if p.peek().Type == tokens.Eof { // i say we debug and see the token content
-			p.Alert(&alerts.ExpectedClosure{}, start, start.Location, string(tokens.RightBrace)) // no,
+			p.Alert(&alerts.ExpectedEnclosingMark{}, alerts.Multiline{StartToken: start, EndToken: p.peek(-1)}, string(tokens.RightBrace)) // no,
 			//p.error(p.peek(), "expected body closure")// so we generate expected body closure error
 			return body, false
 		}

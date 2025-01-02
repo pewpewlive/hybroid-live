@@ -2,6 +2,16 @@
   {
     "name": "ExpectedEnclosingMark",
     "type": "Error",
+    "display_type": "Multiline",
+    "params": {
+      "Mark": "string"
+    },
+    "message": "Expected '%s'",
+    "message_format": ["Mark"]
+  },
+  {
+    "name": "ExpectedOpeningMark",
+    "type": "Error",
     "display_type": "Singleline",
     "params": {
       "Mark": "string"
@@ -47,15 +57,5 @@
     "type": "Error",
     "display_type": "Singleline",
     "message": "Expected statement"
-  },
-  {
-    "name":"ExpectedClosure",
-    "type":"Error",
-    "display_type": "Multiline",
-    "params": {
-      "Mark": "string"
-    },
-    "message": "Expected closure: '%s'",
-    "message_format": ["Mark"]
   }
 ]

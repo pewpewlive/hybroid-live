@@ -132,26 +132,9 @@ func (ah *AlertHandler) PrintCodeSnippet(alert Alert) {
 		columnCount += 1
 
 		if lineCount == location.LineStart && ah.Source[i] == '\n' {
-			println(specifier.GetSnippet(string(ah.Source), i, columnCount, lineCount))
+			color.Println(specifier.GetSnippet(string(ah.Source), i, columnCount, lineCount))
+			break
 		}
-
-		// // handles multiple line errors
-		// if lineCount == location.LineStart && lineCount != location.LineEnd && ah.Source[i] == '\n' {
-		// 	snippetStart := ah.Source[i-columnCount+1 : i-1]
-
-		// 	color.Printf("[cyan]%*s |\n", len(strconv.Itoa(location.LineEnd)), "")
-		// 	color.Printf("[cyan]%*d |[default]   %s\n", len(strconv.Itoa(location.LineEnd)), lineCount, string(snippetStart))
-		// 	color.Printf("[cyan]%*s |[light_red]  %s^\n", len(strconv.Itoa(location.LineEnd)), "", strings.Repeat("_", location.ColStart))
-		// } // so for
-
-		// if lineCount != location.LineStart && lineCount == location.LineEnd && ah.Source[i] == '\n' {
-		// 	snippetEnd := ah.Source[i-columnCount+1 : i-1]
-
-		// 	//color.Printf("[cyan]%*s |\n", len(strconv.Itoa(location.LineEnd)), "")
-		// 	color.Printf("[dark_gray]...[default]%s[light_red]|\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))))
-		// 	color.Printf("[cyan]%d |[light_red] | [default]%s\n", lineCount, string(snippetEnd))
-		// 	color.Printf("[cyan]%s |[light_red] |%s^\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat("_", location.ColEnd-1))
-		// }
 
 		if ah.Source[i] == '\n' {
 			lineCount += 1
@@ -206,10 +189,6 @@ func (ah *AlertHandler) GetCodeSnippet(location tokens.TokenLocation) string {
 
 func (ah *AlertHandler) Finish() {
 	ah.Source = []byte{}
-}
-
-func (ah *AlertHandler) snippetPrintMultiLine() {
-
 }
 
 // type Alert interface {

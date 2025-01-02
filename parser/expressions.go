@@ -439,7 +439,7 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 		token := p.peek(-1)
 		expr := p.expression()
 		if expr.GetType() == ast.NA {
-			p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
+			p.Alert(&alerts.ExpectedExpression{}, alerts.Singleline{p.peek()})
 			//p.error(p.peek(), "expected expression")
 		}
 		p.consumeOld("expected ')' after expression", tokens.RightParen)
@@ -450,7 +450,7 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 		return &ast.IdentifierExpr{Name: p.peek(-1)}
 	}
 
-	p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
+	p.Alert(&alerts.ExpectedExpression{}, alerts.Singleline{p.peek()})
 	return &ast.Improper{Token: p.peek()}
 }
 
@@ -462,14 +462,14 @@ func (p *Parser) list() ast.Node {
 	}
 	exprInList := p.expression()
 	if exprInList.GetType() == ast.NA {
-		p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
+		p.Alert(&alerts.ExpectedExpression{}, alerts.Singleline{p.peek()})
 		//p.error(p.peek(), "expected expression")
 	}
 	list = append(list, exprInList)
 	for p.match(tokens.Comma) {
 		exprInList := p.expression()
 		if exprInList.GetType() == ast.NA {
-			p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
+			p.Alert(&alerts.ExpectedExpression{}, alerts.Singleline{p.peek()})
 			//p.error(p.peek(), "expected expression")
 			p.advance()
 		}
@@ -507,7 +507,7 @@ func (p *Parser) parseMap() ast.Node {
 
 		expr := p.expression()
 		if expr.GetType() == ast.NA {
-			p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
+			p.Alert(&alerts.ExpectedExpression{}, alerts.Singleline{p.peek()})
 			//p.error(p.peek(), "expected expression")
 		}
 

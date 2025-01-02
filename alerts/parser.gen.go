@@ -3,207 +3,208 @@
 package alerts
 
 import (
-	"fmt"
+  "fmt"
 )
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ExpectedEnclosingMark struct {
-	Specifier Singleline
-	Mark      string
+  Specifier Multiline
+  Mark string
 }
 
 func (eem *ExpectedEnclosingMark) GetMessage() string {
-	return fmt.Sprintf("Expected '%s'", eem.Mark)
+  return fmt.Sprintf("Expected '%s'", eem.Mark)
 }
 
 func (eem *ExpectedEnclosingMark) GetSpecifier() SnippetSpecifier {
-	return &eem.Specifier
+  return &eem.Specifier
 }
 
 func (eem *ExpectedEnclosingMark) GetNote() string {
-	return ""
+  return ""
 }
 
 func (eem *ExpectedEnclosingMark) GetID() string {
-	return "hyb001"
+  return "hyb001"
 }
 
 func (eem *ExpectedEnclosingMark) GetAlertType() AlertType {
-	return Error
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type ExpectedOpeningMark struct {
+  Specifier Singleline
+  Mark string
+}
+
+func (eom *ExpectedOpeningMark) GetMessage() string {
+  return fmt.Sprintf("Expected '%s'", eom.Mark)
+}
+
+func (eom *ExpectedOpeningMark) GetSpecifier() SnippetSpecifier {
+  return &eom.Specifier
+}
+
+func (eom *ExpectedOpeningMark) GetNote() string {
+  return ""
+}
+
+func (eom *ExpectedOpeningMark) GetID() string {
+  return "hyb002"
+}
+
+func (eom *ExpectedOpeningMark) GetAlertType() AlertType {
+  return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ExpectedEnvironment struct {
-	Specifier Singleline
+  Specifier Singleline
 }
 
 func (ee *ExpectedEnvironment) GetMessage() string {
-	return "Expected environment statement"
+  return "Expected environment statement"
 }
 
 func (ee *ExpectedEnvironment) GetSpecifier() SnippetSpecifier {
-	return &ee.Specifier
+  return &ee.Specifier
 }
 
 func (ee *ExpectedEnvironment) GetNote() string {
-	return "environment statement has to be the first statement in any hybroid file. example: env HelloWorld as Level"
+  return "environment statement has to be the first statement in any hybroid file. example: env HelloWorld as Level"
 }
 
 func (ee *ExpectedEnvironment) GetID() string {
-	return "hyb002"
+  return "hyb003"
 }
 
 func (ee *ExpectedEnvironment) GetAlertType() AlertType {
-	return Error
+  return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ExpectedIdentifier struct {
-	Specifier Singleline
+  Specifier Singleline
 }
 
 func (ei *ExpectedIdentifier) GetMessage() string {
-	return "Expected identifier"
+  return "Expected identifier"
 }
 
 func (ei *ExpectedIdentifier) GetSpecifier() SnippetSpecifier {
-	return &ei.Specifier
+  return &ei.Specifier
 }
 
 func (ei *ExpectedIdentifier) GetNote() string {
-	return ""
+  return ""
 }
 
 func (ei *ExpectedIdentifier) GetID() string {
-	return "hyb003"
+  return "hyb004"
 }
 
 func (ei *ExpectedIdentifier) GetAlertType() AlertType {
-	return Error
+  return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ExpectedType struct {
-	Specifier Singleline
+  Specifier Singleline
 }
 
 func (et *ExpectedType) GetMessage() string {
-	return "Expected type"
+  return "Expected type"
 }
 
 func (et *ExpectedType) GetSpecifier() SnippetSpecifier {
-	return &et.Specifier
+  return &et.Specifier
 }
 
 func (et *ExpectedType) GetNote() string {
-	return fmt.Sprintf("this needs to be declared with a type. example: number %s", et.Specifier.GetTokens()[0].Lexeme)
+  return fmt.Sprintf("this needs to be declared with a type. example: number %s", et.Specifier.GetTokens()[0].Lexeme)
 }
 
 func (et *ExpectedType) GetID() string {
-	return "hyb004"
+  return "hyb005"
 }
 
 func (et *ExpectedType) GetAlertType() AlertType {
-	return Error
+  return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ExpectedExpression struct {
-	Specifier Singleline
+  Specifier Singleline
 }
 
 func (ee *ExpectedExpression) GetMessage() string {
-	return "Expected expression"
+  return "Expected expression"
 }
 
 func (ee *ExpectedExpression) GetSpecifier() SnippetSpecifier {
-	return &ee.Specifier
+  return &ee.Specifier
 }
 
 func (ee *ExpectedExpression) GetNote() string {
-	return ""
+  return ""
 }
 
 func (ee *ExpectedExpression) GetID() string {
-	return "hyb005"
+  return "hyb006"
 }
 
 func (ee *ExpectedExpression) GetAlertType() AlertType {
-	return Error
+  return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ExpectedExpressionOrBody struct {
-	Specifier Singleline
+  Specifier Singleline
 }
 
 func (eeob *ExpectedExpressionOrBody) GetMessage() string {
-	return "Expected expression or body"
+  return "Expected expression or body"
 }
 
 func (eeob *ExpectedExpressionOrBody) GetSpecifier() SnippetSpecifier {
-	return &eeob.Specifier
+  return &eeob.Specifier
 }
 
 func (eeob *ExpectedExpressionOrBody) GetNote() string {
-	return ""
+  return ""
 }
 
 func (eeob *ExpectedExpressionOrBody) GetID() string {
-	return "hyb006"
+  return "hyb007"
 }
 
 func (eeob *ExpectedExpressionOrBody) GetAlertType() AlertType {
-	return Error
+  return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ExpectedStatement struct {
-	Specifier Singleline
+  Specifier Singleline
 }
 
 func (es *ExpectedStatement) GetMessage() string {
-	return "Expected statement"
+  return "Expected statement"
 }
 
 func (es *ExpectedStatement) GetSpecifier() SnippetSpecifier {
-	return &es.Specifier
+  return &es.Specifier
 }
 
 func (es *ExpectedStatement) GetNote() string {
-	return ""
+  return ""
 }
 
 func (es *ExpectedStatement) GetID() string {
-	return "hyb007"
+  return "hyb008"
 }
 
 func (es *ExpectedStatement) GetAlertType() AlertType {
-	return Error
+  return Error
 }
 
-// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type ExpectedClosure struct {
-	Specifier Multiline
-	Mark      string
-}
-
-func (ec *ExpectedClosure) GetMessage() string {
-	return fmt.Sprintf("Expected closure: '%s'", ec.Mark)
-}
-
-func (ec *ExpectedClosure) GetSpecifier() SnippetSpecifier {
-	return &ec.Specifier
-}
-
-func (ec *ExpectedClosure) GetNote() string {
-	return ""
-}
-
-func (ec *ExpectedClosure) GetID() string {
-	return "hyb008"
-}
-
-func (ec *ExpectedClosure) GetAlertType() AlertType {
-	return Error
-}
