@@ -131,7 +131,7 @@ func (ah *AlertHandler) PrintCodeSnippet(alert Alert) {
 	for i := 0; i < len(ah.Source); i++ {
 		columnCount += 1
 
-		if lineCount == location.LineStart && ah.Source[i] == '\n' {
+		if lineCount == location.LineStart && (ah.Source[i] == '\n' || i == len(ah.Source)-1) {
 			color.Println(specifier.GetSnippet(string(ah.Source), i, columnCount, lineCount))
 			break
 		}

@@ -14,8 +14,6 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-
-	color "github.com/mitchellh/colorstring"
 )
 
 type Evaluator struct {
@@ -75,13 +73,13 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 			e.parser.PrintAlerts(alerts.Parser, sourceFile, sourcePath)
 
 		}
-		if len(e.parser.Errors) != 0 {
-			color.Println("[red]Syntax error")
-			for _, err := range e.parser.Errors {
-				color.Printf("[red]Error: %+v\n", err)
-			}
-		}
-		if e.parser.HasAlerts || len(e.parser.Errors) != 0 {
+		// if len(e.parser.Errors) != 0 {
+		// 	color.Println("[red]Syntax error")
+		// 	for _, err := range e.parser.Errors {
+		// 		color.Printf("[red]Error: %+v\n", err)
+		// 	}
+		// }
+		if e.parser.HasAlerts /*|| len(e.parser.Errors) != 0*/ {
 			return fmt.Errorf("failed to parse source file")
 		}
 		fmt.Printf("Parsing time: %f seconds\n\n", time.Since(start).Seconds())

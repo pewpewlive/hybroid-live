@@ -18,13 +18,13 @@ type Singleline struct { // Alert(alerts.DoesNotExistException{}, Singleline{tok
 
 func (ss *Singleline) GetSnippet(src string, index, columnCount, lineCount int) string {
 	snippet := strings.Builder{} // how are we getting the error line then
-	line := src[index-columnCount+1 : index-1]
+	line := src[index-columnCount+1 : index+1]
 	location := ss.Token.Location
 	if location.ColStart > 80 { // ok
 		var content string
 		short := false
 		if location.ColEnd+20 > columnCount && columnCount < 120 {
-			content = string(line[location.ColStart-20 : columnCount-1])
+			content = string(line[location.ColStart-20 : columnCount])
 		} else {
 			content = string(line[location.ColStart-20 : location.ColEnd+20])
 			short = true
@@ -61,14 +61,22 @@ func (ml *Multiline) GetSnippet(src string, index, columnCount, lineCount int) s
 	startLocation := ml.StartToken.Location
 	endLocation := ml.EndToken.Location
 
+	diff := startLocation.LineEnd - endLocation.LineStart
+
+	if diff == 0 {
+		singleline := &Singleline{Token: tokens.Token{Location: tokens.TokenLocation{
+			LineStart: startLocation.LineStart,
+			LineEnd:   startLocation.LineEnd,
+			ColStart:  startLocation.ColStart,
+			ColEnd:    endLocation.ColEnd,
+		}}}
+
+		return singleline.GetSnippet(src, index, columnCount, lineCount)
+	}
+
 	snippet.WriteString(fmt.Sprintf("[cyan]%*s |\n", len(strconv.Itoa(startLocation.LineEnd)), ""))
 	snippet.WriteString(fmt.Sprintf("[cyan]%*d |[default]   %s\n", len(strconv.Itoa(startLocation.LineEnd)), lineCount, string(first_line)))
 	snippet.WriteString(fmt.Sprintf("[cyan]%*s |[light_red]  %s^\n", len(strconv.Itoa(startLocation.LineEnd)), "", strings.Repeat("_", startLocation.ColStart)))
-
-	diff := startLocation.LineEnd - endLocation.LineStart
-	if diff == 0 {
-		return snippet.String()
-	}
 
 	for i := index; i <= len(src)-1; i++ {
 		columnCount++

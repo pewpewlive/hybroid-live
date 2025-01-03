@@ -180,7 +180,7 @@ func (p *Parser) statement() (returnNode ast.Node) {
 	expr := p.expressionStatement() // chou xe cha za guan xia xio big chilling, shau xio bing chilling
 
 	if expr.GetType() == ast.NA {
-		p.Alert(&alerts.ExpectedStatement{}, alerts.Singleline{expr.GetToken()})
+		p.Alert(&alerts.ExpectedStatement{}, alerts.Singleline{Token: expr.GetToken()})
 		//p.error(p.peek(), "expected statement") // we need to create new error type
 		p.advance()
 	}
@@ -1063,12 +1063,10 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 
 			return nil
 		}
+	} else if !p.PeekIsType() {
+		return nil
 	} else {
 		current := p.getCurrent()
-
-		if !p.PeekIsType() {
-			return nil
-		}
 
 		typ = p.Type()
 		token := p.advance()
@@ -1114,7 +1112,8 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 	}
 
 	expr := p.expression()
-	if expr.GetType() == ast.NA {
+	println(string(expr.GetType()))
+	if expr.GetType() == ast.NA || expr.GetType() == ast.TypeExpression {
 		p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
 		// p.error(p.peek(), "expected expression")
 	}
@@ -1122,7 +1121,7 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 	exprs := []ast.Node{expr}
 	for p.match(tokens.Comma) {
 		expr = p.expression()
-		if expr.GetType() == ast.NA {
+		if expr.GetType() == ast.NA || expr.GetType() == ast.TypeExpression {
 			p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
 			// p.error(p.peek(), "expected expression")
 		}

@@ -29,8 +29,13 @@
   {
     "name": "ExpectedIdentifier",
     "type": "Error",
+    "params": {
+      "Context": "string `default:\"\"\"\"`"
+    },
     "display_type": "Singleline",
-    "message": "Expected identifier"
+    "message": "Expected identifier",
+    "note": "%s",
+    "note_format":["Context"]
   },
   {
     "name": "ExpectedType",
@@ -51,6 +56,61 @@
     "type": "Error",
     "display_type": "Singleline",
     "message": "Expected expression or body"
+  },
+  {
+    "name": "ExpectedReturnArrow",
+    "type": "Error",
+    "display_type": "Singleline",
+    "message": "Expected a return arrow (->)",
+    "note": "return types on function declarations are written after a thin arrow (->) after the parameters"
+  },
+  {
+    "name": "ExpectedCallArgs",
+    "type": "Error",
+    "display_type": "Singleline",
+    "message": "Expected call arguments"
+  },
+  {
+    "name": "InvalidCall",
+    "type": "Error",
+    "display_type": "Singleline",
+    "message": "Invalid expression to call"
+  },
+  {
+    "name": "InvalidEnvironmentType",
+    "type": "Error",
+    "display_type": "Singleline",
+    "message": "Expected 'Level', 'Mesh' or 'Sound' as environment type"
+  },
+  {
+    "name": "ExpectedCallAfterMacroSymbol",
+    "type": "Error",
+    "display_type": "Singleline",
+    "message": "Expected an expression call after '@'"
+  },
+  {
+    "name": "ForbiddenTypeInEnvironment",
+    "type": "Error",
+    "display_type": "Singleline",
+    "params":{
+      "Type":  "string",
+      "Envs": "[]string"
+    },
+    "message": "Cannot have a %s in the following environments: %v",
+    "message_format": ["Type", "Envs"],
+    "note": ""
+  },
+  {
+    "name": "ExpectedFieldDeclaration",
+    "type": "Error",
+    "display_type": "Singleline",
+    "message": "Expected field declaration inside struct"
+  },
+  {
+    "name": "EmptyWrappedType",
+    "type": "Error",
+    "display_type": "Singleline",
+    "message": "Wrapped types must not be empty"
   },
   {
     "name": "ExpectedStatement",

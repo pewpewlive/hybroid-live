@@ -54,18 +54,19 @@ func (p *Parser) getOp(opEqual tokens.Token) tokens.Token {
 func (p *Parser) getParam() ast.Param {
 	typ, ide := p.TypeWithVar()
 	if ide.GetType() != ast.Identifier {
-		p.error(ide.GetToken(), "expected identifier as parameter")
+		p.Alert(&alerts.ExpectedIdentifier{}, alerts.Singleline{Token: ide.GetToken()})
+		//p.error(ide.GetToken(), "expected identifier as parameter")
 	}
 	return ast.Param{Type: typ, Name: ide.GetToken()}
 }
 
 func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) []ast.Param {
+	open := p.peek()
+
 	if !p.match(opening) {
 		p.Alert(&alerts.ExpectedOpeningMark{}, alerts.Singleline{Token: p.peek()}, string(opening))
 		return []ast.Param{}
 	}
-
-	open := p.peek(-1)
 
 	var args []ast.Param
 	if p.match(closing) {
@@ -73,9 +74,15 @@ func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) 
 	} else {
 		var previous *ast.TypeExpr
 		param := p.getParam()
+		if param.Name.Type == tokens.Comma {
+			param.Name = param.Type.GetToken()
+			param.Type = nil
+		} else if param.Name.Type != tokens.Identifier {
+			p.Alert(&alerts.ExpectedIdentifier{}, alerts.Singleline{Token: param.Name})
+		}
 		if param.Type == nil {
 			if len(args) == 0 {
-				p.Alert(&alerts.ExpectedType{}, p.peek(-1), p.peek(-1).Location) //param.Name, "parameter need to be declared with a type before the name")
+				p.Alert(&alerts.ExpectedType{}, alerts.Singleline{Token: p.peek(-1)}) //param.Name, "parameter need to be declared with a type before the name")
 			} else {
 				param.Type = previous
 			}
@@ -87,7 +94,7 @@ func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) 
 			param := p.getParam()
 			if param.Type == nil {
 				if len(args) == 0 {
-					p.Alert(&alerts.ExpectedType{}, p.peek(-1), p.peek(-1).Location)
+					p.Alert(&alerts.ExpectedType{}, alerts.Singleline{Token: p.peek(-1)})
 				} else {
 					param.Type = previous
 				}
@@ -174,6 +181,7 @@ func (p *Parser) arguments() []ast.Node {
 func (p *Parser) returnings() []*ast.TypeExpr {
 	ret := make([]*ast.TypeExpr, 0)
 	if !p.match(tokens.ThinArrow) {
+		p.Alert(&alerts.ExpectedReturnArrow{}, alerts.Singleline{Token: p.peek()})
 		return ret
 	}
 	isList := false
@@ -206,26 +214,20 @@ func (p *Parser) TypeWasVar(typ *ast.TypeExpr) *ast.IdentifierExpr {
 	if typ.Returns != nil {
 		return nil
 	}
+	if typ.Fields != nil {
+		return nil
+	}
 	return &ast.IdentifierExpr{Name: typ.Name.GetToken(), ValueType: ast.Object}
 }
 
 func (p *Parser) TypeWithVar() (*ast.TypeExpr, ast.Node) {
 	typ := p.Type()
 
-	if typ.Name != nil && typ.Name.GetToken().Lexeme == "type" {
-		print("")
-	}
+	// if typ.Name != nil && typ.Name.GetToken().Lexeme == "type" {
+	// 	print("")
+	// }
 
-	node := p.primary(false)
+	token := p.advance()
 
-	if node.GetType() != ast.Identifier {
-		if ident := p.TypeWasVar(typ); ident != nil {
-			return nil, ident
-		} else {
-			return typ, node
-		}
-	}
-	ident := node.(*ast.IdentifierExpr)
-
-	return typ, ident
+	return typ, &ast.IdentifierExpr{Name: token, ValueType: ast.Invalid}
 }

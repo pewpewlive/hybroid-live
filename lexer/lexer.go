@@ -54,10 +54,10 @@ func (l *Lexer) handleString() {
 	}
 
 	if l.isAtEnd() {
-		l.Alert(&alerts.UnterminatedString{}, tokens.Token{}, newLocation(l.lineStart, stringStartCol, l.lineStart, stringStartCol))
+		l.Alert(&alerts.UnterminatedString{}, alerts.Singleline{Token: tokens.Token{Location: newLocation(l.lineStart, stringStartCol, l.lineStart, stringStartCol)}})
 		return
 	} else if hasMultilineStr {
-		l.Alert(&alerts.MultilineString{}, tokens.Token{}, newLocation(l.lineStart, stringStartCol, l.lineCurrent, l.columnCurrent+1))
+		l.Alert(&alerts.MultilineString{}, alerts.Singleline{Token: tokens.Token{Location: newLocation(l.lineStart, stringStartCol, l.lineCurrent, l.columnCurrent+1)}})
 	}
 
 	l.advance()
@@ -96,7 +96,7 @@ func (l *Lexer) handleNumber() {
 
 	strNum := string(l.source[l.start:l.current])
 	if !tryParseNum(strNum) {
-		l.Alert(&alerts.MalformedNumber{}, tokens.Token{}, newLocation(l.lineStart, l.columnStart, l.lineCurrent, l.columnCurrent))
+		l.Alert(&alerts.MalformedNumber{}, alerts.Singleline{Token: tokens.Token{Location: newLocation(l.lineStart, l.columnStart, l.lineCurrent, l.columnCurrent)}})
 		return
 	}
 	// Evaluate if it is a postfix: `fx`, `r`, `d`
@@ -123,7 +123,7 @@ func (l *Lexer) handleNumber() {
 	case "":
 		l.addToken(tokens.Number, strNum)
 	default:
-		l.Alert(&alerts.InvalidNumberPostfix{}, tokens.Token{}, newLocation(l.lineStart, postfixColumn, l.lineCurrent, l.columnCurrent), postfix)
+		l.Alert(&alerts.InvalidNumberPostfix{}, alerts.Singleline{Token: tokens.Token{Location: newLocation(l.lineStart, postfixColumn, l.lineCurrent, l.columnCurrent)}}, postfix)
 	}
 }
 
@@ -297,7 +297,7 @@ func (l *Lexer) scanToken() {
 		} else if isAlphabetical(c) {
 			l.handleIdentifier()
 		} else {
-			l.Alert(&alerts.UnsupportedCharacter{}, tokens.Token{}, newLocation(l.lineStart, l.columnStart, l.lineCurrent, l.columnCurrent), c)
+			l.Alert(&alerts.UnsupportedCharacter{}, alerts.Singleline{Token: tokens.Token{Location: newLocation(l.lineStart, l.columnStart, l.lineCurrent, l.columnCurrent)}}, c)
 		}
 	}
 }

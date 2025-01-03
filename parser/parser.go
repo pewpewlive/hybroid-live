@@ -67,10 +67,13 @@ func (p *Parser) synchronize() {
 	//p.advance()
 	for !p.isAtEnd() {
 		switch p.peek().Type {
+		case tokens.RightBrace:
+			p.advance()
+			return
 		case tokens.For, tokens.Fn, tokens.If, tokens.Repeat, tokens.Tick,
 			tokens.Return, tokens.Let, tokens.While, tokens.Pub, tokens.Const,
 			tokens.Break, tokens.Continue, tokens.Add, tokens.Remove,
-			tokens.Class, tokens.RightBrace:
+			tokens.Class:
 			return
 		case tokens.Entity:
 			if p.peek(1).Type == tokens.Identifier && p.peek(2).Type == tokens.LeftBrace {

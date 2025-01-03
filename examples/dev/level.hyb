@@ -3,7 +3,6 @@ env Main as Level
 if true 
     number a = 0
 
-fn a(number thing) -> number {
-    number o = 0
-    number p = 2 
-    number v = 5
+fn a(number 1) -> (number) { 
+    
+}
