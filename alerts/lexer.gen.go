@@ -8,7 +8,7 @@ import (
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type MultilineString struct {
-  Specifier Singleline
+  Specifier SnippetSpecifier
 }
 
 func (ms *MultilineString) GetMessage() string {
@@ -16,7 +16,7 @@ func (ms *MultilineString) GetMessage() string {
 }
 
 func (ms *MultilineString) GetSpecifier() SnippetSpecifier {
-  return &ms.Specifier
+  return ms.Specifier
 }
 
 func (ms *MultilineString) GetNote() string {
@@ -33,7 +33,7 @@ func (ms *MultilineString) GetAlertType() AlertType {
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type UnterminatedString struct {
-  Specifier Singleline
+  Specifier SnippetSpecifier
 }
 
 func (us *UnterminatedString) GetMessage() string {
@@ -41,7 +41,7 @@ func (us *UnterminatedString) GetMessage() string {
 }
 
 func (us *UnterminatedString) GetSpecifier() SnippetSpecifier {
-  return &us.Specifier
+  return us.Specifier
 }
 
 func (us *UnterminatedString) GetNote() string {
@@ -58,7 +58,7 @@ func (us *UnterminatedString) GetAlertType() AlertType {
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type MalformedNumber struct {
-  Specifier Singleline
+  Specifier SnippetSpecifier
   Number string
 }
 
@@ -67,7 +67,7 @@ func (mn *MalformedNumber) GetMessage() string {
 }
 
 func (mn *MalformedNumber) GetSpecifier() SnippetSpecifier {
-  return &mn.Specifier
+  return mn.Specifier
 }
 
 func (mn *MalformedNumber) GetNote() string {
@@ -84,7 +84,7 @@ func (mn *MalformedNumber) GetAlertType() AlertType {
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidNumberPostfix struct {
-  Specifier Singleline
+  Specifier SnippetSpecifier
   Postfix string
 }
 
@@ -93,7 +93,7 @@ func (inp *InvalidNumberPostfix) GetMessage() string {
 }
 
 func (inp *InvalidNumberPostfix) GetSpecifier() SnippetSpecifier {
-  return &inp.Specifier
+  return inp.Specifier
 }
 
 func (inp *InvalidNumberPostfix) GetNote() string {
@@ -110,7 +110,7 @@ func (inp *InvalidNumberPostfix) GetAlertType() AlertType {
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type UnsupportedCharacter struct {
-  Specifier Singleline
+  Specifier SnippetSpecifier
   Character string
 }
 
@@ -119,7 +119,7 @@ func (uc *UnsupportedCharacter) GetMessage() string {
 }
 
 func (uc *UnsupportedCharacter) GetSpecifier() SnippetSpecifier {
-  return &uc.Specifier
+  return uc.Specifier
 }
 
 func (uc *UnsupportedCharacter) GetNote() string {

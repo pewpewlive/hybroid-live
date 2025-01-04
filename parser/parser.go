@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"hybroid/alerts"
 	"hybroid/ast"
 	"hybroid/tokens"
@@ -40,12 +39,12 @@ func (p *Parser) AssignTokens(tokens []tokens.Token) {
 
 type ParserError struct{}
 
-func (p *Parser) error(token tokens.Token, msg string) {
-	errMsg := ast.Error{Token: token, Message: msg}
-	fmt.Printf("%s\n", errMsg.Message)
-	p.Errors = append(p.Errors, errMsg)
-	panic(errMsg)
-}
+// func (p *Parser) error(token tokens.Token, msg string) {
+// 	errMsg := ast.Error{Token: token, Message: msg}
+// 	fmt.Printf("%s\n", errMsg.Message)
+// 	p.Errors = append(p.Errors, errMsg)
+// 	panic(errMsg)
+// }
 
 func (p *Parser) Alert(alertType alerts.Alert, args ...any) {
 	p.Alert_(alertType, args...)
@@ -72,8 +71,7 @@ func (p *Parser) synchronize() {
 			return
 		case tokens.For, tokens.Fn, tokens.If, tokens.Repeat, tokens.Tick,
 			tokens.Return, tokens.Let, tokens.While, tokens.Pub, tokens.Const,
-			tokens.Break, tokens.Continue, tokens.Add, tokens.Remove,
-			tokens.Class:
+			tokens.Break, tokens.Continue, tokens.Class:
 			return
 		case tokens.Entity:
 			if p.peek(1).Type == tokens.Identifier && p.peek(2).Type == tokens.LeftBrace {
@@ -154,22 +152,59 @@ func (p *Parser) match(types ...tokens.TokenType) bool {
 
 // Takes a list of tokens, advancing if the next token matches with any token from the list and returns true.
 // Consume also advances if none of the tokens were able to match, and returns false
-func (p *Parser) consumeOld(message string, types ...tokens.TokenType) (tokens.Token, bool) {
-	if p.isAtEnd() {
-		token := p.peek()
-		p.error(token, message)
-		return token, false // error
-	}
-	for _, tokenType := range types {
-		if p.check(tokenType) {
-			return p.advance(), true
-		}
-	}
-	token := p.advance()
-	p.error(token, message)
-	return token, false // error
+//
+//	func (p *Parser) consumeOld(message string, types ...tokens.TokenType) (tokens.Token, bool) {
+//		if p.isAtEnd() {
+//			token := p.peek()
+//			p.error(token, message)
+//			return token, false // error
+//		}
+//		for _, tokenType := range types {
+//			if p.check(tokenType) {
+//				return p.advance(), true
+//			}
+//		}
+//		token := p.advance()
+//		p.error(token, message)
+//		return token, false // error
+//	}
+//
+// p.consume(p.NewAlert(...),
+//
+//	tokens)
+//
+//				 consume(types []tokens.TokenType, alert alerts.Alert, args ..any)
+//
+// p.consume([]{tokens.RightBrace}, &alerts.ExpectedEnclosingMark{}, alerts.Multiline{StartToken: start, EndToken: end}, string(tokens.RightBrace))
+//
+// p.SetAlert(...)
+// p.consume(tokens)
+// p.Alert(&alerts.ExpectedBlablah{}, token,
+//                   aopsdjaskfa)
+//
+/*
+
+json:
+
+"display_type": "Singline"
+
+type Singleline struct {
+	Token
 }
 
+type ExpectedBlahblah struct {
+	Token
+	param1
+	param2
+
+	Specifier SnippetSpecifier
+}
+
+func (self) Setup() {
+	self.Singleline = alert.Singleline{Token: self.token}
+}
+
+*/
 func (p *Parser) consume(alert alerts.Alert, types ...tokens.TokenType) (tokens.Token, bool) {
 	if p.isAtEnd() {
 		token := p.peek()
@@ -237,7 +272,8 @@ func (p *Parser) getBody() ([]ast.Node, bool) {
 	if p.match(tokens.FatArrow) {
 		args, ok := p.returnArgs()
 		if !ok {
-			p.error(p.peek(), "expected return arguments")
+			p.Alert(&alerts.ExpectedReturnArgs{}, alerts.Singleline{Token: p.peek()})
+			//p.error(p.peek(), "expected return arguments")
 			return []ast.Node{}, false
 		}
 		body = []ast.Node{
@@ -251,7 +287,7 @@ func (p *Parser) getBody() ([]ast.Node, bool) {
 		body = []ast.Node{p.statement()}
 		return body, true
 	}
-	if _, success := p.consumeOld("expected opening of the body", tokens.LeftBrace); !success {
+	if _, success := p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.Singleline{Token: p.peek()}, string(tokens.LeftBrace)), tokens.LeftBrace); !success {
 		return body, false
 	}
 	start := p.peek(-1)

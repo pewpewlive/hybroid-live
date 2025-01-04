@@ -12,6 +12,12 @@ type SnippetSpecifier interface {
 	GetTokens() []tokens.Token
 }
 
+func NewSingle(token tokens.Token) Singleline {
+	return Singleline{
+		Token: token,
+	}
+}
+
 type Singleline struct { // Alert(alerts.DoesNotExistException{}, Singleline{token}, "your params")
 	Token tokens.Token
 }
@@ -48,6 +54,13 @@ func (ss *Singleline) GetSnippet(src string, index, columnCount, lineCount int) 
 
 func (ss *Singleline) GetTokens() []tokens.Token {
 	return []tokens.Token{ss.Token}
+}
+
+func NewMulti(startToken, endToken tokens.Token) Multiline {
+	return Multiline{
+		StartToken: startToken,
+		EndToken:   endToken,
+	}
 }
 
 type Multiline struct {

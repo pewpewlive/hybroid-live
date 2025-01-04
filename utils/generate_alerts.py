@@ -37,7 +37,6 @@ class Alert:
     receiver: str
     type: str
     stage: str
-    display_type: str
     params: dict[str, str]
     message: str
     message_format: list[str]
@@ -56,10 +55,7 @@ class Alert:
 
         self.stage = stage # i think we do, multiline? im thinking that you may want to show a part of code that doesnt need to be underlined at all
 
-        self.display_type = raw.get("display_type", None)
-        assert self.display_type is not None, f"Display type must not be None, Raw info: {raw}"
-
-        self.params = {"Specifier": self.display_type}
+        self.params = {"Specifier": "SnippetSpecifier"}
         self.params = self.params | raw.get("params", {})
 
         self.message = raw.get("message", None)
@@ -98,7 +94,7 @@ class Alert:
                 "GetSpecifier",
                 "",
                 "SnippetSpecifier",
-                f"return &{self.receiver}.Specifier"
+                f"return {self.receiver}.Specifier"
             ],
             [
                 "GetNote",

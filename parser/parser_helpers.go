@@ -114,10 +114,11 @@ func (p *Parser) genericParameters() []*ast.IdentifierExpr {
 	if !p.match(tokens.Less) {
 		return params
 	}
-
+	start := p.peek(-1)
 	token := p.advance()
 	if token.Type != tokens.Identifier {
-		p.error(token, "expected type identifier in generic parameters")
+		p.Alert(&alerts.ExpectedIdentifier{}, alerts.Singleline{Token: token}, "in generic parameters")
+		//p.error(token, "expected type identifier in generic parameters")
 	} else {
 		params = append(params, &ast.IdentifierExpr{Name: token, ValueType: ast.Invalid})
 	}
@@ -125,13 +126,14 @@ func (p *Parser) genericParameters() []*ast.IdentifierExpr {
 	for p.match(tokens.Comma) {
 		token := p.advance()
 		if token.Type != tokens.Identifier {
-			p.error(token, "expected type identifier in generic parameters")
+			p.Alert(&alerts.ExpectedIdentifier{}, alerts.Singleline{Token: token}, "in generic parameters")
+			//p.error(token, "expected type identifier in generic parameters")
 		} else {
 			params = append(params, &ast.IdentifierExpr{Name: token, ValueType: ast.Invalid})
 		}
 	}
 
-	p.consumeOld("expected '>' in generic parameters", tokens.Greater)
+	p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.Multiline{StartToken: start, EndToken: p.peek()}, string(tokens.Greater)), tokens.Greater)
 
 	return params
 }
@@ -158,9 +160,10 @@ func (p *Parser) genericArguments() ([]*ast.TypeExpr, bool) {
 }
 
 func (p *Parser) arguments() []ast.Node {
-	if _, ok := p.consumeOld("expected opening paren", tokens.LeftParen); !ok {
+	if _, ok := p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.Singleline{Token: p.peek()}, string(tokens.LeftParen)), tokens.LeftParen); !ok {
 		return nil
 	}
+	start := p.peek(-1)
 
 	var args []ast.Node
 	if p.match(tokens.RightParen) {
@@ -172,7 +175,7 @@ func (p *Parser) arguments() []ast.Node {
 			arg := p.expression()
 			args = append(args, arg)
 		}
-		p.consumeOld("expected closing paren after arguments", tokens.RightParen)
+		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.Multiline{StartToken: start, EndToken: p.peek()}, string(tokens.RightParen)), tokens.RightParen)
 	}
 
 	return args
@@ -185,8 +188,10 @@ func (p *Parser) returnings() []*ast.TypeExpr {
 		return ret
 	}
 	isList := false
+	var start tokens.Token
 	if p.match(tokens.LeftParen) {
 		isList = true
+		start = p.peek(-1)
 	}
 	if !p.PeekIsType() {
 		return ret
@@ -199,7 +204,7 @@ func (p *Parser) returnings() []*ast.TypeExpr {
 		ret = append(ret, p.Type())
 	}
 	if isList {
-		p.consumeOld("expected closing parenthesis", tokens.RightParen)
+		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.Multiline{StartToken: start, EndToken: p.peek()}, string(tokens.RightParen)), tokens.RightParen)
 	}
 	return ret
 }

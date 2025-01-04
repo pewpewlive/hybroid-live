@@ -63,7 +63,6 @@ const (
 	Is       TokenType = "is"
 	Isnt     TokenType = "isnt"
 	Alias    TokenType = "alias"
-	Add      TokenType = "add"
 	And      TokenType = "and"
 	As       TokenType = "as"
 	Break    TokenType = "break"
@@ -78,16 +77,16 @@ const (
 	Find     TokenType = "find"
 	Fn       TokenType = "fn"
 	For      TokenType = "for"
-	From     TokenType = "from"
 	If       TokenType = "if"
 	In       TokenType = "in"
+	From     TokenType = "from"
+	To       TokenType = "to"
 	Let      TokenType = "let"
 	Macro    TokenType = "macro"
 	Match    TokenType = "match"
 	New      TokenType = "new"
 	Or       TokenType = "or"
 	Pub      TokenType = "pub"
-	Remove   TokenType = "remove"
 	Repeat   TokenType = "repeat"
 	Return   TokenType = "return"
 	Self     TokenType = "self"
@@ -95,7 +94,6 @@ const (
 	Struct   TokenType = "struct"
 	Class    TokenType = "class"
 	Tick     TokenType = "tick"
-	To       TokenType = "to"
 	True     TokenType = "true"
 	Use      TokenType = "use"
 	While    TokenType = "while"
@@ -111,7 +109,6 @@ var keywords = map[string]TokenType{
 	"is":       Is,
 	"isnt":     Isnt,
 	"alias":    Alias,
-	"add":      Add,
 	"and":      And,
 	"as":       As,
 	"break":    Break,
@@ -125,8 +122,8 @@ var keywords = map[string]TokenType{
 	"false":    False,
 	"find":     Find,
 	"fn":       Fn,
+	"to":       To,
 	"for":      For,
-	"from":     From,
 	"if":       If,
 	"in":       In,
 	"let":      Let,
@@ -135,7 +132,6 @@ var keywords = map[string]TokenType{
 	"new":      New,
 	"or":       Or,
 	"pub":      Pub,
-	"remove":   Remove,
 	"repeat":   Repeat,
 	"return":   Return,
 	"self":     Self,
@@ -143,9 +139,9 @@ var keywords = map[string]TokenType{
 	"struct":   Struct,
 	"class":    Class,
 	"tick":     Tick,
-	"to":       To,
 	"true":     True,
 	"use":      Use,
+	"from":     From,
 	"while":    While,
 	"with":     With,
 	"yield":    Yield,

@@ -84,10 +84,10 @@ func (p *Parser) statement() (returnNode ast.Node) {
 		p.advance()
 		returnNode = p.AliasDeclarationStmt(true)
 		return
-	case tokens.Macro:
-		p.advance()
-		returnNode = p.macroDeclarationStmt()
-		return
+	// case tokens.Macro:
+	// 	p.advance()
+	// 	returnNode = p.macroDeclarationStmt()
+	// 	return
 	case tokens.Env:
 		p.advance()
 		returnNode = p.envStmt()
@@ -95,14 +95,6 @@ func (p *Parser) statement() (returnNode ast.Node) {
 	//case tokens.Let, tokens.Pub, tokens.Const:
 	//p.advance()
 	//node = p.variableDeclarationStmt()
-	case tokens.Add:
-		p.advance()
-		returnNode = p.addToStmt()
-		return
-	case tokens.Remove:
-		p.advance()
-		returnNode = p.removeFromStmt()
-		return
 	case tokens.Fn:
 		p.advance()
 		returnNode = p.functionDeclarationStmt(true)
@@ -223,11 +215,11 @@ func (p *Parser) expressionStatement() ast.Node {
 
 func (p *Parser) AliasDeclarationStmt(isLocal bool) ast.Node {
 	typeToken := p.peek(-1)
-	name, ok := p.consumeOld("expected identifier in alias declaration", tokens.Identifier)
+	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in alias declaration"), tokens.Identifier)
 	if !ok {
 		return ast.NewImproper(name)
 	}
-	if token, ok := p.consumeOld("expected '=' after identifier in alias declaration", tokens.Equal); !ok {
+	if token, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), "after identifier in alias declaration"), tokens.Equal); !ok {
 		return ast.NewImproper(token)
 	}
 
@@ -244,8 +236,9 @@ func (p *Parser) AliasDeclarationStmt(isLocal bool) ast.Node {
 	}
 }
 
+/*
 func (p *Parser) macroDeclarationStmt() ast.Node {
-	name, ok := p.consumeOld("expected identifier after 'macro' keyword", tokens.Identifier)
+	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "after 'macro' keyword"), tokens.Identifier)
 	if !ok {
 		return ast.NewImproper(name)
 	}
@@ -253,7 +246,8 @@ func (p *Parser) macroDeclarationStmt() ast.Node {
 	macroDeclaration := &ast.MacroDeclarationStmt{
 		Name: name,
 	}
-	p.consumeOld("expected opening parenthesis", tokens.LeftParen)
+	p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek()), string(tokens.LeftParen)), tokens.LeftParen)
+	//p.consumeOld("expected opening parenthesis", tokens.LeftParen)
 	params := []tokens.Token{}
 	token := p.peek()
 	if token.Type == tokens.RightParen {
@@ -262,14 +256,15 @@ func (p *Parser) macroDeclarationStmt() ast.Node {
 		p.advance()
 		params = append(params, token)
 		for p.match(tokens.Colon) {
-			name, ok = p.consumeOld("expected identifier as parameter", tokens.Identifier)
+			name, ok = p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as a parameter"), tokens.Identifier)
 			if !ok {
 				return ast.NewImproper(name)
 			}
 			params = append(params, name)
 		}
 		macroDeclaration.Params = params
-		p.consumeOld("expected closing parenthesis", tokens.RightParen)
+		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(start, p.peek()), string(tokens.LeftParen)), tokens.LeftParen)
+		//p.consumeOld("expected closing parenthesis", tokens.RightParen)
 	} else {
 		p.advance()
 		p.error(token, "expected either identifier or closing parenthesis after opening parenthesis")
@@ -303,22 +298,24 @@ func (p *Parser) macroDeclarationStmt() ast.Node {
 	}
 
 	return macroDeclaration
-}
+} */
 
 func (p *Parser) envStmt() ast.Node {
 	stmt := ast.EnvironmentStmt{}
 
 	if p.Context.EnvStatement != nil {
-		p.error(p.peek(), "cannot redeclare environment")
+		p.Alert(&alerts.EnvironmentRedaclaration{}, alerts.NewSingle(p.peek()))
+		//p.error(p.peek(), "cannot redeclare environment")
 	}
 
 	expr := p.EnvPathExpr()
 	if expr.GetType() != ast.EnvironmentPathExpression {
-		p.error(expr.GetToken(), "expected environment path expression")
+		p.Alert(&alerts.ExpectedEnvironmentPathExpression{})
+		//p.error(expr.GetToken(), "expected environment path expression")
 		return &ast.Improper{Token: expr.GetToken()}
 	}
 
-	if _, ok := p.consumeOld("expected keyword 'as' after envrionment expression", tokens.As); !ok {
+	if _, ok := p.consume(p.NewAlert(&alerts.ExpectedKeyword{}, alerts.NewSingle(p.peek()), string(tokens.As)), tokens.As); !ok {
 		return &ast.Improper{Token: expr.GetToken()}
 	}
 
@@ -344,13 +341,14 @@ func (p *Parser) enumDeclarationStmt(local bool) ast.Node {
 	ident := p.expression()
 
 	if ident.GetType() != ast.Identifier {
-		p.error(ident.GetToken(), "expected identifier after 'enum' in enum declaration")
+		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(ident.GetToken()), "in enum declaration")
+		//p.error(ident.GetToken(), "expected identifier after 'enum' in enum declaration")
 		return &ast.Improper{Token: ident.GetToken()}
 	}
 
 	enumStmt.Name = ident.GetToken()
 
-	p.consumeOld("expected opening of a body", tokens.LeftBrace)
+	start, _ := p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek()), string(tokens.LeftBrace)), tokens.LeftBrace)
 
 	if p.match(tokens.RightBrace) {
 		enumStmt.Fields = make([]tokens.Token, 0)
@@ -359,7 +357,8 @@ func (p *Parser) enumDeclarationStmt(local bool) ast.Node {
 
 	expr := p.expression()
 	if expr.GetType() != ast.Identifier {
-		p.error(expr.GetToken(), "expected identifier in enum declaration")
+		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(expr.GetToken()), "in enum declaration")
+		//p.error(expr.GetToken(), "expected identifier in enum declaration")
 		return &ast.Improper{Token: expr.GetToken()}
 	}
 	fields := []tokens.Token{expr.GetToken()}
@@ -369,7 +368,8 @@ func (p *Parser) enumDeclarationStmt(local bool) ast.Node {
 		}
 		expr = p.expression()
 		if expr.GetType() != ast.Identifier {
-			p.error(expr.GetToken(), "expected identifier in enum declaration")
+			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(expr.GetToken()), "in enum declaration")
+			//p.error(expr.GetToken(), "expected identifier in enum declaration")
 			return &ast.Improper{Token: expr.GetToken()}
 		}
 		fields = append(fields, expr.GetToken())
@@ -377,7 +377,8 @@ func (p *Parser) enumDeclarationStmt(local bool) ast.Node {
 
 	enumStmt.Fields = fields
 
-	p.consumeOld("expected body closure", tokens.RightBrace) // here wait this is enum, nvm
+	p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(start, p.peek()), string(tokens.RightBrace)), tokens.RightBrace)
+	//p.consumeOld("expected body closure", tokens.RightBrace) // here wait this is enum, nvm
 
 	return enumStmt
 }
@@ -388,7 +389,7 @@ func (p *Parser) classDeclarationStmt(isLocal bool) ast.Node {
 	}
 	stmt.Token = p.peek(-1)
 
-	name, ok := p.consumeOld("expected the name of the structure", tokens.Identifier)
+	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name of the class"), tokens.Identifier)
 
 	if ok {
 		stmt.Name = name
@@ -396,7 +397,8 @@ func (p *Parser) classDeclarationStmt(isLocal bool) ast.Node {
 		return &ast.Improper{Token: stmt.Token}
 	}
 
-	_, ok = p.consumeOld("expected opening of the struct body", tokens.LeftBrace)
+	_, ok = p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek()), string(tokens.LeftBrace)), tokens.LeftBrace)
+	//_, ok = p.consume("expected opening of the struct body", tokens.LeftBrace)
 	if !ok {
 		return &ast.Improper{Token: stmt.Token}
 	}
@@ -417,7 +419,7 @@ func (p *Parser) classDeclarationStmt(isLocal bool) ast.Node {
 			if field.GetType() != ast.NA {
 				stmt.Fields = append(stmt.Fields, *field.(*ast.FieldDeclarationStmt))
 			} else {
-				p.error(p.peek(), "unknown statement inside struct")
+				p.Alert(&alerts.UnknownStatementInsideClass{}, alerts.NewMulti(field.GetToken(), p.peek()))
 			}
 		}
 	}
@@ -431,14 +433,14 @@ func (p *Parser) entityDeclarationStmt(isLocal bool) ast.Node {
 		Token:   p.peek(-1),
 	}
 
-	name, ok := p.consumeOld("expected the name of the entity", tokens.Identifier)
+	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name of the entity"), tokens.Identifier)
 
 	if !ok {
 		return &ast.Improper{Token: stmt.Token}
 	}
 	stmt.Name = name
 
-	_, ok = p.consumeOld("expected opening of the struct body", tokens.LeftBrace)
+	_, ok = p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek()), string(tokens.LeftBrace)), tokens.LeftBrace)
 	if !ok {
 		return &ast.Improper{Token: stmt.Token}
 	}
@@ -498,7 +500,7 @@ func (p *Parser) entityDeclarationStmt(isLocal bool) ast.Node {
 		if field.GetType() != ast.NA {
 			stmt.Fields = append(stmt.Fields, *field.(*ast.FieldDeclarationStmt))
 		} else {
-			p.error(p.peek(), "unknown statement inside entity")
+			p.Alert(&alerts.UnknownStatementInsideEntity{}, alerts.NewMulti(field.GetToken(), p.peek()))
 		}
 	}
 
@@ -536,7 +538,7 @@ func (p *Parser) destroyStmt() ast.Node {
 	exprType := expr.GetType()
 
 	if exprType != ast.Identifier && exprType != ast.EnvironmentAccessExpression && exprType != ast.SelfExpression {
-		p.error(expr.GetToken(), "expected identifier or environment access expression")
+		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(expr.GetToken()), "or environment access expression")
 	}
 	stmt.Identifier = expr
 	stmt.Generics, _ = p.genericArguments()
@@ -567,7 +569,8 @@ func (p *Parser) fieldDeclarationStmt() ast.Node {
 
 	typ, ident := p.TypeWithVar()
 	if ident.GetType() != ast.Identifier {
-		p.error(ident.GetToken(), "expected identifier in field declaration")
+		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(ident.GetToken()), "in field declaration")
+		//p.error(ident.GetToken(), "expected identifier in field declaration")
 		return ast.NewImproper(ident.GetToken())
 	}
 
@@ -577,7 +580,8 @@ func (p *Parser) fieldDeclarationStmt() ast.Node {
 	for p.match(tokens.Comma) {
 		ident := p.advance()
 		if ident.Type != tokens.Identifier {
-			p.error(ident, "expected identifier in field declaration")
+			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(ident), "in field declaration")
+			//p.error(ident, "expected identifier in field declaration")
 		}
 
 		idents = append(idents, ident)
@@ -656,7 +660,8 @@ func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) *ast.IfS
 	}
 	for p.match(tokens.Else) {
 		if else_exists {
-			p.error(p.peek(-1), "cannot have two else statements in an if statement")
+			p.Alert(&alerts.MoreThanOneElseStatement{}, alerts.NewSingle(p.peek(-1)))
+			//p.error(p.peek(-1), "cannot have two else statements in an if statement")
 		}
 		var ifbody *ast.IfStmt
 		if p.match(tokens.If) {
@@ -707,7 +712,7 @@ func (p *Parser) assignmentStmt() ast.Node {
 		}
 		expr = &ast.AssignmentStmt{Identifiers: idents, Values: values, Token: assignOp}
 	} else {
-		p.Alert(&alerts.ExpectedStatement{}, alerts.Singleline{expr.GetToken()})
+		p.Alert(&alerts.ExpectedStatement{}, alerts.Singleline{Token: expr.GetToken()})
 	}
 
 	return expr
@@ -778,7 +783,8 @@ func (p *Parser) functionDeclarationStmt(IsLocal bool) ast.Node {
 
 	fnDec.IsLocal = IsLocal
 
-	ident, _ := p.consumeOld("expected a function name", tokens.Identifier)
+	ident, _ := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "for a function name"), tokens.Identifier)
+	//ident, _ := p.consume("expected a function name", tokens.Identifier)
 	// if !ok {
 	// 	return &fnDec
 	// }
@@ -799,50 +805,6 @@ func (p *Parser) functionDeclarationStmt(IsLocal bool) ast.Node {
 	p.Context.FunctionReturns = p.Context.FunctionReturns[:len(p.Context.FunctionReturns)-1]
 
 	return &fnDec
-}
-
-func (p *Parser) addToStmt() ast.Node {
-	add := ast.AddStmt{
-		Token: p.peek(-1),
-	}
-
-	add.Value = p.expression()
-	if add.GetType() == ast.NA {
-		p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
-		// p.error(p.peek(), "expected expression")
-	}
-
-	if _, ok := p.consumeOld("expected keyword 'to' after expression in an 'add' statement", tokens.To); !ok {
-		return &add
-	}
-
-	if ident, ok := p.consumeOld("expected identifier after keyword 'to'", tokens.Identifier); ok {
-		add.Identifier = ident.Lexeme
-	}
-
-	return &add
-}
-
-func (p *Parser) removeFromStmt() ast.Node {
-	remove := ast.RemoveStmt{
-		Token: p.peek(-1),
-	}
-
-	remove.Value = p.expression()
-	if remove.GetType() == ast.NA {
-		p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
-		// p.error(p.peek(), "expected expression")
-	}
-
-	if _, ok := p.consumeOld("expected keyword 'from' after expression in a 'remove' statement", tokens.From); !ok {
-		return &remove
-	}
-
-	if ident, ok := p.consumeOld("expected identifier after keyword 'from'", tokens.Identifier); ok {
-		remove.Identifier = ident.Lexeme
-	}
-
-	return &remove
 }
 
 func (p *Parser) repeatStmt() ast.Node {
@@ -874,50 +836,53 @@ func (p *Parser) repeatStmt() ast.Node {
 		if p.match(tokens.With) {
 			identExpr := p.expression()
 			if variableAssigned {
-				p.error(p.peek(-1), "duplicate keyword 'with' in repeat statement")
+				p.Alert(&alerts.DuplicateKeywordInRepeatStatement{}, alerts.NewSingle(p.peek(-1)), "with")
+				//p.error(p.peek(-1), "duplicate keyword 'with' in repeat statement")
 			}
 			variableAssigned = true
 			if identExpr.GetType() != ast.Identifier {
-				p.error(identExpr.GetToken(), "expected identifier expression after keyword 'with'")
+				p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(identExpr.GetToken()), "after keyword 'with'")
+				//p.error(identExpr.GetToken(), "expected identifier expression after keyword 'with'")
 			} else {
 				repeatStmt.Variable = identExpr.(*ast.IdentifierExpr)
 			}
 		} else if p.match(tokens.To) {
 			if iteratorAssgined {
-				p.error(p.peek(-1), "duplicate keyword 'to' in repeat statement")
+				p.Alert(&alerts.DuplicateKeywordInRepeatStatement{}, alerts.NewSingle(p.peek(-1)), "to")
+				//p.error(p.peek(-1), "duplicate keyword 'to' in repeat statement")
 			}
 			iteratorAssgined = true
 			if gotIterator {
-				p.error(p.peek(-1), "unnecessary redefinition of iterator")
+				p.Alert(&alerts.RedefinitionOfIteratorInRepeatStatement{}, alerts.NewSingle(p.peek(-1)))
 			} else {
 				repeatStmt.Iterator = p.expression()
 				if repeatStmt.Iterator.GetType() == ast.NA {
-					p.error(repeatStmt.Iterator.GetToken(), "unknown expression after keyword 'to'")
+					p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(repeatStmt.Iterator.GetToken()))
 				}
 			}
 		} else if p.match(tokens.By) {
 			if skipAssigned {
-				p.error(p.peek(-1), "duplicate keyword 'by' in repeat statement")
+				p.Alert(&alerts.DuplicateKeywordInRepeatStatement{}, alerts.NewSingle(p.peek(-1)), "by")
 			}
 			skipAssigned = true
 			repeatStmt.Skip = p.expression()
 			if repeatStmt.Skip.GetType() == ast.NA {
-				p.error(repeatStmt.Skip.GetToken(), "unknown expression after keyword 'by'")
+				p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(repeatStmt.Skip.GetToken()))
 			}
 		} else if p.match(tokens.From) {
 			if startAssigned {
-				p.error(p.peek(-1), "duplicate keyword 'from' in repeat statement")
+				p.Alert(&alerts.DuplicateKeywordInRepeatStatement{}, alerts.NewSingle(p.peek(-1)), "from")
 			}
 			startAssigned = true
 			repeatStmt.Start = p.expression()
 			if repeatStmt.Start.GetType() == ast.NA {
-				p.error(repeatStmt.Start.GetToken(), "unknown expression after keyword 'from'")
+				p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(repeatStmt.Start.GetToken()))
 			}
 		}
 	}
 
 	if repeatStmt.Iterator == nil {
-		p.error(repeatStmt.Token, "no iterator provided in repeat statement")
+		p.Alert(&alerts.MissingIteratorInRepeatStatement{}, alerts.NewSingle(repeatStmt.Token))
 		repeatStmt.Iterator = &ast.LiteralExpr{Token: repeatStmt.Token, Value: "1", ValueType: ast.Number}
 	}
 
@@ -936,7 +901,8 @@ func (p *Parser) whileStmt() ast.Node {
 	condtion := p.expression()
 
 	if condtion.GetType() == ast.NA {
-		p.error(condtion.GetToken(), "Expected an expressions after 'while'")
+		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(condtion.GetToken()))
+		//p.error(condtion.GetToken(), "Expected an expression after 'while'")
 		return ast.NewImproper(condtion.GetToken())
 	}
 
@@ -960,32 +926,35 @@ func (p *Parser) forStmt() ast.Node {
 		p.peek(1).Type == tokens.Comma {
 		identExpr := p.expression()
 		if identExpr.GetType() != ast.Identifier {
-			p.error(identExpr.GetToken(), "expected identifier expression after keyword 'for'")
+			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(identExpr.GetToken()), "after keyword 'for' in for loop statement")
+			//p.error(identExpr.GetToken(), "expected identifier expression after keyword 'for'")
 		} else {
 			forStmt.First = identExpr.(*ast.IdentifierExpr)
 		}
 		p.match(tokens.Comma)
 		identExpr = p.expression()
 		if identExpr.GetType() != ast.Identifier {
-			p.error(identExpr.GetToken(), "expected identifier expression after a comma")
+			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(identExpr.GetToken()))
 		} else {
 			forStmt.Second = identExpr.(*ast.IdentifierExpr)
 		}
 	} else {
 		identExpr := p.expression()
 		if identExpr.GetType() != ast.Identifier {
-			p.error(identExpr.GetToken(), "expected identifier expression after keyword 'for'")
+			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(identExpr.GetToken()), "after keyword 'for' in for loop statement")
 		} else {
 			forStmt.First = identExpr.(*ast.IdentifierExpr)
 		}
 	}
 
-	p.consumeOld("expected keyword 'in' after for loop variables", tokens.In)
+	p.consume(p.NewAlert(&alerts.ExpectedKeyword{}, alerts.NewSingle(p.peek()), "in"))
+	//p.consumeOld("expected keyword 'in' after for loop variables", tokens.In)
 
 	forStmt.Iterator = p.expression()
 
 	if forStmt.Iterator == nil {
-		p.error(forStmt.Token, "no iterator provided in for loop statement")
+		p.Alert(&alerts.NoIteratorProvidedInForLoopStatement{}, alerts.NewSingle(forStmt.Token))
+		//p.error(forStmt.Token, "no iterator provided in for loop statement")
 		forStmt.Iterator = &ast.LiteralExpr{Token: forStmt.Token, Value: "[1]", ValueType: ast.List}
 	}
 
@@ -1006,7 +975,8 @@ func (p *Parser) tickStmt() ast.Node {
 	if p.match(tokens.With) {
 		identExpr := p.expression()
 		if identExpr.GetType() != ast.Identifier {
-			p.error(identExpr.GetToken(), "expected identifier expression after keyword 'with'")
+			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(identExpr.GetToken()), "after keyword 'with'")
+			//p.error(identExpr.GetToken(), "expected identifier expression after keyword 'with'")
 			return &tickStmt
 		} else {
 			tickStmt.Variable = identExpr.(*ast.IdentifierExpr)
@@ -1088,7 +1058,7 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 
 	if ide.GetType() != ast.Identifier {
 		ideToken := ide.GetToken()
-		p.error(ideToken, "expected identifier in variable declaration")
+		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(ideToken), "in variable declaration")
 		return ast.NewImproper(ideToken)
 	}
 
@@ -1097,7 +1067,7 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 	for p.match(tokens.Comma) {
 		ide := p.advance()
 		if ide.Type != tokens.Identifier {
-			p.error(ide, "expected identifier in variable declaration")
+			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(ide), "in variable declaration")
 			return ast.NewImproper(ide)
 		}
 
@@ -1137,7 +1107,7 @@ func (p *Parser) useStmt() ast.Node {
 
 	filepath := p.EnvPathExpr()
 	if filepath.GetType() != ast.EnvironmentPathExpression {
-		p.error(p.peek(), "expected filepath")
+		p.Alert(&alerts.ExpectedEnvironmentPathExpression{}, alerts.NewMulti(filepath.GetToken(), p.peek()))
 		return ast.NewImproper(p.peek())
 	}
 	useStmt.Path = filepath.(*ast.EnvPathExpr)
@@ -1150,7 +1120,8 @@ func (p *Parser) matchStmt(isExpr bool) *ast.MatchStmt {
 
 	matchStmt.ExprToMatch = p.expression()
 
-	p.consumeOld("expected opening of the match body", tokens.LeftBrace)
+	start, _ := p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek()), string(tokens.LeftBrace)), tokens.LeftBrace)
+	//p.consumeOld("expected opening of the match body", tokens.LeftBrace)
 
 	caseStmts, stop := p.caseStmt(isExpr)
 	for !stop {
@@ -1164,7 +1135,7 @@ func (p *Parser) matchStmt(isExpr bool) *ast.MatchStmt {
 	}
 	matchStmt.Cases = append(matchStmt.Cases, caseStmts...)
 
-	p.consumeOld("expected closing of the match body", tokens.RightBrace)
+	p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(start, p.peek()), string(tokens.RightBrace)), tokens.RightBrace)
 
 	return &matchStmt
 }
@@ -1193,7 +1164,7 @@ func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
 		}
 	}
 
-	p.consumeOld("expected fat arrow after expression in case", tokens.FatArrow)
+	p.consume(p.NewAlert(&alerts.ExpectedFatArrowInMatchCase{}, alerts.NewSingle(p.peek())), tokens.FatArrow)
 
 	if p.check(tokens.LeftBrace) {
 		body, _ := p.getBody()

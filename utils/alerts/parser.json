@@ -2,7 +2,6 @@
   {
     "name": "ExpectedEnclosingMark",
     "type": "Error",
-    "display_type": "Multiline",
     "params": {
       "Mark": "string"
     },
@@ -12,7 +11,6 @@
   {
     "name": "ExpectedOpeningMark",
     "type": "Error",
-    "display_type": "Singleline",
     "params": {
       "Mark": "string"
     },
@@ -20,9 +18,41 @@
     "message_format": ["Mark"]
   },
   {
+    "name": "ExpectedSymbol",
+    "type": "Error",
+    "params": {
+      "Symbol": "string",
+      "Context": "string `default:\"\"\"\"`"
+    },
+    "message": "Expected '%s' %s"
+  },
+  {
+    "name": "MoreThanOneElseStatement",
+    "type": "Error",
+    "message": "Cannot have more than one else statement in an if statement"
+  },
+  {
+    "name": "ExpectedKeyword",
+    "type": "Error",
+    "params": {
+      "Keyword": "string",
+      "Context": "string `default:\"\"\"\"`"
+    },
+    "message": "Expected keyword '%s' %s"
+  },
+  {
+    "name": "EnvironmentRedaclaration",
+    "type": "Error",
+    "message": "Cannot redeclare an environment"
+  },
+  {
+    "name": "ExpectedEnvironmentPathExpression",
+    "type": "Error",
+    "message": "expected environment path expression"
+  },
+  {
     "name": "ExpectedEnvironment",
     "type": "Error",
-    "display_type": "Singleline",
     "message": "Expected environment statement",
     "note": "environment statement has to be the first statement in any hybroid file. example: env HelloWorld as Level"
   },
@@ -32,15 +62,12 @@
     "params": {
       "Context": "string `default:\"\"\"\"`"
     },
-    "display_type": "Singleline",
-    "message": "Expected identifier",
-    "note": "%s",
-    "note_format":["Context"]
+    "message": "Expected identifier %s",
+    "message_format":["Context"]
   },
   {
     "name": "ExpectedType",
     "type": "Error",
-    "display_type": "Singleline",
     "message": "Expected type",
     "note": "this needs to be declared with a type. example: number %s",
     "note_format": ["Specifier.GetTokens()[0].Lexeme"]
@@ -48,50 +75,42 @@
   {
     "name": "ExpectedExpression",
     "type": "Error",
-    "display_type": "Singleline",
     "message": "Expected expression"
   },
   {
     "name": "ExpectedExpressionOrBody",
     "type": "Error",
-    "display_type": "Singleline",
     "message": "Expected expression or body"
   },
   {
     "name": "ExpectedReturnArrow",
     "type": "Error",
-    "display_type": "Singleline",
     "message": "Expected a return arrow (->)",
     "note": "return types on function declarations are written after a thin arrow (->) after the parameters"
   },
   {
     "name": "ExpectedCallArgs",
     "type": "Error",
-    "display_type": "Singleline",
     "message": "Expected call arguments"
   },
   {
     "name": "InvalidCall",
     "type": "Error",
-    "display_type": "Singleline",
     "message": "Invalid expression to call"
   },
   {
     "name": "InvalidEnvironmentType",
     "type": "Error",
-    "display_type": "Singleline",
     "message": "Expected 'Level', 'Mesh' or 'Sound' as environment type"
   },
   {
     "name": "ExpectedCallAfterMacroSymbol",
     "type": "Error",
-    "display_type": "Singleline",
     "message": "Expected an expression call after '@'"
   },
   {
     "name": "ForbiddenTypeInEnvironment",
     "type": "Error",
-    "display_type": "Singleline",
     "params":{
       "Type":  "string",
       "Envs": "[]string"
@@ -103,19 +122,66 @@
   {
     "name": "ExpectedFieldDeclaration",
     "type": "Error",
-    "display_type": "Singleline",
     "message": "Expected field declaration inside struct"
   },
   {
     "name": "EmptyWrappedType",
     "type": "Error",
-    "display_type": "Singleline",
     "message": "Wrapped types must not be empty"
+  },
+  {
+    "name": "ExpectedReturnArgs",
+    "type": "Error",
+    "message": "Expected return arguments after fat arrow (=>)"
   },
   {
     "name": "ExpectedStatement",
     "type": "Error",
-    "display_type": "Singleline",
     "message": "Expected statement"
+  },
+  {
+    "name": "UnknownStatementInsideClass",
+    "type": "Error",
+    "message": "Unknown statement inside class"
+  },
+  {
+    "name": "ExpectedAccessExpression",
+    "type":"Error",
+    "message": "Expected an access expression",
+    "note": "Access expression are: identifier, environment access, self, member and field expressions"
+  },
+  {
+    "name": "NoIteratorProvidedInForLoopStatement",
+    "type": "Error",
+    "message": "No Iterator provided in for loop statement"
+  },
+  {
+    "name": "DuplicateKeywordInRepeatStatement",
+    "type": "Error",
+    "params": {
+      "Keyword": "string"
+    },
+    "message": "Cannot have duplicate keyword (%s) in repeat statement",
+    "message_format": ["Keyword"]
+  },
+  {
+    "name": "RedefinitionOfIteratorInRepeatStatement",
+    "type": "Error",
+    "message": "Redefinition of iterator in repeat statement"
+  },
+  {
+    "name": "ExpectedFatArrowInMatchCase",
+    "type": "Error",
+    "message": "Expected fat arrow (=>) in match case"
+  },
+  {
+    "name": "UnknownStatementInsideEntity",
+    "type": "Error",
+    "message": "Unknown statement inside class"
+  },
+  {
+    "name": "MissingIteratorInRepeatStatement",
+    "type": "Error",
+    "message": "Missing iterator in repeat statement"
   }
 ]

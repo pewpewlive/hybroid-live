@@ -2,7 +2,6 @@
   {
     "name": "ExpectedPaarenthesissss",
     "type": "Error",
-    "display_type": "Singleline",
     "params": {
       "Symbol": "string"
     },

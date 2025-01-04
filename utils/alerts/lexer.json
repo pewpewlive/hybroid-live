@@ -2,19 +2,16 @@
   {
     "name": "MultilineString",
     "type": "Error",
-    "display_type": "Singleline",
     "message": "multiline strings are not allowed"
   },
   {
     "name": "UnterminatedString",
     "type": "Error",
-    "display_type": "Singleline",
     "message": "unterminated string"
   },
   {
     "name": "MalformedNumber",
     "type": "Error",
-    "display_type": "Singleline",
     "params": {
       "Number": "string"
     },
@@ -24,7 +21,6 @@
   {
     "name": "InvalidNumberPostfix",
     "type": "Error",
-    "display_type": "Singleline",
     "params": {
       "Postfix": "string"
     },
@@ -35,7 +31,6 @@
   {
     "name": "UnsupportedCharacter",
     "type": "Error",
-    "display_type": "Singleline",
     "params": {
       "Character": "string"
     },

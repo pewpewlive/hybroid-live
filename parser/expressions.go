@@ -240,7 +240,7 @@ func (p *Parser) accessorExpr(ident *ast.Node) (ast.Node, *ast.IdentifierExpr) {
 		return *ident, nil
 	}
 
-	p.advance()
+	start := p.advance()
 
 	var expr ast.Accessor
 	if isField {
@@ -265,7 +265,9 @@ func (p *Parser) accessorExpr(ident *ast.Node) (ast.Node, *ast.IdentifierExpr) {
 		}
 	} else if isMember {
 		propIdentifier = p.expression()
-		p.consumeOld("expected closing bracket in member expression", tokens.RightBracket)
+
+		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(start, p.peek()), string(tokens.RightParen)), tokens.RightParen)
+		//p.consumeOld("expected closing bracket in member expression", tokens.RightBracket)
 	}
 
 	expr.SetPropertyIdentifier(propIdentifier)
@@ -451,7 +453,8 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.Singleline{Token: p.peek()})
 			//p.error(p.peek(), "expected expression")
 		}
-		p.consumeOld("expected ')' after expression", tokens.RightParen)
+		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(token, p.peek()), string(tokens.RightParen)), tokens.RightParen)
+		//p.consumeOld("expected ')' after expression", tokens.RightParen)
 		return &ast.GroupExpr{Expr: expr, Token: token, ValueType: expr.GetValueType()}
 	}
 
@@ -483,7 +486,8 @@ func (p *Parser) list() ast.Node {
 		}
 		list = append(list, exprInList)
 	}
-	p.consumeOld("expected ']' after contents", tokens.RightBracket)
+	p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(token, p.peek()), string(tokens.RightBracket)), tokens.RightBracket)
+	//p.consumeOld("expected ']' after contents", tokens.RightBracket)
 
 	return &ast.ListExpr{ValueType: ast.List, List: list, Token: token}
 }
@@ -510,7 +514,7 @@ func (p *Parser) parseMap() ast.Node {
 			return &ast.Improper{Token: p.peek(-1)}
 		}
 
-		if _, ok := p.consumeOld("expected '=' after map key", tokens.Equal); !ok {
+		if _, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), string(tokens.Equal), "after map key"), tokens.Equal); !ok {
 			return &ast.Improper{Token: p.peek(-1)}
 		}
 
@@ -525,7 +529,7 @@ func (p *Parser) parseMap() ast.Node {
 			break
 		}
 
-		if _, ok := p.consumeOld("expected ',' after expression", tokens.Comma); !ok {
+		if _, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), string(tokens.Equal), "in map initialization"), tokens.Comma); !ok {
 			return &ast.Improper{Token: p.peek(-1)}
 		}
 
@@ -542,7 +546,7 @@ func (p *Parser) structExpr() ast.Node {
 		Fields: make([]*ast.FieldDeclarationStmt, 0),
 	}
 
-	_, ok := p.consumeOld("expected opening brace in struct", tokens.LeftBrace)
+	start, ok := p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek())), tokens.LeftBrace)
 	if !ok {
 		return &ast.Improper{Token: structExpr.Token}
 	}
@@ -572,7 +576,7 @@ func (p *Parser) structExpr() ast.Node {
 		}
 	}
 
-	p.consumeOld("expected closing brace in struct", tokens.RightBrace)
+	p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(start, p.peek()), string(tokens.RightBrace)), tokens.RightBrace)
 
 	return &structExpr
 }
@@ -634,7 +638,7 @@ func (p *Parser) Type() *ast.TypeExpr {
 		typ = &ast.TypeExpr{}
 		if p.match(tokens.Less) { // map<number>
 			typ.WrappedType = p.WrappedType()
-			p.consumeOld("expected '>'", tokens.Greater)
+			p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewSingle(p.peek()), string(tokens.Greater)), tokens.Greater)
 		}
 		typ.Name = expr
 	case tokens.Fn:
@@ -650,7 +654,8 @@ func (p *Parser) Type() *ast.TypeExpr {
 				_typ := p.Type()
 				typ.Params = append(typ.Params, _typ)
 			}
-			p.consumeOld("expected closing parenthesis", tokens.RightParen)
+			p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewSingle(p.peek()), ")"))
+			//p.consumeOld("expected closing parenthesis", tokens.RightParen)
 		}
 		typ.Returns = p.returnings()
 		typ.Name = expr
@@ -682,7 +687,7 @@ func StringToEnvType(name string) ast.EnvType {
 }
 
 func (p *Parser) EnvType() *ast.EnvTypeExpr {
-	name, ok := p.consumeOld("expected identifier for a environment type expr", tokens.Identifier)
+	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "for a environment type expr"), tokens.Identifier)
 
 	if !ok {
 		return &ast.EnvTypeExpr{Type: ast.InvalidEnv, Token: name}
@@ -699,7 +704,8 @@ func (p *Parser) EnvType() *ast.EnvTypeExpr {
 }
 
 func (p *Parser) EnvPathExpr() ast.Node {
-	ident, ok := p.consumeOld("expected identifier for an environment path", tokens.Identifier)
+	ident, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "for an environment path"), tokens.Identifier)
+	//ident, ok := p.consumeOld("expected identifier for an environment path", tokens.Identifier)
 
 	if !ok {
 		return &ast.Improper{Token: ident}
@@ -710,7 +716,7 @@ func (p *Parser) EnvPathExpr() ast.Node {
 	}
 
 	for p.match(tokens.Colon) {
-		ident, ok = p.consumeOld("expected identifier in environment path", tokens.Identifier)
+		ident, ok = p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in environment path"), tokens.Identifier)
 		if !ok {
 			return &ast.Improper{Token: envPath.GetToken()}
 		}

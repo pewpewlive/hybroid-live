@@ -8,7 +8,7 @@ import (
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ExpectedPaarenthesissss struct {
-  Specifier Singleline
+  Specifier SnippetSpecifier
   Symbol string
 }
 
@@ -17,7 +17,7 @@ func (ep *ExpectedPaarenthesissss) GetMessage() string {
 }
 
 func (ep *ExpectedPaarenthesissss) GetSpecifier() SnippetSpecifier {
-  return &ep.Specifier
+  return ep.Specifier
 }
 
 func (ep *ExpectedPaarenthesissss) GetNote() string {
