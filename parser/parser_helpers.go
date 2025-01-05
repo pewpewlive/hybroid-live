@@ -22,16 +22,6 @@ func IsFx(valueType ast.PrimitiveValueType) bool {
 	return valueType == ast.FixedPoint || valueType == ast.Fixed || valueType == ast.Radian || valueType == ast.Degree
 }
 
-func (p *Parser) PeekIsType() bool {
-	tokenType := p.peek().Type
-
-	if tokenType == tokens.Fn {
-		return p.peek(1).Type == tokens.LeftParen
-	}
-
-	return !(tokenType != tokens.Identifier && tokenType != tokens.Fn && tokenType != tokens.Struct && tokenType != tokens.Entity /* && tokens.Type != tokens.DotDotDot*/)
-}
-
 func (p *Parser) getOp(opEqual tokens.Token) tokens.Token {
 	switch opEqual.Type {
 	case tokens.PlusEqual:
@@ -51,38 +41,42 @@ func (p *Parser) getOp(opEqual tokens.Token) tokens.Token {
 	}
 }
 
-func (p *Parser) getParam() ast.Param {
-	typ, ide := p.TypeWithVar()
-	if ide.GetType() != ast.Identifier {
-		p.Alert(&alerts.ExpectedIdentifier{}, alerts.Singleline{Token: ide.GetToken()})
-		//p.error(ide.GetToken(), "expected identifier as parameter")
+func (p *Parser) getParam(closing tokens.TokenType) ast.Param {
+	typ := p.Type()
+	peekType := p.peek().Type
+
+	if peekType == tokens.Identifier {
+		return ast.Param{Name: p.advance(), Type: typ}
+	} else if peekType == tokens.Comma || peekType == closing {
+		if typ.Name.GetType() == ast.Identifier && (typ.WrappedType != nil || typ.Fields != nil || typ.Params != nil || typ.Returns != nil) {
+			return ast.Param{Name: typ.Name.GetToken()}
+		} else {
+			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(typ.GetToken()))
+			return ast.Param{Name: typ.GetToken()}
+		}
+	} else {
+		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()))
+		return ast.Param{Name: p.advance()}
 	}
-	return ast.Param{Type: typ, Name: ide.GetToken()}
 }
 
 func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) []ast.Param {
-	open := p.peek()
-
 	if !p.match(opening) {
-		p.Alert(&alerts.ExpectedOpeningMark{}, alerts.Singleline{Token: p.peek()}, string(opening))
+		p.Alert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek()), string(opening))
 		return []ast.Param{}
 	}
+
+	open := p.peek(-1)
 
 	var args []ast.Param
 	if p.match(closing) {
 		args = make([]ast.Param, 0)
 	} else {
 		var previous *ast.TypeExpr
-		param := p.getParam()
-		if param.Name.Type == tokens.Comma {
-			param.Name = param.Type.GetToken()
-			param.Type = nil
-		} else if param.Name.Type != tokens.Identifier {
-			p.Alert(&alerts.ExpectedIdentifier{}, alerts.Singleline{Token: param.Name})
-		}
+		param := p.getParam(closing)
 		if param.Type == nil {
 			if len(args) == 0 {
-				p.Alert(&alerts.ExpectedType{}, alerts.Singleline{Token: p.peek(-1)}) //param.Name, "parameter need to be declared with a type before the name")
+				p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(p.peek(-1))) //param.Name, "parameter need to be declared with a type before the name")
 			} else {
 				param.Type = previous
 			}
@@ -91,10 +85,10 @@ func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) 
 		}
 		args = append(args, param)
 		for p.match(tokens.Comma) {
-			param := p.getParam()
+			param := p.getParam(closing)
 			if param.Type == nil {
 				if len(args) == 0 {
-					p.Alert(&alerts.ExpectedType{}, alerts.Singleline{Token: p.peek(-1)})
+					p.Alert(&alerts.ExpectedType{}, p.peek(-1), p.peek(-1).Location)
 				} else {
 					param.Type = previous
 				}
@@ -103,7 +97,7 @@ func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) 
 			}
 			args = append(args, param)
 		}
-		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.Multiline{StartToken: open, EndToken: p.peek()}, string(closing)), closing)
+		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(open, p.peek()), string(closing)), closing)
 	}
 
 	return args
@@ -114,11 +108,10 @@ func (p *Parser) genericParameters() []*ast.IdentifierExpr {
 	if !p.match(tokens.Less) {
 		return params
 	}
-	start := p.peek(-1)
+
 	token := p.advance()
 	if token.Type != tokens.Identifier {
-		p.Alert(&alerts.ExpectedIdentifier{}, alerts.Singleline{Token: token}, "in generic parameters")
-		//p.error(token, "expected type identifier in generic parameters")
+		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(token), "in generic parameters")
 	} else {
 		params = append(params, &ast.IdentifierExpr{Name: token, ValueType: ast.Invalid})
 	}
@@ -126,14 +119,15 @@ func (p *Parser) genericParameters() []*ast.IdentifierExpr {
 	for p.match(tokens.Comma) {
 		token := p.advance()
 		if token.Type != tokens.Identifier {
-			p.Alert(&alerts.ExpectedIdentifier{}, alerts.Singleline{Token: token}, "in generic parameters")
+			p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(token))
 			//p.error(token, "expected type identifier in generic parameters")
 		} else {
 			params = append(params, &ast.IdentifierExpr{Name: token, ValueType: ast.Invalid})
 		}
 	}
 
-	p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.Multiline{StartToken: start, EndToken: p.peek()}, string(tokens.Greater)), tokens.Greater)
+	p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewSingle(p.peek()), string(tokens.Greater)), tokens.Greater)
+	//p.consumeOld("expected '>' in generic parameters", tokens.Greater)
 
 	return params
 }
@@ -160,10 +154,9 @@ func (p *Parser) genericArguments() ([]*ast.TypeExpr, bool) {
 }
 
 func (p *Parser) arguments() []ast.Node {
-	if _, ok := p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.Singleline{Token: p.peek()}, string(tokens.LeftParen)), tokens.LeftParen); !ok {
+	if _, ok := p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek()), string(tokens.LeftParen)), tokens.LeftParen); !ok {
 		return nil
 	}
-	start := p.peek(-1)
 
 	var args []ast.Node
 	if p.match(tokens.RightParen) {
@@ -175,7 +168,8 @@ func (p *Parser) arguments() []ast.Node {
 			arg := p.expression()
 			args = append(args, arg)
 		}
-		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.Multiline{StartToken: start, EndToken: p.peek()}, string(tokens.RightParen)), tokens.RightParen)
+		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewSingle(p.peek()), string(tokens.RightParen)), tokens.RightParen)
+		//p.consumeOld("expected closing paren after arguments", tokens.RightParen)
 	}
 
 	return args
@@ -183,56 +177,61 @@ func (p *Parser) arguments() []ast.Node {
 
 func (p *Parser) returnings() []*ast.TypeExpr {
 	ret := make([]*ast.TypeExpr, 0)
+
 	if !p.match(tokens.ThinArrow) {
-		p.Alert(&alerts.ExpectedReturnArrow{}, alerts.Singleline{Token: p.peek()})
+		p.Alert(&alerts.ExpectedReturnArrow{}, alerts.NewSingle(p.peek()))
 		return ret
 	}
-	isList := false
-	var start tokens.Token
+
 	if p.match(tokens.LeftParen) {
-		isList = true
-		start = p.peek(-1)
-	}
-	if !p.PeekIsType() {
-		return ret
-	}
-	ret = append(ret, p.Type())
-	for isList && p.match(tokens.Comma) {
-		if !p.PeekIsType() {
+		if p.match(tokens.RightParen) {
 			return ret
 		}
 		ret = append(ret, p.Type())
+
+		for p.match(tokens.Comma) {
+			ret = append(ret, p.Type())
+		}
+
+		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewSingle(p.peek()), string(tokens.RightParen)), tokens.RightParen)
+	} else {
+		ret = append(ret, p.Type())
 	}
-	if isList {
-		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.Multiline{StartToken: start, EndToken: p.peek()}, string(tokens.RightParen)), tokens.RightParen)
-	}
+
 	return ret
 }
 
-func (p *Parser) TypeWasVar(typ *ast.TypeExpr) *ast.IdentifierExpr {
-	if typ.WrappedType != nil {
-		return nil
-	}
-	if typ.Params != nil {
-		return nil
-	}
-	if typ.Returns != nil {
-		return nil
-	}
-	if typ.Fields != nil {
-		return nil
-	}
-	return &ast.IdentifierExpr{Name: typ.Name.GetToken(), ValueType: ast.Object}
-}
-
-func (p *Parser) TypeWithVar() (*ast.TypeExpr, ast.Node) {
+func (p *Parser) TypeAndIdentifier() (*ast.TypeExpr, ast.Node) {
 	typ := p.Type()
 
-	// if typ.Name != nil && typ.Name.GetToken().Lexeme == "type" {
-	// 	print("")
-	// }
+	ident := p.advance()
+	if ident.Type != tokens.Identifier {
+		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(ident))
+	}
 
-	token := p.advance()
+	return typ, &ast.IdentifierExpr{Name: ident, ValueType: ast.Invalid}
+}
 
-	return typ, &ast.IdentifierExpr{Name: token, ValueType: ast.Invalid}
+/*
+p.Type() // this will have to be a type
+p.CheckType() // this may be a type?
+
+	p.ResolveIsType() {
+		current := p.getCurrent()
+		node = p.Type()
+		p.disadvance(p.getCurrent() - current)
+
+		if is not a type{
+
+		}
+	}
+*/
+func (p *Parser) CheckType() bool {
+	current := p.getCurrent()
+	p.ignoreAlerts = true
+	typ := p.Type()
+	p.ignoreAlerts = false
+	p.disadvance(p.getCurrent() - current)
+
+	return typ.Name.GetType() != ast.NA
 }

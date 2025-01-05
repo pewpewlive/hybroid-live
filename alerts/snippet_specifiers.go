@@ -12,8 +12,8 @@ type SnippetSpecifier interface {
 	GetTokens() []tokens.Token
 }
 
-func NewSingle(token tokens.Token) Singleline {
-	return Singleline{
+func NewSingle(token tokens.Token) *Singleline {
+	return &Singleline{
 		Token: token,
 	}
 }
@@ -24,7 +24,7 @@ type Singleline struct { // Alert(alerts.DoesNotExistException{}, Singleline{tok
 
 func (ss *Singleline) GetSnippet(src string, index, columnCount, lineCount int) string {
 	snippet := strings.Builder{} // how are we getting the error line then
-	line := src[index-columnCount+1 : index+1]
+	line := src[index-columnCount+1 : index]
 	location := ss.Token.Location
 	if location.ColStart > 80 { // ok
 		var content string
@@ -56,8 +56,8 @@ func (ss *Singleline) GetTokens() []tokens.Token {
 	return []tokens.Token{ss.Token}
 }
 
-func NewMulti(startToken, endToken tokens.Token) Multiline {
-	return Multiline{
+func NewMulti(startToken, endToken tokens.Token) *Multiline {
+	return &Multiline{
 		StartToken: startToken,
 		EndToken:   endToken,
 	}

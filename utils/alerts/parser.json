@@ -73,6 +73,12 @@
     "note_format": ["Specifier.GetTokens()[0].Lexeme"]
   },
   {
+    "name": "ExpectedAssignmentSymbol",
+    "type": "Error",
+    "message": "Expected assignment symbol",
+    "note": "Assignment symbols are: '=', '+=', '-=', '*=', '%=', '/=', '\\\\='"
+  },
+  {
     "name": "ExpectedExpression",
     "type": "Error",
     "message": "Expected expression"

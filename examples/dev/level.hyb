@@ -1,8 +1,8 @@
 env Main as Level
 
-if true 
-    number a = 0
-
-fn a(number 1) -> (number) { 
-    
+fn PRETTY_FUNCTION(number a) -> number { 
+    43432
+    777777
+222
+    aq3242132()
 }

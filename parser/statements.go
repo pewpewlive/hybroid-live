@@ -119,9 +119,6 @@ func (p *Parser) statement() (returnNode ast.Node) {
 		p.advance()
 		returnNode = &ast.ContinueStmt{Token: p.peek(-1)}
 		return
-	case tokens.Identifier, tokens.Self:
-		returnNode = p.assignmentStmt()
-		return
 	case tokens.If:
 		p.advance()
 		returnNode = p.ifStmt(false, false, false)
@@ -172,9 +169,7 @@ func (p *Parser) statement() (returnNode ast.Node) {
 	expr := p.expressionStatement() // chou xe cha za guan xia xio big chilling, shau xio bing chilling
 
 	if expr.GetType() == ast.NA {
-		p.Alert(&alerts.ExpectedStatement{}, alerts.Singleline{Token: expr.GetToken()})
-		//p.error(p.peek(), "expected statement") // we need to create new error type
-		p.advance()
+		p.Alert(&alerts.ExpectedStatement{}, alerts.NewSingle(expr.GetToken()))
 	}
 
 	returnNode = expr
@@ -183,35 +178,18 @@ func (p *Parser) statement() (returnNode ast.Node) {
 
 func (p *Parser) expressionStatement() ast.Node {
 	expr := p.expression()
+
+	if expr.GetType() == ast.Identifier || expr.GetType() == ast.EnvironmentAccessExpression {
+		return p.assignmentStmt(expr)
+	}
+
 	typ := expr.GetType()
-	if typ != ast.CallExpression || typ != ast.MethodCallExpression || typ != ast.MacroCallExpression {
+	if typ != ast.CallExpression && typ != ast.MethodCallExpression {
 		return &ast.Improper{Token: expr.GetToken()} // the error is not shown correctly
 	}
 
 	return expr
 }
-
-// func (p *Parser) TypeDeclarationStmt(isLocal bool) ast.Node {
-// 	typeToken := p.peek(-1)
-// 	name, ok := p.consume("expected identifier in type declaration", tokens.Identifier)
-// 	if !ok {
-// 		return ast.NewImproper(name)
-// 	}
-// 	if token, ok := p.consume("expected '=' after identifier in type declaration", tokens.Equal); !ok {
-// 		return ast.NewImproper(token)
-// 	}
-
-// 	if !p.PeekIsType() {
-// 		return ast.NewImproper(p.peek())
-// 	}
-// 	aliased := p.Type()
-
-// 	return &ast.TypeDeclarationStmt{
-// 		Alias: name,
-// 		AliasedType: aliased,
-// 		Token: typeToken,
-// 	}
-// }
 
 func (p *Parser) AliasDeclarationStmt(isLocal bool) ast.Node {
 	typeToken := p.peek(-1)
@@ -223,7 +201,7 @@ func (p *Parser) AliasDeclarationStmt(isLocal bool) ast.Node {
 		return ast.NewImproper(token)
 	}
 
-	if !p.PeekIsType() {
+	if !p.CheckType() {
 		return ast.NewImproper(p.peek())
 	}
 	aliased := p.Type()
@@ -235,70 +213,6 @@ func (p *Parser) AliasDeclarationStmt(isLocal bool) ast.Node {
 		IsLocal:     isLocal,
 	}
 }
-
-/*
-func (p *Parser) macroDeclarationStmt() ast.Node {
-	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "after 'macro' keyword"), tokens.Identifier)
-	if !ok {
-		return ast.NewImproper(name)
-	}
-
-	macroDeclaration := &ast.MacroDeclarationStmt{
-		Name: name,
-	}
-	p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek()), string(tokens.LeftParen)), tokens.LeftParen)
-	//p.consumeOld("expected opening parenthesis", tokens.LeftParen)
-	params := []tokens.Token{}
-	token := p.peek()
-	if token.Type == tokens.RightParen {
-		p.advance()
-	} else if token.Type == tokens.Identifier {
-		p.advance()
-		params = append(params, token)
-		for p.match(tokens.Colon) {
-			name, ok = p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as a parameter"), tokens.Identifier)
-			if !ok {
-				return ast.NewImproper(name)
-			}
-			params = append(params, name)
-		}
-		macroDeclaration.Params = params
-		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(start, p.peek()), string(tokens.LeftParen)), tokens.LeftParen)
-		//p.consumeOld("expected closing parenthesis", tokens.RightParen)
-	} else {
-		p.advance()
-		p.error(token, "expected either identifier or closing parenthesis after opening parenthesis")
-		return ast.NewImproper(token)
-	}
-
-	if !p.match(tokens.FatArrow) {
-		p.error(p.peek(), "expected fat arrow in macro declaration")
-		return ast.NewImproper(p.peek())
-	}
-	if p.match(tokens.LeftBrace) {
-		macroDeclaration.MacroType = ast.ProgramExpansion
-		nestedBrace := 0
-		for !(p.peek().Type == tokens.RightBrace && nestedBrace <= 0) {
-			t := p.advance()
-			if t.Type == tokens.LeftBrace {
-				nestedBrace++
-			} else if t.Type == tokens.RightBrace {
-				nestedBrace--
-			}
-			macroDeclaration.Tokens = append(macroDeclaration.Tokens, t)
-		}
-		p.advance()
-		return macroDeclaration
-	}
-	macroDeclaration.MacroType = ast.ExpressionExpansion
-	line := p.peek(-1).Location.LineStart
-
-	for p.peek().Location.LineStart == line {
-		macroDeclaration.Tokens = append(macroDeclaration.Tokens, p.advance())
-	}
-
-	return macroDeclaration
-} */
 
 func (p *Parser) envStmt() ast.Node {
 	stmt := ast.EnvironmentStmt{}
@@ -567,7 +481,7 @@ func (p *Parser) fieldDeclarationStmt() ast.Node {
 		Token: p.peek(),
 	}
 
-	typ, ident := p.TypeWithVar()
+	typ, ident := p.TypeAndIdentifier()
 	if ident.GetType() != ast.Identifier {
 		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(ident.GetToken()), "in field declaration")
 		//p.error(ident.GetToken(), "expected identifier in field declaration")
@@ -677,8 +591,7 @@ func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) *ast.IfS
 	return &ifStm
 }
 
-func (p *Parser) assignmentStmt() ast.Node {
-	expr := p.expression()
+func (p *Parser) assignmentStmt(expr ast.Node) ast.Node {
 	idents := []ast.Node{expr}
 
 	for p.match(tokens.Comma) { // memberExpr or IdentifierExpr
@@ -694,7 +607,7 @@ func (p *Parser) assignmentStmt() ast.Node {
 			values = append(values, expr2)
 		}
 		expr = &ast.AssignmentStmt{Identifiers: idents, Values: values, Token: p.peek(-1)}
-	} else if p.match(tokens.PlusEqual, tokens.MinusEqual, tokens.SlashEqual, tokens.StarEqual, tokens.CaretEqual, tokens.ModuloEqual) {
+	} else if p.match(tokens.PlusEqual, tokens.MinusEqual, tokens.SlashEqual, tokens.StarEqual, tokens.CaretEqual, tokens.ModuloEqual, tokens.BackSlashEqual) {
 		assignOp := p.peek(-1)
 		op := p.getOp(assignOp)
 
@@ -712,7 +625,7 @@ func (p *Parser) assignmentStmt() ast.Node {
 		}
 		expr = &ast.AssignmentStmt{Identifiers: idents, Values: values, Token: assignOp}
 	} else {
-		p.Alert(&alerts.ExpectedStatement{}, alerts.Singleline{Token: expr.GetToken()})
+		p.Alert(&alerts.ExpectedAssignmentSymbol{}, alerts.NewSingle(p.peek()))
 	}
 
 	return expr
@@ -1008,14 +921,14 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 		variable.IsLocal = false
 		variable.IsConst = true
 
-		typ, ide = p.TypeWithVar()
+		typ, ide = p.TypeAndIdentifier()
 
 	} else if nextToken == tokens.Let {
 		variable.Token = p.advance()
 		variable.IsLocal = true
 		variable.IsConst = false
 
-		typ, ide = p.TypeWithVar()
+		typ, ide = p.TypeAndIdentifier()
 
 	} else if nextToken == tokens.Pub {
 		current := p.getCurrent()
@@ -1024,16 +937,16 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 		variable.IsLocal = false
 		variable.IsConst = false
 
-		typ, ide = p.TypeWithVar()
+		typ, ide = p.TypeAndIdentifier()
 
 		nextToken = p.peek().Type
 
-		if nextToken == tokens.Less || nextToken == tokens.LeftBrace || nextToken == tokens.LeftParen {
+		if nextToken != tokens.Equal {
 			p.disadvance(p.getCurrent() - current)
 
 			return nil
 		}
-	} else if !p.PeekIsType() {
+	} else if !p.CheckType() {
 		return nil
 	} else {
 		current := p.getCurrent()
@@ -1049,7 +962,7 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 
 		nextToken = p.peek().Type
 
-		if nextToken == tokens.Less || nextToken == tokens.LeftBrace || nextToken == tokens.LeftParen {
+		if nextToken != tokens.Equal {
 			p.disadvance(p.getCurrent() - current)
 
 			return nil

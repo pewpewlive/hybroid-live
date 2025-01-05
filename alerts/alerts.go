@@ -39,8 +39,6 @@ TODO: add fix snippet
 
 type Alert interface {
 	GetMessage() string
-	//GetTokens() []tokens.Token
-	//GetLocations() []tokens.TokenLocation
 	GetSpecifier() SnippetSpecifier
 
 	// Empty string means no note will be printed
@@ -65,10 +63,19 @@ func (ah *AlertHandler) NewAlert(alertType Alert, args ...any) Alert {
 	alert := reflect.ValueOf(alertType).Elem()
 
 	for i, arg := range args {
-		if reflect.TypeOf(arg) != alert.Field(i).Type() {
+		field := alert.Field(i)
+		if field.Kind() == reflect.Interface {
+			argType := reflect.TypeOf(arg)
+			if !argType.Implements(field.Type()) {
+				panic(fmt.Sprintf("(Interface) Attempt to construct %s{} field `%s` of type `%s`, with `%s` at %d", alert.Type().Name(), reflect.TypeOf(alertType).Elem().Field(i).Name, alert.Field(i).Type(), reflect.TypeOf(arg), i+1))
+			}
+			field.Set(reflect.ValueOf(arg))
+			continue
+		}
+		if reflect.TypeOf(arg) != field.Type() {
 			panic(fmt.Sprintf("Attempt to construct %s{} field `%s` of type `%s`, with `%s` at %d", alert.Type().Name(), reflect.TypeOf(alertType).Elem().Field(i).Name, alert.Field(i).Type(), reflect.TypeOf(arg), i+1))
 		}
-		alert.Field(i).Set(reflect.ValueOf(arg))
+		field.Set(reflect.ValueOf(arg))
 	}
 
 	return alert.Addr().Interface().(Alert)

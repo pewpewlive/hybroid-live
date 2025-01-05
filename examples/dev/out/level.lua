@@ -62,12 +62,5 @@ function ToString(value)
 	return str
 end
 
-if true then
-	local E_a = 0
-
-end
-
-local function E_a(E_thing)
-	E_number = 0
-
+local function E_PRETTY_FUNCTION(E_a)
 end

@@ -9,6 +9,9 @@ import (
 type Parser struct {
 	alerts.AlertHandler
 
+	/// ONLY USE WHENEVER YOU ARE CHECKING NODES AND MAKE SURE YOU DIDNT FORGET TO DISABLE IT
+	ignoreAlerts bool
+
 	program []ast.Node
 	current int
 	tokens  []tokens.Token
@@ -39,14 +42,19 @@ func (p *Parser) AssignTokens(tokens []tokens.Token) {
 
 type ParserError struct{}
 
-// func (p *Parser) error(token tokens.Token, msg string) {
-// 	errMsg := ast.Error{Token: token, Message: msg}
-// 	fmt.Printf("%s\n", errMsg.Message)
-// 	p.Errors = append(p.Errors, errMsg)
-// 	panic(errMsg)
-// }
-
 func (p *Parser) Alert(alertType alerts.Alert, args ...any) {
+	if p.ignoreAlerts {
+		return
+	}
+
+	p.Alert_(alertType, args...)
+}
+
+func (p *Parser) AlertPanic(alertType alerts.Alert, args ...any) {
+	if p.ignoreAlerts {
+		return
+	}
+
 	p.Alert_(alertType, args...)
 
 	if alertType.GetAlertType() == alerts.Error {
@@ -55,6 +63,10 @@ func (p *Parser) Alert(alertType alerts.Alert, args ...any) {
 }
 
 func (p *Parser) AlertI(alert alerts.Alert) {
+	if p.ignoreAlerts {
+		return
+	}
+
 	p.AlertI_(alert)
 
 	if alert.GetAlertType() == alerts.Error {
@@ -66,12 +78,10 @@ func (p *Parser) synchronize() {
 	//p.advance()
 	for !p.isAtEnd() {
 		switch p.peek().Type {
-		case tokens.RightBrace:
-			p.advance()
-			return
 		case tokens.For, tokens.Fn, tokens.If, tokens.Repeat, tokens.Tick,
 			tokens.Return, tokens.Let, tokens.While, tokens.Pub, tokens.Const,
-			tokens.Break, tokens.Continue, tokens.Class:
+			tokens.Break, tokens.Continue,
+			tokens.Class:
 			return
 		case tokens.Entity:
 			if p.peek(1).Type == tokens.Identifier && p.peek(2).Type == tokens.LeftBrace {
@@ -152,59 +162,22 @@ func (p *Parser) match(types ...tokens.TokenType) bool {
 
 // Takes a list of tokens, advancing if the next token matches with any token from the list and returns true.
 // Consume also advances if none of the tokens were able to match, and returns false
-//
-//	func (p *Parser) consumeOld(message string, types ...tokens.TokenType) (tokens.Token, bool) {
-//		if p.isAtEnd() {
-//			token := p.peek()
-//			p.error(token, message)
-//			return token, false // error
-//		}
-//		for _, tokenType := range types {
-//			if p.check(tokenType) {
-//				return p.advance(), true
-//			}
-//		}
-//		token := p.advance()
-//		p.error(token, message)
-//		return token, false // error
-//	}
-//
-// p.consume(p.NewAlert(...),
-//
-//	tokens)
-//
-//				 consume(types []tokens.TokenType, alert alerts.Alert, args ..any)
-//
-// p.consume([]{tokens.RightBrace}, &alerts.ExpectedEnclosingMark{}, alerts.Multiline{StartToken: start, EndToken: end}, string(tokens.RightBrace))
-//
-// p.SetAlert(...)
-// p.consume(tokens)
-// p.Alert(&alerts.ExpectedBlablah{}, token,
-//                   aopsdjaskfa)
-//
-/*
+// func (p *Parser) consumeOld(message string, types ...tokens.TokenType) (tokens.Token, bool) {
+// 	if p.isAtEnd() {
+// 		token := p.peek()
+// 		p.error(token, message)
+// 		return token, false // error
+// 	}
+// 	for _, tokenType := range types {
+// 		if p.check(tokenType) {
+// 			return p.advance(), true
+// 		}
+// 	}
+// 	token := p.advance()
+// 	p.error(token, message)
+// 	return token, false // error
+// }
 
-json:
-
-"display_type": "Singline"
-
-type Singleline struct {
-	Token
-}
-
-type ExpectedBlahblah struct {
-	Token
-	param1
-	param2
-
-	Specifier SnippetSpecifier
-}
-
-func (self) Setup() {
-	self.Singleline = alert.Singleline{Token: self.token}
-}
-
-*/
 func (p *Parser) consume(alert alerts.Alert, types ...tokens.TokenType) (tokens.Token, bool) {
 	if p.isAtEnd() {
 		token := p.peek()
@@ -272,8 +245,7 @@ func (p *Parser) getBody() ([]ast.Node, bool) {
 	if p.match(tokens.FatArrow) {
 		args, ok := p.returnArgs()
 		if !ok {
-			p.Alert(&alerts.ExpectedReturnArgs{}, alerts.Singleline{Token: p.peek()})
-			//p.error(p.peek(), "expected return arguments")
+			p.Alert(&alerts.ExpectedReturnArgs{}, alerts.NewSingle(p.peek()))
 			return []ast.Node{}, false
 		}
 		body = []ast.Node{
@@ -287,15 +259,14 @@ func (p *Parser) getBody() ([]ast.Node, bool) {
 		body = []ast.Node{p.statement()}
 		return body, true
 	}
-	if _, success := p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.Singleline{Token: p.peek()}, string(tokens.LeftBrace)), tokens.LeftBrace); !success {
+	if _, success := p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek()), string(tokens.LeftBrace)), tokens.LeftBrace); !success {
 		return body, false
 	}
 	start := p.peek(-1)
 
-	for !p.match(tokens.RightBrace) { // passed that
-		if p.peek().Type == tokens.Eof { // i say we debug and see the token content
-			p.Alert(&alerts.ExpectedEnclosingMark{}, alerts.Multiline{StartToken: start, EndToken: p.peek(-1)}, string(tokens.RightBrace)) // no,
-			//p.error(p.peek(), "expected body closure")// so we generate expected body closure error
+	for !p.match(tokens.RightBrace) {
+		if p.peek().Type == tokens.Eof {
+			p.Alert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(start, p.peek(-1)), string(tokens.RightBrace))
 			return body, false
 		}
 
