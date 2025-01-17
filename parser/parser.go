@@ -3,41 +3,12 @@ package parser
 import (
 	"hybroid/alerts"
 	"hybroid/ast"
+	"hybroid/helpers"
 	"hybroid/tokens"
 )
 
-type StackItem interface{}
-type StackEntry[T any] struct {
-	Name string
-	Item T
-}
-
-type Stack[T any] struct {
-	items []StackEntry[T]
-}
-
-func (s *Stack[T]) Push(name string, item T) {
-	s.items = append(s.items, StackEntry[T]{Name: name, Item: item})
-}
-
-func (s *Stack[T]) Peek() StackEntry[T] {
-	return s.items[len(s.items)-1]
-}
-
-func (s *Stack[T]) Pop() StackEntry[T] {
-	s.items = s.items[0 : len(s.items)-1]
-	return s.items[len(s.items)-1]
-}
-
-func (s *Stack[T]) Count() int {
-	return len(s.items)
-}
-
 type Parser struct {
 	alerts.AlertHandler
-
-	// ONLY USE WHENEVER YOU ARE CHECKING NODES AND MAKE SURE YOU DIDNT FORGET TO DISABLE IT
-	ignoreAlerts bool
 
 	program []ast.Node
 	current int
@@ -47,8 +18,10 @@ type Parser struct {
 }
 
 type ParserContext struct {
-	EnvStatement    *ast.EnvironmentStmt
-	FunctionReturns Stack[int]
+	EnvStatement *ast.EnvironmentStmt
+	// ONLY USE WHENEVER YOU ARE CHECKING NODES AND MAKE SURE YOU DIDNT FORGET TO DISABLE IT
+	IgnoreAlerts    helpers.Stack[bool]
+	FunctionReturns helpers.Stack[int]
 }
 
 func NewParser() Parser {
@@ -58,7 +31,8 @@ func NewParser() Parser {
 		tokens:  make([]tokens.Token, 0),
 		Context: ParserContext{
 			EnvStatement:    nil,
-			FunctionReturns: Stack[int]{},
+			IgnoreAlerts:    helpers.Stack[bool]{},
+			FunctionReturns: helpers.Stack[int]{},
 		},
 	}
 }
@@ -70,7 +44,7 @@ func (p *Parser) AssignTokens(tokens []tokens.Token) {
 type ParserError struct{}
 
 func (p *Parser) Alert(alertType alerts.Alert, args ...any) {
-	if p.ignoreAlerts {
+	if p.Context.IgnoreAlerts.Peek().Item {
 		return
 	}
 
@@ -78,7 +52,7 @@ func (p *Parser) Alert(alertType alerts.Alert, args ...any) {
 }
 
 func (p *Parser) AlertPanic(alertType alerts.Alert, args ...any) {
-	if p.ignoreAlerts {
+	if p.Context.IgnoreAlerts.Peek().Item {
 		return
 	}
 
@@ -90,7 +64,7 @@ func (p *Parser) AlertPanic(alertType alerts.Alert, args ...any) {
 }
 
 func (p *Parser) AlertI(alert alerts.Alert) {
-	if p.ignoreAlerts {
+	if p.Context.IgnoreAlerts.Peek().Item {
 		return
 	}
 

@@ -38,14 +38,14 @@ func (p *Parser) fn() ast.Node {
 			//p.error(p.peek(), "expected opening parenthesis for parameters")
 		}
 		fn.Return = p.returnings()
-		p.Context.FunctionReturns = append(p.Context.FunctionReturns, len(fn.Return))
+		p.Context.FunctionReturns.Push("fn", len(fn.Return))
 
 		var success bool
 		fn.Body, success = p.getBody()
 		if !success {
 			return ast.NewImproper(fn.Token)
 		}
-		p.Context.FunctionReturns = p.Context.FunctionReturns[:len(p.Context.FunctionReturns)-1]
+		p.Context.FunctionReturns.Pop("fn")
 
 		return fn
 	} else {

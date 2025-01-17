@@ -430,7 +430,7 @@ func (p *Parser) entityFunctionDeclarationStmt(token tokens.Token, functionType 
 	stmt.Generics = p.genericParameters()
 	stmt.Params = p.parameters(tokens.LeftParen, tokens.RightParen)
 	stmt.Returns = p.returnings()
-	p.Context.FunctionReturns.Push("EntityFunctionDeclarationStmt", len(stmt.Returns))
+	p.Context.FunctionReturns.Push("entityFunctionDeclarationStmt", len(stmt.Returns))
 
 	var success bool
 	stmt.Body, success = p.getBody()
@@ -438,7 +438,7 @@ func (p *Parser) entityFunctionDeclarationStmt(token tokens.Token, functionType 
 		return ast.NewImproper(stmt.Token)
 	}
 
-	p.Context.FunctionReturns.Pop()
+	p.Context.FunctionReturns.Pop("entityFunctionDeclarationStmt")
 
 	return stmt
 }
@@ -641,7 +641,7 @@ func (p *Parser) returnStmt() ast.Node {
 		return returnStmt
 	}
 
-	if p.Context.FunctionReturns.Peek().Item.(int) != 0 {
+	if p.Context.FunctionReturns.Peek().Item != 0 {
 		args, _ := p.returnArgs()
 		returnStmt.Args = args
 	}
@@ -707,7 +707,7 @@ func (p *Parser) functionDeclarationStmt(IsLocal bool) ast.Node {
 	fnDec.Params = p.parameters(tokens.LeftParen, tokens.RightParen)
 
 	fnDec.Return = p.returnings()
-	p.Context.FunctionReturns = append(p.Context.FunctionReturns, len(fnDec.Return))
+	p.Context.FunctionReturns.Push("functionDeclarationStmt", len(fnDec.Return))
 
 	var success bool
 	fnDec.Body, success = p.getBody()
@@ -715,7 +715,7 @@ func (p *Parser) functionDeclarationStmt(IsLocal bool) ast.Node {
 		return ast.NewImproper(fnDec.Name)
 	}
 
-	p.Context.FunctionReturns = p.Context.FunctionReturns[:len(p.Context.FunctionReturns)-1]
+	p.Context.FunctionReturns.Pop("functionDeclarationStmt")
 
 	return &fnDec
 }

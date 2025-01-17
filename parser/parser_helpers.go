@@ -228,9 +228,11 @@ p.CheckType() // this may be a type?
 */
 func (p *Parser) CheckType() bool {
 	current := p.getCurrent()
-	p.ignoreAlerts = true
+	p.Context.IgnoreAlerts.Push("CheckType", true)
+
 	typ := p.Type()
-	p.ignoreAlerts = false
+
+	p.Context.IgnoreAlerts.Pop("CheckType")
 	p.disadvance(p.getCurrent() - current)
 
 	return typ.Name.GetType() != ast.NA
