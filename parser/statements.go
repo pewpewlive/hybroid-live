@@ -430,7 +430,7 @@ func (p *Parser) entityFunctionDeclarationStmt(token tokens.Token, functionType 
 	stmt.Generics = p.genericParameters()
 	stmt.Params = p.parameters(tokens.LeftParen, tokens.RightParen)
 	stmt.Returns = p.returnings()
-	p.Context.FunctionReturns = append(p.Context.FunctionReturns, len(stmt.Returns))
+	p.Context.FunctionReturns.Push("EntityFunctionDeclarationStmt", len(stmt.Returns))
 
 	var success bool
 	stmt.Body, success = p.getBody()
@@ -438,7 +438,7 @@ func (p *Parser) entityFunctionDeclarationStmt(token tokens.Token, functionType 
 		return ast.NewImproper(stmt.Token)
 	}
 
-	p.Context.FunctionReturns = p.Context.FunctionReturns[:len(p.Context.FunctionReturns)-1]
+	p.Context.FunctionReturns.Pop()
 
 	return stmt
 }
@@ -637,11 +637,11 @@ func (p *Parser) returnStmt() ast.Node {
 		Args:  []ast.Node{},
 	}
 
-	if len(p.Context.FunctionReturns) == 0 {
+	if p.Context.FunctionReturns.Count() == 0 {
 		return returnStmt
 	}
 
-	if p.Context.FunctionReturns[len(p.Context.FunctionReturns)-1] != 0 {
+	if p.Context.FunctionReturns.Peek().Item.(int) != 0 {
 		args, _ := p.returnArgs()
 		returnStmt.Args = args
 	}

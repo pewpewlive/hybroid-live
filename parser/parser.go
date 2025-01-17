@@ -6,22 +6,49 @@ import (
 	"hybroid/tokens"
 )
 
+type StackItem interface{}
+type StackEntry[T any] struct {
+	Name string
+	Item T
+}
+
+type Stack[T any] struct {
+	items []StackEntry[T]
+}
+
+func (s *Stack[T]) Push(name string, item T) {
+	s.items = append(s.items, StackEntry[T]{Name: name, Item: item})
+}
+
+func (s *Stack[T]) Peek() StackEntry[T] {
+	return s.items[len(s.items)-1]
+}
+
+func (s *Stack[T]) Pop() StackEntry[T] {
+	s.items = s.items[0 : len(s.items)-1]
+	return s.items[len(s.items)-1]
+}
+
+func (s *Stack[T]) Count() int {
+	return len(s.items)
+}
+
 type Parser struct {
 	alerts.AlertHandler
 
-	/// ONLY USE WHENEVER YOU ARE CHECKING NODES AND MAKE SURE YOU DIDNT FORGET TO DISABLE IT
+	// ONLY USE WHENEVER YOU ARE CHECKING NODES AND MAKE SURE YOU DIDNT FORGET TO DISABLE IT
 	ignoreAlerts bool
 
 	program []ast.Node
 	current int
 	tokens  []tokens.Token
-	Errors  []ast.Error
+	//Errors  []ast.Error
 	Context ParserContext
 }
 
 type ParserContext struct {
 	EnvStatement    *ast.EnvironmentStmt
-	FunctionReturns []int
+	FunctionReturns Stack[int]
 }
 
 func NewParser() Parser {
@@ -31,7 +58,7 @@ func NewParser() Parser {
 		tokens:  make([]tokens.Token, 0),
 		Context: ParserContext{
 			EnvStatement:    nil,
-			FunctionReturns: make([]int, 0),
+			FunctionReturns: Stack[int]{},
 		},
 	}
 }
