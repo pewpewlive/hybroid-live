@@ -17,14 +17,14 @@ type Parser struct {
 }
 
 type ParserContext struct {
-	EnvStatement *ast.EnvironmentStmt
-	// ONLY USE WHENEVER YOU ARE CHECKING NODES AND MAKE SURE YOU DIDNT FORGET TO DISABLE IT
-	IgnoreAlerts    helpers.Stack[bool]
+	EnvStatement    *ast.EnvironmentStmt
 	FunctionReturns helpers.Stack[int]
+	// ONLY USE WHENEVER YOU ARE CHECKING NODES AND MAKE SURE YOU DIDNT FORGET TO DISABLE IT
+	IgnoreAlerts helpers.Stack[bool]
 }
 
 func NewParser() Parser {
-	return Parser{
+	parser := Parser{
 		program: make([]ast.Node, 0),
 		current: 0,
 		tokens:  make([]tokens.Token, 0),
@@ -34,6 +34,11 @@ func NewParser() Parser {
 			FunctionReturns: helpers.Stack[int]{},
 		},
 	}
+
+	parser.Context.IgnoreAlerts.Push("default", false)
+	parser.Context.FunctionReturns.Push("default", 0)
+
+	return parser
 }
 
 func (p *Parser) AssignTokens(tokens []tokens.Token) {
@@ -116,7 +121,6 @@ func (p *Parser) advance() tokens.Token {
 	return t
 }
 
-// Advances by one into the next token and returns the previous token before advancing
 func (p *Parser) disadvance(amount int) tokens.Token {
 	if p.current > 0 {
 		p.current -= amount

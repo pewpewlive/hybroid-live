@@ -2,7 +2,7 @@ env Main as Level
 
 fn PRETTY_FUNCTION(number a) -> number { 
     43432
-    777777
+    777777 + 23 s
 222
     aq3242132()
 }
