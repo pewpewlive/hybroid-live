@@ -117,7 +117,7 @@ func (s *Stack[T]) Pop(name string) StackEntry[T] {
 	item := s.items[len(s.items)-1]
 	s.items = s.items[0 : len(s.items)-1]
 
-	if item.Name == name {
+	if item.Name != name {
 		fmt.Printf("Stack \"%s\" had an invalid pop name, expected: %s got: %s", s.Name, name, item.Name)
 	}
 	return item

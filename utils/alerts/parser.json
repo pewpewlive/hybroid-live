@@ -22,7 +22,7 @@
     "type": "Error",
     "params": {
       "Symbol": "string",
-      "Context": "string `default:\"\"\"\"`"
+      "Context": "string"
     },
     "message": "Expected '%s' %s"
   },
@@ -36,9 +36,10 @@
     "type": "Error",
     "params": {
       "Keyword": "string",
-      "Context": "string `default:\"\"\"\"`"
+      "Context": "string"
     },
-    "message": "Expected keyword '%s' %s"
+    "message": "Expected keyword '%s' %s",
+    "message_format": ["Keyword", "Context"]
   },
   {
     "name": "EnvironmentRedaclaration",
@@ -60,7 +61,7 @@
     "name": "ExpectedIdentifier",
     "type": "Error",
     "params": {
-      "Context": "string `default:\"\"\"\"`"
+      "Context": "string"
     },
     "message": "Expected identifier %s",
     "message_format":["Context"]

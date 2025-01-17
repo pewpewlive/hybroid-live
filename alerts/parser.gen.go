@@ -62,7 +62,7 @@ func (eom *ExpectedOpeningMark) GetAlertType() AlertType {
 type ExpectedSymbol struct {
   Specifier SnippetSpecifier
   Symbol string
-  Context string `default:""""`
+  Context string
 }
 
 func (es *ExpectedSymbol) GetMessage() string {
@@ -114,7 +114,7 @@ func (mtoes *MoreThanOneElseStatement) GetAlertType() AlertType {
 type ExpectedKeyword struct {
   Specifier SnippetSpecifier
   Keyword string
-  Context string `default:""""`
+  Context string
 }
 
 func (ek *ExpectedKeyword) GetMessage() string {
@@ -215,7 +215,7 @@ func (ee *ExpectedEnvironment) GetAlertType() AlertType {
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ExpectedIdentifier struct {
   Specifier SnippetSpecifier
-  Context string `default:""""`
+  Context string
 }
 
 func (ei *ExpectedIdentifier) GetMessage() string {

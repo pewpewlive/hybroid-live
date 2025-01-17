@@ -13,7 +13,6 @@ type Parser struct {
 	program []ast.Node
 	current int
 	tokens  []tokens.Token
-	//Errors  []ast.Error
 	Context ParserContext
 }
 

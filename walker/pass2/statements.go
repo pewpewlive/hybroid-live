@@ -336,9 +336,9 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, s
 	}
 
 	variable := &wkr.VariableVal{
-		Name:  node.Name.Lexeme,
-		Value: &wkr.FunctionVal{Params: params, Returns: ret, Generics: generics},
-		Token: node.GetToken(),
+		Name:    node.Name.Lexeme,
+		Value:   &wkr.FunctionVal{Params: params, Returns: ret, Generics: generics},
+		Token:   node.GetToken(),
 		IsLocal: node.IsLocal,
 	}
 	w.DeclareVariable(scope, variable, variable.Token)
@@ -462,12 +462,12 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclaration
 			}
 		} else {
 			if types[i].GetType() == wkr.Wrapper && types[i].(*wkr.WrapperType).WrappedType.PVT() == ast.Object {
-				if declaration.Type == nil  {
+				if declaration.Type == nil {
 					w.Error(declaration.Identifiers[i], "cannot infer the wrapped type of the map/list")
-				}else {
+				} else {
 					val = w.TypeToValue(TypeExpr(w, declaration.Type, scope, false))
 				}
-			}else {
+			} else {
 				val = w.TypeToValue(types[i])
 			}
 		}
@@ -491,11 +491,11 @@ func DeclareConversion(w *wkr.Walker, scope *wkr.Scope) {
 	if len(w.Context.Conversions) == 1 {
 		conv := w.Context.Conversions[0]
 		w.DeclareVariable(scope, &wkr.VariableVal{
-			Name: conv.Name.Lexeme,
-			Value: conv.Entity,
+			Name:   conv.Name.Lexeme,
+			Value:  conv.Entity,
 			IsInit: true,
 		}, conv.Name)
-	}	
+	}
 	w.Context.Conversions = make([]wkr.EntityConversion, 0)
 }
 
@@ -570,8 +570,8 @@ func AssignmentStmt(w *wkr.Walker, assignStmt *ast.AssignmentStmt, scope *wkr.Sc
 		variable, ok := value.(*wkr.VariableVal)
 		if !ok {
 			variable = &wkr.VariableVal{
-				Name: "",
-				Value: value,
+				Name:   "",
+				Value:  value,
 				IsInit: true,
 			}
 		}
