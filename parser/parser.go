@@ -19,6 +19,7 @@ type Parser struct {
 type ParserContext struct {
 	EnvStatement    *ast.EnvironmentStmt
 	FunctionReturns helpers.Stack[int]
+
 	// ONLY USE WHENEVER YOU ARE CHECKING NODES AND MAKE SURE YOU DIDNT FORGET TO DISABLE IT
 	IgnoreAlerts helpers.Stack[bool]
 }
@@ -30,8 +31,8 @@ func NewParser() Parser {
 		tokens:  make([]tokens.Token, 0),
 		Context: ParserContext{
 			EnvStatement:    nil,
-			IgnoreAlerts:    helpers.Stack[bool]{},
-			FunctionReturns: helpers.Stack[int]{},
+			IgnoreAlerts:    helpers.NewStack[bool]("IgnoreAlerts"),
+			FunctionReturns: helpers.NewStack[int]("FunctionReturns"),
 		},
 	}
 
@@ -48,7 +49,7 @@ func (p *Parser) AssignTokens(tokens []tokens.Token) {
 type ParserError struct{}
 
 func (p *Parser) Alert(alertType alerts.Alert, args ...any) {
-	if p.Context.IgnoreAlerts.Peek().Item {
+	if p.Context.IgnoreAlerts.Top().Item {
 		return
 	}
 
@@ -56,7 +57,7 @@ func (p *Parser) Alert(alertType alerts.Alert, args ...any) {
 }
 
 func (p *Parser) AlertPanic(alertType alerts.Alert, args ...any) {
-	if p.Context.IgnoreAlerts.Peek().Item {
+	if p.Context.IgnoreAlerts.Top().Item {
 		return
 	}
 
@@ -68,7 +69,7 @@ func (p *Parser) AlertPanic(alertType alerts.Alert, args ...any) {
 }
 
 func (p *Parser) AlertI(alert alerts.Alert) {
-	if p.Context.IgnoreAlerts.Peek().Item {
+	if p.Context.IgnoreAlerts.Top().Item {
 		return
 	}
 
@@ -112,35 +113,58 @@ func (p *Parser) isAtEnd() bool {
 	return p.peek().Type == tokens.Eof
 }
 
-// Advances by one into the next token and returns the previous token before advancing
-func (p *Parser) advance() tokens.Token {
-	t := p.tokens[p.current]
-	if p.current < len(p.tokens)-1 {
-		p.current++
+// Advances by the given offset into the next token and returns the previous token before advancing
+func (p *Parser) advance(offset ...int) tokens.Token {
+	currentOffset := 1
+	if offset != nil {
+		currentOffset = offset[0]
 	}
+
+	if currentOffset < 0 {
+		panic("Attempt to advance with a negative offset. Use disadvance() instead!")
+	}
+
+	t := p.tokens[p.current]
+	index := p.current + currentOffset
+
+	if index < len(p.tokens) {
+		p.current = index
+	}
+
 	return t
 }
 
-func (p *Parser) disadvance(amount int) tokens.Token {
-	if p.current > 0 {
-		p.current -= amount
+// Disadvances by the given offset into the previous tokens and returns the current token after disadvancing
+func (p *Parser) disadvance(offset ...int) tokens.Token {
+	currentOffset := 1
+	if offset != nil {
+		currentOffset = offset[0]
 	}
-	return p.tokens[p.current]
-}
 
-func (p *Parser) getCurrent() int {
-	return p.current
+	if currentOffset < 0 {
+		panic("Attempt to disadvance with a negative offset (which moves forward). Use advance() instead!")
+	}
+
+	index := p.current - currentOffset
+
+	if index >= 0 {
+		p.current = index
+	}
+
+	return p.tokens[p.current]
 }
 
 // Peeks into the current token or peeks at the token that is offset from the current position by the given offset
 func (p *Parser) peek(offset ...int) tokens.Token {
-	if offset == nil {
-		return p.tokens[p.current]
+	index := p.current
+	if offset != nil {
+		index += offset[0]
+	}
+
+	if index >= 0 && index < len(p.tokens) {
+		return p.tokens[index]
 	} else {
-		if p.current+offset[0] >= len(p.tokens)-1 || p.current+offset[0] < 1 {
-			return p.tokens[p.current]
-		}
-		return p.tokens[p.current+offset[0]]
+		return p.tokens[p.current]
 	}
 }
 
@@ -163,24 +187,6 @@ func (p *Parser) match(types ...tokens.TokenType) bool {
 	}
 	return false
 }
-
-// Takes a list of tokens, advancing if the next token matches with any token from the list and returns true.
-// Consume also advances if none of the tokens were able to match, and returns false
-// func (p *Parser) consumeOld(message string, types ...tokens.TokenType) (tokens.Token, bool) {
-// 	if p.isAtEnd() {
-// 		token := p.peek()
-// 		p.error(token, message)
-// 		return token, false // error
-// 	}
-// 	for _, tokenType := range types {
-// 		if p.check(tokenType) {
-// 			return p.advance(), true
-// 		}
-// 	}
-// 	token := p.advance()
-// 	p.error(token, message)
-// 	return token, false // error
-// }
 
 func (p *Parser) consume(alert alerts.Alert, types ...tokens.TokenType) (tokens.Token, bool) {
 	if p.isAtEnd() {

@@ -137,7 +137,7 @@ func (p *Parser) unary() ast.Node {
 func (p *Parser) entity() ast.Node {
 	variable := p.accessorExprDepth2(nil)
 	var expr ast.Node
-	current := p.getCurrent()
+	currentStart := p.current
 
 	var conv *tokens.Token
 	if p.match(tokens.Equal) {
@@ -163,7 +163,7 @@ func (p *Parser) entity() ast.Node {
 		}
 	}
 
-	p.disadvance(p.getCurrent() - current)
+	p.disadvance(p.current - currentStart)
 
 	return variable
 }

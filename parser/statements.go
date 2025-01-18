@@ -40,38 +40,32 @@ func (p *Parser) statement() (returnNode ast.Node) {
 	if token == tokens.Pub {
 		switch next {
 		case tokens.Alias:
-			p.advance()
-			p.advance()
+			p.advance(2)
 			returnNode = p.AliasDeclarationStmt(false)
 			return
 		case tokens.Fn:
-			p.advance()
-			p.advance()
+			p.advance(2)
 			returnNode = p.functionDeclarationStmt(false)
 			return
 		case tokens.Class:
-			p.advance()
-			p.advance()
+			p.advance(2)
 			returnNode = p.classDeclarationStmt(false)
 			return
 		case tokens.Entity:
-			p.advance()
-			p.advance()
+			p.advance(2)
 			returnNode = p.entityDeclarationStmt(false)
 			return
 		case tokens.Enum:
-			p.advance()
-			p.advance()
+			p.advance(2)
 			returnNode = p.enumDeclarationStmt(false)
 			return
 			// case tokens.Type:
-			// 	p.advance()
-			// 	p.advance()
+			// 	p.advance(2)
 			// 	node = p.TypeDeclarationStmt(false)
 		}
 	}
 
-	if token == tokens.Struct && next != tokens.Identifier { // wait yeah idk
+	if token == tokens.Struct && next != tokens.Identifier {
 		returnNode = p.expression()
 		return
 	}
@@ -166,7 +160,7 @@ func (p *Parser) statement() (returnNode ast.Node) {
 		return
 	}
 
-	expr := p.expressionStatement() // chou xe cha za guan xia xio big chilling, shau xio bing chilling
+	expr := p.expressionStatement()
 
 	if expr.GetType() == ast.NA {
 		p.Alert(&alerts.ExpectedStatement{}, alerts.NewSingle(expr.GetToken()))
@@ -641,7 +635,7 @@ func (p *Parser) returnStmt() ast.Node {
 		return returnStmt
 	}
 
-	if p.Context.FunctionReturns.Peek().Item != 0 {
+	if p.Context.FunctionReturns.Top().Item != 0 {
 		args, _ := p.returnArgs()
 		returnStmt.Args = args
 	}
@@ -931,7 +925,7 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 		typ, ide = p.TypeAndIdentifier()
 
 	} else if nextToken == tokens.Pub {
-		current := p.getCurrent()
+		currentStart := p.current
 
 		variable.Token = p.advance()
 		variable.IsLocal = false
@@ -942,19 +936,19 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 		nextToken = p.peek().Type
 
 		if nextToken != tokens.Equal {
-			p.disadvance(p.getCurrent() - current)
+			p.disadvance(p.current - currentStart)
 
 			return nil
 		}
 	} else if !p.CheckType() {
 		return nil
 	} else {
-		current := p.getCurrent()
+		currentStart := p.current
 
 		typ = p.Type()
 		token := p.advance()
 		if token.Type != tokens.Identifier {
-			p.disadvance(p.getCurrent() - current)
+			p.disadvance(p.current - currentStart)
 
 			return nil
 		}
@@ -963,7 +957,7 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 		nextToken = p.peek().Type
 
 		if nextToken != tokens.Equal {
-			p.disadvance(p.getCurrent() - current)
+			p.disadvance(p.current - currentStart)
 
 			return nil
 		}

@@ -133,7 +133,7 @@ func (p *Parser) genericParameters() []*ast.IdentifierExpr {
 }
 
 func (p *Parser) genericArguments() ([]*ast.TypeExpr, bool) {
-	current := p.getCurrent()
+	currentStart := p.current
 	params := []*ast.TypeExpr{}
 	if !p.match(tokens.Less) {
 		return params, false
@@ -146,7 +146,7 @@ func (p *Parser) genericArguments() ([]*ast.TypeExpr, bool) {
 	}
 
 	if !p.match(tokens.Greater) {
-		p.disadvance(p.getCurrent() - current)
+		p.disadvance(p.current - currentStart)
 		return params, false
 	}
 
@@ -212,28 +212,14 @@ func (p *Parser) TypeAndIdentifier() (*ast.TypeExpr, ast.Node) {
 	return typ, &ast.IdentifierExpr{Name: ident, ValueType: ast.Invalid}
 }
 
-/*
-p.Type() // this will have to be a type
-p.CheckType() // this may be a type?
-
-	p.ResolveIsType() {
-		current := p.getCurrent()
-		node = p.Type()
-		p.disadvance(p.getCurrent() - current)
-
-		if is not a type{
-
-		}
-	}
-*/
 func (p *Parser) CheckType() bool {
-	current := p.getCurrent()
+	currentStart := p.current
 	p.Context.IgnoreAlerts.Push("CheckType", true)
 
 	typ := p.Type()
 
 	p.Context.IgnoreAlerts.Pop("CheckType")
-	p.disadvance(p.getCurrent() - current)
+	p.disadvance(p.current - currentStart)
 
 	return typ.Name.GetType() != ast.NA
 }

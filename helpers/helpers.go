@@ -1,7 +1,6 @@
 package helpers
 
 import (
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -93,36 +92,4 @@ func CollectFiles(cwd string) ([]FileInformation, error) {
 	}
 
 	return files, nil
-}
-
-type StackEntry[T any] struct {
-	Name string
-	Item T
-}
-
-type Stack[T any] struct {
-	Name  string
-	items []StackEntry[T]
-}
-
-func (s *Stack[T]) Push(name string, item T) {
-	s.items = append(s.items, StackEntry[T]{Name: name, Item: item})
-}
-
-func (s *Stack[T]) Peek() StackEntry[T] {
-	return s.items[len(s.items)-1]
-}
-
-func (s *Stack[T]) Pop(name string) StackEntry[T] {
-	item := s.items[len(s.items)-1]
-	s.items = s.items[0 : len(s.items)-1]
-
-	if item.Name != name {
-		fmt.Printf("Stack \"%s\" had an invalid pop name, expected: %s got: %s", s.Name, name, item.Name)
-	}
-	return item
-}
-
-func (s *Stack[T]) Count() int {
-	return len(s.items)
 }
