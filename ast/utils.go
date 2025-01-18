@@ -12,11 +12,10 @@ type NodeDrawer interface {
 }
 
 func DrawNodes(nodes []Node) {
-	cwd, erre := os.Getwd()
+	cwd, err := os.Getwd()
 
-	if erre != nil {
-		panic(erre)
-		//error
+	if err != nil {
+		panic(err)
 	}
 
 	out, err := json.MarshalIndent(nodes, " ", " ")

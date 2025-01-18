@@ -53,7 +53,7 @@ class Alert:
         self.type = raw.get("type", None)
         assert self.type is not None, f"Type must not be None, Raw info: {raw}"
 
-        self.stage = stage # i think we do, multiline? im thinking that you may want to show a part of code that doesnt need to be underlined at all
+        self.stage = stage
 
         self.params = {"Specifier": "SnippetSpecifier"}
         self.params = self.params | raw.get("params", {})
@@ -94,7 +94,7 @@ class Alert:
                 "GetSpecifier",
                 "",
                 "SnippetSpecifier",
-                f"return {self.receiver}.Specifier"
+                f"return {self.receiver}.Specifier",
             ],
             [
                 "GetNote",

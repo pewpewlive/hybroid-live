@@ -19,10 +19,6 @@ func (ete *EnvTypeExpr) GetValueType() PrimitiveValueType {
 	return Invalid
 }
 
-// func (ete *EnvTypeExpr) DrawNode(str *strings.Builder, depth int) *strings.Builder {
-// 	str.WriteString(ete.Type)
-// }
-
 type EnvPathExpr struct {
 	Path tokens.Token
 }
@@ -77,23 +73,6 @@ func (mce *MacroCallExpr) GetToken() tokens.Token {
 func (mce *MacroCallExpr) GetValueType() PrimitiveValueType {
 	return Invalid
 }
-
-// type CastExpr struct{
-// 	Value Node
-// 	Type  *TypeExpr
-// }
-
-// func (le *CastExpr) GetType() NodeType {
-// 	return LiteralExpression
-// }
-
-// func (le *CastExpr) GetToken() tokens.Token {
-// 	return le.Value.GetToken()
-// }
-
-// func (le *CastExpr) GetValueType() PrimitiveValueType {
-// 	return le.Value.GetValueType()
-// }
 
 type LiteralExpr struct {
 	Value     string

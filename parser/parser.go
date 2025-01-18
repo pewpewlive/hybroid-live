@@ -269,7 +269,7 @@ func (p *Parser) getBody() ([]ast.Node, bool) {
 		body = []ast.Node{p.statement()}
 		return body, true
 	}
-	if _, success := p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek()), string(tokens.LeftBrace)), tokens.LeftBrace); !success {
+	if _, success := p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace); !success {
 		return body, false
 	}
 	start := p.peek(-1)

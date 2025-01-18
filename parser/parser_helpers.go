@@ -62,7 +62,7 @@ func (p *Parser) getParam(closing tokens.TokenType) ast.Param {
 
 func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) []ast.Param {
 	if !p.match(opening) {
-		p.Alert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek()), string(opening))
+		p.Alert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek()), opening)
 		return []ast.Param{}
 	}
 
@@ -76,7 +76,7 @@ func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) 
 		param := p.getParam(closing)
 		if param.Type == nil {
 			if len(args) == 0 {
-				p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(p.peek(-1))) //param.Name, "parameter need to be declared with a type before the name")
+				p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(p.peek(-1)))
 			} else {
 				param.Type = previous
 			}
@@ -97,7 +97,7 @@ func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) 
 			}
 			args = append(args, param)
 		}
-		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(open, p.peek()), string(closing)), closing)
+		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(open, p.peek()), closing), closing)
 	}
 
 	return args
@@ -120,14 +120,12 @@ func (p *Parser) genericParameters() []*ast.IdentifierExpr {
 		token := p.advance()
 		if token.Type != tokens.Identifier {
 			p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(token))
-			//p.error(token, "expected type identifier in generic parameters")
 		} else {
 			params = append(params, &ast.IdentifierExpr{Name: token, ValueType: ast.Invalid})
 		}
 	}
 
-	p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewSingle(p.peek()), string(tokens.Greater)), tokens.Greater)
-	//p.consumeOld("expected '>' in generic parameters", tokens.Greater)
+	p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewSingle(p.peek()), tokens.Greater), tokens.Greater)
 
 	return params
 }
@@ -168,8 +166,7 @@ func (p *Parser) arguments() []ast.Node {
 			arg := p.expression()
 			args = append(args, arg)
 		}
-		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewSingle(p.peek()), string(tokens.RightParen)), tokens.RightParen)
-		//p.consumeOld("expected closing paren after arguments", tokens.RightParen)
+		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewSingle(p.peek()), tokens.RightParen), tokens.RightParen)
 	}
 
 	return args
@@ -193,7 +190,7 @@ func (p *Parser) returnings() []*ast.TypeExpr {
 			ret = append(ret, p.Type())
 		}
 
-		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewSingle(p.peek()), string(tokens.RightParen)), tokens.RightParen)
+		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewSingle(p.peek()), tokens.RightParen), tokens.RightParen)
 	} else {
 		ret = append(ret, p.Type())
 	}

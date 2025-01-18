@@ -114,7 +114,7 @@ func (mtoes *MoreThanOneElseStatement) GetAlertType() AlertType {
 type ExpectedKeyword struct {
   Specifier SnippetSpecifier
   Keyword string
-  Context string
+  Context string `default:""`
 }
 
 func (ek *ExpectedKeyword) GetMessage() string {
@@ -215,7 +215,7 @@ func (ee *ExpectedEnvironment) GetAlertType() AlertType {
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ExpectedIdentifier struct {
   Specifier SnippetSpecifier
-  Context string
+  Context string `default:""`
 }
 
 func (ei *ExpectedIdentifier) GetMessage() string {

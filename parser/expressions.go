@@ -8,22 +8,8 @@ import (
 )
 
 func (p *Parser) expression() ast.Node {
-	return /*p.cast(*/ p.fn() /*)*/
+	return p.fn()
 }
-
-// func (p *Parser) cast(node ast.Node) ast.Node {
-// 	if p.match(tokens.As) {
-// 		if !p.PeekIsType() {
-// 			p.error(p.peek(), "expected type after 'as'")
-// 		}
-// 		return &ast.CastExpr{
-// 			Value: node,
-// 			Type: p.Type(),
-// 		}
-// 	}
-
-// 	return node
-// }
 
 func (p *Parser) fn() ast.Node {
 	if p.match(tokens.Fn) {
@@ -35,7 +21,6 @@ func (p *Parser) fn() ast.Node {
 		} else {
 			fn.Params = make([]ast.Param, 0)
 			p.Alert(&alerts.ExpectedEnclosingMark{}, alerts.NewSingle(p.peek()), "(")
-			//p.error(p.peek(), "expected opening parenthesis for parameters")
 		}
 		fn.Return = p.returnings()
 		p.Context.FunctionReturns.Push("fn", len(fn.Return))
@@ -182,7 +167,6 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 	if !p.check(tokens.LeftParen) {
 		if hasGenerics {
 			p.Alert(&alerts.ExpectedCallArgs{}, alerts.NewSingle(p.peek()))
-			//p.error(p.peek(), "expected call arguments after generic arguments")
 		}
 		return caller
 	}
@@ -190,7 +174,6 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 	callerType := caller.GetType()
 	if callerType != ast.Identifier && callerType != ast.CallExpression && callerType != ast.EnvironmentAccessExpression && callerType != ast.MemberExpression {
 		p.Alert(&alerts.InvalidCall{}, alerts.NewSingle(p.peek(-1)))
-		//p.error(p.peek(-1), fmt.Sprintf("cannot call unidentified value (caller: %v)", callerType))
 		return &ast.Improper{Token: p.peek(-1)}
 	}
 
@@ -258,7 +241,6 @@ func (p *Parser) accessorExpr(ident *ast.Node) (ast.Node, *ast.IdentifierExpr) {
 		propIdentifier = &ast.IdentifierExpr{Name: p.advance()}
 		if propIdentifier.GetToken().Type != tokens.Identifier {
 			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(propIdentifier.GetToken()))
-			//p.error(propIdentifier.GetToken(), "expected identifier in field expression")
 		}
 		if p.check(tokens.LeftParen) || p.check(tokens.Less) {
 			return *ident, propIdentifier.(*ast.IdentifierExpr)
@@ -266,8 +248,7 @@ func (p *Parser) accessorExpr(ident *ast.Node) (ast.Node, *ast.IdentifierExpr) {
 	} else if isMember {
 		propIdentifier = p.expression()
 
-		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(start, p.peek()), string(tokens.RightParen)), tokens.RightParen)
-		//p.consumeOld("expected closing bracket in member expression", tokens.RightBracket)
+		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(start, p.peek()), tokens.RightParen), tokens.RightParen)
 	}
 
 	expr.SetPropertyIdentifier(propIdentifier)
@@ -298,7 +279,6 @@ func (p *Parser) macroCall() ast.Node {
 		callerType := caller.GetType()
 		if callerType != ast.CallExpression {
 			p.Alert(&alerts.ExpectedCallAfterMacroSymbol{}, alerts.NewSingle(caller.GetToken()))
-			//p.error(caller.GetToken(), "expected call after '@'")
 			return &ast.Improper{}
 		}
 		macroCall.Caller = caller.(*ast.CallExpr)
@@ -368,31 +348,26 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 			case tokens.Number:
 				if allowFX && strings.ContainsRune(literal.Lexeme, '.') {
 					p.Alert(&alerts.ForbiddenTypeInEnvironment{}, alerts.NewSingle(literal), "float", []string{"level", "shared"})
-					//p.error(literal, "cannot have a float in a level or shared environment")
 				}
 				valueType = ast.Number
 			case tokens.Fixed:
 				if !allowFX {
 					p.Alert(&alerts.ForbiddenTypeInEnvironment{}, alerts.NewSingle(literal), "fixed", []string{"mesh", "sound"})
-					//p.error(literal, "cannot have a fixed in a mesh or sound environment")
 				}
 				valueType = ast.Fixed
 			case tokens.FixedPoint:
 				if !allowFX {
 					p.Alert(&alerts.ForbiddenTypeInEnvironment{}, alerts.NewSingle(literal), "fixedpoint", []string{"mesh", "sound"})
-					//p.error(literal, "cannot have a fixedpoint in a mesh, sound environment")
 				}
 				valueType = ast.FixedPoint
 			case tokens.Degree:
 				if !allowFX {
 					p.Alert(&alerts.ForbiddenTypeInEnvironment{}, alerts.NewSingle(literal), "fixed", []string{"mesh", "sound"})
-					//p.error(literal, "cannot have a degree, sound environment")
 				}
 				valueType = ast.Degree
 			case tokens.Radian:
 				if !allowFX {
 					p.Alert(&alerts.ForbiddenTypeInEnvironment{}, alerts.NewSingle(literal), "radian", []string{"mesh", "sound"})
-					//p.error(literal, "cannot have a radian in a mesh or sound environment")
 				}
 				valueType = ast.Radian
 			case tokens.String:
@@ -430,7 +405,6 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 			envPath.Combine(next)
 			if next.Type != tokens.Identifier {
 				p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(next))
-				//p.error(next, "expected identifier in environment expression")
 				return &ast.Improper{Token: next}
 			}
 			next = p.advance()
@@ -451,10 +425,8 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 		expr := p.expression()
 		if expr.GetType() == ast.NA {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()))
-			//p.error(p.peek(), "expected expression")
 		}
-		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(token, p.peek()), string(tokens.RightParen)), tokens.RightParen)
-		//p.consumeOld("expected ')' after expression", tokens.RightParen)
+		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(token, p.peek()), tokens.RightParen), tokens.RightParen)
 		return &ast.GroupExpr{Expr: expr, Token: token, ValueType: expr.GetValueType()}
 	}
 
@@ -474,20 +446,17 @@ func (p *Parser) list() ast.Node {
 	exprInList := p.expression()
 	if exprInList.GetType() == ast.NA {
 		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()))
-		//p.error(p.peek(), "expected expression")
 	}
 	list = append(list, exprInList)
 	for p.match(tokens.Comma) {
 		exprInList := p.expression()
 		if exprInList.GetType() == ast.NA {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()))
-			//p.error(p.peek(), "expected expression")
 			p.advance()
 		}
 		list = append(list, exprInList)
 	}
-	p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(token, p.peek()), string(tokens.RightBracket)), tokens.RightBracket)
-	//p.consumeOld("expected ']' after contents", tokens.RightBracket)
+	p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(token, p.peek()), tokens.RightBracket), tokens.RightBracket)
 
 	return &ast.ListExpr{ValueType: ast.List, List: list, Token: token}
 }
@@ -502,26 +471,19 @@ func (p *Parser) parseMap() ast.Node {
 		switch key := key.(type) {
 		case *ast.IdentifierExpr:
 			newKey = key.GetToken()
-		// case *ast.LiteralExpr:
-		// 	if key.GetValueType() != ast.String {
-		// 		p.error(key.GetToken(), "expected a string in map initialization")
-		// 	}
-		// 	newKey = key.GetToken()
 		default:
 			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(key.GetToken()))
-			//p.error(key.GetToken(), "expected either string or an identifier in map initialization")
 			p.advance()
 			return &ast.Improper{Token: p.peek(-1)}
 		}
 
-		if _, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), string(tokens.Equal), "after map key"), tokens.Equal); !ok {
+		if _, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Equal, "after map key"), tokens.Equal); !ok {
 			return &ast.Improper{Token: p.peek(-1)}
 		}
 
 		expr := p.expression()
 		if expr.GetType() == ast.NA {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()))
-			//p.error(p.peek(), "expected expression")
 		}
 
 		if p.peek().Type == tokens.RightBrace {
@@ -529,7 +491,7 @@ func (p *Parser) parseMap() ast.Node {
 			break
 		}
 
-		if _, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), string(tokens.Equal), "in map initialization"), tokens.Comma); !ok {
+		if _, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Comma, "in map initialization"), tokens.Comma); !ok {
 			return &ast.Improper{Token: p.peek(-1)}
 		}
 
@@ -546,7 +508,7 @@ func (p *Parser) structExpr() ast.Node {
 		Fields: make([]*ast.FieldDeclarationStmt, 0),
 	}
 
-	start, ok := p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek())), tokens.LeftBrace)
+	start, ok := p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
 	if !ok {
 		return &ast.Improper{Token: structExpr.Token}
 	}
@@ -558,7 +520,6 @@ func (p *Parser) structExpr() ast.Node {
 		structExpr.Fields = append(structExpr.Fields, field.(*ast.FieldDeclarationStmt))
 	} else {
 		p.Alert(&alerts.ExpectedFieldDeclaration{}, alerts.NewSingle(field.GetToken()))
-		//p.error(field.GetToken(), "expected field declaration inside struct")
 		return ast.NewImproper(field.GetToken())
 	}
 
@@ -571,12 +532,11 @@ func (p *Parser) structExpr() ast.Node {
 			structExpr.Fields = append(structExpr.Fields, field.(*ast.FieldDeclarationStmt))
 		} else {
 			p.Alert(&alerts.ExpectedFieldDeclaration{}, alerts.NewSingle(field.GetToken()))
-			//p.error(field.GetToken(), "expected field declaration inside struct")
 			return ast.NewImproper(field.GetToken())
 		}
 	}
 
-	p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(start, p.peek()), string(tokens.RightBrace)), tokens.RightBrace)
+	p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(start, p.peek()), tokens.RightBrace), tokens.RightBrace)
 
 	return &structExpr
 }
@@ -585,7 +545,6 @@ func (p *Parser) WrappedType() *ast.TypeExpr {
 	typeExpr := ast.TypeExpr{}
 	if p.check(tokens.Greater) {
 		p.Alert(&alerts.EmptyWrappedType{}, alerts.NewSingle(p.peek()))
-		//p.error(p.peek(), "empty wrapped type")
 		return &typeExpr
 	}
 
@@ -597,8 +556,7 @@ func (p *Parser) Type() *ast.TypeExpr {
 	token := p.advance()
 	if p.match(tokens.Colon) {
 		if token.Type != tokens.Identifier {
-			p.Alert(&alerts.ExpectedIdentifier{}, alerts.Singleline{Token: token})
-			//p.error(token, "expected identifier")
+			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(token))
 		}
 		envAccess := &ast.EnvAccessExpr{
 			PathExpr: &ast.EnvPathExpr{
@@ -609,8 +567,7 @@ func (p *Parser) Type() *ast.TypeExpr {
 		for p.match(tokens.Colon) {
 			envAccess.PathExpr.Combine(next)
 			if next.Type != tokens.Identifier {
-				p.Alert(&alerts.ExpectedIdentifier{}, alerts.Singleline{Token: next})
-				//p.error(next, "expected identifier in environment expression")
+				p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(next))
 			}
 			next = p.advance()
 		}
@@ -636,9 +593,9 @@ func (p *Parser) Type() *ast.TypeExpr {
 	switch exprToken.Type {
 	case tokens.Identifier:
 		typ = &ast.TypeExpr{}
-		if p.match(tokens.Less) { // map<number>
+		if p.match(tokens.Less) {
 			typ.WrappedType = p.WrappedType()
-			p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewSingle(p.peek()), string(tokens.Greater)), tokens.Greater)
+			p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewSingle(p.peek()), tokens.Greater), tokens.Greater)
 		}
 		typ.Name = expr
 	case tokens.Fn:
@@ -654,7 +611,7 @@ func (p *Parser) Type() *ast.TypeExpr {
 				_typ := p.Type()
 				typ.Params = append(typ.Params, _typ)
 			}
-			p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewSingle(p.peek()), ")"))
+			p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewSingle(p.peek()), tokens.RightParen), tokens.RightParen)
 		}
 		typ.Returns = p.returnings()
 		typ.Name = expr
@@ -696,7 +653,6 @@ func (p *Parser) EnvType() *ast.EnvTypeExpr {
 
 	if envType == ast.InvalidEnv {
 		p.Alert(&alerts.InvalidEnvironmentType{}, alerts.NewSingle(name))
-		//p.error(name, "expected 'Level', 'Mesh' or 'Sound' as environment type")
 	}
 
 	return &ast.EnvTypeExpr{Type: envType, Token: name}
@@ -704,7 +660,6 @@ func (p *Parser) EnvType() *ast.EnvTypeExpr {
 
 func (p *Parser) EnvPathExpr() ast.Node {
 	ident, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "for an environment path"), tokens.Identifier)
-	//ident, ok := p.consumeOld("expected identifier for an environment path", tokens.Identifier)
 
 	if !ok {
 		return &ast.Improper{Token: ident}

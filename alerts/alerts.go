@@ -59,26 +59,59 @@ type AlertHandler struct {
 	currentLine int
 }
 
-func (ah *AlertHandler) NewAlert(alertType Alert, args ...any) Alert {
-	alert := reflect.ValueOf(alertType).Elem()
+func (ah *AlertHandler) NewAlert(alert Alert, args ...any) Alert {
+	alertValue := reflect.ValueOf(alert).Elem()
+	alertType := reflect.TypeOf(alert).Elem()
+
+	fieldsSet := 0
+	panicMessage := "Attempt to construct %s{} field `%s` of type `%s`%s, with `%s` at %d"
 
 	for i, arg := range args {
-		field := alert.Field(i)
+		field := alertValue.Field(i)
+		fieldType := field.Type()
+		argValue := reflect.ValueOf(arg)
+		argType := argValue.Type()
+
 		if field.Kind() == reflect.Interface {
-			argType := reflect.TypeOf(arg)
-			if !argType.Implements(field.Type()) {
-				panic(fmt.Sprintf("(Interface) Attempt to construct %s{} field `%s` of type `%s`, with `%s` at %d", alert.Type().Name(), reflect.TypeOf(alertType).Elem().Field(i).Name, alert.Field(i).Type(), reflect.TypeOf(arg), i+1))
+			if !argType.Implements(fieldType) {
+				panic(fmt.Sprintf(panicMessage, alertValue.Type().Name(), alertType.Field(i).Name, fieldType, " (interface)", argType, i+1))
 			}
-			field.Set(reflect.ValueOf(arg))
-			continue
+			field.Set(argValue)
+		} else {
+			if argType == reflect.TypeFor[tokens.TokenType]() {
+				argType = reflect.TypeFor[string]()
+				argValue = argValue.Convert(argType)
+			}
+
+			if argType != fieldType {
+				panic(fmt.Sprintf(panicMessage, alertValue.Type().Name(), alertType.Field(i).Name, fieldType, "", argType, i+1))
+			}
+
+			field.Set(argValue)
 		}
-		if reflect.TypeOf(arg) != field.Type() {
-			panic(fmt.Sprintf("Attempt to construct %s{} field `%s` of type `%s`, with `%s` at %d", alert.Type().Name(), reflect.TypeOf(alertType).Elem().Field(i).Name, alert.Field(i).Type(), reflect.TypeOf(arg), i+1))
-		}
-		field.Set(reflect.ValueOf(arg))
+
+		fieldsSet++
 	}
 
-	return alert.Addr().Interface().(Alert)
+	for i := 0; i < alertType.NumField(); i++ {
+		field := alertValue.Field(i)
+		if !field.IsZero() {
+			continue
+		}
+
+		if defaultValue, ok := alertType.Field(i).Tag.Lookup("default"); ok {
+			argValue := reflect.ValueOf(defaultValue)
+			field.Set(argValue)
+			fieldsSet++
+		}
+	}
+
+	if alertValue.NumField() != fieldsSet {
+		panicMessage := "Attempt to construct %s{} with invalid amount of arguments: expected %d, but got: %d"
+		panic(fmt.Sprintf(panicMessage, alertValue.Type().Name(), alertValue.NumField(), fieldsSet))
+	}
+
+	return alertValue.Addr().Interface().(Alert)
 }
 
 func (ah *AlertHandler) Alert_(alertType Alert, args ...any) {
