@@ -1,7 +1,0 @@
-@Environment(Level)
-
-tick {}
-
-tick with time {}
-
-// Testing tick blocks
