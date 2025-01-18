@@ -54,10 +54,10 @@ func (l *Lexer) handleString() {
 	}
 
 	if l.isAtEnd() {
-		l.Alert(&alerts.UnterminatedString{}, alerts.Singleline{Token: tokens.Token{Location: newLocation(l.lineStart, stringStartCol, l.lineStart, stringStartCol)}})
+		l.Alert(&alerts.UnterminatedString{}, alerts.NewSingle(tokens.Token{TokenLocation: tokens.NewLocation(l.lineStart, l.lineStart, stringStartCol, stringStartCol, 0, 0)}))
 		return
 	} else if hasMultilineStr {
-		l.Alert(&alerts.MultilineString{}, alerts.Singleline{Token: tokens.Token{Location: newLocation(l.lineStart, stringStartCol, l.lineCurrent, l.columnCurrent+1)}})
+		l.Alert(&alerts.MultilineString{}, alerts.NewSingle(tokens.Token{TokenLocation: tokens.NewLocation(l.lineStart, l.lineCurrent, stringStartCol, l.columnCurrent+1, 0, 0)}))
 	}
 
 	l.advance()
@@ -96,7 +96,7 @@ func (l *Lexer) handleNumber() {
 
 	strNum := string(l.source[l.start:l.current])
 	if !tryParseNum(strNum) {
-		l.Alert(&alerts.MalformedNumber{}, alerts.Singleline{Token: tokens.Token{Location: newLocation(l.lineStart, l.columnStart, l.lineCurrent, l.columnCurrent)}})
+		l.Alert(&alerts.MalformedNumber{}, alerts.NewSingle(tokens.Token{TokenLocation: tokens.NewLocation(l.lineStart, l.lineCurrent, l.columnStart, l.columnCurrent, 0, 0)}))
 		return
 	}
 	// Evaluate if it is a postfix: `fx`, `r`, `d`
@@ -123,7 +123,7 @@ func (l *Lexer) handleNumber() {
 	case "":
 		l.addToken(tokens.Number, strNum)
 	default:
-		l.Alert(&alerts.InvalidNumberPostfix{}, alerts.Singleline{Token: tokens.Token{Location: newLocation(l.lineStart, postfixColumn, l.lineCurrent, l.columnCurrent)}}, postfix)
+		l.Alert(&alerts.InvalidNumberPostfix{}, alerts.NewSingle(tokens.Token{TokenLocation: tokens.NewLocation(l.lineStart, l.lineCurrent, postfixColumn, l.columnCurrent, 0, 0)}), postfix)
 	}
 }
 
@@ -297,7 +297,7 @@ func (l *Lexer) scanToken() {
 		} else if isAlphabetical(c) {
 			l.handleIdentifier()
 		} else {
-			l.Alert(&alerts.UnsupportedCharacter{}, alerts.Singleline{Token: tokens.Token{Location: newLocation(l.lineStart, l.columnStart, l.lineCurrent, l.columnCurrent)}}, c)
+			l.Alert(&alerts.UnsupportedCharacter{}, alerts.NewSingle(tokens.Token{TokenLocation: tokens.NewLocation(l.lineStart, l.lineCurrent, l.columnStart, l.columnCurrent, 0, 0)}), c)
 		}
 	}
 }
@@ -310,15 +310,6 @@ func (l *Lexer) Tokenize() {
 		l.scanToken()
 	}
 
-	l.Tokens = append(l.Tokens, tokens.Token{
-		Type:    tokens.Eof,
-		Lexeme:  "",
-		Literal: "",
-		Location: tokens.TokenLocation{
-			LineStart: l.lineCurrent,
-			LineEnd:   l.lineCurrent,
-			ColStart:  l.columnCurrent + 1,
-			ColEnd:    l.columnCurrent + 1,
-		},
-	}) // Append an EOF (End of File) token
+	newToken := tokens.NewToken(tokens.Eof, "", "", tokens.NewLocation(l.lineCurrent, l.lineCurrent, l.columnCurrent+1, l.columnCurrent+1, 0, 0))
+	l.Tokens = append(l.Tokens, newToken) // Append an EOF (End of File) token
 }

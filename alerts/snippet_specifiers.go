@@ -18,21 +18,21 @@ func NewSingle(token tokens.Token) *Singleline {
 	}
 }
 
-type Singleline struct { // Alert(alerts.DoesNotExistException{}, Singleline{token}, "your params")
+type Singleline struct {
 	Token tokens.Token
 }
 
 func (ss *Singleline) GetSnippet(src string, index, columnCount, lineCount int) string {
 	snippet := strings.Builder{} // how are we getting the error line then
 	line := src[index-columnCount+1 : index]
-	location := ss.Token.Location
-	if location.ColStart > 80 { // ok
+	loc := ss.Token.TokenLocation
+	if loc.Column.Start > 80 { // ok
 		var content string
 		short := false
-		if location.ColEnd+20 > columnCount && columnCount < 120 {
-			content = string(line[location.ColStart-20 : columnCount])
+		if loc.Column.End+20 > columnCount && columnCount < 120 {
+			content = string(line[loc.Column.Start-20 : columnCount])
 		} else {
-			content = string(line[location.ColStart-20 : location.ColEnd+20])
+			content = string(line[loc.Column.Start-20 : loc.Column.End+20])
 			short = true
 		}
 		var shortt string
@@ -40,13 +40,13 @@ func (ss *Singleline) GetSnippet(src string, index, columnCount, lineCount int) 
 			shortt = "..."
 		}
 		// TODO: move prints into separate functions
-		snippet.WriteString(fmt.Sprintf("[cyan]%*s |\n", len(strconv.Itoa(location.LineEnd)), ""))
+		snippet.WriteString(fmt.Sprintf("[cyan]%*s |\n", len(strconv.Itoa(loc.Line.End)), ""))
 		snippet.WriteString(fmt.Sprintf("[cyan]%d |[default]   [dark_gray]...[default]%s[dark_gray]%s[reset]\n", lineCount, content, shortt))
-		snippet.WriteString(fmt.Sprintf("[cyan]%s |[light_red]   %s%s\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat(" ", 22), strings.Repeat("^", location.ColEnd-location.ColStart+1)))
+		snippet.WriteString(fmt.Sprintf("[cyan]%s |[light_red]   %s%s\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat(" ", 22), strings.Repeat("^", loc.Column.End-loc.Column.Start+1)))
 	} else {
-		snippet.WriteString(fmt.Sprintf("[cyan]%*s |\n", len(strconv.Itoa(location.LineEnd)), ""))
+		snippet.WriteString(fmt.Sprintf("[cyan]%*s |\n", len(strconv.Itoa(loc.Line.End)), ""))
 		snippet.WriteString(fmt.Sprintf("[cyan]%d |[default]   %s\n", lineCount, line))
-		snippet.WriteString(fmt.Sprintf("[cyan]%s |[light_red]   %s%s\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat(" ", location.ColStart-1), strings.Repeat("^", location.ColEnd-location.ColStart+1)))
+		snippet.WriteString(fmt.Sprintf("[cyan]%s |[light_red]   %s%s\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat(" ", loc.Column.Start-1), strings.Repeat("^", loc.Column.End-loc.Column.Start+1)))
 	}
 
 	return snippet.String()
@@ -71,32 +71,31 @@ type Multiline struct {
 func (ml *Multiline) GetSnippet(src string, index, columnCount, lineCount int) string {
 	snippet := strings.Builder{}
 	first_line := src[index-columnCount+1 : index-1]
-	startLocation := ml.StartToken.Location
-	endLocation := ml.EndToken.Location
+	startLoc := ml.StartToken.TokenLocation
+	endLoc := ml.EndToken.TokenLocation
 
-	diff := startLocation.LineEnd - endLocation.LineStart
+	diff := startLoc.Line.End - endLoc.Line.Start
 
 	if diff == 0 {
-		singleline := &Singleline{Token: tokens.Token{Location: tokens.TokenLocation{
-			LineStart: startLocation.LineStart,
-			LineEnd:   startLocation.LineEnd,
-			ColStart:  startLocation.ColStart,
-			ColEnd:    endLocation.ColEnd,
-		}}}
+		singleline := NewSingle(tokens.Token{TokenLocation: tokens.NewLocation(
+			startLoc.Line.Start,
+			startLoc.Line.End,
+			startLoc.Column.Start,
+			endLoc.Column.End, 0, 0)})
 
 		return singleline.GetSnippet(src, index, columnCount, lineCount)
 	}
 
-	snippet.WriteString(fmt.Sprintf("[cyan]%*s |\n", len(strconv.Itoa(startLocation.LineEnd)), ""))
-	snippet.WriteString(fmt.Sprintf("[cyan]%*d |[default]   %s\n", len(strconv.Itoa(startLocation.LineEnd)), lineCount, string(first_line)))
-	snippet.WriteString(fmt.Sprintf("[cyan]%*s |[light_red]  %s^\n", len(strconv.Itoa(startLocation.LineEnd)), "", strings.Repeat("_", startLocation.ColStart)))
+	snippet.WriteString(fmt.Sprintf("[cyan]%*s |\n", len(strconv.Itoa(startLoc.Line.End)), ""))
+	snippet.WriteString(fmt.Sprintf("[cyan]%*d |[default]   %s\n", len(strconv.Itoa(startLoc.Line.End)), lineCount, string(first_line)))
+	snippet.WriteString(fmt.Sprintf("[cyan]%*s |[light_red]  %s^\n", len(strconv.Itoa(startLoc.Line.End)), "", strings.Repeat("_", startLoc.Column.Start)))
 
 	for i := index; i <= len(src)-1; i++ {
 		columnCount++
 		index = i
 		//print(string(src[i]))
 
-		if endLocation.LineStart == lineCount && src[i] == '\n' {
+		if endLoc.Line.Start == lineCount && src[i] == '\n' {
 			index--
 			columnCount--
 			//println("\nhappened")
@@ -117,7 +116,7 @@ func (ml *Multiline) GetSnippet(src string, index, columnCount, lineCount int) s
 		snippet.WriteString(fmt.Sprintf("[dark_gray]...[default]%s[light_red]|\n", strings.Repeat(" ", len(strconv.Itoa(lineCount)))))
 	}
 	snippet.WriteString(fmt.Sprintf("[cyan]%d |[light_red] | [default]%s\n", lineCount, string(last_line)))
-	snippet.WriteString(fmt.Sprintf("[cyan]%s |[light_red] |%s^\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat("_", endLocation.ColEnd)))
+	snippet.WriteString(fmt.Sprintf("[cyan]%s |[light_red] |%s^\n", strings.Repeat(" ", len(strconv.Itoa(lineCount))), strings.Repeat("_", endLoc.Column.End)))
 
 	return snippet.String()
 }

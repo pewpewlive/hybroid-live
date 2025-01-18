@@ -124,7 +124,7 @@ func (ah *AlertHandler) PrintMessage(alert Alert) {
 
 func (ah *AlertHandler) PrintLocation(alert Alert, file string) {
 	location := CombineLocations(alert.GetSpecifier().GetTokens())
-	color.Printf("%s:%d:%d\n", file, location.LineStart, location.ColStart)
+	color.Printf("%s:%d:%d\n", file, location.Line.Start, location.Column.Start)
 }
 
 func (ah *AlertHandler) PrintCodeSnippet(alert Alert) {
@@ -138,7 +138,7 @@ func (ah *AlertHandler) PrintCodeSnippet(alert Alert) {
 	for i := 0; i < len(ah.Source); i++ {
 		columnCount += 1
 
-		if lineCount == location.LineStart && (ah.Source[i] == '\n' || i == len(ah.Source)-1) {
+		if lineCount == location.Line.Start && (ah.Source[i] == '\n' || i == len(ah.Source)-1) {
 			color.Println(specifier.GetSnippet(string(ah.Source), i, columnCount, lineCount))
 			break
 		}
@@ -165,25 +165,25 @@ func CombineLocations(tks []tokens.Token) tokens.TokenLocation {
 	if len(tks) == 0 {
 		return tokens.TokenLocation{}
 	}
-	location := tks[0].Location
+	location := tks[0].TokenLocation
 
 	for i, v := range tks {
-		loc := v.Location
+		loc := v.TokenLocation
 		if i == 0 {
 			continue
 		}
 
-		if loc.ColStart < location.ColStart {
-			location.ColStart = loc.ColStart
+		if loc.Column.Start < location.Column.Start {
+			location.Column.Start = loc.Column.Start
 		}
-		if loc.ColEnd > location.ColEnd {
-			location.ColEnd = loc.ColEnd
+		if loc.Column.End > location.Column.End {
+			location.Column.End = loc.Column.End
 		}
-		if loc.LineStart < location.LineStart {
-			location.LineStart = loc.LineStart
+		if loc.Line.Start < location.Line.Start {
+			location.Line.Start = loc.Line.Start
 		}
-		if loc.LineEnd > location.LineEnd {
-			location.LineEnd = loc.LineEnd
+		if loc.Line.End > location.Line.End {
+			location.Line.End = loc.Line.End
 		}
 	}
 

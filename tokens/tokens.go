@@ -1,6 +1,9 @@
 package tokens
 
-import "fmt"
+import (
+	"fmt"
+	"hybroid/helpers"
+)
 
 type TokenType string
 
@@ -150,21 +153,38 @@ var keywords = map[string]TokenType{
 }
 
 type TokenLocation struct {
-	LineStart int
-	ColStart  int
-	LineEnd   int
-	ColEnd    int
+	Line   helpers.Span
+	Column helpers.Span
+	Source helpers.Span
+}
+
+func NewLocation(lineStart, lineEnd, columnStart, columnEnd, sourceStart, sourceEnd int) TokenLocation {
+	return TokenLocation{
+		Line:   helpers.NewSpan(lineStart, lineEnd),
+		Column: helpers.NewSpan(columnStart, columnEnd),
+		Source: helpers.NewSpan(sourceStart, sourceEnd),
+	}
 }
 
 type Token struct {
-	Type     TokenType
-	Lexeme   string
-	Literal  string
-	Location TokenLocation
+	TokenLocation
+
+	Type    TokenType
+	Lexeme  string
+	Literal string
+}
+
+func NewToken(tokenType TokenType, lexeme, literal string, location TokenLocation) Token {
+	return Token{
+		TokenLocation: location,
+		Type:          tokenType,
+		Lexeme:        lexeme,
+		Literal:       literal,
+	}
 }
 
 func (t Token) ToString() string {
-	return fmt.Sprintf("Token (%v), Lex: '%v', Lit: '%v', Ln: %v, ColStart: %v, ColEnd: %v", string(t.Type), t.Lexeme, t.Literal, t.Location.LineStart, t.Location.ColStart, t.Location.ColEnd)
+	return fmt.Sprintf("Token (%v), Lex: '%v', Lit: '%v', Ln: %v, ColStart: %v, ColEnd: %v", t.Type, t.Lexeme, t.Literal, t.Line.Start, t.Column.Start, t.Column.End)
 }
 
 func KeywordToToken(keyword string) (TokenType, bool) {

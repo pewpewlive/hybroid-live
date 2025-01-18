@@ -64,7 +64,7 @@
       "Context": "string"
     },
     "message": "Expected identifier %s",
-    "message_format":["Context"]
+    "message_format": ["Context"]
   },
   {
     "name": "ExpectedType",
@@ -118,13 +118,12 @@
   {
     "name": "ForbiddenTypeInEnvironment",
     "type": "Error",
-    "params":{
-      "Type":  "string",
+    "params": {
+      "Type": "string",
       "Envs": "[]string"
     },
     "message": "Cannot have a %s in the following environments: %v",
-    "message_format": ["Type", "Envs"],
-    "note": ""
+    "message_format": ["Type", "Envs"]
   },
   {
     "name": "ExpectedFieldDeclaration",
@@ -153,7 +152,7 @@
   },
   {
     "name": "ExpectedAccessExpression",
-    "type":"Error",
+    "type": "Error",
     "message": "Expected an access expression",
     "note": "Access expression are: identifier, environment access, self, member and field expressions"
   },

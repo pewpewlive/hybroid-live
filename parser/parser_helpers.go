@@ -11,7 +11,7 @@ func (p *Parser) createBinExpr(left ast.Node, operator tokens.Token, tokenType t
 	valueType := p.determineValueType(left, right)
 	return &ast.BinaryExpr{
 		Left:      left,
-		Operator:  tokens.Token{Type: tokenType, Lexeme: lexeme, Literal: "", Location: operator.Location},
+		Operator:  tokens.NewToken(tokenType, lexeme, "", operator.TokenLocation),
 		Right:     right,
 		ValueType: valueType,
 	}
@@ -25,17 +25,17 @@ func IsFx(valueType ast.PrimitiveValueType) bool {
 func (p *Parser) getOp(opEqual tokens.Token) tokens.Token {
 	switch opEqual.Type {
 	case tokens.PlusEqual:
-		return tokens.Token{Type: tokens.Plus, Location: opEqual.Location, Literal: opEqual.Literal, Lexeme: "+"}
+		return tokens.NewToken(tokens.Plus, "+", opEqual.Literal, opEqual.TokenLocation)
 	case tokens.MinusEqual:
-		return tokens.Token{Type: tokens.Minus, Location: opEqual.Location, Literal: opEqual.Literal, Lexeme: "-"}
+		return tokens.NewToken(tokens.Minus, "-", opEqual.Literal, opEqual.TokenLocation)
 	case tokens.SlashEqual:
-		return tokens.Token{Type: tokens.Slash, Location: opEqual.Location, Literal: opEqual.Literal, Lexeme: "/"}
+		return tokens.NewToken(tokens.Slash, "/", opEqual.Literal, opEqual.TokenLocation)
 	case tokens.StarEqual:
-		return tokens.Token{Type: tokens.Star, Location: opEqual.Location, Literal: opEqual.Literal, Lexeme: "*"}
+		return tokens.NewToken(tokens.Star, "*", opEqual.Literal, opEqual.TokenLocation)
 	case tokens.CaretEqual:
-		return tokens.Token{Type: tokens.Caret, Location: opEqual.Location, Literal: opEqual.Literal, Lexeme: "^"}
+		return tokens.NewToken(tokens.Caret, "^", opEqual.Literal, opEqual.TokenLocation)
 	case tokens.ModuloEqual:
-		return tokens.Token{Type: tokens.Modulo, Location: opEqual.Location, Literal: opEqual.Literal, Lexeme: "%"}
+		return tokens.NewToken(tokens.Modulo, "%", opEqual.Literal, opEqual.TokenLocation)
 	default:
 		return tokens.Token{}
 	}
@@ -88,7 +88,7 @@ func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) 
 			param := p.getParam(closing)
 			if param.Type == nil {
 				if len(args) == 0 {
-					p.Alert(&alerts.ExpectedType{}, p.peek(-1), p.peek(-1).Location)
+					p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(p.peek(-1)))
 				} else {
 					param.Type = previous
 				}
@@ -154,7 +154,7 @@ func (p *Parser) genericArguments() ([]*ast.TypeExpr, bool) {
 }
 
 func (p *Parser) arguments() []ast.Node {
-	if _, ok := p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek()), string(tokens.LeftParen)), tokens.LeftParen); !ok {
+	if _, ok := p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek()), tokens.LeftParen), tokens.LeftParen); !ok {
 		return nil
 	}
 

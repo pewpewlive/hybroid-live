@@ -41,8 +41,8 @@ func (epe *EnvPathExpr) GetValueType() PrimitiveValueType {
 
 func (epe *EnvPathExpr) Combine(token tokens.Token) {
 	epe.Path.Lexeme += ":" + token.Lexeme
-	epe.Path.Location.ColEnd = token.Location.ColEnd
-	epe.Path.Location.LineEnd = token.Location.LineEnd
+	epe.Path.Column.End = token.Column.End
+	epe.Path.Line.End = token.Line.End
 }
 
 type EnvAccessExpr struct {

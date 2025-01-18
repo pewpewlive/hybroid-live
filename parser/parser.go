@@ -76,7 +76,7 @@ func (p *Parser) AlertI(alert alerts.Alert) {
 	p.AlertI_(alert)
 
 	if alert.GetAlertType() == alerts.Error {
-		panic(ParserError{})
+		//panic(ParserError{})
 	}
 }
 
@@ -235,7 +235,7 @@ func (p *Parser) GetEnv() bool {
 	}()
 
 	if p.peek().Type != tokens.Env {
-		p.Alert_(&alerts.ExpectedEnvironment{}, p.peek(), p.peek().Location)
+		p.Alert_(&alerts.ExpectedEnvironment{}, alerts.NewSingle(p.peek()))
 		// unsynchronizable error.
 		// if there is no env you cannot know which numbers are allowed
 		return true

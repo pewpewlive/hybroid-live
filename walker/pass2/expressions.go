@@ -264,8 +264,8 @@ func IdentifierExpr(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 		*node = &ast.EnvAccessExpr{
 			PathExpr: &ast.EnvPathExpr{
 				Path: tokens.Token{
-					Lexeme:   sc.Environment.Name,
-					Location: ident.GetToken().Location,
+					Lexeme:        sc.Environment.Name,
+					TokenLocation: ident.GetToken().TokenLocation,
 				},
 			},
 			Accessed: ident,
@@ -970,8 +970,8 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 			typee.Name = &ast.EnvAccessExpr{
 				PathExpr: &ast.EnvPathExpr{
 					Path: tokens.Token{
-						Lexeme:   k,
-						Location: typee.Name.GetToken().Location,
+						Lexeme:        k,
+						TokenLocation: typee.Name.GetToken().TokenLocation,
 					},
 				},
 				Accessed: &ast.IdentifierExpr{

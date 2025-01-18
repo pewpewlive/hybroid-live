@@ -504,7 +504,7 @@ func (p *Parser) fieldDeclarationStmt() ast.Node {
 
 	expr := p.expression()
 	if expr.GetType() == ast.NA {
-		p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
+		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()))
 		//p.error(p.peek(), "expected expression")
 	}
 
@@ -512,7 +512,7 @@ func (p *Parser) fieldDeclarationStmt() ast.Node {
 	for p.match(tokens.Comma) {
 		expr = p.expression()
 		if expr.GetType() == ast.NA {
-			p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
+			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()))
 			// p.error(p.peek(), "expected expression")
 		}
 		exprs = append(exprs, expr)
@@ -653,8 +653,7 @@ func (p *Parser) returnArgs() ([]ast.Node, bool) {
 	for p.match(tokens.Comma) {
 		expr = p.expression()
 		if expr.GetType() == ast.NA {
-			p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
-			// p.error(p.peek(), "expected expression")
+			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()))
 		}
 		args = append(args, expr)
 	}
@@ -675,7 +674,7 @@ func (p *Parser) yieldStmt() ast.Node {
 	for p.match(tokens.Comma) {
 		expr = p.expression()
 		if expr.GetType() == ast.NA {
-			p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
+			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()))
 			// p.error(p.peek(), "expected expression")
 		}
 		args = append(args, expr)
@@ -991,7 +990,7 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 	expr := p.expression()
 	println(string(expr.GetType()))
 	if expr.GetType() == ast.NA || expr.GetType() == ast.TypeExpression {
-		p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
+		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()))
 		// p.error(p.peek(), "expected expression")
 	}
 
@@ -999,7 +998,7 @@ func (p *Parser) variableDeclarationStmt() ast.Node {
 	for p.match(tokens.Comma) {
 		expr = p.expression()
 		if expr.GetType() == ast.NA || expr.GetType() == ast.TypeExpression {
-			p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
+			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()))
 			// p.error(p.peek(), "expected expression")
 		}
 		exprs = append(exprs, expr)
@@ -1081,14 +1080,14 @@ func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
 	} else {
 		expr := p.expression()
 		if expr.GetType() == ast.NA {
-			p.Alert(&alerts.ExpectedExpressionOrBody{}, p.peek(), p.peek().Location)
+			p.Alert(&alerts.ExpectedExpressionOrBody{}, alerts.NewSingle(p.peek()))
 			//p.error(expr.GetToken(), "expected expression or '{' after fat arrow")
 		}
 		args := []ast.Node{expr}
 		for p.match(tokens.Comma) {
 			expr = p.expression()
 			if expr.GetType() == ast.NA {
-				p.Alert(&alerts.ExpectedExpression{}, p.peek(), p.peek().Location)
+				p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()))
 				//p.error(expr.GetToken(), "expected expression")
 			}
 			args = append(args, expr)

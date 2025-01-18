@@ -118,7 +118,7 @@ type ExpectedKeyword struct {
 }
 
 func (ek *ExpectedKeyword) GetMessage() string {
-  return "Expected keyword '%s' %s"
+  return fmt.Sprintf("Expected keyword '%s' %s", ek.Keyword, ek.Context)
 }
 
 func (ek *ExpectedKeyword) GetSpecifier() SnippetSpecifier {
