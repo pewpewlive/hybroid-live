@@ -25,4 +25,4 @@ go.work
 __pycache__
 
 # Hybroid generated files 
-example/out
+examples/*/out
