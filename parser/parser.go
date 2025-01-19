@@ -188,6 +188,7 @@ func (p *Parser) match(types ...tokens.TokenType) bool {
 	return false
 }
 
+// Consumes one of the tokens in the given list and advances if it matches.
 func (p *Parser) consume(alert alerts.Alert, types ...tokens.TokenType) (tokens.Token, bool) {
 	if p.isAtEnd() {
 		token := p.peek()
@@ -269,14 +270,14 @@ func (p *Parser) getBody() ([]ast.Node, bool) {
 		body = []ast.Node{p.statement()}
 		return body, true
 	}
-	if _, success := p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace); !success {
+	if _, success := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace); !success {
 		return body, false
 	}
 	start := p.peek(-1)
 
 	for !p.match(tokens.RightBrace) {
 		if p.peek().Type == tokens.Eof {
-			p.Alert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(start, p.peek(-1)), string(tokens.RightBrace))
+			p.Alert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek(-1)), tokens.RightBrace)
 			return body, false
 		}
 

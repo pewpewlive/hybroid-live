@@ -41,14 +41,14 @@ func (p *Parser) getOp(opEqual tokens.Token) tokens.Token {
 	}
 }
 
-func (p *Parser) getParam(closing tokens.TokenType) ast.Param {
+func (p *Parser) getParam(previous *ast.TypeExpr, closing tokens.TokenType) ast.Param {
 	typ := p.Type()
 	peekType := p.peek().Type
 
 	if peekType == tokens.Identifier {
 		return ast.Param{Name: p.advance(), Type: typ}
 	} else if peekType == tokens.Comma || peekType == closing {
-		if typ.Name.GetType() == ast.Identifier && (typ.WrappedType != nil || typ.Fields != nil || typ.Params != nil || typ.Returns != nil) {
+		if typ.Name.GetType() == ast.Identifier && previous != nil {
 			return ast.Param{Name: typ.Name.GetToken()}
 		} else {
 			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(typ.GetToken()))
@@ -62,7 +62,7 @@ func (p *Parser) getParam(closing tokens.TokenType) ast.Param {
 
 func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) []ast.Param {
 	if !p.match(opening) {
-		p.Alert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek()), opening)
+		p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), opening)
 		return []ast.Param{}
 	}
 
@@ -72,8 +72,9 @@ func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) 
 	if p.match(closing) {
 		args = make([]ast.Param, 0)
 	} else {
+
 		var previous *ast.TypeExpr
-		param := p.getParam(closing)
+		param := p.getParam(nil, closing)
 		if param.Type == nil {
 			if len(args) == 0 {
 				p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(p.peek(-1)))
@@ -85,7 +86,7 @@ func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) 
 		}
 		args = append(args, param)
 		for p.match(tokens.Comma) {
-			param := p.getParam(closing)
+			param := p.getParam(previous, closing)
 			if param.Type == nil {
 				if len(args) == 0 {
 					p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(p.peek(-1)))
@@ -97,7 +98,7 @@ func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) 
 			}
 			args = append(args, param)
 		}
-		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(open, p.peek()), closing), closing)
+		p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(open, p.peek()), closing), closing)
 	}
 
 	return args
@@ -125,7 +126,7 @@ func (p *Parser) genericParameters() []*ast.IdentifierExpr {
 		}
 	}
 
-	p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewSingle(p.peek()), tokens.Greater), tokens.Greater)
+	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Greater), tokens.Greater)
 
 	return params
 }
@@ -152,7 +153,7 @@ func (p *Parser) genericArguments() ([]*ast.TypeExpr, bool) {
 }
 
 func (p *Parser) arguments() []ast.Node {
-	if _, ok := p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek()), tokens.LeftParen), tokens.LeftParen); !ok {
+	if _, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftParen), tokens.LeftParen); !ok {
 		return nil
 	}
 
@@ -166,7 +167,7 @@ func (p *Parser) arguments() []ast.Node {
 			arg := p.expression()
 			args = append(args, arg)
 		}
-		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewSingle(p.peek()), tokens.RightParen), tokens.RightParen)
+		p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.RightParen), tokens.RightParen)
 	}
 
 	return args
@@ -176,7 +177,7 @@ func (p *Parser) returnings() []*ast.TypeExpr {
 	ret := make([]*ast.TypeExpr, 0)
 
 	if !p.match(tokens.ThinArrow) {
-		p.Alert(&alerts.ExpectedReturnArrow{}, alerts.NewSingle(p.peek()))
+		//p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.ThinArrow)
 		return ret
 	}
 
@@ -190,7 +191,7 @@ func (p *Parser) returnings() []*ast.TypeExpr {
 			ret = append(ret, p.Type())
 		}
 
-		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewSingle(p.peek()), tokens.RightParen), tokens.RightParen)
+		p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.RightParen), tokens.RightParen)
 	} else {
 		ret = append(ret, p.Type())
 	}

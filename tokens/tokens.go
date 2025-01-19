@@ -25,7 +25,7 @@ const (
 	DoubleColon    TokenType = "::"  // ::
 	Dot            TokenType = "."   // .
 	Concat         TokenType = ".."  // ..
-	DotDotDot      TokenType = "..." // ...
+	Ellipsis       TokenType = "..." // ...
 	Minus          TokenType = "-"   // -
 	MinusEqual     TokenType = "-="  // -=
 	Plus           TokenType = "+"   // +
@@ -167,19 +167,20 @@ func NewLocation(lineStart, lineEnd, columnStart, columnEnd, sourceStart, source
 }
 
 type Token struct {
-	TokenLocation
-
 	Type    TokenType
 	Lexeme  string
 	Literal string
+
+	TokenLocation
 }
 
 func NewToken(tokenType TokenType, lexeme, literal string, location TokenLocation) Token {
 	return Token{
+		Type:    tokenType,
+		Lexeme:  lexeme,
+		Literal: literal,
+
 		TokenLocation: location,
-		Type:          tokenType,
-		Lexeme:        lexeme,
-		Literal:       literal,
 	}
 }
 

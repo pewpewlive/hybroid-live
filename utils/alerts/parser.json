@@ -1,35 +1,13 @@
 [
   {
-    "name": "ExpectedEnclosingMark",
+    "name": "ExpectedStatement",
     "type": "Error",
-    "params": {
-      "Mark": "string"
-    },
-    "message": "Expected '%s'",
-    "message_format": ["Mark"]
+    "message": "Expected statement"
   },
   {
-    "name": "ExpectedOpeningMark",
+    "name": "ExpectedExpression",
     "type": "Error",
-    "params": {
-      "Mark": "string"
-    },
-    "message": "Expected '%s'",
-    "message_format": ["Mark"]
-  },
-  {
-    "name": "ExpectedSymbol",
-    "type": "Error",
-    "params": {
-      "Symbol": "string",
-      "Context": "string"
-    },
-    "message": "Expected '%s' %s"
-  },
-  {
-    "name": "MoreThanOneElseStatement",
-    "type": "Error",
-    "message": "Cannot have more than one else statement in an if statement"
+    "message": "Expected expression"
   },
   {
     "name": "ExpectedKeyword",
@@ -38,8 +16,32 @@
       "Keyword": "string",
       "Context": "string `default:\"\"`"
     },
-    "message": "Expected keyword '%s' %s",
+    "message": "Expected keyword '%s'%1s",
     "message_format": ["Keyword", "Context"]
+  },
+  {
+    "name": "ExpectedIdentifier",
+    "type": "Error",
+    "params": {
+      "Context": "string `default:\"\"`"
+    },
+    "message": "Expected identifier%1s",
+    "message_format": ["Context"]
+  },
+  {
+    "name": "ExpectedSymbol",
+    "type": "Error",
+    "params": {
+      "Symbol": "string",
+      "Context": "string `default:\"\"`"
+    },
+    "message": "Expected '%s'%1s",
+    "message_format": ["Symbol", "Context"]
+  },
+  {
+    "name": "MoreThanOneElseStatement",
+    "type": "Error",
+    "message": "Cannot have more than one else statement in an if statement"
   },
   {
     "name": "EnvironmentRedaclaration",
@@ -58,15 +60,6 @@
     "note": "environment statement has to be the first statement in any hybroid file. example: env HelloWorld as Level"
   },
   {
-    "name": "ExpectedIdentifier",
-    "type": "Error",
-    "params": {
-      "Context": "string `default:\"\"`"
-    },
-    "message": "Expected identifier %s",
-    "message_format": ["Context"]
-  },
-  {
     "name": "ExpectedType",
     "type": "Error",
     "message": "Expected type",
@@ -80,20 +73,9 @@
     "note": "Assignment symbols are: '=', '+=', '-=', '*=', '%=', '/=', '\\\\='"
   },
   {
-    "name": "ExpectedExpression",
-    "type": "Error",
-    "message": "Expected expression"
-  },
-  {
     "name": "ExpectedExpressionOrBody",
     "type": "Error",
     "message": "Expected expression or body"
-  },
-  {
-    "name": "ExpectedReturnArrow",
-    "type": "Error",
-    "message": "Expected a return arrow (->)",
-    "note": "return types on function declarations are written after a thin arrow (->) after the parameters"
   },
   {
     "name": "ExpectedCallArgs",
@@ -141,11 +123,6 @@
     "message": "Expected return arguments after fat arrow (=>)"
   },
   {
-    "name": "ExpectedStatement",
-    "type": "Error",
-    "message": "Expected statement"
-  },
-  {
     "name": "UnknownStatementInsideClass",
     "type": "Error",
     "message": "Unknown statement inside class"
@@ -174,11 +151,6 @@
     "name": "RedefinitionOfIteratorInRepeatStatement",
     "type": "Error",
     "message": "Redefinition of iterator in repeat statement"
-  },
-  {
-    "name": "ExpectedFatArrowInMatchCase",
-    "type": "Error",
-    "message": "Expected fat arrow (=>) in match case"
   },
   {
     "name": "UnknownStatementInsideEntity",

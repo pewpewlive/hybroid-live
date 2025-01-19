@@ -20,7 +20,7 @@ func (p *Parser) fn() ast.Node {
 			fn.Params = p.parameters(tokens.LeftParen, tokens.RightParen)
 		} else {
 			fn.Params = make([]ast.Param, 0)
-			p.Alert(&alerts.ExpectedEnclosingMark{}, alerts.NewSingle(p.peek()), "(")
+			p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftParen)
 		}
 		fn.Return = p.returnings()
 		p.Context.FunctionReturns.Push("fn", len(fn.Return))
@@ -248,7 +248,7 @@ func (p *Parser) accessorExpr(ident *ast.Node) (ast.Node, *ast.IdentifierExpr) {
 	} else if isMember {
 		propIdentifier = p.expression()
 
-		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(start, p.peek()), tokens.RightParen), tokens.RightParen)
+		p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek()), tokens.RightBracket), tokens.RightBracket)
 	}
 
 	expr.SetPropertyIdentifier(propIdentifier)
@@ -426,7 +426,7 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 		if expr.GetType() == ast.NA {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()))
 		}
-		p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(token, p.peek()), tokens.RightParen), tokens.RightParen)
+		p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(token, p.peek()), tokens.RightParen), tokens.RightParen)
 		return &ast.GroupExpr{Expr: expr, Token: token, ValueType: expr.GetValueType()}
 	}
 
@@ -456,7 +456,7 @@ func (p *Parser) list() ast.Node {
 		}
 		list = append(list, exprInList)
 	}
-	p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(token, p.peek()), tokens.RightBracket), tokens.RightBracket)
+	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(token, p.peek()), tokens.RightBracket), tokens.RightBracket)
 
 	return &ast.ListExpr{ValueType: ast.List, List: list, Token: token}
 }
@@ -508,7 +508,7 @@ func (p *Parser) structExpr() ast.Node {
 		Fields: make([]*ast.FieldDeclarationStmt, 0),
 	}
 
-	start, ok := p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
+	start, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
 	if !ok {
 		return &ast.Improper{Token: structExpr.Token}
 	}
@@ -536,7 +536,7 @@ func (p *Parser) structExpr() ast.Node {
 		}
 	}
 
-	p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(start, p.peek()), tokens.RightBrace), tokens.RightBrace)
+	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek()), tokens.RightBrace), tokens.RightBrace)
 
 	return &structExpr
 }
@@ -585,7 +585,7 @@ func (p *Parser) Type() *ast.TypeExpr {
 	var typ *ast.TypeExpr = nil
 	if expr.GetType() == ast.EnvironmentAccessExpression {
 		typ = &ast.TypeExpr{Name: expr}
-		typ.IsVariadic = p.match(tokens.DotDotDot)
+		typ.IsVariadic = p.match(tokens.Ellipsis)
 		return typ
 	}
 	exprToken := expr.GetToken()
@@ -595,7 +595,7 @@ func (p *Parser) Type() *ast.TypeExpr {
 		typ = &ast.TypeExpr{}
 		if p.match(tokens.Less) {
 			typ.WrappedType = p.WrappedType()
-			p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewSingle(p.peek()), tokens.Greater), tokens.Greater)
+			p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Greater), tokens.Greater)
 		}
 		typ.Name = expr
 	case tokens.Fn:
@@ -611,7 +611,7 @@ func (p *Parser) Type() *ast.TypeExpr {
 				_typ := p.Type()
 				typ.Params = append(typ.Params, _typ)
 			}
-			p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewSingle(p.peek()), tokens.RightParen), tokens.RightParen)
+			p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.RightParen), tokens.RightParen)
 		}
 		typ.Returns = p.returnings()
 		typ.Name = expr
@@ -624,7 +624,7 @@ func (p *Parser) Type() *ast.TypeExpr {
 		p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(expr.GetToken()))
 		typ = &ast.TypeExpr{Name: &ast.Improper{Token: expr.GetToken()}}
 	}
-	typ.IsVariadic = p.match(tokens.DotDotDot)
+	typ.IsVariadic = p.match(tokens.Ellipsis)
 
 	return typ
 }

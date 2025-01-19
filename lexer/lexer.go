@@ -177,7 +177,7 @@ func (l *Lexer) scanToken() {
 	case '.':
 		if l.matchChar('.') {
 			if l.matchChar('.') {
-				l.addToken(tokens.DotDotDot, "")
+				l.addToken(tokens.Ellipsis, "")
 			} else {
 				l.addToken(tokens.Concat, "")
 			}

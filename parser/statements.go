@@ -250,7 +250,7 @@ func (p *Parser) enumDeclarationStmt(local bool) ast.Node {
 
 	enumStmt.Name = ident.GetToken()
 
-	start, _ := p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
+	start, _ := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
 
 	if p.match(tokens.RightBrace) {
 		enumStmt.Fields = make([]tokens.Token, 0)
@@ -277,7 +277,7 @@ func (p *Parser) enumDeclarationStmt(local bool) ast.Node {
 
 	enumStmt.Fields = fields
 
-	p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(start, p.peek()), tokens.RightBrace), tokens.RightBrace)
+	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek()), tokens.RightBrace), tokens.RightBrace)
 
 	return enumStmt
 }
@@ -296,7 +296,7 @@ func (p *Parser) classDeclarationStmt(isLocal bool) ast.Node {
 		return &ast.Improper{Token: stmt.Token}
 	}
 
-	_, ok = p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
+	_, ok = p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
 	if !ok {
 		return &ast.Improper{Token: stmt.Token}
 	}
@@ -338,7 +338,7 @@ func (p *Parser) entityDeclarationStmt(isLocal bool) ast.Node {
 	}
 	stmt.Name = name
 
-	_, ok = p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
+	_, ok = p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
 	if !ok {
 		return &ast.Improper{Token: stmt.Token}
 	}
@@ -982,7 +982,7 @@ func (p *Parser) matchStmt(isExpr bool) *ast.MatchStmt {
 
 	matchStmt.ExprToMatch = p.expression()
 
-	start, _ := p.consume(p.NewAlert(&alerts.ExpectedOpeningMark{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
+	start, _ := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
 
 	caseStmts, stop := p.caseStmt(isExpr)
 	for !stop {
@@ -996,7 +996,7 @@ func (p *Parser) matchStmt(isExpr bool) *ast.MatchStmt {
 	}
 	matchStmt.Cases = append(matchStmt.Cases, caseStmts...)
 
-	p.consume(p.NewAlert(&alerts.ExpectedEnclosingMark{}, alerts.NewMulti(start, p.peek()), tokens.RightBrace), tokens.RightBrace)
+	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek()), tokens.RightBrace), tokens.RightBrace)
 
 	return &matchStmt
 }
@@ -1025,7 +1025,7 @@ func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
 		}
 	}
 
-	p.consume(p.NewAlert(&alerts.ExpectedFatArrowInMatchCase{}, alerts.NewSingle(p.peek())), tokens.FatArrow)
+	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.FatArrow), tokens.FatArrow)
 
 	if p.check(tokens.LeftBrace) {
 		body, _ := p.getBody()
