@@ -5,22 +5,20 @@ import "hybroid/tokens"
 type NodeType string
 
 const (
-	VariableDeclarationStatement NodeType = "variableDeclarationStatement"
-	FunctionDeclarationStatement NodeType = "functionDeclarationStatement"
-	ClassDeclarationStatement    NodeType = "classDeclarationStatement"
-	FieldDeclarationStatement    NodeType = "fieldDeclarationStatement"
-	MethodDeclarationStatement   NodeType = "methodDeclarationStatement"
-	EnumDeclarationStatement     NodeType = "enumDeclarationStatement"
-	MacroDeclarationStatement    NodeType = "macroDeclarationStatement"
-	//TypeDeclarationStatement      NodeType = "typeDeclarationStatement"
-	AliasDeclarationStatement     NodeType = "aliasDeclarationStatement"
+	EnvironmentDeclaration    NodeType = "environmentDeclaration"
+	VariableDeclaration       NodeType = "variableDeclaration"
+	FunctionDeclaration       NodeType = "functionDeclaration"
+	ClassDeclaration          NodeType = "classDeclaration"
+	FieldDeclaration          NodeType = "fieldDeclaration"
+	MethodDeclaration         NodeType = "methodDeclaration"
+	EnumDeclaration           NodeType = "enumDeclaration"
+	MacroDeclaration          NodeType = "macroDeclaration"
+	AliasDeclaration          NodeType = "aliasDeclaration"
+	EntityDeclaration         NodeType = "entityDeclaration"
+	EntityFunctionDeclaration NodeType = "entityFunctionDeclaration"
 
-	EntityDeclarationStatement        NodeType = "entityDeclarationStatement"
-	EntityFunctionDeclarationStatemet NodeType = "entityFunctionDeclarationStatement"
-	DestroyStatement                  NodeType = "destroyStatement"
-
+	DestroyStatement     NodeType = "destroyStatement"
 	ConstructorStatement NodeType = "constructorStatement"
-	EnvironmentStatement NodeType = "environmentStatement"
 	AssignmentStatement  NodeType = "assignmentStatement"
 	RepeatStatement      NodeType = "repeatStatement"
 	WhileStatement       NodeType = "whileStatement"
@@ -60,10 +58,10 @@ const (
 	SpawnExpression             NodeType = "spawnExpression"
 	EntityExpression            NodeType = "entityExpression"
 
-	PewpewExpression      NodeType = "pewpewExpression"
-	FmathExpression       NodeType = "fmathExpression"
-	BuiltinExpression     NodeType = "builtinExpression"
-	StandardExpression    NodeType = "standardExpression"
+	PewpewExpression   NodeType = "pewpewExpression"
+	FmathExpression    NodeType = "fmathExpression"
+	BuiltinExpression  NodeType = "builtinExpression"
+	StandardExpression NodeType = "standardExpression"
 
 	Identifier NodeType = "identifier"
 
@@ -99,10 +97,23 @@ type EnvType string
 
 const (
 	MeshEnv    EnvType = "MeshEnv"
-	Level      EnvType = "LevelEnv"
+	LevelEnv   EnvType = "LevelEnv"
 	SoundEnv   EnvType = "SoundEnv"
 	InvalidEnv EnvType = "InvalidEnv"
 )
+
+func StringToEnvType(name string) EnvType {
+	switch name {
+	case "Mesh":
+		return MeshEnv
+	case "Level":
+		return LevelEnv
+	case "Sound":
+		return SoundEnv
+	default:
+		return InvalidEnv
+	}
+}
 
 type SelfExprType int
 

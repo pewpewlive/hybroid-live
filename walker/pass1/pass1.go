@@ -18,7 +18,7 @@ func Action(w *wkr.Walker, nodes []ast.Node, wlkrs map[string]*wkr.Walker) {
 
 func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 	switch newNode := (*node).(type) {
-	case *ast.EnvironmentStmt:
+	case *ast.EnvironmentDecl:
 		if w.Environment.Name != "" {
 			w.Error(newNode.GetToken(), "cannot have 2 environment declaration statements in one file")
 		}

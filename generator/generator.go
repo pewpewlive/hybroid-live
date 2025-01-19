@@ -301,7 +301,7 @@ func degToRad(floatstr string) string {
 
 func (gen *Generator) GenerateStmt(node ast.Node, scope *GenScope) {
 	switch newNode := node.(type) {
-	case *ast.EnvironmentStmt:
+	case *ast.EnvironmentDecl:
 		gen.envStmt(*newNode, scope)
 	case *ast.AssignmentStmt:
 		gen.assignmentStmt(*newNode, scope)
@@ -325,7 +325,7 @@ func (gen *Generator) GenerateStmt(node ast.Node, scope *GenScope) {
 		gen.forStmt(*newNode, scope)
 	case *ast.TickStmt:
 		gen.tickStmt(*newNode, scope)
-	case *ast.VariableDeclarationStmt:
+	case *ast.VariableDecl:
 		gen.variableDeclarationStmt(*newNode, scope)
 	case *ast.CallExpr:
 		val := gen.callExpr(*newNode, true, scope)
@@ -339,16 +339,16 @@ func (gen *Generator) GenerateStmt(node ast.Node, scope *GenScope) {
 	case *ast.NewExpr:
 		val := gen.newExpr(*newNode, true, scope)
 		scope.WriteString(val)
-	case *ast.FunctionDeclarationStmt:
+	case *ast.FunctionDecl:
 		gen.functionDeclarationStmt(*newNode, scope)
-	case *ast.EnumDeclarationStmt:
+	case *ast.EnumDecl:
 		gen.enumDeclarationStmt(*newNode, scope)
-	case *ast.ClassDeclarationStmt:
+	case *ast.ClassDecl:
 		gen.classDeclarationStmt(*newNode, scope)
 	case *ast.EnvAccessExpr:
 		val := gen.envAccessExpr(*newNode, scope)
 		scope.WriteString(val)
-	case *ast.EntityDeclarationStmt:
+	case *ast.EntityDecl:
 		gen.entityDeclarationStmt(*newNode, scope)
 	case *ast.DestroyStmt:
 		gen.destroyStmt(*newNode, scope)

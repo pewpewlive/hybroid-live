@@ -124,8 +124,8 @@ func (w *Walker) AddError(err ast.Error) {
 	//w.Errors = append(w.Errors, err)
 }
 
-func (w *Walker) GetEnvStmt() *ast.EnvironmentStmt {
-	return w.Nodes[0].(*ast.EnvironmentStmt)
+func (w *Walker) GetEnvStmt() *ast.EnvironmentDecl {
+	return w.Nodes[0].(*ast.EnvironmentDecl)
 }
 
 // ONLY CALL THIS IF YOU ALREADY CALLED ResolveVariable

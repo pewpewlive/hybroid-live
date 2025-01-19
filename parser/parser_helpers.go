@@ -177,7 +177,6 @@ func (p *Parser) returnings() []*ast.TypeExpr {
 	ret := make([]*ast.TypeExpr, 0)
 
 	if !p.match(tokens.ThinArrow) {
-		//p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.ThinArrow)
 		return ret
 	}
 
@@ -197,6 +196,42 @@ func (p *Parser) returnings() []*ast.TypeExpr {
 	}
 
 	return ret
+}
+
+func (p *Parser) getIdentifiers() ([]tokens.Token, bool) {
+	names := []tokens.Token{}
+	ident, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek())), tokens.Identifier)
+	if !ok {
+		return names, false
+	}
+	names = append(names, ident)
+	for p.match(tokens.Comma) {
+		ident, ok = p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek())), tokens.Identifier)
+		if !ok {
+			return names, false
+		}
+		names = append(names, ident)
+	}
+
+	return names, true
+}
+
+func (p *Parser) getExpressions() ([]ast.Node, bool) {
+	exprs := []ast.Node{}
+	expr := p.expression()
+	if expr.GetType() == ast.NA && ast.ImproperToNodeType(expr) == ast.NA {
+		return exprs, false
+	}
+	exprs = append(exprs, expr)
+	for p.match(tokens.Comma) {
+		expr := p.expression()
+		if expr.GetType() == ast.NA && ast.ImproperToNodeType(expr) == ast.NA {
+			return exprs, false
+		}
+		exprs = append(exprs, expr)
+	}
+
+	return exprs, true
 }
 
 func (p *Parser) TypeAndIdentifier() (*ast.TypeExpr, ast.Node) {
@@ -220,4 +255,43 @@ func (p *Parser) CheckType() bool {
 	p.disadvance(p.current - currentStart)
 
 	return typ.Name.GetType() != ast.NA
+}
+
+func (p *Parser) getBody() ([]ast.Node, bool) {
+	body := make([]ast.Node, 0)
+	if p.match(tokens.FatArrow) {
+		args, ok := p.returnArgs()
+		if !ok {
+			p.Alert(&alerts.ExpectedReturnArgs{}, alerts.NewSingle(p.peek()))
+			return []ast.Node{}, false
+		}
+		body = []ast.Node{
+			&ast.ReturnStmt{
+				Token: args[0].GetToken(),
+				Args:  args,
+			},
+		}
+		return body, true
+	} else if !p.check(tokens.LeftBrace) {
+		body = []ast.Node{p.statement()}
+		return body, true
+	}
+	if _, success := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace); !success {
+		return body, false
+	}
+	start := p.peek(-1)
+
+	for !p.match(tokens.RightBrace) {
+		if p.peek().Type == tokens.Eof {
+			p.Alert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek(-1)), tokens.RightBrace)
+			return body, false
+		}
+
+		statement := p.statement()
+		if statement.GetType() != ast.NA {
+			body = append(body, statement)
+		}
+	}
+
+	return body, true
 }

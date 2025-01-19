@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func (gen *Generator) envStmt(node ast.EnvironmentStmt, scope *GenScope) {
+func (gen *Generator) envStmt(node ast.EnvironmentDecl, scope *GenScope) {
 	for i := range node.Requirements {
 		scope.Append("require(\"", node.Requirements[i], "\")\n")
 	}
@@ -63,7 +63,7 @@ func (gen *Generator) assignmentStmt(assignStmt ast.AssignmentStmt, scope *GenSc
 			}
 			vars = []string{}
 			index += call.ReturnAmount
-		}else {
+		} else {
 			src.Append(gen.GenerateExpr(assignStmt.Identifiers[index], scope), " = ", gen.GenerateExpr(assignStmt.Values[i], scope), "\n")
 			index++
 		}
@@ -76,7 +76,7 @@ func (gen *Generator) assignmentStmt(assignStmt ast.AssignmentStmt, scope *GenSc
 	scope.Write(src)
 }
 
-func (gen *Generator) functionDeclarationStmt(node ast.FunctionDeclarationStmt, scope *GenScope) {
+func (gen *Generator) functionDeclarationStmt(node ast.FunctionDecl, scope *GenScope) {
 	fnScope := NewGenScope(scope)
 
 	if node.IsLocal {
@@ -223,7 +223,7 @@ func (gen *Generator) forStmt(node ast.ForStmt, scope *GenScope) {
 	key := gen.GenerateExpr(node.First, &forScope)
 	if node.Second == nil {
 		forScope.Append(key, ", _ in  ", pairs, " (", iterator, ") do\n")
-	}else {
+	} else {
 		value := gen.GenerateExpr(node.Second, &forScope)
 		forScope.Append(key, ", ", value, " in ", pairs, "(", iterator, ") do\n")
 	}
@@ -264,7 +264,7 @@ func (gen *Generator) tickStmt(node ast.TickStmt, scope *GenScope) {
 	scope.Write(tickScope.Src)
 }
 
-func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclarationStmt, scope *GenScope) {
+func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDecl, scope *GenScope) {
 	var values []string
 
 	for _, expr := range declaration.Values {
@@ -301,7 +301,7 @@ func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDeclaratio
 	scope.Write(src)
 }
 
-func (gen *Generator) enumDeclarationStmt(node ast.EnumDeclarationStmt, scope *GenScope) {
+func (gen *Generator) enumDeclarationStmt(node ast.EnumDecl, scope *GenScope) {
 	if node.IsLocal {
 		scope.AppendTabbed("local ")
 	} else {
@@ -321,7 +321,7 @@ func (gen *Generator) enumDeclarationStmt(node ast.EnumDeclarationStmt, scope *G
 	scope.AppendTabbed("}")
 }
 
-func (gen *Generator) classDeclarationStmt(node ast.ClassDeclarationStmt, scope *GenScope) {
+func (gen *Generator) classDeclarationStmt(node ast.ClassDecl, scope *GenScope) {
 	classScope := NewGenScope(scope)
 
 	for _, nodebody := range node.Methods {
@@ -333,7 +333,7 @@ func (gen *Generator) classDeclarationStmt(node ast.ClassDeclarationStmt, scope 
 	scope.Write(classScope.Src)
 }
 
-func (gen *Generator) entityDeclarationStmt(node ast.EntityDeclarationStmt, scope *GenScope) {
+func (gen *Generator) entityDeclarationStmt(node ast.EntityDecl, scope *GenScope) {
 	entityScope := NewGenScope(scope)
 
 	entityName := gen.WriteVarExtra(node.Name.Lexeme, hyEntity)
@@ -358,7 +358,7 @@ func (gen *Generator) entityDeclarationStmt(node ast.EntityDeclarationStmt, scop
 	scope.Write(entityScope.Src)
 }
 
-func (gen *Generator) spawnDeclarationStmt(node ast.EntityFunctionDeclarationStmt, entity ast.EntityDeclarationStmt, scope *GenScope) {
+func (gen *Generator) spawnDeclarationStmt(node ast.EntityFunctionDecl, entity ast.EntityDecl, scope *GenScope) {
 	spawnScope := NewGenScope(scope)
 
 	entityName := gen.WriteVarExtra(entity.Name.Lexeme, hyEntity)
@@ -407,7 +407,7 @@ func (gen *Generator) spawnDeclarationStmt(node ast.EntityFunctionDeclarationStm
 	scope.Write(spawnScope.Src)
 }
 
-func (gen *Generator) destroyDeclarationStmt(node ast.EntityFunctionDeclarationStmt, entity ast.EntityDeclarationStmt, scope *GenScope) {
+func (gen *Generator) destroyDeclarationStmt(node ast.EntityFunctionDecl, entity ast.EntityDecl, scope *GenScope) {
 	spawnScope := NewGenScope(scope)
 
 	spawnScope.Append("function ", gen.WriteVarExtra(entity.Name.Lexeme, hyEntity), "_Destroy(id")
@@ -444,7 +444,7 @@ func (gen *Generator) GenerateParams(params []ast.Param, scope *GenScope) {
 	}
 }
 
-func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, class ast.ClassDeclarationStmt, scope *GenScope) {
+func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorDecl, class ast.ClassDecl, scope *GenScope) {
 	src := StringBuilder{}
 
 	constructorScope := NewGenScope(scope)
@@ -476,7 +476,7 @@ func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorStmt, class
 	scope.Write(constructorScope.Src)
 }
 
-func (gen *Generator) fieldDeclarationStmt(node ast.FieldDeclarationStmt, scope *GenScope) string {
+func (gen *Generator) fieldDeclarationStmt(node ast.FieldDecl, scope *GenScope) string {
 	src := StringBuilder{}
 
 	for i, v := range node.Identifiers {
@@ -489,7 +489,7 @@ func (gen *Generator) fieldDeclarationStmt(node ast.FieldDeclarationStmt, scope 
 	return src.String()
 }
 
-func (gen *Generator) methodDeclarationStmt(node ast.MethodDeclarationStmt, Struct ast.ClassDeclarationStmt, scope *GenScope) {
+func (gen *Generator) methodDeclarationStmt(node ast.MethodDecl, Struct ast.ClassDecl, scope *GenScope) {
 	methodScope := NewGenScope(scope)
 
 	methodScope.Append("function ", gen.WriteVarExtra(Struct.Name.Lexeme, hyClass), "_", node.Name.Lexeme, "(Self")
@@ -506,7 +506,7 @@ func (gen *Generator) methodDeclarationStmt(node ast.MethodDeclarationStmt, Stru
 	scope.Write(methodScope.Src)
 }
 
-func (gen *Generator) entityMethodDeclarationStmt(node ast.MethodDeclarationStmt, entity ast.EntityDeclarationStmt, scope *GenScope) {
+func (gen *Generator) entityMethodDeclarationStmt(node ast.MethodDecl, entity ast.EntityDecl, scope *GenScope) {
 	methodScope := NewGenScope(scope)
 
 	methodScope.Append("function ", gen.WriteVarExtra(entity.Name.Lexeme, hyEntity), "_", node.Name.Lexeme, "(id")

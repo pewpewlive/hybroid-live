@@ -9,8 +9,6 @@ import (
 	"hybroid/lexer"
 	"hybroid/parser"
 	"hybroid/walker"
-	"hybroid/walker/pass1"
-	"hybroid/walker/pass2"
 	"os"
 	"path/filepath"
 	"time"
@@ -88,10 +86,10 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 
 		start = time.Now()
 		fmt.Println("[Pass 1] Walking through the nodes...")
-		if env, ok := prog[0].(*ast.EnvironmentStmt); ok {
-			e.walkerList[i].Environment.Type = env.EnvType.Type
+		if _, ok := prog[0].(*ast.EnvironmentDecl); ok {
+			//e.walkerList[i].Environment.Type = env.EnvType.Type
 		}
-		pass1.Action(e.walkerList[i], prog, e.walkers)
+		//pass1.Action(e.walkerList[i], prog, e.walkers)
 		fmt.Printf("Pass 1 time: %f seconds\n\n", time.Since(start).Seconds())
 
 		e.lexer = lexer.NewLexer()
@@ -104,7 +102,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		fmt.Println("[Pass 2] Walking through the nodes...")
 
 		if !walker.Walked {
-			pass2.Action(walker, e.walkers)
+			//pass2.Action(walker, e.walkers)
 		}
 		fmt.Printf("Pass 2 time: %f seconds\n\n", time.Since(start).Seconds())
 		// if walker.HasAlerts == true {
@@ -128,7 +126,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		e.gen.SetEnv(walker.Environment.Name, walker.Environment.Type)
 		if e.files[i].FileName == "level" {
 			e.gen.GenerateWithBuiltins(walker.Nodes)
-		} else if e.walkerList[i].Environment.Type != ast.Level {
+		} else if e.walkerList[i].Environment.Type != ast.LevelEnv {
 			e.gen.Generate(walker.Nodes, e.walkerList[i].Environment.UsedBuiltinVars)
 		} else {
 			e.gen.Generate(walker.Nodes, []string{})

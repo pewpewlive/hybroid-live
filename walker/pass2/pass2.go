@@ -19,12 +19,12 @@ func Action(w *wkr.Walker, wlkrs map[string]*wkr.Walker) {
 
 func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 	switch newNode := (*node).(type) {
-	case *ast.EnvironmentStmt:
-	case *ast.VariableDeclarationStmt:
+	case *ast.EnvironmentDecl:
+	case *ast.VariableDecl:
 		VariableDeclarationStmt(w, newNode, scope)
 	case *ast.IfStmt:
 		IfStmt(w, newNode, scope)
-	case *ast.FunctionDeclarationStmt:
+	case *ast.FunctionDecl:
 		FunctionDeclarationStmt(w, newNode, scope, wkr.Function)
 	case *ast.ReturnStmt:
 		ReturnStmt(w, newNode, scope)
@@ -53,9 +53,9 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 		if newVersion != nil {
 			*node = newVersion
 		}
-	case *ast.ClassDeclarationStmt:
+	case *ast.ClassDecl:
 		ClassDeclarationStmt(w, newNode, scope)
-	case *ast.EnumDeclarationStmt:
+	case *ast.EnumDecl:
 		EnumDeclarationStmt(w, newNode, scope)
 	case *ast.MatchStmt:
 		MatchStmt(w, newNode, false, scope)
@@ -69,14 +69,14 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 		SpawnExpr(w, newNode, scope)
 	case *ast.NewExpr:
 		NewExpr(w, newNode, scope)
-	case *ast.AliasDeclarationStmt:
+	case *ast.AliasDecl:
 		AliasDeclarationStmt(w, newNode, scope)
 	// case *ast.TypeDeclarationStmt:
 	// 	TypeDeclarationStmt(w, newNode, scope)
 	case *ast.Improper:
 		w.Error(newNode.GetToken(), "Improper statement: parser fault")
-	case *ast.MacroDeclarationStmt:
-	case *ast.EntityDeclarationStmt:
+	case *ast.MacroDecl:
+	case *ast.EntityDecl:
 		EntityDeclarationStmt(w, newNode, scope)
 	default:
 		w.Error(newNode.GetToken(), "Expected statement")

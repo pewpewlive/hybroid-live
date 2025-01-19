@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"hybroid/alerts"
 	"hybroid/ast"
 	"hybroid/helpers"
@@ -17,7 +18,7 @@ type Parser struct {
 }
 
 type ParserContext struct {
-	EnvStatement    *ast.EnvironmentStmt
+	EnvDeclaration  *ast.EnvironmentDecl
 	FunctionReturns helpers.Stack[int]
 
 	// ONLY USE WHENEVER YOU ARE CHECKING NODES AND MAKE SURE YOU DIDNT FORGET TO DISABLE IT
@@ -30,7 +31,7 @@ func NewParser() Parser {
 		current: 0,
 		tokens:  make([]tokens.Token, 0),
 		Context: ParserContext{
-			EnvStatement:    nil,
+			EnvDeclaration:  nil,
 			IgnoreAlerts:    helpers.NewStack[bool]("IgnoreAlerts"),
 			FunctionReturns: helpers.NewStack[int]("FunctionReturns"),
 		},
@@ -206,13 +207,20 @@ func (p *Parser) consume(alert alerts.Alert, types ...tokens.TokenType) (tokens.
 }
 
 func (p *Parser) ParseTokens() []ast.Node {
-	failed := p.GetEnv()
-	if failed {
+	firstToken := p.peek()
+	if firstToken.Type != tokens.Env {
+		p.Alert(&alerts.ExpectedEnvironment{}, alerts.NewSingle(firstToken))
+		return []ast.Node{}
+	}
+	envDecl := p.environmentDeclaration()
+	if envDecl.GetType() == ast.NA {
 		return []ast.Node{}
 	}
 
+	p.program = append(p.program, envDecl)
+
 	for !p.isAtEnd() {
-		statement := p.statement()
+		statement := p.declaration()
 		if statement == nil {
 			continue
 		}
@@ -221,71 +229,7 @@ func (p *Parser) ParseTokens() []ast.Node {
 		}
 	}
 
+	fmt.Printf("%+#v", p.program)
+
 	return p.program
-}
-
-func (p *Parser) GetEnv() bool {
-	defer func() {
-		if errMsg := recover(); errMsg != nil {
-			if _, ok := errMsg.(ast.Error); ok {
-			} else if _, ok := errMsg.(ParserError); ok {
-			} else {
-				panic(errMsg)
-			}
-		}
-	}()
-
-	if p.peek().Type != tokens.Env {
-		p.Alert_(&alerts.ExpectedEnvironment{}, alerts.NewSingle(p.peek()))
-		// unsynchronizable error.
-		// if there is no env you cannot know which numbers are allowed
-		return true
-	}
-	envStmt := p.statement()
-	if envStmt.GetType() == ast.NA {
-		return true
-	}
-
-	p.program = append(p.program, envStmt)
-
-	return false
-}
-
-func (p *Parser) getBody() ([]ast.Node, bool) {
-	body := make([]ast.Node, 0)
-	if p.match(tokens.FatArrow) {
-		args, ok := p.returnArgs()
-		if !ok {
-			p.Alert(&alerts.ExpectedReturnArgs{}, alerts.NewSingle(p.peek()))
-			return []ast.Node{}, false
-		}
-		body = []ast.Node{
-			&ast.ReturnStmt{
-				Token: args[0].GetToken(),
-				Args:  args,
-			},
-		}
-		return body, true
-	} else if !p.check(tokens.LeftBrace) {
-		body = []ast.Node{p.statement()}
-		return body, true
-	}
-	if _, success := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace); !success {
-		return body, false
-	}
-	start := p.peek(-1)
-
-	for !p.match(tokens.RightBrace) {
-		if p.peek().Type == tokens.Eof {
-			p.Alert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek(-1)), tokens.RightBrace)
-			return body, false
-		}
-
-		statement := p.statement()
-		if statement.GetType() != ast.NA {
-			body = append(body, statement)
-		}
-	}
-
-	return body, true
 }

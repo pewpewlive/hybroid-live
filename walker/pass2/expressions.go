@@ -316,12 +316,12 @@ func EnvAccessExpr(w *wkr.Walker, node *ast.EnvAccessExpr) (wkr.Value, ast.Node)
 
 	switch envName {
 	case "Pewpew":
-		if w.Environment.Type != ast.Level {
+		if w.Environment.Type != ast.LevelEnv {
 			w.Error(node.GetToken(), "cannot use the pewpew library in a non-level environment")
 		}
 		return GetNodeValueFromExternalEnv(w, node.Accessed, wkr.PewpewEnv), nil
 	case "Fmath":
-		if w.Environment.Type != ast.Level {
+		if w.Environment.Type != ast.LevelEnv {
 			w.Error(node.GetToken(), "cannot use the fmath library in a non-level environment")
 		}
 		return GetNodeValueFromExternalEnv(w, node.Accessed, wkr.FmathEnv), nil

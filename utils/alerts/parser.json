@@ -16,8 +16,8 @@
       "Keyword": "string",
       "Context": "string `default:\"\"`"
     },
-    "message": "Expected keyword '%s'%1s",
-    "message_format": ["Keyword", "Context"]
+    "message": "Expected keyword '%s'%s",
+    "message_format": ["Keyword", "\" \" + Context"]
   },
   {
     "name": "ExpectedIdentifier",
@@ -25,8 +25,8 @@
     "params": {
       "Context": "string `default:\"\"`"
     },
-    "message": "Expected identifier%1s",
-    "message_format": ["Context"]
+    "message": "Expected identifier%s",
+    "message_format": ["\" \" + Context"]
   },
   {
     "name": "ExpectedSymbol",
@@ -35,8 +35,8 @@
       "Symbol": "string",
       "Context": "string `default:\"\"`"
     },
-    "message": "Expected '%s'%1s",
-    "message_format": ["Symbol", "Context"]
+    "message": "Expected '%s'%s",
+    "message_format": ["Symbol", "\" \" + Context"]
   },
   {
     "name": "MoreThanOneElseStatement",

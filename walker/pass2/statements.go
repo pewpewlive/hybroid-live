@@ -14,11 +14,11 @@ import (
 // 	w.Environment.CustomTypes[node.Alias.Lexeme] = wkr.NewCustomType(node.Alias.Lexeme, TypeExpr(w, node.AliasedType, w.Environment))
 // }
 
-func AliasDeclarationStmt(w *wkr.Walker, node *ast.AliasDeclarationStmt, scope *wkr.Scope) {
+func AliasDeclarationStmt(w *wkr.Walker, node *ast.AliasDecl, scope *wkr.Scope) {
 	w.Environment.AliasTypes[node.Alias.Lexeme] = wkr.NewAliasType(node.Alias.Lexeme, TypeExpr(w, node.AliasedType, &w.Environment.Scope, true))
 }
 
-func ClassDeclarationStmt(w *wkr.Walker, node *ast.ClassDeclarationStmt, scope *wkr.Scope) {
+func ClassDeclarationStmt(w *wkr.Walker, node *ast.ClassDecl, scope *wkr.Scope) {
 	if node.Constructor == nil {
 		w.Error(node.Name, "structs must be declared with a constructor")
 		return
@@ -54,7 +54,7 @@ func ClassDeclarationStmt(w *wkr.Walker, node *ast.ClassDeclarationStmt, scope *
 	}
 	classVal.Params = params
 
-	funcDeclaration := ast.MethodDeclarationStmt{
+	funcDeclaration := ast.MethodDecl{
 		Name:     node.Constructor.Token,
 		Params:   node.Constructor.Params,
 		Return:   node.Constructor.Return,
@@ -88,7 +88,7 @@ func ClassDeclarationStmt(w *wkr.Walker, node *ast.ClassDeclarationStmt, scope *
 	}
 }
 
-func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDeclarationStmt, scope *wkr.Scope) {
+func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDecl, scope *wkr.Scope) {
 	et := &wkr.EntityTag{}
 	entityScope := wkr.NewScope(scope, et, wkr.SelfAllowing)
 
@@ -153,7 +153,7 @@ func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDeclarationStmt, scope
 	}
 }
 
-func EntityFunctionDeclarationStmt(w *wkr.Walker, node *ast.EntityFunctionDeclarationStmt, entityVal *wkr.EntityVal, scope *wkr.Scope) {
+func EntityFunctionDeclarationStmt(w *wkr.Walker, node *ast.EntityFunctionDecl, entityVal *wkr.EntityVal, scope *wkr.Scope) {
 	generics := make([]*wkr.GenericType, 0)
 
 	for _, param := range node.Generics {
@@ -228,7 +228,7 @@ func EntityFunctionDeclarationStmt(w *wkr.Walker, node *ast.EntityFunctionDeclar
 	}
 }
 
-func EnumDeclarationStmt(w *wkr.Walker, node *ast.EnumDeclarationStmt, scope *wkr.Scope) {
+func EnumDeclarationStmt(w *wkr.Walker, node *ast.EnumDecl, scope *wkr.Scope) {
 	enumVal := &wkr.EnumVal{
 		Type:   wkr.NewEnumType(scope.Environment.Name, node.Name.Lexeme),
 		Fields: make(map[string]*wkr.VariableVal),
@@ -261,8 +261,8 @@ func EnumDeclarationStmt(w *wkr.Walker, node *ast.EnumDeclarationStmt, scope *wk
 	w.DeclareVariable(scope, enumVar, node.GetToken())
 }
 
-func FieldDeclarationStmt(w *wkr.Walker, node *ast.FieldDeclarationStmt, container wkr.FieldContainer, scope *wkr.Scope) {
-	varDecl := ast.VariableDeclarationStmt{
+func FieldDeclarationStmt(w *wkr.Walker, node *ast.FieldDecl, container wkr.FieldContainer, scope *wkr.Scope) {
+	varDecl := ast.VariableDecl{
 		Identifiers: node.Identifiers,
 		Type:        node.Type,
 		Values:      node.Values,
@@ -277,7 +277,7 @@ func FieldDeclarationStmt(w *wkr.Walker, node *ast.FieldDeclarationStmt, contain
 	}
 }
 
-func MethodDeclarationStmt(w *wkr.Walker, node *ast.MethodDeclarationStmt, container wkr.MethodContainer, scope *wkr.Scope) {
+func MethodDeclarationStmt(w *wkr.Walker, node *ast.MethodDecl, container wkr.MethodContainer, scope *wkr.Scope) {
 	if variable, found := container.ContainsMethod(node.Name.Lexeme); found {
 		fn := variable.Value.(*wkr.FunctionVal)
 		fnTag := &wkr.FuncTag{
@@ -295,7 +295,7 @@ func MethodDeclarationStmt(w *wkr.Walker, node *ast.MethodDeclarationStmt, conta
 
 		WalkBody(w, &node.Body, fnTag, fnScope)
 	} else {
-		funcExpr := ast.FunctionDeclarationStmt{
+		funcExpr := ast.FunctionDecl{
 			Name:          node.Name,
 			Return:        node.Return,
 			Params:        node.Params,
@@ -309,7 +309,7 @@ func MethodDeclarationStmt(w *wkr.Walker, node *ast.MethodDeclarationStmt, conta
 	}
 }
 
-func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, scope *wkr.Scope, procType wkr.ProcedureType) *wkr.VariableVal {
+func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDecl, scope *wkr.Scope, procType wkr.ProcedureType) *wkr.VariableVal {
 	if node.Name.Lexeme == "Bounce" {
 		print("breakpoint")
 	}
@@ -354,7 +354,7 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDeclarationStmt, s
 	return variable
 }
 
-func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDeclarationStmt, scope *wkr.Scope) []*wkr.VariableVal {
+func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDecl, scope *wkr.Scope) []*wkr.VariableVal {
 	declaredVariables := []*wkr.VariableVal{}
 
 	types := make([]wkr.Type, 0)
@@ -835,13 +835,13 @@ func UseStmt(w *wkr.Walker, node *ast.UseStmt, scope *wkr.Scope) {
 
 	switch path {
 	case "Pewpew":
-		if w.Environment.Type != ast.Level {
+		if w.Environment.Type != ast.LevelEnv {
 			w.Error(node.GetToken(), "cannot use the pewpew library in a non-level environment")
 		}
 		w.Environment.UsedLibraries[wkr.Pewpew] = true
 		return
 	case "Fmath":
-		if w.Environment.Type != ast.Level {
+		if w.Environment.Type != ast.LevelEnv {
 			w.Error(node.GetToken(), "cannot use the fmath library in a non-level environment")
 		}
 		w.Environment.UsedLibraries[wkr.Fmath] = true

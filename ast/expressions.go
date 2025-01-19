@@ -267,7 +267,7 @@ func (fe *FunctionExpr) GetValueType() PrimitiveValueType {
 
 type StructExpr struct {
 	Token  tokens.Token
-	Fields []*FieldDeclarationStmt
+	Fields []*FieldDecl
 }
 
 func (ase *StructExpr) GetType() NodeType {
@@ -502,12 +502,19 @@ func (ie *IdentifierExpr) GetValueType() PrimitiveValueType {
 
 type Improper struct {
 	Token tokens.Token
+	Type  NodeType
 }
 
-func NewImproper(token tokens.Token) *Improper {
+func NewImproper(token tokens.Token, nodeType NodeType) *Improper {
 	return &Improper{
 		Token: token,
+		Type:  nodeType,
 	}
+}
+
+// Make sure to check if node.GetType() == ast.NA before trying to get the node type
+func ImproperToNodeType(improper Node) NodeType {
+	return improper.(*Improper).Type
 }
 
 func (i *Improper) GetType() NodeType {
