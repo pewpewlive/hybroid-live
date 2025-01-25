@@ -1,29 +1,29 @@
 package lexer
 
 import (
+	"bufio"
+	"fmt"
 	"hybroid/alerts"
+	"hybroid/helpers"
 	"hybroid/tokens"
+	"io"
+	"strconv"
+	"strings"
 )
 
 type Lexer struct {
 	alerts.AlertHandler
 
-	Tokens []tokens.Token
-	source []byte
+	buffer []rune
+	source *bufio.Reader
 
-	start, current, lineStart, lineCurrent, columnStart, columnCurrent int
+	pos int
 }
 
 func NewLexer() Lexer {
 	return Lexer{
-		Tokens:        make([]tokens.Token, 0),
-		source:        make([]byte, 0),
-		start:         0,
-		current:       0,
-		lineStart:     1,
-		lineCurrent:   1,
-		columnStart:   0,
-		columnCurrent: 0,
+		buffer: make([]rune, 0),
+		source: nil,
 	}
 }
 
@@ -31,285 +31,316 @@ func (l *Lexer) Alert(alertType alerts.Alert, args ...any) {
 	l.Alert_(alertType, args...)
 }
 
-func (l *Lexer) AssignSource(src []byte) {
-	l.source = src
+func (l *Lexer) AssignReader(reader io.Reader) {
+	l.source = bufio.NewReader(reader)
 }
 
-func (l *Lexer) handleString() {
-	hasMultilineStr := false
-	stringStartCol := l.columnCurrent
-
-	for l.peek() != '"' && !l.isAtEnd() {
-		if l.peek() == '\\' && l.peekNext() == '"' {
-			l.advance()
+func (l *Lexer) Tokenize() []tokens.Token {
+	lexerTokens := make([]tokens.Token, 0)
+	for {
+		token, err := l.next()
+		if err == io.EOF {
+			newToken := tokens.NewToken(tokens.Eof, "", "", helpers.NewSpan(l.pos, l.pos))
+			lexerTokens = append(lexerTokens, newToken)
+			break
+		} else if err != nil {
+			fmt.Printf("%s", err)
+			break
+		} else if token == nil {
+			continue
 		}
-		if l.peek() == '\n' {
-			l.lineCurrent++
-			l.columnStart = 0
-			l.columnCurrent = 0
-			hasMultilineStr = true
-		}
 
-		l.advance()
+		lexerTokens = append(lexerTokens, *token)
 	}
 
-	if l.isAtEnd() {
-		l.Alert(&alerts.UnterminatedString{}, alerts.NewSingle(tokens.Token{TokenLocation: tokens.NewLocation(l.lineStart, l.lineStart, stringStartCol, stringStartCol, 0, 0)}))
-		return
-	} else if hasMultilineStr {
-		l.Alert(&alerts.MultilineString{}, alerts.NewSingle(tokens.Token{TokenLocation: tokens.NewLocation(l.lineStart, l.lineCurrent, stringStartCol, l.columnCurrent+1, 0, 0)}))
-	}
-
-	l.advance()
-
-	value := string(l.source)[l.start+1 : l.current-1]
-	l.addToken(tokens.String, value)
+	return lexerTokens
 }
 
-func (l *Lexer) handleNumber() {
-	if l.peek() == 'x' {
-		l.advance()
-		l.advance()
+func (l *Lexer) next() (*tokens.Token, error) {
+	l.buffer = make([]rune, 0)
 
-		for isHexDigit(l.peek()) {
-			l.advance()
-		}
+	token := tokens.Token{}
+	token.Position.Start = l.pos
 
-		l.addToken(tokens.Number, string(l.source[l.start:l.current]))
-
-		return
+	c, err := l.advance()
+	if err != nil {
+		return nil, err
 	}
-
-	for isDigit(l.peek()) {
-		l.advance()
-	}
-
-	if l.peek() == '.' && isDigit(l.peekNext()) {
-		l.advance()
-
-		for isDigit(l.peek()) {
-			l.advance()
-		}
-	}
-
-	// Parse a number to see if its a valid number
-
-	strNum := string(l.source[l.start:l.current])
-	if !tryParseNum(strNum) {
-		l.Alert(&alerts.MalformedNumber{}, alerts.NewSingle(tokens.Token{TokenLocation: tokens.NewLocation(l.lineStart, l.lineCurrent, l.columnStart, l.columnCurrent, 0, 0)}))
-		return
-	}
-	// Evaluate if it is a postfix: `fx`, `r`, `d`
-
-	var postfix string
-	postfixStart := l.current
-	postfixColumn := l.columnCurrent + 1
-
-	for isAlphabetical(l.peek()) {
-		l.advance()
-	}
-
-	postfix = string(l.source[postfixStart:l.current])
-	switch postfix {
-
-	case "f":
-		l.addToken(tokens.Fixed, strNum)
-	case "fx":
-		l.addToken(tokens.FixedPoint, strNum)
-	case "r":
-		l.addToken(tokens.Radian, strNum)
-	case "d":
-		l.addToken(tokens.Degree, strNum)
-	case "":
-		l.addToken(tokens.Number, strNum)
-	default:
-		l.Alert(&alerts.InvalidNumberPostfix{}, alerts.NewSingle(tokens.Token{TokenLocation: tokens.NewLocation(l.lineStart, l.lineCurrent, postfixColumn, l.columnCurrent, 0, 0)}), postfix)
-	}
-}
-
-func (l *Lexer) handleIdentifier() {
-	for isAlphanumeric(l.peek()) {
-		l.advance()
-	}
-
-	text := string(l.source)[l.start:l.current]
-
-	val, ok := tokens.KeywordToToken(text)
-	if ok {
-		l.addToken(val, "")
-		return
-	}
-
-	l.addToken(tokens.Identifier, "")
-}
-
-func (l *Lexer) scanToken() {
-	c := l.advance()
 
 	switch c {
-
 	case '{':
-		l.addToken(tokens.LeftBrace, "")
+		token.Type = tokens.LeftBrace
 	case '}':
-		l.addToken(tokens.RightBrace, "")
+		token.Type = tokens.RightBrace
 	case '(':
-		l.addToken(tokens.LeftParen, "")
+		token.Type = tokens.LeftParen
 	case ')':
-		l.addToken(tokens.RightParen, "")
+		token.Type = tokens.RightParen
 	case '[':
-		l.addToken(tokens.LeftBracket, "")
+		token.Type = tokens.LeftBracket
 	case ']':
-		l.addToken(tokens.RightBracket, "")
+		token.Type = tokens.RightBracket
 	case ',':
-		l.addToken(tokens.Comma, "")
+		token.Type = tokens.Comma
 	case ':':
-		if l.matchChar(':') {
-			l.addToken(tokens.DoubleColon, "")
+		if l.match(':') {
+			token.Type = tokens.DoubleColon
 		} else {
-			l.addToken(tokens.Colon, "")
+			token.Type = tokens.Colon
 		}
 	case '@':
-		l.addToken(tokens.At, "")
+		token.Type = tokens.At
 	case '#':
-		l.addToken(tokens.Hash, "")
+		token.Type = tokens.Hash
 	case '|':
-		l.addToken(tokens.Pipe, "")
+		token.Type = tokens.Pipe
 	case '.':
-		if l.matchChar('.') {
-			if l.matchChar('.') {
-				l.addToken(tokens.Ellipsis, "")
+		if l.match('.') {
+			if l.match('.') {
+				token.Type = tokens.Ellipsis
 			} else {
-				l.addToken(tokens.Concat, "")
+				token.Type = tokens.Concat
 			}
 		} else {
-			l.addToken(tokens.Dot, "")
+			token.Type = tokens.Dot
 		}
 	case '+':
-		if l.matchChar('=') {
-			l.addToken(tokens.PlusEqual, "")
+		if l.match('=') {
+			token.Type = tokens.PlusEqual
 		} else {
-			l.addToken(tokens.Plus, "")
+			token.Type = tokens.Plus
 		}
 	case '-':
-		if l.matchChar('=') {
-			l.addToken(tokens.MinusEqual, "")
-		} else if l.matchChar('>') {
-			l.addToken(tokens.ThinArrow, "")
+		if l.match('=') {
+			token.Type = tokens.MinusEqual
+		} else if l.match('>') {
+			token.Type = tokens.ThinArrow
 		} else {
-			l.addToken(tokens.Minus, "")
+			token.Type = tokens.Minus
 		}
 	case '^':
-		if l.matchChar('=') {
-			l.addToken(tokens.CaretEqual, "")
+		if l.match('=') {
+			token.Type = tokens.CaretEqual
 		} else {
-			l.addToken(tokens.Caret, "")
+			token.Type = tokens.Caret
 		}
 	case '*':
-		if l.matchChar('=') {
-			l.addToken(tokens.StarEqual, "")
+		if l.match('=') {
+			token.Type = tokens.StarEqual
 		} else {
-			l.addToken(tokens.Star, "")
+			token.Type = tokens.Star
 		}
 	case '=':
-		if l.matchChar('=') {
-			l.addToken(tokens.EqualEqual, "")
-		} else if l.matchChar('>') {
-			l.addToken(tokens.FatArrow, "")
+		if l.match('=') {
+			token.Type = tokens.EqualEqual
+		} else if l.match('>') {
+			token.Type = tokens.FatArrow
 		} else {
-			l.addToken(tokens.Equal, "")
+			token.Type = tokens.Equal
 		}
 	case '!':
-		if l.matchChar('=') {
-			l.addToken(tokens.BangEqual, "")
+		if l.match('=') {
+			token.Type = tokens.BangEqual
 		} else {
-			l.addToken(tokens.Bang, "")
+			token.Type = tokens.Bang
 		}
 	case '<':
-		if l.matchChar('=') {
-			l.addToken(tokens.LessEqual, "")
+		if l.match('=') {
+			token.Type = tokens.LessEqual
 		} else {
-			l.addToken(tokens.Less, "")
+			token.Type = tokens.Less
 		}
 	case '>':
-		if l.matchChar('=') {
-			l.addToken(tokens.GreaterEqual, "")
+		if l.match('=') {
+			token.Type = tokens.GreaterEqual
 		} else {
-			l.addToken(tokens.Greater, "")
+			token.Type = tokens.Greater
 		}
 	case '%':
-		if l.matchChar('=') {
-			l.addToken(tokens.ModuloEqual, "")
+		if l.match('=') {
+			token.Type = tokens.ModuloEqual
 		} else {
-			l.addToken(tokens.Modulo, "")
+			token.Type = tokens.Modulo
 		}
 
 	case '/':
-		if l.matchChar('/') {
-			for l.peek() != '\n' && !l.isAtEnd() {
-				l.advance()
-			}
-		} else if l.matchChar('*') {
-			// Handle multiline comments
-			for (l.peek() != '*' || l.peekNext() != '/') && !l.isAtEnd() {
-				if l.peek() == '\n' {
-					l.lineCurrent++
-					l.columnStart = 0
-					l.columnCurrent = 0
-				}
-
-				l.advance()
-			}
-
-			l.advance()
-			l.advance()
+		if l.match('/') {
+			err := l.handleComment(false)
+			return nil, err
+		} else if l.match('*') {
+			err := l.handleComment(true)
+			return nil, err
 		} else {
-			if l.matchChar('=') {
-				l.addToken(tokens.SlashEqual, "")
+			if l.match('=') {
+				token.Type = tokens.SlashEqual
 			} else {
-				l.addToken(tokens.Slash, "")
+				token.Type = tokens.Slash
 			}
 		}
 
 	case '\\':
-		if l.matchChar('=') {
-			l.addToken(tokens.BackSlashEqual, "")
+		if l.match('=') {
+			token.Type = tokens.BackSlashEqual
 		} else {
-			l.addToken(tokens.BackSlash, "")
+			token.Type = tokens.BackSlash
 		}
 	case ';':
-		l.addToken(tokens.SemiColon, "")
-	// Whitespace characters
-	case ' ', '\r', '\t':
-		break
+		token.Type = tokens.SemiColon
 
-	// Increment lineCurrent count when hitting new lineCurrent
-	case '\n':
-		l.lineCurrent++
-		l.columnStart = 0
-		l.columnCurrent = 0
+	case ' ', '\n', '\r', '\t':
+		return nil, nil
 
 	case '"':
-		l.handleString()
+		return l.handleString()
 
 	default:
 		if isDigit(c) {
-			l.handleNumber()
+			return l.handleNumber()
 		} else if isAlphabetical(c) {
-			l.handleIdentifier()
+			return l.handleIdentifier()
 		} else {
-			l.Alert(&alerts.UnsupportedCharacter{}, alerts.NewSingle(tokens.Token{TokenLocation: tokens.NewLocation(l.lineStart, l.lineCurrent, l.columnStart, l.columnCurrent, 0, 0)}), c)
+			token.Lexeme = string(token.Type)
+			token.Position.End = l.pos
+			l.Alert(&alerts.UnsupportedCharacter{}, alerts.NewSingle(token), c)
+			return nil, nil
 		}
 	}
+	token.Lexeme = string(token.Type)
+	token.Position.End = l.pos
+
+	return &token, nil
 }
 
-func (l *Lexer) Tokenize() {
-	for !l.isAtEnd() {
-		l.start = l.current
-		l.lineStart = l.lineCurrent
-		l.columnStart = l.columnCurrent
-		l.scanToken()
+func (l *Lexer) handleString() (*tokens.Token, error) {
+	token := tokens.Token{
+		Type:     tokens.String,
+		Position: helpers.NewSpan(l.pos-1, l.pos),
 	}
 
-	newToken := tokens.NewToken(tokens.Eof, "", "", tokens.NewLocation(l.lineCurrent, l.lineCurrent, l.columnCurrent+1, l.columnCurrent+1, 0, 0))
-	l.Tokens = append(l.Tokens, newToken) // Append an EOF (End of File) token
+	for !l.match('"') && !l.isEOF() {
+		if !l.match('\\', '"') {
+			l.advance()
+		}
+	}
+	token.Lexeme = l.bufferString()
+	token.Literal = token.Lexeme[1 : len(token.Lexeme)-1]
+	token.Position.End = l.pos
+
+	if token.Lexeme[len(token.Lexeme)-1] != '"' && l.isEOF() {
+		l.Alert(&alerts.UnterminatedString{}, alerts.NewSingle(token))
+	} else if strings.Contains(token.Literal, "\n") {
+		l.Alert(&alerts.MultilineString{}, alerts.NewSingle(token))
+	}
+
+	return &token, nil
+}
+
+func (l *Lexer) handleNumber() (*tokens.Token, error) {
+	token := tokens.Token{
+		Type:     tokens.Number,
+		Position: helpers.NewSpan(l.pos-1, l.pos),
+	}
+	if l.match('x') {
+		err := l.consumeWhile(isHexDigit)
+		if err != nil {
+			return nil, err
+		}
+		token.Position.End = l.pos
+		token.Literal = l.bufferString()
+
+		return &token, err
+	}
+
+	err := l.consumeWhile(isDigit)
+	if err != nil {
+		return nil, err
+	}
+
+	if r, err := l.peek(); err == nil && r == '.' {
+		_, err := l.advance()
+		if err != nil {
+			return nil, err
+		}
+
+		err = l.consumeWhile(isDigit)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	token.Literal = l.bufferString()
+	token.Position.End = l.pos
+
+	if _, err := strconv.ParseFloat(token.Literal, 64); err != nil {
+		l.Alert(&alerts.MalformedNumber{}, alerts.NewSingle(token), token.Literal)
+		return nil, err
+	}
+
+	postixPosition := helpers.NewSpan(l.pos, l.pos)
+	err = l.consumeWhile(isAlphabetical)
+	if err != nil {
+		return nil, err
+	}
+	postixPosition.End = l.pos
+
+	postfix := l.bufferString()
+	switch postfix {
+	case "f":
+		token.Type = tokens.Fixed
+	case "fx":
+		token.Type = tokens.FixedPoint
+	case "r":
+		token.Type = tokens.Radian
+	case "d":
+		token.Type = tokens.Degree
+	case "":
+		break
+	default:
+		token.Position = postixPosition
+		l.Alert(&alerts.InvalidNumberPostfix{}, alerts.NewSingle(token), postfix)
+	}
+
+	return &token, nil
+}
+
+func (l *Lexer) handleIdentifier() (*tokens.Token, error) {
+	token := tokens.Token{
+		Type:     tokens.Identifier,
+		Position: helpers.NewSpan(l.pos-1, l.pos),
+	}
+	err := l.consumeWhile(isAlphanumeric)
+	if err != nil {
+		return nil, err
+	}
+	token.Position.End = l.pos
+	token.Lexeme = l.bufferString()
+
+	if keyword, found := tokens.KeywordToToken(token.Lexeme); found {
+		token.Type = keyword
+	}
+
+	return &token, nil
+}
+
+func (l *Lexer) handleComment(multiline bool) error {
+	if !multiline {
+		read, err := l.source.ReadBytes('\n')
+		if err != nil {
+			return err
+		}
+		l.pos += len(read)
+		return nil
+	} else {
+		for !l.match('*', '/') && !l.isEOF() {
+			if l.match('/', '*') {
+				l.handleComment(true)
+			} else {
+				_, err := l.advance()
+				if err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
 }

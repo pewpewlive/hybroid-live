@@ -80,21 +80,12 @@ func (p *Parser) declaration() ast.Node {
 	if p.match(tokens.Env) {
 		p.Alert(&alerts.EnvironmentRedaclaration{}, alerts.NewSingle(p.peek()))
 	}
-	/*
-
-
-	 */
-
-	// switch expression {
-	// case condition:
-
-	// }asdsad
 
 	return nil
 }
 
 func (p *Parser) environmentDeclaration() ast.Node {
-	stmt := &ast.EnvironmentDecl{}
+	envDecl := &ast.EnvironmentDecl{}
 
 	expr := p.EnvPathExpr()
 	if expr.GetType() == ast.NA {
@@ -107,15 +98,15 @@ func (p *Parser) environmentDeclaration() ast.Node {
 
 	envTypeExpr := p.EnvType()
 	if envTypeExpr.Type == ast.InvalidEnv {
-		return stmt
+		return envDecl
 	}
 
 	envPathExpr, _ := expr.(*ast.EnvPathExpr)
-	stmt.EnvType = envTypeExpr
-	stmt.Env = envPathExpr
-	p.Context.EnvDeclaration = stmt
+	envDecl.EnvType = envTypeExpr
+	envDecl.Env = envPathExpr
+	p.Context.EnvDeclaration = envDecl
 
-	return stmt
+	return envDecl
 }
 
 func (p *Parser) variableDeclaration() ast.Node {

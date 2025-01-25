@@ -206,7 +206,7 @@ func (p *Parser) consume(alert alerts.Alert, types ...tokens.TokenType) (tokens.
 	return token, false // error
 }
 
-func (p *Parser) ParseTokens() []ast.Node {
+func (p *Parser) Parse() []ast.Node {
 	firstToken := p.peek()
 	if firstToken.Type != tokens.Env {
 		p.Alert(&alerts.ExpectedEnvironment{}, alerts.NewSingle(firstToken))

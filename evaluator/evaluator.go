@@ -45,41 +45,32 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 
 	for i := range e.walkerList {
 		sourcePath := e.files[i].Path()
-		sourceFile, err := os.ReadFile(filepath.Join(cwd, sourcePath))
+		sourceFile, err := os.OpenFile(filepath.Join(cwd, sourcePath), os.O_RDONLY, os.ModePerm)
 		if err != nil {
-			return fmt.Errorf("failed to read source file: %v", err)
+			return fmt.Errorf("failed to open source file: %v", err)
 		}
+		defer sourceFile.Close()
 
-		fmt.Printf("Tokenizing %d characters\n", len(sourceFile))
 		start := time.Now()
 
-		e.lexer.AssignSource(sourceFile)
-		e.lexer.Tokenize()
-		if e.lexer.HasAlerts {
-			e.lexer.PrintAlerts(alerts.Lexer, sourceFile, sourcePath)
-			return fmt.Errorf("failed to tokenize source file")
-		}
+		e.lexer.AssignReader(sourceFile)
+		tokens := e.lexer.Tokenize()
+		e.lexer.PrintAlerts(alerts.Lexer, sourcePath)
 
 		fmt.Printf("Tokenizing time: %f seconds\n\n", time.Since(start).Seconds())
 		start = time.Now()
 
-		fmt.Printf("Parsing %d tokens\n", len(e.lexer.Tokens))
+		fmt.Printf("Parsing %d tokens\n", len(tokens))
 
-		e.parser.AssignTokens(e.lexer.Tokens)
-		prog := e.parser.ParseTokens()
-		if e.parser.HasAlerts {
-			e.parser.PrintAlerts(alerts.Parser, sourceFile, sourcePath)
-
-		}
+		e.parser.AssignTokens(tokens)
+		prog := e.parser.Parse()
+		e.parser.PrintAlerts(alerts.Parser, sourcePath)
 		// if len(e.parser.Errors) != 0 {
 		// 	color.Println("[red]Syntax error")
 		// 	for _, err := range e.parser.Errors {
 		// 		color.Printf("[red]Error: %+v\n", err)
 		// 	}
 		// }
-		if e.parser.HasAlerts /*|| len(e.parser.Errors) != 0*/ {
-			return fmt.Errorf("failed to parse source file")
-		}
 		fmt.Printf("Parsing time: %f seconds\n\n", time.Since(start).Seconds())
 
 		//ast.DrawNodes(prog)

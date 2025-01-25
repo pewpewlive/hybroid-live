@@ -520,7 +520,7 @@ func (p *Parser) OLDstructExpr() ast.Node {
 		structExpr.Fields = append(structExpr.Fields, field.(*ast.FieldDecl))
 	} else {
 		p.Alert(&alerts.ExpectedFieldDeclaration{}, alerts.NewSingle(field.GetToken()))
-		return ast.NewImproper(field.GetToken())
+		return ast.NewImproper(field.GetToken(), ast.NA)
 	}
 
 	for p.match(tokens.SemiColon) {
@@ -532,7 +532,7 @@ func (p *Parser) OLDstructExpr() ast.Node {
 			structExpr.Fields = append(structExpr.Fields, field.(*ast.FieldDecl))
 		} else {
 			p.Alert(&alerts.ExpectedFieldDeclaration{}, alerts.NewSingle(field.GetToken()))
-			return ast.NewImproper(field.GetToken())
+			return ast.NewImproper(field.GetToken(), ast.NA)
 		}
 	}
 
@@ -630,19 +630,9 @@ func (p *Parser) OLDType() *ast.TypeExpr {
 }
 
 func (p *Parser) OLDEnvType() *ast.EnvTypeExpr {
-	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "for a environment type expr"), tokens.Identifier)
+	name, _ := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "for a environment type expr"), tokens.Identifier)
 
-	if !ok {
-		return &ast.EnvTypeExpr{Type: ast.InvalidEnv, Token: name}
-	}
-
-	envType := ast.StringToEnvType(name.Lexeme)
-
-	if envType == ast.InvalidEnv {
-		p.Alert(&alerts.InvalidEnvironmentType{}, alerts.NewSingle(name))
-	}
-
-	return &ast.EnvTypeExpr{Type: envType, Token: name}
+	return &ast.EnvTypeExpr{Type: ast.InvalidEnv, Token: name}
 }
 
 func (p *Parser) OLDEnvPathExpr() ast.Node {

@@ -1,10 +1,10 @@
 package helpers
 
-type Span struct {
-	Start int
-	End   int
+type Span[T any] struct {
+	Start T
+	End   T
 }
 
-func NewSpan(start, end int) Span {
-	return Span{start, end}
+func NewSpan[T any](start, end T) Span[T] {
+	return Span[T]{start, end}
 }

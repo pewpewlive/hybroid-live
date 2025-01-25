@@ -11,7 +11,7 @@ func (p *Parser) createBinExpr(left ast.Node, operator tokens.Token, tokenType t
 	valueType := p.determineValueType(left, right)
 	return &ast.BinaryExpr{
 		Left:      left,
-		Operator:  tokens.NewToken(tokenType, lexeme, "", operator.TokenLocation),
+		Operator:  tokens.NewToken(tokenType, lexeme, "", operator.Position),
 		Right:     right,
 		ValueType: valueType,
 	}
@@ -25,17 +25,17 @@ func IsFx(valueType ast.PrimitiveValueType) bool {
 func (p *Parser) getOp(opEqual tokens.Token) tokens.Token {
 	switch opEqual.Type {
 	case tokens.PlusEqual:
-		return tokens.NewToken(tokens.Plus, "+", opEqual.Literal, opEqual.TokenLocation)
+		return tokens.NewToken(tokens.Plus, "+", opEqual.Literal, opEqual.Position)
 	case tokens.MinusEqual:
-		return tokens.NewToken(tokens.Minus, "-", opEqual.Literal, opEqual.TokenLocation)
+		return tokens.NewToken(tokens.Minus, "-", opEqual.Literal, opEqual.Position)
 	case tokens.SlashEqual:
-		return tokens.NewToken(tokens.Slash, "/", opEqual.Literal, opEqual.TokenLocation)
+		return tokens.NewToken(tokens.Slash, "/", opEqual.Literal, opEqual.Position)
 	case tokens.StarEqual:
-		return tokens.NewToken(tokens.Star, "*", opEqual.Literal, opEqual.TokenLocation)
+		return tokens.NewToken(tokens.Star, "*", opEqual.Literal, opEqual.Position)
 	case tokens.CaretEqual:
-		return tokens.NewToken(tokens.Caret, "^", opEqual.Literal, opEqual.TokenLocation)
+		return tokens.NewToken(tokens.Caret, "^", opEqual.Literal, opEqual.Position)
 	case tokens.ModuloEqual:
-		return tokens.NewToken(tokens.Modulo, "%", opEqual.Literal, opEqual.TokenLocation)
+		return tokens.NewToken(tokens.Modulo, "%", opEqual.Literal, opEqual.Position)
 	default:
 		return tokens.Token{}
 	}

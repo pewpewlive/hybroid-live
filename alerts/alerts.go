@@ -2,6 +2,7 @@ package alerts
 
 import (
 	"fmt"
+	"hybroid/helpers"
 	"hybroid/tokens"
 	"reflect"
 	"strconv"
@@ -40,21 +41,15 @@ TODO: add fix snippet
 type Alert interface {
 	GetMessage() string
 	GetSpecifier() SnippetSpecifier
-
-	// Empty string means no note will be printed
 	GetNote() string
-
 	GetID() string
 	GetAlertType() AlertType
-
-	// AddTokens(...tokens.Token)
 }
 
 type AlertHandler struct {
 	Source []byte
 
-	Alerts    []Alert
-	HasAlerts bool
+	Alerts []Alert
 
 	currentLine int
 }
@@ -115,17 +110,15 @@ func (ah *AlertHandler) NewAlert(alert Alert, args ...any) Alert {
 }
 
 func (ah *AlertHandler) Alert_(alertType Alert, args ...any) {
-	ah.HasAlerts = true
 	ah.Alerts = append(ah.Alerts, ah.NewAlert(alertType, args...))
 }
 
 func (ah *AlertHandler) AlertI_(alertType Alert) {
-	ah.HasAlerts = true
 	ah.Alerts = append(ah.Alerts, alertType)
 }
 
-func (ah *AlertHandler) PrintAlerts(alertStage AlertStage, source []byte, sourcePath string) {
-	ah.Source = source
+func (ah *AlertHandler) PrintAlerts(alertStage AlertStage, sourcePath string) {
+	//FIXME: ah.Source = source
 
 	var errMsg string
 	switch alertStage {
@@ -137,41 +130,39 @@ func (ah *AlertHandler) PrintAlerts(alertStage AlertStage, source []byte, source
 
 	for _, alert := range ah.Alerts {
 		color.Printf(errMsg, alert.GetID())
-		ah.PrintLocation(alert, sourcePath)
-		ah.PrintCodeSnippet(alert)
-		ah.PrintMessage(alert)
-		ah.PrintNote(alert)
+		ah.printLocation(alert, sourcePath)
+		ah.printCodeSnippet(alert)
+		ah.printMessage(alert)
+		ah.printNote(alert)
 		fmt.Println()
 	}
 
 	ah.Finish()
 }
 
-func (ah *AlertHandler) SortTypes() {
+func (ah *AlertHandler) sortTypes() {
 	//TODO: error and warning sorting
 }
 
-func (ah *AlertHandler) PrintMessage(alert Alert) {
+func (ah *AlertHandler) printMessage(alert Alert) {
 	color.Println(alert.GetMessage())
 }
 
-func (ah *AlertHandler) PrintLocation(alert Alert, file string) {
-	location := CombineLocations(alert.GetSpecifier().GetTokens())
-	color.Printf("%s:%d:%d\n", file, location.Line.Start, location.Column.Start)
+func (ah *AlertHandler) printLocation(alert Alert, file string) {
+	location := combineLocations(alert.GetSpecifier().GetTokens())
+	color.Printf("%s:%d:%d\n", file, location.Start, location.Start)
 }
 
-func (ah *AlertHandler) PrintCodeSnippet(alert Alert) {
+func (ah *AlertHandler) printCodeSnippet(alert Alert) {
 	lineCount := 1
 	columnCount := 0
 	specifier := alert.GetSpecifier()
-	location := CombineLocations(specifier.GetTokens()) // how will this work
-
-	// Alert(&err, Multiple{tk, tk2, tk3}, Fix{"thing"}, Singleline{tk1})
+	location := combineLocations(specifier.GetTokens())
 
 	for i := 0; i < len(ah.Source); i++ {
 		columnCount += 1
 
-		if lineCount == location.Line.Start && (ah.Source[i] == '\n' || i == len(ah.Source)-1) {
+		if lineCount == location.Start && (ah.Source[i] == '\n' || i == len(ah.Source)-1) {
 			color.Println(specifier.GetSnippet(string(ah.Source), i, columnCount, lineCount))
 			break
 		}
@@ -185,7 +176,7 @@ func (ah *AlertHandler) PrintCodeSnippet(alert Alert) {
 	ah.currentLine = lineCount
 }
 
-func (ah *AlertHandler) PrintNote(alert Alert) {
+func (ah *AlertHandler) printNote(alert Alert) {
 	if alert.GetNote() != "" {
 		color.Printf("[cyan] %s= note:[default] %s\n", strings.Repeat(" ", len(strconv.Itoa(ah.currentLine))), alert.GetNote())
 		return
@@ -194,126 +185,33 @@ func (ah *AlertHandler) PrintNote(alert Alert) {
 	fmt.Print("\n")
 }
 
-func CombineLocations(tks []tokens.Token) tokens.TokenLocation {
+func combineLocations(tks []tokens.Token) helpers.Span[int] {
 	if len(tks) == 0 {
-		return tokens.TokenLocation{}
+		return helpers.Span[int]{}
 	}
-	location := tks[0].TokenLocation
+	location := tks[0].Position
 
 	for i, v := range tks {
-		loc := v.TokenLocation
+		loc := v.Position
 		if i == 0 {
 			continue
 		}
 
-		if loc.Column.Start < location.Column.Start {
-			location.Column.Start = loc.Column.Start
+		if loc.Start < location.Start {
+			location.Start = loc.Start
 		}
-		if loc.Column.End > location.Column.End {
-			location.Column.End = loc.Column.End
-		}
-		if loc.Line.Start < location.Line.Start {
-			location.Line.Start = loc.Line.Start
-		}
-		if loc.Line.End > location.Line.End {
-			location.Line.End = loc.Line.End
+		if loc.End > location.End {
+			location.End = loc.End
 		}
 	}
 
 	return location
 }
 
-func (ah *AlertHandler) GetCodeSnippet(location tokens.TokenLocation) string {
+func (ah *AlertHandler) getCodeSnippet(location helpers.Span[int]) string {
 	return ""
 }
 
 func (ah *AlertHandler) Finish() {
 	ah.Source = []byte{}
 }
-
-// type Alert interface {
-// 	GetToken() lexer.Token
-// 	GetHeader() string
-// 	GetMessage() string
-// }
-
-// type Error struct {
-// 	Token   lexer.Token
-// 	Message string
-// }
-
-// func (e Error) GetToken() lexer.Token {
-// 	return e.Token
-// }
-
-// func (e Error) GetMessage() string {
-// 	return e.Message
-// }
-
-// func (e Error) GetHeader() string {
-// 	return "[red]Error"
-// }
-
-// type Warning struct {
-// 	Token   lexer.Token
-// 	Message string
-// }
-
-// func (w Warning) GetToken() lexer.Token {
-// 	return w.Token
-// }
-
-// func (w Warning) GetMessage() string {
-// 	return w.Message
-// }
-
-// func (e Warning) GetHeader() string {
-// 	return "[yellow]Warning"
-// }
-
-/*
-
-Original func:
-fn function() {
-
-	return
-
-
-	...
-	...
-}
-
-Error code snippet:
-3 	return
-...
-6 	...			<
-7 	...			<
-...
-8 }
-
-
-walkBody() {
-
-	for i := range node.Body {
-		if unreachable_code {
-			unreachable code  d
-		}
-	}
-}
-UnreachableCode{Node[]}
-*/
-
-// DescriptiveErrors = false
-// error in file: etc. etc.
-
-// GetLocation() -> TokenLocation
-// thing.fn(fixed, number, fixed)
-// Incorrect function signature
-// *code snippet*
-// Description of what happened and how to fix it
-// Ex: function params are: number, number
-
-// new IncorrectFuncSignature{Token[], Loc, FunctioCallNode}
-
-// new MalformedValError{string, TokenLocation}
-// GetErrorType() -> "Malformed number"

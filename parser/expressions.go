@@ -108,9 +108,16 @@ func (p *Parser) EnvType() *ast.EnvTypeExpr {
 		return &ast.EnvTypeExpr{Type: ast.InvalidEnv, Token: name}
 	}
 
-	envType := ast.StringToEnvType(name.Lexeme)
-
-	if envType == ast.InvalidEnv {
+	var envType ast.EnvType
+	switch name.Lexeme {
+	case "Mesh":
+		envType = ast.MeshEnv
+	case "Level":
+		envType = ast.LevelEnv
+	case "Sound":
+		envType = ast.SoundEnv
+	default:
+		envType = ast.InvalidEnv
 		p.Alert(&alerts.InvalidEnvironmentType{}, alerts.NewSingle(name))
 	}
 

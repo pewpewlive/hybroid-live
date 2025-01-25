@@ -153,7 +153,7 @@ func (p *Parser) OLDstatement() (returnNode ast.Node) {
 	}
 
 	if p.peek().Type == tokens.SemiColon {
-		returnNode = ast.NewImproper(p.advance())
+		returnNode = ast.NewImproper(p.advance(), ast.NA)
 		return
 	}
 
@@ -186,14 +186,14 @@ func (p *Parser) OLDaliasDeclarationStmt(isLocal bool) ast.Node {
 	typeToken := p.peek(-1)
 	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in alias declaration"), tokens.Identifier)
 	if !ok {
-		return ast.NewImproper(name)
+		return ast.NewImproper(name, ast.NA)
 	}
 	if token, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Equal, "after identifier in alias declaration"), tokens.Equal); !ok {
-		return ast.NewImproper(token)
+		return ast.NewImproper(token, ast.NA)
 	}
 
 	if !p.CheckType() {
-		return ast.NewImproper(p.peek())
+		return ast.NewImproper(p.peek(), ast.NA)
 	}
 	aliased := p.Type()
 
@@ -419,7 +419,7 @@ func (p *Parser) OLDentityFunctionDeclarationStmt(token tokens.Token, functionTy
 	var success bool
 	stmt.Body, success = p.getBody()
 	if !success {
-		return ast.NewImproper(stmt.Token)
+		return ast.NewImproper(stmt.Token, ast.NA)
 	}
 
 	p.Context.FunctionReturns.Pop("entityFunctionDeclarationStmt")
@@ -468,7 +468,7 @@ func (p *Parser) OLDfieldDeclarationStmt() ast.Node {
 	typ, ident := p.TypeAndIdentifier()
 	if ident.GetType() != ast.Identifier {
 		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(ident.GetToken()), "in field declaration")
-		return ast.NewImproper(ident.GetToken())
+		return ast.NewImproper(ident.GetToken(), ast.NA)
 	}
 
 	idents := []tokens.Token{ident.GetToken()}
@@ -671,7 +671,7 @@ func (p *Parser) OLDfunctionDeclarationStmt(IsLocal bool) ast.Node {
 	var success bool
 	fnDec.Body, success = p.getBody()
 	if !success {
-		return ast.NewImproper(fnDec.Name)
+		return ast.NewImproper(fnDec.Name, ast.NA)
 	}
 
 	p.Context.FunctionReturns.Pop("functionDeclarationStmt")
@@ -758,7 +758,7 @@ func (p *Parser) OLDrepeatStmt() ast.Node {
 	var success bool
 	repeatStmt.Body, success = p.getBody()
 	if !success {
-		return ast.NewImproper(repeatStmt.Token)
+		return ast.NewImproper(repeatStmt.Token, ast.NA)
 	}
 
 	return &repeatStmt
@@ -771,7 +771,7 @@ func (p *Parser) OLDwhileStmt() ast.Node {
 
 	if condtion.GetType() == ast.NA {
 		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(condtion.GetToken()))
-		return ast.NewImproper(condtion.GetToken())
+		return ast.NewImproper(condtion.GetToken(), ast.NA)
 	}
 
 	whileStmt.Condtion = condtion
@@ -779,7 +779,7 @@ func (p *Parser) OLDwhileStmt() ast.Node {
 	var success bool
 	whileStmt.Body, success = p.getBody()
 	if !success {
-		return ast.NewImproper(whileStmt.Token)
+		return ast.NewImproper(whileStmt.Token, ast.NA)
 	}
 
 	return whileStmt
@@ -826,7 +826,7 @@ func (p *Parser) OLDforStmt() ast.Node {
 	var success bool
 	forStmt.Body, success = p.getBody()
 	if !success {
-		return ast.NewImproper(forStmt.Token)
+		return ast.NewImproper(forStmt.Token, ast.NA)
 	}
 
 	return &forStmt
@@ -850,7 +850,7 @@ func (p *Parser) OLDtickStmt() ast.Node {
 	var success bool
 	tickStmt.Body, success = p.getBody()
 	if !success {
-		return ast.NewImproper(tickStmt.Token)
+		return ast.NewImproper(tickStmt.Token, ast.NA)
 	}
 
 	return &tickStmt
@@ -937,7 +937,7 @@ func (p *Parser) OLDvariableDeclarationStmt() ast.Node {
 	if ide.GetType() != ast.Identifier {
 		ideToken := ide.GetToken()
 		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(ideToken), "in variable declaration")
-		return ast.NewImproper(ideToken)
+		return ast.NewImproper(ideToken, ast.NA)
 	}
 
 	idents := []tokens.Token{ide.GetToken()}
@@ -946,7 +946,7 @@ func (p *Parser) OLDvariableDeclarationStmt() ast.Node {
 		ide := p.advance()
 		if ide.Type != tokens.Identifier {
 			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(ide), "in variable declaration")
-			return ast.NewImproper(ide)
+			return ast.NewImproper(ide, ast.NA)
 		}
 
 		idents = append(idents, ide)
@@ -984,7 +984,7 @@ func (p *Parser) OLDuseStmt() ast.Node {
 	filepath := p.EnvPathExpr()
 	if filepath.GetType() != ast.EnvironmentPathExpression {
 		p.Alert(&alerts.ExpectedEnvironmentPathExpression{}, alerts.NewMulti(filepath.GetToken(), p.peek()))
-		return ast.NewImproper(p.peek())
+		return ast.NewImproper(p.peek(), ast.NA)
 	}
 	useStmt.Path = filepath.(*ast.EnvPathExpr)
 

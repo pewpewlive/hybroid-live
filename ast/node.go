@@ -102,19 +102,6 @@ const (
 	InvalidEnv EnvType = "InvalidEnv"
 )
 
-func StringToEnvType(name string) EnvType {
-	switch name {
-	case "Mesh":
-		return MeshEnv
-	case "Level":
-		return LevelEnv
-	case "Sound":
-		return SoundEnv
-	default:
-		return InvalidEnv
-	}
-}
-
 type SelfExprType int
 
 const (

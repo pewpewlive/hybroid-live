@@ -12,14 +12,14 @@ type SnippetSpecifier interface {
 	GetTokens() []tokens.Token
 }
 
+type Singleline struct {
+	Token tokens.Token
+}
+
 func NewSingle(token tokens.Token) *Singleline {
 	return &Singleline{
 		Token: token,
 	}
-}
-
-type Singleline struct {
-	Token tokens.Token
 }
 
 func (ss *Singleline) GetSnippet(src string, index, columnCount, lineCount int) string {
