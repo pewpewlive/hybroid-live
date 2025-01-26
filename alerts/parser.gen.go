@@ -4,6 +4,7 @@ package alerts
 
 import (
   "fmt"
+  "strings"
 )
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
@@ -12,7 +13,7 @@ type ExpectedStatement struct {
 }
 
 func (es *ExpectedStatement) GetMessage() string {
-  return "Expected statement"
+  return "expected statement"
 }
 
 func (es *ExpectedStatement) GetSpecifier() SnippetSpecifier {
@@ -37,7 +38,7 @@ type ExpectedExpression struct {
 }
 
 func (ee *ExpectedExpression) GetMessage() string {
-  return "Expected expression"
+  return "expected expression"
 }
 
 func (ee *ExpectedExpression) GetSpecifier() SnippetSpecifier {
@@ -57,6 +58,32 @@ func (ee *ExpectedExpression) GetAlertType() AlertType {
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type UnknownStatement struct {
+  Specifier SnippetSpecifier
+  Context string `default:""`
+}
+
+func (us *UnknownStatement) GetMessage() string {
+  return fmt.Sprintf("unknown statement %s", us.Context)
+}
+
+func (us *UnknownStatement) GetSpecifier() SnippetSpecifier {
+  return us.Specifier
+}
+
+func (us *UnknownStatement) GetNote() string {
+  return ""
+}
+
+func (us *UnknownStatement) GetID() string {
+  return "hyb003"
+}
+
+func (us *UnknownStatement) GetAlertType() AlertType {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ExpectedKeyword struct {
   Specifier SnippetSpecifier
   Keyword string
@@ -64,7 +91,7 @@ type ExpectedKeyword struct {
 }
 
 func (ek *ExpectedKeyword) GetMessage() string {
-  return fmt.Sprintf("Expected keyword '%s'%1s", ek.Keyword, ek.Context)
+  return fmt.Sprintf("expected keyword '%s' %s", ek.Keyword, ek.Context)
 }
 
 func (ek *ExpectedKeyword) GetSpecifier() SnippetSpecifier {
@@ -76,7 +103,7 @@ func (ek *ExpectedKeyword) GetNote() string {
 }
 
 func (ek *ExpectedKeyword) GetID() string {
-  return "hyb003"
+  return "hyb004"
 }
 
 func (ek *ExpectedKeyword) GetAlertType() AlertType {
@@ -90,7 +117,7 @@ type ExpectedIdentifier struct {
 }
 
 func (ei *ExpectedIdentifier) GetMessage() string {
-  return fmt.Sprintf("Expected identifier%1s", ei.Context)
+  return fmt.Sprintf("expected identifier %s", ei.Context)
 }
 
 func (ei *ExpectedIdentifier) GetSpecifier() SnippetSpecifier {
@@ -102,7 +129,7 @@ func (ei *ExpectedIdentifier) GetNote() string {
 }
 
 func (ei *ExpectedIdentifier) GetID() string {
-  return "hyb004"
+  return "hyb005"
 }
 
 func (ei *ExpectedIdentifier) GetAlertType() AlertType {
@@ -117,7 +144,7 @@ type ExpectedSymbol struct {
 }
 
 func (es *ExpectedSymbol) GetMessage() string {
-  return fmt.Sprintf("Expected '%s'%1s", es.Symbol, es.Context)
+  return fmt.Sprintf("expected '%s' %s", es.Symbol, es.Context)
 }
 
 func (es *ExpectedSymbol) GetSpecifier() SnippetSpecifier {
@@ -129,7 +156,7 @@ func (es *ExpectedSymbol) GetNote() string {
 }
 
 func (es *ExpectedSymbol) GetID() string {
-  return "hyb005"
+  return "hyb006"
 }
 
 func (es *ExpectedSymbol) GetAlertType() AlertType {
@@ -142,7 +169,7 @@ type MoreThanOneElseStatement struct {
 }
 
 func (mtoes *MoreThanOneElseStatement) GetMessage() string {
-  return "Cannot have more than one else statement in an if statement"
+  return "cannot have more than one else statement in an if statement"
 }
 
 func (mtoes *MoreThanOneElseStatement) GetSpecifier() SnippetSpecifier {
@@ -154,7 +181,7 @@ func (mtoes *MoreThanOneElseStatement) GetNote() string {
 }
 
 func (mtoes *MoreThanOneElseStatement) GetID() string {
-  return "hyb006"
+  return "hyb007"
 }
 
 func (mtoes *MoreThanOneElseStatement) GetAlertType() AlertType {
@@ -167,7 +194,7 @@ type EnvironmentRedaclaration struct {
 }
 
 func (er *EnvironmentRedaclaration) GetMessage() string {
-  return "Cannot redeclare an environment"
+  return "cannot redeclare an environment"
 }
 
 func (er *EnvironmentRedaclaration) GetSpecifier() SnippetSpecifier {
@@ -179,7 +206,7 @@ func (er *EnvironmentRedaclaration) GetNote() string {
 }
 
 func (er *EnvironmentRedaclaration) GetID() string {
-  return "hyb007"
+  return "hyb008"
 }
 
 func (er *EnvironmentRedaclaration) GetAlertType() AlertType {
@@ -204,7 +231,7 @@ func (eepe *ExpectedEnvironmentPathExpression) GetNote() string {
 }
 
 func (eepe *ExpectedEnvironmentPathExpression) GetID() string {
-  return "hyb008"
+  return "hyb009"
 }
 
 func (eepe *ExpectedEnvironmentPathExpression) GetAlertType() AlertType {
@@ -217,7 +244,7 @@ type ExpectedEnvironment struct {
 }
 
 func (ee *ExpectedEnvironment) GetMessage() string {
-  return "Expected environment statement"
+  return "expected environment statement"
 }
 
 func (ee *ExpectedEnvironment) GetSpecifier() SnippetSpecifier {
@@ -229,7 +256,7 @@ func (ee *ExpectedEnvironment) GetNote() string {
 }
 
 func (ee *ExpectedEnvironment) GetID() string {
-  return "hyb009"
+  return "hyb010"
 }
 
 func (ee *ExpectedEnvironment) GetAlertType() AlertType {
@@ -242,7 +269,7 @@ type ExpectedType struct {
 }
 
 func (et *ExpectedType) GetMessage() string {
-  return "Expected type"
+  return "expected type"
 }
 
 func (et *ExpectedType) GetSpecifier() SnippetSpecifier {
@@ -254,7 +281,7 @@ func (et *ExpectedType) GetNote() string {
 }
 
 func (et *ExpectedType) GetID() string {
-  return "hyb010"
+  return "hyb011"
 }
 
 func (et *ExpectedType) GetAlertType() AlertType {
@@ -267,7 +294,7 @@ type ExpectedAssignmentSymbol struct {
 }
 
 func (eas *ExpectedAssignmentSymbol) GetMessage() string {
-  return "Expected assignment symbol"
+  return "expected assignment symbol"
 }
 
 func (eas *ExpectedAssignmentSymbol) GetSpecifier() SnippetSpecifier {
@@ -275,11 +302,11 @@ func (eas *ExpectedAssignmentSymbol) GetSpecifier() SnippetSpecifier {
 }
 
 func (eas *ExpectedAssignmentSymbol) GetNote() string {
-  return "Assignment symbols are: '=', '+=', '-=', '*=', '%=', '/=', '\\='"
+  return "assignment symbols are: '=', '+=', '-=', '*=', '%=', '/=', '\\='"
 }
 
 func (eas *ExpectedAssignmentSymbol) GetID() string {
-  return "hyb011"
+  return "hyb012"
 }
 
 func (eas *ExpectedAssignmentSymbol) GetAlertType() AlertType {
@@ -292,7 +319,7 @@ type ExpectedExpressionOrBody struct {
 }
 
 func (eeob *ExpectedExpressionOrBody) GetMessage() string {
-  return "Expected expression or body"
+  return "expected expression or body"
 }
 
 func (eeob *ExpectedExpressionOrBody) GetSpecifier() SnippetSpecifier {
@@ -304,7 +331,7 @@ func (eeob *ExpectedExpressionOrBody) GetNote() string {
 }
 
 func (eeob *ExpectedExpressionOrBody) GetID() string {
-  return "hyb012"
+  return "hyb013"
 }
 
 func (eeob *ExpectedExpressionOrBody) GetAlertType() AlertType {
@@ -317,7 +344,7 @@ type ExpectedCallArgs struct {
 }
 
 func (eca *ExpectedCallArgs) GetMessage() string {
-  return "Expected call arguments"
+  return "expected call arguments"
 }
 
 func (eca *ExpectedCallArgs) GetSpecifier() SnippetSpecifier {
@@ -329,7 +356,7 @@ func (eca *ExpectedCallArgs) GetNote() string {
 }
 
 func (eca *ExpectedCallArgs) GetID() string {
-  return "hyb013"
+  return "hyb014"
 }
 
 func (eca *ExpectedCallArgs) GetAlertType() AlertType {
@@ -342,7 +369,7 @@ type InvalidCall struct {
 }
 
 func (ic *InvalidCall) GetMessage() string {
-  return "Invalid expression to call"
+  return "invalid expression to call"
 }
 
 func (ic *InvalidCall) GetSpecifier() SnippetSpecifier {
@@ -354,7 +381,7 @@ func (ic *InvalidCall) GetNote() string {
 }
 
 func (ic *InvalidCall) GetID() string {
-  return "hyb014"
+  return "hyb015"
 }
 
 func (ic *InvalidCall) GetAlertType() AlertType {
@@ -367,7 +394,7 @@ type InvalidEnvironmentType struct {
 }
 
 func (iet *InvalidEnvironmentType) GetMessage() string {
-  return "Expected 'Level', 'Mesh' or 'Sound' as environment type"
+  return "expected 'Level', 'Mesh' or 'Sound' as environment type"
 }
 
 func (iet *InvalidEnvironmentType) GetSpecifier() SnippetSpecifier {
@@ -379,7 +406,7 @@ func (iet *InvalidEnvironmentType) GetNote() string {
 }
 
 func (iet *InvalidEnvironmentType) GetID() string {
-  return "hyb015"
+  return "hyb016"
 }
 
 func (iet *InvalidEnvironmentType) GetAlertType() AlertType {
@@ -392,7 +419,7 @@ type ExpectedCallAfterMacroSymbol struct {
 }
 
 func (ecams *ExpectedCallAfterMacroSymbol) GetMessage() string {
-  return "Expected an expression call after '@'"
+  return "expected a macro call after '@'"
 }
 
 func (ecams *ExpectedCallAfterMacroSymbol) GetSpecifier() SnippetSpecifier {
@@ -404,7 +431,7 @@ func (ecams *ExpectedCallAfterMacroSymbol) GetNote() string {
 }
 
 func (ecams *ExpectedCallAfterMacroSymbol) GetID() string {
-  return "hyb016"
+  return "hyb017"
 }
 
 func (ecams *ExpectedCallAfterMacroSymbol) GetAlertType() AlertType {
@@ -419,7 +446,7 @@ type ForbiddenTypeInEnvironment struct {
 }
 
 func (ftie *ForbiddenTypeInEnvironment) GetMessage() string {
-  return fmt.Sprintf("Cannot have a %s in the following environments: %v", ftie.Type, ftie.Envs)
+  return fmt.Sprintf("cannot have a %s in the following environments: %s", ftie.Type, strings.Join(ftie.Envs, ", "))
 }
 
 func (ftie *ForbiddenTypeInEnvironment) GetSpecifier() SnippetSpecifier {
@@ -431,7 +458,7 @@ func (ftie *ForbiddenTypeInEnvironment) GetNote() string {
 }
 
 func (ftie *ForbiddenTypeInEnvironment) GetID() string {
-  return "hyb017"
+  return "hyb018"
 }
 
 func (ftie *ForbiddenTypeInEnvironment) GetAlertType() AlertType {
@@ -444,7 +471,7 @@ type ExpectedFieldDeclaration struct {
 }
 
 func (efd *ExpectedFieldDeclaration) GetMessage() string {
-  return "Expected field declaration inside struct"
+  return "expected field declaration inside struct"
 }
 
 func (efd *ExpectedFieldDeclaration) GetSpecifier() SnippetSpecifier {
@@ -456,7 +483,7 @@ func (efd *ExpectedFieldDeclaration) GetNote() string {
 }
 
 func (efd *ExpectedFieldDeclaration) GetID() string {
-  return "hyb018"
+  return "hyb019"
 }
 
 func (efd *ExpectedFieldDeclaration) GetAlertType() AlertType {
@@ -469,7 +496,7 @@ type EmptyWrappedType struct {
 }
 
 func (ewt *EmptyWrappedType) GetMessage() string {
-  return "Wrapped types must not be empty"
+  return "wrapped types must not be empty"
 }
 
 func (ewt *EmptyWrappedType) GetSpecifier() SnippetSpecifier {
@@ -481,7 +508,7 @@ func (ewt *EmptyWrappedType) GetNote() string {
 }
 
 func (ewt *EmptyWrappedType) GetID() string {
-  return "hyb019"
+  return "hyb020"
 }
 
 func (ewt *EmptyWrappedType) GetAlertType() AlertType {
@@ -494,7 +521,7 @@ type ExpectedReturnArgs struct {
 }
 
 func (era *ExpectedReturnArgs) GetMessage() string {
-  return "Expected return arguments after fat arrow (=>)"
+  return "expected return arguments after fat arrow (=>)"
 }
 
 func (era *ExpectedReturnArgs) GetSpecifier() SnippetSpecifier {
@@ -506,35 +533,10 @@ func (era *ExpectedReturnArgs) GetNote() string {
 }
 
 func (era *ExpectedReturnArgs) GetID() string {
-  return "hyb020"
-}
-
-func (era *ExpectedReturnArgs) GetAlertType() AlertType {
-  return Error
-}
-
-// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type UnknownStatementInsideClass struct {
-  Specifier SnippetSpecifier
-}
-
-func (usic *UnknownStatementInsideClass) GetMessage() string {
-  return "Unknown statement inside class"
-}
-
-func (usic *UnknownStatementInsideClass) GetSpecifier() SnippetSpecifier {
-  return usic.Specifier
-}
-
-func (usic *UnknownStatementInsideClass) GetNote() string {
-  return ""
-}
-
-func (usic *UnknownStatementInsideClass) GetID() string {
   return "hyb021"
 }
 
-func (usic *UnknownStatementInsideClass) GetAlertType() AlertType {
+func (era *ExpectedReturnArgs) GetAlertType() AlertType {
   return Error
 }
 
@@ -544,7 +546,7 @@ type ExpectedAccessExpression struct {
 }
 
 func (eae *ExpectedAccessExpression) GetMessage() string {
-  return "Expected an access expression"
+  return "expected an access expression"
 }
 
 func (eae *ExpectedAccessExpression) GetSpecifier() SnippetSpecifier {
@@ -552,7 +554,7 @@ func (eae *ExpectedAccessExpression) GetSpecifier() SnippetSpecifier {
 }
 
 func (eae *ExpectedAccessExpression) GetNote() string {
-  return "Access expression are: identifier, environment access, self, member and field expressions"
+  return "access expression are: identifier, environment access, self, member and field expressions"
 }
 
 func (eae *ExpectedAccessExpression) GetID() string {
@@ -564,128 +566,80 @@ func (eae *ExpectedAccessExpression) GetAlertType() AlertType {
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type NoIteratorProvidedInForLoopStatement struct {
+type MissingIterator struct {
   Specifier SnippetSpecifier
+  Context string `default:""`
 }
 
-func (nipifls *NoIteratorProvidedInForLoopStatement) GetMessage() string {
-  return "No Iterator provided in for loop statement"
+func (mi *MissingIterator) GetMessage() string {
+  return fmt.Sprintf("missing iterator %s", mi.Context)
 }
 
-func (nipifls *NoIteratorProvidedInForLoopStatement) GetSpecifier() SnippetSpecifier {
-  return nipifls.Specifier
+func (mi *MissingIterator) GetSpecifier() SnippetSpecifier {
+  return mi.Specifier
 }
 
-func (nipifls *NoIteratorProvidedInForLoopStatement) GetNote() string {
+func (mi *MissingIterator) GetNote() string {
   return ""
 }
 
-func (nipifls *NoIteratorProvidedInForLoopStatement) GetID() string {
+func (mi *MissingIterator) GetID() string {
   return "hyb023"
 }
 
-func (nipifls *NoIteratorProvidedInForLoopStatement) GetAlertType() AlertType {
+func (mi *MissingIterator) GetAlertType() AlertType {
   return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type DuplicateKeywordInRepeatStatement struct {
+type DuplicateKeyword struct {
   Specifier SnippetSpecifier
   Keyword string
 }
 
-func (dkirs *DuplicateKeywordInRepeatStatement) GetMessage() string {
-  return fmt.Sprintf("Cannot have duplicate keyword (%s) in repeat statement", dkirs.Keyword)
+func (dk *DuplicateKeyword) GetMessage() string {
+  return fmt.Sprintf("cannot have multiple '%s' keywords", dk.Keyword)
 }
 
-func (dkirs *DuplicateKeywordInRepeatStatement) GetSpecifier() SnippetSpecifier {
-  return dkirs.Specifier
+func (dk *DuplicateKeyword) GetSpecifier() SnippetSpecifier {
+  return dk.Specifier
 }
 
-func (dkirs *DuplicateKeywordInRepeatStatement) GetNote() string {
+func (dk *DuplicateKeyword) GetNote() string {
   return ""
 }
 
-func (dkirs *DuplicateKeywordInRepeatStatement) GetID() string {
+func (dk *DuplicateKeyword) GetID() string {
   return "hyb024"
 }
 
-func (dkirs *DuplicateKeywordInRepeatStatement) GetAlertType() AlertType {
+func (dk *DuplicateKeyword) GetAlertType() AlertType {
   return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type RedefinitionOfIteratorInRepeatStatement struct {
+type IteratorRedefinition struct {
   Specifier SnippetSpecifier
+  Context string `default:""`
 }
 
-func (roiirs *RedefinitionOfIteratorInRepeatStatement) GetMessage() string {
-  return "Redefinition of iterator in repeat statement"
+func (ir *IteratorRedefinition) GetMessage() string {
+  return fmt.Sprintf("redefinition of iterator", ir.Context)
 }
 
-func (roiirs *RedefinitionOfIteratorInRepeatStatement) GetSpecifier() SnippetSpecifier {
-  return roiirs.Specifier
+func (ir *IteratorRedefinition) GetSpecifier() SnippetSpecifier {
+  return ir.Specifier
 }
 
-func (roiirs *RedefinitionOfIteratorInRepeatStatement) GetNote() string {
+func (ir *IteratorRedefinition) GetNote() string {
   return ""
 }
 
-func (roiirs *RedefinitionOfIteratorInRepeatStatement) GetID() string {
+func (ir *IteratorRedefinition) GetID() string {
   return "hyb025"
 }
 
-func (roiirs *RedefinitionOfIteratorInRepeatStatement) GetAlertType() AlertType {
-  return Error
-}
-
-// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type UnknownStatementInsideEntity struct {
-  Specifier SnippetSpecifier
-}
-
-func (usie *UnknownStatementInsideEntity) GetMessage() string {
-  return "Unknown statement inside class"
-}
-
-func (usie *UnknownStatementInsideEntity) GetSpecifier() SnippetSpecifier {
-  return usie.Specifier
-}
-
-func (usie *UnknownStatementInsideEntity) GetNote() string {
-  return ""
-}
-
-func (usie *UnknownStatementInsideEntity) GetID() string {
-  return "hyb026"
-}
-
-func (usie *UnknownStatementInsideEntity) GetAlertType() AlertType {
-  return Error
-}
-
-// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type MissingIteratorInRepeatStatement struct {
-  Specifier SnippetSpecifier
-}
-
-func (miirs *MissingIteratorInRepeatStatement) GetMessage() string {
-  return "Missing iterator in repeat statement"
-}
-
-func (miirs *MissingIteratorInRepeatStatement) GetSpecifier() SnippetSpecifier {
-  return miirs.Specifier
-}
-
-func (miirs *MissingIteratorInRepeatStatement) GetNote() string {
-  return ""
-}
-
-func (miirs *MissingIteratorInRepeatStatement) GetID() string {
-  return "hyb027"
-}
-
-func (miirs *MissingIteratorInRepeatStatement) GetAlertType() AlertType {
+func (ir *IteratorRedefinition) GetAlertType() AlertType {
   return Error
 }
 

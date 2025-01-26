@@ -317,7 +317,7 @@ func (p *Parser) OLDclassDeclarationStmt(isLocal bool) ast.Node {
 			if field.GetType() != ast.NA {
 				stmt.Fields = append(stmt.Fields, *field.(*ast.FieldDecl))
 			} else {
-				p.Alert(&alerts.UnknownStatementInsideClass{}, alerts.NewMulti(field.GetToken(), p.peek()))
+				p.Alert(&alerts.UnknownStatement{}, alerts.NewMulti(field.GetToken(), p.peek()), "in class declaration")
 			}
 		}
 	}
@@ -398,7 +398,7 @@ func (p *Parser) OLDentityDeclarationStmt(isLocal bool) ast.Node {
 		if field.GetType() != ast.NA {
 			stmt.Fields = append(stmt.Fields, *field.(*ast.FieldDecl))
 		} else {
-			p.Alert(&alerts.UnknownStatementInsideEntity{}, alerts.NewMulti(field.GetToken(), p.peek()))
+			p.Alert(&alerts.UnknownStatement{}, alerts.NewMulti(field.GetToken(), p.peek()), "in entity declaration")
 		}
 	}
 
@@ -708,7 +708,7 @@ func (p *Parser) OLDrepeatStmt() ast.Node {
 		if p.match(tokens.With) {
 			identExpr := p.expression()
 			if variableAssigned {
-				p.Alert(&alerts.DuplicateKeywordInRepeatStatement{}, alerts.NewSingle(p.peek(-1)), "with")
+				p.Alert(&alerts.DuplicateKeyword{}, alerts.NewSingle(p.peek(-1)), tokens.With)
 			}
 			variableAssigned = true
 			if identExpr.GetType() != ast.Identifier {
@@ -718,11 +718,11 @@ func (p *Parser) OLDrepeatStmt() ast.Node {
 			}
 		} else if p.match(tokens.To) {
 			if iteratorAssgined {
-				p.Alert(&alerts.DuplicateKeywordInRepeatStatement{}, alerts.NewSingle(p.peek(-1)), "to")
+				p.Alert(&alerts.DuplicateKeyword{}, alerts.NewSingle(p.peek(-1)), tokens.To)
 			}
 			iteratorAssgined = true
 			if gotIterator {
-				p.Alert(&alerts.RedefinitionOfIteratorInRepeatStatement{}, alerts.NewSingle(p.peek(-1)))
+				p.Alert(&alerts.IteratorRedefinition{}, alerts.NewSingle(p.peek(-1)), "in repeat statement")
 			} else {
 				repeatStmt.Iterator = p.expression()
 				if repeatStmt.Iterator.GetType() == ast.NA {
@@ -731,7 +731,7 @@ func (p *Parser) OLDrepeatStmt() ast.Node {
 			}
 		} else if p.match(tokens.By) {
 			if skipAssigned {
-				p.Alert(&alerts.DuplicateKeywordInRepeatStatement{}, alerts.NewSingle(p.peek(-1)), "by")
+				p.Alert(&alerts.DuplicateKeyword{}, alerts.NewSingle(p.peek(-1)), tokens.By)
 			}
 			skipAssigned = true
 			repeatStmt.Skip = p.expression()
@@ -740,7 +740,7 @@ func (p *Parser) OLDrepeatStmt() ast.Node {
 			}
 		} else if p.match(tokens.From) {
 			if startAssigned {
-				p.Alert(&alerts.DuplicateKeywordInRepeatStatement{}, alerts.NewSingle(p.peek(-1)), "from")
+				p.Alert(&alerts.DuplicateKeyword{}, alerts.NewSingle(p.peek(-1)), tokens.From)
 			}
 			startAssigned = true
 			repeatStmt.Start = p.expression()
@@ -751,7 +751,7 @@ func (p *Parser) OLDrepeatStmt() ast.Node {
 	}
 
 	if repeatStmt.Iterator == nil {
-		p.Alert(&alerts.MissingIteratorInRepeatStatement{}, alerts.NewSingle(repeatStmt.Token))
+		p.Alert(&alerts.MissingIterator{}, alerts.NewSingle(repeatStmt.Token), "in repeat statement")
 		repeatStmt.Iterator = &ast.LiteralExpr{Token: repeatStmt.Token, Value: "1", ValueType: ast.Number}
 	}
 
@@ -819,7 +819,7 @@ func (p *Parser) OLDforStmt() ast.Node {
 	forStmt.Iterator = p.expression()
 
 	if forStmt.Iterator == nil {
-		p.Alert(&alerts.NoIteratorProvidedInForLoopStatement{}, alerts.NewSingle(forStmt.Token))
+		p.Alert(&alerts.MissingIterator{}, alerts.NewSingle(forStmt.Token), "in for statement")
 		forStmt.Iterator = &ast.LiteralExpr{Token: forStmt.Token, Value: "[1]", ValueType: ast.List}
 	}
 

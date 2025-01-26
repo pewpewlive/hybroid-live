@@ -10,6 +10,15 @@
     "message": "expected expression"
   },
   {
+    "name": "UnknownStatement",
+    "type": "Error",
+    "params": {
+      "Context": "string `default:\"\"`"
+    },
+    "message": "unknown statement %s",
+    "message_format": ["Context"]
+  },
+  {
     "name": "ExpectedKeyword",
     "type": "Error",
     "params": {
@@ -95,7 +104,7 @@
   {
     "name": "ExpectedCallAfterMacroSymbol",
     "type": "Error",
-    "message": "expected an expression call after '@'"
+    "message": "expected a macro call after '@'"
   },
   {
     "name": "ForbiddenTypeInEnvironment",
@@ -104,8 +113,8 @@
       "Type": "string",
       "Envs": "[]string"
     },
-    "message": "cannot have a %s in the following environments: %v",
-    "message_format": ["Type", "Envs"]
+    "message": "cannot have a %s in the following environments: %s",
+    "message_format": ["Type", { "Envs": "strings.Join({}, \", \")" }]
   },
   {
     "name": "ExpectedFieldDeclaration",
@@ -123,43 +132,36 @@
     "message": "expected return arguments after fat arrow (=>)"
   },
   {
-    "name": "UnknownStatementInsideClass",
-    "type": "Error",
-    "message": "unknown statement inside class"
-  },
-  {
     "name": "ExpectedAccessExpression",
     "type": "Error",
     "message": "expected an access expression",
     "note": "access expression are: identifier, environment access, self, member and field expressions"
   },
   {
-    "name": "NoIteratorProvidedInForLoopStatement",
+    "name": "MissingIterator",
     "type": "Error",
-    "message": "no Iterator provided in for loop statement"
+    "params": {
+      "Context": "string `default:\"\"`"
+    },
+    "message": "missing iterator %s",
+    "message_format": ["Context"]
   },
   {
-    "name": "DuplicateKeywordInRepeatStatement",
+    "name": "DuplicateKeyword",
     "type": "Error",
     "params": {
       "Keyword": "string"
     },
-    "message": "cannot have duplicate keyword (%s) in repeat statement",
+    "message": "cannot have multiple '%s' keywords",
     "message_format": ["Keyword"]
   },
   {
-    "name": "RedefinitionOfIteratorInRepeatStatement",
+    "name": "IteratorRedefinition",
     "type": "Error",
-    "message": "redefinition of iterator in repeat statement"
-  },
-  {
-    "name": "UnknownStatementInsideEntity",
-    "type": "Error",
-    "message": "unknown statement inside class"
-  },
-  {
-    "name": "MissingIteratorInRepeatStatement",
-    "type": "Error",
-    "message": "missing iterator in repeat statement"
+    "params": {
+      "Context": "string `default:\"\"`"
+    },
+    "message": "redefinition of iterator %s",
+    "message_format": ["Context"]
   }
 ]

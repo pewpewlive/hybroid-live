@@ -8,10 +8,14 @@ package alerts
 
 import (
   "fmt"
+  {}
 )
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 """
+
+_POSSIBLE_PACKAGES = ["strings"]
+_imports = set()
 
 
 def _to_receiver(original: str) -> str:
@@ -23,13 +27,29 @@ def _to_receiver(original: str) -> str:
     return "".join(re.findall(r"[A-Z]", original)).lower()
 
 
-def _format_string(string: str, string_format: list[str], receiver: str) -> str:
+def _extract_imports(string: str):
+    for package in _POSSIBLE_PACKAGES:
+        if package in string:
+            _imports.add(f'"{package}"')
+
+
+type Format = dict[str, str] | str
+
+
+def _format_string(string: str, string_format: list[Format], receiver: str) -> str:
     if len(string_format) == 0:
         return f'"{string}"'
 
-    specifiers = ", ".join(f"{receiver}.{specifier}" for specifier in string_format)
+    specifiers = []
+    for specifier in string_format:
+        if type(specifier) is str:
+            specifiers.append(f"{receiver}.{specifier}")
+        elif type(specifier) is dict:
+            specifier, format = dict(specifier).popitem()
+            _extract_imports(format)
+            specifiers.append(format.format(f"{receiver}.{specifier}"))
 
-    return f'fmt.Sprintf("{string}", {specifiers})'
+    return f'fmt.Sprintf("{string}", {", ".join(specifiers)})'
 
 
 class Alert:
@@ -39,9 +59,9 @@ class Alert:
     stage: str
     params: dict[str, str]
     message: str
-    message_format: list[str]
+    message_format: list[Format]
     note: str
-    note_format: list[str]
+    note_format: list[Format]
     id: int
 
     def __init__(self, raw: dict, stage: str, id: int):
@@ -121,7 +141,9 @@ def _generate_alerts(raw: dict, stage: str) -> str:
         alerts.append(Alert(alert, stage, id).generate_str())
         id += 1
 
-    return _FILE_TEMPLATE + "// AUTO-GENERATED, DO NOT MANUALLY MODIFY!\n".join(alerts)
+    return _FILE_TEMPLATE.format(
+        "\n  ".join(_imports)
+    ) + "// AUTO-GENERATED, DO NOT MANUALLY MODIFY!\n".join(alerts)
 
 
 def _generate_file(filename: str):
@@ -130,6 +152,9 @@ def _generate_file(filename: str):
         alerts = json.load(f)
 
     new_filename = filename.replace(".json", ".gen.go")
+
+    # Clear extracted imports
+    _imports.clear()
 
     # Generate the .gen.go file
     with open(f"../../alerts/{new_filename}", "x", encoding="utf-8") as f:
