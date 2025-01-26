@@ -60,9 +60,7 @@ func build(ctx *cli.Context, filesToBuild ...helpers.FileInformation) error {
 		os.WriteFile(filepath.Join(cwd, outputDir, "/manifest.json"), manifest, 0644)
 
 		eval := evaluator.NewEvaluator(generator.Generator{
-			Scope: generator.GenScope{
-				Src: generator.StringBuilder{},
-			},
+			Scope: generator.NewGenScope(nil),
 		})
 
 		if len(filesToBuild) == 0 {

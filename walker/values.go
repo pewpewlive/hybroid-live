@@ -98,18 +98,18 @@ func (asv *AnonStructVal) GetType() Type {
 func (asv *AnonStructVal) GetDefault() *ast.LiteralExpr {
 	src := generator.StringBuilder{}
 
-	src.WriteString("{")
+	src.Write("{")
 	length := len(asv.Fields) - 1
 	index := 0
 	for k, v := range asv.Fields {
 		if index == length {
-			src.Append(k, " = ", v.Var.GetDefault().Value)
+			src.Write(k, " = ", v.Var.GetDefault().Value)
 		} else {
-			src.Append(k, " = ", v.Var.GetDefault().Value, ", ")
+			src.Write(k, " = ", v.Var.GetDefault().Value, ", ")
 		}
 		index++
 	}
-	src.WriteString("}")
+	src.Write("}")
 
 	return &ast.LiteralExpr{Value: src.String()}
 }
@@ -483,7 +483,7 @@ func TypesToString(types []Type) string {
 	src := generator.StringBuilder{}
 
 	for i := range types {
-		src.WriteString(types[i].ToString())
+		src.Write(types[i].ToString())
 		if i != len(types)-1 {
 			src.WriteRune('\n')
 		}
@@ -525,14 +525,14 @@ func (f *FunctionVal) GetReturns() Types {
 
 func (f *FunctionVal) GetDefault() *ast.LiteralExpr {
 	src := generator.StringBuilder{}
-	src.WriteString("function(")
+	src.Write("function(")
 	for i := range f.Params {
-		src.WriteString(fmt.Sprintf("param%v", i))
+		src.Write(fmt.Sprintf("param%v", i))
 		if i != len(f.Params)-1 {
-			src.WriteString(", ")
+			src.Write(", ")
 		}
 	}
-	src.WriteString(") end")
+	src.Write(") end")
 	return &ast.LiteralExpr{Value: src.String()}
 }
 

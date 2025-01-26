@@ -4,58 +4,26 @@ import (
 	"fmt"
 	"hybroid/alerts"
 	"hybroid/ast"
+	"hybroid/helpers"
 	"math"
 	"strconv"
-	"strings"
 )
 
-// func (ge *GenError) generatorError() string {
-// 	return fmt.Sprintf("Error: %v, at line: %v (%v)", ge.Message, ge.Token.Location.LineStart, ge.Token.ToString())
-// }
-
-// func (gen *Generator) error(token lexer.Token, message string) {
-// 	gen.Errors = append(gen.Errors, ast.Error{Token: token, Message: message})
-// }
-
-type StringBuilder struct {
-	strings.Builder
-}
-
-func (sb *StringBuilder) Append(chunks ...string) {
-	for _, chunk := range chunks {
-		sb.WriteString(chunk)
-	}
-}
-
-func (sb *StringBuilder) AppendTabbed(chunks ...string) {
-	sb.WriteString(getTabs())
-
-	for _, chunk := range chunks {
-		sb.WriteString(chunk)
-	}
-}
-
-func (sb *StringBuilder) ReplaceRange(str string, replaceRange Range) {
-	buffer := sb.String()
-	sb.Reset()
-	sb.Append(buffer[:replaceRange.Start], str, buffer[replaceRange.End:])
-}
+const charset = "_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const hyGTL = "GL"
+const hyVar = "H"
+const hyClass = "HC"
+const hyEntity = "HE"
 
 var envMap = map[string]string{}
-var charset = []byte("_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-var charsetLength = len(charset)
 var varCounter = 0
 var envCounter = 0
-
-var hyGTL = "GL"
-var hyVar = "H"
-var hyClass = "HC"
-var hyEntity = "HE"
+var TabsCount int
 
 func ResolveVarCounter(varname *StringBuilder, counter int) {
-	if counter > charsetLength-1 {
-		newCounter := counter - charsetLength
-		varname.WriteByte(charset[charsetLength-1])
+	if counter > len(charset)-1 {
+		newCounter := counter - len(charset)
+		varname.WriteByte(charset[len(charset)-1])
 		ResolveVarCounter(varname, newCounter)
 	} else {
 		varname.WriteByte(charset[counter])
@@ -64,13 +32,11 @@ func ResolveVarCounter(varname *StringBuilder, counter int) {
 
 func GenerateVar(prefix string) string {
 	varName := StringBuilder{}
-	varName.WriteString(prefix)
+	varName.Write(prefix)
 	ResolveVarCounter(&varName, varCounter)
 	varCounter++
 	return varName.String()
 }
-
-var TabsCount int
 
 type ReplaceType int
 
@@ -82,31 +48,23 @@ const (
 	VariableReplacement
 )
 
-type Range struct {
-	Start int
-	End   int
-}
-
 type Replacement struct {
-	Tag   ReplaceType
-	Range Range
-}
-
-func NewRange(start int, end int) Range {
-	return Range{Start: start, End: end}
+	Tag  ReplaceType
+	Span helpers.Span[int]
 }
 
 type ReplaceSettings map[ReplaceType]string
 
 type GenScope struct { // 0 3
+	StringBuilder
+
 	Parent          *GenScope
-	Src             StringBuilder
 	Replacements    []Replacement
 	ReplaceSettings ReplaceSettings
 }
 
-func (gs *GenScope) AddReplacement(tag ReplaceType, _range Range) {
-	gs.Replacements = append(gs.Replacements, Replacement{Tag: tag, Range: _range})
+func (gs *GenScope) AddReplacement(tag ReplaceType, span helpers.Span[int]) {
+	gs.Replacements = append(gs.Replacements, Replacement{Tag: tag, Span: span})
 }
 
 func RemoveIndex[T any](s []T, index int) []T {
@@ -126,20 +84,20 @@ func ResolveReplacement(rType ReplaceType, scope *GenScope) string {
 }
 
 func (gs *GenScope) ReplaceAll() {
-	lengthBefore := gs.Src.Len()
+	lengthBefore := gs.Len()
 
 	for i := len(gs.Replacements) - 1; i >= 0; i-- {
 		replace := ResolveReplacement(gs.Replacements[i].Tag, gs)
 
-		gs.Src.ReplaceRange(replace, gs.Replacements[i].Range)
-		length := gs.Src.Len() - lengthBefore
+		gs.ReplaceSpan(replace, gs.Replacements[i].Span)
+		length := gs.Len() - lengthBefore
 
 		for j := i + 1; j < len(gs.Replacements); j++ {
-			gs.Replacements[j].Range.Start += length
-			gs.Replacements[j].Range.End += length
+			gs.Replacements[j].Span.Start += length
+			gs.Replacements[j].Span.End += length
 		}
 
-		lengthBefore = gs.Src.Len()
+		lengthBefore = gs.Len()
 
 		RemoveIndex(gs.Replacements, i)
 	}
@@ -148,38 +106,12 @@ func (gs *GenScope) ReplaceAll() {
 func NewGenScope(scope *GenScope) GenScope {
 	new := GenScope{
 		Parent:          scope,
-		Src:             StringBuilder{},
+		StringBuilder:   StringBuilder{},
 		Replacements:    []Replacement{},
 		ReplaceSettings: map[ReplaceType]string{},
 	}
 
-	new.Src = StringBuilder{}
-
 	return new
-}
-
-func (gs *GenScope) Write(src StringBuilder) {
-	gs.Src.WriteString(src.String())
-}
-
-func (gs *GenScope) WriteString(src string) {
-	gs.Src.WriteString(src)
-}
-
-func (gs *GenScope) Append(strs ...string) {
-	gs.Src.Append(strs...)
-}
-
-// Appends the given strings with one tab above the current identation
-func (gs *GenScope) AppendETabbed(strs ...string) {
-	TabsCount++
-	gs.Src.AppendTabbed(strs...)
-	TabsCount--
-}
-
-// Appends the given strings with identation
-func (gs *GenScope) AppendTabbed(strs ...string) {
-	gs.Src.AppendTabbed(strs...)
 }
 
 type Generator struct {
@@ -223,7 +155,7 @@ func (gen *Generator) Clear() {
 func getTabs() string {
 	tabs := StringBuilder{}
 	for i := 0; i < TabsCount; i++ {
-		tabs.Append("\t")
+		tabs.Write("\t")
 	}
 
 	return tabs.String()
@@ -234,7 +166,7 @@ func (gen Generator) GetErrors() []ast.Error {
 }
 
 func (gen *Generator) GetSrc() string {
-	return gen.Scope.Src.String()
+	return gen.Scope.String()
 }
 
 func (gen *Generator) Generate(program []ast.Node, builtins []string) {
@@ -259,12 +191,12 @@ func (gen *Generator) GenerateWithBuiltins(program []ast.Node) {
 func (gen *Generator) GenerateBody(program []ast.Node, scope *GenScope) {
 	TabsCount += 1
 	if gen.Future != "" {
-		scope.Src.AppendTabbed(gen.Future)
+		scope.WriteTabbed(gen.Future)
 		gen.Future = ""
 	}
 	for _, node := range program {
 		gen.GenerateStmt(node, scope)
-		scope.Src.WriteString("\n")
+		scope.Write("\n")
 	}
 	TabsCount -= 1
 }

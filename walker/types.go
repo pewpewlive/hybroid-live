@@ -189,29 +189,29 @@ func (ft *FunctionType) _eq(other Type) bool {
 func (ft *FunctionType) ToString() string {
 	src := generator.StringBuilder{}
 
-	src.WriteString("fn(")
+	src.Write("fn(")
 
 	length := len(ft.Params)
 	for i := range ft.Params {
 		if i == length-1 {
-			src.WriteString(ft.Params[i].ToString())
+			src.Write(ft.Params[i].ToString())
 		} else {
-			src.Append(ft.Params[i].ToString(), ", ")
+			src.Write(ft.Params[i].ToString(), ", ")
 		}
 	}
-	src.WriteString(")")
+	src.Write(")")
 
 	if len(ft.Returns) == 0 {
 		return src.String()
 	}
 
-	src.WriteString(" ")
+	src.Write(" ")
 	length = len(ft.Returns)
 	for i := range ft.Returns {
 		if i == length-1 {
-			src.WriteString(ft.Returns[i].ToString())
+			src.Write(ft.Returns[i].ToString())
 		} else {
-			src.Append(ft.Returns[i].ToString(), ", ")
+			src.Write(ft.Returns[i].ToString(), ", ")
 		}
 	}
 
@@ -375,20 +375,20 @@ func (st *StructType) _eq(other Type) bool {
 func (st *StructType) ToString() string {
 	src := generator.StringBuilder{}
 
-	src.WriteString("struct{")
+	src.Write("struct{")
 	length := len(st.Fields) - 1
 	index := 0
 	for k, v := range st.Fields {
 		if index == length {
 			_type := v.Var.Value.GetType()
-			src.Append(_type.ToString(), " ", k)
+			src.Write(_type.ToString(), " ", k)
 		} else {
 			_type := v.Var.Value.GetType()
-			src.Append(_type.ToString(), " ", k, ", ")
+			src.Write(_type.ToString(), " ", k, ", ")
 		}
 		index++
 	}
-	src.WriteString("}")
+	src.Write("}")
 
 	return src.String()
 }
@@ -541,36 +541,36 @@ func (fs *FuncSignature) WithReturns(returns ...Type) *FuncSignature {
 func (fs *FuncSignature) ToString() string {
 	src := generator.StringBuilder{}
 
-	src.WriteString("fn")
+	src.Write("fn")
 
 	if len(fs.Generics) != 0 {
-		src.WriteString("<")
+		src.Write("<")
 		for i := range fs.Generics {
-			src.WriteString(fs.Generics[i].ToString())
+			src.Write(fs.Generics[i].ToString())
 		}
-		src.WriteString(">")
+		src.Write(">")
 	}
 	if len(fs.Params) != 0 {
-		src.WriteString("(")
+		src.Write("(")
 		for i := range fs.Params {
-			src.WriteString(fs.Params[i].ToString())
+			src.Write(fs.Params[i].ToString())
 			if i != len(fs.Params)-1 {
-				src.WriteString(", ")
+				src.Write(", ")
 			}
 		}
-		src.WriteString(")")
+		src.Write(")")
 	}
 	retLength := len(fs.Returns)
 	if retLength != 0 {
-		src.WriteString(" -> ")
+		src.Write(" -> ")
 		if retLength != 1 {
-			src.WriteString("(")
+			src.Write("(")
 		}
 		for i := range fs.Returns {
-			src.WriteString(fs.Returns[i].ToString())
+			src.Write(fs.Returns[i].ToString())
 		}
 		if retLength != 1 {
-			src.WriteString(")")
+			src.Write(")")
 		}
 	}
 

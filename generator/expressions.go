@@ -18,17 +18,17 @@ func (gen *Generator) entityExpr(node ast.EntityExpr, scope *GenScope) string {
 		op = node.Operator.Lexeme
 	}
 	if node.OfficialEntityType {
-		src.Append("pewpew.get_entity_type(", gen.GenerateExpr(node.Expr, scope), ") ", op, " ", "pewpew.EntityType.", PewpewEnums["EntityType"][node.Type.GetToken().Lexeme])
+		src.Write("pewpew.get_entity_type(", gen.GenerateExpr(node.Expr, scope), ") ", op, " ", "pewpew.EntityType.", PewpewEnums["EntityType"][node.Type.GetToken().Lexeme])
 		return src.String()
 	}
 	expr := gen.GenerateExpr(node.Expr, scope)
 
-	src.Append(envMap[node.EnvName], hyEntity, node.EntityName, "[", expr, "] ", op, " nil")
+	src.Write(envMap[node.EnvName], hyEntity, node.EntityName, "[", expr, "] ", op, " nil")
 
 	if node.ConvertedVarName != nil {
 		preSrc := StringBuilder{}
 
-		preSrc.Append("local ", gen.WriteVar(node.ConvertedVarName.Lexeme), " = ", expr, "\n")
+		preSrc.Write("local ", gen.WriteVar(node.ConvertedVarName.Lexeme), " = ", expr, "\n")
 		gen.Future = preSrc.String()
 	}
 	return src.String()
@@ -80,15 +80,15 @@ func (gen *Generator) groupingExpr(node ast.GroupExpr, scope *GenScope) string {
 func (gen *Generator) listExpr(node ast.ListExpr, scope *GenScope) string {
 	src := StringBuilder{}
 
-	src.WriteString("{")
+	src.Write("{")
 	for i, expr := range node.List {
-		src.WriteString(gen.GenerateExpr(expr, scope))
+		src.Write(gen.GenerateExpr(expr, scope))
 
 		if i != len(node.List)-1 {
-			src.WriteString(", ")
+			src.Write(", ")
 		}
 	}
-	src.WriteString("}")
+	src.Write("}")
 
 	return src.String()
 }
@@ -98,11 +98,11 @@ func (gen *Generator) callExpr(node ast.CallExpr, tabbed bool, scope *GenScope) 
 	fn := gen.GenerateExpr(node.Caller, scope)
 
 	if tabbed {
-		src.AppendTabbed(fn, "(")
+		src.WriteTabbed(fn, "(")
 	} else {
-		src.Append(fn, "(")
+		src.Write(fn, "(")
 	}
-	src.WriteString(gen.GenerateArgs(node.Args, scope))
+	src.Write(gen.GenerateArgs(node.Args, scope))
 
 	return src.String()
 }
@@ -111,12 +111,12 @@ func (gen *Generator) GenerateArgs(args []ast.Node, scope *GenScope) string {
 	src := StringBuilder{}
 
 	for i, arg := range args {
-		src.WriteString(gen.GenerateExpr(arg, scope))
+		src.Write(gen.GenerateExpr(arg, scope))
 		if i != len(args)-1 {
-			src.WriteString(", ")
+			src.Write(", ")
 		}
 	}
-	src.WriteString(")")
+	src.Write(")")
 
 	return src.String()
 }
@@ -124,7 +124,7 @@ func (gen *Generator) GenerateArgs(args []ast.Node, scope *GenScope) string {
 func (gen *Generator) mapExpr(node ast.MapExpr, scope *GenScope) string {
 	src := StringBuilder{}
 
-	src.WriteString("{\n")
+	src.Write("{\n")
 	TabsCount += 1
 	index := 0
 	for k, v := range node.Map {
@@ -137,14 +137,14 @@ func (gen *Generator) mapExpr(node ast.MapExpr, scope *GenScope) string {
 		}
 
 		if index != len(node.Map)-1 {
-			src.AppendTabbed(fmt.Sprintf("%s = %v,\n", ident, val))
+			src.WriteTabbed(fmt.Sprintf("%s = %v,\n", ident, val))
 		} else {
-			src.AppendTabbed(fmt.Sprintf("%s = %v\n", ident, val))
+			src.WriteTabbed(fmt.Sprintf("%s = %v\n", ident, val))
 		}
 		index++
 	}
 	TabsCount -= 1
-	src.AppendTabbed("}")
+	src.WriteTabbed("}")
 
 	return src.String()
 }
@@ -164,9 +164,9 @@ func (gen *Generator) fieldExpr(node ast.FieldExpr, scope *GenScope) string {
 	src := StringBuilder{}
 
 	if node.ExprType == ast.SelfEntity {
-		src.Append(envMap[node.EnvName], hyEntity, node.EntityName, "[", gen.GenerateExpr(node.Identifier, scope), "]")
+		src.Write(envMap[node.EnvName], hyEntity, node.EntityName, "[", gen.GenerateExpr(node.Identifier, scope), "]")
 	} else {
-		src.WriteString(gen.GenerateExpr(node.Identifier, scope))
+		src.Write(gen.GenerateExpr(node.Identifier, scope))
 	}
 
 	val := gen.GenerateExpr(node.Property, scope)
@@ -182,18 +182,18 @@ func (gen *Generator) fieldExpr(node ast.FieldExpr, scope *GenScope) string {
 	} else {
 		val = "." + val[len(gen.envName):]
 	}
-	src.WriteString(val)
+	src.Write(val)
 	return src.String()
 }
 
 func (gen *Generator) memberExpr(node ast.MemberExpr, scope *GenScope) string {
 	src := StringBuilder{}
 
-	src.WriteString(gen.GenerateExpr(node.Identifier, scope))
+	src.Write(gen.GenerateExpr(node.Identifier, scope))
 	val := gen.GenerateExpr(node.Property, scope)
 	name := gen.GenerateExpr(node.PropertyIdentifier, scope)
 	val = fmt.Sprintf("[%s]%s", name, val[len(name):])
-	src.WriteString(val)
+	src.Write(val)
 
 	return src.String()
 }
@@ -203,34 +203,34 @@ func (gen *Generator) functionExpr(fn ast.FunctionExpr, scope *GenScope) string 
 
 	fnScope.WriteString("function (")
 	for i, param := range fn.Params {
-		fnScope.Append(param.Name.Lexeme)
+		fnScope.Write(param.Name.Lexeme)
 		if i != len(fn.Params)-1 {
-			fnScope.Append(", ")
+			fnScope.Write(", ")
 		}
 	}
-	fnScope.Append(")\n")
+	fnScope.Write(")\n")
 
 	gen.GenerateBody(fn.Body, &fnScope)
 
-	fnScope.AppendTabbed("end")
+	fnScope.WriteTabbed("end")
 
-	return fnScope.Src.String()
+	return fnScope.String()
 }
 
 func (gen *Generator) structExpr(node ast.StructExpr, scope *GenScope) string {
 	src := StringBuilder{}
 
-	src.WriteString("{\n")
+	src.Write("{\n")
 	TabsCount += 1
 	for i, v := range node.Fields {
-		src.AppendTabbed(gen.fieldDeclarationStmt(*v, scope))
+		src.WriteTabbed(gen.fieldDeclarationStmt(*v, scope))
 		if i != len(node.Fields)-1 {
-			src.WriteString(", ")
+			src.Write(", ")
 		}
-		src.WriteString("\n")
+		src.Write("\n")
 	}
 	TabsCount -= 1
-	src.AppendTabbed("}")
+	src.WriteTabbed("}")
 
 	return src.String()
 }
@@ -248,21 +248,21 @@ func (gen *Generator) newExpr(new ast.NewExpr, stmt bool, scope *GenScope) strin
 	src := StringBuilder{}
 
 	if stmt {
-		src.AppendTabbed()
+		src.WriteTabbed()
 	}
 
 	length := len(new.Type.Name.GetToken().Lexeme)
 	name := gen.GenerateExpr(new.Type.Name, scope)
 	fullLength := len(name)
 	cut := name[fullLength-length:]
-	src.Append(name[:fullLength-length], hyClass, cut, "_New(")
+	src.Write(name[:fullLength-length], hyClass, cut, "_New(")
 	for i, arg := range new.Args {
-		src.WriteString(gen.GenerateExpr(arg, scope))
+		src.Write(gen.GenerateExpr(arg, scope))
 		if i != len(new.Args)-1 {
-			src.WriteString(", ")
+			src.Write(", ")
 		}
 	}
-	src.WriteString(")")
+	src.Write(")")
 
 	return src.String()
 }
@@ -275,15 +275,15 @@ func (gen *Generator) matchExpr(match ast.MatchExpr, scope *GenScope) string {
 	for i := 0; i < match.ReturnAmount; i++ {
 		helperVarName := GenerateVar(hyVar)
 		if i == 0 {
-			scope.Src.AppendTabbed("local ", helperVarName)
-			vars.WriteString(helperVarName)
+			scope.WriteTabbed("local ", helperVarName)
+			vars.Write(helperVarName)
 		} else {
-			scope.Src.Append(", ", helperVarName)
-			vars.Append(", ", helperVarName)
+			scope.Write(", ", helperVarName)
+			vars.Write(", ", helperVarName)
 		}
 	}
 
-	scope.Src.WriteString("\n")
+	scope.Write("\n")
 
 	node := match.MatchStmt
 
@@ -291,11 +291,11 @@ func (gen *Generator) matchExpr(match ast.MatchExpr, scope *GenScope) string {
 
 	for i, matchCase := range node.Cases {
 		if i == 0 {
-			scope.AppendTabbed("if ", toMatch, " == ", gen.GenerateExpr(matchCase.Expression, scope), " then\n")
+			scope.WriteTabbed("if ", toMatch, " == ", gen.GenerateExpr(matchCase.Expression, scope), " then\n")
 		} else if i == len(node.Cases)-1 {
-			scope.AppendTabbed("else\n")
+			scope.WriteTabbed("else\n")
 		} else {
-			scope.AppendTabbed("elseif ", toMatch, " == ", gen.GenerateExpr(matchCase.Expression, scope), " then\n")
+			scope.WriteTabbed("elseif ", toMatch, " == ", gen.GenerateExpr(matchCase.Expression, scope), " then\n")
 		}
 
 		caseScope := NewGenScope(scope)
@@ -309,12 +309,12 @@ func (gen *Generator) matchExpr(match ast.MatchExpr, scope *GenScope) string {
 
 		caseScope.ReplaceAll()
 
-		scope.Write(caseScope.Src)
+		scope.Write(caseScope.String())
 	}
 
-	scope.AppendTabbed("end\n")
+	scope.WriteTabbed("end\n")
 
-	scope.AppendTabbed(fmt.Sprintf("::%s::\n", gotoLabel))
+	scope.WriteTabbed(fmt.Sprintf("::%s::\n", gotoLabel))
 
 	return vars.String()
 }
@@ -348,20 +348,20 @@ func (gen *Generator) spawnExpr(spawn ast.SpawnExpr, stmt bool, scope *GenScope)
 	src := StringBuilder{}
 
 	if stmt {
-		src.AppendTabbed()
+		src.WriteTabbed()
 	}
 	length := len(spawn.Type.Name.GetToken().Lexeme)
 	name := gen.GenerateExpr(spawn.Type.Name, scope)
 	fullLength := len(name)
 	cut := name[fullLength-length:]
-	src.Append(name[:fullLength-length], hyEntity, cut, "_Spawn(")
+	src.Write(name[:fullLength-length], hyEntity, cut, "_Spawn(")
 	for i, arg := range spawn.Args {
-		src.WriteString(gen.GenerateExpr(arg, scope))
+		src.Write(gen.GenerateExpr(arg, scope))
 		if i != len(spawn.Args)-1 {
-			src.WriteString(", ")
+			src.Write(", ")
 		}
 	}
-	src.WriteString(")")
+	src.Write(")")
 	return src.String()
 }
 
@@ -369,7 +369,7 @@ func (gen *Generator) methodCallExpr(methodCall ast.MethodCallExpr, stmt bool, s
 	src := StringBuilder{}
 
 	if stmt {
-		src.AppendTabbed()
+		src.WriteTabbed()
 	}
 	var extra string
 	if methodCall.ExprType == ast.SelfStruct {
@@ -377,14 +377,14 @@ func (gen *Generator) methodCallExpr(methodCall ast.MethodCallExpr, stmt bool, s
 	} else {
 		extra = hyEntity
 	}
-	src.Append(envMap[methodCall.EnvName], extra, methodCall.TypeName, "_", methodCall.MethodName, "(", gen.GenerateExpr(methodCall.Identifier, scope))
+	src.Write(envMap[methodCall.EnvName], extra, methodCall.TypeName, "_", methodCall.MethodName, "(", gen.GenerateExpr(methodCall.Identifier, scope))
 	for i := range methodCall.Call.Args {
-		src.Append(", ", gen.GenerateExpr(methodCall.Call.Args[i], scope))
+		src.Write(", ", gen.GenerateExpr(methodCall.Call.Args[i], scope))
 	}
 	if stmt {
-		src.WriteString(")\n")
+		src.Write(")\n")
 	} else {
-		src.WriteString(")")
+		src.Write(")")
 	}
 
 	return src.String()
