@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"hybroid/alerts"
 	"hybroid/ast"
 	"hybroid/helpers"
@@ -207,17 +206,16 @@ func (p *Parser) consume(alert alerts.Alert, types ...tokens.TokenType) (tokens.
 }
 
 func (p *Parser) Parse() []ast.Node {
-	firstToken := p.peek()
-	if firstToken.Type != tokens.Env {
-		p.Alert(&alerts.ExpectedEnvironment{}, alerts.NewSingle(firstToken))
+	if p.match(tokens.Env) {
+		envDecl := p.environmentDeclaration()
+		if envDecl.GetType() != ast.EnvironmentDeclaration {
+			return []ast.Node{}
+		}
+		p.program = append(p.program, envDecl)
+	} else {
+		p.Alert(&alerts.ExpectedEnvironment{}, alerts.NewSingle(p.peek()))
 		return []ast.Node{}
 	}
-	envDecl := p.environmentDeclaration()
-	if envDecl.GetType() == ast.NA {
-		return []ast.Node{}
-	}
-
-	p.program = append(p.program, envDecl)
 
 	for !p.isAtEnd() {
 		statement := p.declaration()
@@ -228,8 +226,6 @@ func (p *Parser) Parse() []ast.Node {
 			p.program = append(p.program, statement)
 		}
 	}
-
-	fmt.Printf("%+#v", p.program)
 
 	return p.program
 }

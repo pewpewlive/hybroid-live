@@ -41,27 +41,27 @@ func (p *Parser) OLDstatement() (returnNode ast.Node) {
 		switch next {
 		case tokens.Alias:
 			p.advance(2)
-			returnNode = p.aliasDeclaration(false)
+			returnNode = p.aliasDeclaration()
 			return
 		case tokens.Fn:
 			p.advance(2)
-			returnNode = p.functionDeclaration(false)
+			returnNode = p.functionDeclaration()
 			return
 		case tokens.Class:
 			p.advance(2)
-			returnNode = p.classDeclaration(false)
+			returnNode = p.classDeclaration()
 			return
 		case tokens.Entity:
 			p.advance(2)
-			returnNode = p.entityDeclaration(false)
+			returnNode = p.entityDeclaration()
 			return
 		case tokens.Enum:
 			p.advance(2)
-			returnNode = p.enumDeclaration(false)
+			returnNode = p.enumDeclaration()
 			return
 			// case tokens.Type:
 			// 	p.advance(2)
-			// 	node = p.TypeDeclaration(false)
+			// 	node = p.TypeDeclaration()
 		}
 	}
 
@@ -76,7 +76,7 @@ func (p *Parser) OLDstatement() (returnNode ast.Node) {
 	// 	node = p.TypeDeclaration(true)
 	case tokens.Alias:
 		p.advance()
-		returnNode = p.aliasDeclaration(true)
+		returnNode = p.aliasDeclaration()
 		return
 	// case tokens.Macro:
 	// 	p.advance()
@@ -88,7 +88,7 @@ func (p *Parser) OLDstatement() (returnNode ast.Node) {
 		return
 	case tokens.Fn:
 		p.advance()
-		returnNode = p.functionDeclaration(true)
+		returnNode = p.functionDeclaration()
 		return
 	case tokens.Return:
 		p.advance()
@@ -132,15 +132,15 @@ func (p *Parser) OLDstatement() (returnNode ast.Node) {
 		return
 	case tokens.Enum:
 		p.advance()
-		returnNode = p.enumDeclaration(true)
+		returnNode = p.enumDeclaration()
 		return
 	case tokens.Class:
 		p.advance()
-		returnNode = p.classDeclaration(true)
+		returnNode = p.classDeclaration()
 		return
 	case tokens.Entity:
 		p.advance()
-		returnNode = p.entityDeclaration(true)
+		returnNode = p.entityDeclaration()
 		return
 	case tokens.While:
 		p.advance()
@@ -192,10 +192,10 @@ func (p *Parser) OLDaliasDeclarationStmt(isLocal bool) ast.Node {
 		return ast.NewImproper(token, ast.NA)
 	}
 
-	if !p.CheckType() {
+	aliased, ok := p.checkType()
+	if !ok {
 		return ast.NewImproper(p.peek(), ast.NA)
 	}
-	aliased := p.Type()
 
 	return &ast.AliasDecl{
 		Alias:       name,
@@ -212,7 +212,7 @@ func (p *Parser) OLDenvStmt() ast.Node {
 		p.Alert(&alerts.EnvironmentRedaclaration{}, alerts.NewSingle(p.peek()))
 	}
 
-	expr := p.EnvPathExpr()
+	expr := p.envPathExpr()
 	if expr.GetType() != ast.EnvironmentPathExpression {
 		p.Alert(&alerts.ExpectedEnvironmentPathExpression{}, alerts.NewSingle(p.peek()))
 		return &ast.Improper{Token: expr.GetToken()}
@@ -222,7 +222,7 @@ func (p *Parser) OLDenvStmt() ast.Node {
 		return &ast.Improper{Token: expr.GetToken()}
 	}
 
-	envTypeExpr := p.EnvType()
+	envTypeExpr := p.envTypeExpr()
 
 	if envTypeExpr.Type == ast.InvalidEnv {
 		return &ast.Improper{Token: envTypeExpr.GetToken()}
@@ -303,7 +303,7 @@ func (p *Parser) OLDclassDeclarationStmt(isLocal bool) ast.Node {
 	stmt.Methods = []ast.MethodDecl{}
 	for !p.match(tokens.RightBrace) {
 		if p.match(tokens.Fn) {
-			method, ok := p.methodDeclaration(stmt.IsLocal).(*ast.MethodDecl)
+			method, ok := p.methodDeclaration().(*ast.MethodDecl)
 			if ok {
 				stmt.Methods = append(stmt.Methods, *method)
 			}
@@ -345,7 +345,7 @@ func (p *Parser) OLDentityDeclarationStmt(isLocal bool) ast.Node {
 
 	for !p.match(tokens.RightBrace) {
 		if p.match(tokens.Fn) {
-			method := p.methodDeclaration(stmt.IsLocal)
+			method := p.methodDeclaration()
 			if method.GetType() != ast.MethodDeclaration {
 				stmt.Methods = append(stmt.Methods, *method.(*ast.MethodDecl))
 			}
@@ -465,7 +465,7 @@ func (p *Parser) OLDfieldDeclarationStmt() ast.Node {
 		Token: p.peek(),
 	}
 
-	typ, ident := p.TypeAndIdentifier()
+	typ, ident := p.typeAndIdentifier()
 	if ident.GetType() != ast.Identifier {
 		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(ident.GetToken()), "in field declaration")
 		return ast.NewImproper(ident.GetToken(), ast.NA)
@@ -509,18 +509,18 @@ func (p *Parser) OLDfieldDeclarationStmt() ast.Node {
 }
 
 func (p *Parser) OLDmethodDeclarationStmt(IsLocal bool) ast.Node {
-	fnDec := p.functionDeclaration(IsLocal)
+	fnDec := p.functionDeclaration()
 
 	if fnDec.GetType() != ast.FunctionDeclaration {
 		return fnDec
 	} else {
 		FnDec := fnDec.(*ast.FunctionDecl)
 		return &ast.MethodDecl{
-			IsLocal:  FnDec.IsLocal,
+			IsLocal:  FnDec.IsPub,
 			Name:     FnDec.Name,
-			Return:   FnDec.Return,
+			Return:   FnDec.ReturnTypes,
 			Params:   FnDec.Params,
-			Generics: FnDec.GenericParams,
+			Generics: FnDec.Generics,
 			Body:     FnDec.Body,
 		}
 	}
@@ -657,16 +657,16 @@ func (p *Parser) OLDyieldStmt() ast.Node {
 func (p *Parser) OLDfunctionDeclarationStmt(IsLocal bool) ast.Node {
 	fnDec := ast.FunctionDecl{}
 
-	fnDec.IsLocal = IsLocal
+	fnDec.IsPub = IsLocal
 
 	ident, _ := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "for a function name"), tokens.Identifier)
 
 	fnDec.Name = ident
-	fnDec.GenericParams = p.genericParameters()
+	fnDec.Generics = p.genericParameters()
 	fnDec.Params = p.parameters(tokens.LeftParen, tokens.RightParen)
 
-	fnDec.Return = p.returnings()
-	p.Context.FunctionReturns.Push("functionDeclarationStmt", len(fnDec.Return))
+	fnDec.ReturnTypes = p.returnings()
+	p.Context.FunctionReturns.Push("functionDeclarationStmt", len(fnDec.ReturnTypes))
 
 	var success bool
 	fnDec.Body, success = p.getBody()
@@ -859,7 +859,7 @@ func (p *Parser) OLDtickStmt() ast.Node {
 func (p *Parser) OLDvariableDeclarationStmt() ast.Node {
 	variable := ast.VariableDecl{
 		Token:   p.peek(),
-		IsLocal: true,
+		IsPub:   true,
 		IsConst: false,
 	}
 
@@ -869,14 +869,14 @@ func (p *Parser) OLDvariableDeclarationStmt() ast.Node {
 
 	if nextToken == tokens.Const {
 		variable.Token = p.advance()
-		variable.IsLocal = false
+		variable.IsPub = false
 		variable.IsConst = true
 
-		typ, ide = p.TypeAndIdentifier()
+		typ, ide = p.typeAndIdentifier()
 
 	} else if nextToken == tokens.Let {
 		variable.Token = p.advance()
-		variable.IsLocal = true
+		variable.IsPub = true
 		variable.IsConst = false
 
 		// let a, b, c = 10, 20, 30
@@ -901,10 +901,10 @@ func (p *Parser) OLDvariableDeclarationStmt() ast.Node {
 		currentStart := p.current
 
 		variable.Token = p.advance()
-		variable.IsLocal = false
+		variable.IsPub = false
 		variable.IsConst = false
 
-		typ, ide = p.TypeAndIdentifier()
+		typ, ide = p.typeAndIdentifier()
 
 		nextToken = p.peek().Type
 
@@ -916,7 +916,7 @@ func (p *Parser) OLDvariableDeclarationStmt() ast.Node {
 	} else {
 		currentStart := p.current
 
-		typ = p.Type()
+		typ = p.typeExpr()
 		token := p.advance()
 		if token.Type != tokens.Identifier {
 			p.disadvance(p.current - currentStart)
@@ -955,7 +955,7 @@ func (p *Parser) OLDvariableDeclarationStmt() ast.Node {
 	variable.Identifiers = idents
 
 	if !p.match(tokens.Equal) {
-		variable.Values = []ast.Node{}
+		variable.Expressions = []ast.Node{}
 		return &variable
 	}
 
@@ -973,7 +973,7 @@ func (p *Parser) OLDvariableDeclarationStmt() ast.Node {
 		}
 		exprs = append(exprs, expr)
 	}
-	variable.Values = exprs
+	variable.Expressions = exprs
 
 	return &variable
 }
@@ -981,7 +981,7 @@ func (p *Parser) OLDvariableDeclarationStmt() ast.Node {
 func (p *Parser) OLDuseStmt() ast.Node {
 	useStmt := ast.UseStmt{}
 
-	filepath := p.EnvPathExpr()
+	filepath := p.envPathExpr()
 	if filepath.GetType() != ast.EnvironmentPathExpression {
 		p.Alert(&alerts.ExpectedEnvironmentPathExpression{}, alerts.NewMulti(filepath.GetToken(), p.peek()))
 		return ast.NewImproper(p.peek(), ast.NA)

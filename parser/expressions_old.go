@@ -19,7 +19,7 @@ func (p *Parser) OLDfn() ast.Node {
 		if p.check(tokens.LeftParen) {
 			fn.Params = p.parameters(tokens.LeftParen, tokens.RightParen)
 		} else {
-			fn.Params = make([]ast.Param, 0)
+			fn.Params = make([]ast.FunctionParam, 0)
 			p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftParen)
 		}
 		fn.Return = p.returnings()
@@ -138,7 +138,7 @@ func (p *Parser) OLDentity() ast.Node {
 			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(variable.GetToken()))
 		}
 		op := p.peek(-1)
-		typ := p.Type()
+		typ := p.typeExpr()
 		return &ast.EntityExpr{
 			Expr:             expr,
 			Type:             typ,
@@ -294,7 +294,7 @@ func (p *Parser) OLDnew() ast.Node {
 			Token: p.peek(-1),
 		}
 
-		expr.Type = p.Type()
+		expr.Type = p.typeExpr()
 		expr.Args = p.arguments()
 
 		return &expr
@@ -309,7 +309,7 @@ func (p *Parser) OLDspawn() ast.Node {
 			Token: p.peek(-1),
 		}
 
-		expr.Type = p.Type()
+		expr.Type = p.typeExpr()
 		expr.Args = p.arguments()
 
 		return &expr
@@ -548,7 +548,7 @@ func (p *Parser) OLDWrappedType() *ast.TypeExpr {
 		return &typeExpr
 	}
 
-	return p.Type()
+	return p.typeExpr()
 }
 
 func (p *Parser) OLDType() *ast.TypeExpr {
@@ -594,7 +594,7 @@ func (p *Parser) OLDType() *ast.TypeExpr {
 	case tokens.Identifier:
 		typ = &ast.TypeExpr{}
 		if p.match(tokens.Less) {
-			typ.WrappedType = p.WrappedType()
+			typ.WrappedType = p.wrappedTypeExpr()
 			p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Greater), tokens.Greater)
 		}
 		typ.Name = expr
@@ -605,10 +605,10 @@ func (p *Parser) OLDType() *ast.TypeExpr {
 			break
 		}
 		if !p.match(tokens.RightParen) {
-			_typ := p.Type()
+			_typ := p.typeExpr()
 			typ.Params = append(typ.Params, _typ)
 			for p.match(tokens.Comma) {
-				_typ := p.Type()
+				_typ := p.typeExpr()
 				typ.Params = append(typ.Params, _typ)
 			}
 			p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.RightParen), tokens.RightParen)

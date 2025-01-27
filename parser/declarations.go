@@ -81,13 +81,21 @@ func (p *Parser) declaration() ast.Node {
 		p.Alert(&alerts.EnvironmentRedaclaration{}, alerts.NewSingle(p.peek()))
 	}
 
+	if varDecl := p.variableDeclaration(); varDecl != nil {
+		return varDecl
+	}
+
+	if p.match(tokens.Fn) {
+		return p.functionDeclaration()
+	}
+
 	return nil
 }
 
 func (p *Parser) environmentDeclaration() ast.Node {
 	envDecl := &ast.EnvironmentDecl{}
 
-	expr := p.EnvPathExpr()
+	expr := p.envPathExpr()
 	if expr.GetType() == ast.NA {
 		return expr
 	}
@@ -96,7 +104,7 @@ func (p *Parser) environmentDeclaration() ast.Node {
 		return ast.NewImproper(p.peek(), ast.EnvironmentDeclaration)
 	}
 
-	envTypeExpr := p.EnvType()
+	envTypeExpr := p.envTypeExpr()
 	if envTypeExpr.Type == ast.InvalidEnv {
 		return envDecl
 	}
@@ -110,108 +118,88 @@ func (p *Parser) environmentDeclaration() ast.Node {
 }
 
 func (p *Parser) variableDeclaration() ast.Node {
-	variable := ast.VariableDecl{
+	variableDecl := ast.VariableDecl{
 		Token:   p.peek(),
-		IsLocal: true,
+		IsPub:   false,
 		IsConst: false,
 	}
 
-	currentStart := p.current
-
-	switch p.advance().Type {
-	case tokens.Let:
-		if _, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek())), tokens.Identifier); !ok {
-			return ast.NewImproper(variable.Token, ast.VariableDeclaration)
-		}
-
-		names, ok := p.getIdentifiers()
-		if !ok {
-			return ast.NewImproper(variable.Token, ast.VariableDeclaration)
-		}
-
-		values, ok := p.getExpressions()
-		if !ok {
-			return ast.NewImproper(variable.Token, ast.VariableDeclaration)
-		}
-
-		variable.Identifiers = names
-		variable.Values = values
-
-		break
+	switch variableDecl.Token.Type {
 	case tokens.Const:
-		variable.IsConst = true
-
-		var typ *ast.TypeExpr
-		if p.CheckType() {
-			typ = p.Type()
-		}
-
-		variable.Type = typ
-
-		names, ok := p.getIdentifiers()
-		if !ok {
-			return ast.NewImproper(variable.Token, ast.VariableDeclaration)
-		}
-
-		values, ok := p.getExpressions()
-		if !ok {
-			return ast.NewImproper(variable.Token, ast.VariableDeclaration)
-		}
-
-		variable.Identifiers = names
-		variable.Values = values
-
-		break
+		variableDecl.IsConst = true
 	case tokens.Pub:
-		variable.IsLocal = false
-		if p.match(tokens.Const) {
-			variable.IsConst = true
+		variableDecl.IsPub = true
+		if p.peek(1).Type == tokens.Const {
+			variableDecl.IsConst = true
 		}
-
-		var typ *ast.TypeExpr
-		if p.CheckType() {
-			typ = p.Type()
-		}
-
-		variable.Type = typ // TODO: finish
-
-		names, ok := p.getIdentifiers()
-		if !ok {
-			p.disadvance(p.current - currentStart)
-			return ast.NewImproper(variable.Token, ast.VariableDeclaration)
-		}
-
-		values, ok := p.getExpressions()
-		if !ok {
-			p.disadvance(p.current - currentStart)
-			return ast.NewImproper(variable.Token, ast.VariableDeclaration)
-		}
-
-		variable.Identifiers = names
-		variable.Values = values
-		break
 	}
 
-	return &variable
+	currentStart := p.current
+	p.match(tokens.Let, tokens.Const, tokens.Pub)
+	if variableDecl.IsPub && variableDecl.IsConst {
+		p.match(tokens.Const)
+	}
+	if variableDecl.Token.Type != tokens.Let {
+		typeCheckStart := p.current
+		if typeExpr, ok := p.checkType(); ok {
+			variableDecl.Type = typeExpr
+			if !p.check(tokens.Identifier) {
+				p.disadvance(p.current - typeCheckStart)
+				variableDecl.Type = nil
+			}
+		}
+	}
+
+	idents, exprs, ok := p.getIdentExprPairs("in variable declaration")
+	if !ok {
+		p.disadvance(p.current - currentStart)
+		return nil
+	}
+
+	variableDecl.Identifiers = idents
+	variableDecl.Expressions = exprs
+
+	return &variableDecl
 }
 
-func (p *Parser) functionDeclaration(IsLocal bool) ast.Node {
+func (p *Parser) functionDeclaration() ast.Node {
+	functionDecl := ast.FunctionDecl{}
+
+	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in function declaration"), tokens.Identifier)
+	if !ok {
+		return ast.NewImproper(p.peek(), ast.FunctionDeclaration)
+	}
+	functionDecl.Name = name
+	functionDecl.Generics = p.genericParameters()
+	functionDecl.Params = p.parameters(tokens.LeftParen, tokens.RightParen)
+	functionDecl.ReturnTypes = p.returnings()
+
+	p.Context.FunctionReturns.Push("functionDeclarationStmt", len(functionDecl.ReturnTypes))
+
+	body, ok := p.getBody()
+	if !ok {
+		return ast.NewImproper(functionDecl.Name, ast.NA)
+	}
+	functionDecl.Body = body
+
+	p.Context.FunctionReturns.Pop("functionDeclarationStmt")
+
+	return &functionDecl
+}
+
+func (p *Parser) aliasDeclaration() ast.Node {
 	return nil
 }
 
-func (p *Parser) aliasDeclaration(isLocal bool) ast.Node {
+func (p *Parser) enumDeclaration() ast.Node {
 	return nil
 }
 
-func (p *Parser) enumDeclaration(local bool) ast.Node {
+func (p *Parser) classDeclaration() ast.Node {
 	return nil
 }
 
-func (p *Parser) classDeclaration(isLocal bool) ast.Node {
-	return nil
-}
-
-func (p *Parser) entityDeclaration(isLocal bool) ast.Node {
+func (p *Parser) entityDeclaration() ast.Node {
 	return nil
 }
 
@@ -227,6 +215,6 @@ func (p *Parser) fieldDeclaration() ast.Node {
 	return nil
 }
 
-func (p *Parser) methodDeclaration(IsLocal bool) ast.Node {
+func (p *Parser) methodDeclaration() ast.Node {
 	return nil
 }

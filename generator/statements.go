@@ -80,10 +80,8 @@ func (gen *Generator) assignmentStmt(assignStmt ast.AssignmentStmt, scope *GenSc
 func (gen *Generator) functionDeclarationStmt(node ast.FunctionDecl, scope *GenScope) {
 	fnScope := NewGenScope(scope)
 
-	if node.IsLocal {
+	if !node.IsPub {
 		fnScope.WriteTabbed("local ")
-	} else {
-		fnScope.WriteTabbed()
 	}
 
 	fnScope.Write("function ", gen.WriteVar(node.Name.Lexeme), "(")
@@ -265,16 +263,14 @@ func (gen *Generator) tickStmt(node ast.TickStmt, scope *GenScope) {
 func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDecl, scope *GenScope) {
 	var values []string
 
-	for _, expr := range declaration.Values {
+	for _, expr := range declaration.Expressions {
 		values = append(values, gen.GenerateExpr(expr, scope))
 	}
 
 	src := StringBuilder{}
 	src2 := StringBuilder{}
-	if declaration.IsLocal {
+	if !declaration.IsPub {
 		src.WriteTabbed("local ")
-	} else {
-		src.WriteTabbed("")
 	}
 	for i, ident := range declaration.Identifiers {
 		if i == len(declaration.Identifiers)-1 && len(values) != 0 {
@@ -422,7 +418,7 @@ func (gen *Generator) destroyDeclarationStmt(node ast.EntityFunctionDecl, entity
 	scope.Write(spawnScope.String())
 }
 
-func (gen *Generator) GenerateParams(params []ast.Param, scope *GenScope) {
+func (gen *Generator) GenerateParams(params []ast.FunctionParam, scope *GenScope) {
 	var variadicParam string
 	for i, param := range params {
 		if param.Type.IsVariadic {

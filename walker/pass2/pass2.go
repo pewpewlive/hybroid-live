@@ -200,7 +200,7 @@ func TypeifyNodeList(w *wkr.Walker, nodes *[]ast.Node, scope *wkr.Scope) []wkr.T
 	return arguments
 }
 
-func WalkParams(w *wkr.Walker, parameters []ast.Param, scope *wkr.Scope, declare func(name tokens.Token, value wkr.Value)) []wkr.Type {
+func WalkParams(w *wkr.Walker, parameters []ast.FunctionParam, scope *wkr.Scope, declare func(name tokens.Token, value wkr.Value)) []wkr.Type {
 	variadicParams := make(map[tokens.Token]int)
 	params := make([]wkr.Type, 0)
 	for i, param := range parameters {

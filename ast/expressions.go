@@ -114,7 +114,7 @@ type TypeExpr struct {
 	Name        Node
 	Params      []*TypeExpr
 	Returns     []*TypeExpr
-	Fields      []Param
+	Fields      []FunctionParam
 	IsVariadic  bool
 }
 
@@ -248,7 +248,7 @@ func (ce *BuiltinExpr) GetValueType() PrimitiveValueType {
 type FunctionExpr struct {
 	Token  tokens.Token
 	Return []*TypeExpr
-	Params []Param
+	Params []FunctionParam
 	Body   []Node
 }
 
@@ -511,9 +511,8 @@ func NewImproper(token tokens.Token, nodeType NodeType) *Improper {
 	}
 }
 
-// Make sure to check if node.GetType() == ast.NA before trying to get the node type
-func ImproperToNodeType(improper Node) NodeType {
-	return improper.(*Improper).Type
+func IsImproper(improper Node, nodeType NodeType) bool {
+	return improper.GetType() == NA && improper.(*Improper).Type == nodeType
 }
 
 func (i *Improper) GetType() NodeType {

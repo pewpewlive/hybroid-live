@@ -265,13 +265,13 @@ func FieldDeclarationStmt(w *wkr.Walker, node *ast.FieldDecl, container wkr.Fiel
 	varDecl := ast.VariableDecl{
 		Identifiers: node.Identifiers,
 		Type:        node.Type,
-		Values:      node.Values,
-		IsLocal:     true,
+		Expressions: node.Values,
+		IsPub:       false,
 		Token:       node.Token,
 	}
 
 	variables := VariableDeclarationStmt(w, &varDecl, scope)
-	node.Values = varDecl.Values
+	node.Values = varDecl.Expressions
 	for i := range variables {
 		container.AddField(variables[i])
 	}
@@ -296,12 +296,12 @@ func MethodDeclarationStmt(w *wkr.Walker, node *ast.MethodDecl, container wkr.Me
 		WalkBody(w, &node.Body, fnTag, fnScope)
 	} else {
 		funcExpr := ast.FunctionDecl{
-			Name:          node.Name,
-			Return:        node.Return,
-			Params:        node.Params,
-			GenericParams: node.Generics,
-			Body:          node.Body,
-			IsLocal:       true,
+			Name:        node.Name,
+			ReturnTypes: node.Return,
+			Params:      node.Params,
+			Generics:    node.Generics,
+			Body:        node.Body,
+			IsPub:       false,
 		}
 
 		variable := FunctionDeclarationStmt(w, &funcExpr, scope, wkr.Method)
@@ -315,7 +315,7 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDecl, scope *wkr.S
 	}
 	generics := make([]*wkr.GenericType, 0)
 
-	for _, param := range node.GenericParams {
+	for _, param := range node.Generics {
 		generics = append(generics, wkr.NewGeneric(param.Name.Lexeme))
 	}
 
@@ -323,7 +323,7 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDecl, scope *wkr.S
 	fnScope := wkr.NewScope(scope, funcTag, wkr.ReturnAllowing)
 
 	ret := wkr.EmptyReturn
-	for _, typee := range node.Return {
+	for _, typee := range node.ReturnTypes {
 		ret = append(ret, TypeExpr(w, typee, fnScope, true))
 	}
 
@@ -339,7 +339,7 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDecl, scope *wkr.S
 		Name:    node.Name.Lexeme,
 		Value:   &wkr.FunctionVal{Params: params, Returns: ret, Generics: generics},
 		Token:   node.GetToken(),
-		IsLocal: node.IsLocal,
+		IsLocal: node.IsPub,
 	}
 	w.DeclareVariable(scope, variable, variable.Token)
 
@@ -360,9 +360,9 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDecl, scope
 	types := make([]wkr.Type, 0)
 
 	index := 0
-	for i := range declaration.Values {
+	for i := range declaration.Expressions {
 		index++
-		exprValue := GetNodeValue(w, &declaration.Values[i], scope)
+		exprValue := GetNodeValue(w, &declaration.Expressions[i], scope)
 		// if declaration.Values[i].GetType() == ast.SelfExpression {
 		// 	w.Error(declaration.Values[i].GetToken(), "cannot assign self to a variable")
 		// }
@@ -392,7 +392,7 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDecl, scope
 					types = append(types, typ)
 				}
 
-				declaration.Values = append(declaration.Values, _default)
+				declaration.Expressions = append(declaration.Expressions, _default)
 			} else {
 				w.Error(declaration.Identifiers[i], "variable is uninitialized and no explicit type was given")
 				filledAll = false
@@ -404,7 +404,7 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDecl, scope
 		}
 	}
 
-	if !declaration.IsLocal && scope.Parent != nil {
+	if declaration.IsPub && scope.Parent != nil {
 		w.Error(declaration.Token, "cannot declare a global variable inside a local block")
 	}
 	if declaration.Token.Type == tokens.Const && scope.Parent != nil {
@@ -420,7 +420,7 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDecl, scope
 		if w.Environment.Type == ast.MeshEnv && ident.Lexeme == "meshes" {
 			if len(declaration.Identifiers) > 1 {
 				w.Error(ident, "'meshes' variable cannot be declared with other variables")
-			} else if declaration.IsLocal {
+			} else if !declaration.IsPub {
 				w.Error(ident, "'meshes' has to be global")
 			}
 
@@ -432,7 +432,7 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDecl, scope
 		if w.Environment.Type == ast.SoundEnv && ident.Lexeme == "sounds" {
 			if len(declaration.Identifiers) > 1 {
 				w.Error(ident, "'sounds' variable cannot be declared with other variables")
-			} else if declaration.IsLocal {
+			} else if !declaration.IsPub {
 				w.Error(ident, "'sounds' has to be global")
 			}
 
@@ -450,7 +450,7 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDecl, scope
 				w.Error(declaration.Identifiers[i], "Given value is %s, but explicit type is %s", valType.ToString(), explicitType.ToString())
 			}
 		} else if types[i] != nil && valType.PVT() == ast.Invalid {
-			w.Error(declaration.Values[i].GetToken(), "value is invalid")
+			w.Error(declaration.Expressions[i].GetToken(), "value is invalid")
 		}
 
 		var val wkr.Value
@@ -475,7 +475,7 @@ func VariableDeclarationStmt(w *wkr.Walker, declaration *ast.VariableDecl, scope
 		variable := &wkr.VariableVal{
 			Value:   val,
 			Name:    ident.Lexeme,
-			IsLocal: declaration.IsLocal,
+			IsLocal: declaration.IsPub,
 			IsConst: declaration.IsConst,
 			IsInit:  types[i] != nil,
 			Token:   ident,

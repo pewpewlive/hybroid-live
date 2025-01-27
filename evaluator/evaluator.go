@@ -73,7 +73,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		// }
 		fmt.Printf("Parsing time: %f seconds\n\n", time.Since(start).Seconds())
 
-		//ast.DrawNodes(prog)
+		// ast.DrawNodes(prog)
 
 		start = time.Now()
 		fmt.Println("[Pass 1] Walking through the nodes...")

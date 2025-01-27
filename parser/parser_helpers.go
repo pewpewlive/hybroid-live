@@ -41,36 +41,36 @@ func (p *Parser) getOp(opEqual tokens.Token) tokens.Token {
 	}
 }
 
-func (p *Parser) getParam(previous *ast.TypeExpr, closing tokens.TokenType) ast.Param {
-	typ := p.Type()
+func (p *Parser) getParam(previous *ast.TypeExpr, closing tokens.TokenType) ast.FunctionParam {
+	typ := p.typeExpr()
 	peekType := p.peek().Type
 
 	if peekType == tokens.Identifier {
-		return ast.Param{Name: p.advance(), Type: typ}
+		return ast.FunctionParam{Name: p.advance(), Type: typ}
 	} else if peekType == tokens.Comma || peekType == closing {
 		if typ.Name.GetType() == ast.Identifier && previous != nil {
-			return ast.Param{Name: typ.Name.GetToken()}
+			return ast.FunctionParam{Name: typ.Name.GetToken()}
 		} else {
 			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(typ.GetToken()))
-			return ast.Param{Name: typ.GetToken()}
+			return ast.FunctionParam{Name: typ.GetToken()}
 		}
 	} else {
 		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()))
-		return ast.Param{Name: p.advance()}
+		return ast.FunctionParam{Name: p.advance()}
 	}
 }
 
-func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) []ast.Param {
+func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) []ast.FunctionParam {
 	if !p.match(opening) {
 		p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), opening)
-		return []ast.Param{}
+		return []ast.FunctionParam{}
 	}
 
 	open := p.peek(-1)
 
-	var args []ast.Param
+	var args []ast.FunctionParam
 	if p.match(closing) {
-		args = make([]ast.Param, 0)
+		args = make([]ast.FunctionParam, 0)
 	} else {
 
 		var previous *ast.TypeExpr
@@ -138,10 +138,10 @@ func (p *Parser) genericArguments() ([]*ast.TypeExpr, bool) {
 		return params, false
 	}
 
-	params = append(params, p.Type())
+	params = append(params, p.typeExpr())
 
 	for p.match(tokens.Comma) {
-		params = append(params, p.Type())
+		params = append(params, p.typeExpr())
 	}
 
 	if !p.match(tokens.Greater) {
@@ -184,48 +184,52 @@ func (p *Parser) returnings() []*ast.TypeExpr {
 		if p.match(tokens.RightParen) {
 			return ret
 		}
-		ret = append(ret, p.Type())
+		ret = append(ret, p.typeExpr())
 
 		for p.match(tokens.Comma) {
-			ret = append(ret, p.Type())
+			ret = append(ret, p.typeExpr())
 		}
 
 		p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.RightParen), tokens.RightParen)
 	} else {
-		ret = append(ret, p.Type())
+		ret = append(ret, p.typeExpr())
 	}
 
 	return ret
 }
 
-func (p *Parser) getIdentifiers() ([]tokens.Token, bool) {
-	names := []tokens.Token{}
-	ident, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek())), tokens.Identifier)
+func (p *Parser) getIdentifiers(typeContext string) ([]tokens.Token, bool) {
+	idents := []tokens.Token{}
+
+	ident, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), typeContext), tokens.Identifier)
 	if !ok {
-		return names, false
-	}
-	names = append(names, ident)
-	for p.match(tokens.Comma) {
-		ident, ok = p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek())), tokens.Identifier)
-		if !ok {
-			return names, false
-		}
-		names = append(names, ident)
+		return idents, false
 	}
 
-	return names, true
+	idents = append(idents, ident)
+
+	for p.match(tokens.Comma) {
+		ident, ok = p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), typeContext), tokens.Identifier)
+		if !ok {
+			return idents, false
+		}
+
+		idents = append(idents, ident)
+	}
+
+	return idents, ok
 }
 
 func (p *Parser) getExpressions() ([]ast.Node, bool) {
 	exprs := []ast.Node{}
 	expr := p.expression()
-	if expr.GetType() == ast.NA && ast.ImproperToNodeType(expr) == ast.NA {
+	if ast.IsImproper(expr, ast.NA) {
 		return exprs, false
 	}
 	exprs = append(exprs, expr)
 	for p.match(tokens.Comma) {
 		expr := p.expression()
-		if expr.GetType() == ast.NA && ast.ImproperToNodeType(expr) == ast.NA {
+		if ast.IsImproper(expr, ast.NA) {
 			return exprs, false
 		}
 		exprs = append(exprs, expr)
@@ -234,8 +238,25 @@ func (p *Parser) getExpressions() ([]ast.Node, bool) {
 	return exprs, true
 }
 
-func (p *Parser) TypeAndIdentifier() (*ast.TypeExpr, ast.Node) {
-	typ := p.Type()
+func (p *Parser) getIdentExprPairs(typeContext string) ([]tokens.Token, []ast.Node, bool) {
+	idents, ok := p.getIdentifiers(typeContext)
+	if !ok {
+		return nil, nil, ok
+	}
+
+	if _, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Equal), tokens.Equal); !ok {
+		return nil, nil, ok
+	}
+	exprs, ok := p.getExpressions()
+	if !ok {
+		return nil, nil, ok
+	}
+
+	return idents, exprs, true
+}
+
+func (p *Parser) typeAndIdentifier() (*ast.TypeExpr, ast.Node) {
+	typ := p.typeExpr()
 
 	ident := p.advance()
 	if ident.Type != tokens.Identifier {
@@ -245,16 +266,19 @@ func (p *Parser) TypeAndIdentifier() (*ast.TypeExpr, ast.Node) {
 	return typ, &ast.IdentifierExpr{Name: ident, ValueType: ast.Invalid}
 }
 
-func (p *Parser) CheckType() bool {
+func (p *Parser) checkType() (*ast.TypeExpr, bool) {
 	currentStart := p.current
 	p.Context.IgnoreAlerts.Push("CheckType", true)
 
-	typ := p.Type()
+	typeExpr := p.typeExpr()
 
 	p.Context.IgnoreAlerts.Pop("CheckType")
-	p.disadvance(p.current - currentStart)
+	valid := typeExpr != nil && typeExpr.Name.GetType() != ast.NA
+	if !valid {
+		p.disadvance(p.current - currentStart)
+	}
 
-	return typ.Name.GetType() != ast.NA
+	return typeExpr, valid
 }
 
 func (p *Parser) getBody() ([]ast.Node, bool) {
