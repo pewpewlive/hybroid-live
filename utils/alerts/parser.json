@@ -7,7 +7,11 @@
   {
     "name": "ExpectedExpression",
     "type": "Error",
-    "message": "expected expression"
+    "params": {
+      "Context": "string `default:\"\"`"
+    },
+    "message": "expected expression %s",
+    "message_format": ["Context"]
   },
   {
     "name": "UnknownStatement",
@@ -154,6 +158,16 @@
     },
     "message": "cannot have multiple '%s' keywords",
     "message_format": ["Keyword"]
+  },
+  {
+    "name": "UnexpectedKeyword",
+    "type": "Error",
+    "params": {
+      "Keyword": "string",
+      "Context": "string `default:\"\"`"
+    },
+    "message": "unexpected keyword '%s' %s",
+    "message_format": ["Keyword", "Context"]
   },
   {
     "name": "IteratorRedefinition",

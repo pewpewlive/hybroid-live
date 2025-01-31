@@ -65,12 +65,6 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		e.parser.AssignTokens(tokens)
 		prog := e.parser.Parse()
 		e.parser.PrintAlerts(alerts.Parser, sourcePath)
-		// if len(e.parser.Errors) != 0 {
-		// 	color.Println("[red]Syntax error")
-		// 	for _, err := range e.parser.Errors {
-		// 		color.Printf("[red]Error: %+v\n", err)
-		// 	}
-		// }
 		fmt.Printf("Parsing time: %f seconds\n\n", time.Since(start).Seconds())
 
 		// ast.DrawNodes(prog)

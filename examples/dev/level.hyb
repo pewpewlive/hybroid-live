@@ -1,17 +1,5 @@
 env Thing as Level
 
-// let a, b = 100, 100
-// const a, b = 100, 100
-// pub a, b = 100, 100
-// pub const a, b = 100, 100
-
-// Thing a, b = 100, 100
-// const Thing a, b = 100, 100
-// pub Thing a, b = 100, 100
-// pub const Thing a, b = 100, 100
-
-// alias megaFN = fn(number, fixed, text) -> (b, t, number, number)
-
-fn doThing(megaFN a, a, type b, b) -> (type, type2) {
-
+fn a<T>(T a, a, T2 a, a) -> (T, T2) {
+  let a, n = 10_0, 30_0000_000000
 }

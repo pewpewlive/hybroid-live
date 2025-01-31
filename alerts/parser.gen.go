@@ -35,10 +35,11 @@ func (es *ExpectedStatement) GetAlertType() AlertType {
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ExpectedExpression struct {
   Specifier SnippetSpecifier
+  Context string `default:""`
 }
 
 func (ee *ExpectedExpression) GetMessage() string {
-  return "expected expression"
+  return fmt.Sprintf("expected expression %s", ee.Context)
 }
 
 func (ee *ExpectedExpression) GetSpecifier() SnippetSpecifier {
@@ -618,13 +619,40 @@ func (dk *DuplicateKeyword) GetAlertType() AlertType {
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type UnexpectedKeyword struct {
+  Specifier SnippetSpecifier
+  Keyword string
+  Context string `default:""`
+}
+
+func (uk *UnexpectedKeyword) GetMessage() string {
+  return fmt.Sprintf("unexpected keyword '%s' %s", uk.Keyword, uk.Context)
+}
+
+func (uk *UnexpectedKeyword) GetSpecifier() SnippetSpecifier {
+  return uk.Specifier
+}
+
+func (uk *UnexpectedKeyword) GetNote() string {
+  return ""
+}
+
+func (uk *UnexpectedKeyword) GetID() string {
+  return "hyb025"
+}
+
+func (uk *UnexpectedKeyword) GetAlertType() AlertType {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type IteratorRedefinition struct {
   Specifier SnippetSpecifier
   Context string `default:""`
 }
 
 func (ir *IteratorRedefinition) GetMessage() string {
-  return fmt.Sprintf("redefinition of iterator", ir.Context)
+  return fmt.Sprintf("redefinition of iterator %s", ir.Context)
 }
 
 func (ir *IteratorRedefinition) GetSpecifier() SnippetSpecifier {
@@ -636,7 +664,7 @@ func (ir *IteratorRedefinition) GetNote() string {
 }
 
 func (ir *IteratorRedefinition) GetID() string {
-  return "hyb025"
+  return "hyb026"
 }
 
 func (ir *IteratorRedefinition) GetAlertType() AlertType {

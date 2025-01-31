@@ -57,6 +57,10 @@ func (l *Lexer) Tokenize() []tokens.Token {
 }
 
 func (l *Lexer) next() (*tokens.Token, error) {
+	if err := l.consumeWhile(isWhitespace); err != nil {
+		return nil, err
+	}
+
 	l.buffer = make([]rune, 0)
 
 	token := tokens.Token{}
@@ -65,6 +69,15 @@ func (l *Lexer) next() (*tokens.Token, error) {
 	c, err := l.advance()
 	if err != nil {
 		return nil, err
+	}
+
+	if isAlphabetical(c) {
+		return l.handleIdentifier()
+	}
+
+	next, _ := l.peek()
+	if isDigit(c) || (c == '.' && isDigit(next)) {
+		return l.handleNumber()
 	}
 
 	switch c {
@@ -83,11 +96,7 @@ func (l *Lexer) next() (*tokens.Token, error) {
 	case ',':
 		token.Type = tokens.Comma
 	case ':':
-		if l.match(':') {
-			token.Type = tokens.DoubleColon
-		} else {
-			token.Type = tokens.Colon
-		}
+		token.Type = tokens.Colon
 	case '@':
 		token.Type = tokens.At
 	case '#':
@@ -162,7 +171,6 @@ func (l *Lexer) next() (*tokens.Token, error) {
 		} else {
 			token.Type = tokens.Modulo
 		}
-
 	case '/':
 		if l.match('/') {
 			err := l.handleComment(false)
@@ -177,7 +185,6 @@ func (l *Lexer) next() (*tokens.Token, error) {
 				token.Type = tokens.Slash
 			}
 		}
-
 	case '\\':
 		if l.match('=') {
 			token.Type = tokens.BackSlashEqual
@@ -186,25 +193,15 @@ func (l *Lexer) next() (*tokens.Token, error) {
 		}
 	case ';':
 		token.Type = tokens.SemiColon
-
-	case ' ', '\n', '\r', '\t':
-		return nil, nil
-
 	case '"':
 		return l.handleString()
-
 	default:
-		if isDigit(c) {
-			return l.handleNumber()
-		} else if isAlphabetical(c) {
-			return l.handleIdentifier()
-		} else {
-			token.Lexeme = string(token.Type)
-			token.Position.End = l.pos
-			l.Alert(&alerts.UnsupportedCharacter{}, alerts.NewSingle(token), c)
-			return nil, nil
-		}
+		token.Lexeme = string(token.Type)
+		token.Position.End = l.pos
+		l.Alert(&alerts.UnsupportedCharacter{}, alerts.NewSingle(token), string(c))
+		return nil, nil
 	}
+
 	token.Lexeme = string(token.Type)
 	token.Position.End = l.pos
 
@@ -240,41 +237,50 @@ func (l *Lexer) handleNumber() (*tokens.Token, error) {
 		Type:     tokens.Number,
 		Position: helpers.NewSpan(l.pos-1, l.pos),
 	}
-	if l.match('x') {
+
+	base, err := l.peek()
+	if err != nil {
+		return nil, err
+	}
+	if l.buffer[0] == '0' && (base == 'x' || base == 'b' || base == 'o') {
+		l.advance()
+
 		err := l.consumeWhile(isHexDigit)
 		if err != nil {
 			return nil, err
 		}
+
 		token.Position.End = l.pos
-		token.Literal = l.bufferString()
+		literal, err := strconv.ParseInt(l.bufferString(), 0, 0)
+		if err != nil {
+			return nil, err
+		}
+		token.Literal = strconv.Itoa(int(literal))
 
 		return &token, err
 	}
 
-	err := l.consumeWhile(isDigit)
+	isDigitOrUnderscore := func(r rune) bool { return isDigit(r) || r == '_' }
+	err = l.consumeWhile(isDigitOrUnderscore)
 	if err != nil {
 		return nil, err
 	}
 
-	if r, err := l.peek(); err == nil && r == '.' {
-		_, err := l.advance()
-		if err != nil {
-			return nil, err
-		}
-
-		err = l.consumeWhile(isDigit)
+	if l.match('.') {
+		err = l.consumeWhile(isDigitOrUnderscore)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	token.Literal = l.bufferString()
 	token.Position.End = l.pos
 
-	if _, err := strconv.ParseFloat(token.Literal, 64); err != nil {
+	var literal float64
+	if literal, err = strconv.ParseFloat(l.bufferString(), 64); err != nil {
 		l.Alert(&alerts.MalformedNumber{}, alerts.NewSingle(token), token.Literal)
 		return nil, err
 	}
+	token.Literal = strconv.FormatFloat(literal, 'f', -1, 64)
 
 	postixPosition := helpers.NewSpan(l.pos, l.pos)
 	err = l.consumeWhile(isAlphabetical)

@@ -87,20 +87,27 @@ func (l *Lexer) match(runes ...rune) bool {
 	return true
 }
 
-func isDigit(c rune) bool {
-	return c >= '0' && c <= '9'
+func isDigit(r rune) bool {
+	return r >= '0' && r <= '9'
 }
 
-func isHexDigit(c rune) bool {
-	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
+func isHexDigit(r rune) bool {
+	return isDigit(r) ||
+		(r >= 'a' && r <= 'f') ||
+		(r >= 'A' && r <= 'F') ||
+		r == '_'
 }
 
-func isAlphabetical(c rune) bool {
-	return (c >= 'a' && c <= 'z') ||
-		(c >= 'A' && c <= 'Z') ||
-		c == '_'
+func isAlphabetical(r rune) bool {
+	return (r >= 'a' && r <= 'z') ||
+		(r >= 'A' && r <= 'Z') ||
+		r == '_'
 }
 
-func isAlphanumeric(c rune) bool {
-	return isAlphabetical(c) || isDigit(c)
+func isAlphanumeric(r rune) bool {
+	return isAlphabetical(r) || isDigit(r)
+}
+
+func isWhitespace(r rune) bool {
+	return r == ' ' || r == '\n' || r == '\r' || r == '\t'
 }

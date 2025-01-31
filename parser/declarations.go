@@ -1,9 +1,12 @@
 package parser
 
 import (
+	"fmt"
 	"hybroid/alerts"
 	"hybroid/ast"
 	"hybroid/tokens"
+	"os"
+	"runtime/debug"
 )
 
 /*
@@ -77,16 +80,37 @@ arguments      → expression ( "," expression )* ;
 */
 
 func (p *Parser) declaration() ast.Node {
+	defer func() {
+		if errMsg := recover(); errMsg != nil {
+			// If the error is a parseError, synchronize to
+			// the next statement. If not, propagate the panic.
+			if _, ok := errMsg.(ParserError); ok {
+				p.synchronize()
+				return
+			} else {
+				fmt.Printf("panic: %s\nstacktrace:\n", errMsg)
+				debug.PrintStack()
+				os.Exit(1)
+			}
+		}
+	}()
+
 	if p.match(tokens.Env) {
-		p.Alert(&alerts.EnvironmentRedaclaration{}, alerts.NewSingle(p.peek()))
+		if p.environmentDeclaration().GetType() == ast.EnvironmentDeclaration {
+			p.Alert(&alerts.EnvironmentRedaclaration{}, alerts.NewSingle(p.peek()))
+		}
 	}
 
-	if varDecl := p.variableDeclaration(); varDecl != nil {
-		return varDecl
+	if p.match(tokens.Pub) {
+		p.Context.IsPub = true
 	}
 
 	if p.match(tokens.Fn) {
 		return p.functionDeclaration()
+	}
+
+	if varDecl := p.variableDeclaration(); varDecl != nil {
+		return varDecl
 	}
 
 	return nil
@@ -120,40 +144,33 @@ func (p *Parser) environmentDeclaration() ast.Node {
 func (p *Parser) variableDeclaration() ast.Node {
 	variableDecl := ast.VariableDecl{
 		Token:   p.peek(),
-		IsPub:   false,
+		IsPub:   p.Context.IsPub,
 		IsConst: false,
 	}
+	p.Context.IsPub = false
 
-	switch variableDecl.Token.Type {
-	case tokens.Const:
+	if variableDecl.IsPub {
+		variableDecl.Token = p.peek(-1)
+	}
+
+	if p.match(tokens.Const) {
 		variableDecl.IsConst = true
-	case tokens.Pub:
-		variableDecl.IsPub = true
-		if p.peek(1).Type == tokens.Const {
-			variableDecl.IsConst = true
+	} else if p.match(tokens.Let) && variableDecl.IsPub {
+		p.Alert(&alerts.UnexpectedKeyword{}, alerts.NewSingle(p.peek(-1)), variableDecl.Token.Lexeme, "in variable declaration")
+	}
+
+	typeCheckStart := p.current
+	if typeExpr, ok := p.checkType(); ok {
+		variableDecl.Type = typeExpr
+		if !p.check(tokens.Identifier) {
+			p.disadvance(p.current - typeCheckStart)
+			variableDecl.Type = nil
 		}
 	}
 
-	currentStart := p.current
-	p.match(tokens.Let, tokens.Const, tokens.Pub)
-	if variableDecl.IsPub && variableDecl.IsConst {
-		p.match(tokens.Const)
-	}
-	if variableDecl.Token.Type != tokens.Let {
-		typeCheckStart := p.current
-		if typeExpr, ok := p.checkType(); ok {
-			variableDecl.Type = typeExpr
-			if !p.check(tokens.Identifier) {
-				p.disadvance(p.current - typeCheckStart)
-				variableDecl.Type = nil
-			}
-		}
-	}
-
-	idents, exprs, ok := p.getIdentExprPairs("in variable declaration")
+	idents, exprs, ok := p.getIdentExprPairs("in variable declaration", variableDecl.Type != nil)
 	if !ok {
-		p.disadvance(p.current - currentStart)
-		return nil
+		p.panic()
 	}
 
 	variableDecl.Identifiers = idents
@@ -163,7 +180,10 @@ func (p *Parser) variableDeclaration() ast.Node {
 }
 
 func (p *Parser) functionDeclaration() ast.Node {
-	functionDecl := ast.FunctionDecl{}
+	functionDecl := ast.FunctionDecl{
+		IsPub: p.Context.IsPub,
+	}
+	p.Context.IsPub = false
 
 	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in function declaration"), tokens.Identifier)
 	if !ok {

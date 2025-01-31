@@ -21,7 +21,6 @@ const (
 	Pipe           TokenType = "|"   // |
 	Colon          TokenType = ":"   // :
 	SemiColon      TokenType = ";"   // ;
-	DoubleColon    TokenType = "::"  // ::
 	Dot            TokenType = "."   // .
 	Concat         TokenType = ".."  // ..
 	Ellipsis       TokenType = "..." // ...
