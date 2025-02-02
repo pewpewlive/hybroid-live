@@ -81,6 +81,8 @@ arguments      → expression ( "," expression )* ;
 
 func (p *Parser) declaration() ast.Node {
 	defer func() {
+		p.Context.IsPub = false
+
 		if errMsg := recover(); errMsg != nil {
 			// If the error is a parseError, synchronize to
 			// the next statement. If not, propagate the panic.
@@ -94,10 +96,11 @@ func (p *Parser) declaration() ast.Node {
 			}
 		}
 	}()
+	p.Context.IsPub = false
 
 	if p.match(tokens.Env) {
 		if p.environmentDeclaration().GetType() == ast.EnvironmentDeclaration {
-			p.Alert(&alerts.EnvironmentRedaclaration{}, alerts.NewSingle(p.peek()))
+			p.AlertPanic(&alerts.EnvironmentRedaclaration{}, alerts.NewSingle(p.peek()))
 		}
 	}
 
@@ -105,15 +108,19 @@ func (p *Parser) declaration() ast.Node {
 		p.Context.IsPub = true
 	}
 
-	if p.match(tokens.Fn) {
+	switch {
+	case p.match(tokens.Fn):
 		return p.functionDeclaration()
+	case p.check(tokens.Let) || p.check(tokens.Const):
+		return p.variableDeclaration()
+	case p.match(tokens.Enum):
+		return p.enumDeclaration()
+	case p.match(tokens.Alias):
+		return p.aliasDeclaration()
 	}
 
-	if varDecl := p.variableDeclaration(); varDecl != nil {
-		return varDecl
-	}
-
-	return nil
+	p.AlertPanic(&alerts.ExpectedStatement{}, alerts.NewSingle(p.peek()))
+	return ast.NewImproper(p.peek(), ast.NA)
 }
 
 func (p *Parser) environmentDeclaration() ast.Node {
@@ -147,7 +154,6 @@ func (p *Parser) variableDeclaration() ast.Node {
 		IsPub:   p.Context.IsPub,
 		IsConst: false,
 	}
-	p.Context.IsPub = false
 
 	if variableDecl.IsPub {
 		variableDecl.Token = p.peek(-1)
@@ -168,7 +174,7 @@ func (p *Parser) variableDeclaration() ast.Node {
 		}
 	}
 
-	idents, exprs, ok := p.getIdentExprPairs("in variable declaration", variableDecl.Type != nil)
+	idents, exprs, ok := p.identExprPairs("in variable declaration", variableDecl.Type != nil)
 	if !ok {
 		p.panic()
 	}
@@ -183,22 +189,19 @@ func (p *Parser) functionDeclaration() ast.Node {
 	functionDecl := ast.FunctionDecl{
 		IsPub: p.Context.IsPub,
 	}
-	p.Context.IsPub = false
 
-	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in function declaration"), tokens.Identifier)
-	if !ok {
-		return ast.NewImproper(p.peek(), ast.FunctionDeclaration)
-	}
+	name, _ := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in function declaration"), tokens.Identifier)
+
 	functionDecl.Name = name
-	functionDecl.Generics = p.genericParameters()
-	functionDecl.Params = p.parameters(tokens.LeftParen, tokens.RightParen)
-	functionDecl.ReturnTypes = p.returnings()
+	functionDecl.Generics = p.genericParams()
+	functionDecl.Params = p.functionParams(tokens.LeftParen, tokens.RightParen)
+	functionDecl.ReturnTypes = p.functionReturns()
 
 	p.Context.FunctionReturns.Push("functionDeclarationStmt", len(functionDecl.ReturnTypes))
 
-	body, ok := p.getBody()
+	body, ok := p.body(false, true, true)
 	if !ok {
-		return ast.NewImproper(functionDecl.Name, ast.NA)
+		return ast.NewImproper(functionDecl.Name, ast.FunctionDeclaration)
 	}
 	functionDecl.Body = body
 
@@ -207,12 +210,54 @@ func (p *Parser) functionDeclaration() ast.Node {
 	return &functionDecl
 }
 
-func (p *Parser) aliasDeclaration() ast.Node {
-	return nil
+func (p *Parser) enumDeclaration() ast.Node {
+	enumStmt := &ast.EnumDecl{
+		IsPub: p.Context.IsPub,
+		Token: p.peek(-1),
+	}
+
+	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in enum declaration"), tokens.Identifier)
+	if ok {
+		enumStmt.Name = name
+	}
+
+	start, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
+	if !ok {
+		p.panic()
+		return ast.NewImproper(p.peek(), ast.EnumDeclaration)
+	}
+
+	fields, ok := p.identifiers("in enum declaration", true)
+	if !ok {
+		p.panic()
+		return enumStmt
+	}
+
+	_, ok = p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek()), tokens.RightBrace), tokens.RightBrace)
+	if !ok {
+		p.panic()
+	}
+	enumStmt.Fields = fields
+
+	return enumStmt
 }
 
-func (p *Parser) enumDeclaration() ast.Node {
-	return nil
+func (p *Parser) aliasDeclaration() ast.Node {
+	aliasDecl := &ast.AliasDecl{
+		IsPub: p.Context.IsPub,
+		Token: p.peek(-1),
+	}
+
+	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in alias declaration"), tokens.Identifier)
+	if ok {
+		aliasDecl.Name = name
+	}
+
+	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Equal, "after identifier in alias declaration"), tokens.Equal)
+
+	aliasDecl.Type = p.typeExpr()
+
+	return aliasDecl
 }
 
 func (p *Parser) classDeclaration() ast.Node {

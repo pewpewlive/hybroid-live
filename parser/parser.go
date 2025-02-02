@@ -86,12 +86,13 @@ func (p *Parser) panic() {
 func (p *Parser) synchronize() {
 	for !p.isAtEnd() {
 		switch p.peek().Type {
-		// case tokens.For, tokens.If, tokens.Repeat, tokens.Tick,
-		// 	tokens.Return, , tokens.While, , ,
-		// 	tokens.Break, tokens.Continue,
-		// 	:
-		// 	return
-		case tokens.Entity, tokens.Fn, tokens.Let, tokens.Pub, tokens.Const, tokens.Class:
+		case tokens.Fn:
+			p.advance()
+			if p.peek().Type != tokens.LeftParen {
+				p.disadvance()
+				return
+			}
+		case tokens.Entity, tokens.Let, tokens.Pub, tokens.Const, tokens.Class, tokens.Alias:
 			return
 		}
 

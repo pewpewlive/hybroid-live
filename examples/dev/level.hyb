@@ -1,5 +1,5 @@
 env Thing as Level
 
-fn a<T>(T a, a, T2 a, a) -> (T, T2) {
-  let a, n = 10_0, 30_0000_000000
-}
+alias THing = struct{thing a,  b}
+
+alias custom = fn() -> (bool, number)

@@ -50,10 +50,10 @@ func (md *MacroDecl) GetValueType() PrimitiveValueType {
 }
 
 type AliasDecl struct {
-	IsLocal     bool
-	Token       tokens.Token
-	Alias       tokens.Token
-	AliasedType *TypeExpr
+	IsPub bool
+	Token tokens.Token
+	Name  tokens.Token
+	Type  *TypeExpr
 }
 
 func (ad *AliasDecl) GetType() NodeType {
@@ -76,7 +76,7 @@ type EntityDecl struct {
 	Destroyer *EntityFunctionDecl
 	Callbacks []*EntityFunctionDecl
 	Methods   []MethodDecl
-	IsLocal   bool
+	IsPub     bool
 }
 
 func (ed *EntityDecl) GetType() NodeType {
@@ -113,9 +113,10 @@ func (efd *EntityFunctionDecl) GetValueType() PrimitiveValueType {
 }
 
 type EnumDecl struct {
-	Name    tokens.Token
-	Fields  []tokens.Token
-	IsLocal bool
+	Token  tokens.Token
+	Name   tokens.Token
+	Fields []tokens.Token
+	IsPub  bool
 }
 
 func (ed *EnumDecl) GetType() NodeType {
@@ -201,7 +202,7 @@ type MethodDecl struct {
 	Return   []*TypeExpr
 	Params   []FunctionParam
 	Generics []*IdentifierExpr
-	IsLocal  bool
+	IsPub    bool
 	Body     []Node
 }
 
@@ -244,7 +245,7 @@ type ClassDecl struct {
 	Fields      []FieldDecl
 	Constructor *ConstructorDecl
 	Methods     []MethodDecl
-	IsLocal     bool
+	IsPub       bool
 }
 
 func (cd *ClassDecl) GetType() NodeType {

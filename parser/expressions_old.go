@@ -17,16 +17,16 @@ func (p *Parser) OLDfn() ast.Node {
 			Token: p.peek(-1),
 		}
 		if p.check(tokens.LeftParen) {
-			fn.Params = p.parameters(tokens.LeftParen, tokens.RightParen)
+			fn.Params = p.functionParams(tokens.LeftParen, tokens.RightParen)
 		} else {
 			fn.Params = make([]ast.FunctionParam, 0)
 			p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftParen)
 		}
-		fn.Return = p.returnings()
+		fn.Return = p.functionReturns()
 		p.Context.FunctionReturns.Push("fn", len(fn.Return))
 
 		var success bool
-		fn.Body, success = p.getBody()
+		fn.Body, success = p.body(false, false, true)
 		if !success {
 			return ast.NewImproper(fn.Token, ast.FunctionExpression)
 		}
@@ -158,7 +158,7 @@ func (p *Parser) OLDcall(caller ast.Node) ast.Node {
 	args := []*ast.TypeExpr{}
 	if p.check(tokens.Less) {
 		var ok bool
-		args, ok = p.genericArguments()
+		args, ok = p.genericArgs()
 		if !ok {
 			return caller
 		}
@@ -180,7 +180,7 @@ func (p *Parser) OLDcall(caller ast.Node) ast.Node {
 	call_expr := &ast.CallExpr{
 		Caller:      caller,
 		GenericArgs: args,
-		Args:        p.arguments(),
+		Args:        p.functionArgs(),
 	}
 
 	return p.call(call_expr)
@@ -193,14 +193,14 @@ func (p *Parser) OLDaccessorExprDepth2(ident *ast.Node) ast.Node {
 		return p.call(expr)
 	}
 
-	args, _ := p.genericArguments()
+	args, _ := p.genericArgs()
 
 	var methodCall ast.Node = &ast.MethodCallExpr{
 		Identifier: expr,
 		Call: &ast.CallExpr{
 			Caller:      call,
 			GenericArgs: args,
-			Args:        p.arguments(),
+			Args:        p.functionArgs(),
 		},
 	}
 
@@ -295,7 +295,7 @@ func (p *Parser) OLDnew() ast.Node {
 		}
 
 		expr.Type = p.typeExpr()
-		expr.Args = p.arguments()
+		expr.Args = p.functionArgs()
 
 		return &expr
 	}
@@ -310,7 +310,7 @@ func (p *Parser) OLDspawn() ast.Node {
 		}
 
 		expr.Type = p.typeExpr()
-		expr.Args = p.arguments()
+		expr.Args = p.functionArgs()
 
 		return &expr
 	}
@@ -613,10 +613,10 @@ func (p *Parser) OLDType() *ast.TypeExpr {
 			}
 			p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.RightParen), tokens.RightParen)
 		}
-		typ.Returns = p.returnings()
+		typ.Returns = p.functionReturns()
 		typ.Name = expr
 	case tokens.Struct:
-		fields := p.parameters(tokens.LeftBrace, tokens.RightBrace)
+		fields := p.functionParams(tokens.LeftBrace, tokens.RightBrace)
 		typ = &ast.TypeExpr{Name: expr, Fields: fields}
 	case tokens.Entity:
 		typ = &ast.TypeExpr{Name: &ast.IdentifierExpr{Name: exprToken}}

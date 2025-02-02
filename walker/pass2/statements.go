@@ -15,7 +15,7 @@ import (
 // }
 
 func AliasDeclarationStmt(w *wkr.Walker, node *ast.AliasDecl, scope *wkr.Scope) {
-	w.Environment.AliasTypes[node.Alias.Lexeme] = wkr.NewAliasType(node.Alias.Lexeme, TypeExpr(w, node.AliasedType, &w.Environment.Scope, true))
+	w.Environment.AliasTypes[node.Name.Lexeme] = wkr.NewAliasType(node.Name.Lexeme, TypeExpr(w, node.Type, &w.Environment.Scope, true))
 }
 
 func ClassDeclarationStmt(w *wkr.Walker, node *ast.ClassDecl, scope *wkr.Scope) {
@@ -36,7 +36,7 @@ func ClassDeclarationStmt(w *wkr.Walker, node *ast.ClassDecl, scope *wkr.Scope) 
 
 	classVal := &wkr.ClassVal{
 		Type:     *wkr.NewNamedType(w.Environment.Name, node.Name.Lexeme, ast.Struct),
-		IsLocal:  node.IsLocal,
+		IsLocal:  node.IsPub,
 		Fields:   make(map[string]wkr.Field),
 		Methods:  map[string]*wkr.VariableVal{},
 		Generics: generics,
@@ -59,7 +59,7 @@ func ClassDeclarationStmt(w *wkr.Walker, node *ast.ClassDecl, scope *wkr.Scope) 
 		Params:   node.Constructor.Params,
 		Return:   node.Constructor.Return,
 		Generics: node.Constructor.Generics,
-		IsLocal:  true,
+		IsPub:    true,
 		Body:     node.Constructor.Body,
 	}
 
@@ -100,7 +100,7 @@ func EntityDeclarationStmt(w *wkr.Walker, node *ast.EntityDecl, scope *wkr.Scope
 		w.Error(node.Name, "a type with this name already exists")
 	}
 
-	entityVal := wkr.NewEntityVal(w.Environment.Name, node.Name.Lexeme, node.IsLocal)
+	entityVal := wkr.NewEntityVal(w.Environment.Name, node.Name.Lexeme, node.IsPub)
 
 	// DECLARATIONS
 	for i := range node.Fields {
@@ -241,7 +241,7 @@ func EnumDeclarationStmt(w *wkr.Walker, node *ast.EnumDecl, scope *wkr.Scope) {
 		variable := &wkr.VariableVal{
 			Name:    v.Lexeme,
 			Value:   &wkr.EnumFieldVal{Type: enumVal.Type},
-			IsLocal: node.IsLocal,
+			IsLocal: node.IsPub,
 			IsConst: true,
 		}
 		enumVal.AddField(variable)
@@ -250,7 +250,7 @@ func EnumDeclarationStmt(w *wkr.Walker, node *ast.EnumDecl, scope *wkr.Scope) {
 	enumVar := &wkr.VariableVal{
 		Name:    enumVal.Type.Name,
 		Value:   enumVal,
-		IsLocal: node.IsLocal,
+		IsLocal: node.IsPub,
 		IsConst: true,
 	}
 

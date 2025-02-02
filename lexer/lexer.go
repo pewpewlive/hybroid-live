@@ -239,7 +239,7 @@ func (l *Lexer) handleNumber() (*tokens.Token, error) {
 	}
 
 	base, err := l.peek()
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return nil, err
 	}
 	if l.buffer[0] == '0' && (base == 'x' || base == 'b' || base == 'o') {

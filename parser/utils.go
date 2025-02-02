@@ -22,45 +22,29 @@ func IsFx(valueType ast.PrimitiveValueType) bool {
 	return valueType == ast.FixedPoint || valueType == ast.Fixed || valueType == ast.Radian || valueType == ast.Degree
 }
 
-func (p *Parser) getOp(opEqual tokens.Token) tokens.Token {
-	switch opEqual.Type {
-	case tokens.PlusEqual:
-		return tokens.NewToken(tokens.Plus, "+", opEqual.Literal, opEqual.Position)
-	case tokens.MinusEqual:
-		return tokens.NewToken(tokens.Minus, "-", opEqual.Literal, opEqual.Position)
-	case tokens.SlashEqual:
-		return tokens.NewToken(tokens.Slash, "/", opEqual.Literal, opEqual.Position)
-	case tokens.StarEqual:
-		return tokens.NewToken(tokens.Star, "*", opEqual.Literal, opEqual.Position)
-	case tokens.CaretEqual:
-		return tokens.NewToken(tokens.Caret, "^", opEqual.Literal, opEqual.Position)
-	case tokens.ModuloEqual:
-		return tokens.NewToken(tokens.Modulo, "%", opEqual.Literal, opEqual.Position)
-	default:
-		return tokens.Token{}
-	}
-}
+func (p *Parser) getFunctionParam(previous *ast.TypeExpr, closing tokens.TokenType) ast.FunctionParam {
+	functionParam := ast.FunctionParam{}
 
-func (p *Parser) getParam(previous *ast.TypeExpr, closing tokens.TokenType) ast.FunctionParam {
-	typ := p.typeExpr()
+	typeExpr := p.typeExpr()
 	peekType := p.peek().Type
 
 	if peekType == tokens.Identifier {
-		return ast.FunctionParam{Name: p.advance(), Type: typ}
+		functionParam.Name = p.advance()
+		functionParam.Type = typeExpr
 	} else if peekType == tokens.Comma || peekType == closing {
-		if typ.Name.GetType() == ast.Identifier && previous != nil {
-			return ast.FunctionParam{Name: typ.Name.GetToken()}
+		if typeExpr.Name.GetType() == ast.Identifier && previous != nil {
+			functionParam.Name = typeExpr.Name.GetToken()
 		} else {
-			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(typ.GetToken()))
-			return ast.FunctionParam{Name: typ.GetToken()}
+			functionParam.Name = typeExpr.GetToken()
 		}
 	} else {
-		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()))
-		return ast.FunctionParam{Name: p.advance()}
+		functionParam.Name = p.advance()
 	}
+
+	return functionParam
 }
 
-func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) []ast.FunctionParam {
+func (p *Parser) functionParams(opening tokens.TokenType, closing tokens.TokenType) []ast.FunctionParam {
 	if !p.match(opening) {
 		p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), opening)
 		return []ast.FunctionParam{}
@@ -72,21 +56,16 @@ func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) 
 	if p.match(closing) {
 		args = make([]ast.FunctionParam, 0)
 	} else {
-
 		var previous *ast.TypeExpr
-		param := p.getParam(nil, closing)
+		param := p.getFunctionParam(nil, closing)
 		if param.Type == nil {
-			if len(args) == 0 {
-				p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(p.peek(-1)))
-			} else {
-				param.Type = previous
-			}
+			p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(param.Name))
 		} else {
 			previous = param.Type
 		}
 		args = append(args, param)
 		for p.match(tokens.Comma) {
-			param := p.getParam(previous, closing)
+			param := p.getFunctionParam(previous, closing)
 			if param.Type == nil {
 				if len(args) == 0 {
 					p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(p.peek(-1)))
@@ -98,40 +77,42 @@ func (p *Parser) parameters(opening tokens.TokenType, closing tokens.TokenType) 
 			}
 			args = append(args, param)
 		}
-		p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(open, p.peek()), closing), closing)
+		_, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(open, p.peek()), closing), closing)
+		if !ok {
+			p.panic()
+		}
 	}
 
 	return args
 }
 
-func (p *Parser) genericParameters() []*ast.IdentifierExpr {
+func (p *Parser) genericParams() []*ast.IdentifierExpr {
 	params := []*ast.IdentifierExpr{}
 	if !p.match(tokens.Less) {
 		return params
 	}
 
-	token := p.advance()
-	if token.Type != tokens.Identifier {
-		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(token), "in generic parameters")
-	} else {
+	token, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in generic parameters"), tokens.Identifier)
+	if ok {
 		params = append(params, &ast.IdentifierExpr{Name: token, ValueType: ast.Invalid})
 	}
 
 	for p.match(tokens.Comma) {
-		token := p.advance()
-		if token.Type != tokens.Identifier {
-			p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(token))
-		} else {
+		token, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in generic parameters"), tokens.Identifier)
+		if ok {
 			params = append(params, &ast.IdentifierExpr{Name: token, ValueType: ast.Invalid})
 		}
 	}
 
-	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Greater), tokens.Greater)
+	_, ok = p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Greater), tokens.Greater)
+	if !ok {
+		p.panic()
+	}
 
 	return params
 }
 
-func (p *Parser) genericArguments() ([]*ast.TypeExpr, bool) {
+func (p *Parser) genericArgs() ([]*ast.TypeExpr, bool) {
 	currentStart := p.current
 	params := []*ast.TypeExpr{}
 	if !p.match(tokens.Less) {
@@ -152,7 +133,7 @@ func (p *Parser) genericArguments() ([]*ast.TypeExpr, bool) {
 	return params, true
 }
 
-func (p *Parser) arguments() []ast.Node {
+func (p *Parser) functionArgs() []ast.Node {
 	if _, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftParen), tokens.LeftParen); !ok {
 		return nil
 	}
@@ -173,7 +154,7 @@ func (p *Parser) arguments() []ast.Node {
 	return args
 }
 
-func (p *Parser) returnings() []*ast.TypeExpr {
+func (p *Parser) functionReturns() []*ast.TypeExpr {
 	ret := make([]*ast.TypeExpr, 0)
 
 	if !p.match(tokens.ThinArrow) {
@@ -198,7 +179,7 @@ func (p *Parser) returnings() []*ast.TypeExpr {
 	return ret
 }
 
-func (p *Parser) getIdentifiers(typeContext string) ([]tokens.Token, bool) {
+func (p *Parser) identifiers(typeContext string, allowTrailing bool) ([]tokens.Token, bool) {
 	idents := []tokens.Token{}
 
 	ident, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), typeContext), tokens.Identifier)
@@ -209,6 +190,10 @@ func (p *Parser) getIdentifiers(typeContext string) ([]tokens.Token, bool) {
 	idents = append(idents, ident)
 
 	for p.match(tokens.Comma) {
+		if !p.check(tokens.Identifier) && allowTrailing {
+			return idents, true
+		}
+
 		ident, ok = p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), typeContext), tokens.Identifier)
 		if !ok {
 			return idents, false
@@ -220,7 +205,7 @@ func (p *Parser) getIdentifiers(typeContext string) ([]tokens.Token, bool) {
 	return idents, ok
 }
 
-func (p *Parser) getExpressions(typeContext string) ([]ast.Node, bool) {
+func (p *Parser) expressions(typeContext string) ([]ast.Node, bool) {
 	exprs := []ast.Node{}
 	expr := p.expression()
 	if ast.IsImproper(expr, ast.NA) {
@@ -239,8 +224,8 @@ func (p *Parser) getExpressions(typeContext string) ([]ast.Node, bool) {
 	return exprs, true
 }
 
-func (p *Parser) getIdentExprPairs(typeContext string, optional bool) ([]tokens.Token, []ast.Node, bool) {
-	idents, ok := p.getIdentifiers(typeContext)
+func (p *Parser) identExprPairs(typeContext string, optional bool) ([]tokens.Token, []ast.Node, bool) {
+	idents, ok := p.identifiers(typeContext, false)
 	if !ok {
 		return nil, nil, ok
 	}
@@ -254,7 +239,7 @@ func (p *Parser) getIdentExprPairs(typeContext string, optional bool) ([]tokens.
 		return nil, nil, ok
 	}
 
-	exprs, ok := p.getExpressions(typeContext)
+	exprs, ok := p.expressions(typeContext)
 	if !ok {
 		return nil, nil, ok
 	}
@@ -288,26 +273,30 @@ func (p *Parser) checkType() (*ast.TypeExpr, bool) {
 	return typeExpr, valid
 }
 
-func (p *Parser) getBody() ([]ast.Node, bool) {
+func (p *Parser) body(allowSingleSatement, allowArrow, allowMultiStatement bool) ([]ast.Node, bool) {
 	body := make([]ast.Node, 0)
-	if p.match(tokens.FatArrow) {
-		args, ok := p.returnArgs()
-		if !ok {
-			p.Alert(&alerts.ExpectedReturnArgs{}, alerts.NewSingle(p.peek()))
-			return []ast.Node{}, false
-		}
-		body = []ast.Node{
-			&ast.ReturnStmt{
-				Token: args[0].GetToken(),
-				Args:  args,
-			},
+	if p.match(tokens.FatArrow) && allowArrow {
+		if p.Context.FunctionReturns.Top().Item > 0 {
+			args, ok := p.returnArgs()
+			if !ok {
+				p.Alert(&alerts.ExpectedReturnArgs{}, alerts.NewSingle(p.peek()))
+				return []ast.Node{}, false
+			}
+			body = []ast.Node{
+				&ast.ReturnStmt{
+					Token: args[0].GetToken(),
+					Args:  args,
+				},
+			}
+		} else {
+			body = []ast.Node{p.statement()}
 		}
 		return body, true
-	} else if !p.check(tokens.LeftBrace) {
+	} else if !p.check(tokens.LeftBrace) && allowSingleSatement {
 		body = []ast.Node{p.statement()}
 		return body, true
 	}
-	if _, success := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace); !success {
+	if _, success := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace); !success || !allowMultiStatement {
 		return body, false
 	}
 	start := p.peek(-1)

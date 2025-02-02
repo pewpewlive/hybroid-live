@@ -198,10 +198,10 @@ func (p *Parser) OLDaliasDeclarationStmt(isLocal bool) ast.Node {
 	}
 
 	return &ast.AliasDecl{
-		Alias:       name,
-		AliasedType: aliased,
-		Token:       typeToken,
-		IsLocal:     isLocal,
+		Name:  name,
+		Type:  aliased,
+		Token: typeToken,
+		IsPub: isLocal,
 	}
 }
 
@@ -238,7 +238,7 @@ func (p *Parser) OLDenvStmt() ast.Node {
 
 func (p *Parser) OLDenumDeclarationStmt(local bool) ast.Node {
 	enumStmt := &ast.EnumDecl{
-		IsLocal: local,
+		IsPub: local,
 	}
 
 	ident := p.expression()
@@ -284,7 +284,7 @@ func (p *Parser) OLDenumDeclarationStmt(local bool) ast.Node {
 
 func (p *Parser) OLDclassDeclarationStmt(isLocal bool) ast.Node {
 	stmt := &ast.ClassDecl{
-		IsLocal: isLocal,
+		IsPub: isLocal,
 	}
 	stmt.Token = p.peek(-1)
 
@@ -327,8 +327,8 @@ func (p *Parser) OLDclassDeclarationStmt(isLocal bool) ast.Node {
 
 func (p *Parser) OLDentityDeclarationStmt(isLocal bool) ast.Node {
 	stmt := &ast.EntityDecl{
-		IsLocal: isLocal,
-		Token:   p.peek(-1),
+		IsPub: isLocal,
+		Token: p.peek(-1),
 	}
 
 	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name of the entity"), tokens.Identifier)
@@ -411,13 +411,13 @@ func (p *Parser) OLDentityFunctionDeclarationStmt(token tokens.Token, functionTy
 		Token: token,
 	}
 
-	stmt.Generics = p.genericParameters()
-	stmt.Params = p.parameters(tokens.LeftParen, tokens.RightParen)
-	stmt.Returns = p.returnings()
+	stmt.Generics = p.genericParams()
+	stmt.Params = p.functionParams(tokens.LeftParen, tokens.RightParen)
+	stmt.Returns = p.functionReturns()
 	p.Context.FunctionReturns.Push("entityFunctionDeclarationStmt", len(stmt.Returns))
 
 	var success bool
-	stmt.Body, success = p.getBody()
+	stmt.Body, success = p.body(true, true, true)
 	if !success {
 		return ast.NewImproper(stmt.Token, ast.NA)
 	}
@@ -439,8 +439,8 @@ func (p *Parser) OLDdestroyStmt() ast.Node {
 		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(expr.GetToken()), "or environment access expression")
 	}
 	stmt.Identifier = expr
-	stmt.Generics, _ = p.genericArguments()
-	stmt.Args = p.arguments()
+	stmt.Generics, _ = p.genericArgs()
+	stmt.Args = p.functionArgs()
 
 	return &stmt
 }
@@ -448,11 +448,11 @@ func (p *Parser) OLDdestroyStmt() ast.Node {
 func (p *Parser) OLDconstructorDeclarationStmt() ast.Node {
 	stmt := &ast.ConstructorDecl{Token: p.peek(-1)}
 
-	stmt.Generics = p.genericParameters()
-	stmt.Params = p.parameters(tokens.LeftParen, tokens.RightParen)
-	stmt.Return = p.returnings()
+	stmt.Generics = p.genericParams()
+	stmt.Params = p.functionParams(tokens.LeftParen, tokens.RightParen)
+	stmt.Return = p.functionReturns()
 	var success bool
-	stmt.Body, success = p.getBody()
+	stmt.Body, success = p.body(true, true, true)
 	if !success {
 		return &ast.Improper{Token: stmt.Token}
 	}
@@ -516,7 +516,7 @@ func (p *Parser) OLDmethodDeclarationStmt(IsLocal bool) ast.Node {
 	} else {
 		FnDec := fnDec.(*ast.FunctionDecl)
 		return &ast.MethodDecl{
-			IsLocal:  FnDec.IsPub,
+			IsPub:    FnDec.IsPub,
 			Name:     FnDec.Name,
 			Return:   FnDec.ReturnTypes,
 			Params:   FnDec.Params,
@@ -536,7 +536,7 @@ func (p *Parser) OLDifStmt(else_exists bool, is_else bool, is_elseif bool) *ast.
 		expr = p.multiComparison()
 	}
 	ifStm.BoolExpr = expr
-	ifStm.Body, _ = p.getBody()
+	ifStm.Body, _ = p.body(true, true, true)
 
 	if is_else || is_elseif {
 		return &ifStm
@@ -577,7 +577,22 @@ func (p *Parser) OLDassignmentStmt(expr ast.Node) ast.Node {
 		expr = &ast.AssignmentStmt{Identifiers: idents, Values: values, Token: p.peek(-1)}
 	} else if p.match(tokens.PlusEqual, tokens.MinusEqual, tokens.SlashEqual, tokens.StarEqual, tokens.CaretEqual, tokens.ModuloEqual, tokens.BackSlashEqual) {
 		assignOp := p.peek(-1)
-		op := p.getOp(assignOp)
+		op := tokens.Token{Literal: assignOp.Literal, Position: assignOp.Position}
+		switch assignOp.Type {
+		case tokens.PlusEqual:
+			op.Type = tokens.Plus
+		case tokens.MinusEqual:
+			op.Type = tokens.Minus
+		case tokens.SlashEqual:
+			op.Type = tokens.Slash
+		case tokens.StarEqual:
+			op.Type = tokens.Star
+		case tokens.CaretEqual:
+			op.Type = tokens.Caret
+		case tokens.ModuloEqual:
+			op.Type = tokens.Modulo
+		}
+		op.Lexeme = string(op.Type)
 
 		expr2 := p.expression()
 		binExpr := p.createBinExpr(idents[len(values)], op, op.Type, op.Lexeme, &ast.GroupExpr{Expr: expr2, ValueType: expr2.GetValueType(), Token: expr2.GetToken()})
@@ -662,14 +677,14 @@ func (p *Parser) OLDfunctionDeclarationStmt(IsLocal bool) ast.Node {
 	ident, _ := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "for a function name"), tokens.Identifier)
 
 	fnDec.Name = ident
-	fnDec.Generics = p.genericParameters()
-	fnDec.Params = p.parameters(tokens.LeftParen, tokens.RightParen)
+	fnDec.Generics = p.genericParams()
+	fnDec.Params = p.functionParams(tokens.LeftParen, tokens.RightParen)
 
-	fnDec.ReturnTypes = p.returnings()
+	fnDec.ReturnTypes = p.functionReturns()
 	p.Context.FunctionReturns.Push("functionDeclarationStmt", len(fnDec.ReturnTypes))
 
 	var success bool
-	fnDec.Body, success = p.getBody()
+	fnDec.Body, success = p.body(true, true, true)
 	if !success {
 		return ast.NewImproper(fnDec.Name, ast.NA)
 	}
@@ -756,7 +771,7 @@ func (p *Parser) OLDrepeatStmt() ast.Node {
 	}
 
 	var success bool
-	repeatStmt.Body, success = p.getBody()
+	repeatStmt.Body, success = p.body(true, true, true)
 	if !success {
 		return ast.NewImproper(repeatStmt.Token, ast.NA)
 	}
@@ -777,7 +792,7 @@ func (p *Parser) OLDwhileStmt() ast.Node {
 	whileStmt.Condtion = condtion
 
 	var success bool
-	whileStmt.Body, success = p.getBody()
+	whileStmt.Body, success = p.body(true, true, true)
 	if !success {
 		return ast.NewImproper(whileStmt.Token, ast.NA)
 	}
@@ -824,7 +839,7 @@ func (p *Parser) OLDforStmt() ast.Node {
 	}
 
 	var success bool
-	forStmt.Body, success = p.getBody()
+	forStmt.Body, success = p.body(true, true, true)
 	if !success {
 		return ast.NewImproper(forStmt.Token, ast.NA)
 	}
@@ -848,7 +863,7 @@ func (p *Parser) OLDtickStmt() ast.Node {
 	}
 
 	var success bool
-	tickStmt.Body, success = p.getBody()
+	tickStmt.Body, success = p.body(true, true, true)
 	if !success {
 		return ast.NewImproper(tickStmt.Token, ast.NA)
 	}
@@ -1042,8 +1057,8 @@ func (p *Parser) OLDcaseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
 	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.FatArrow), tokens.FatArrow)
 
 	if p.check(tokens.LeftBrace) {
-		body, _ := p.getBody()
-		for i := range caseStmts {
+		body, _ := p.body(true, true, true)
+		for i := range caseStmts { // "hello" =>
 			caseStmts[i].Body = body
 		}
 	} else {

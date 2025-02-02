@@ -96,16 +96,14 @@ func (p *Parser) match(types ...tokens.TokenType) bool {
 // Consumes one of the tokens in the given list and advances if it matches.
 func (p *Parser) consume(alert alerts.Alert, types ...tokens.TokenType) (tokens.Token, bool) {
 	if p.isAtEnd() {
-		token := p.peek()
 		p.AlertI(alert)
-		return token, false // error
+		return p.peek(), false // error
 	}
 	for _, tokenType := range types {
 		if p.check(tokenType) {
 			return p.advance(), true
 		}
 	}
-	token := p.advance()
 	p.AlertI(alert)
-	return token, false // error
+	return p.peek(), false // error
 }

@@ -296,7 +296,7 @@ func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDecl, scop
 }
 
 func (gen *Generator) enumDeclarationStmt(node ast.EnumDecl, scope *GenScope) {
-	if node.IsLocal {
+	if node.IsPub {
 		scope.WriteTabbed("local ")
 	} else {
 		scope.WriteTabbed()
