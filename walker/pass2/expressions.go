@@ -19,11 +19,25 @@ func StructExpr(w *wkr.Walker, node *ast.StructExpr, scope *wkr.Scope) *wkr.Anon
 	return structTypeVal
 }
 
-func FunctionExpr(w *wkr.Walker, fn *ast.FunctionExpr, scope *wkr.Scope) wkr.Value {
+func GetReturns(w *wkr.Walker, returns *ast.TypeExpr, scope *wkr.Scope) wkr.Types {
 	returnTypes := wkr.EmptyReturn
-	for i := range fn.Return {
-		returnTypes = append(returnTypes, TypeExpr(w, fn.Return[i], scope, true))
+	if returns != nil {
+		if returns.Name.GetType() != ast.TupleExpression {
+			returnTypes = append(returnTypes, TypeExpr(w, returns, scope, true))
+		} else {
+			types := returns.Name.(*ast.TupleExpr).Types
+			for _, typee := range types {
+				returnTypes = append(returnTypes, TypeExpr(w, typee, scope, true))
+			}
+		}
 	}
+
+	return returnTypes
+}
+
+func FunctionExpr(w *wkr.Walker, fn *ast.FunctionExpr, scope *wkr.Scope) wkr.Value {
+	returnTypes := GetReturns(w, fn.Return, scope)
+
 	funcTag := &wkr.FuncTag{ReturnTypes: returnTypes}
 	fnScope := wkr.NewScope(scope, funcTag, wkr.ReturnAllowing)
 
@@ -854,10 +868,7 @@ func TypeExpr(w *wkr.Walker, typee *ast.TypeExpr, scope *wkr.Scope, throw bool) 
 			params = append(params, TypeExpr(w, v, scope, throw))
 		}
 
-		returns := wkr.Types{}
-		for _, v := range typee.Returns {
-			returns = append(returns, TypeExpr(w, v, scope, throw))
-		}
+		returns := GetReturns(w, typee.Return, scope)
 
 		typ = &wkr.FunctionType{
 			Params:  params,

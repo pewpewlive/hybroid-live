@@ -23,10 +23,10 @@ func (p *Parser) OLDfn() ast.Node {
 			p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftParen)
 		}
 		fn.Return = p.functionReturns()
-		p.Context.FunctionReturns.Push("fn", len(fn.Return))
+		//p.Context.FunctionReturns.Push("fn", len(fn.Return))
 
 		var success bool
-		fn.Body, success = p.body(false, false, true)
+		fn.Body, success = p.body(false, false)
 		if !success {
 			return ast.NewImproper(fn.Token, ast.FunctionExpression)
 		}
@@ -613,7 +613,7 @@ func (p *Parser) OLDType() *ast.TypeExpr {
 			}
 			p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.RightParen), tokens.RightParen)
 		}
-		typ.Returns = p.functionReturns()
+		typ.Return = p.functionReturns()
 		typ.Name = expr
 	case tokens.Struct:
 		fields := p.functionParams(tokens.LeftBrace, tokens.RightBrace)

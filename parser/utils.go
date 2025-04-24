@@ -154,29 +154,12 @@ func (p *Parser) functionArgs() []ast.Node {
 	return args
 }
 
-func (p *Parser) functionReturns() []*ast.TypeExpr {
-	ret := make([]*ast.TypeExpr, 0)
-
+func (p *Parser) functionReturns() *ast.TypeExpr {
 	if !p.match(tokens.ThinArrow) {
-		return ret
+		return nil
 	}
 
-	if p.match(tokens.LeftParen) {
-		if p.match(tokens.RightParen) {
-			return ret
-		}
-		ret = append(ret, p.typeExpr())
-
-		for p.match(tokens.Comma) {
-			ret = append(ret, p.typeExpr())
-		}
-
-		p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.RightParen), tokens.RightParen)
-	} else {
-		ret = append(ret, p.typeExpr())
-	}
-
-	return ret
+	return p.typeExpr()
 }
 
 func (p *Parser) identifiers(typeContext string, allowTrailing bool) ([]tokens.Token, bool) {
@@ -252,7 +235,7 @@ func (p *Parser) typeAndIdentifier() (*ast.TypeExpr, ast.Node) {
 
 	ident := p.advance()
 	if ident.Type != tokens.Identifier {
-		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(ident))
+		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(ident), "for variable type")
 	}
 
 	return typ, &ast.IdentifierExpr{Name: ident, ValueType: ast.Invalid}
@@ -273,7 +256,7 @@ func (p *Parser) checkType() (*ast.TypeExpr, bool) {
 	return typeExpr, valid
 }
 
-func (p *Parser) body(allowSingleSatement, allowArrow, allowMultiStatement bool) ([]ast.Node, bool) {
+func (p *Parser) body(allowSingleSatement, allowArrow bool) ([]ast.Node, bool) {
 	body := make([]ast.Node, 0)
 	if p.match(tokens.FatArrow) && allowArrow {
 		if p.Context.FunctionReturns.Top().Item > 0 {
@@ -296,7 +279,7 @@ func (p *Parser) body(allowSingleSatement, allowArrow, allowMultiStatement bool)
 		body = []ast.Node{p.statement()}
 		return body, true
 	}
-	if _, success := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace); !success || !allowMultiStatement {
+	if _, success := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace); !success {
 		return body, false
 	}
 	start := p.peek(-1)

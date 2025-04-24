@@ -57,6 +57,25 @@
     "message": "cannot have more than one else statement in an if statement"
   },
   {
+    "name": "MoreThanOneConstructor",
+    "type": "Error",
+    "message": "cannot have more than one constructor in class declaration"
+  },
+  {
+    "name": "MoreThanOneEntityFunction",
+    "type": "Error",
+    "params": {
+      "FunctionType": "string"
+    },
+    "message": "cannot have more than one %s in entity declaration",
+    "message_format": ["FunctionType"]
+  },
+  {
+    "name": "ReturnsInConstructor",
+    "type": "Error",
+    "message": "cannot have return types in constructor"
+  },
+  {
     "name": "EnvironmentRedaclaration",
     "type": "Error",
     "message": "cannot redeclare an environment"

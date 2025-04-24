@@ -57,7 +57,6 @@ func ClassDeclarationStmt(w *wkr.Walker, node *ast.ClassDecl, scope *wkr.Scope) 
 	funcDeclaration := ast.MethodDecl{
 		Name:     node.Constructor.Token,
 		Params:   node.Constructor.Params,
-		Return:   node.Constructor.Return,
 		Generics: node.Constructor.Generics,
 		IsPub:    true,
 		Body:     node.Constructor.Body,
@@ -160,11 +159,7 @@ func EntityFunctionDeclarationStmt(w *wkr.Walker, node *ast.EntityFunctionDecl, 
 		generics = append(generics, wkr.NewGeneric(param.Name.Lexeme))
 	}
 
-	ret := []wkr.Type{}
-
-	for i := range node.Returns {
-		ret = append(ret, TypeExpr(w, node.Returns[i], scope, true))
-	}
+	ret := GetReturns(w, node.Return, scope)
 
 	ft := &wkr.FuncTag{
 		Generics:    generics,
@@ -296,12 +291,12 @@ func MethodDeclarationStmt(w *wkr.Walker, node *ast.MethodDecl, container wkr.Me
 		WalkBody(w, &node.Body, fnTag, fnScope)
 	} else {
 		funcExpr := ast.FunctionDecl{
-			Name:        node.Name,
-			ReturnTypes: node.Return,
-			Params:      node.Params,
-			Generics:    node.Generics,
-			Body:        node.Body,
-			IsPub:       false,
+			Name:     node.Name,
+			Return:   node.Return,
+			Params:   node.Params,
+			Generics: node.Generics,
+			Body:     node.Body,
+			IsPub:    false,
 		}
 
 		variable := FunctionDeclarationStmt(w, &funcExpr, scope, wkr.Method)
@@ -322,10 +317,7 @@ func FunctionDeclarationStmt(w *wkr.Walker, node *ast.FunctionDecl, scope *wkr.S
 	funcTag := &wkr.FuncTag{Generics: generics}
 	fnScope := wkr.NewScope(scope, funcTag, wkr.ReturnAllowing)
 
-	ret := wkr.EmptyReturn
-	for _, typee := range node.ReturnTypes {
-		ret = append(ret, TypeExpr(w, typee, fnScope, true))
-	}
+	ret := GetReturns(w, node.Return, fnScope)
 
 	funcTag.ReturnTypes = ret
 

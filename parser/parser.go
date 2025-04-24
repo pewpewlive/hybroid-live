@@ -18,9 +18,9 @@ type Parser struct {
 
 type ParserContext struct {
 	EnvDeclaration  *ast.EnvironmentDecl
-	FunctionReturns helpers.Stack[int]
 	IsPub           bool
 	IgnoreAlerts    helpers.Stack[bool]
+	FunctionReturns helpers.Stack[int]
 }
 
 func NewParser() Parser {

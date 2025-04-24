@@ -53,7 +53,7 @@ func (p *Parser) OLDstatement() (returnNode ast.Node) {
 			return
 		case tokens.Entity:
 			p.advance(2)
-			returnNode = p.entityDeclaration()
+			// returnNode = p.entityDeclaration()
 			return
 		case tokens.Enum:
 			p.advance(2)
@@ -140,7 +140,7 @@ func (p *Parser) OLDstatement() (returnNode ast.Node) {
 		return
 	case tokens.Entity:
 		p.advance()
-		returnNode = p.entityDeclaration()
+		// returnNode = p.entityDeclaration()
 		return
 	case tokens.While:
 		p.advance()
@@ -302,24 +302,24 @@ func (p *Parser) OLDclassDeclarationStmt(isLocal bool) ast.Node {
 	}
 	stmt.Methods = []ast.MethodDecl{}
 	for !p.match(tokens.RightBrace) {
-		if p.match(tokens.Fn) {
-			method, ok := p.methodDeclaration().(*ast.MethodDecl)
-			if ok {
-				stmt.Methods = append(stmt.Methods, *method)
-			}
-		} else if p.match(tokens.New) {
-			construct, ok := p.constructorDeclaration().(*ast.ConstructorDecl)
-			if ok {
-				stmt.Constructor = construct
-			}
-		} else {
-			field := p.fieldDeclaration()
-			if field.GetType() != ast.NA {
-				stmt.Fields = append(stmt.Fields, *field.(*ast.FieldDecl))
-			} else {
-				p.Alert(&alerts.UnknownStatement{}, alerts.NewMulti(field.GetToken(), p.peek()), "in class declaration")
-			}
-		}
+		// if p.match(tokens.Fn) {
+		// 	// method, ok := p.methodDeclaration().(*ast.MethodDecl)
+		// 	// if ok {
+		// 	// 	stmt.Methods = append(stmt.Methods, *method)
+		// 	// }
+		// } else if p.match(tokens.New) {
+		// 	construct, ok := p.constructorDeclaration().(*ast.ConstructorDecl)
+		// 	if ok {
+		// 		stmt.Constructor = construct
+		// 	}
+		// } else {
+		// 	field := p.fieldDeclaration()
+		// 	if field.GetType() != ast.NA {
+		// 		stmt.Fields = append(stmt.Fields, *field.(*ast.FieldDecl))
+		// 	} else {
+		// 		p.Alert(&alerts.UnknownStatement{}, alerts.NewMulti(field.GetToken(), p.peek()), "in class declaration")
+		// 	}
+		// }
 	}
 
 	return stmt
@@ -345,61 +345,61 @@ func (p *Parser) OLDentityDeclarationStmt(isLocal bool) ast.Node {
 
 	for !p.match(tokens.RightBrace) {
 		if p.match(tokens.Fn) {
-			method := p.methodDeclaration()
-			if method.GetType() != ast.MethodDeclaration {
-				stmt.Methods = append(stmt.Methods, *method.(*ast.MethodDecl))
-			}
+			// method := p.methodDeclaration()
+			// if method.GetType() != ast.MethodDeclaration {
+			// 	stmt.Methods = append(stmt.Methods, *method.(*ast.MethodDecl))
+			// }
 			continue
 		}
 		if p.match(tokens.Spawn) {
-			spawner := p.entityFunctionDeclaration(p.peek(-1), ast.Spawn)
-			if spawner.GetType() != ast.NA {
-				stmt.Spawner = spawner.(*ast.EntityFunctionDecl)
-			}
+			// spawner := p.entityFunctionDeclaration(p.peek(-1), ast.Spawn)
+			// if spawner.GetType() != ast.NA {
+			// 	stmt.Spawner = spawner.(*ast.EntityFunctionDecl)
+			// }
 			continue
 		}
 
 		if p.match(tokens.Destroy) {
-			destroyer := p.entityFunctionDeclaration(p.peek(-1), ast.Destroy)
-			if destroyer.GetType() != ast.NA {
-				stmt.Destroyer = destroyer.(*ast.EntityFunctionDecl)
-			}
+			// destroyer := p.entityFunctionDeclaration(p.peek(-1), ast.Destroy)
+			// if destroyer.GetType() != ast.NA {
+			// 	stmt.Destroyer = destroyer.(*ast.EntityFunctionDecl)
+			// }
 			continue
 		}
 		if p.check(tokens.Identifier) {
 			switch p.peek().Lexeme {
 			case "WeaponCollision":
-				cb := p.entityFunctionDeclaration(p.advance(), ast.WeaponCollision)
-				if cb.GetType() != ast.NA {
-					stmt.Callbacks = append(stmt.Callbacks, cb.(*ast.EntityFunctionDecl))
-				}
+				// cb := p.entityFunctionDeclaration(p.advance(), ast.WeaponCollision)
+				// if cb.GetType() != ast.NA {
+				// 	stmt.Callbacks = append(stmt.Callbacks, cb.(*ast.EntityFunctionDecl))
+				// }
 				continue
 			case "WallCollision":
-				cb := p.entityFunctionDeclaration(p.advance(), ast.WallCollision)
-				if cb.GetType() != ast.NA {
-					stmt.Callbacks = append(stmt.Callbacks, cb.(*ast.EntityFunctionDecl))
-				}
+				// cb := p.entityFunctionDeclaration(p.advance(), ast.WallCollision)
+				// if cb.GetType() != ast.NA {
+				// 	stmt.Callbacks = append(stmt.Callbacks, cb.(*ast.EntityFunctionDecl))
+				// }
 				continue
 			case "PlayerCollision":
-				cb := p.entityFunctionDeclaration(p.advance(), ast.PlayerCollision)
-				if cb.GetType() != ast.NA {
-					stmt.Callbacks = append(stmt.Callbacks, cb.(*ast.EntityFunctionDecl))
-				}
+				// cb := p.entityFunctionDeclaration(p.advance(), ast.PlayerCollision)
+				// if cb.GetType() != ast.NA {
+				// 	stmt.Callbacks = append(stmt.Callbacks, cb.(*ast.EntityFunctionDecl))
+				// }
 				continue
 			case "Update":
-				cb := p.entityFunctionDeclaration(p.advance(), ast.Update)
-				if cb.GetType() != ast.NA {
-					stmt.Callbacks = append(stmt.Callbacks, cb.(*ast.EntityFunctionDecl))
-				}
+				// cb := p.entityFunctionDeclaration(p.advance(), ast.Update)
+				// if cb.GetType() != ast.NA {
+				// 	stmt.Callbacks = append(stmt.Callbacks, cb.(*ast.EntityFunctionDecl))
+				// }
 				continue
 			}
 		}
-		field := p.fieldDeclaration()
-		if field.GetType() != ast.NA {
-			stmt.Fields = append(stmt.Fields, *field.(*ast.FieldDecl))
-		} else {
-			p.Alert(&alerts.UnknownStatement{}, alerts.NewMulti(field.GetToken(), p.peek()), "in entity declaration")
-		}
+		// field := p.fieldDeclaration()
+		// if field.GetType() != ast.NA {
+		// 	stmt.Fields = append(stmt.Fields, *field.(*ast.FieldDecl))
+		// } else {
+		// 	p.Alert(&alerts.UnknownStatement{}, alerts.NewMulti(field.GetToken(), p.peek()), "in entity declaration")
+		// }
 	}
 
 	return stmt
@@ -413,11 +413,11 @@ func (p *Parser) OLDentityFunctionDeclarationStmt(token tokens.Token, functionTy
 
 	stmt.Generics = p.genericParams()
 	stmt.Params = p.functionParams(tokens.LeftParen, tokens.RightParen)
-	stmt.Returns = p.functionReturns()
-	p.Context.FunctionReturns.Push("entityFunctionDeclarationStmt", len(stmt.Returns))
+	stmt.Return = p.functionReturns()
+	//p.Context.FunctionReturns.Push("entityFunctionDeclarationStmt", len(stmt.Return))
 
 	var success bool
-	stmt.Body, success = p.body(true, true, true)
+	stmt.Body, success = p.body(true, true)
 	if !success {
 		return ast.NewImproper(stmt.Token, ast.NA)
 	}
@@ -450,9 +450,9 @@ func (p *Parser) OLDconstructorDeclarationStmt() ast.Node {
 
 	stmt.Generics = p.genericParams()
 	stmt.Params = p.functionParams(tokens.LeftParen, tokens.RightParen)
-	stmt.Return = p.functionReturns()
+	//stmt.Return = p.functionReturns()
 	var success bool
-	stmt.Body, success = p.body(true, true, true)
+	stmt.Body, success = p.body(true, true)
 	if !success {
 		return &ast.Improper{Token: stmt.Token}
 	}
@@ -518,7 +518,7 @@ func (p *Parser) OLDmethodDeclarationStmt(IsLocal bool) ast.Node {
 		return &ast.MethodDecl{
 			IsPub:    FnDec.IsPub,
 			Name:     FnDec.Name,
-			Return:   FnDec.ReturnTypes,
+			Return:   FnDec.Return,
 			Params:   FnDec.Params,
 			Generics: FnDec.Generics,
 			Body:     FnDec.Body,
@@ -536,7 +536,7 @@ func (p *Parser) OLDifStmt(else_exists bool, is_else bool, is_elseif bool) *ast.
 		expr = p.multiComparison()
 	}
 	ifStm.BoolExpr = expr
-	ifStm.Body, _ = p.body(true, true, true)
+	ifStm.Body, _ = p.body(true, true)
 
 	if is_else || is_elseif {
 		return &ifStm
@@ -680,11 +680,11 @@ func (p *Parser) OLDfunctionDeclarationStmt(IsLocal bool) ast.Node {
 	fnDec.Generics = p.genericParams()
 	fnDec.Params = p.functionParams(tokens.LeftParen, tokens.RightParen)
 
-	fnDec.ReturnTypes = p.functionReturns()
-	p.Context.FunctionReturns.Push("functionDeclarationStmt", len(fnDec.ReturnTypes))
+	fnDec.Return = p.functionReturns()
+	//p.Context.FunctionReturns.Push("functionDeclarationStmt", len(fnDec.Return))
 
 	var success bool
-	fnDec.Body, success = p.body(true, true, true)
+	fnDec.Body, success = p.body(true, true)
 	if !success {
 		return ast.NewImproper(fnDec.Name, ast.NA)
 	}
@@ -771,7 +771,7 @@ func (p *Parser) OLDrepeatStmt() ast.Node {
 	}
 
 	var success bool
-	repeatStmt.Body, success = p.body(true, true, true)
+	repeatStmt.Body, success = p.body(true, true)
 	if !success {
 		return ast.NewImproper(repeatStmt.Token, ast.NA)
 	}
@@ -792,7 +792,7 @@ func (p *Parser) OLDwhileStmt() ast.Node {
 	whileStmt.Condtion = condtion
 
 	var success bool
-	whileStmt.Body, success = p.body(true, true, true)
+	whileStmt.Body, success = p.body(true, true)
 	if !success {
 		return ast.NewImproper(whileStmt.Token, ast.NA)
 	}
@@ -839,7 +839,7 @@ func (p *Parser) OLDforStmt() ast.Node {
 	}
 
 	var success bool
-	forStmt.Body, success = p.body(true, true, true)
+	forStmt.Body, success = p.body(true, true)
 	if !success {
 		return ast.NewImproper(forStmt.Token, ast.NA)
 	}
@@ -863,7 +863,7 @@ func (p *Parser) OLDtickStmt() ast.Node {
 	}
 
 	var success bool
-	tickStmt.Body, success = p.body(true, true, true)
+	tickStmt.Body, success = p.body(true, true)
 	if !success {
 		return ast.NewImproper(tickStmt.Token, ast.NA)
 	}
@@ -1057,7 +1057,7 @@ func (p *Parser) OLDcaseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
 	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.FatArrow), tokens.FatArrow)
 
 	if p.check(tokens.LeftBrace) {
-		body, _ := p.body(true, true, true)
+		body, _ := p.body(true, true)
 		for i := range caseStmts { // "hello" =>
 			caseStmts[i].Body = body
 		}

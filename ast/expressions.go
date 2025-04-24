@@ -113,7 +113,7 @@ type TypeExpr struct {
 	WrappedType *TypeExpr
 	Name        Node
 	Params      []*TypeExpr
-	Returns     []*TypeExpr
+	Return      *TypeExpr
 	Fields      []FunctionParam
 	IsVariadic  bool
 }
@@ -128,6 +128,23 @@ func (te *TypeExpr) GetToken() tokens.Token {
 
 func (te *TypeExpr) GetValueType() PrimitiveValueType {
 	return Invalid
+}
+
+type TupleExpr struct {
+	LeftParen tokens.Token
+	Types     []*TypeExpr
+}
+
+func (te *TupleExpr) GetType() NodeType {
+	return TupleExpression
+}
+
+func (te *TupleExpr) GetToken() tokens.Token {
+	return te.LeftParen
+}
+
+func (te *TupleExpr) GetValueType() PrimitiveValueType {
+	return Tuple
 }
 
 type EntityExpr struct {
@@ -247,7 +264,7 @@ func (ce *BuiltinExpr) GetValueType() PrimitiveValueType {
 
 type FunctionExpr struct {
 	Token  tokens.Token
-	Return []*TypeExpr
+	Return *TypeExpr
 	Params []FunctionParam
 	Body   []Node
 }

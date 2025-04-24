@@ -1,5 +1,13 @@
 env Thing as Level
 
-alias THing = struct{thing a,  b}
+class Mutox {
+  let x, y = 100, 200
 
-alias custom = fn() -> (bool, number)
+  new() {
+
+  }
+
+  fn A() {
+
+  }
+}

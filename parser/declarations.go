@@ -117,10 +117,69 @@ func (p *Parser) declaration() ast.Node {
 		return p.enumDeclaration()
 	case p.match(tokens.Alias):
 		return p.aliasDeclaration()
+	case p.match(tokens.Class):
+		return p.classDeclaration()
+	case p.match(tokens.Entity):
+		return p.entityDeclaration()
 	}
 
-	p.AlertPanic(&alerts.ExpectedStatement{}, alerts.NewSingle(p.peek()))
-	return ast.NewImproper(p.peek(), ast.NA)
+	return p.statement()
+}
+
+func (p *Parser) auxiliaryDeclaration() ast.Node {
+	if p.match(tokens.Fn) {
+		fnDec := p.functionDeclaration()
+
+		if ast.IsImproper(fnDec, ast.FunctionDeclaration) {
+			return ast.NewImproper(fnDec.GetToken(), ast.MethodDeclaration)
+		}
+
+		fnDecl := fnDec.(*ast.FunctionDecl)
+		return &ast.MethodDecl{
+			IsPub:    fnDecl.IsPub,
+			Name:     fnDecl.Name,
+			Return:   fnDecl.Return,
+			Params:   fnDecl.Params,
+			Generics: fnDecl.Generics,
+			Body:     fnDecl.Body,
+		}
+	} else if p.match(tokens.New) {
+		constructor := p.constructorDeclaration()
+		if constructor.GetType() == ast.ConstructorDeclaration {
+			return constructor
+		}
+	} else if p.match(tokens.Let) {
+		field := p.fieldDeclaration()
+		if field.GetType() == ast.FieldDeclaration {
+			return field
+		}
+	}
+	var functionType ast.EntityFunctionType = ""
+	if p.match(tokens.Spawn) {
+		functionType = ast.Spawn
+	} else if p.match(tokens.Destroy) {
+		functionType = ast.Destroy
+	} else if p.check(tokens.Identifier) {
+		switch p.peek().Lexeme {
+		case "WeaponCollision":
+			functionType = ast.WeaponCollision
+		case "WallCollision":
+			functionType = ast.WallCollision
+		case "PlayerCollision":
+			functionType = ast.PlayerCollision
+		case "Update":
+			functionType = ast.Update
+		}
+		if functionType != "" {
+			p.advance()
+		}
+	}
+	if functionType != "" {
+		return p.entityFunctionDeclaration(p.peek(-1), functionType)
+	}
+
+	// No auxiliary declaration found, try normal declaration anyway
+	return p.declaration()
 }
 
 func (p *Parser) environmentDeclaration() ast.Node {
@@ -190,16 +249,22 @@ func (p *Parser) functionDeclaration() ast.Node {
 		IsPub: p.Context.IsPub,
 	}
 
-	name, _ := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in function declaration"), tokens.Identifier)
+	name, _ := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name of the function"), tokens.Identifier)
 
 	functionDecl.Name = name
 	functionDecl.Generics = p.genericParams()
 	functionDecl.Params = p.functionParams(tokens.LeftParen, tokens.RightParen)
-	functionDecl.ReturnTypes = p.functionReturns()
+	functionDecl.Return = p.functionReturns()
 
-	p.Context.FunctionReturns.Push("functionDeclarationStmt", len(functionDecl.ReturnTypes))
+	if functionDecl.Return == nil || functionDecl.Return.Name.GetType() == ast.NA {
+		p.Context.FunctionReturns.Push("functionDeclarationStmt", 0)
+	} else if functionDecl.Return.Name.GetType() == ast.TupleExpression {
+		p.Context.FunctionReturns.Push("functionDeclarationStmt", len(functionDecl.Return.Name.(*ast.TupleExpr).Types))
+	} else {
+		p.Context.FunctionReturns.Push("functionDeclarationStmt", 1)
+	}
 
-	body, ok := p.body(false, true, true)
+	body, ok := p.body(false, true)
 	if !ok {
 		return ast.NewImproper(functionDecl.Name, ast.FunctionDeclaration)
 	}
@@ -248,7 +313,7 @@ func (p *Parser) aliasDeclaration() ast.Node {
 		Token: p.peek(-1),
 	}
 
-	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in alias declaration"), tokens.Identifier)
+	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name in alias declaration"), tokens.Identifier)
 	if ok {
 		aliasDecl.Name = name
 	}
@@ -261,25 +326,179 @@ func (p *Parser) aliasDeclaration() ast.Node {
 }
 
 func (p *Parser) classDeclaration() ast.Node {
-	return nil
+	stmt := &ast.ClassDecl{
+		IsPub: p.Context.IsPub,
+		Token: p.peek(-1),
+	}
+
+	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name of the class"), tokens.Identifier)
+
+	if ok {
+		stmt.Name = name
+	} else {
+		return ast.NewImproper(stmt.Token, ast.ClassDeclaration)
+	}
+
+	_, ok = p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
+	if !ok {
+		return ast.NewImproper(stmt.Token, ast.ClassDeclaration)
+	}
+	stmt.Methods = []ast.MethodDecl{}
+	for !p.match(tokens.RightBrace) {
+		auxiliaryDeclaration := p.auxiliaryDeclaration()
+		switch declaration := auxiliaryDeclaration.(type) {
+		case *ast.ConstructorDecl:
+			if stmt.Constructor != nil {
+				p.Alert(&alerts.MoreThanOneConstructor{}, alerts.NewSingle(p.peek()))
+			} else {
+				stmt.Constructor = declaration
+			}
+		case *ast.FieldDecl:
+			stmt.Fields = append(stmt.Fields, *declaration)
+		case *ast.MethodDecl:
+			stmt.Methods = append(stmt.Methods, *declaration)
+		default:
+			p.Alert(&alerts.UnknownStatement{}, alerts.NewSingle(p.peek()), "in class declaration")
+		}
+	}
+
+	return stmt
 }
 
 func (p *Parser) entityDeclaration() ast.Node {
-	return nil
+	stmt := &ast.EntityDecl{
+		IsPub: p.Context.IsPub,
+		Token: p.peek(-1),
+	}
+
+	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name of the entity"), tokens.Identifier)
+
+	if !ok {
+		return ast.NewImproper(stmt.Token, ast.EntityDeclaration)
+	}
+	stmt.Name = name
+
+	_, ok = p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
+	if !ok {
+		return ast.NewImproper(stmt.Token, ast.EntityDeclaration)
+	}
+
+	for !p.match(tokens.RightBrace) {
+		auxiliaryDeclaration := p.auxiliaryDeclaration()
+		if auxiliaryDeclaration.GetType() == ast.FieldDeclaration {
+			stmt.Fields = append(stmt.Fields, *auxiliaryDeclaration.(*ast.FieldDecl))
+			continue
+		}
+		if auxiliaryDeclaration.GetType() == ast.MethodDeclaration {
+			stmt.Methods = append(stmt.Methods, *auxiliaryDeclaration.(*ast.MethodDecl))
+			continue
+		}
+		if auxiliaryDeclaration.GetType() != ast.EntityFunctionDeclaration {
+			p.Alert(&alerts.UnknownStatement{}, alerts.NewMulti(auxiliaryDeclaration.GetToken(), p.peek()), "in entity declaration")
+			continue
+		}
+
+		funcDecl := auxiliaryDeclaration.(*ast.EntityFunctionDecl)
+		funcType := funcDecl.Type
+
+		switch funcDecl.Type {
+		case ast.Spawn:
+			if stmt.Spawner != nil {
+				p.Alert(&alerts.MoreThanOneEntityFunction{}, alerts.NewMulti(funcDecl.GetToken(), p.peek(-1)), string(funcType))
+			} else {
+				stmt.Spawner = funcDecl
+			}
+		case ast.Destroy:
+			if stmt.Destroyer != nil {
+				p.Alert(&alerts.MoreThanOneEntityFunction{}, alerts.NewMulti(funcDecl.GetToken(), p.peek(-1)), string(funcType))
+			} else {
+				stmt.Destroyer = funcDecl
+			}
+		default:
+			var wasFound bool
+			for i := range stmt.Callbacks {
+				if stmt.Callbacks[i].Type == funcType {
+					p.Alert(&alerts.MoreThanOneEntityFunction{}, alerts.NewMulti(funcDecl.GetToken(), p.peek(-1)), string(funcType))
+					wasFound = true
+				}
+			}
+			if !wasFound {
+				stmt.Callbacks = append(stmt.Callbacks, funcDecl)
+			}
+		}
+
+	}
+
+	return stmt
 }
 
 func (p *Parser) entityFunctionDeclaration(token tokens.Token, functionType ast.EntityFunctionType) ast.Node {
-	return nil
+	stmt := &ast.EntityFunctionDecl{
+		Type:  functionType,
+		Token: token,
+	}
+
+	stmt.Generics = p.genericParams()
+	stmt.Params = p.functionParams(tokens.LeftParen, tokens.RightParen)
+	stmt.Return = p.functionReturns()
+	if stmt.Return == nil || stmt.Return.Name.GetType() == ast.NA {
+		p.Context.FunctionReturns.Push("entityFunctionDeclarationStmt", 0)
+	} else if stmt.Return.Name.GetType() == ast.TupleExpression {
+		p.Context.FunctionReturns.Push("entityFunctionDeclarationStmt", len(stmt.Return.Name.(*ast.TupleExpr).Types))
+	} else {
+		p.Context.FunctionReturns.Push("entityFunctionDeclarationStmt", 1)
+	}
+
+	var success bool
+	stmt.Body, success = p.body(true, true)
+	if !success {
+		return ast.NewImproper(stmt.Token, ast.EntityFunctionDeclaration)
+	}
+
+	p.Context.FunctionReturns.Pop("entityFunctionDeclarationStmt")
+
+	return stmt
 }
 
 func (p *Parser) constructorDeclaration() ast.Node {
-	return nil
+	stmt := &ast.ConstructorDecl{Token: p.peek(-1)}
+
+	stmt.Generics = p.genericParams()
+	stmt.Params = p.functionParams(tokens.LeftParen, tokens.RightParen)
+	returns := p.functionReturns()
+	if returns != nil {
+		p.Alert(&alerts.ReturnsInConstructor{}, alerts.NewSingle(returns.GetToken()))
+	}
+	var success bool
+	stmt.Body, success = p.body(false, true)
+	if !success {
+		return ast.NewImproper(stmt.Token, ast.ConstructorDeclaration)
+	}
+
+	return stmt
 }
 
 func (p *Parser) fieldDeclaration() ast.Node {
-	return nil
-}
+	fieldDecl := ast.FieldDecl{
+		Token: p.peek(),
+	}
 
-func (p *Parser) methodDeclaration() ast.Node {
-	return nil
+	typeCheckStart := p.current
+	if typeExpr, ok := p.checkType(); ok {
+		fieldDecl.Type = typeExpr
+		if !p.check(tokens.Identifier) {
+			p.disadvance(p.current - typeCheckStart)
+			fieldDecl.Type = nil
+		}
+	}
+
+	idents, values, ok := p.identExprPairs("in field declaration", fieldDecl.Type != nil)
+	if !ok {
+		return ast.NewImproper(fieldDecl.Token, ast.FieldDeclaration)
+	}
+
+	fieldDecl.Identifiers = idents
+	fieldDecl.Values = values
+
+	return &fieldDecl
 }

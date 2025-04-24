@@ -65,21 +65,27 @@ class Alert:
     id: int
 
     def __init__(self, raw: dict, stage: str, id: int):
-        self.name = raw.get("name", None)
-        assert self.name is not None, f"Name must not be None, Raw info: {raw}"
+        name = raw.get("name")
+        if name is None:
+            raise ValueError(f"Name must not be None, Raw info: {raw}")
+        self.name = name
 
         self.receiver = _to_receiver(self.name)
 
-        self.type = raw.get("type", None)
-        assert self.type is not None, f"Type must not be None, Raw info: {raw}"
+        type = raw.get("type")
+        if type is None:
+            raise ValueError(f"Type must not be None, Raw info: {raw}")
+        self.type = type
 
         self.stage = stage
 
         self.params = {"Specifier": "SnippetSpecifier"}
         self.params = self.params | raw.get("params", {})
 
-        self.message = raw.get("message", None)
-        assert self.message is not None, f"Message must not be None, Raw info: {raw}"
+        message = raw.get("message")
+        if message is None:
+            raise ValueError(f"Message must not be None, Raw info: {raw}")
+        self.message = message
 
         self.message_format = raw.get("message_format", [])
 
