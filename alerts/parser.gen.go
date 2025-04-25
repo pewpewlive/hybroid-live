@@ -25,7 +25,7 @@ func (es *ExpectedStatement) GetNote() string {
 }
 
 func (es *ExpectedStatement) GetID() string {
-  return "hyb001"
+  return "hyb001s"
 }
 
 func (es *ExpectedStatement) GetAlertType() AlertType {
@@ -51,7 +51,7 @@ func (ee *ExpectedExpression) GetNote() string {
 }
 
 func (ee *ExpectedExpression) GetID() string {
-  return "hyb002"
+  return "hyb002s"
 }
 
 func (ee *ExpectedExpression) GetAlertType() AlertType {
@@ -77,7 +77,7 @@ func (us *UnknownStatement) GetNote() string {
 }
 
 func (us *UnknownStatement) GetID() string {
-  return "hyb003"
+  return "hyb003s"
 }
 
 func (us *UnknownStatement) GetAlertType() AlertType {
@@ -104,7 +104,7 @@ func (ek *ExpectedKeyword) GetNote() string {
 }
 
 func (ek *ExpectedKeyword) GetID() string {
-  return "hyb004"
+  return "hyb004s"
 }
 
 func (ek *ExpectedKeyword) GetAlertType() AlertType {
@@ -130,7 +130,7 @@ func (ei *ExpectedIdentifier) GetNote() string {
 }
 
 func (ei *ExpectedIdentifier) GetID() string {
-  return "hyb005"
+  return "hyb005s"
 }
 
 func (ei *ExpectedIdentifier) GetAlertType() AlertType {
@@ -157,7 +157,7 @@ func (es *ExpectedSymbol) GetNote() string {
 }
 
 func (es *ExpectedSymbol) GetID() string {
-  return "hyb006"
+  return "hyb006s"
 }
 
 func (es *ExpectedSymbol) GetAlertType() AlertType {
@@ -182,7 +182,7 @@ func (mtoes *MoreThanOneElseStatement) GetNote() string {
 }
 
 func (mtoes *MoreThanOneElseStatement) GetID() string {
-  return "hyb007"
+  return "hyb007s"
 }
 
 func (mtoes *MoreThanOneElseStatement) GetAlertType() AlertType {
@@ -207,7 +207,7 @@ func (mtoc *MoreThanOneConstructor) GetNote() string {
 }
 
 func (mtoc *MoreThanOneConstructor) GetID() string {
-  return "hyb008"
+  return "hyb008s"
 }
 
 func (mtoc *MoreThanOneConstructor) GetAlertType() AlertType {
@@ -233,7 +233,7 @@ func (mtoef *MoreThanOneEntityFunction) GetNote() string {
 }
 
 func (mtoef *MoreThanOneEntityFunction) GetID() string {
-  return "hyb009"
+  return "hyb009s"
 }
 
 func (mtoef *MoreThanOneEntityFunction) GetAlertType() AlertType {
@@ -258,7 +258,7 @@ func (ric *ReturnsInConstructor) GetNote() string {
 }
 
 func (ric *ReturnsInConstructor) GetID() string {
-  return "hyb010"
+  return "hyb010s"
 }
 
 func (ric *ReturnsInConstructor) GetAlertType() AlertType {
@@ -283,7 +283,7 @@ func (er *EnvironmentRedaclaration) GetNote() string {
 }
 
 func (er *EnvironmentRedaclaration) GetID() string {
-  return "hyb011"
+  return "hyb011s"
 }
 
 func (er *EnvironmentRedaclaration) GetAlertType() AlertType {
@@ -308,7 +308,7 @@ func (eepe *ExpectedEnvironmentPathExpression) GetNote() string {
 }
 
 func (eepe *ExpectedEnvironmentPathExpression) GetID() string {
-  return "hyb012"
+  return "hyb012s"
 }
 
 func (eepe *ExpectedEnvironmentPathExpression) GetAlertType() AlertType {
@@ -333,7 +333,7 @@ func (ee *ExpectedEnvironment) GetNote() string {
 }
 
 func (ee *ExpectedEnvironment) GetID() string {
-  return "hyb013"
+  return "hyb013s"
 }
 
 func (ee *ExpectedEnvironment) GetAlertType() AlertType {
@@ -358,7 +358,7 @@ func (et *ExpectedType) GetNote() string {
 }
 
 func (et *ExpectedType) GetID() string {
-  return "hyb014"
+  return "hyb014s"
 }
 
 func (et *ExpectedType) GetAlertType() AlertType {
@@ -383,7 +383,7 @@ func (eas *ExpectedAssignmentSymbol) GetNote() string {
 }
 
 func (eas *ExpectedAssignmentSymbol) GetID() string {
-  return "hyb015"
+  return "hyb015s"
 }
 
 func (eas *ExpectedAssignmentSymbol) GetAlertType() AlertType {
@@ -408,7 +408,7 @@ func (eeob *ExpectedExpressionOrBody) GetNote() string {
 }
 
 func (eeob *ExpectedExpressionOrBody) GetID() string {
-  return "hyb016"
+  return "hyb016s"
 }
 
 func (eeob *ExpectedExpressionOrBody) GetAlertType() AlertType {
@@ -433,7 +433,7 @@ func (eca *ExpectedCallArgs) GetNote() string {
 }
 
 func (eca *ExpectedCallArgs) GetID() string {
-  return "hyb017"
+  return "hyb017s"
 }
 
 func (eca *ExpectedCallArgs) GetAlertType() AlertType {
@@ -458,7 +458,7 @@ func (ic *InvalidCall) GetNote() string {
 }
 
 func (ic *InvalidCall) GetID() string {
-  return "hyb018"
+  return "hyb018s"
 }
 
 func (ic *InvalidCall) GetAlertType() AlertType {
@@ -483,7 +483,7 @@ func (iet *InvalidEnvironmentType) GetNote() string {
 }
 
 func (iet *InvalidEnvironmentType) GetID() string {
-  return "hyb019"
+  return "hyb019s"
 }
 
 func (iet *InvalidEnvironmentType) GetAlertType() AlertType {
@@ -508,7 +508,7 @@ func (ecams *ExpectedCallAfterMacroSymbol) GetNote() string {
 }
 
 func (ecams *ExpectedCallAfterMacroSymbol) GetID() string {
-  return "hyb020"
+  return "hyb020s"
 }
 
 func (ecams *ExpectedCallAfterMacroSymbol) GetAlertType() AlertType {
@@ -535,7 +535,7 @@ func (ftie *ForbiddenTypeInEnvironment) GetNote() string {
 }
 
 func (ftie *ForbiddenTypeInEnvironment) GetID() string {
-  return "hyb021"
+  return "hyb021s"
 }
 
 func (ftie *ForbiddenTypeInEnvironment) GetAlertType() AlertType {
@@ -560,7 +560,7 @@ func (efd *ExpectedFieldDeclaration) GetNote() string {
 }
 
 func (efd *ExpectedFieldDeclaration) GetID() string {
-  return "hyb022"
+  return "hyb022s"
 }
 
 func (efd *ExpectedFieldDeclaration) GetAlertType() AlertType {
@@ -585,7 +585,7 @@ func (ewt *EmptyWrappedType) GetNote() string {
 }
 
 func (ewt *EmptyWrappedType) GetID() string {
-  return "hyb023"
+  return "hyb023s"
 }
 
 func (ewt *EmptyWrappedType) GetAlertType() AlertType {
@@ -610,7 +610,7 @@ func (era *ExpectedReturnArgs) GetNote() string {
 }
 
 func (era *ExpectedReturnArgs) GetID() string {
-  return "hyb024"
+  return "hyb024s"
 }
 
 func (era *ExpectedReturnArgs) GetAlertType() AlertType {
@@ -635,7 +635,7 @@ func (eae *ExpectedAccessExpression) GetNote() string {
 }
 
 func (eae *ExpectedAccessExpression) GetID() string {
-  return "hyb025"
+  return "hyb025s"
 }
 
 func (eae *ExpectedAccessExpression) GetAlertType() AlertType {
@@ -661,7 +661,7 @@ func (mi *MissingIterator) GetNote() string {
 }
 
 func (mi *MissingIterator) GetID() string {
-  return "hyb026"
+  return "hyb026s"
 }
 
 func (mi *MissingIterator) GetAlertType() AlertType {
@@ -687,7 +687,7 @@ func (dk *DuplicateKeyword) GetNote() string {
 }
 
 func (dk *DuplicateKeyword) GetID() string {
-  return "hyb027"
+  return "hyb027s"
 }
 
 func (dk *DuplicateKeyword) GetAlertType() AlertType {
@@ -714,7 +714,7 @@ func (uk *UnexpectedKeyword) GetNote() string {
 }
 
 func (uk *UnexpectedKeyword) GetID() string {
-  return "hyb028"
+  return "hyb028s"
 }
 
 func (uk *UnexpectedKeyword) GetAlertType() AlertType {
@@ -740,7 +740,7 @@ func (ir *IteratorRedefinition) GetNote() string {
 }
 
 func (ir *IteratorRedefinition) GetID() string {
-  return "hyb029"
+  return "hyb029s"
 }
 
 func (ir *IteratorRedefinition) GetAlertType() AlertType {

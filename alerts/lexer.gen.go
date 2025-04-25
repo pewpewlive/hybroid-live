@@ -25,7 +25,7 @@ func (ms *MultilineString) GetNote() string {
 }
 
 func (ms *MultilineString) GetID() string {
-  return "hyb001"
+  return "hyb001s"
 }
 
 func (ms *MultilineString) GetAlertType() AlertType {
@@ -50,7 +50,7 @@ func (us *UnterminatedString) GetNote() string {
 }
 
 func (us *UnterminatedString) GetID() string {
-  return "hyb002"
+  return "hyb002s"
 }
 
 func (us *UnterminatedString) GetAlertType() AlertType {
@@ -76,7 +76,7 @@ func (mn *MalformedNumber) GetNote() string {
 }
 
 func (mn *MalformedNumber) GetID() string {
-  return "hyb003"
+  return "hyb003s"
 }
 
 func (mn *MalformedNumber) GetAlertType() AlertType {
@@ -102,7 +102,7 @@ func (inp *InvalidNumberPostfix) GetNote() string {
 }
 
 func (inp *InvalidNumberPostfix) GetID() string {
-  return "hyb004"
+  return "hyb004s"
 }
 
 func (inp *InvalidNumberPostfix) GetAlertType() AlertType {
@@ -128,7 +128,7 @@ func (uc *UnsupportedCharacter) GetNote() string {
 }
 
 func (uc *UnsupportedCharacter) GetID() string {
-  return "hyb005"
+  return "hyb005s"
 }
 
 func (uc *UnsupportedCharacter) GetAlertType() AlertType {

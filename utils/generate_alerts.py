@@ -128,7 +128,14 @@ class Alert:
                 "string",
                 f"return {_format_string(self.note, self.note_format, self.receiver)}",
             ],
-            ["GetID", "", "string", 'return "hyb{:03d}"'.format(self.id)],
+            [
+                "GetID",
+                "",
+                "string",
+                'return "hyb{:03d}{}"'.format(
+                    self.id, "s" if self.stage in ["Lexer", "Parser"] else "c"
+                ),
+            ],
             ["GetAlertType", "", "AlertType", f"return {self.type}"],
         ]
 
