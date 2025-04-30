@@ -123,8 +123,8 @@ type Generator struct {
 
 func NewGenerator() Generator {
 	return Generator{
-		Scope:     NewGenScope(nil),
-		Collector: alerts.NewCollector(alerts.Generator),
+		Scope: NewGenScope(nil),
+		//Collector: alerts.NewCollector(alerts.Generator),
 	}
 }
 

@@ -337,7 +337,7 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 	if p.match(tokens.Number, tokens.Fixed, tokens.FixedPoint, tokens.Degree, tokens.Radian, tokens.String) {
 		literal := p.peek(-1)
 		var valueType ast.PrimitiveValueType
-		env := p.Context.EnvDeclaration
+		env := p.context.EnvDeclaration
 
 		if env != nil {
 			envType := env.EnvType.Type

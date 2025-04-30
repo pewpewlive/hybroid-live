@@ -81,7 +81,7 @@ arguments      → expression ( "," expression )* ;
 
 func (p *Parser) declaration() ast.Node {
 	defer func() {
-		p.Context.IsPub = false
+		p.context.IsPub = false
 
 		if errMsg := recover(); errMsg != nil {
 			// If the error is a parseError, synchronize to
@@ -96,7 +96,7 @@ func (p *Parser) declaration() ast.Node {
 			}
 		}
 	}()
-	p.Context.IsPub = false
+	p.context.IsPub = false
 
 	if p.match(tokens.Env) {
 		if p.environmentDeclaration().GetType() == ast.EnvironmentDeclaration {
@@ -105,7 +105,7 @@ func (p *Parser) declaration() ast.Node {
 	}
 
 	if p.match(tokens.Pub) {
-		p.Context.IsPub = true
+		p.context.IsPub = true
 	}
 
 	switch {
@@ -202,7 +202,7 @@ func (p *Parser) environmentDeclaration() ast.Node {
 	envPathExpr, _ := expr.(*ast.EnvPathExpr)
 	envDecl.EnvType = envTypeExpr
 	envDecl.Env = envPathExpr
-	p.Context.EnvDeclaration = envDecl
+	p.context.EnvDeclaration = envDecl
 
 	return envDecl
 }
@@ -210,7 +210,7 @@ func (p *Parser) environmentDeclaration() ast.Node {
 func (p *Parser) variableDeclaration() ast.Node {
 	variableDecl := ast.VariableDecl{
 		Token:   p.peek(),
-		IsPub:   p.Context.IsPub,
+		IsPub:   p.context.IsPub,
 		IsConst: false,
 	}
 
@@ -246,7 +246,7 @@ func (p *Parser) variableDeclaration() ast.Node {
 
 func (p *Parser) functionDeclaration() ast.Node {
 	functionDecl := ast.FunctionDecl{
-		IsPub: p.Context.IsPub,
+		IsPub: p.context.IsPub,
 	}
 
 	name, _ := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name of the function"), tokens.Identifier)
@@ -257,11 +257,11 @@ func (p *Parser) functionDeclaration() ast.Node {
 	functionDecl.Return = p.functionReturns()
 
 	if functionDecl.Return == nil || functionDecl.Return.Name.GetType() == ast.NA {
-		p.Context.FunctionReturns.Push("functionDeclarationStmt", 0)
+		p.context.FunctionReturns.Push("functionDeclarationStmt", 0)
 	} else if functionDecl.Return.Name.GetType() == ast.TupleExpression {
-		p.Context.FunctionReturns.Push("functionDeclarationStmt", len(functionDecl.Return.Name.(*ast.TupleExpr).Types))
+		p.context.FunctionReturns.Push("functionDeclarationStmt", len(functionDecl.Return.Name.(*ast.TupleExpr).Types))
 	} else {
-		p.Context.FunctionReturns.Push("functionDeclarationStmt", 1)
+		p.context.FunctionReturns.Push("functionDeclarationStmt", 1)
 	}
 
 	body, ok := p.body(false, true)
@@ -270,14 +270,14 @@ func (p *Parser) functionDeclaration() ast.Node {
 	}
 	functionDecl.Body = body
 
-	p.Context.FunctionReturns.Pop("functionDeclarationStmt")
+	p.context.FunctionReturns.Pop("functionDeclarationStmt")
 
 	return &functionDecl
 }
 
 func (p *Parser) enumDeclaration() ast.Node {
 	enumStmt := &ast.EnumDecl{
-		IsPub: p.Context.IsPub,
+		IsPub: p.context.IsPub,
 		Token: p.peek(-1),
 	}
 
@@ -309,7 +309,7 @@ func (p *Parser) enumDeclaration() ast.Node {
 
 func (p *Parser) aliasDeclaration() ast.Node {
 	aliasDecl := &ast.AliasDecl{
-		IsPub: p.Context.IsPub,
+		IsPub: p.context.IsPub,
 		Token: p.peek(-1),
 	}
 
@@ -327,7 +327,7 @@ func (p *Parser) aliasDeclaration() ast.Node {
 
 func (p *Parser) classDeclaration() ast.Node {
 	stmt := &ast.ClassDecl{
-		IsPub: p.Context.IsPub,
+		IsPub: p.context.IsPub,
 		Token: p.peek(-1),
 	}
 
@@ -367,7 +367,7 @@ func (p *Parser) classDeclaration() ast.Node {
 
 func (p *Parser) entityDeclaration() ast.Node {
 	stmt := &ast.EntityDecl{
-		IsPub: p.Context.IsPub,
+		IsPub: p.context.IsPub,
 		Token: p.peek(-1),
 	}
 
@@ -442,11 +442,11 @@ func (p *Parser) entityFunctionDeclaration(token tokens.Token, functionType ast.
 	stmt.Params = p.functionParams(tokens.LeftParen, tokens.RightParen)
 	stmt.Return = p.functionReturns()
 	if stmt.Return == nil || stmt.Return.Name.GetType() == ast.NA {
-		p.Context.FunctionReturns.Push("entityFunctionDeclarationStmt", 0)
+		p.context.FunctionReturns.Push("entityFunctionDeclarationStmt", 0)
 	} else if stmt.Return.Name.GetType() == ast.TupleExpression {
-		p.Context.FunctionReturns.Push("entityFunctionDeclarationStmt", len(stmt.Return.Name.(*ast.TupleExpr).Types))
+		p.context.FunctionReturns.Push("entityFunctionDeclarationStmt", len(stmt.Return.Name.(*ast.TupleExpr).Types))
 	} else {
-		p.Context.FunctionReturns.Push("entityFunctionDeclarationStmt", 1)
+		p.context.FunctionReturns.Push("entityFunctionDeclarationStmt", 1)
 	}
 
 	var success bool
@@ -455,7 +455,7 @@ func (p *Parser) entityFunctionDeclaration(token tokens.Token, functionType ast.
 		return ast.NewImproper(stmt.Token, ast.EntityFunctionDeclaration)
 	}
 
-	p.Context.FunctionReturns.Pop("entityFunctionDeclarationStmt")
+	p.context.FunctionReturns.Pop("entityFunctionDeclarationStmt")
 
 	return stmt
 }

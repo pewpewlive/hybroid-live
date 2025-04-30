@@ -13,7 +13,7 @@ type Parser struct {
 	program []ast.Node
 	current int
 	tokens  []tokens.Token
-	Context ParserContext
+	context ParserContext
 }
 
 type ParserContext struct {
@@ -23,32 +23,28 @@ type ParserContext struct {
 	FunctionReturns helpers.Stack[int]
 }
 
-func NewParser() Parser {
+func NewParser(tokens []tokens.Token) Parser {
 	parser := Parser{
 		program: make([]ast.Node, 0),
 		current: 0,
-		tokens:  make([]tokens.Token, 0),
-		Context: ParserContext{
+		tokens:  tokens,
+		context: ParserContext{
 			EnvDeclaration:  nil,
 			IgnoreAlerts:    helpers.NewStack[bool]("IgnoreAlerts"),
 			FunctionReturns: helpers.NewStack[int]("FunctionReturns"),
 		},
 	}
 
-	parser.Context.IgnoreAlerts.Push("default", false)
-	parser.Context.FunctionReturns.Push("default", 0)
+	parser.context.IgnoreAlerts.Push("default", false)
+	parser.context.FunctionReturns.Push("default", 0)
 
 	return parser
-}
-
-func (p *Parser) AssignTokens(tokens []tokens.Token) {
-	p.tokens = tokens
 }
 
 type ParserError struct{}
 
 func (p *Parser) Alert(alertType alerts.Alert, args ...any) {
-	if p.Context.IgnoreAlerts.Top().Item {
+	if p.context.IgnoreAlerts.Top().Item {
 		return
 	}
 
@@ -56,27 +52,23 @@ func (p *Parser) Alert(alertType alerts.Alert, args ...any) {
 }
 
 func (p *Parser) AlertPanic(alertType alerts.Alert, args ...any) {
-	if p.Context.IgnoreAlerts.Top().Item {
+	if p.context.IgnoreAlerts.Top().Item {
 		return
 	}
 
 	p.Alert_(alertType, args...)
 
 	if alertType.GetAlertType() == alerts.Error {
-		panic(ParserError{})
+		p.panic()
 	}
 }
 
 func (p *Parser) AlertI(alert alerts.Alert) {
-	if p.Context.IgnoreAlerts.Top().Item {
+	if p.context.IgnoreAlerts.Top().Item {
 		return
 	}
 
 	p.AlertI_(alert)
-
-	if alert.GetAlertType() == alerts.Error {
-		//panic(ParserError{})
-	}
 }
 
 func (p *Parser) panic() {

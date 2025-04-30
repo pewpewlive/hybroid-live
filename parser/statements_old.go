@@ -206,7 +206,7 @@ func (p *Parser) OLDaliasDeclarationStmt(isLocal bool) ast.Node {
 func (p *Parser) OLDenvStmt() ast.Node {
 	stmt := ast.EnvironmentDecl{}
 
-	if p.Context.EnvDeclaration != nil {
+	if p.context.EnvDeclaration != nil {
 		p.Alert(&alerts.EnvironmentRedaclaration{}, alerts.NewSingle(p.peek()))
 	}
 
@@ -229,7 +229,7 @@ func (p *Parser) OLDenvStmt() ast.Node {
 	envPathExpr, _ := expr.(*ast.EnvPathExpr)
 	stmt.EnvType = envTypeExpr
 	stmt.Env = envPathExpr
-	p.Context.EnvDeclaration = &stmt
+	p.context.EnvDeclaration = &stmt
 
 	return &stmt
 }
@@ -251,7 +251,7 @@ func (p *Parser) OLDenumDeclarationStmt(local bool) ast.Node {
 	start, _ := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
 
 	if p.match(tokens.RightBrace) {
-		enumStmt.Fields = make([]tokens.Token, 0)
+		//enumStmt.Fields = make([]tokens.Token, 0)
 		return enumStmt
 	}
 
@@ -273,7 +273,7 @@ func (p *Parser) OLDenumDeclarationStmt(local bool) ast.Node {
 		fields = append(fields, expr.GetToken())
 	}
 
-	enumStmt.Fields = fields
+	//enumStmt.Fields = fields
 
 	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek()), tokens.RightBrace), tokens.RightBrace)
 
@@ -420,7 +420,7 @@ func (p *Parser) OLDentityFunctionDeclarationStmt(token tokens.Token, functionTy
 		return ast.NewImproper(stmt.Token, ast.NA)
 	}
 
-	p.Context.FunctionReturns.Pop("entityFunctionDeclarationStmt")
+	p.context.FunctionReturns.Pop("entityFunctionDeclarationStmt")
 
 	return stmt
 }
@@ -481,7 +481,7 @@ func (p *Parser) OLDfieldDeclarationStmt() ast.Node {
 		idents = append(idents, ident)
 	}
 
-	stmt.Identifiers = idents
+	//stmt.Identifiers = idents
 
 	if !p.match(tokens.Equal) {
 		stmt.Values = []ast.Node{}
@@ -615,11 +615,11 @@ func (p *Parser) OLDreturnStmt() ast.Node {
 		Args:  []ast.Node{},
 	}
 
-	if p.Context.FunctionReturns.Count() == 0 {
+	if p.context.FunctionReturns.Count() == 0 {
 		return returnStmt
 	}
 
-	if p.Context.FunctionReturns.Top().Item != 0 {
+	if p.context.FunctionReturns.Top().Item != 0 {
 		args, _ := p.OLDreturnArgs()
 		returnStmt.Args = args
 	}
@@ -687,7 +687,7 @@ func (p *Parser) OLDfunctionDeclarationStmt(IsLocal bool) ast.Node {
 		return ast.NewImproper(fnDec.Name, ast.NA)
 	}
 
-	p.Context.FunctionReturns.Pop("functionDeclarationStmt")
+	p.context.FunctionReturns.Pop("functionDeclarationStmt")
 
 	return &fnDec
 }

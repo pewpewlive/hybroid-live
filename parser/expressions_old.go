@@ -30,7 +30,7 @@ func (p *Parser) OLDfn() ast.Node {
 		if !success {
 			return ast.NewImproper(fn.Token, ast.FunctionExpression)
 		}
-		p.Context.FunctionReturns.Pop("fn")
+		p.context.FunctionReturns.Pop("fn")
 
 		return fn
 	} else {
@@ -339,7 +339,7 @@ func (p *Parser) OLDprimary(allowStruct bool) ast.Node {
 	if p.match(tokens.Number, tokens.Fixed, tokens.FixedPoint, tokens.Degree, tokens.Radian, tokens.String) {
 		literal := p.peek(-1)
 		var valueType ast.PrimitiveValueType
-		env := p.Context.EnvDeclaration
+		env := p.context.EnvDeclaration
 
 		if env != nil {
 			envType := env.EnvType.Type

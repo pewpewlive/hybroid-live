@@ -9,6 +9,7 @@ import (
 	"hybroid/lexer"
 	"hybroid/parser"
 	"hybroid/walker"
+	"hybroid/walker/pass1"
 	"os"
 	"path/filepath"
 	"time"
@@ -29,7 +30,7 @@ func NewEvaluator(files []helpers.FileInformation) Evaluator {
 
 	for _, file := range evaluator.files {
 		evaluator.walkerList = append(evaluator.walkerList, walker.NewWalker(file.NewPath("/dynamic", ".lua")))
-}
+	}
 
 	return evaluator
 }
@@ -77,7 +78,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		fmt.Printf("Pass 1 time: %f seconds\n\n", time.Since(start).Seconds())
 	}
 
-	for i, walker := range e.walkerList {
+	for _, walker := range e.walkerList {
 		start := time.Now()
 		fmt.Println("[Pass 2] Walking through the nodes...")
 
