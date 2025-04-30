@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"hybroid/evaluator"
-	"hybroid/generator"
 	"hybroid/helpers"
 	"os"
 	"path/filepath"
@@ -59,10 +58,6 @@ func build(ctx *cli.Context, filesToBuild ...helpers.FileInformation) error {
 		}
 		os.WriteFile(filepath.Join(cwd, outputDir, "/manifest.json"), manifest, 0644)
 
-		eval := evaluator.NewEvaluator(generator.Generator{
-			Scope: generator.NewGenScope(nil),
-		})
-
 		if len(filesToBuild) == 0 {
 			files, filesErr := helpers.CollectFiles(cwd)
 			if filesErr != nil {
@@ -72,10 +67,8 @@ func build(ctx *cli.Context, filesToBuild ...helpers.FileInformation) error {
 			filesToBuild = append(filesToBuild, files...)
 		}
 
-		for _, file := range filesToBuild {
-			eval.AssignFile(file)
-		}
-		err <- eval.Action(cwd, outputDir)
+		evaluator := evaluator.NewEvaluator(filesToBuild)
+		err <- evaluator.Action(cwd, outputDir)
 	}(evalError)
 	if err = <-evalError; err != nil {
 		return fmt.Errorf("failed evaluation: %v", err)

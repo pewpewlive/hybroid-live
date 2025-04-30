@@ -104,25 +104,28 @@ func (gs *GenScope) ReplaceAll() {
 }
 
 func NewGenScope(scope *GenScope) GenScope {
-	new := GenScope{
+	return GenScope{
 		Parent:          scope,
 		StringBuilder:   StringBuilder{},
 		Replacements:    []Replacement{},
 		ReplaceSettings: map[ReplaceType]string{},
 	}
-
-	return new
 }
 
 type Generator struct {
 	alerts.AlertHandler // ideally should not be ever triggered here, but if triggered something has gone really wrong
 
-	envName     string
-	envType     ast.EnvType
-	Scope       GenScope
-	Future      string
-	Errors      []ast.Error
-	libraryVars *map[string]string
+	envName string
+	envType ast.EnvType
+	Scope   GenScope
+	Future  string
+}
+
+func NewGenerator() Generator {
+	return Generator{
+		Scope:     NewGenScope(nil),
+		Collector: alerts.NewCollector(alerts.Generator),
+	}
 }
 
 func (gen *Generator) SetUniqueEnvName(name string) {
@@ -149,7 +152,6 @@ func (gen *Generator) WriteVarExtra(name, middle string) string {
 
 func (gen *Generator) Clear() {
 	gen.Scope = NewGenScope(nil)
-	gen.Errors = make([]ast.Error, 0)
 }
 
 func getTabs() string {
@@ -159,10 +161,6 @@ func getTabs() string {
 	}
 
 	return tabs.String()
-}
-
-func (gen Generator) GetErrors() []ast.Error {
-	return gen.Errors
 }
 
 func (gen *Generator) GetSrc() string {

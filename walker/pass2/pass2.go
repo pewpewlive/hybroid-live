@@ -74,12 +74,12 @@ func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
 	// case *ast.TypeDeclarationStmt:
 	// 	TypeDeclarationStmt(w, newNode, scope)
 	case *ast.Improper:
-		w.Error(newNode.GetToken(), "Improper statement: parser fault")
+		// w.Error(newNode.GetToken(), "Improper statement: parser fault")
 	case *ast.MacroDecl:
 	case *ast.EntityDecl:
 		EntityDeclarationStmt(w, newNode, scope)
 	default:
-		w.Error(newNode.GetToken(), "Expected statement")
+		// w.Error(newNode.GetToken(), "Expected statement")
 	}
 }
 
@@ -136,7 +136,7 @@ func GetNodeValue(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) wkr.Value {
 	// 	val = CastExpr(w, newNode, scope)
 	case *ast.UseStmt:
 	default:
-		w.Error(newNode.GetToken(), "Expected expression")
+		// w.Error(newNode.GetToken(), "Expected expression")
 		return &wkr.Invalid{}
 	}
 
@@ -161,7 +161,7 @@ func WalkBody(w *wkr.Walker, body *[]ast.Node, tag wkr.ExitableTag, scope *wkr.S
 	endIndex := -1
 	for i := range *body {
 		if tag.GetIfExits(wkr.All) {
-			w.Warn((*body)[i].GetToken(), "unreachable code detected")
+			// w.Warn((*body)[i].GetToken(), "unreachable code detected")
 			endIndex = i
 			break
 		}
@@ -213,13 +213,13 @@ func WalkParams(w *wkr.Walker, parameters []ast.FunctionParam, scope *wkr.Scope,
 	}
 
 	if len(variadicParams) > 1 {
-		w.Error(parameters[0].Name, "can only have one vartiadic parameter")
+		// w.Error(parameters[0].Name, "can only have one vartiadic parameter")
 	} else if len(variadicParams) != 0 {
-		for k, v := range variadicParams {
-			if v != len(parameters)-1 {
-				w.Error(k, "variadic parameter should be last")
-			}
-		}
+		// for k, v := range variadicParams {
+		// 	if v != len(parameters)-1 {
+		// 		w.Error(k, "variadic parameter should be last")
+		// 	}
+		// }
 	}
 
 	return params

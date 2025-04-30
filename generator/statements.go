@@ -189,7 +189,7 @@ func (gen *Generator) repeatStmt(node ast.RepeatStmt, scope *GenScope) {
 
 func (gen *Generator) whileStmt(node ast.WhileStmt, scope *GenScope) {
 	whileScope := NewGenScope(scope)
-	whileScope.WriteTabbed("while ", gen.GenerateExpr(node.Condtion, &whileScope), " do\n")
+	whileScope.WriteTabbed("while ", gen.GenerateExpr(node.Condition, &whileScope), " do\n")
 
 	gotoLabel := GenerateVar(hyGTL)
 	whileScope.ReplaceSettings = map[ReplaceType]string{
@@ -274,11 +274,11 @@ func (gen *Generator) variableDeclarationStmt(declaration ast.VariableDecl, scop
 	}
 	for i, ident := range declaration.Identifiers {
 		if i == len(declaration.Identifiers)-1 && len(values) != 0 {
-			src.Write(fmt.Sprintf("%s = ", gen.GenerateExpr(&ast.IdentifierExpr{Name: ident}, scope)))
+			src.Write(fmt.Sprintf("%s = ", gen.GenerateExpr(ident, scope)))
 		} else if i == len(declaration.Identifiers)-1 {
-			src.Write(gen.GenerateExpr(&ast.IdentifierExpr{Name: ident}, scope))
+			src.Write(gen.GenerateExpr(ident, scope))
 		} else {
-			src.Write(fmt.Sprintf("%s, ", gen.GenerateExpr(&ast.IdentifierExpr{Name: ident}, scope)))
+			src.Write(fmt.Sprintf("%s, ", gen.GenerateExpr(ident, scope)))
 		}
 	}
 	for i := range values {
@@ -474,7 +474,7 @@ func (gen *Generator) fieldDeclarationStmt(node ast.FieldDecl, scope *GenScope) 
 	src := StringBuilder{}
 
 	for i, v := range node.Identifiers {
-		src.Write(v.Lexeme, " = ", gen.GenerateExpr(node.Values[i], scope))
+		src.Write(v.Name.Lexeme, " = ", gen.GenerateExpr(node.Values[i], scope))
 		if i != len(node.Identifiers)-1 {
 			src.Write(", ")
 		}

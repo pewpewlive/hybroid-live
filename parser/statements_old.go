@@ -16,9 +16,7 @@ func (p *Parser) OLDstatement() (returnNode ast.Node) {
 		if errMsg := recover(); errMsg != nil {
 			// If the error is a parseError, synchronize to
 			// the next statement. If not, propagate the panic.
-			if _, ok := errMsg.(ast.Error); ok {
-				p.synchronize()
-			} else if _, ok := errMsg.(ParserError); ok {
+			if _, ok := errMsg.(ParserError); ok {
 				p.synchronize()
 			} else {
 				fmt.Printf("panic: %s\nstacktrace:\n", errMsg)
@@ -577,7 +575,7 @@ func (p *Parser) OLDassignmentStmt(expr ast.Node) ast.Node {
 		expr = &ast.AssignmentStmt{Identifiers: idents, Values: values, Token: p.peek(-1)}
 	} else if p.match(tokens.PlusEqual, tokens.MinusEqual, tokens.SlashEqual, tokens.StarEqual, tokens.CaretEqual, tokens.ModuloEqual, tokens.BackSlashEqual) {
 		assignOp := p.peek(-1)
-		op := tokens.Token{Literal: assignOp.Literal, Position: assignOp.Position}
+		op := tokens.Token{Literal: assignOp.Literal, Location: assignOp.Location}
 		switch assignOp.Type {
 		case tokens.PlusEqual:
 			op.Type = tokens.Plus
@@ -622,7 +620,7 @@ func (p *Parser) OLDreturnStmt() ast.Node {
 	}
 
 	if p.Context.FunctionReturns.Top().Item != 0 {
-		args, _ := p.returnArgs()
+		args, _ := p.OLDreturnArgs()
 		returnStmt.Args = args
 	}
 
@@ -789,7 +787,7 @@ func (p *Parser) OLDwhileStmt() ast.Node {
 		return ast.NewImproper(condtion.GetToken(), ast.NA)
 	}
 
-	whileStmt.Condtion = condtion
+	whileStmt.Condition = condtion
 
 	var success bool
 	whileStmt.Body, success = p.body(true, true)
@@ -967,7 +965,7 @@ func (p *Parser) OLDvariableDeclarationStmt() ast.Node {
 		idents = append(idents, ide)
 	}
 
-	variable.Identifiers = idents
+	//variable.Identifiers = idents
 
 	if !p.match(tokens.Equal) {
 		variable.Expressions = []ast.Node{}

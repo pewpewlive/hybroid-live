@@ -9,14 +9,14 @@ import (
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type MultilineString struct {
-  Specifier SnippetSpecifier
+  Specifier Snippet
 }
 
 func (ms *MultilineString) GetMessage() string {
   return "multiline strings are not allowed"
 }
 
-func (ms *MultilineString) GetSpecifier() SnippetSpecifier {
+func (ms *MultilineString) GetSpecifier() Snippet {
   return ms.Specifier
 }
 
@@ -25,23 +25,23 @@ func (ms *MultilineString) GetNote() string {
 }
 
 func (ms *MultilineString) GetID() string {
-  return "hyb001s"
+  return "hyb001L"
 }
 
-func (ms *MultilineString) GetAlertType() AlertType {
+func (ms *MultilineString) GetAlertType() Type {
   return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type UnterminatedString struct {
-  Specifier SnippetSpecifier
+  Specifier Snippet
 }
 
 func (us *UnterminatedString) GetMessage() string {
   return "unterminated string"
 }
 
-func (us *UnterminatedString) GetSpecifier() SnippetSpecifier {
+func (us *UnterminatedString) GetSpecifier() Snippet {
   return us.Specifier
 }
 
@@ -50,16 +50,16 @@ func (us *UnterminatedString) GetNote() string {
 }
 
 func (us *UnterminatedString) GetID() string {
-  return "hyb002s"
+  return "hyb002L"
 }
 
-func (us *UnterminatedString) GetAlertType() AlertType {
+func (us *UnterminatedString) GetAlertType() Type {
   return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type MalformedNumber struct {
-  Specifier SnippetSpecifier
+  Specifier Snippet
   Number string
 }
 
@@ -67,7 +67,7 @@ func (mn *MalformedNumber) GetMessage() string {
   return fmt.Sprintf("malformed number: '%s'", mn.Number)
 }
 
-func (mn *MalformedNumber) GetSpecifier() SnippetSpecifier {
+func (mn *MalformedNumber) GetSpecifier() Snippet {
   return mn.Specifier
 }
 
@@ -76,16 +76,16 @@ func (mn *MalformedNumber) GetNote() string {
 }
 
 func (mn *MalformedNumber) GetID() string {
-  return "hyb003s"
+  return "hyb003L"
 }
 
-func (mn *MalformedNumber) GetAlertType() AlertType {
+func (mn *MalformedNumber) GetAlertType() Type {
   return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidNumberPostfix struct {
-  Specifier SnippetSpecifier
+  Specifier Snippet
   Postfix string
 }
 
@@ -93,7 +93,7 @@ func (inp *InvalidNumberPostfix) GetMessage() string {
   return fmt.Sprintf("invalid number postfix: '%s'", inp.Postfix)
 }
 
-func (inp *InvalidNumberPostfix) GetSpecifier() SnippetSpecifier {
+func (inp *InvalidNumberPostfix) GetSpecifier() Snippet {
   return inp.Specifier
 }
 
@@ -102,16 +102,16 @@ func (inp *InvalidNumberPostfix) GetNote() string {
 }
 
 func (inp *InvalidNumberPostfix) GetID() string {
-  return "hyb004s"
+  return "hyb004L"
 }
 
-func (inp *InvalidNumberPostfix) GetAlertType() AlertType {
+func (inp *InvalidNumberPostfix) GetAlertType() Type {
   return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type UnsupportedCharacter struct {
-  Specifier SnippetSpecifier
+  Specifier Snippet
   Character string
 }
 
@@ -119,7 +119,7 @@ func (uc *UnsupportedCharacter) GetMessage() string {
   return fmt.Sprintf("unsupported character: '%s'", uc.Character)
 }
 
-func (uc *UnsupportedCharacter) GetSpecifier() SnippetSpecifier {
+func (uc *UnsupportedCharacter) GetSpecifier() Snippet {
   return uc.Specifier
 }
 
@@ -128,10 +128,10 @@ func (uc *UnsupportedCharacter) GetNote() string {
 }
 
 func (uc *UnsupportedCharacter) GetID() string {
-  return "hyb005s"
+  return "hyb005L"
 }
 
-func (uc *UnsupportedCharacter) GetAlertType() AlertType {
+func (uc *UnsupportedCharacter) GetAlertType() Type {
   return Error
 }
 

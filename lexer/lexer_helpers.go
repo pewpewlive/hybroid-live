@@ -6,12 +6,17 @@ import (
 )
 
 func (l *Lexer) advance() (rune, error) {
-	r, size, err := l.source.ReadRune()
+	r, _, err := l.source.ReadRune()
 	if err != nil {
 		return r, err
 	}
 	l.buffer = append(l.buffer, r)
-	l.pos += size
+	if r == '\n' {
+		l.line++
+		l.column = 1
+	} else {
+		l.column++
+	}
 	return r, nil
 }
 

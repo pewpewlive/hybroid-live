@@ -1,6 +1,8 @@
 package ast
 
-import "hybroid/tokens"
+import (
+	"hybroid/tokens"
+)
 
 type EnvironmentDecl struct {
 	EnvType      *EnvTypeExpr
@@ -32,7 +34,7 @@ func (ed *EnvironmentDecl) GetValueType() PrimitiveValueType {
 
 type MacroDecl struct {
 	Name      tokens.Token
-	Params    []tokens.Token
+	Params    []*IdentifierExpr
 	MacroType MacroType
 	Tokens    []tokens.Token
 }
@@ -115,7 +117,7 @@ func (efd *EntityFunctionDecl) GetValueType() PrimitiveValueType {
 type EnumDecl struct {
 	Token  tokens.Token
 	Name   tokens.Token
-	Fields []tokens.Token
+	Fields []*IdentifierExpr
 	IsPub  bool
 }
 
@@ -151,7 +153,7 @@ func (cd *ConstructorDecl) GetValueType() PrimitiveValueType {
 }
 
 type FieldDecl struct {
-	Identifiers []tokens.Token
+	Identifiers []*IdentifierExpr
 	Type        *TypeExpr
 	Values      []Node
 	Token       tokens.Token
@@ -218,7 +220,7 @@ func (md *MethodDecl) GetValueType() PrimitiveValueType {
 }
 
 type VariableDecl struct {
-	Identifiers []tokens.Token
+	Identifiers []*IdentifierExpr
 	Type        *TypeExpr
 	Expressions []Node
 	IsPub       bool

@@ -14,9 +14,9 @@ const levelTemplate = `env %s as Level
 // Hello, world!
 tick with i {
   if i %% 2 == 0 {
-	  Print("Foo")
+	  Pewpew:Print("Foo")
 	} else {
-	  Print("Bar")
+	  Pewpew:Print("Bar")
 	}
 }
 `

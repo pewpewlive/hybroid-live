@@ -6,6 +6,7 @@ import (
 	"hybroid/ast"
 	"hybroid/helpers"
 	"hybroid/tokens"
+	"slices"
 )
 
 var LibraryEnvs = map[Library]*Environment{
@@ -31,10 +32,8 @@ type Environment struct {
 }
 
 func (e *Environment) AddBuiltinVar(name string) {
-	for _, v := range e.UsedBuiltinVars {
-		if v == name {
+	if slices.Contains(e.UsedBuiltinVars, name) {
 			return
-		}
 	}
 
 	e.UsedBuiltinVars = append(e.UsedBuiltinVars, name)
@@ -83,10 +82,8 @@ type Walker struct {
 	Environment        *Environment
 	Walkers            map[string]*Walker
 	Nodes              []ast.Node
-	// Errors             []ast.Error
-	// Warnings           []ast.Warning
-	Context Context
-	Walked  bool
+	Context            Context
+	Walked             bool
 }
 
 // var pewpewEnv = &Environment{
@@ -100,8 +97,6 @@ func NewWalker(path string) *Walker {
 	walker := &Walker{
 		Environment: NewEnvironment(path),
 		Nodes:       []ast.Node{},
-		//Errors:      []ast.Error{},
-		//Warnings:    []ast.Warning{},
 		Context: Context{
 			Node:   &ast.Improper{},
 			Value:  &Unknown{},
@@ -110,18 +105,6 @@ func NewWalker(path string) *Walker {
 	}
 	walker.CurrentEnvironment = walker.Environment
 	return walker
-}
-
-func (w *Walker) Error(token tokens.Token, msg string, objects ...interface{}) {
-	//w.Errors = append(w.Errors, ast.Error{Token: token, Message: fmt.Sprintf(msg, objects...)})
-}
-
-func (w *Walker) Warn(token tokens.Token, msg string) {
-	//w.Warnings = append(w.Warnings, ast.Warning{Token: token, Message: msg})
-}
-
-func (w *Walker) AddError(err ast.Error) {
-	//w.Errors = append(w.Errors, err)
 }
 
 func (w *Walker) GetEnvStmt() *ast.EnvironmentDecl {
@@ -152,7 +135,7 @@ func (w *Walker) TypeExists(name string) bool {
 func (w *Walker) GetStruct(name string) (*ClassVal, bool) {
 	structType, found := w.Environment.Structs[name]
 	if !found {
-		w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s exists", name))
+		// w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s exists", name))
 		return nil, false
 	}
 
@@ -166,7 +149,7 @@ func (w *Walker) GetStruct(name string) (*ClassVal, bool) {
 func (w *Walker) GetEntity(name string) (*EntityVal, bool) {
 	entityType, found := w.Environment.Entities[name]
 	if !found {
-		w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s exists", name))
+		// w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s exists", name))
 		return nil, false
 	}
 
@@ -177,16 +160,16 @@ func (w *Walker) GetEntity(name string) (*EntityVal, bool) {
 	return entityType, true
 }
 
-func (w *Walker) AssignVariableByName(s *Scope, name string, value Value) (Value, *ast.Error) {
+func (w *Walker) AssignVariableByName(s *Scope, name string, value Value) Value {
 	scope := w.ResolveVariable(s, name)
 
 	if scope == nil {
-		return &Invalid{}, &ast.Error{Message: "cannot assign to an undeclared variable"}
+		// return &Invalid{}, &ast.Error{Message: "cannot assign to an undeclared variable"}
 	}
 
 	variable := scope.Variables[name]
 	if variable.IsConst {
-		return &Invalid{}, &ast.Error{Message: "cannot assign to a constant variable"}
+		// return &Invalid{}, &ast.Error{Message: "cannot assign to a constant variable"}
 	}
 
 	variable.Value = value
@@ -195,22 +178,22 @@ func (w *Walker) AssignVariableByName(s *Scope, name string, value Value) (Value
 
 	temp := scope.Variables[name]
 
-	return temp, nil
+	return temp
 }
 
-func (s *Scope) AssignVariable(variable *VariableVal, value Value) (Value, *ast.Error) {
+func (s *Scope) AssignVariable(variable *VariableVal, value Value) Value {
 	if variable.IsConst {
-		return &Invalid{}, &ast.Error{Message: "cannot assign to a constant variable"}
+		// return &Invalid{}, &ast.Error{Message: "cannot assign to a constant variable"}
 	}
 
 	//variable.Value = value
 
-	return variable, nil
+	return variable
 }
 
 func (w *Walker) DeclareVariable(s *Scope, value *VariableVal, token tokens.Token) (*VariableVal, bool) {
 	if varFound, found := s.Variables[value.Name]; found {
-		w.Error(token, fmt.Sprintf("variable with name '%s' already exists", varFound.Name))
+		// w.Error(token, fmt.Sprintf("variable with name '%s' already exists", varFound.Name))
 		return varFound, false
 	}
 
@@ -300,7 +283,7 @@ func (w *Walker) ValidateArguments(generics map[string]Type, args []Type, params
 
 	paramCount := len(params)
 	if paramCount > len(args) {
-		w.Error(callToken, "too few arguments given in call")
+		// w.Error(callToken, "too few arguments given in call")
 		return -1, true
 	}
 	var param Type
@@ -309,7 +292,7 @@ func (w *Walker) ValidateArguments(generics map[string]Type, args []Type, params
 			if params[paramCount-1].GetType() == Variadic {
 				param = params[paramCount-1].(*VariadicType).Type
 			} else if i > paramCount-1 {
-				w.Error(callToken, "too many arguments given in call")
+				// w.Error(callToken, "too many arguments given in call")
 				return -1, true
 			} else {
 				param = params[i]
@@ -329,7 +312,7 @@ func (w *Walker) ValidateArguments(generics map[string]Type, args []Type, params
 		}
 
 		if !TypeEquals(param, typeVal) {
-			w.Error(callToken, fmt.Sprintf("argument is of type %s, but should be %s", typeVal.ToString(), param.ToString()))
+			// w.Error(callToken, fmt.Sprintf("argument is of type %s, but should be %s", typeVal.ToString(), param.ToString()))
 			return i, false
 		}
 	}
@@ -386,24 +369,24 @@ func (w *Walker) DetermineValueType(left Type, right Type) Type {
 
 func (w *Walker) ValidateArithmeticOperands(left Type, right Type, expr *ast.BinaryExpr) bool {
 	if left.PVT() == ast.Invalid {
-		w.Error(expr.Left.GetToken(), "cannot perform arithmetic on Invalid value")
+		// w.Error(expr.Left.GetToken(), "cannot perform arithmetic on Invalid value")
 		return false
 	}
 
 	if right.PVT() == ast.Invalid {
-		w.Error(expr.Right.GetToken(), "cannot perform arithmetic on Invalid value")
+		// w.Error(expr.Right.GetToken(), "cannot perform arithmetic on Invalid value")
 		return false
 	}
 
 	switch left.PVT() {
 	case ast.List, ast.Map, ast.String, ast.Bool, ast.Entity, ast.Struct:
-		w.Error(expr.Left.GetToken(), "cannot perform arithmetic on a non-number value")
+		// w.Error(expr.Left.GetToken(), "cannot perform arithmetic on a non-number value")
 		return false
 	}
 
 	switch right.PVT() {
 	case ast.List, ast.Map, ast.String, ast.Bool, ast.Entity, ast.Struct:
-		w.Error(expr.Right.GetToken(), "cannot perform arithmetic on a non-number value")
+		// w.Error(expr.Right.GetToken(), "cannot perform arithmetic on a non-number value")
 		return false
 	}
 
@@ -438,7 +421,7 @@ func (w *Walker) ValidateReturnValues(_return Types, expectReturn Types) string 
 
 func (w *Walker) CheckAccessibility(s *Scope, isLocal bool, node ast.Node) {
 	if s.Environment.Name != w.Environment.Name && isLocal {
-		w.Error(node.GetToken(), "Not allowed to access a local variable/type from a different environment")
+		// w.Error(node.GetToken(), "Not allowed to access a local variable/type from a different environment")
 	}
 }
 

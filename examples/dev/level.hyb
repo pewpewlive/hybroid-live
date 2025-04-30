@@ -1,13 +1,13 @@
 env Thing as Level
 
-class Mutox {
-  let x, y = 100, 200
+alias Thing = number
 
+class A {
   new() {
 
   }
-
-  fn A() {
+  
+  new() {
 
   }
 }

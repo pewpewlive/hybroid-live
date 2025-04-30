@@ -124,9 +124,9 @@ func (rs *RepeatStmt) GetValueType() PrimitiveValueType {
 }
 
 type WhileStmt struct {
-	Condtion Node
-	Body     []Node
-	Token    tokens.Token
+	Condition Node
+	Body      []Node
+	Token     tokens.Token
 }
 
 func (fs *WhileStmt) GetType() NodeType {

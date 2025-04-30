@@ -340,7 +340,6 @@ func (gen *Generator) envAccessExpr(node ast.EnvAccessExpr, scope *GenScope) str
 		prefix = envMap[envName]
 	}
 
-	gen.libraryVars = nil
 	return prefix + accessed
 }
 

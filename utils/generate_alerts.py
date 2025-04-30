@@ -79,7 +79,7 @@ class Alert:
 
         self.stage = stage
 
-        self.params = {"Specifier": "SnippetSpecifier"}
+        self.params = {"Specifier": "Snippet"}
         self.params = self.params | raw.get("params", {})
 
         message = raw.get("message")
@@ -119,7 +119,7 @@ class Alert:
             [
                 "GetSpecifier",
                 "",
-                "SnippetSpecifier",
+                "Snippet",
                 f"return {self.receiver}.Specifier",
             ],
             [
@@ -132,11 +132,9 @@ class Alert:
                 "GetID",
                 "",
                 "string",
-                'return "hyb{:03d}{}"'.format(
-                    self.id, "s" if self.stage in ["Lexer", "Parser"] else "c"
-                ),
+                'return "hyb{:03d}{}"'.format(self.id, self.stage[0]),
             ],
-            ["GetAlertType", "", "AlertType", f"return {self.type}"],
+            ["GetAlertType", "", "Type", f"return {self.type}"],
         ]
 
         for function in alert_functions:

@@ -1,8 +1,6 @@
 package tokens
 
-import (
-	"hybroid/helpers"
-)
+import "hybroid/helpers"
 
 type TokenType string
 
@@ -150,23 +148,36 @@ var keywords = map[string]TokenType{
 	"type":     Type,
 }
 
-type Token struct {
-	Type     TokenType
-	Lexeme   string
-	Literal  string
-	Position helpers.Span[int]
+func KeywordToToken(keyword string) (TokenType, bool) {
+	v, found := keywords[keyword]
+	return v, found
 }
 
-func NewToken(tokenType TokenType, lexeme, literal string, location helpers.Span[int]) Token {
+type Location struct {
+	Line   helpers.Span[int]
+	Column helpers.Span[int]
+}
+
+func NewLocation(lineStart, lineEnd, columnStart, columnEnd int) Location {
+	return Location{
+		Line:   helpers.NewSpan(lineStart, lineEnd),
+		Column: helpers.NewSpan(columnStart, columnEnd),
+	}
+}
+
+type Token struct {
+	Location
+
+	Type    TokenType
+	Lexeme  string
+	Literal string
+}
+
+func NewToken(tokenType TokenType, lexeme, literal string, location Location) Token {
 	return Token{
 		Type:     tokenType,
 		Lexeme:   lexeme,
 		Literal:  literal,
-		Position: location,
+		Location: location,
 	}
-}
-
-func KeywordToToken(keyword string) (TokenType, bool) {
-	v, found := keywords[keyword]
-	return v, found
 }

@@ -349,7 +349,7 @@ func (p *Parser) classDeclaration() ast.Node {
 		switch declaration := auxiliaryDeclaration.(type) {
 		case *ast.ConstructorDecl:
 			if stmt.Constructor != nil {
-				p.Alert(&alerts.MoreThanOneConstructor{}, alerts.NewSingle(p.peek()))
+				p.Alert(&alerts.MoreThanOneConstructor{}, alerts.NewMulti(declaration.GetToken(), p.peek(-1)))
 			} else {
 				stmt.Constructor = declaration
 			}
@@ -358,7 +358,7 @@ func (p *Parser) classDeclaration() ast.Node {
 		case *ast.MethodDecl:
 			stmt.Methods = append(stmt.Methods, *declaration)
 		default:
-			p.Alert(&alerts.UnknownStatement{}, alerts.NewSingle(p.peek()), "in class declaration")
+			p.Alert(&alerts.UnknownStatement{}, alerts.NewMulti(auxiliaryDeclaration.GetToken(), p.peek(-1)), "in class declaration")
 		}
 	}
 
@@ -394,7 +394,7 @@ func (p *Parser) entityDeclaration() ast.Node {
 			continue
 		}
 		if auxiliaryDeclaration.GetType() != ast.EntityFunctionDeclaration {
-			p.Alert(&alerts.UnknownStatement{}, alerts.NewMulti(auxiliaryDeclaration.GetToken(), p.peek()), "in entity declaration")
+			p.Alert(&alerts.UnknownStatement{}, alerts.NewMulti(auxiliaryDeclaration.GetToken(), p.peek(-1)), "in entity declaration")
 			continue
 		}
 

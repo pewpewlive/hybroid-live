@@ -17,13 +17,16 @@ type Lexer struct {
 	buffer []rune
 	source *bufio.Reader
 
-	pos int
+	line   int
+	column int
 }
 
-func NewLexer() Lexer {
+func NewLexer(reader io.Reader) Lexer {
 	return Lexer{
-		buffer: make([]rune, 0),
-		source: nil,
+		buffer:    make([]rune, 0),
+		source:    bufio.NewReader(reader),
+		line:      1,
+		column:    1,
 	}
 }
 
@@ -31,19 +34,16 @@ func (l *Lexer) Alert(alertType alerts.Alert, args ...any) {
 	l.Alert_(alertType, args...)
 }
 
-func (l *Lexer) AssignReader(reader io.Reader) {
-	l.source = bufio.NewReader(reader)
-}
-
 func (l *Lexer) Tokenize() []tokens.Token {
 	lexerTokens := make([]tokens.Token, 0)
+
 	for {
 		token, err := l.next()
 		if err == io.EOF {
-			newToken := tokens.NewToken(tokens.Eof, "", "", helpers.NewSpan(l.pos, l.pos))
+			newToken := tokens.NewToken(tokens.Eof, "", "", tokens.NewLocation(l.line, l.line, l.column, l.column))
 			lexerTokens = append(lexerTokens, newToken)
 			break
-		} else if err != nil {
+		} else if err != nil && token == nil {
 			fmt.Printf("%s", err)
 			break
 		} else if token == nil {
@@ -64,7 +64,8 @@ func (l *Lexer) next() (*tokens.Token, error) {
 	l.buffer = make([]rune, 0)
 
 	token := tokens.Token{}
-	token.Position.Start = l.pos
+	token.Line.Start = l.line
+	token.Column.Start = l.column
 
 	c, err := l.advance()
 	if err != nil {
@@ -197,13 +198,15 @@ func (l *Lexer) next() (*tokens.Token, error) {
 		return l.handleString()
 	default:
 		token.Lexeme = string(token.Type)
-		token.Position.End = l.pos
+		token.Line.End = l.line
+		token.Column.End = l.column
 		l.Alert(&alerts.UnsupportedCharacter{}, alerts.NewSingle(token), string(c))
 		return nil, nil
 	}
 
 	token.Lexeme = string(token.Type)
-	token.Position.End = l.pos
+	token.Line.End = l.line
+	token.Column.End = l.column
 
 	return &token, nil
 }
@@ -211,7 +214,7 @@ func (l *Lexer) next() (*tokens.Token, error) {
 func (l *Lexer) handleString() (*tokens.Token, error) {
 	token := tokens.Token{
 		Type:     tokens.String,
-		Position: helpers.NewSpan(l.pos-1, l.pos),
+		Location: tokens.NewLocation(l.line, l.line, l.column-1, l.column),
 	}
 
 	for !l.match('"') && !l.isEOF() {
@@ -221,7 +224,8 @@ func (l *Lexer) handleString() (*tokens.Token, error) {
 	}
 	token.Lexeme = l.bufferString()
 	token.Literal = token.Lexeme[1 : len(token.Lexeme)-1]
-	token.Position.End = l.pos
+	token.Line.End = l.line
+	token.Column.End = l.column
 
 	if token.Lexeme[len(token.Lexeme)-1] != '"' && l.isEOF() {
 		l.Alert(&alerts.UnterminatedString{}, alerts.NewSingle(token))
@@ -235,7 +239,7 @@ func (l *Lexer) handleString() (*tokens.Token, error) {
 func (l *Lexer) handleNumber() (*tokens.Token, error) {
 	token := tokens.Token{
 		Type:     tokens.Number,
-		Position: helpers.NewSpan(l.pos-1, l.pos),
+		Location: tokens.NewLocation(l.line, l.line, l.column-1, l.column),
 	}
 
 	base, err := l.peek()
@@ -250,14 +254,15 @@ func (l *Lexer) handleNumber() (*tokens.Token, error) {
 			return nil, err
 		}
 
-		token.Position.End = l.pos
+		token.Line.End = l.line
+		token.Column.End = l.column
 		literal, err := strconv.ParseInt(l.bufferString(), 0, 0)
 		if err != nil {
 			return nil, err
 		}
 		token.Literal = strconv.Itoa(int(literal))
 
-		return &token, err
+		return &token, nil
 	}
 
 	isDigitOrUnderscore := func(r rune) bool { return isDigit(r) || r == '_' }
@@ -273,7 +278,8 @@ func (l *Lexer) handleNumber() (*tokens.Token, error) {
 		}
 	}
 
-	token.Position.End = l.pos
+	token.Line.End = l.line
+	token.Column.End = l.column
 
 	var literal float64
 	if literal, err = strconv.ParseFloat(l.bufferString(), 64); err != nil {
@@ -282,12 +288,13 @@ func (l *Lexer) handleNumber() (*tokens.Token, error) {
 	}
 	token.Literal = strconv.FormatFloat(literal, 'f', -1, 64)
 
-	postixPosition := helpers.NewSpan(l.pos, l.pos)
+	postixLocation := tokens.NewLocation(l.line, l.line, l.column, l.column)
 	err = l.consumeWhile(isAlphabetical)
 	if err != nil {
 		return nil, err
 	}
-	postixPosition.End = l.pos
+	postixLocation.Line.End = l.line
+	postixLocation.Column.End = l.column
 
 	postfix := l.bufferString()
 	switch postfix {
@@ -302,7 +309,7 @@ func (l *Lexer) handleNumber() (*tokens.Token, error) {
 	case "":
 		break
 	default:
-		token.Position = postixPosition
+		token.Location = postixLocation
 		l.Alert(&alerts.InvalidNumberPostfix{}, alerts.NewSingle(token), postfix)
 	}
 
@@ -312,13 +319,14 @@ func (l *Lexer) handleNumber() (*tokens.Token, error) {
 func (l *Lexer) handleIdentifier() (*tokens.Token, error) {
 	token := tokens.Token{
 		Type:     tokens.Identifier,
-		Position: helpers.NewSpan(l.pos-1, l.pos),
+		Location: tokens.NewLocation(l.line, l.line, l.column-1, l.column),
 	}
 	err := l.consumeWhile(isAlphanumeric)
 	if err != nil {
 		return nil, err
 	}
-	token.Position.End = l.pos
+	token.Line.End = l.line
+	token.Column.End = l.column
 	token.Lexeme = l.bufferString()
 
 	if keyword, found := tokens.KeywordToToken(token.Lexeme); found {
@@ -330,11 +338,12 @@ func (l *Lexer) handleIdentifier() (*tokens.Token, error) {
 
 func (l *Lexer) handleComment(multiline bool) error {
 	if !multiline {
-		read, err := l.source.ReadBytes('\n')
+		_, err := l.source.ReadBytes('\n')
 		if err != nil {
 			return err
 		}
-		l.pos += len(read)
+		l.line++
+		l.column = 1
 		return nil
 	} else {
 		for !l.match('*', '/') && !l.isEOF() {

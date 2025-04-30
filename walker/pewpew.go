@@ -63,56 +63,56 @@ var PewpewVariables = map[string]*VariableVal{
 
 	//functions
 	"Print": {
-		Name:    "Print",
-		Value:   NewFunction(NewBasicType(ast.Object)),
+		Name:  "Print",
+		Value: NewFunction(NewBasicType(ast.Object)),
 	},
 	"PrintDebugInfo": {
-		Name:    "PrintDebugInfo",
-		Value:   NewFunction(),
+		Name:  "PrintDebugInfo",
+		Value: NewFunction(),
 	},
 	"SetLevelSize": {
-		Name:    "SetLevelSize",
-		Value:   NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)),
+		Name:  "SetLevelSize",
+		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)),
 	},
 	"AddWall": {
-		Name:    "AddWall",
-		Value:   NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)).WithReturns(NewBasicType(ast.Number)),
+		Name:  "AddWall",
+		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)).WithReturns(NewBasicType(ast.Number)),
 	},
 	"RemoveWall": {
-		Name:    "SetLevelSize",
-		Value:   NewFunction(NewBasicType(ast.Number)),
+		Name:  "SetLevelSize",
+		Value: NewFunction(NewBasicType(ast.Number)),
 	},
 	"AddUpdateCallback": {
-		Name:    "AddUpdateCallback",
-		Value:   NewFunction(NewFunctionType(Types{}, Types{})),
+		Name:  "AddUpdateCallback",
+		Value: NewFunction(NewFunctionType(Types{}, Types{})),
 	},
 	"GetNumberOfPlayers": {
-		Name:    "GetNumberOfPlayers",
-		Value:   NewFunction().WithReturns(NewBasicType(ast.Number)),
+		Name:  "GetNumberOfPlayers",
+		Value: NewFunction().WithReturns(NewBasicType(ast.Number)),
 	},
 	"IncreasePlayerScore": {
-		Name:    "IncreasePlayerScore",
-		Value:   NewFunction(NewBasicType(ast.Number), NewBasicType(ast.Number)),
+		Name:  "IncreasePlayerScore",
+		Value: NewFunction(NewBasicType(ast.Number), NewBasicType(ast.Number)),
 	},
 	"IncreasePlayerScoreStreak": {
-		Name:    "IncreasePlayerScoreStreak",
-		Value:   NewFunction(NewBasicType(ast.Number), NewBasicType(ast.Number)),
+		Name:  "IncreasePlayerScoreStreak",
+		Value: NewFunction(NewBasicType(ast.Number), NewBasicType(ast.Number)),
 	},
 	"GetPlayerScoreStreak": {
-		Name:    "GetPlayerScoreStreak",
-		Value:   NewFunction(NewBasicType(ast.Number)).WithReturns(NewBasicType(ast.Number)),
+		Name:  "GetPlayerScoreStreak",
+		Value: NewFunction(NewBasicType(ast.Number)).WithReturns(NewBasicType(ast.Number)),
 	},
 	"StopGame": {
-		Name:    "StopGame",
-		Value:   NewFunction(),
+		Name:  "StopGame",
+		Value: NewFunction(),
 	},
 	"GetPlayerInputs": {
-		Name:    "GetPlayerInputs",
-		Value:   NewFunction(NewBasicType(ast.Number)).WithReturns(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)),
+		Name:  "GetPlayerInputs",
+		Value: NewFunction(NewBasicType(ast.Number)).WithReturns(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)),
 	},
 	"GetPlayerScore": {
-		Name:    "GetPlayerScore",
-		Value:   NewFunction(NewBasicType(ast.Number)).WithReturns(NewBasicType(ast.Number)),
+		Name:  "GetPlayerScore",
+		Value: NewFunction(NewBasicType(ast.Number)).WithReturns(NewBasicType(ast.Number)),
 	},
 	"ConfigurePlayer": {
 		Name: "ConfigurePlayer",
@@ -191,80 +191,80 @@ var PewpewVariables = map[string]*VariableVal{
 		}, true)),
 	},
 	"DamageShip": {
-		Name:    "DamageShip",
-		Value:   NewFunction(&RawEntityType{}, NewBasicType(ast.Number)),
+		Name:  "DamageShip",
+		Value: NewFunction(&RawEntityType{}, NewBasicType(ast.Number)),
 	},
 	"AddArrowToShip": {
-		Name:    "AddArrowToShip",
-		Value:   NewFunction(&RawEntityType{}, &RawEntityType{}, NewBasicType(ast.Number)).WithReturns(&RawEntityType{}),
+		Name:  "AddArrowToShip",
+		Value: NewFunction(&RawEntityType{}, &RawEntityType{}, NewBasicType(ast.Number)).WithReturns(&RawEntityType{}),
 	},
 	"RemoveArrowFromShip": {
-		Name:    "RemoveArrowFromShip",
-		Value:   NewFunction(&RawEntityType{}, &RawEntityType{}),
+		Name:  "RemoveArrowFromShip",
+		Value: NewFunction(&RawEntityType{}, &RawEntityType{}),
 	},
 	"SetShipSpeed": {
-		Name:    "SetShipSpeed",
-		Value:   NewFunction(&RawEntityType{}, NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewBasicType(ast.Number)).WithReturns(&RawEntityType{}),
+		Name:  "SetShipSpeed",
+		Value: NewFunction(&RawEntityType{}, NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewBasicType(ast.Number)).WithReturns(&RawEntityType{}),
 	},
 	"MakeShipTransparent": {
-		Name:    "MakeShipTransparent",
-		Value:   NewFunction(&RawEntityType{}, NewBasicType(ast.Number)),
+		Name:  "MakeShipTransparent",
+		Value: NewFunction(&RawEntityType{}, NewBasicType(ast.Number)),
 	},
 	"GetAllEntities": {
-		Name:    "GetAllEntities",
-		Value:   NewFunction().WithReturns(NewWrapperType(NewBasicType(ast.List), &RawEntityType{})),
+		Name:  "GetAllEntities",
+		Value: NewFunction().WithReturns(NewWrapperType(NewBasicType(ast.List), &RawEntityType{})),
 	},
 	"GetEntitiesCollidingWithDisk": {
-		Name:    "GetEntitiesCollidingWithDisk",
-		Value:   NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)).WithReturns(NewWrapperType(NewBasicType(ast.List), &RawEntityType{})),
+		Name:  "GetEntitiesCollidingWithDisk",
+		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)).WithReturns(NewWrapperType(NewBasicType(ast.List), &RawEntityType{})),
 	},
 	"GetEntitiesInRadius": {
-		Name:    "GetEntitiesInRadius",
-		Value:   NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)).WithReturns(NewWrapperType(NewBasicType(ast.List), &RawEntityType{})),
+		Name:  "GetEntitiesInRadius",
+		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)).WithReturns(NewWrapperType(NewBasicType(ast.List), &RawEntityType{})),
 	},
 	"GetEntityCount": {
-		Name:    "GetEntityCount",
-		Value:   NewFunction(NewEnumType("Pewpew", "EntityType")).WithReturns(NewBasicType(ast.Number)),
+		Name:  "GetEntityCount",
+		Value: NewFunction(NewEnumType("Pewpew", "EntityType")).WithReturns(NewBasicType(ast.Number)),
 	},
 	"GetEntityType": {
-		Name:    "GetEntityType",
-		Value:   NewFunction(&RawEntityType{}).WithReturns(NewEnumType("Pewpew", "EntityType")),
+		Name:  "GetEntityType",
+		Value: NewFunction(&RawEntityType{}).WithReturns(NewEnumType("Pewpew", "EntityType")),
 	},
 	"PlayAmbientSound": {
-		Name:    "PlayAmbientSound",
-		Value:   NewFunction(NewPathType(ast.SoundEnv), NewBasicType(ast.Number)),
+		Name:  "PlayAmbientSound",
+		Value: NewFunction(NewPathType(ast.SoundEnv), NewBasicType(ast.Number)),
 	},
 	"PlaySound": {
-		Name:    "PlaySound",
-		Value:   NewFunction(NewPathType(ast.SoundEnv), NewBasicType(ast.Number), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)),
+		Name:  "PlaySound",
+		Value: NewFunction(NewPathType(ast.SoundEnv), NewBasicType(ast.Number), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)),
 	},
 	"CreateExplosion": {
-		Name:    "CreateExplosion",
-		Value:   NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewBasicType(ast.Number), NewFixedPointType(ast.Fixed), NewBasicType(ast.Number)),
+		Name:  "CreateExplosion",
+		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewBasicType(ast.Number), NewFixedPointType(ast.Fixed), NewBasicType(ast.Number)),
 	},
 	"NewAsteroid": {
-		Name:    "NewAsteroid",
-		Value:   NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)).WithReturns(&RawEntityType{}),
+		Name:  "NewAsteroid",
+		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)).WithReturns(&RawEntityType{}),
 	},
 	"NewAsteroidWithSize": {
-		Name:    "NewAsteroidWithSize",
-		Value:   NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewBasicType(ast.Number)).WithReturns(&RawEntityType{}),
+		Name:  "NewAsteroidWithSize",
+		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewBasicType(ast.Number)).WithReturns(&RawEntityType{}),
 	},
 	"NewYellowBaf": {
-		Name:    "NewYellowBaf",
-		Value:   NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Degree), NewFixedPointType(ast.Fixed), NewBasicType(ast.Number)).WithReturns(&RawEntityType{}),
+		Name:  "NewYellowBaf",
+		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Degree), NewFixedPointType(ast.Fixed), NewBasicType(ast.Number)).WithReturns(&RawEntityType{}),
 	},
 	"NewRedBaf": {
-		Name:    "NewRedBaf",
-		Value:   NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Degree), NewFixedPointType(ast.Fixed), NewBasicType(ast.Number)).WithReturns(&RawEntityType{}),
+		Name:  "NewRedBaf",
+		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Degree), NewFixedPointType(ast.Fixed), NewBasicType(ast.Number)).WithReturns(&RawEntityType{}),
 	},
 	"NewBlueBaf": {
-		Name:    "NewBlueBaf",
-		Value:   NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Degree), NewFixedPointType(ast.Fixed), NewBasicType(ast.Number)).WithReturns(&RawEntityType{}),
+		Name:  "NewBlueBaf",
+		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Degree), NewFixedPointType(ast.Fixed), NewBasicType(ast.Number)).WithReturns(&RawEntityType{}),
 	},
 	"NewBomb": {
-		Name:    "NewBomb",
-		Value:   NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewEnumType("Pewpew", "BonusType")).WithReturns(&RawEntityType{}),
+		Name:  "NewBomb",
+		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewEnumType("Pewpew", "BonusType")).WithReturns(&RawEntityType{}),
 	},
 	"NewBonus": { // let's intergrate this with the walker now
 		Name: "NewBonus",
@@ -310,8 +310,8 @@ var PewpewVariables = map[string]*VariableVal{
 		}, true)).WithReturns(&RawEntityType{}),
 	},
 	"NewCrowder": {
-		Name:    "NewCrowder",
-		Value:   NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)).WithReturns(&RawEntityType{}),
+		Name:  "NewCrowder",
+		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)).WithReturns(&RawEntityType{}),
 	},
 	"NewFloatingMessage": {
 		Name: "NewFloatingMessage",
@@ -332,16 +332,16 @@ var PewpewVariables = map[string]*VariableVal{
 	},
 
 	"NewEntity": {
-		Name:    "NewEntity",
-		Value:   NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)).WithReturns(&RawEntityType{}),
+		Name:  "NewEntity",
+		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)).WithReturns(&RawEntityType{}),
 	},
 	"NewInertiac": {
-		Name:    "NewInertiac",
-		Value:   NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Degree)),
+		Name:  "NewInertiac",
+		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Degree)),
 	},
 	"NewMothership": {
-		Name:    "NewMothership",
-		Value:   NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewEnumType("Pewpew", "MothershipType"), NewFixedPointType(ast.Degree)).WithReturns(&RawEntityType{}),
+		Name:  "NewMothership",
+		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewEnumType("Pewpew", "MothershipType"), NewFixedPointType(ast.Degree)).WithReturns(&RawEntityType{}),
 	},
 	"NewPointonium": {
 		Name:  "NewPointonium",
@@ -483,7 +483,7 @@ var PewpewVariables = map[string]*VariableVal{
 				Name:  "scale_x_start",
 				Value: &FixedVal{SpecificType: ast.Fixed},
 			},
-			 {
+			{
 				Name:  "scale_x_end",
 				Value: &FixedVal{SpecificType: ast.Fixed},
 			},
@@ -518,7 +518,7 @@ var PewpewVariables = map[string]*VariableVal{
 		Value: NewFunction(&RawEntityType{}, NewBasicType(ast.Bool), NewFunctionType(Types{NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)}, Types{})),
 	},
 	"SetEntityWallCollision": {
-		Name: "SetEntityWallCollision",
+		Name:  "SetEntityWallCollision",
 		Value: NewFunction(&RawEntityType{}, NewBasicType(ast.Bool)),
 	},
 	"SetEntityPlayerCollision": {

@@ -11,7 +11,7 @@ func (p *Parser) createBinExpr(left ast.Node, operator tokens.Token, tokenType t
 	valueType := p.determineValueType(left, right)
 	return &ast.BinaryExpr{
 		Left:      left,
-		Operator:  tokens.NewToken(tokenType, lexeme, "", operator.Position),
+		Operator:  tokens.NewToken(tokenType, lexeme, "", operator.Location),
 		Right:     right,
 		ValueType: valueType,
 	}
@@ -162,24 +162,36 @@ func (p *Parser) functionReturns() *ast.TypeExpr {
 	return p.typeExpr()
 }
 
-func (p *Parser) identifiers(typeContext string, allowTrailing bool) ([]tokens.Token, bool) {
-	idents := []tokens.Token{}
-
-	ident, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), typeContext), tokens.Identifier)
-	if !ok {
-		return idents, false
+func (p *Parser) identifier(typeContext string) *ast.IdentifierExpr {
+	expr := p.expression()
+	if expr.GetType() == ast.Identifier {
+		return expr.(*ast.IdentifierExpr)
 	}
+	p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(expr.GetToken()), typeContext)
 
-	idents = append(idents, ident)
+	return nil
+}
+
+// bool tells you if the parsing succeeded
+func (p *Parser) identifiers(typeContext string, allowTrailing bool) ([]*ast.IdentifierExpr, bool) {
+	idents := []*ast.IdentifierExpr{}
+	ok := true
+
+	ident := p.identifier(typeContext)
+	if ident == nil {
+		idents = append(idents, ident)
+		ok = false
+	}
 
 	for p.match(tokens.Comma) {
 		if !p.check(tokens.Identifier) && allowTrailing {
 			return idents, true
 		}
 
-		ident, ok = p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), typeContext), tokens.Identifier)
-		if !ok {
-			return idents, false
+		ident := p.identifier(typeContext)
+		if ident == nil {
+			ok = false
+			continue
 		}
 
 		idents = append(idents, ident)
@@ -188,26 +200,31 @@ func (p *Parser) identifiers(typeContext string, allowTrailing bool) ([]tokens.T
 	return idents, ok
 }
 
+// bool tells you if the parsing was successful or not
 func (p *Parser) expressions(typeContext string) ([]ast.Node, bool) {
 	exprs := []ast.Node{}
 	expr := p.expression()
-	if ast.IsImproper(expr, ast.NA) {
+	success := true
+	if expr.GetType() == ast.NA {
 		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()), typeContext)
-		return exprs, false
+		success = false
+	} else {
+		exprs = append(exprs, expr)
 	}
-	exprs = append(exprs, expr)
 	for p.match(tokens.Comma) {
 		expr := p.expression()
-		if ast.IsImproper(expr, ast.NA) {
-			return exprs, false
+		if expr.GetType() == ast.NA {
+			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()), typeContext)
+			success = false
+			continue
 		}
 		exprs = append(exprs, expr)
 	}
 
-	return exprs, true
+	return exprs, success
 }
 
-func (p *Parser) identExprPairs(typeContext string, optional bool) ([]tokens.Token, []ast.Node, bool) {
+func (p *Parser) identExprPairs(typeContext string, optional bool) ([]*ast.IdentifierExpr, []ast.Node, bool) {
 	idents, ok := p.identifiers(typeContext, false)
 	if !ok {
 		return nil, nil, ok
@@ -243,11 +260,11 @@ func (p *Parser) typeAndIdentifier() (*ast.TypeExpr, ast.Node) {
 
 func (p *Parser) checkType() (*ast.TypeExpr, bool) {
 	currentStart := p.current
-	p.Context.IgnoreAlerts.Push("CheckType", true)
+	p.context.IgnoreAlerts.Push("CheckType", true)
 
 	typeExpr := p.typeExpr()
 
-	p.Context.IgnoreAlerts.Pop("CheckType")
+	p.context.IgnoreAlerts.Pop("CheckType")
 	valid := typeExpr != nil && typeExpr.Name.GetType() != ast.NA
 	if !valid {
 		p.disadvance(p.current - currentStart)
@@ -256,11 +273,12 @@ func (p *Parser) checkType() (*ast.TypeExpr, bool) {
 	return typeExpr, valid
 }
 
+// Bool indicates whether it got a valid body or not; the success of the function
 func (p *Parser) body(allowSingleSatement, allowArrow bool) ([]ast.Node, bool) {
 	body := make([]ast.Node, 0)
 	if p.match(tokens.FatArrow) && allowArrow {
-		if p.Context.FunctionReturns.Top().Item > 0 {
-			args, ok := p.returnArgs()
+		if p.context.FunctionReturns.Top().Item > 0 {
+			args, ok := p.expressions("in fat arrow return arguments")
 			if !ok {
 				p.Alert(&alerts.ExpectedReturnArgs{}, alerts.NewSingle(p.peek()))
 				return []ast.Node{}, false

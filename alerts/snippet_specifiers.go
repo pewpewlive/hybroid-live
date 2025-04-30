@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-type SnippetSpecifier interface {
+type Snippet interface {
 	GetSnippet(src string, index, columnCount, lineCount int) string
 	GetTokens() []tokens.Token
 }
@@ -25,7 +25,7 @@ func NewSingle(token tokens.Token) *Singleline {
 func (ss *Singleline) GetSnippet(src string, index, columnCount, lineCount int) string {
 	snippet := strings.Builder{} // how are we getting the error line then
 	line := src[index-columnCount+1 : index]
-	loc := ss.Token.TokenLocation
+	loc := ss.Token.Location
 	if loc.Column.Start > 80 { // ok
 		var content string
 		short := false
@@ -71,17 +71,17 @@ type Multiline struct {
 func (ml *Multiline) GetSnippet(src string, index, columnCount, lineCount int) string {
 	snippet := strings.Builder{}
 	first_line := src[index-columnCount+1 : index-1]
-	startLoc := ml.StartToken.TokenLocation
-	endLoc := ml.EndToken.TokenLocation
+	startLoc := ml.StartToken.Location
+	endLoc := ml.EndToken.Location
 
 	diff := startLoc.Line.End - endLoc.Line.Start
 
 	if diff == 0 {
-		singleline := NewSingle(tokens.Token{TokenLocation: tokens.NewLocation(
+		singleline := NewSingle(tokens.Token{Location: tokens.NewLocation(
 			startLoc.Line.Start,
 			startLoc.Line.End,
 			startLoc.Column.Start,
-			endLoc.Column.End, 0, 0)})
+			endLoc.Column.End)})
 
 		return singleline.GetSnippet(src, index, columnCount, lineCount)
 	}

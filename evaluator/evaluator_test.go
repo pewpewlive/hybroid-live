@@ -1,7 +1,6 @@
 package evaluator
 
 import (
-	"hybroid/generator"
 	"hybroid/helpers"
 	"os"
 	"strings"
@@ -13,7 +12,6 @@ var cwd = ""
 var testFolderName = ""
 
 func newEval(t *testing.T) {
-	eval := NewEvaluator(generator.Generator{})
 
 	cwd, _ = os.Getwd()
 
@@ -24,9 +22,7 @@ func newEval(t *testing.T) {
 		t.FailNow()
 	}
 
-	for _, file := range files {
-		eval.AssignFile(file)
-	}
+	eval := NewEvaluator(files)
 
 	evalErr := eval.Action(cwd+testsFolder+testFolderName, "/gen")
 	if evalErr != nil {

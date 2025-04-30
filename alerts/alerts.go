@@ -11,11 +11,11 @@ import (
 	color "github.com/mitchellh/colorstring"
 )
 
-type AlertStage int
+type Stage int
 
 const (
 	// Syntax error
-	Lexer AlertStage = iota
+	Lexer Stage = iota
 	Parser
 
 	// Compile error
@@ -23,10 +23,10 @@ const (
 	Eval
 )
 
-type AlertType int
+type Type int
 
 const (
-	Error AlertType = iota
+	Error Type = iota
 	Warning
 )
 
@@ -40,10 +40,10 @@ TODO: add fix snippet
 
 type Alert interface {
 	GetMessage() string
-	GetSpecifier() SnippetSpecifier
+	GetSpecifier() Snippet
 	GetNote() string
 	GetID() string
-	GetAlertType() AlertType
+	GetAlertType() Type
 }
 
 type AlertHandler struct {
@@ -117,7 +117,7 @@ func (ah *AlertHandler) AlertI_(alertType Alert) {
 	ah.Alerts = append(ah.Alerts, alertType)
 }
 
-func (ah *AlertHandler) PrintAlerts(alertStage AlertStage, sourcePath string) {
+func (ah *AlertHandler) PrintAlerts(alertStage Stage, sourcePath string) {
 	//FIXME: ah.Source = source
 
 	var errMsg string
@@ -149,7 +149,7 @@ func (ah *AlertHandler) printMessage(alert Alert) {
 }
 
 func (ah *AlertHandler) printLocation(alert Alert, file string) {
-	location := combineLocations(alert.GetSpecifier().GetTokens())
+	location, _ := combineLocations(alert.GetSpecifier().GetTokens())
 	color.Printf("%s:%d:%d\n", file, location.Start, location.Start)
 }
 
@@ -157,7 +157,7 @@ func (ah *AlertHandler) printCodeSnippet(alert Alert) {
 	lineCount := 1
 	columnCount := 0
 	specifier := alert.GetSpecifier()
-	location := combineLocations(specifier.GetTokens())
+	location, _ := combineLocations(specifier.GetTokens())
 
 	for i := 0; i < len(ah.Source); i++ {
 		columnCount += 1
@@ -185,27 +185,35 @@ func (ah *AlertHandler) printNote(alert Alert) {
 	fmt.Print("\n")
 }
 
-func combineLocations(tks []tokens.Token) helpers.Span[int] {
+func combineLocations(tks []tokens.Token) (helpers.Span[int], helpers.Span[int]) {
 	if len(tks) == 0 {
-		return helpers.Span[int]{}
+		return helpers.Span[int]{}, helpers.Span[int]{}
 	}
-	location := tks[0].Position
+	line := tks[0].Line
+	column := tks[0].Column
 
 	for i, v := range tks {
-		loc := v.Position
+		otherLine := v.Line
+		otherColumn := v.Column
 		if i == 0 {
 			continue
 		}
 
-		if loc.Start < location.Start {
-			location.Start = loc.Start
+		if otherLine.Start < line.Start {
+			line.Start = otherLine.Start
 		}
-		if loc.End > location.End {
-			location.End = loc.End
+		if otherLine.End > line.End {
+			line.End = otherLine.End
+		}
+		if otherColumn.Start < column.Start {
+			column.Start = otherColumn.Start
+		}
+		if otherColumn.End > column.End {
+			column.End = otherColumn.End
 		}
 	}
 
-	return location
+	return line, column
 }
 
 func (ah *AlertHandler) getCodeSnippet(location helpers.Span[int]) string {

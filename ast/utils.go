@@ -24,7 +24,7 @@ func DrawNodes(nodes []Node) {
 		fmt.Print(err.Error())
 	}
 
-	writeErr := os.WriteFile(cwd+"/astdebug.json", out, 0644)
+	writeErr := os.WriteFile(cwd+"/astdebug.json", out, os.ModePerm)
 
 	if writeErr != nil {
 		fmt.Print(err.Error())

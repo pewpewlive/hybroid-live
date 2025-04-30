@@ -9,7 +9,7 @@ import (
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ExpectedPaarenthesissss struct {
-  Specifier SnippetSpecifier
+  Specifier Snippet
   Symbol string
 }
 
@@ -17,7 +17,7 @@ func (ep *ExpectedPaarenthesissss) GetMessage() string {
   return fmt.Sprintf("Expected '%s'", ep.Symbol)
 }
 
-func (ep *ExpectedPaarenthesissss) GetSpecifier() SnippetSpecifier {
+func (ep *ExpectedPaarenthesissss) GetSpecifier() Snippet {
   return ep.Specifier
 }
 
@@ -26,10 +26,10 @@ func (ep *ExpectedPaarenthesissss) GetNote() string {
 }
 
 func (ep *ExpectedPaarenthesissss) GetID() string {
-  return "hyb001c"
+  return "hyb001G"
 }
 
-func (ep *ExpectedPaarenthesissss) GetAlertType() AlertType {
+func (ep *ExpectedPaarenthesissss) GetAlertType() Type {
   return Error
 }
 

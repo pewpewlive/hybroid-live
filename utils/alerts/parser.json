@@ -52,9 +52,9 @@
     "message_format": ["Symbol", "Context"]
   },
   {
-    "name": "MoreThanOneElseStatement",
+    "name": "MoreThanOneElseBlock",
     "type": "Error",
-    "message": "cannot have more than one else statement in an if statement"
+    "message": "cannot have more than one else block in an if statement"
   },
   {
     "name": "MoreThanOneConstructor",
@@ -69,6 +69,12 @@
     },
     "message": "cannot have more than one %s in entity declaration",
     "message_format": ["FunctionType"]
+  },
+  {
+    "name": "MultipleIdentifiersInCompoundAssignment",
+    "type": "Error",
+    "message": "cannot have more than one left-hand identifier in a compound assignment",
+    "note": "compound assignments include +=, -=, *=, /=, etc."
   },
   {
     "name": "ReturnsInConstructor",
