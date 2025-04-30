@@ -31,16 +31,14 @@ func (p *Parser) getFunctionParam(previous *ast.TypeExpr, closing tokens.TokenTy
 	if peekType == tokens.Identifier {
 		functionParam.Name = p.advance()
 		functionParam.Type = typeExpr
-	} else if peekType == tokens.Comma || peekType == closing {
-		if typeExpr.Name.GetType() == ast.Identifier && previous != nil {
-			functionParam.Name = typeExpr.Name.GetToken()
-		} else {
-			functionParam.Name = typeExpr.GetToken()
-		}
-	} else {
-		functionParam.Name = p.advance()
+		return functionParam
 	}
-
+	if typeExpr.Name.GetType() == ast.Identifier {
+		functionParam.Name = typeExpr.Name.GetToken()
+		functionParam.Type = nil
+	} else {
+		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(typeExpr.GetToken()), "in parameters")
+	}
 	return functionParam
 }
 
@@ -54,33 +52,33 @@ func (p *Parser) functionParams(opening tokens.TokenType, closing tokens.TokenTy
 
 	var args []ast.FunctionParam
 	if p.match(closing) {
-		args = make([]ast.FunctionParam, 0)
+		return args
+
+	}
+	var previous *ast.TypeExpr
+	param := p.getFunctionParam(nil, closing)
+	if param.Type == nil {
+		p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(param.Name))
 	} else {
-		var previous *ast.TypeExpr
-		param := p.getFunctionParam(nil, closing)
+		previous = param.Type
+	}
+	args = append(args, param)
+	for p.match(tokens.Comma) {
+		param := p.getFunctionParam(previous, closing)
 		if param.Type == nil {
-			p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(param.Name))
+			if len(args) == 0 {
+				p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(p.peek(-1)))
+			} else {
+				param.Type = previous
+			}
 		} else {
 			previous = param.Type
 		}
 		args = append(args, param)
-		for p.match(tokens.Comma) {
-			param := p.getFunctionParam(previous, closing)
-			if param.Type == nil {
-				if len(args) == 0 {
-					p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(p.peek(-1)))
-				} else {
-					param.Type = previous
-				}
-			} else {
-				previous = param.Type
-			}
-			args = append(args, param)
-		}
-		_, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(open, p.peek()), closing), closing)
-		if !ok {
-			p.panic()
-		}
+	}
+	_, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(open, p.peek()), closing), closing)
+	if !ok {
+		p.panic()
 	}
 
 	return args
@@ -179,8 +177,9 @@ func (p *Parser) identifiers(typeContext string, allowTrailing bool) ([]*ast.Ide
 
 	ident := p.identifier(typeContext)
 	if ident == nil {
-		idents = append(idents, ident)
 		ok = false
+	} else {
+		idents = append(idents, ident)
 	}
 
 	for p.match(tokens.Comma) {

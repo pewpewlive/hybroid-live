@@ -111,6 +111,7 @@ func (p *Parser) Parse() []ast.Node {
 		}
 		if statement.GetType() != ast.NA {
 			p.program = append(p.program, statement)
+			continue
 		}
 	}
 

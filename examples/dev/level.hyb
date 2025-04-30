@@ -6,8 +6,88 @@ class A {
   new() {
 
   }
-  
-  new() {
+}
+
+entity B {
+  spawn(fixed x, y) {
 
   }
+
+  destroy() {
+
+  }
+}
+
+enum bizz {
+  bazz,
+  foo,
+  yeah,
+}
+
+let thing = spawn B(100fx, 100fx)
+
+tick {
+  if true {
+
+  }else if false {
+
+  }else {
+    destroy thing()
+  }
+}
+
+
+tick with i {
+  
+}
+
+let list = [1,2,3]
+
+for i, v in list {
+  list[i] = i*3
+}
+
+let map = {a = 0, b = 3}
+
+for k, v in map {
+  map[k] = v
+}
+
+repeat 10 {
+
+}
+
+repeat to 10 {
+
+}
+
+repeat to 10 from 3 by 2 {
+  
+}
+
+repeat from 0 to 10 by 5 with i {
+
+}
+
+while true {
+
+}
+
+fn func(number a) -> (number, number) {
+  if a > 0 {
+    return a, a*2
+  }else if a == 0 {
+    return a*2, a*2
+  }
+
+  return 0, 0
+}
+
+let number b, c = func(1)
+
+match b {
+  1 => {
+
+  }
+  else => func(1)
 }

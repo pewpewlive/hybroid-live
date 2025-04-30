@@ -165,27 +165,27 @@ func (es *ExpectedSymbol) GetAlertType() Type {
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type MoreThanOneElseStatement struct {
+type MoreThanOneElseBlock struct {
   Specifier Snippet
 }
 
-func (mtoes *MoreThanOneElseStatement) GetMessage() string {
-  return "cannot have more than one else statement in an if statement"
+func (mtoeb *MoreThanOneElseBlock) GetMessage() string {
+  return "cannot have more than one else block in an if statement"
 }
 
-func (mtoes *MoreThanOneElseStatement) GetSpecifier() Snippet {
-  return mtoes.Specifier
+func (mtoeb *MoreThanOneElseBlock) GetSpecifier() Snippet {
+  return mtoeb.Specifier
 }
 
-func (mtoes *MoreThanOneElseStatement) GetNote() string {
+func (mtoeb *MoreThanOneElseBlock) GetNote() string {
   return ""
 }
 
-func (mtoes *MoreThanOneElseStatement) GetID() string {
+func (mtoeb *MoreThanOneElseBlock) GetID() string {
   return "hyb007P"
 }
 
-func (mtoes *MoreThanOneElseStatement) GetAlertType() Type {
+func (mtoeb *MoreThanOneElseBlock) GetAlertType() Type {
   return Error
 }
 
@@ -769,6 +769,106 @@ func (ir *IteratorRedefinition) GetID() string {
 }
 
 func (ir *IteratorRedefinition) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type ElseIfBlockAfterElseBlock struct {
+  Specifier Snippet
+}
+
+func (eibaeb *ElseIfBlockAfterElseBlock) GetMessage() string {
+  return "cannot have an else if block after an else block"
+}
+
+func (eibaeb *ElseIfBlockAfterElseBlock) GetSpecifier() Snippet {
+  return eibaeb.Specifier
+}
+
+func (eibaeb *ElseIfBlockAfterElseBlock) GetNote() string {
+  return ""
+}
+
+func (eibaeb *ElseIfBlockAfterElseBlock) GetID() string {
+  return "hyb031P"
+}
+
+func (eibaeb *ElseIfBlockAfterElseBlock) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type MoreThanOneDefaultCase struct {
+  Specifier Snippet
+}
+
+func (mtodc *MoreThanOneDefaultCase) GetMessage() string {
+  return "cannot have more than one default case in match statement"
+}
+
+func (mtodc *MoreThanOneDefaultCase) GetSpecifier() Snippet {
+  return mtodc.Specifier
+}
+
+func (mtodc *MoreThanOneDefaultCase) GetNote() string {
+  return ""
+}
+
+func (mtodc *MoreThanOneDefaultCase) GetID() string {
+  return "hyb032P"
+}
+
+func (mtodc *MoreThanOneDefaultCase) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InsufficientCases struct {
+  Specifier Snippet
+}
+
+func (ic *InsufficientCases) GetMessage() string {
+  return "must have at least 2 cases with one being a default case in match statement"
+}
+
+func (ic *InsufficientCases) GetSpecifier() Snippet {
+  return ic.Specifier
+}
+
+func (ic *InsufficientCases) GetNote() string {
+  return ""
+}
+
+func (ic *InsufficientCases) GetID() string {
+  return "hyb033P"
+}
+
+func (ic *InsufficientCases) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type DefaultCaseMissing struct {
+  Specifier Snippet
+}
+
+func (dcm *DefaultCaseMissing) GetMessage() string {
+  return "match statement must have 1 default case"
+}
+
+func (dcm *DefaultCaseMissing) GetSpecifier() Snippet {
+  return dcm.Specifier
+}
+
+func (dcm *DefaultCaseMissing) GetNote() string {
+  return "default cases start with 'else'"
+}
+
+func (dcm *DefaultCaseMissing) GetID() string {
+  return "hyb034P"
+}
+
+func (dcm *DefaultCaseMissing) GetAlertType() Type {
   return Error
 }
 

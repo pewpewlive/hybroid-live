@@ -80,18 +80,22 @@ func (p *Parser) statement() (returnNode ast.Node) {
 	}
 
 	returnNode = p.expressionStatement()
+	if returnNode.GetType() == ast.NA {
+		p.advance()
+	}
 	return
 }
 
 func (p *Parser) expressionStatement() ast.Node {
 	expr := p.expression()
 
-	if expr.GetType() == ast.Identifier || expr.GetType() == ast.EnvironmentAccessExpression {
+	if expr.GetType() == ast.Identifier || expr.GetType() == ast.EnvironmentAccessExpression ||
+		expr.GetType() == ast.MemberExpression || expr.GetType() == ast.FieldExpression {
 		return p.assignmentStmt(expr)
 	}
 
 	typ := expr.GetType()
-	if typ != ast.CallExpression && typ != ast.MethodCallExpression {
+	if typ != ast.CallExpression && typ != ast.MethodCallExpression && typ != ast.SpawnExpression && typ != ast.NewExpession {
 		return ast.NewImproper(expr.GetToken(), ast.NA)
 	}
 
@@ -134,11 +138,14 @@ func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) *ast.IfS
 	for p.match(tokens.Else) {
 		var ifbody *ast.IfStmt
 		if p.match(tokens.If) {
+			if else_exists {
+				p.Alert(&alerts.ElseIfBlockAfterElseBlock{}, alerts.NewSingle(p.peek(-1)))
+			}
 			ifbody = p.ifStmt(else_exists, false, true)
 			ifStmt.Elseifs = append(ifStmt.Elseifs, ifbody)
 		} else {
 			if else_exists {
-				p.Alert(&alerts.MoreThanOneElseStatement{}, alerts.NewSingle(p.peek(-1)))
+				p.Alert(&alerts.MoreThanOneElseBlock{}, alerts.NewSingle(p.peek(-1)))
 			}
 			else_exists = true
 			ifbody = p.ifStmt(else_exists, true, false)
@@ -245,11 +252,13 @@ func (p *Parser) repeatStmt() ast.Node {
 		Token: p.peek(-1),
 	}
 
+	i := 0
 outer:
-	for range 4 {
+	for {
 		token := p.peek()
 		switch token.Type {
 		case tokens.With:
+			p.advance()
 			identExpr := p.expression()
 			if identExpr.GetType() != ast.Identifier {
 				p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(identExpr.GetToken()), "after keyword 'with'")
@@ -261,6 +270,7 @@ outer:
 			}
 			repeatStmt.Variable = identExpr.(*ast.IdentifierExpr)
 		case tokens.To:
+			p.advance()
 			it := p.expression()
 			if repeatStmt.Iterator != nil {
 				p.Alert(&alerts.IteratorRedefinition{}, alerts.NewSingle(p.peek(-1)), "in repeat statement")
@@ -268,6 +278,7 @@ outer:
 			}
 			repeatStmt.Iterator = it
 		case tokens.By:
+			p.advance()
 			skip := p.expression()
 			if repeatStmt.Skip != nil {
 				p.Alert(&alerts.DuplicateKeyword{}, alerts.NewSingle(p.peek(-1)), tokens.By)
@@ -275,6 +286,7 @@ outer:
 			}
 			repeatStmt.Skip = skip
 		case tokens.From:
+			p.advance()
 			start := p.expression()
 			if repeatStmt.Start != nil {
 				p.Alert(&alerts.DuplicateKeyword{}, alerts.NewSingle(p.peek(-1)), tokens.From)
@@ -283,8 +295,12 @@ outer:
 		case tokens.LeftBrace:
 			break outer
 		default:
+			if i != 0 {
+				break outer
+			}
 			repeatStmt.Iterator = p.expression()
 		}
+		i += 1
 	}
 
 	if repeatStmt.Iterator == nil {
@@ -295,7 +311,7 @@ outer:
 	var success bool
 	repeatStmt.Body, success = p.body(false, false)
 	if !success {
-		return ast.NewImproper(repeatStmt.Token, ast.NA)
+		return ast.NewImproper(repeatStmt.Token, ast.RepeatStatement)
 	}
 
 	return &repeatStmt
@@ -380,22 +396,133 @@ func (p *Parser) tickStmt() ast.Node {
 	}
 
 	var success bool
-	tickStmt.Body, success = p.body(true, true)
+	tickStmt.Body, success = p.body(false, false)
 	if !success {
-		return ast.NewImproper(tickStmt.Token, ast.NA)
+		return ast.NewImproper(tickStmt.Token, ast.TickStatement)
 	}
 
 	return &tickStmt
 }
 
 func (p *Parser) useStmt() ast.Node {
-	return nil
+	useStmt := ast.UseStmt{}
+
+	filepath := p.envPathExpr()
+	if filepath.GetType() != ast.EnvironmentPathExpression {
+		p.Alert(&alerts.ExpectedEnvironmentPathExpression{}, alerts.NewMulti(filepath.GetToken(), p.peek()))
+		return ast.NewImproper(p.peek(), ast.UseStatement)
+	}
+	useStmt.Path = filepath.(*ast.EnvPathExpr)
+
+	return &useStmt
 }
 
 func (p *Parser) matchStmt(isExpr bool) *ast.MatchStmt {
-	return nil
+	matchStmt := ast.MatchStmt{
+		Token: p.peek(-1),
+	}
+
+	matchStmt.ExprToMatch = p.expression()
+
+	start, _ := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
+
+	caseStmts, stop := p.caseStmt(isExpr)
+	for !stop {
+		matchStmt.Cases = append(matchStmt.Cases, caseStmts...)
+		caseStmts, stop = p.caseStmt(isExpr)
+		for i := range caseStmts {
+			if caseStmts[i].Expression.GetToken().Lexeme == "else" {
+				if matchStmt.HasDefault {
+					p.Alert(&alerts.MoreThanOneDefaultCase{}, alerts.NewSingle(caseStmts[i].Expression.GetToken()))
+					continue
+				}
+				matchStmt.HasDefault = true
+			}
+			matchStmt.Cases = append(matchStmt.Cases, caseStmts[i])
+		}
+	}
+
+	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek()), tokens.RightBrace), tokens.RightBrace)
+
+	if len(matchStmt.Cases) < 2 {
+		p.Alert(&alerts.InsufficientCases{}, alerts.NewMulti(matchStmt.Token, p.peek(-1)))
+	} else if !matchStmt.HasDefault {
+		p.Alert(&alerts.DefaultCaseMissing{}, alerts.NewMulti(matchStmt.Token, p.peek(-1)))
+	}
+
+	return &matchStmt
 }
 
 func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
-	return nil, false
+	caseStmts := []ast.CaseStmt{}
+
+	caseStmt := ast.CaseStmt{}
+	if p.match(tokens.Else) {
+		caseStmt.Expression = &ast.IdentifierExpr{
+			Name:      p.peek(-1),
+			ValueType: ast.Object,
+		}
+	} else {
+		caseStmt.Expression = p.expression()
+	}
+	if caseStmt.Expression.GetType() == ast.NA {
+		return caseStmts, true
+	}
+	caseStmts = append(caseStmts, caseStmt)
+	for p.match(tokens.Comma) {
+		caseStmt.Expression = p.expression()
+		caseStmts = append(caseStmts, caseStmt)
+		if caseStmt.Expression.GetType() == ast.NA {
+			return caseStmts, true
+		}
+	}
+
+	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.FatArrow), tokens.FatArrow)
+
+	if p.check(tokens.LeftBrace) {
+		body, _ := p.body(true, false)
+		for i := range caseStmts { // "hello" =>
+			caseStmts[i].Body = body
+		}
+		if p.check(tokens.RightBrace) {
+			return caseStmts, true
+		}
+
+		return caseStmts, false
+	}
+	expr := p.expression()
+	if expr.GetType() == ast.NA {
+		p.Alert(&alerts.ExpectedExpressionOrBody{}, alerts.NewSingle(p.peek()))
+	}
+	args := []ast.Node{expr}
+	for p.match(tokens.Comma) {
+		expr = p.expression()
+		if expr.GetType() == ast.NA {
+			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()))
+		}
+		args = append(args, expr)
+	}
+
+	var node ast.Node
+	if isExpr {
+		node = &ast.YieldStmt{
+			Args:  args,
+			Token: expr.GetToken(),
+		}
+	} else {
+		node = &ast.ReturnStmt{
+			Args:  args,
+			Token: expr.GetToken(),
+		}
+	}
+
+	body := []ast.Node{node}
+	for i := range caseStmts {
+		caseStmts[i].Body = body
+	}
+	if p.check(tokens.RightBrace) {
+		return caseStmts, true
+	}
+
+	return caseStmts, false
 }

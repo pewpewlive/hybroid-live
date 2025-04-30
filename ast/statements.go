@@ -85,6 +85,7 @@ type CaseStmt struct {
 }
 
 type MatchStmt struct {
+	Token       tokens.Token
 	ExprToMatch Node
 	Cases       []CaseStmt
 	HasDefault  bool
@@ -99,7 +100,7 @@ func (ms *MatchStmt) GetValueType() PrimitiveValueType {
 }
 
 func (ms *MatchStmt) GetToken() tokens.Token {
-	return ms.ExprToMatch.GetToken()
+	return ms.Token
 }
 
 type RepeatStmt struct {

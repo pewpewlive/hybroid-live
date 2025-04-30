@@ -36,6 +36,8 @@ func NewEvaluator(files []helpers.FileInformation) Evaluator {
 }
 
 func (e *Evaluator) Action(cwd, outputDir string) error {
+	parsersFailed := []bool{}
+
 	walker.SetupLibraryEnvironments()
 
 	for i := range e.walkerList {
@@ -60,6 +62,13 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		parser := parser.NewParser(tokens)
 		prog := parser.Parse()
 		parser.PrintAlerts(alerts.Parser, sourcePath)
+		parsersFailed = append(parsersFailed, false)
+		for _, v := range parser.Alerts {
+			if v.GetAlertType() == alerts.Error {
+				parsersFailed[i] = true
+				break
+			}
+		}
 		fmt.Printf("Parsing time: %f seconds\n\n", time.Since(start).Seconds())
 
 		// ast.DrawNodes(prog)
@@ -101,6 +110,15 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 	}
 
 	for i, walker := range e.walkerList {
+		cont := false
+		for _, v := range walker.Alerts {
+			if v.GetAlertType() == alerts.Error {
+				cont = true
+			}
+		}
+		if parsersFailed[i] || cont {
+			continue
+		}
 		start := time.Now()
 		fmt.Println("Generating the lua code...")
 

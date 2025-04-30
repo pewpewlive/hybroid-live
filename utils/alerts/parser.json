@@ -202,5 +202,26 @@
     },
     "message": "redefinition of iterator %s",
     "message_format": ["Context"]
+  },
+  {
+    "name": "ElseIfBlockAfterElseBlock",
+    "type": "Error",
+    "message":"cannot have an else if block after an else block"
+  },
+  {
+    "name": "MoreThanOneDefaultCase",
+    "type": "Error",
+    "message": "cannot have more than one default case in match statement"
+  },
+  {
+    "name": "InsufficientCases",
+    "type": "Error",
+    "message": "must have at least 2 cases with one being a default case in match statement"
+  },
+  {
+    "name": "DefaultCaseMissing",
+    "type": "Error",
+    "message": "match statement must have 1 default case",
+    "note": "default cases start with 'else'"
   }
 ]
