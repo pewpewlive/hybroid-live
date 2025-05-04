@@ -100,9 +100,12 @@
   {
     "name": "ExpectedType",
     "type": "Error",
-    "message": "expected type",
-    "note": "this needs to be declared with a type. example: number %s",
-    "note_format": ["Specifier.GetTokens()[0].Lexeme"]
+    "params": {
+      "Context": "string `default:\"\"`"
+    },
+    "message": "expected type %s",
+    "message_format": ["Context"],
+    "note": "access expressions are: identifier, environment access, self, member and field expressions"
   },
   {
     "name": "ExpectedAssignmentSymbol",
@@ -206,7 +209,7 @@
   {
     "name": "ElseIfBlockAfterElseBlock",
     "type": "Error",
-    "message":"cannot have an else if block after an else block"
+    "message": "cannot have an else if block after an else block"
   },
   {
     "name": "MoreThanOneDefaultCase",
@@ -216,12 +219,17 @@
   {
     "name": "InsufficientCases",
     "type": "Error",
-    "message": "must have at least 2 cases with one being a default case in match statement"
+    "message": "match statement must have at least 1 case"
   },
   {
     "name": "DefaultCaseMissing",
     "type": "Error",
     "message": "match statement must have 1 default case",
     "note": "default cases start with 'else'"
+  },
+  {
+    "name": "InvalidEnumVariantName",
+    "type": "Error",
+    "message": "enum variant name must be an identifier"
   }
 ]

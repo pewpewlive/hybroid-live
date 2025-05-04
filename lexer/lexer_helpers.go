@@ -96,11 +96,18 @@ func isDigit(r rune) bool {
 	return r >= '0' && r <= '9'
 }
 
-func isHexDigit(r rune) bool {
+func isOctal(r rune) bool {
+	return r >= '0' && r <= '7'
+}
+
+func isBinary(r rune) bool {
+	return r == '0' || r == '1'
+}
+
+func isHex(r rune) bool {
 	return isDigit(r) ||
 		(r >= 'a' && r <= 'f') ||
-		(r >= 'A' && r <= 'F') ||
-		r == '_'
+		(r >= 'A' && r <= 'F')
 }
 
 func isAlphabetical(r rune) bool {

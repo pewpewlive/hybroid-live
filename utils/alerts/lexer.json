@@ -19,6 +19,16 @@
     "message_format": ["Number"]
   },
   {
+    "name": "InvalidDigitInLiteral",
+    "type": "Error",
+    "params": {
+      "Digit": "string",
+      "Literal": "string"
+    },
+    "message": "invalid digit '%s' in %s literal",
+    "message_format": ["Digit", "Literal"]
+  },
+  {
     "name": "InvalidNumberPostfix",
     "type": "Error",
     "params": {

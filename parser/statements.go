@@ -1,30 +1,13 @@
 package parser
 
 import (
-	"fmt"
 	"hybroid/alerts"
 	"hybroid/ast"
 	"hybroid/tokens"
-	"os"
-	"runtime/debug"
 )
 
 func (p *Parser) statement() (returnNode ast.Node) {
 	returnNode = ast.NewImproper(p.peek(), ast.NA)
-
-	defer func() {
-		if errMsg := recover(); errMsg != nil {
-			// If the error is a parseError, synchronize to
-			// the next statement. If not, propagate the panic.
-			if _, ok := errMsg.(ParserError); ok {
-				p.synchronize()
-			} else {
-				fmt.Printf("panic: %s\nstacktrace:\n", errMsg)
-				debug.PrintStack()
-				os.Exit(1)
-			}
-		}
-	}()
 
 	token := p.peek().Type
 
@@ -165,7 +148,7 @@ func (p *Parser) assignmentStmt(expr ast.Node) ast.Node {
 	}
 	values := []ast.Node{}
 	if p.match(tokens.Equal) {
-		exprs, _ := p.expressions("in assignment statement")
+		exprs, _ := p.expressions("in assignment statement", false)
 		return &ast.AssignmentStmt{Identifiers: idents, Values: exprs, Token: p.peek(-1)}
 	}
 	if p.match(tokens.PlusEqual, tokens.MinusEqual, tokens.SlashEqual, tokens.StarEqual, tokens.CaretEqual, tokens.ModuloEqual, tokens.BackSlashEqual) {
@@ -227,7 +210,7 @@ func (p *Parser) returnStmt() ast.Node {
 	}
 
 	if p.context.FunctionReturns.Top().Item != 0 {
-		returnStmt.Args, _ = p.expressions("in return arguments")
+		returnStmt.Args, _ = p.expressions("in return arguments", false)
 	}
 
 	return returnStmt
@@ -242,7 +225,7 @@ func (p *Parser) yieldStmt() ast.Node {
 		return &yieldStmt
 	}
 
-	yieldStmt.Args, _ = p.expressions("in yield statement")
+	yieldStmt.Args, _ = p.expressions("in yield statement", false)
 
 	return &yieldStmt
 }
@@ -444,9 +427,10 @@ func (p *Parser) matchStmt(isExpr bool) *ast.MatchStmt {
 
 	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek()), tokens.RightBrace), tokens.RightBrace)
 
-	if len(matchStmt.Cases) < 2 {
+	if len(matchStmt.Cases) < 1 {
 		p.Alert(&alerts.InsufficientCases{}, alerts.NewMulti(matchStmt.Token, p.peek(-1)))
-	} else if !matchStmt.HasDefault {
+	}
+	if !matchStmt.HasDefault && isExpr {
 		p.Alert(&alerts.DefaultCaseMissing{}, alerts.NewMulti(matchStmt.Token, p.peek(-1)))
 	}
 

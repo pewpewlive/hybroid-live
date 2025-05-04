@@ -25,7 +25,7 @@ func IsFx(valueType ast.PrimitiveValueType) bool {
 func (p *Parser) getFunctionParam(previous *ast.TypeExpr, closing tokens.TokenType) ast.FunctionParam {
 	functionParam := ast.FunctionParam{}
 
-	typeExpr := p.typeExpr()
+	typeExpr := p.typeExpr("in function parameters")
 	peekType := p.peek().Type
 
 	if peekType == tokens.Identifier {
@@ -37,7 +37,7 @@ func (p *Parser) getFunctionParam(previous *ast.TypeExpr, closing tokens.TokenTy
 		functionParam.Name = typeExpr.Name.GetToken()
 		functionParam.Type = nil
 	} else {
-		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(typeExpr.GetToken()), "in parameters")
+		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(typeExpr.GetToken()), "in function parameters")
 	}
 	return functionParam
 }
@@ -47,8 +47,6 @@ func (p *Parser) functionParams(opening tokens.TokenType, closing tokens.TokenTy
 		p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), opening)
 		return []ast.FunctionParam{}
 	}
-
-	open := p.peek(-1)
 
 	var args []ast.FunctionParam
 	if p.match(closing) {
@@ -76,10 +74,7 @@ func (p *Parser) functionParams(opening tokens.TokenType, closing tokens.TokenTy
 		}
 		args = append(args, param)
 	}
-	_, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(open, p.peek()), closing), closing)
-	if !ok {
-		p.panic()
-	}
+	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), closing), closing)
 
 	return args
 }
@@ -102,10 +97,7 @@ func (p *Parser) genericParams() []*ast.IdentifierExpr {
 		}
 	}
 
-	_, ok = p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Greater), tokens.Greater)
-	if !ok {
-		p.panic()
-	}
+	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Greater), tokens.Greater)
 
 	return params
 }
@@ -117,10 +109,10 @@ func (p *Parser) genericArgs() ([]*ast.TypeExpr, bool) {
 		return params, false
 	}
 
-	params = append(params, p.typeExpr())
+	params = append(params, p.typeExpr("in generic arguments"))
 
 	for p.match(tokens.Comma) {
-		params = append(params, p.typeExpr())
+		params = append(params, p.typeExpr("in generic arguments"))
 	}
 
 	if !p.match(tokens.Greater) {
@@ -157,7 +149,7 @@ func (p *Parser) functionReturns() *ast.TypeExpr {
 		return nil
 	}
 
-	return p.typeExpr()
+	return p.typeExpr("in function returns")
 }
 
 func (p *Parser) identifier(typeContext string) *ast.IdentifierExpr {
@@ -165,7 +157,7 @@ func (p *Parser) identifier(typeContext string) *ast.IdentifierExpr {
 	if expr.GetType() == ast.Identifier {
 		return expr.(*ast.IdentifierExpr)
 	}
-	p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(expr.GetToken()), typeContext)
+	p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(expr.GetToken()), typeContext)
 
 	return nil
 }
@@ -200,7 +192,7 @@ func (p *Parser) identifiers(typeContext string, allowTrailing bool) ([]*ast.Ide
 }
 
 // bool tells you if the parsing was successful or not
-func (p *Parser) expressions(typeContext string) ([]ast.Node, bool) {
+func (p *Parser) expressions(typeContext string, allowTrailing bool) ([]ast.Node, bool) {
 	exprs := []ast.Node{}
 	expr := p.expression()
 	success := true
@@ -211,12 +203,17 @@ func (p *Parser) expressions(typeContext string) ([]ast.Node, bool) {
 		exprs = append(exprs, expr)
 	}
 	for p.match(tokens.Comma) {
+		exprStart := p.current
 		expr := p.expression()
-		if expr.GetType() == ast.NA {
+		if expr.GetType() == ast.NA && allowTrailing {
+			p.disadvance(p.current - exprStart)
+			return exprs, success
+		} else if expr.GetType() == ast.NA {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()), typeContext)
 			success = false
 			continue
 		}
+
 		exprs = append(exprs, expr)
 	}
 
@@ -238,7 +235,7 @@ func (p *Parser) identExprPairs(typeContext string, optional bool) ([]*ast.Ident
 		return nil, nil, ok
 	}
 
-	exprs, ok := p.expressions(typeContext)
+	exprs, ok := p.expressions(typeContext, false)
 	if !ok {
 		return nil, nil, ok
 	}
@@ -246,22 +243,11 @@ func (p *Parser) identExprPairs(typeContext string, optional bool) ([]*ast.Ident
 	return idents, exprs, true
 }
 
-func (p *Parser) typeAndIdentifier() (*ast.TypeExpr, ast.Node) {
-	typ := p.typeExpr()
-
-	ident := p.advance()
-	if ident.Type != tokens.Identifier {
-		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(ident), "for variable type")
-	}
-
-	return typ, &ast.IdentifierExpr{Name: ident, ValueType: ast.Invalid}
-}
-
 func (p *Parser) checkType() (*ast.TypeExpr, bool) {
 	currentStart := p.current
 	p.context.IgnoreAlerts.Push("CheckType", true)
 
-	typeExpr := p.typeExpr()
+	typeExpr := p.typeExpr("")
 
 	p.context.IgnoreAlerts.Pop("CheckType")
 	valid := typeExpr != nil && typeExpr.Name.GetType() != ast.NA
@@ -277,7 +263,7 @@ func (p *Parser) body(allowSingleSatement, allowArrow bool) ([]ast.Node, bool) {
 	body := make([]ast.Node, 0)
 	if p.match(tokens.FatArrow) && allowArrow {
 		if p.context.FunctionReturns.Top().Item > 0 {
-			args, ok := p.expressions("in fat arrow return arguments")
+			args, ok := p.expressions("in fat arrow return arguments", false)
 			if !ok {
 				p.Alert(&alerts.ExpectedReturnArgs{}, alerts.NewSingle(p.peek()))
 				return []ast.Node{}, false
@@ -302,7 +288,7 @@ func (p *Parser) body(allowSingleSatement, allowArrow bool) ([]ast.Node, bool) {
 	start := p.peek(-1)
 
 	for !p.match(tokens.RightBrace) {
-		if p.peek().Type == tokens.Eof {
+		if p.isAtEnd() {
 			p.Alert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek(-1)), tokens.RightBrace)
 			return body, false
 		}

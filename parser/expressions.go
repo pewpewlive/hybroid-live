@@ -136,7 +136,7 @@ func (p *Parser) entity() ast.Node {
 			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(variable.GetToken()))
 		}
 		op := p.peek(-1)
-		typ := p.typeExpr()
+		typ := p.typeExpr("in entity expression")
 		return &ast.EntityExpr{
 			Expr:             expr,
 			Type:             typ,
@@ -238,7 +238,7 @@ func (p *Parser) accessorExpr(ident *ast.Node) (ast.Node, *ast.IdentifierExpr) {
 	if isField {
 		propIdentifier = &ast.IdentifierExpr{Name: p.advance()}
 		if propIdentifier.GetToken().Type != tokens.Identifier {
-			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(propIdentifier.GetToken()))
+			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(propIdentifier.GetToken()), "in field expression")
 		}
 		if p.check(tokens.LeftParen) || p.check(tokens.Less) {
 			return *ident, propIdentifier.(*ast.IdentifierExpr)
@@ -292,7 +292,7 @@ func (p *Parser) new() ast.Node {
 			Token: p.peek(-1),
 		}
 
-		expr.Type = p.typeExpr()
+		expr.Type = p.typeExpr("in new expression")
 		expr.Args = p.functionArgs()
 
 		return &expr
@@ -307,7 +307,7 @@ func (p *Parser) spawn() ast.Node {
 			Token: p.peek(-1),
 		}
 
-		expr.Type = p.typeExpr()
+		expr.Type = p.typeExpr("in spawn expression")
 		expr.Args = p.functionArgs()
 
 		return &expr
@@ -471,7 +471,7 @@ func (p *Parser) parseMap() ast.Node {
 		case *ast.IdentifierExpr:
 			newKey = key.GetToken()
 		default:
-			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(key.GetToken()))
+			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(key.GetToken()), "as map key")
 			p.advance()
 			return &ast.Improper{Token: p.peek(-1)}
 		}
@@ -482,7 +482,7 @@ func (p *Parser) parseMap() ast.Node {
 
 		expr := p.expression()
 		if expr.GetType() == ast.NA {
-			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()))
+			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()), "as map key value")
 		}
 
 		if p.peek().Type == tokens.RightBrace {
@@ -540,17 +540,17 @@ func (p *Parser) structExpr() ast.Node {
 	return &structExpr
 }
 
-func (p *Parser) wrappedTypeExpr() *ast.TypeExpr {
+func (p *Parser) wrappedTypeExpr(typeContext string) *ast.TypeExpr {
 	typeExpr := ast.TypeExpr{}
 	if p.check(tokens.Greater) {
 		p.Alert(&alerts.EmptyWrappedType{}, alerts.NewSingle(p.peek()))
 		return &typeExpr
 	}
 
-	return p.typeExpr()
+	return p.typeExpr(typeContext)
 }
 
-func (p *Parser) typeExpr() *ast.TypeExpr {
+func (p *Parser) typeExpr(typeContext string) *ast.TypeExpr {
 	var expr ast.Node
 	token := p.advance()
 
@@ -559,10 +559,10 @@ func (p *Parser) typeExpr() *ast.TypeExpr {
 
 		types := []*ast.TypeExpr{}
 
-		types = append(types, p.typeExpr())
+		types = append(types, p.typeExpr(typeContext))
 
 		for p.match(tokens.Comma) {
-			types = append(types, p.typeExpr())
+			types = append(types, p.typeExpr(typeContext))
 		}
 		p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.RightParen, "in tuple expression"), tokens.RightParen)
 
@@ -610,7 +610,7 @@ func (p *Parser) typeExpr() *ast.TypeExpr {
 	switch exprToken.Type {
 	case tokens.Identifier:
 		if p.match(tokens.Less) {
-			typeExpr.WrappedType = p.wrappedTypeExpr()
+			typeExpr.WrappedType = p.wrappedTypeExpr(typeContext)
 			p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Greater), tokens.Greater)
 		}
 		typeExpr.Name = expr
@@ -620,10 +620,10 @@ func (p *Parser) typeExpr() *ast.TypeExpr {
 			break
 		}
 		if !p.match(tokens.RightParen) {
-			_typ := p.typeExpr()
+			_typ := p.typeExpr(typeContext)
 			typeExpr.Params = append(typeExpr.Params, _typ)
 			for p.match(tokens.Comma) {
-				_typ := p.typeExpr()
+				_typ := p.typeExpr(typeContext)
 				typeExpr.Params = append(typeExpr.Params, _typ)
 			}
 			p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.RightParen), tokens.RightParen)
@@ -637,7 +637,7 @@ func (p *Parser) typeExpr() *ast.TypeExpr {
 	case tokens.Entity:
 		typeExpr.Name = &ast.IdentifierExpr{Name: exprToken}
 	default:
-		p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(expr.GetToken()))
+		p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(expr.GetToken()), typeContext)
 		typeExpr.Name = ast.NewImproper(expr.GetToken(), ast.NA)
 	}
 	typeExpr.IsVariadic = p.match(tokens.Ellipsis)

@@ -36,11 +36,13 @@ func NewEvaluator(files []helpers.FileInformation) Evaluator {
 }
 
 func (e *Evaluator) Action(cwd, outputDir string) error {
-	parsersFailed := []bool{}
+	evalFailed := make([]bool, 0)
 
 	walker.SetupLibraryEnvironments()
 
 	for i := range e.walkerList {
+		evalFailed = append(evalFailed, false)
+
 		sourcePath := e.files[i].Path()
 		sourceFile, err := os.OpenFile(filepath.Join(cwd, sourcePath), os.O_RDONLY, os.ModePerm)
 		if err != nil {
@@ -51,21 +53,25 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		start := time.Now()
 
 		lexer := lexer.NewLexer(sourceFile)
-		tokens := lexer.Tokenize()
+		tokens, tokenizeErr := lexer.Tokenize()
 		lexer.PrintAlerts(alerts.Lexer, sourcePath)
 
 		fmt.Printf("Tokenizing time: %f seconds\n\n", time.Since(start).Seconds())
 		start = time.Now()
+
+		if tokenizeErr != nil {
+			evalFailed[i] = true
+			continue
+		}
 
 		fmt.Printf("Parsing %d tokens\n", len(tokens))
 
 		parser := parser.NewParser(tokens)
 		prog := parser.Parse()
 		parser.PrintAlerts(alerts.Parser, sourcePath)
-		parsersFailed = append(parsersFailed, false)
 		for _, v := range parser.Alerts {
 			if v.GetAlertType() == alerts.Error {
-				parsersFailed[i] = true
+				evalFailed[i] = true
 				break
 			}
 		}
@@ -116,7 +122,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 				cont = true
 			}
 		}
-		if parsersFailed[i] || cont {
+		if evalFailed[i] || cont {
 			continue
 		}
 		start := time.Now()

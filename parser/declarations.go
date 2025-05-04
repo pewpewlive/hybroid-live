@@ -1,12 +1,9 @@
 package parser
 
 import (
-	"fmt"
 	"hybroid/alerts"
 	"hybroid/ast"
 	"hybroid/tokens"
-	"os"
-	"runtime/debug"
 )
 
 /*
@@ -79,28 +76,13 @@ parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
 arguments      → expression ( "," expression )* ;
 */
 
-func (p *Parser) declaration() ast.Node {
-	defer func() {
-		p.context.IsPub = false
-
-		if errMsg := recover(); errMsg != nil {
-			// If the error is a parseError, synchronize to
-			// the next statement. If not, propagate the panic.
-			if _, ok := errMsg.(ParserError); ok {
-				p.synchronize()
-				return
-			} else {
-				fmt.Printf("panic: %s\nstacktrace:\n", errMsg)
-				debug.PrintStack()
-				os.Exit(1)
-			}
-		}
-	}()
+func (p *Parser) declaration() (returnNode ast.Node) {
+	returnNode = ast.NewImproper(p.peek(), ast.NA)
 	p.context.IsPub = false
 
 	if p.match(tokens.Env) {
 		if p.environmentDeclaration().GetType() == ast.EnvironmentDeclaration {
-			p.AlertPanic(&alerts.EnvironmentRedaclaration{}, alerts.NewSingle(p.peek()))
+			p.Alert(&alerts.EnvironmentRedaclaration{}, alerts.NewSingle(p.peek()))
 		}
 	}
 
@@ -110,20 +92,28 @@ func (p *Parser) declaration() ast.Node {
 
 	switch {
 	case p.match(tokens.Fn):
-		return p.functionDeclaration()
+		returnNode = p.functionDeclaration()
 	case p.check(tokens.Let) || p.check(tokens.Const):
-		return p.variableDeclaration()
+		returnNode = p.variableDeclaration()
 	case p.match(tokens.Enum):
-		return p.enumDeclaration()
+		returnNode = p.enumDeclaration()
 	case p.match(tokens.Alias):
-		return p.aliasDeclaration()
+		returnNode = p.aliasDeclaration()
 	case p.match(tokens.Class):
-		return p.classDeclaration()
+		returnNode = p.classDeclaration()
 	case p.match(tokens.Entity):
-		return p.entityDeclaration()
+		returnNode = p.entityDeclaration()
+	default:
+		returnNode = p.statement()
 	}
 
-	return p.statement()
+	p.context.IsPub = false
+
+	if returnNode.GetType() == ast.NA {
+		p.synchronize()
+	}
+
+	return
 }
 
 func (p *Parser) auxiliaryDeclaration() ast.Node {
@@ -235,7 +225,7 @@ func (p *Parser) variableDeclaration() ast.Node {
 
 	idents, exprs, ok := p.identExprPairs("in variable declaration", variableDecl.Type != nil)
 	if !ok {
-		p.panic()
+		return ast.NewImproper(variableDecl.Token, ast.VariableDeclaration)
 	}
 
 	variableDecl.Identifiers = idents
@@ -249,7 +239,10 @@ func (p *Parser) functionDeclaration() ast.Node {
 		IsPub: p.context.IsPub,
 	}
 
-	name, _ := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name of the function"), tokens.Identifier)
+	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name of the function"), tokens.Identifier)
+	if !ok && !p.check(tokens.LeftParen) {
+		p.advance()
+	}
 
 	functionDecl.Name = name
 	functionDecl.Generics = p.genericParams()
@@ -288,21 +281,20 @@ func (p *Parser) enumDeclaration() ast.Node {
 
 	start, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
 	if !ok {
-		p.panic()
-		return ast.NewImproper(p.peek(), ast.EnumDeclaration)
+		return ast.NewImproper(enumStmt.Token, ast.EnumDeclaration)
 	}
 
-	fields, ok := p.identifiers("in enum declaration", true)
-	if !ok {
-		p.panic()
-		return enumStmt
+	fields, _ := p.expressions("in enum declaration", true)
+	for _, v := range fields {
+		if v.GetType() == ast.Identifier {
+			enumStmt.Fields = append(enumStmt.Fields, v.(*ast.IdentifierExpr))
+		} else {
+			p.Alert(&alerts.InvalidEnumVariantName{}, alerts.NewSingle(v.GetToken()))
+			continue
+		}
 	}
 
-	_, ok = p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek()), tokens.RightBrace), tokens.RightBrace)
-	if !ok {
-		p.panic()
-	}
-	enumStmt.Fields = fields
+	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek()), tokens.RightBrace), tokens.RightBrace)
 
 	return enumStmt
 }
@@ -316,11 +308,16 @@ func (p *Parser) aliasDeclaration() ast.Node {
 	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name in alias declaration"), tokens.Identifier)
 	if ok {
 		aliasDecl.Name = name
+	} else if !p.check(tokens.Equal) {
+		p.advance()
 	}
 
-	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Equal, "after identifier in alias declaration"), tokens.Equal)
+	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Equal, "after name in alias declaration"), tokens.Equal)
 
-	aliasDecl.Type = p.typeExpr()
+	aliasDecl.Type, ok = p.checkType()
+	if !ok {
+		p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(aliasDecl.Type.GetToken()), "to be aliased in alias declaration")
+	}
 
 	return aliasDecl
 }

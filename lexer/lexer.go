@@ -33,7 +33,7 @@ func (l *Lexer) Alert(alertType alerts.Alert, args ...any) {
 	l.Alert_(alertType, args...)
 }
 
-func (l *Lexer) Tokenize() []tokens.Token {
+func (l *Lexer) Tokenize() ([]tokens.Token, error) {
 	lexerTokens := make([]tokens.Token, 0)
 
 	for {
@@ -43,8 +43,7 @@ func (l *Lexer) Tokenize() []tokens.Token {
 			lexerTokens = append(lexerTokens, newToken)
 			break
 		} else if err != nil && token == nil {
-			fmt.Printf("%s", err)
-			break
+			return nil, err
 		} else if token == nil {
 			continue
 		}
@@ -52,7 +51,7 @@ func (l *Lexer) Tokenize() []tokens.Token {
 		lexerTokens = append(lexerTokens, *token)
 	}
 
-	return lexerTokens
+	return lexerTokens, nil
 }
 
 func (l *Lexer) next() (*tokens.Token, error) {
@@ -75,8 +74,7 @@ func (l *Lexer) next() (*tokens.Token, error) {
 		return l.handleIdentifier()
 	}
 
-	next, _ := l.peek()
-	if isDigit(c) || (c == '.' && isDigit(next)) {
+	if isDigit(c) {
 		return l.handleNumber()
 	}
 
@@ -248,16 +246,44 @@ func (l *Lexer) handleNumber() (*tokens.Token, error) {
 	if l.buffer[0] == '0' && (base == 'x' || base == 'b' || base == 'o') {
 		l.advance()
 
-		err := l.consumeWhile(isHexDigit)
+		err := l.consumeWhile(isAlphanumeric)
 		if err != nil {
 			return nil, err
 		}
 
 		token.Line.End = l.line
 		token.Column.End = l.column
-		literal, err := strconv.ParseInt(l.bufferString(), 0, 0)
+		token.Lexeme = l.bufferString()
+
+		isInRange := isDigit
+		var baseStr string
+		switch base {
+		case 'x':
+			isInRange = isHex
+			baseStr = "hex"
+		case 'b':
+			isInRange = isBinary
+			baseStr = "binary"
+		case 'o':
+			isInRange = isOctal
+			baseStr = "octal"
+		}
+		isValidDigit := func(r rune) bool { return isInRange(r) || r == '_' }
+
+		for i, r := range token.Lexeme[2:] {
+			if !isValidDigit(r) {
+				location := token.Location
+				location.Column.Start += i + 2
+				location.Column.End = location.Column.Start + 1
+				l.Alert(&alerts.InvalidDigitInLiteral{}, alerts.NewSingle(tokens.NewToken(tokens.Eof, "", "", location)), string(r), baseStr)
+				return &token, nil
+			}
+		}
+
+		literal, err := strconv.ParseInt(token.Lexeme, 0, 0)
 		if err != nil {
-			return nil, err
+			l.Alert(&alerts.MalformedNumber{}, alerts.NewSingle(token), token.Lexeme)
+			return &token, nil
 		}
 		token.Literal = strconv.Itoa(int(literal))
 
@@ -270,7 +296,11 @@ func (l *Lexer) handleNumber() (*tokens.Token, error) {
 		return nil, err
 	}
 
-	if l.match('.') {
+	next, err := l.peek(2)
+	if err != nil && err != io.EOF {
+		return nil, err
+	}
+	if isDigit(next) && l.match('.') {
 		err = l.consumeWhile(isDigitOrUnderscore)
 		if err != nil {
 			return nil, err
@@ -279,10 +309,11 @@ func (l *Lexer) handleNumber() (*tokens.Token, error) {
 
 	token.Line.End = l.line
 	token.Column.End = l.column
+	token.Lexeme = l.bufferString()
 
 	var literal float64
-	if literal, err = strconv.ParseFloat(l.bufferString(), 64); err != nil {
-		l.Alert(&alerts.MalformedNumber{}, alerts.NewSingle(token), token.Literal)
+	if literal, err = strconv.ParseFloat(token.Lexeme, 64); err != nil {
+		l.Alert(&alerts.MalformedNumber{}, alerts.NewSingle(token), token.Lexeme)
 		return nil, err
 	}
 	token.Literal = strconv.FormatFloat(literal, 'f', -1, 64)

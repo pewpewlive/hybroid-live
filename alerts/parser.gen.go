@@ -368,10 +368,11 @@ func (ee *ExpectedEnvironment) GetAlertType() Type {
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ExpectedType struct {
   Specifier Snippet
+  Context string `default:""`
 }
 
 func (et *ExpectedType) GetMessage() string {
-  return "expected type"
+  return fmt.Sprintf("expected type %s", et.Context)
 }
 
 func (et *ExpectedType) GetSpecifier() Snippet {
@@ -379,7 +380,7 @@ func (et *ExpectedType) GetSpecifier() Snippet {
 }
 
 func (et *ExpectedType) GetNote() string {
-  return fmt.Sprintf("this needs to be declared with a type. example: number %s", et.Specifier.GetTokens()[0].Lexeme)
+  return "access expressions are: identifier, environment access, self, member and field expressions"
 }
 
 func (et *ExpectedType) GetID() string {
@@ -828,7 +829,7 @@ type InsufficientCases struct {
 }
 
 func (ic *InsufficientCases) GetMessage() string {
-  return "must have at least 2 cases with one being a default case in match statement"
+  return "match statement must have at least 1 case"
 }
 
 func (ic *InsufficientCases) GetSpecifier() Snippet {
@@ -869,6 +870,31 @@ func (dcm *DefaultCaseMissing) GetID() string {
 }
 
 func (dcm *DefaultCaseMissing) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidEnumVariantName struct {
+  Specifier Snippet
+}
+
+func (ievn *InvalidEnumVariantName) GetMessage() string {
+  return "enum variant name must be an identifier"
+}
+
+func (ievn *InvalidEnumVariantName) GetSpecifier() Snippet {
+  return ievn.Specifier
+}
+
+func (ievn *InvalidEnumVariantName) GetNote() string {
+  return ""
+}
+
+func (ievn *InvalidEnumVariantName) GetID() string {
+  return "hyb035P"
+}
+
+func (ievn *InvalidEnumVariantName) GetAlertType() Type {
   return Error
 }
 

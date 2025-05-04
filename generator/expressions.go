@@ -52,9 +52,9 @@ func (gen *Generator) literalExpr(node ast.LiteralExpr) string {
 	switch node.ValueType {
 	case ast.String:
 		return fmt.Sprintf("\"%v\"", node.Value)
-	case ast.Fixed:
+	case ast.Fixed, ast.Radian:
 		return fmt.Sprintf("%vfx", fixedToFx(node.Value))
-	case ast.FixedPoint, ast.Radian:
+	case ast.FixedPoint:
 		return fmt.Sprintf("%vfx", node.Value)
 	case ast.Degree:
 		return fmt.Sprintf("%vfx", degToRad(node.Value))

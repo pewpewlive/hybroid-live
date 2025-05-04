@@ -18,15 +18,15 @@ func DrawNodes(nodes []Node) {
 		panic(err)
 	}
 
-	out, err := json.MarshalIndent(nodes, " ", " ")
+	out, err := json.MarshalIndent(nodes, "", "  ")
 
 	if err != nil {
-		fmt.Print(err.Error())
+		fmt.Println(err.Error())
 	}
 
 	writeErr := os.WriteFile(cwd+"/astdebug.json", out, os.ModePerm)
 
 	if writeErr != nil {
-		fmt.Print(err.Error())
+		fmt.Println(err.Error())
 	}
 }

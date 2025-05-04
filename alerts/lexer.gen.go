@@ -84,6 +84,33 @@ func (mn *MalformedNumber) GetAlertType() Type {
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidDigitInLiteral struct {
+  Specifier Snippet
+  Digit string
+  Literal string
+}
+
+func (idil *InvalidDigitInLiteral) GetMessage() string {
+  return fmt.Sprintf("invalid digit '%s' in %s literal", idil.Digit, idil.Literal)
+}
+
+func (idil *InvalidDigitInLiteral) GetSpecifier() Snippet {
+  return idil.Specifier
+}
+
+func (idil *InvalidDigitInLiteral) GetNote() string {
+  return ""
+}
+
+func (idil *InvalidDigitInLiteral) GetID() string {
+  return "hyb004L"
+}
+
+func (idil *InvalidDigitInLiteral) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidNumberPostfix struct {
   Specifier Snippet
   Postfix string
@@ -102,7 +129,7 @@ func (inp *InvalidNumberPostfix) GetNote() string {
 }
 
 func (inp *InvalidNumberPostfix) GetID() string {
-  return "hyb004L"
+  return "hyb005L"
 }
 
 func (inp *InvalidNumberPostfix) GetAlertType() Type {
@@ -128,7 +155,7 @@ func (uc *UnsupportedCharacter) GetNote() string {
 }
 
 func (uc *UnsupportedCharacter) GetID() string {
-  return "hyb005L"
+  return "hyb006L"
 }
 
 func (uc *UnsupportedCharacter) GetAlertType() Type {

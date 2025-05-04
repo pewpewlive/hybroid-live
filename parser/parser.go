@@ -51,18 +51,6 @@ func (p *Parser) Alert(alertType alerts.Alert, args ...any) {
 	p.Alert_(alertType, args...)
 }
 
-func (p *Parser) AlertPanic(alertType alerts.Alert, args ...any) {
-	if p.context.IgnoreAlerts.Top().Item {
-		return
-	}
-
-	p.Alert_(alertType, args...)
-
-	if alertType.GetAlertType() == alerts.Error {
-		p.panic()
-	}
-}
-
 func (p *Parser) AlertI(alert alerts.Alert) {
 	if p.context.IgnoreAlerts.Top().Item {
 		return
@@ -71,11 +59,8 @@ func (p *Parser) AlertI(alert alerts.Alert) {
 	p.AlertI_(alert)
 }
 
-func (p *Parser) panic() {
-	panic(ParserError{})
-}
-
 func (p *Parser) synchronize() {
+	expectedBlockCount := 0
 	for !p.isAtEnd() {
 		switch p.peek().Type {
 		case tokens.Fn:
@@ -84,6 +69,13 @@ func (p *Parser) synchronize() {
 				p.disadvance()
 				return
 			}
+		case tokens.LeftBrace:
+			expectedBlockCount++
+		case tokens.RightBrace:
+			if expectedBlockCount == 0 {
+				return
+			}
+			expectedBlockCount--
 		case tokens.Entity, tokens.Let, tokens.Pub, tokens.Const, tokens.Class, tokens.Alias:
 			return
 		}
