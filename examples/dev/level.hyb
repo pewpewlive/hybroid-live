@@ -6,6 +6,9 @@ class A {
   new() {
 
   }
+  new() {
+    let a = 
+  } 
 }
 
 entity B {

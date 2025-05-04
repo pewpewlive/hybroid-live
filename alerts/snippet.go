@@ -115,11 +115,11 @@ func (ml MultiLine) GetSnippet(lines map[int][]byte) string {
 	startLoc, endLoc := ml.StartToken.Location, ml.EndToken.Location
 	startLine, endLine := lines[startLoc.Line], lines[endLoc.Line]
 
-	largetLineNumber := max(len(strconv.Itoa(startLoc.Line)), len(strconv.Itoa(endLoc.Line)))
-	lineNumberSpaces := strings.Repeat(" ", largetLineNumber)
+	largestLineNumber := max(len(strconv.Itoa(startLoc.Line)), len(strconv.Itoa(endLoc.Line)))
+	lineNumberSpaces := strings.Repeat(" ", largestLineNumber)
 
 	snippet.WriteString(fmt.Sprintf("[cyan]%s |\n", lineNumberSpaces))
-	snippet.WriteString(fmt.Sprintf("[cyan]%d |[default]   ", startLoc.Line))
+	snippet.WriteString(fmt.Sprintf("[cyan]%*d |[default]   ", largestLineNumber, startLoc.Line))
 	spaceSize, markerSize := writeTruncatedLine(&snippet, startLoc, startLine)
 	startHorizLine, marker := strings.Repeat("_", spaceSize+1), strings.Repeat("^", markerSize)
 	snippet.WriteString(fmt.Sprintf("[cyan]%s |[light_red]  %s%s\n", lineNumberSpaces, startHorizLine, marker))
@@ -128,7 +128,7 @@ func (ml MultiLine) GetSnippet(lines map[int][]byte) string {
 		snippet.WriteString(fmt.Sprintf("[dark_gray]...[default]%s[light_red]|\n", lineNumberSpaces))
 	}
 
-	snippet.WriteString(fmt.Sprintf("[cyan]%d |[light_red] | [default]", endLoc.Line))
+	snippet.WriteString(fmt.Sprintf("[cyan]%*d |[light_red] | [default]", largestLineNumber, endLoc.Line))
 	spaceSize, markerSize = writeTruncatedLine(&snippet, endLoc, endLine)
 	endHorizLine, marker := strings.Repeat("_", spaceSize+1), strings.Repeat("^", markerSize)
 	snippet.WriteString(fmt.Sprintf("[cyan]%s |[light_red] |%s%s\n", lineNumberSpaces, endHorizLine, marker))

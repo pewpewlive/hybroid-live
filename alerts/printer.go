@@ -155,9 +155,13 @@ func (p *Printer) PrintAlerts() error {
 }
 
 func (p *Printer) writeLocation(alertMsg *strings.Builder, sourcePath string, alert Alert) {
-	location := alert.GetSpecifier().GetTokens()[0].Location
-	lineNumberSpaces := strings.Repeat(" ", len(strconv.Itoa(location.Line)))
-	locationStr := fmt.Sprintf("[light_gray]%s --- %s:%d:%d ---\n", lineNumberSpaces, sourcePath, location.Line, location.Column.Start)
+	var largestLineNumber int
+	tokens := alert.GetSpecifier().GetTokens()
+	for _, token := range tokens {
+		largestLineNumber = max(largestLineNumber, token.Line)
+	}
+	lineNumberSpaces := strings.Repeat(" ", len(strconv.Itoa(largestLineNumber)))
+	locationStr := fmt.Sprintf("[light_gray]%s --- %s:%d:%d ---\n", lineNumberSpaces, sourcePath, tokens[0].Line, tokens[0].Column.Start)
 	alertMsg.WriteString(locationStr)
 }
 
