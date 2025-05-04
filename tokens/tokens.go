@@ -154,13 +154,13 @@ func KeywordToToken(keyword string) (TokenType, bool) {
 }
 
 type Location struct {
-	Line   helpers.Span[int]
+	Line   int
 	Column helpers.Span[int]
 }
 
-func NewLocation(lineStart, lineEnd, columnStart, columnEnd int) Location {
+func NewLocation(line, columnStart, columnEnd int) Location {
 	return Location{
-		Line:   helpers.NewSpan(lineStart, lineEnd),
+		Line:   line,
 		Column: helpers.NewSpan(columnStart, columnEnd),
 	}
 }

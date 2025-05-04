@@ -2,7 +2,6 @@ package lexer
 
 import (
 	"bufio"
-	"fmt"
 	"hybroid/alerts"
 	"hybroid/tokens"
 	"io"
@@ -39,7 +38,7 @@ func (l *Lexer) Tokenize() ([]tokens.Token, error) {
 	for {
 		token, err := l.next()
 		if err == io.EOF {
-			newToken := tokens.NewToken(tokens.Eof, "", "", tokens.NewLocation(l.line, l.line, l.column, l.column))
+			newToken := tokens.NewToken(tokens.Eof, "", "", tokens.NewLocation(l.line, l.column, l.column))
 			lexerTokens = append(lexerTokens, newToken)
 			break
 		} else if err != nil && token == nil {
@@ -62,7 +61,7 @@ func (l *Lexer) next() (*tokens.Token, error) {
 	l.buffer = make([]rune, 0)
 
 	token := tokens.Token{}
-	token.Line.Start = l.line
+	token.Line = l.line
 	token.Column.Start = l.column
 
 	c, err := l.advance()
@@ -195,14 +194,14 @@ func (l *Lexer) next() (*tokens.Token, error) {
 		return l.handleString()
 	default:
 		token.Lexeme = string(token.Type)
-		token.Line.End = l.line
+		token.Line = l.line
 		token.Column.End = l.column
 		l.Alert(&alerts.UnsupportedCharacter{}, alerts.NewSingle(token), string(c))
 		return nil, nil
 	}
 
 	token.Lexeme = string(token.Type)
-	token.Line.End = l.line
+	token.Line = l.line
 	token.Column.End = l.column
 
 	return &token, nil
@@ -211,7 +210,7 @@ func (l *Lexer) next() (*tokens.Token, error) {
 func (l *Lexer) handleString() (*tokens.Token, error) {
 	token := tokens.Token{
 		Type:     tokens.String,
-		Location: tokens.NewLocation(l.line, l.line, l.column-1, l.column),
+		Location: tokens.NewLocation(l.line, l.column-1, l.column),
 	}
 
 	for !l.match('"') && !l.isEOF() {
@@ -221,7 +220,7 @@ func (l *Lexer) handleString() (*tokens.Token, error) {
 	}
 	token.Lexeme = l.bufferString()
 	token.Literal = token.Lexeme[1 : len(token.Lexeme)-1]
-	token.Line.End = l.line
+	token.Line = l.line
 	token.Column.End = l.column
 
 	if token.Lexeme[len(token.Lexeme)-1] != '"' && l.isEOF() {
@@ -236,7 +235,7 @@ func (l *Lexer) handleString() (*tokens.Token, error) {
 func (l *Lexer) handleNumber() (*tokens.Token, error) {
 	token := tokens.Token{
 		Type:     tokens.Number,
-		Location: tokens.NewLocation(l.line, l.line, l.column-1, l.column),
+		Location: tokens.NewLocation(l.line, l.column-1, l.column),
 	}
 
 	base, err := l.peek()
@@ -251,7 +250,7 @@ func (l *Lexer) handleNumber() (*tokens.Token, error) {
 			return nil, err
 		}
 
-		token.Line.End = l.line
+		token.Line = l.line
 		token.Column.End = l.column
 		token.Lexeme = l.bufferString()
 
@@ -307,7 +306,7 @@ func (l *Lexer) handleNumber() (*tokens.Token, error) {
 		}
 	}
 
-	token.Line.End = l.line
+	token.Line = l.line
 	token.Column.End = l.column
 	token.Lexeme = l.bufferString()
 
@@ -318,12 +317,12 @@ func (l *Lexer) handleNumber() (*tokens.Token, error) {
 	}
 	token.Literal = strconv.FormatFloat(literal, 'f', -1, 64)
 
-	postixLocation := tokens.NewLocation(l.line, l.line, l.column, l.column)
+	postixLocation := tokens.NewLocation(l.line, l.column, l.column)
 	err = l.consumeWhile(isAlphabetical)
 	if err != nil {
 		return nil, err
 	}
-	postixLocation.Line.End = l.line
+	postixLocation.Line = l.line
 	postixLocation.Column.End = l.column
 
 	postfix := l.bufferString()
@@ -349,13 +348,13 @@ func (l *Lexer) handleNumber() (*tokens.Token, error) {
 func (l *Lexer) handleIdentifier() (*tokens.Token, error) {
 	token := tokens.Token{
 		Type:     tokens.Identifier,
-		Location: tokens.NewLocation(l.line, l.line, l.column-1, l.column),
+		Location: tokens.NewLocation(l.line, l.column-1, l.column),
 	}
 	err := l.consumeWhile(isAlphanumeric)
 	if err != nil {
 		return nil, err
 	}
-	token.Line.End = l.line
+	token.Line = l.line
 	token.Column.End = l.column
 	token.Lexeme = l.bufferString()
 

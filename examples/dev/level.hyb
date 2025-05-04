@@ -29,9 +29,9 @@ let thing = spawn B(100fx, 100fx)
 tick {
   if true {
 
-  }else if false {
+  } else if false {
 
-  }else {
+  } else {
     destroy thing()
   }
 }
@@ -44,7 +44,7 @@ tick with i {
 let list = [1,2,3]
 
 for i, v in list {
-  list[i] = i*3
+  list[i] = v*3
 }
 
 let map = {a = 0, b = 3}
