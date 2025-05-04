@@ -8,7 +8,7 @@ import (
 )
 
 type Parser struct {
-	alerts.AlertHandler
+	alerts.Collector
 
 	program []ast.Node
 	current int
@@ -33,6 +33,7 @@ func NewParser(tokens []tokens.Token) Parser {
 			IgnoreAlerts:    helpers.NewStack[bool]("IgnoreAlerts"),
 			FunctionReturns: helpers.NewStack[int]("FunctionReturns"),
 		},
+		Collector: alerts.NewCollector(),
 	}
 
 	parser.context.IgnoreAlerts.Push("default", false)

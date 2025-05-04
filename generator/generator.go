@@ -113,7 +113,7 @@ func NewGenScope(scope *GenScope) GenScope {
 }
 
 type Generator struct {
-	alerts.AlertHandler // ideally should not be ever triggered here, but if triggered something has gone really wrong
+	alerts.Collector
 
 	envName string
 	envType ast.EnvType
@@ -123,8 +123,8 @@ type Generator struct {
 
 func NewGenerator() Generator {
 	return Generator{
-		Scope: NewGenScope(nil),
-		//Collector: alerts.NewCollector(alerts.Generator),
+		Scope:     NewGenScope(nil),
+		Collector: alerts.NewCollector(),
 	}
 }
 

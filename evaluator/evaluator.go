@@ -19,6 +19,7 @@ type Evaluator struct {
 	walkers    map[string]*walker.Walker
 	walkerList []*walker.Walker
 	files      []helpers.FileInformation
+	printer    alerts.Printer
 }
 
 func NewEvaluator(files []helpers.FileInformation) Evaluator {
@@ -26,6 +27,7 @@ func NewEvaluator(files []helpers.FileInformation) Evaluator {
 		walkers:    make(map[string]*walker.Walker),
 		walkerList: make([]*walker.Walker, 0),
 		files:      files,
+		printer:    alerts.NewPrinter(),
 	}
 
 	for _, file := range evaluator.files {
@@ -54,9 +56,9 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 
 		lexer := lexer.NewLexer(sourceFile)
 		tokens, tokenizeErr := lexer.Tokenize()
-		lexer.PrintAlerts(alerts.Lexer, sourcePath)
 
 		fmt.Printf("Tokenizing time: %f seconds\n\n", time.Since(start).Seconds())
+		e.printer.StageAlerts(sourcePath, lexer.GetAlerts())
 		start = time.Now()
 
 		if tokenizeErr != nil {
@@ -68,14 +70,14 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 
 		parser := parser.NewParser(tokens)
 		prog := parser.Parse()
-		parser.PrintAlerts(alerts.Parser, sourcePath)
-		for _, v := range parser.Alerts {
+		for _, v := range parser.GetAlerts() {
 			if v.GetAlertType() == alerts.Error {
 				evalFailed[i] = true
 				break
 			}
 		}
 		fmt.Printf("Parsing time: %f seconds\n\n", time.Since(start).Seconds())
+		e.printer.StageAlerts(sourcePath, parser.GetAlerts())
 
 		// ast.DrawNodes(prog)
 
@@ -93,7 +95,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		fmt.Printf("Pass 1 time: %f seconds\n\n", time.Since(start).Seconds())
 	}
 
-	for _, walker := range e.walkerList {
+	for i, walker := range e.walkerList {
 		start := time.Now()
 		fmt.Println("[Pass 2] Walking through the nodes...")
 
@@ -101,12 +103,8 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 			//pass2.Action(walker, e.walkers)
 		}
 		fmt.Printf("Pass 2 time: %f seconds\n\n", time.Since(start).Seconds())
-		// if walker.HasAlerts == true {
-		// 	color.Printf("[red]Failed walking (%s):\n", e.files[i].Path())
 
-		// 	printAlerts(e.files[i].Path(), walker.Errors)
-		// 	return fmt.Errorf("failed to walk through the nodes")
-		// }
+		e.printer.StageAlerts(e.files[i].Path(), walker.GetAlerts())
 	}
 
 	fmt.Println("Preparing values for generation...")
@@ -117,9 +115,10 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 
 	for i, walker := range e.walkerList {
 		cont := false
-		for _, v := range walker.Alerts {
+		for _, v := range walker.GetAlerts() {
 			if v.GetAlertType() == alerts.Error {
 				cont = true
+				break
 			}
 		}
 		if evalFailed[i] || cont {
@@ -136,11 +135,10 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		} else {
 			generator.Generate(walker.Nodes, []string{})
 		}
-		// if len(e.gen.Errors) != 0 {
-		// 	color.Println("[red]Failed generating:")
-		// 	printAlerts(e.files[i].Path(), e.gen.GetErrors())
-		// }
-		fmt.Printf("Generating time: %f seconds\n", time.Since(start).Seconds())
+
+		e.printer.StageAlerts(e.files[i].Path(), generator.GetAlerts())
+
+		fmt.Printf("Generating time: %f seconds\n\n", time.Since(start).Seconds())
 
 		err := os.MkdirAll(filepath.Join(cwd, outputDir, e.files[i].DirectoryPath), os.ModePerm)
 		if err != nil {
@@ -154,9 +152,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		generator.Clear()
 	}
 
-	e.walkerList = make([]*walker.Walker, 0)
-	e.files = make([]helpers.FileInformation, 0)
-	e.walkers = make(map[string]*walker.Walker)
+	e.printer.PrintAlerts()
 
 	return nil
 }

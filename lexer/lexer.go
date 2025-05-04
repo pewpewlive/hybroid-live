@@ -10,7 +10,7 @@ import (
 )
 
 type Lexer struct {
-	alerts.AlertHandler
+	alerts.Collector
 
 	buffer []rune
 	source *bufio.Reader
@@ -21,6 +21,7 @@ type Lexer struct {
 
 func NewLexer(reader io.Reader) Lexer {
 	return Lexer{
+		Collector: alerts.NewCollector(),
 		buffer:    make([]rune, 0),
 		source:    bufio.NewReader(reader),
 		line:      1,

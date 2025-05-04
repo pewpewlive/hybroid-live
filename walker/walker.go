@@ -33,7 +33,7 @@ type Environment struct {
 
 func (e *Environment) AddBuiltinVar(name string) {
 	if slices.Contains(e.UsedBuiltinVars, name) {
-			return
+		return
 	}
 
 	e.UsedBuiltinVars = append(e.UsedBuiltinVars, name)
@@ -76,7 +76,7 @@ const (
 )
 
 type Walker struct {
-	alerts.AlertHandler
+	alerts.Collector
 
 	CurrentEnvironment *Environment
 	Environment        *Environment
@@ -102,6 +102,7 @@ func NewWalker(path string) *Walker {
 			Value:  &Unknown{},
 			Value2: &Unknown{},
 		},
+		Collector: alerts.NewCollector(),
 	}
 	walker.CurrentEnvironment = walker.Environment
 	return walker
