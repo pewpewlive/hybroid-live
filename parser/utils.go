@@ -128,18 +128,12 @@ func (p *Parser) functionArgs() []ast.Node {
 		return nil
 	}
 
-	var args []ast.Node
 	if p.match(tokens.RightParen) {
-		args = make([]ast.Node, 0)
-	} else {
-		arg := p.expression()
-		args = append(args, arg)
-		for p.match(tokens.Comma) {
-			arg := p.expression()
-			args = append(args, arg)
-		}
-		p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.RightParen), tokens.RightParen)
+		return make([]ast.Node, 0)
 	}
+
+	args, _ := p.expressions("in function arguments", false)
+	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.RightParen), tokens.RightParen)
 
 	return args
 }

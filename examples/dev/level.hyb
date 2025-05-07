@@ -1,17 +1,22 @@
 env Thing as Level
 
-alias Thing = number
+alias Thing number 
 
-class A {
+class {
   new() {
 
   }
+
   new() {
     let a = 
   } 
 }
 
-entity B {
+entity {
+  spawn(fixed x, y) {
+
+  }
+
   spawn(fixed x, y) {
 
   }
@@ -21,17 +26,17 @@ entity B {
   }
 }
 
-enum bizz {
+enum {
   bazz,
   foo,
-  yeah,
+  "j"
 }
 
-let thing = spawn B(100fx, 100fx)
+let thing = spawn B(100fx, )
 
 tick {
   if true {
-
+    // {}
   } else if false {
 
   } else {
@@ -39,28 +44,27 @@ tick {
   }
 }
 
-
 tick with i {
   
 }
 
-let list = [1,2,3]
+let list = [1, 2, 3]
 
 for i, v in list {
   list[i] = v*3
 }
 
-let map = {a = 0, b = 3}
+//let map = {a = , b 3}
 
-for k, v in map {
-  map[k] = v
+//for k, v in {
+//  map[i] = v*2
+//}
+
+repeat {
+
 }
 
-repeat 10 {
-
-}
-
-repeat to 10 {
+repeat to  {
 
 }
 
@@ -72,14 +76,14 @@ repeat from 0 to 10 by 5 with i {
 
 }
 
-while true {
+while  {
 
 }
 
 fn func(number a) -> (number, number) {
   if a > 0 {
     return a, a*2
-  }else if a == 0 {
+  } else if a == 0 {
     return a*2, a*2
   }
 

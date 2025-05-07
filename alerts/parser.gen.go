@@ -346,7 +346,7 @@ type ExpectedEnvironment struct {
 }
 
 func (ee *ExpectedEnvironment) GetMessage() string {
-  return "expected environment statement"
+  return "expected environment declaration"
 }
 
 func (ee *ExpectedEnvironment) GetSpecifier() Snippet {
@@ -354,7 +354,7 @@ func (ee *ExpectedEnvironment) GetSpecifier() Snippet {
 }
 
 func (ee *ExpectedEnvironment) GetNote() string {
-  return "environment statement has to be the first statement in any hybroid file. example: env HelloWorld as Level"
+  return "the first declaration in any Hybroid file has to be an environment declaration"
 }
 
 func (ee *ExpectedEnvironment) GetID() string {
@@ -405,7 +405,7 @@ func (eas *ExpectedAssignmentSymbol) GetSpecifier() Snippet {
 }
 
 func (eas *ExpectedAssignmentSymbol) GetNote() string {
-  return "assignment symbols are: '=', '+=', '-=', '*=', '%=', '/=', '\\='"
+  return "assignment symbols are: '=', '+=', '-=', '*=', '%%=', '/=', '\\='"
 }
 
 func (eas *ExpectedAssignmentSymbol) GetID() string {

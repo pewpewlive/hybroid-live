@@ -125,7 +125,8 @@ func (ml MultiLine) GetSnippet(lines map[int][]byte) string {
 	snippet.WriteString(fmt.Sprintf("[cyan]%s |[light_red]  %s%s\n", lineNumberSpaces, startHorizLine, marker))
 
 	if endLoc.Line-startLoc.Line != 1 {
-		snippet.WriteString(fmt.Sprintf("[dark_gray]...[default]%s[light_red]|\n", lineNumberSpaces))
+		ellipsisAlignment := strings.Repeat(" ", largestLineNumber-1)
+		snippet.WriteString(fmt.Sprintf("[dark_gray]%s...[light_red] |\n", ellipsisAlignment))
 	}
 
 	snippet.WriteString(fmt.Sprintf("[cyan]%*d |[light_red] | [default]", largestLineNumber, endLoc.Line))

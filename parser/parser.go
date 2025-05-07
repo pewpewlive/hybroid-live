@@ -86,24 +86,23 @@ func (p *Parser) synchronize() {
 }
 
 func (p *Parser) Parse() []ast.Node {
-	if p.match(tokens.Env) {
-		envDecl := p.environmentDeclaration()
-		if envDecl.GetType() != ast.EnvironmentDeclaration {
-			return []ast.Node{}
-		}
-		p.program = append(p.program, envDecl)
-	} else {
-		p.Alert(&alerts.ExpectedEnvironment{}, alerts.NewSingle(p.peek()))
+	envDecl := p.declaration()
+	if envDecl.GetType() != ast.EnvironmentDeclaration {
+		p.Alert(&alerts.ExpectedEnvironment{}, alerts.NewMulti(envDecl.GetToken(), p.peek(-1)))
 		return []ast.Node{}
 	}
+	p.program = append(p.program, envDecl)
 
 	for !p.isAtEnd() {
-		statement := p.declaration()
-		if statement == nil {
+		declaration := p.declaration()
+		if declaration == nil {
 			continue
 		}
-		if statement.GetType() != ast.NA {
-			p.program = append(p.program, statement)
+		if declaration.GetType() == ast.EnvironmentDeclaration {
+			p.Alert(&alerts.EnvironmentRedaclaration{}, alerts.NewSingle(p.peek()))
+		}
+		if declaration.GetType() != ast.NA {
+			p.program = append(p.program, declaration)
 			continue
 		}
 	}

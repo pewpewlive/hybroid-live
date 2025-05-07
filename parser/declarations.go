@@ -81,9 +81,7 @@ func (p *Parser) declaration() (returnNode ast.Node) {
 	p.context.IsPub = false
 
 	if p.match(tokens.Env) {
-		if p.environmentDeclaration().GetType() == ast.EnvironmentDeclaration {
-			p.Alert(&alerts.EnvironmentRedaclaration{}, alerts.NewSingle(p.peek()))
-		}
+		return p.environmentDeclaration()
 	}
 
 	if p.match(tokens.Pub) {
@@ -274,10 +272,8 @@ func (p *Parser) enumDeclaration() ast.Node {
 		Token: p.peek(-1),
 	}
 
-	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in enum declaration"), tokens.Identifier)
-	if ok {
-		enumStmt.Name = name
-	}
+	name, _ := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in enum declaration"), tokens.Identifier)
+	enumStmt.Name = name
 
 	start, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
 	if !ok {
@@ -328,15 +324,10 @@ func (p *Parser) classDeclaration() ast.Node {
 		Token: p.peek(-1),
 	}
 
-	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name of the class"), tokens.Identifier)
+	name, _ := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name of the class"), tokens.Identifier)
+	stmt.Name = name
 
-	if ok {
-		stmt.Name = name
-	} else {
-		return ast.NewImproper(stmt.Token, ast.ClassDeclaration)
-	}
-
-	_, ok = p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
+	_, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
 	if !ok {
 		return ast.NewImproper(stmt.Token, ast.ClassDeclaration)
 	}
@@ -368,14 +359,10 @@ func (p *Parser) entityDeclaration() ast.Node {
 		Token: p.peek(-1),
 	}
 
-	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name of the entity"), tokens.Identifier)
-
-	if !ok {
-		return ast.NewImproper(stmt.Token, ast.EntityDeclaration)
-	}
+	name, _ := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name of the entity"), tokens.Identifier)
 	stmt.Name = name
 
-	_, ok = p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
+	_, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
 	if !ok {
 		return ast.NewImproper(stmt.Token, ast.EntityDeclaration)
 	}

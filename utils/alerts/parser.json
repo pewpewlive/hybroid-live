@@ -94,8 +94,8 @@
   {
     "name": "ExpectedEnvironment",
     "type": "Error",
-    "message": "expected environment statement",
-    "note": "environment statement has to be the first statement in any hybroid file. example: env HelloWorld as Level"
+    "message": "expected environment declaration",
+    "note": "the first declaration in any Hybroid file has to be an environment declaration"
   },
   {
     "name": "ExpectedType",
@@ -111,7 +111,7 @@
     "name": "ExpectedAssignmentSymbol",
     "type": "Error",
     "message": "expected assignment symbol",
-    "note": "assignment symbols are: '=', '+=', '-=', '*=', '%=', '/=', '\\\\='"
+    "note": "assignment symbols are: '=', '+=', '-=', '*=', '%%=', '/=', '\\\\='"
   },
   {
     "name": "ExpectedExpressionOrBody",
