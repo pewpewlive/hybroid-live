@@ -205,7 +205,7 @@ func (p *Parser) returnStmt() ast.Node {
 		Args:  []ast.Node{},
 	}
 
-	if p.context.FunctionReturns.Count() == 0 {
+	if p.context.FunctionReturns.Top().Item == 0 {
 		return returnStmt
 	}
 

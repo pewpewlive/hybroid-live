@@ -173,22 +173,17 @@ func (p *Parser) auxiliaryDeclaration() ast.Node {
 func (p *Parser) environmentDeclaration() ast.Node {
 	envDecl := &ast.EnvironmentDecl{}
 
-	expr := p.envPathExpr()
-	if expr.GetType() == ast.NA {
-		return expr
+	pathExpr := p.envPathExpr()
+	if pathExpr.GetType() == ast.NA {
+		return pathExpr
 	}
 
 	if _, ok := p.consume(p.NewAlert(&alerts.ExpectedKeyword{}, alerts.NewSingle(p.peek()), tokens.As), tokens.As); !ok {
 		return ast.NewImproper(p.peek(), ast.EnvironmentDeclaration)
 	}
 
-	envTypeExpr := p.envTypeExpr()
-	if envTypeExpr.Type == ast.InvalidEnv {
-		return envDecl
-	}
-
-	envPathExpr, _ := expr.(*ast.EnvPathExpr)
-	envDecl.EnvType = envTypeExpr
+	envPathExpr, _ := pathExpr.(*ast.EnvPathExpr)
+	envDecl.EnvType = p.envTypeExpr()
 	envDecl.Env = envPathExpr
 	p.context.EnvDeclaration = envDecl
 
@@ -238,7 +233,7 @@ func (p *Parser) functionDeclaration() ast.Node {
 	}
 
 	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name of the function"), tokens.Identifier)
-	if !ok && !p.check(tokens.LeftParen) {
+	if !ok && (!p.check(tokens.Less) || !p.check(tokens.LeftParen)) {
 		p.advance()
 	}
 
@@ -272,7 +267,10 @@ func (p *Parser) enumDeclaration() ast.Node {
 		Token: p.peek(-1),
 	}
 
-	name, _ := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in enum declaration"), tokens.Identifier)
+	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in enum declaration"), tokens.Identifier)
+	if !ok {
+		return ast.NewImproper(enumStmt.Token, ast.EnumDeclaration)
+	}
 	enumStmt.Name = name
 
 	start, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)

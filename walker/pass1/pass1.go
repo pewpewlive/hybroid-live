@@ -16,22 +16,33 @@ func Action(w *wkr.Walker, nodes []ast.Node, wkrs map[string]*wkr.Walker) {
 }
 
 func WalkNode(w *wkr.Walker, node *ast.Node, scope *wkr.Scope) {
-	switch newNode := (*node).(type) {
-	case *ast.EnvironmentDecl:
-		if w.Environment.Name != "" {
-			// w.Error(newNode.GetToken(), "cannot have 2 environment declaration statements in one file")
-		}
+	// switch newNode := (*node).(type) {
+	// 	// case *ast.EnvironmentDecl:
+	// 	// 		switch name.Lexeme {
+	// 	// case "Mesh":
+	// 	// 	envTypeExpr.Type = ast.MeshEnv
+	// 	// case "Level":
+	// 	// 	envTypeExpr.Type = ast.LevelEnv
+	// 	// case "Sound":
+	// 	// 	envTypeExpr.Type = ast.SoundEnv
+	// 	// default:
+	// 	// 	p.Alert(&alerts.InvalidEnvironmentType{}, alerts.NewSingle(name))
+	// 	// }
 
-		w.Environment.Name = newNode.Env.Path.Lexeme
-		// for k, v := range w.Walkers {
-		// 	if k == w.Environment.Name {
-		// 		 w.Error(newNode.GetToken(), fmt.Sprintf("duplicate names found between %s and %s", w.Environment.Path, v.Environment.Path))
-		// 	}
-		// }
+	// 	if w.Environment.Name != "" {
+	// 		// w.Error(newNode.GetToken(), "cannot have 2 environment declaration statements in one file")
+	// 	}
 
-		w.Walkers[w.Environment.Name] = w
-	default:
-	}
+	// 	w.Environment.Name = newNode.Env.Path.Lexeme
+	// 	// for k, v := range w.Walkers {
+	// 	// 	if k == w.Environment.Name {
+	// 	// 		 w.Error(newNode.GetToken(), fmt.Sprintf("duplicate names found between %s and %s", w.Environment.Path, v.Environment.Path))
+	// 	// 	}
+	// 	// }
+
+	// 	w.Walkers[w.Environment.Name] = w
+	// default:
+	// }
 }
 
 func WalkBody(w *wkr.Walker, body *[]ast.Node, tag wkr.ExitableTag, scope *wkr.Scope) {

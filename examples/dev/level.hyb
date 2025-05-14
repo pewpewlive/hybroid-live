@@ -1,5 +1,5 @@
 env Thing as Level
-
+/*
 alias Thing number 
 
 class {
@@ -32,11 +32,11 @@ enum {
   "j"
 }
 
-let thing = spawn B(100fx, )
+let thing = spawn B(100fx, 2)
 
 tick {
   if true {
-    // {}
+    {}
   } else if false {
 
   } else {
@@ -80,11 +80,16 @@ while  {
 
 }
 
-fn func(number a) -> (number, number) {
+*/
+
+a ++= 0
+/*
+
+fn spawn<g>(g j, h) {
   if a > 0 {
-    return a, a*2
+    return a
   } else if a == 0 {
-    return a*2, a*2
+    return a*2
   }
 
   return 0, 0
@@ -98,3 +103,5 @@ match b {
   }
   else => func(1)
 }
+
+*/

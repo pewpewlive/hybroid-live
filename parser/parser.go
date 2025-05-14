@@ -87,7 +87,7 @@ func (p *Parser) synchronize() {
 
 func (p *Parser) Parse() []ast.Node {
 	envDecl := p.declaration()
-	if envDecl.GetType() != ast.EnvironmentDeclaration {
+	if envDecl.GetType() != ast.EnvironmentDeclaration || !ast.IsImproper(envDecl, ast.EnvironmentDeclaration) {
 		p.Alert(&alerts.ExpectedEnvironment{}, alerts.NewMulti(envDecl.GetToken(), p.peek(-1)))
 		return []ast.Node{}
 	}

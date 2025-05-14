@@ -649,22 +649,7 @@ func (p *Parser) envTypeExpr() *ast.EnvTypeExpr {
 	envTypeExpr := ast.EnvTypeExpr{
 		Type: ast.InvalidEnv,
 	}
-	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "for an environment type"), tokens.Identifier)
-	envTypeExpr.Token = name
-	if !ok {
-		return &envTypeExpr
-	}
-
-	switch name.Lexeme {
-	case "Mesh":
-		envTypeExpr.Type = ast.MeshEnv
-	case "Level":
-		envTypeExpr.Type = ast.LevelEnv
-	case "Sound":
-		envTypeExpr.Type = ast.SoundEnv
-	default:
-		p.Alert(&alerts.InvalidEnvironmentType{}, alerts.NewSingle(name))
-	}
+	envTypeExpr.Token, _ = p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "for an environment type"), tokens.Identifier)
 
 	return &envTypeExpr
 }

@@ -97,7 +97,7 @@ func (p *Parser) genericParams() []*ast.IdentifierExpr {
 		}
 	}
 
-	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Greater), tokens.Greater)
+	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Greater, "in generic parameters"), tokens.Greater)
 
 	return params
 }
@@ -191,7 +191,7 @@ func (p *Parser) expressions(typeContext string, allowTrailing bool) ([]ast.Node
 	expr := p.expression()
 	success := true
 	if expr.GetType() == ast.NA {
-		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()), typeContext)
+		p.Alert(&alerts.ExpectedExpression{}, alerts.NewMulti(p.peek(-1), p.peek()), typeContext)
 		success = false
 	} else {
 		exprs = append(exprs, expr)
@@ -203,7 +203,7 @@ func (p *Parser) expressions(typeContext string, allowTrailing bool) ([]ast.Node
 			p.disadvance(p.current - exprStart)
 			return exprs, success
 		} else if expr.GetType() == ast.NA {
-			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()), typeContext)
+			p.Alert(&alerts.ExpectedExpression{}, alerts.NewMulti(p.peek(-1), p.peek()), typeContext)
 			success = false
 			continue
 		}
