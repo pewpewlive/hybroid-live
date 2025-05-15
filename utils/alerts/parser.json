@@ -82,20 +82,9 @@
     "message": "cannot have return types in constructor"
   },
   {
-    "name": "EnvironmentRedaclaration",
-    "type": "Error",
-    "message": "cannot redeclare an environment"
-  },
-  {
     "name": "ExpectedEnvironmentPathExpression",
     "type": "Error",
     "message": "expected environment path expression"
-  },
-  {
-    "name": "ExpectedEnvironment",
-    "type": "Error",
-    "message": "expected environment declaration",
-    "note": "the first declaration in any Hybroid file has to be an environment declaration"
   },
   {
     "name": "ExpectedType",
@@ -137,16 +126,6 @@
     "name": "ExpectedCallAfterMacroSymbol",
     "type": "Error",
     "message": "expected a macro call after '@'"
-  },
-  {
-    "name": "ForbiddenTypeInEnvironment",
-    "type": "Error",
-    "params": {
-      "Type": "string",
-      "Envs": "[]string"
-    },
-    "message": "cannot have a %s in the following environments: %s",
-    "message_format": ["Type", { "Envs": "strings.Join({}, \", \")" }]
   },
   {
     "name": "ExpectedFieldDeclaration",
@@ -230,6 +209,25 @@
   {
     "name": "InvalidEnumVariantName",
     "type": "Error",
-    "message": "enum variant name must be an identifier"
+    "message": "enum variant name must be an identifier or a number"
+  },
+  {
+    "name": "InvalidExpression",
+    "type": "Error",
+    "params": {
+      "Type": "string",
+      "Context": "string `default:\"\"`"
+    },
+    "message":"'%s' not allowed %s",
+    "message_format":["Type", "Context"]
+  },
+  {
+    "name": "SyntaxIncoherency",
+    "type": "Error",
+    "params": {
+      "ParsedSection": "string"
+    },
+    "message": "%s needs to start in the same line as the previous parsed section",
+    "message_format":["ParsedSection"]
   }
 ]

@@ -4,7 +4,6 @@ import (
 	"hybroid/alerts"
 	"hybroid/ast"
 	"hybroid/tokens"
-	"strings"
 )
 
 func (p *Parser) expression() ast.Node {
@@ -76,7 +75,13 @@ func (p *Parser) term() ast.Node {
 
 	if p.match(tokens.Plus, tokens.Minus) {
 		operator := p.peek(-1)
+		if expr.GetType() == ast.NA {
+			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), "as left value in binary expression")
+		}
 		right := p.term()
+		if right.GetType() == ast.NA {
+			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(right.GetToken()), "as right value in binary expression")
+		}
 		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: p.determineValueType(expr, right)}
 	}
 
@@ -88,8 +93,13 @@ func (p *Parser) factor() ast.Node {
 
 	if p.match(tokens.Star, tokens.Slash, tokens.Caret, tokens.Modulo, tokens.BackSlash) {
 		operator := p.peek(-1)
+		if expr.GetType() == ast.NA {
+			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), "as left value in binary expression")
+		}
 		right := p.factor()
-
+		if right.GetType() == ast.NA {
+			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(right.GetToken()), "as right value in binary expression")
+		}
 		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: p.determineValueType(expr, right)}
 	}
 
@@ -101,7 +111,13 @@ func (p *Parser) concat() ast.Node {
 
 	if p.match(tokens.Concat) {
 		operator := p.peek(-1)
+		if expr.GetType() == ast.NA {
+			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), "as left value in concat expression")
+		}
 		right := p.concat()
+		if right.GetType() == ast.NA {
+			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(right.GetToken()), "as right value in concat expression")
+		}
 		return &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: p.determineValueType(expr, right)}
 	}
 
@@ -112,6 +128,9 @@ func (p *Parser) unary() ast.Node {
 	if p.match(tokens.Bang, tokens.Minus, tokens.Hash) {
 		operator := p.peek(-1)
 		right := p.unary()
+		if right.GetType() == ast.NA {
+			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(right.GetToken()), "in unary expression")
+		}
 		return &ast.UnaryExpr{Operator: operator, Value: right}
 	}
 	return p.entity()
@@ -340,34 +359,20 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 		env := p.context.EnvDeclaration
 
 		if env != nil {
-			envType := env.EnvType.Type
-			allowFX := envType == ast.LevelEnv
 			switch literal.Type {
 			case tokens.Number:
 				// 1
-				if allowFX && strings.ContainsRune(literal.Lexeme, '.') {
-					p.Alert(&alerts.ForbiddenTypeInEnvironment{}, alerts.NewSingle(literal), "float", []string{"level", "shared"})
-				}
+				// if allowFX && strings.ContainsRune(literal.Lexeme, '.') {
+				// 	p.Alert(&alerts.ForbiddenTypeInEnvironment{}, alerts.NewSingle(literal), "float", []string{"level", "shared"})
+				// }
 				valueType = ast.Number
 			case tokens.Fixed:
-				if !allowFX {
-					p.Alert(&alerts.ForbiddenTypeInEnvironment{}, alerts.NewSingle(literal), "fixed", []string{"mesh", "sound"})
-				}
 				valueType = ast.Fixed
 			case tokens.FixedPoint:
-				if !allowFX {
-					p.Alert(&alerts.ForbiddenTypeInEnvironment{}, alerts.NewSingle(literal), "fixedpoint", []string{"mesh", "sound"})
-				}
 				valueType = ast.FixedPoint
 			case tokens.Degree:
-				if !allowFX {
-					p.Alert(&alerts.ForbiddenTypeInEnvironment{}, alerts.NewSingle(literal), "degrees", []string{"mesh", "sound"})
-				}
 				valueType = ast.Degree
 			case tokens.Radian:
-				if !allowFX {
-					p.Alert(&alerts.ForbiddenTypeInEnvironment{}, alerts.NewSingle(literal), "radian", []string{"mesh", "sound"})
-				}
 				valueType = ast.Radian
 			case tokens.String:
 				valueType = ast.String

@@ -63,7 +63,7 @@ func (p *Parser) statement() (returnNode ast.Node) {
 	}
 
 	returnNode = p.expressionStatement()
-	if returnNode.GetType() == ast.NA {
+	if ast.IsImproper(returnNode, ast.NA) {
 		p.advance()
 	}
 	return
@@ -71,15 +71,15 @@ func (p *Parser) statement() (returnNode ast.Node) {
 
 func (p *Parser) expressionStatement() ast.Node {
 	expr := p.expression()
+	typ := expr.GetType()
 
-	if expr.GetType() == ast.Identifier || expr.GetType() == ast.EnvironmentAccessExpression ||
-		expr.GetType() == ast.MemberExpression || expr.GetType() == ast.FieldExpression {
+	if typ == ast.Identifier || typ == ast.EnvironmentAccessExpression ||
+		typ == ast.MemberExpression || typ == ast.FieldExpression {
 		return p.assignmentStmt(expr)
 	}
 
-	typ := expr.GetType()
 	if typ != ast.CallExpression && typ != ast.MethodCallExpression && typ != ast.SpawnExpression && typ != ast.NewExpession {
-		return ast.NewImproper(expr.GetToken(), ast.NA)
+		return ast.NewImproper(expr.GetToken(), expr.GetType())
 	}
 
 	return expr
@@ -95,6 +95,8 @@ func (p *Parser) destroyStmt() ast.Node {
 
 	if exprType != ast.Identifier && exprType != ast.EnvironmentAccessExpression && exprType != ast.SelfExpression {
 		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(expr.GetToken()), "or environment access expression or a self expression in destroy statement")
+	} else {
+		p.coherencyFailed("expression", destroyStmt.Token, expr.GetToken())
 	}
 	destroyStmt.Identifier = expr
 	destroyStmt.Generics, _ = p.genericArgs()
@@ -142,16 +144,16 @@ func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) *ast.IfS
 func (p *Parser) assignmentStmt(expr ast.Node) ast.Node {
 	idents := []ast.Node{expr}
 
-	for p.match(tokens.Comma) {
+	for p.match2(tokens.Comma) {
 		expr := p.expression()
 		idents = append(idents, expr)
 	}
 	values := []ast.Node{}
-	if p.match(tokens.Equal) {
-		exprs, _ := p.expressions("in assignment statement", false)
+	if p.match2(tokens.Equal) {
+		exprs, _ := p.expressions("in assignment statement", false, false)
 		return &ast.AssignmentStmt{Identifiers: idents, Values: exprs, Token: p.peek(-1)}
 	}
-	if p.match(tokens.PlusEqual, tokens.MinusEqual, tokens.SlashEqual, tokens.StarEqual, tokens.CaretEqual, tokens.ModuloEqual, tokens.BackSlashEqual) {
+	if p.match2(tokens.PlusEqual, tokens.MinusEqual, tokens.SlashEqual, tokens.StarEqual, tokens.CaretEqual, tokens.ModuloEqual, tokens.BackSlashEqual) {
 		if len(idents) > 1 {
 			p.Alert(&alerts.MultipleIdentifiersInCompoundAssignment{}, alerts.NewMulti(expr.GetToken(), idents[len(idents)].GetToken()))
 		}
@@ -179,20 +181,23 @@ func (p *Parser) assignmentStmt(expr ast.Node) ast.Node {
 		if expr2.GetType() == ast.NA {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()), "in assignment statement")
 		} else {
-			binExpr := p.createBinExpr(idents[1], op, op.Type, op.Lexeme, &ast.GroupExpr{Expr: expr2, ValueType: expr2.GetValueType(), Token: expr2.GetToken()})
+			p.coherencyFailed("expression", assignOp, expr2.GetToken())
+			binExpr := p.createBinExpr(idents[0], op, op.Type, op.Lexeme, &ast.GroupExpr{Expr: expr2, ValueType: expr2.GetValueType(), Token: expr2.GetToken()})
 			values = append(values, binExpr)
 		}
-		for p.match(tokens.Comma) {
+		for p.match2(tokens.Comma) {
+			comma := p.peek(-1)
 			expr2 := p.expression()
 
 			if expr2.GetType() == ast.NA {
 				p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()), "in assignment statement")
 			} else {
+				p.coherencyFailed("expression", comma, expr2.GetToken(), true)
 				binExpr := p.createBinExpr(idents[1], op, op.Type, op.Lexeme, &ast.GroupExpr{Expr: expr2, ValueType: expr2.GetValueType(), Token: expr2.GetToken()})
 				values = append(values, binExpr)
 			}
 		}
-		return &ast.AssignmentStmt{Identifiers: idents, Values: values, Token: assignOp}
+		return &ast.AssignmentStmt{Identifiers: idents, Values: values, Token: idents[0].GetToken()}
 	}
 	p.Alert(&alerts.ExpectedAssignmentSymbol{}, alerts.NewSingle(p.peek()))
 
@@ -205,35 +210,33 @@ func (p *Parser) returnStmt() ast.Node {
 		Args:  []ast.Node{},
 	}
 
-	if p.context.FunctionReturns.Top().Item == 0 {
+	if p.peek().Line != returnStmt.Token.Line {
 		return returnStmt
 	}
-
-	if p.context.FunctionReturns.Top().Item != 0 {
-		returnStmt.Args, _ = p.expressions("in return arguments", false)
-	}
+	returnStmt.Args, _ = p.expressions("in return arguments", false, false)
 
 	return returnStmt
 }
 
 func (p *Parser) yieldStmt() ast.Node {
-	yieldStmt := ast.YieldStmt{
+	yieldStmt := &ast.YieldStmt{
 		Token: p.peek(-1),
 	}
 
-	if p.peek().Type == tokens.RightBrace {
-		return &yieldStmt
+	if p.peek().Line != yieldStmt.Token.Line {
+		return yieldStmt
 	}
+	yieldStmt.Args, _ = p.expressions("in yield statement", false, false)
 
-	yieldStmt.Args, _ = p.expressions("in yield statement", false)
-
-	return &yieldStmt
+	return yieldStmt
 }
 
 func (p *Parser) repeatStmt() ast.Node {
 	repeatStmt := ast.RepeatStmt{
 		Token: p.peek(-1),
 	}
+
+	allowedExprTypes := []ast.NodeType{ast.Identifier, ast.FieldExpression, ast.MemberExpression, ast.CallExpression, ast.MethodCallExpression, ast.LiteralExpression}
 
 	i := 0
 outer:
@@ -254,7 +257,7 @@ outer:
 			repeatStmt.Variable = identExpr.(*ast.IdentifierExpr)
 		case tokens.To:
 			p.advance()
-			it := p.expression()
+			it := p.limitedExpression("as iterator in repeat statement", allowedExprTypes...)
 			if repeatStmt.Iterator != nil {
 				p.Alert(&alerts.IteratorRedefinition{}, alerts.NewSingle(p.peek(-1)), "in repeat statement")
 				continue
@@ -262,7 +265,7 @@ outer:
 			repeatStmt.Iterator = it
 		case tokens.By:
 			p.advance()
-			skip := p.expression()
+			skip := p.limitedExpression("as skip expression in repeat statement", allowedExprTypes...)
 			if repeatStmt.Skip != nil {
 				p.Alert(&alerts.DuplicateKeyword{}, alerts.NewSingle(p.peek(-1)), tokens.By)
 				continue
@@ -270,7 +273,7 @@ outer:
 			repeatStmt.Skip = skip
 		case tokens.From:
 			p.advance()
-			start := p.expression()
+			start := p.limitedExpression("as from expression in repeat statement", allowedExprTypes...)
 			if repeatStmt.Start != nil {
 				p.Alert(&alerts.DuplicateKeyword{}, alerts.NewSingle(p.peek(-1)), tokens.From)
 			}
@@ -286,7 +289,7 @@ outer:
 		i += 1
 	}
 
-	if repeatStmt.Iterator == nil {
+	if (repeatStmt.Start != nil || repeatStmt.Skip != nil || repeatStmt.Variable != nil) && repeatStmt.Iterator == nil {
 		p.Alert(&alerts.MissingIterator{}, alerts.NewSingle(repeatStmt.Token), "in repeat statement")
 		repeatStmt.Iterator = &ast.LiteralExpr{Token: repeatStmt.Token, Value: "1", ValueType: ast.Number}
 	}
@@ -301,7 +304,9 @@ outer:
 }
 
 func (p *Parser) whileStmt() ast.Node {
-	whileStmt := &ast.WhileStmt{}
+	whileStmt := &ast.WhileStmt{
+		Token: p.peek(-1),
+	}
 
 	condition := p.multiComparison()
 
@@ -309,6 +314,7 @@ func (p *Parser) whileStmt() ast.Node {
 		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(condition.GetToken()))
 		return ast.NewImproper(condition.GetToken(), ast.WhileStatement)
 	}
+	p.coherencyFailed("condition", whileStmt.Token, condition.GetToken())
 
 	whileStmt.Condition = condition
 
@@ -330,14 +336,16 @@ func (p *Parser) forStmt() ast.Node {
 	if identExpr.GetType() != ast.Identifier {
 		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(identExpr.GetToken()), "after keyword 'for' in for loop statement")
 	} else {
+		p.coherencyFailed("identifier", forStmt.Token, identExpr.GetToken())
 		forStmt.First = identExpr.(*ast.IdentifierExpr)
 	}
 
-	if p.match(tokens.Comma) {
+	if p.match2(tokens.Comma) {
 		identExpr = p.expression()
 		if identExpr.GetType() != ast.Identifier {
 			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(identExpr.GetToken()))
 		} else {
+			p.coherencyFailed("identifier", p.peek(-2), identExpr.GetToken())
 			forStmt.Second = identExpr.(*ast.IdentifierExpr)
 		}
 	}

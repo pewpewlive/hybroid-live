@@ -17,10 +17,9 @@ type Parser struct {
 }
 
 type ParserContext struct {
-	EnvDeclaration  *ast.EnvironmentDecl
-	IsPub           bool
-	IgnoreAlerts    helpers.Stack[bool]
-	FunctionReturns helpers.Stack[int]
+	EnvDeclaration *ast.EnvironmentDecl
+	IsPub          bool
+	IgnoreAlerts   helpers.Stack[bool]
 }
 
 func NewParser(tokens []tokens.Token) Parser {
@@ -29,15 +28,13 @@ func NewParser(tokens []tokens.Token) Parser {
 		current: 0,
 		tokens:  tokens,
 		context: ParserContext{
-			EnvDeclaration:  nil,
-			IgnoreAlerts:    helpers.NewStack[bool]("IgnoreAlerts"),
-			FunctionReturns: helpers.NewStack[int]("FunctionReturns"),
+			EnvDeclaration: nil,
+			IgnoreAlerts:   helpers.NewStack[bool]("IgnoreAlerts"),
 		},
 		Collector: alerts.NewCollector(),
 	}
 
 	parser.context.IgnoreAlerts.Push("default", false)
-	parser.context.FunctionReturns.Push("default", 0)
 
 	return parser
 }
@@ -86,20 +83,10 @@ func (p *Parser) synchronize() {
 }
 
 func (p *Parser) Parse() []ast.Node {
-	envDecl := p.declaration()
-	if envDecl.GetType() != ast.EnvironmentDeclaration || !ast.IsImproper(envDecl, ast.EnvironmentDeclaration) {
-		p.Alert(&alerts.ExpectedEnvironment{}, alerts.NewMulti(envDecl.GetToken(), p.peek(-1)))
-		return []ast.Node{}
-	}
-	p.program = append(p.program, envDecl)
-
 	for !p.isAtEnd() {
 		declaration := p.declaration()
 		if declaration == nil {
 			continue
-		}
-		if declaration.GetType() == ast.EnvironmentDeclaration {
-			p.Alert(&alerts.EnvironmentRedaclaration{}, alerts.NewSingle(p.peek()))
 		}
 		if declaration.GetType() != ast.NA {
 			p.program = append(p.program, declaration)

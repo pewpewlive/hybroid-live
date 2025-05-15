@@ -1,6 +1,9 @@
 package ast
 
-import "hybroid/tokens"
+import (
+	"hybroid/tokens"
+	"strings"
+)
 
 type EnvTypeExpr struct {
 	Type  EnvType
@@ -530,6 +533,14 @@ func NewImproper(token tokens.Token, nodeType NodeType) *Improper {
 
 func IsImproper(improper Node, nodeType NodeType) bool {
 	return improper.GetType() == NA && improper.(*Improper).Type == nodeType
+}
+
+func IsImproperNotStatement(improper Node) bool {
+	if improper.GetType() != NA {
+		return false
+	}
+	typ := string(improper.(*Improper).Type)
+	return (!strings.Contains(typ, "Statement") && !strings.Contains(typ, "Declaration"))
 }
 
 func (i *Improper) GetType() NodeType {

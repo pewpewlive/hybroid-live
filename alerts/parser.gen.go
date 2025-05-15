@@ -4,7 +4,7 @@ package alerts
 
 import (
   "fmt"
-  "strings"
+  
 )
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
@@ -291,31 +291,6 @@ func (ric *ReturnsInConstructor) GetAlertType() Type {
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type EnvironmentRedaclaration struct {
-  Specifier Snippet
-}
-
-func (er *EnvironmentRedaclaration) GetMessage() string {
-  return "cannot redeclare an environment"
-}
-
-func (er *EnvironmentRedaclaration) GetSpecifier() Snippet {
-  return er.Specifier
-}
-
-func (er *EnvironmentRedaclaration) GetNote() string {
-  return ""
-}
-
-func (er *EnvironmentRedaclaration) GetID() string {
-  return "hyb012P"
-}
-
-func (er *EnvironmentRedaclaration) GetAlertType() Type {
-  return Error
-}
-
-// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ExpectedEnvironmentPathExpression struct {
   Specifier Snippet
 }
@@ -333,35 +308,10 @@ func (eepe *ExpectedEnvironmentPathExpression) GetNote() string {
 }
 
 func (eepe *ExpectedEnvironmentPathExpression) GetID() string {
-  return "hyb013P"
+  return "hyb012P"
 }
 
 func (eepe *ExpectedEnvironmentPathExpression) GetAlertType() Type {
-  return Error
-}
-
-// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type ExpectedEnvironment struct {
-  Specifier Snippet
-}
-
-func (ee *ExpectedEnvironment) GetMessage() string {
-  return "expected environment declaration"
-}
-
-func (ee *ExpectedEnvironment) GetSpecifier() Snippet {
-  return ee.Specifier
-}
-
-func (ee *ExpectedEnvironment) GetNote() string {
-  return "the first declaration in any Hybroid file has to be an environment declaration"
-}
-
-func (ee *ExpectedEnvironment) GetID() string {
-  return "hyb014P"
-}
-
-func (ee *ExpectedEnvironment) GetAlertType() Type {
   return Error
 }
 
@@ -384,7 +334,7 @@ func (et *ExpectedType) GetNote() string {
 }
 
 func (et *ExpectedType) GetID() string {
-  return "hyb015P"
+  return "hyb013P"
 }
 
 func (et *ExpectedType) GetAlertType() Type {
@@ -409,7 +359,7 @@ func (eas *ExpectedAssignmentSymbol) GetNote() string {
 }
 
 func (eas *ExpectedAssignmentSymbol) GetID() string {
-  return "hyb016P"
+  return "hyb014P"
 }
 
 func (eas *ExpectedAssignmentSymbol) GetAlertType() Type {
@@ -434,7 +384,7 @@ func (eeob *ExpectedExpressionOrBody) GetNote() string {
 }
 
 func (eeob *ExpectedExpressionOrBody) GetID() string {
-  return "hyb017P"
+  return "hyb015P"
 }
 
 func (eeob *ExpectedExpressionOrBody) GetAlertType() Type {
@@ -459,7 +409,7 @@ func (eca *ExpectedCallArgs) GetNote() string {
 }
 
 func (eca *ExpectedCallArgs) GetID() string {
-  return "hyb018P"
+  return "hyb016P"
 }
 
 func (eca *ExpectedCallArgs) GetAlertType() Type {
@@ -484,7 +434,7 @@ func (ic *InvalidCall) GetNote() string {
 }
 
 func (ic *InvalidCall) GetID() string {
-  return "hyb019P"
+  return "hyb017P"
 }
 
 func (ic *InvalidCall) GetAlertType() Type {
@@ -509,7 +459,7 @@ func (iet *InvalidEnvironmentType) GetNote() string {
 }
 
 func (iet *InvalidEnvironmentType) GetID() string {
-  return "hyb020P"
+  return "hyb018P"
 }
 
 func (iet *InvalidEnvironmentType) GetAlertType() Type {
@@ -534,37 +484,10 @@ func (ecams *ExpectedCallAfterMacroSymbol) GetNote() string {
 }
 
 func (ecams *ExpectedCallAfterMacroSymbol) GetID() string {
-  return "hyb021P"
+  return "hyb019P"
 }
 
 func (ecams *ExpectedCallAfterMacroSymbol) GetAlertType() Type {
-  return Error
-}
-
-// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type ForbiddenTypeInEnvironment struct {
-  Specifier Snippet
-  Type string
-  Envs []string
-}
-
-func (ftie *ForbiddenTypeInEnvironment) GetMessage() string {
-  return fmt.Sprintf("cannot have a %s in the following environments: %s", ftie.Type, strings.Join(ftie.Envs, ", "))
-}
-
-func (ftie *ForbiddenTypeInEnvironment) GetSpecifier() Snippet {
-  return ftie.Specifier
-}
-
-func (ftie *ForbiddenTypeInEnvironment) GetNote() string {
-  return ""
-}
-
-func (ftie *ForbiddenTypeInEnvironment) GetID() string {
-  return "hyb022P"
-}
-
-func (ftie *ForbiddenTypeInEnvironment) GetAlertType() Type {
   return Error
 }
 
@@ -586,7 +509,7 @@ func (efd *ExpectedFieldDeclaration) GetNote() string {
 }
 
 func (efd *ExpectedFieldDeclaration) GetID() string {
-  return "hyb023P"
+  return "hyb020P"
 }
 
 func (efd *ExpectedFieldDeclaration) GetAlertType() Type {
@@ -611,7 +534,7 @@ func (ewt *EmptyWrappedType) GetNote() string {
 }
 
 func (ewt *EmptyWrappedType) GetID() string {
-  return "hyb024P"
+  return "hyb021P"
 }
 
 func (ewt *EmptyWrappedType) GetAlertType() Type {
@@ -636,7 +559,7 @@ func (era *ExpectedReturnArgs) GetNote() string {
 }
 
 func (era *ExpectedReturnArgs) GetID() string {
-  return "hyb025P"
+  return "hyb022P"
 }
 
 func (era *ExpectedReturnArgs) GetAlertType() Type {
@@ -661,7 +584,7 @@ func (eae *ExpectedAccessExpression) GetNote() string {
 }
 
 func (eae *ExpectedAccessExpression) GetID() string {
-  return "hyb026P"
+  return "hyb023P"
 }
 
 func (eae *ExpectedAccessExpression) GetAlertType() Type {
@@ -687,7 +610,7 @@ func (mi *MissingIterator) GetNote() string {
 }
 
 func (mi *MissingIterator) GetID() string {
-  return "hyb027P"
+  return "hyb024P"
 }
 
 func (mi *MissingIterator) GetAlertType() Type {
@@ -713,7 +636,7 @@ func (dk *DuplicateKeyword) GetNote() string {
 }
 
 func (dk *DuplicateKeyword) GetID() string {
-  return "hyb028P"
+  return "hyb025P"
 }
 
 func (dk *DuplicateKeyword) GetAlertType() Type {
@@ -740,7 +663,7 @@ func (uk *UnexpectedKeyword) GetNote() string {
 }
 
 func (uk *UnexpectedKeyword) GetID() string {
-  return "hyb029P"
+  return "hyb026P"
 }
 
 func (uk *UnexpectedKeyword) GetAlertType() Type {
@@ -766,7 +689,7 @@ func (ir *IteratorRedefinition) GetNote() string {
 }
 
 func (ir *IteratorRedefinition) GetID() string {
-  return "hyb030P"
+  return "hyb027P"
 }
 
 func (ir *IteratorRedefinition) GetAlertType() Type {
@@ -791,7 +714,7 @@ func (eibaeb *ElseIfBlockAfterElseBlock) GetNote() string {
 }
 
 func (eibaeb *ElseIfBlockAfterElseBlock) GetID() string {
-  return "hyb031P"
+  return "hyb028P"
 }
 
 func (eibaeb *ElseIfBlockAfterElseBlock) GetAlertType() Type {
@@ -816,7 +739,7 @@ func (mtodc *MoreThanOneDefaultCase) GetNote() string {
 }
 
 func (mtodc *MoreThanOneDefaultCase) GetID() string {
-  return "hyb032P"
+  return "hyb029P"
 }
 
 func (mtodc *MoreThanOneDefaultCase) GetAlertType() Type {
@@ -841,7 +764,7 @@ func (ic *InsufficientCases) GetNote() string {
 }
 
 func (ic *InsufficientCases) GetID() string {
-  return "hyb033P"
+  return "hyb030P"
 }
 
 func (ic *InsufficientCases) GetAlertType() Type {
@@ -866,7 +789,7 @@ func (dcm *DefaultCaseMissing) GetNote() string {
 }
 
 func (dcm *DefaultCaseMissing) GetID() string {
-  return "hyb034P"
+  return "hyb031P"
 }
 
 func (dcm *DefaultCaseMissing) GetAlertType() Type {
@@ -879,7 +802,7 @@ type InvalidEnumVariantName struct {
 }
 
 func (ievn *InvalidEnumVariantName) GetMessage() string {
-  return "enum variant name must be an identifier"
+  return "enum variant name must be an identifier or a number"
 }
 
 func (ievn *InvalidEnumVariantName) GetSpecifier() Snippet {
@@ -891,10 +814,63 @@ func (ievn *InvalidEnumVariantName) GetNote() string {
 }
 
 func (ievn *InvalidEnumVariantName) GetID() string {
-  return "hyb035P"
+  return "hyb032P"
 }
 
 func (ievn *InvalidEnumVariantName) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidExpression struct {
+  Specifier Snippet
+  Type string
+  Context string `default:""`
+}
+
+func (ie *InvalidExpression) GetMessage() string {
+  return fmt.Sprintf("'%s' not allowed %s", ie.Type, ie.Context)
+}
+
+func (ie *InvalidExpression) GetSpecifier() Snippet {
+  return ie.Specifier
+}
+
+func (ie *InvalidExpression) GetNote() string {
+  return ""
+}
+
+func (ie *InvalidExpression) GetID() string {
+  return "hyb033P"
+}
+
+func (ie *InvalidExpression) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type SyntaxIncoherency struct {
+  Specifier Snippet
+  ParsedSection string
+}
+
+func (si *SyntaxIncoherency) GetMessage() string {
+  return fmt.Sprintf("%s needs to start in the same line as the previous parsed section", si.ParsedSection)
+}
+
+func (si *SyntaxIncoherency) GetSpecifier() Snippet {
+  return si.Specifier
+}
+
+func (si *SyntaxIncoherency) GetNote() string {
+  return ""
+}
+
+func (si *SyntaxIncoherency) GetID() string {
+  return "hyb034P"
+}
+
+func (si *SyntaxIncoherency) GetAlertType() Type {
   return Error
 }
 

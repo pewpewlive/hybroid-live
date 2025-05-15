@@ -14,7 +14,7 @@ import (
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 """
 
-_POSSIBLE_PACKAGES = ["strings"]
+_POSSIBLE_PACKAGES = ["strings", "hybroid/ast"]
 _imports = set()
 
 
@@ -29,9 +29,13 @@ def _to_receiver(original: str) -> str:
 
 def _extract_imports(string: str):
     for package in _POSSIBLE_PACKAGES:
-        if package in string:
+        modified = ""
+        if "hybroid/" in package: 
+            modified = package[8:]
+        else:
+            modified = package
+        if modified in string:
             _imports.add(f'"{package}"')
-
 
 type Format = dict[str, str] | str
 
@@ -100,6 +104,9 @@ class Alert:
     def generate_str(self) -> str:
         type_template = "type {} struct {{\n  {}\n}}"
         function_template = "func ({} *{}) {}({}) {} {{\n  {}\n}}"
+
+        for _, type in self.params.items():
+            _extract_imports(type)
 
         alert = (
             type_template.format(

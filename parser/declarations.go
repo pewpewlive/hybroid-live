@@ -107,7 +107,7 @@ func (p *Parser) declaration() (returnNode ast.Node) {
 
 	p.context.IsPub = false
 
-	if returnNode.GetType() == ast.NA {
+	if ast.IsImproper(returnNode, ast.NA) {
 		p.synchronize()
 	}
 
@@ -232,8 +232,8 @@ func (p *Parser) functionDeclaration() ast.Node {
 		IsPub: p.context.IsPub,
 	}
 
-	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name of the function"), tokens.Identifier)
-	if !ok && (!p.check(tokens.Less) || !p.check(tokens.LeftParen)) {
+	name, nameOk := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name of the function"), tokens.Identifier)
+	if !nameOk && (!p.check(tokens.Less) || !p.check(tokens.LeftParen)) {
 		p.advance()
 	}
 
@@ -242,21 +242,11 @@ func (p *Parser) functionDeclaration() ast.Node {
 	functionDecl.Params = p.functionParams(tokens.LeftParen, tokens.RightParen)
 	functionDecl.Return = p.functionReturns()
 
-	if functionDecl.Return == nil || functionDecl.Return.Name.GetType() == ast.NA {
-		p.context.FunctionReturns.Push("functionDeclarationStmt", 0)
-	} else if functionDecl.Return.Name.GetType() == ast.TupleExpression {
-		p.context.FunctionReturns.Push("functionDeclarationStmt", len(functionDecl.Return.Name.(*ast.TupleExpr).Types))
-	} else {
-		p.context.FunctionReturns.Push("functionDeclarationStmt", 1)
-	}
-
 	body, ok := p.body(false, true)
 	if !ok {
 		return ast.NewImproper(functionDecl.Name, ast.FunctionDeclaration)
 	}
 	functionDecl.Body = body
-
-	p.context.FunctionReturns.Pop("functionDeclarationStmt")
 
 	return &functionDecl
 }
@@ -267,10 +257,7 @@ func (p *Parser) enumDeclaration() ast.Node {
 		Token: p.peek(-1),
 	}
 
-	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in enum declaration"), tokens.Identifier)
-	if !ok {
-		return ast.NewImproper(enumStmt.Token, ast.EnumDeclaration)
-	}
+	name, _ := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in enum declaration"), tokens.Identifier)
 	enumStmt.Name = name
 
 	start, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
@@ -278,7 +265,7 @@ func (p *Parser) enumDeclaration() ast.Node {
 		return ast.NewImproper(enumStmt.Token, ast.EnumDeclaration)
 	}
 
-	fields, _ := p.expressions("in enum declaration", true)
+	fields, _ := p.expressions("in enum declaration", true, true)
 	for _, v := range fields {
 		if v.GetType() == ast.Identifier {
 			enumStmt.Fields = append(enumStmt.Fields, v.(*ast.IdentifierExpr))
@@ -423,21 +410,12 @@ func (p *Parser) entityFunctionDeclaration(token tokens.Token, functionType ast.
 	stmt.Generics = p.genericParams()
 	stmt.Params = p.functionParams(tokens.LeftParen, tokens.RightParen)
 	stmt.Return = p.functionReturns()
-	if stmt.Return == nil || stmt.Return.Name.GetType() == ast.NA {
-		p.context.FunctionReturns.Push("entityFunctionDeclarationStmt", 0)
-	} else if stmt.Return.Name.GetType() == ast.TupleExpression {
-		p.context.FunctionReturns.Push("entityFunctionDeclarationStmt", len(stmt.Return.Name.(*ast.TupleExpr).Types))
-	} else {
-		p.context.FunctionReturns.Push("entityFunctionDeclarationStmt", 1)
-	}
 
 	var success bool
 	stmt.Body, success = p.body(true, true)
 	if !success {
 		return ast.NewImproper(stmt.Token, ast.EntityFunctionDeclaration)
 	}
-
-	p.context.FunctionReturns.Pop("entityFunctionDeclarationStmt")
 
 	return stmt
 }

@@ -7,5 +7,26 @@
     },
     "message": "Expected '%s'",
     "message_format": ["Symbol"]
+  },
+    {
+    "name": "ForbiddenTypeInEnvironment",
+    "type": "Error",
+    "params": {
+      "Type": "string",
+      "Envs": "[]string"
+    },
+    "message": "cannot have a %s in the following environments: %s",
+    "message_format": ["Type", { "Envs": "strings.Join({}, \", \")" }]
+  },
+  {
+    "name": "EnvironmentRedaclaration",
+    "type": "Error",
+    "message": "cannot redeclare an environment"
+  },
+  {
+    "name": "ExpectedEnvironment",
+    "type": "Error",
+    "message": "expected environment declaration",
+    "note": "the first declaration in any Hybroid file has to be an environment declaration"
   }
 ]

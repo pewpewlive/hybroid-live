@@ -93,6 +93,18 @@ func (p *Parser) match(types ...tokens.TokenType) bool {
 	return false
 }
 
+// Matches the given list of tokens and advances if they match.
+//
+// Also does a syntax coherency check with the previous token upon match
+func (p *Parser) match2(types ...tokens.TokenType) bool {
+	if !p.match(types...) {
+		return false
+	}
+	tkn := p.peek(-1)
+	p.coherencyFailed(string(tkn.Type), p.peek(-2), tkn)
+	return true
+}
+
 // Consumes one of the tokens in the given list and advances if it matches.
 func (p *Parser) consume(alert alerts.Alert, types ...tokens.TokenType) (tokens.Token, bool) {
 	if p.isAtEnd() {
@@ -101,6 +113,24 @@ func (p *Parser) consume(alert alerts.Alert, types ...tokens.TokenType) (tokens.
 	}
 	for _, tokenType := range types {
 		if p.check(tokenType) {
+			return p.advance(), true
+		}
+	}
+	p.AlertI(alert)
+	return p.peek(), false // error
+}
+
+// Consumes one of the tokens in the given list and advances if it matches.
+//
+// Also does a syntax coherency check
+func (p *Parser) consume2(alert alerts.Alert, types ...tokens.TokenType) (tokens.Token, bool) {
+	if p.isAtEnd() {
+		p.AlertI(alert)
+		return p.peek(), false // error
+	}
+	for _, tokenType := range types {
+		if p.check(tokenType) {
+			p.coherencyFailed(string(p.peek().Type), p.peek(-1), p.peek())
 			return p.advance(), true
 		}
 	}
