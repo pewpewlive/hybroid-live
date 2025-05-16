@@ -1,103 +1,103 @@
 env Thing as Level
 
-alias Thing number 
+// alias Thing number 
 
-class {
-  new() {
+// class {
+//   new() {
 
-  }
+//   }
 
-  new() {
-    let a = 
-  } 
-}
+//   new() {
+//     let a = 
+//   } 
+// }
 
-entity {
-  spawn(fixed x, y) {
+// entity {
+//   spawn(fixed x, y) {
 
-  }
+//   }
 
-  spawn(fixed x, y) {
+//   spawn(fixed x, y) {
 
-  }
+//   }
 
-  destroy() {
+//   destroy() {
 
-  }
-}
+//   }
+// }
 
-enum {
-  bazz,
-  foo,
-  "j"
-}
+// enum {
+//   bazz,
+//   foo,
+//   "j"
+// }
 
-let thing = spawn B(100fx, 2)
+// let thing = spawn B(100fx, 2)
 
-tick {
-  if true {
+// tick {
+//   if true {
     
-  } else if false {
+//   } else if false {
 
-  } else {
-    destroy thing()
-  }
-}
+//   } else {
+//     destroy thing()
+//   }
+// }
 
-tick with i {
+// tick with i {
   
-}
+// }
 
-let list = [1, 2, 3]
+// let list = [1, 2, 3]
 
-for i, v in list {
-  list[i] = v*3
-}
+// for i, v in list {
+//   list[i] = v*3
+// }
 
-//let map = {a = , b 3}
+// //let map = {a = , b 3}
 
-//for k, v in {
-//  map[i] = v*2
-//}
+// //for k, v in {
+// //  map[i] = v*2
+// //}
 
-repeat {
+// repeat {
 
-}
+// }
 
-repeat to  {
+// repeat to  { }
 
-}
-
-repeat to 10 from 3 by 2 {
+// repeat to 10 from 3 by 2 {
   
-}
+// }
 
-repeat from 0 to 10 by 5 with i {
+// repeat from 0 to 10 by 5 with i {
 
-}
+// }
 
-while true {
+// while true {
 
-}
+// }
 
-a += 1
+// a += 1
 
-fn spawn<g>(g j, h) {
-  if a > 0 {
-    return a
-  } else if a == 0 {
-    return a*2
-  }
+// fn spawn<g>(g j, h) {
+//   if a > 0 {
+//     return a
+//   } else if a == 0 {
+//     return a*2
+//   }
 
-  return 0, 0
-}
+//   return 0, 0
+// }
 
-let number b, c = func(1)
+// let number b, c = func(1)
 
-match b {
-  1 => {
+// match b {
+//   1 => {
 
-  }
-  else => func(1)
-}
+//   }
+//   else => func(1)
+// }
 
+
+test(0)

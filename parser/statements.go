@@ -155,7 +155,7 @@ func (p *Parser) assignmentStmt(expr ast.Node) ast.Node {
 	}
 	if p.match2(tokens.PlusEqual, tokens.MinusEqual, tokens.SlashEqual, tokens.StarEqual, tokens.CaretEqual, tokens.ModuloEqual, tokens.BackSlashEqual) {
 		if len(idents) > 1 {
-			p.Alert(&alerts.MultipleIdentifiersInCompoundAssignment{}, alerts.NewMulti(expr.GetToken(), idents[len(idents)].GetToken()))
+			p.Alert(&alerts.MultipleIdentifiersInCompoundAssignment{}, alerts.NewMulti(expr.GetToken(), idents[len(idents)-1].GetToken()))
 		}
 		assignOp := p.peek(-1)
 		op := tokens.Token{Literal: assignOp.Literal, Location: assignOp.Location}
@@ -236,7 +236,7 @@ func (p *Parser) repeatStmt() ast.Node {
 		Token: p.peek(-1),
 	}
 
-	allowedExprTypes := []ast.NodeType{ast.Identifier, ast.FieldExpression, ast.MemberExpression, ast.CallExpression, ast.MethodCallExpression, ast.LiteralExpression}
+	allowedExprTypes := []ast.NodeType{ast.Identifier, ast.FieldExpression, ast.MemberExpression, ast.CallExpression, ast.MethodCallExpression, ast.LiteralExpression, ast.BinaryExpression, ast.UnaryExpression}
 
 	i := 0
 outer:

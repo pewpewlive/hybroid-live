@@ -22,11 +22,13 @@ func (l *Lexer) advance() (rune, error) {
 
 func (l *Lexer) consumeWhile(predicate func(rune) bool) error {
 	var err error
-	for r, err := l.peek(); err == nil && predicate(r); r, err = l.peek() {
+	r, err := l.peek()
+	for err == nil && predicate(r) {
 		_, err := l.advance()
 		if err != nil {
 			return err
 		}
+		r, err = l.peek()
 	}
 
 	return err
@@ -48,7 +50,7 @@ func (l *Lexer) peek(offset ...int) (rune, error) {
 	if err != nil && err != io.EOF {
 		return utf8.RuneError, err
 	}
-	if len(bytes) == 0 {
+	if len(bytes) < peekOffset {
 		return utf8.RuneError, io.EOF
 	}
 

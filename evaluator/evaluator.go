@@ -52,6 +52,8 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		}
 		defer sourceFile.Close()
 
+		fmt.Printf("-->File: %s\n", sourceFile.Name())
+
 		start := time.Now()
 
 		lexer := lexer.NewLexer(sourceFile)

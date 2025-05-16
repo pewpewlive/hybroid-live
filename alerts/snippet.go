@@ -26,8 +26,21 @@ func writeTruncatedLine(snippet *strings.Builder, loc tokens.Location, line []by
 	lineSize := len(line)
 
 	leadingSpace := start - 1
+	if leadingSpace < 0 {
+		leadingSpace = 0
+	}
 	markerSize := end - start
-
+	if markerSize < 0 {
+		markerSize = 1
+	}
+	if lineSize < 3 {
+		snippet.Write(line)
+		snippet.WriteByte('\n')
+		return leadingSpace, markerSize
+	}
+	if loc.Column.Start > lineSize {
+		start, end = lineSize-1, lineSize
+	}
 	lineStart, lineMiddle, lineEnd := line[:start-1], line[start-1:end-1], line[end-1:]
 
 	segments := make([]any, 0, 7)

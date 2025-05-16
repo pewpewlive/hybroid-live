@@ -63,9 +63,10 @@ func (l *Lexer) next() (*tokens.Token, error) {
 
 	token := tokens.Token{}
 	token.Line = l.line
-	token.Column.Start = l.column
 
 	c, err := l.advance()
+	token.Column.Start = l.column - 1
+
 	if err != nil {
 		return nil, err
 	}

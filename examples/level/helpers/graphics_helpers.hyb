@@ -35,7 +35,7 @@ pub fn AddLine(Mesh mesh, Vertexes vertexes, Colors colors, bool closeLoop) {
   let segmentCount = #mesh.segments
 
   let numberOfNewSegments = #vertexes - 1
-  Segment segment = []
+  let Segment segment = []
   
   repeat with i to #vertexes {
     Insert(mesh.vertexes, vertexes[i])
@@ -57,10 +57,10 @@ pub fn AddFlatPoly(Mesh mesh, Vertex center, number sides, color, radius, startA
   if sides <= 2
     return
 
-  Vertexes vertexes 
-  Colors colors
+  let Vertexes vertexes 
+  let Colors colors
 
-  number z
+  let number z
   if #center >= 3 {
     z = center[3]
   }
@@ -80,18 +80,18 @@ pub fn AddStar(Mesh mesh, Vertex center, number sides, color, insetColor, radius
 
   sides *= 2
 
-  Vertexes vertexes 
-  Colors colors
+  let Vertexes vertexes 
+  let Colors colors
 
-  number x = center[1]
-  number y = center[2]
-  number z
+  let number x = center[1]
+  let number y = center[2]
+  let number z
   if #center >= 3 {
     z = center[3]
   }
 
-  number currentRadius
-  number currentColor
+  let number currentRadius
+  let number currentColor
 
   repeat sides with i {
     if i % 2 == 0 {

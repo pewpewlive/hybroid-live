@@ -576,10 +576,10 @@ func MemberExpr(w *wkr.Walker, node *ast.MemberExpr, scope *wkr.Scope) wkr.Value
 
 func MapExpr(w *wkr.Walker, node *ast.MapExpr, scope *wkr.Scope) wkr.Value {
 	mapVal := wkr.MapVal{Members: []wkr.Value{}}
-	for _, v := range node.Map {
-		val := GetNodeValue(w, &v.Expr, scope)
-		mapVal.Members = append(mapVal.Members, val)
-	}
+	// for _, v := range node.Map {
+	// 	val := GetNodeValue(w, &v.Expr, scope)
+	// 	mapVal.Members = append(mapVal.Members, val)
+	// }
 	mapVal.MemberType = wkr.GetContentsValueType(mapVal.Members)
 	return &mapVal
 }

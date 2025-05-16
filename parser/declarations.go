@@ -91,8 +91,6 @@ func (p *Parser) declaration() (returnNode ast.Node) {
 	switch {
 	case p.match(tokens.Fn):
 		returnNode = p.functionDeclaration()
-	case p.check(tokens.Let) || p.check(tokens.Const):
-		returnNode = p.variableDeclaration()
 	case p.match(tokens.Enum):
 		returnNode = p.enumDeclaration()
 	case p.match(tokens.Alias):
@@ -101,13 +99,18 @@ func (p *Parser) declaration() (returnNode ast.Node) {
 		returnNode = p.classDeclaration()
 	case p.match(tokens.Entity):
 		returnNode = p.entityDeclaration()
+	case p.check(tokens.Let) || p.check(tokens.Const) || p.context.IsPub:
+		returnNode = p.variableDeclaration(false)
 	default:
+		if p.peekTypeVariableDecl() && !p.context.IsPub {
+			returnNode = p.variableDeclaration(true)
+		}
 		returnNode = p.statement()
 	}
 
 	p.context.IsPub = false
 
-	if ast.IsImproper(returnNode, ast.NA) {
+	if returnNode.GetType() == ast.NA {
 		p.synchronize()
 	}
 
@@ -190,7 +193,7 @@ func (p *Parser) environmentDeclaration() ast.Node {
 	return envDecl
 }
 
-func (p *Parser) variableDeclaration() ast.Node {
+func (p *Parser) variableDeclaration(bypassKeyword bool) ast.Node {
 	variableDecl := ast.VariableDecl{
 		Token:   p.peek(),
 		IsPub:   p.context.IsPub,
@@ -201,9 +204,9 @@ func (p *Parser) variableDeclaration() ast.Node {
 		variableDecl.Token = p.peek(-1)
 	}
 
-	if p.match(tokens.Const) {
+	if !bypassKeyword && p.match(tokens.Const) {
 		variableDecl.IsConst = true
-	} else if p.match(tokens.Let) && variableDecl.IsPub {
+	} else if !bypassKeyword && p.match(tokens.Let) && variableDecl.IsPub {
 		p.Alert(&alerts.UnexpectedKeyword{}, alerts.NewSingle(p.peek(-1)), variableDecl.Token.Lexeme, "in variable declaration")
 	}
 

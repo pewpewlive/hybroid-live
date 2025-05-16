@@ -852,10 +852,11 @@ func (ie *InvalidExpression) GetAlertType() Type {
 type SyntaxIncoherency struct {
   Specifier Snippet
   ParsedSection string
+  AllowsNextLine bool
 }
 
 func (si *SyntaxIncoherency) GetMessage() string {
-  return fmt.Sprintf("%s needs to start in the same line as the previous parsed section", si.ParsedSection)
+  return fmt.Sprintf("'%s' needs to start in the same%s line as the previous parsed section", si.ParsedSection, func(cond bool, str string) string { if !cond { return "" }; return str }(si.AllowsNextLine, " or next"))
 }
 
 func (si *SyntaxIncoherency) GetSpecifier() Snippet {

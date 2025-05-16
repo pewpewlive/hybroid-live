@@ -4,8 +4,8 @@ use Pewpew
 use Utils
 
 pub entity Ship {
-  entity id
-  Camera cam = new Camera()
+  let entity id
+  let Camera cam = new Camera()
 
   spawn(fixed x, y) {
     id = NewShip(x, y, 0)

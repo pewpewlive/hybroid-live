@@ -14,11 +14,11 @@ const frames = 60
 const linesTillPeak = lineAmount / frequency
 const step = (linesTillPeak * 4) / frames
 
-Meshes animation// 0x0000ff30, 0x00ffffff
+let Meshes animation// 0x0000ff30, 0x00ffffff
 
 fn WeirdAhhMesh(number color, color2) {
   repeat frames with i {
-    Mesh mesh
+    let Mesh mesh
     repeat lineAmount with j {
       let angle = (Pi * 2 * j) / lineAmount
       let currentHeight = radius+ParametricInvLerp(0, linesTillPeak, j+step*i, MathHelper:SineWave)*height

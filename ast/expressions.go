@@ -462,14 +462,16 @@ func (me *MemberExpr) SetIdentifier(ident Node) {
 	me.Identifier = ident
 }
 
+// used only for map expression
 type Property struct {
+	Key  Node
 	Expr Node
 	Type PrimitiveValueType
 }
 
 type MapExpr struct {
-	Token tokens.Token
-	Map   map[tokens.Token]Property
+	Token        tokens.Token
+	KeyValueList []Property
 }
 
 func (me *MapExpr) GetType() NodeType {

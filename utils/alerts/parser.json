@@ -225,9 +225,10 @@
     "name": "SyntaxIncoherency",
     "type": "Error",
     "params": {
-      "ParsedSection": "string"
+      "ParsedSection": "string",
+      "AllowsNextLine": "bool"
     },
-    "message": "%s needs to start in the same line as the previous parsed section",
-    "message_format":["ParsedSection"]
+    "message": "'%s' needs to start in the same%s line as the previous parsed section",
+    "message_format":["ParsedSection", { "AllowsNextLine":"func(cond bool, str string) string {{ if !cond {{ return \"\" }}; return str }}({}, \" or next\")"}]
   }
 ]

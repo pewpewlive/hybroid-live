@@ -178,8 +178,6 @@ func (p *Parser) identifier(typeContext string) *ast.IdentifierExpr {
 
 // bool tells you if the parsing succeeded
 func (p *Parser) identifiers(typeContext string, allowTrailing bool) ([]*ast.IdentifierExpr, bool) {
-	previousToken := p.peek(-1)
-
 	idents := []*ast.IdentifierExpr{}
 	ok := true
 
@@ -187,7 +185,6 @@ func (p *Parser) identifiers(typeContext string, allowTrailing bool) ([]*ast.Ide
 	if ident == nil {
 		ok = false
 	} else {
-		p.coherencyFailed("identifier", previousToken, ident.Name)
 		idents = append(idents, ident)
 	}
 
@@ -265,6 +262,20 @@ func (p *Parser) identExprPairs(typeContext string, optional bool) ([]*ast.Ident
 	return idents, exprs, true
 }
 
+func (p *Parser) peekTypeVariableDecl() bool {
+	currentStart := p.current
+	p.context.IgnoreAlerts.Push("CheckType", true)
+
+	typeExpr := p.typeExpr("")
+
+	p.context.IgnoreAlerts.Pop("CheckType")
+	expr := p.expression()
+	valid := typeExpr != nil && typeExpr.Name.GetType() != ast.NA && expr.GetType() == ast.Identifier
+	p.disadvance(p.current - currentStart)
+
+	return valid
+}
+
 func (p *Parser) checkType() (*ast.TypeExpr, bool) {
 	currentStart := p.current
 	p.context.IgnoreAlerts.Push("CheckType", true)
@@ -284,7 +295,7 @@ func (p *Parser) checkType() (*ast.TypeExpr, bool) {
 func (p *Parser) body(allowSingleSatement, allowArrow bool) ([]ast.Node, bool) {
 	body := make([]ast.Node, 0)
 	if p.match(tokens.FatArrow) && allowArrow {
-		if p.coherencyFailed("body", p.peek(-2), p.peek(-1)) {
+		if p.coherencyFailed("body", p.peek(-2), p.peek(-1), true) {
 			return body, false
 		}
 		args, ok := p.expressions("in fat arrow return arguments", false, false)
@@ -331,6 +342,10 @@ func (p *Parser) body(allowSingleSatement, allowArrow bool) ([]ast.Node, bool) {
 func (p *Parser) limitedExpression(context string, types ...ast.NodeType) ast.Node {
 	expr := p.expression()
 	exprType := expr.GetType()
+	if exprType == ast.NA {
+		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), context)
+		return expr
+	}
 	ok := false
 	for _, v := range types {
 		if exprType == v {
@@ -353,7 +368,7 @@ func (p *Parser) coherencyFailed(parsedSection string, tokenStart, tokenEnd toke
 		diffTolerance = 1
 	}
 	if tokenEnd.Line-tokenStart.Line > diffTolerance {
-		p.Alert(&alerts.SyntaxIncoherency{}, alerts.NewMulti(tokenStart, tokenEnd), parsedSection)
+		p.Alert(&alerts.SyntaxIncoherency{}, alerts.NewMulti(tokenStart, tokenEnd), parsedSection, diffTolerance == 1)
 		return true
 	}
 

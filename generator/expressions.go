@@ -126,23 +126,23 @@ func (gen *Generator) mapExpr(node ast.MapExpr, scope *GenScope) string {
 
 	src.Write("{\n")
 	TabsCount += 1
-	index := 0
-	for k, v := range node.Map {
-		val := gen.GenerateExpr(v.Expr, scope)
+	//index := 0
+	// for k, v := range node.Map {
+	// 	val := gen.GenerateExpr(v.Expr, scope)
 
-		ident := k.Lexeme
+	// 	ident := k.Lexeme
 
-		if k.Type == tokens.String {
-			ident = k.Literal
-		}
+	// 	if k.Type == tokens.String {
+	// 		ident = k.Literal
+	// 	}
 
-		if index != len(node.Map)-1 {
-			src.WriteTabbed(fmt.Sprintf("%s = %v,\n", ident, val))
-		} else {
-			src.WriteTabbed(fmt.Sprintf("%s = %v\n", ident, val))
-		}
-		index++
-	}
+	// 	if index != len(node.Map)-1 {
+	// 		src.WriteTabbed(fmt.Sprintf("%s = %v,\n", ident, val))
+	// 	} else {
+	// 		src.WriteTabbed(fmt.Sprintf("%s = %v\n", ident, val))
+	// 	}
+	// 	index++
+	// }
 	TabsCount -= 1
 	src.WriteTabbed("}")
 
