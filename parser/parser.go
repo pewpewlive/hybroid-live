@@ -57,6 +57,13 @@ func (p *Parser) AlertI(alert alerts.Alert) {
 	p.AlertI_(alert)
 }
 
+func IsCall(nodeType ast.NodeType) bool {
+	return nodeType == ast.CallExpression ||
+		nodeType == ast.MethodCallExpression ||
+		nodeType == ast.NewExpession ||
+		nodeType == ast.SpawnExpression
+}
+
 func (p *Parser) synchronize() {
 	expectedBlockCount := 0
 	for !p.isAtEnd() {
@@ -76,6 +83,22 @@ func (p *Parser) synchronize() {
 			expectedBlockCount--
 		case tokens.Entity, tokens.Let, tokens.Pub, tokens.Const, tokens.Class, tokens.Alias:
 			return
+		default:
+			current := p.current
+			p.context.IgnoreAlerts.Push("Synchronize", true)
+
+			expr := p.expression()
+			exprType := expr.GetType()
+			if exprType == ast.NA {
+				exprType = expr.(*ast.Improper).Type
+			}
+
+			p.disadvance(p.current - current)
+			p.context.IgnoreAlerts.Pop("Synchronize")
+
+			if IsCall(exprType) {
+				return
+			}
 		}
 
 		p.advance()

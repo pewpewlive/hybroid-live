@@ -473,12 +473,12 @@ func (gen *Generator) constructorDeclarationStmt(node ast.ConstructorDecl, class
 func (gen *Generator) fieldDeclarationStmt(node ast.FieldDecl, scope *GenScope) string {
 	src := StringBuilder{}
 
-	for i, v := range node.Identifiers {
-		src.Write(v.Name.Lexeme, " = ", gen.GenerateExpr(node.Values[i], scope))
-		if i != len(node.Identifiers)-1 {
-			src.Write(", ")
-		}
-	}
+	// for i, v := range node.Identifiers {
+	// 	src.Write(v.Name.Lexeme, " = ", gen.GenerateExpr(node.Values[i], scope))
+	// 	if i != len(node.Identifiers)-1 {
+	// 		src.Write(", ")
+	// 	}
+	// }
 
 	return src.String()
 }

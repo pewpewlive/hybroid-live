@@ -88,6 +88,11 @@ func (p *Parser) declaration() (returnNode ast.Node) {
 		p.context.IsPub = true
 	}
 
+	if p.peekTypeVariableDecl() && !p.context.IsPub {
+		returnNode = p.variableDeclaration(true)
+		goto exit
+	}
+
 	switch {
 	case p.match(tokens.Fn):
 		returnNode = p.functionDeclaration()
@@ -102,14 +107,11 @@ func (p *Parser) declaration() (returnNode ast.Node) {
 	case p.check(tokens.Let) || p.check(tokens.Const) || p.context.IsPub:
 		returnNode = p.variableDeclaration(false)
 	default:
-		if p.peekTypeVariableDecl() && !p.context.IsPub {
-			returnNode = p.variableDeclaration(true)
-		}
 		returnNode = p.statement()
 	}
 
 	p.context.IsPub = false
-
+exit:
 	if returnNode.GetType() == ast.NA {
 		p.synchronize()
 	}
@@ -139,7 +141,7 @@ func (p *Parser) auxiliaryDeclaration() ast.Node {
 		if constructor.GetType() == ast.ConstructorDeclaration {
 			return constructor
 		}
-	} else if p.match(tokens.Let) {
+	} else if p.match(tokens.Let) || p.peekTypeVariableDecl() {
 		field := p.fieldDeclaration()
 		if field.GetType() == ast.FieldDeclaration {
 			return field

@@ -95,8 +95,6 @@ func (p *Parser) destroyStmt() ast.Node {
 
 	if exprType != ast.Identifier && exprType != ast.EnvironmentAccessExpression && exprType != ast.SelfExpression {
 		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(expr.GetToken()), "or environment access expression or a self expression in destroy statement")
-	} else {
-		p.coherencyFailed("expression", destroyStmt.Token, expr.GetToken())
 	}
 	destroyStmt.Identifier = expr
 	destroyStmt.Generics, _ = p.genericArgs()
@@ -144,19 +142,19 @@ func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) *ast.IfS
 func (p *Parser) assignmentStmt(expr ast.Node) ast.Node {
 	idents := []ast.Node{expr}
 
-	for p.match2(tokens.Comma) {
+	for p.match(tokens.Comma) {
 		expr := p.expression()
 		idents = append(idents, expr)
 	}
 	values := []ast.Node{}
-	if p.match2(tokens.Equal) {
+	if p.match(tokens.Equal) {
 		exprs, _ := p.expressions("in assignment statement", false, false)
 		return &ast.AssignmentStmt{Identifiers: idents, Values: exprs, Token: p.peek(-1)}
 	}
-	if p.match2(tokens.PlusEqual, tokens.MinusEqual, tokens.SlashEqual, tokens.StarEqual, tokens.CaretEqual, tokens.ModuloEqual, tokens.BackSlashEqual) {
-		if len(idents) > 1 {
-			p.Alert(&alerts.MultipleIdentifiersInCompoundAssignment{}, alerts.NewMulti(expr.GetToken(), idents[len(idents)-1].GetToken()))
-		}
+	if p.match(tokens.PlusEqual, tokens.MinusEqual, tokens.SlashEqual, tokens.StarEqual, tokens.CaretEqual, tokens.ModuloEqual, tokens.BackSlashEqual) {
+		// if len(idents) > 1 {
+		// 	p.Alert(&alerts.MultipleIdentifiersInCompoundAssignment{}, alerts.NewMulti(expr.GetToken(), idents[len(idents)-1].GetToken()))
+		// }
 		assignOp := p.peek(-1)
 		op := tokens.Token{Literal: assignOp.Literal, Location: assignOp.Location}
 		switch assignOp.Type {
@@ -175,29 +173,23 @@ func (p *Parser) assignmentStmt(expr ast.Node) ast.Node {
 		case tokens.BackSlashEqual:
 			op.Type = tokens.BackSlash
 		}
-		op.Lexeme = string(op.Type)
 
 		expr2 := p.expression()
 		if expr2.GetType() == ast.NA {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()), "in assignment statement")
 		} else {
-			p.coherencyFailed("expression", assignOp, expr2.GetToken())
-			binExpr := p.createBinExpr(idents[0], op, op.Type, op.Lexeme, &ast.GroupExpr{Expr: expr2, ValueType: expr2.GetValueType(), Token: expr2.GetToken()})
-			values = append(values, binExpr)
+			values = append(values, expr2)
 		}
-		for p.match2(tokens.Comma) {
-			comma := p.peek(-1)
+		for p.match(tokens.Comma) {
 			expr2 := p.expression()
 
 			if expr2.GetType() == ast.NA {
 				p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()), "in assignment statement")
-			} else {
-				p.coherencyFailed("expression", comma, expr2.GetToken(), true)
-				binExpr := p.createBinExpr(idents[1], op, op.Type, op.Lexeme, &ast.GroupExpr{Expr: expr2, ValueType: expr2.GetValueType(), Token: expr2.GetToken()})
-				values = append(values, binExpr)
+				continue
 			}
+			values = append(values, expr2)
 		}
-		return &ast.AssignmentStmt{Identifiers: idents, Values: values, Token: idents[0].GetToken()}
+		return &ast.AssignmentStmt{Identifiers: idents, Values: values, AssignOp: op, Token: idents[0].GetToken()}
 	}
 	p.Alert(&alerts.ExpectedAssignmentSymbol{}, alerts.NewSingle(p.peek()))
 
@@ -314,7 +306,6 @@ func (p *Parser) whileStmt() ast.Node {
 		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(condition.GetToken()))
 		return ast.NewImproper(condition.GetToken(), ast.WhileStatement)
 	}
-	p.coherencyFailed("condition", whileStmt.Token, condition.GetToken())
 
 	whileStmt.Condition = condition
 
@@ -336,16 +327,14 @@ func (p *Parser) forStmt() ast.Node {
 	if identExpr.GetType() != ast.Identifier {
 		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(identExpr.GetToken()), "after keyword 'for' in for loop statement")
 	} else {
-		p.coherencyFailed("identifier", forStmt.Token, identExpr.GetToken())
 		forStmt.First = identExpr.(*ast.IdentifierExpr)
 	}
 
-	if p.match2(tokens.Comma) {
+	if p.match(tokens.Comma) {
 		identExpr = p.expression()
 		if identExpr.GetType() != ast.Identifier {
 			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(identExpr.GetToken()))
 		} else {
-			p.coherencyFailed("identifier", p.peek(-2), identExpr.GetToken())
 			forStmt.Second = identExpr.(*ast.IdentifierExpr)
 		}
 	}

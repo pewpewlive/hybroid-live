@@ -42,14 +42,10 @@ func (p *Parser) multiComparison() ast.Node {
 		operator := p.peek(-1)
 		if expr.GetType() == ast.NA {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), "as left value in binary expression")
-		} else {
-			p.coherencyFailed("operator", expr.GetToken(), operator)
 		}
 		right := p.multiComparison()
 		if right.GetType() == ast.NA {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), "as left value in binary expression")
-		} else {
-			p.coherencyFailed("right value", operator, right.GetToken(), true)
 		}
 		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: ast.Bool}
 	}
@@ -62,16 +58,13 @@ func (p *Parser) comparison() ast.Node {
 
 	if p.isComparison() {
 		operator := p.peek(-1)
+
 		if expr.GetType() == ast.NA {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), "as left value in binary expression")
-		} else {
-			p.coherencyFailed("operator", expr.GetToken(), operator)
 		}
 		right := p.term()
 		if right.GetType() == ast.NA {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), "as left value in binary expression")
-		} else {
-			p.coherencyFailed("right value", operator, right.GetToken(), true)
 		}
 		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: ast.Bool}
 	}
@@ -97,14 +90,10 @@ func (p *Parser) term() ast.Node {
 		operator := p.peek(-1)
 		if expr.GetType() == ast.NA {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), "as left value in binary expression")
-		} else {
-			p.coherencyFailed("operator", expr.GetToken(), operator)
 		}
 		right := p.term()
 		if right.GetType() == ast.NA {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(right.GetToken()), "as right value in binary expression")
-		} else {
-			p.coherencyFailed("right value", operator, right.GetToken(), true)
 		}
 		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: p.determineValueType(expr, right)}
 	}
@@ -115,18 +104,14 @@ func (p *Parser) term() ast.Node {
 func (p *Parser) factor() ast.Node {
 	expr := p.concat()
 
-	if p.match2(tokens.Star, tokens.Slash, tokens.Caret, tokens.Modulo, tokens.BackSlash) {
+	if p.match(tokens.Star, tokens.Slash, tokens.Caret, tokens.Modulo, tokens.BackSlash) {
 		operator := p.peek(-1)
 		if expr.GetType() == ast.NA {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), "as left value in binary expression")
-		} else {
-			p.coherencyFailed("operator", expr.GetToken(), operator)
 		}
 		right := p.factor()
 		if right.GetType() == ast.NA {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(right.GetToken()), "as right value in binary expression")
-		} else {
-			p.coherencyFailed("right value", operator, right.GetToken(), true)
 		}
 		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: p.determineValueType(expr, right)}
 	}
@@ -137,18 +122,14 @@ func (p *Parser) factor() ast.Node {
 func (p *Parser) concat() ast.Node {
 	expr := p.unary()
 
-	if p.match2(tokens.Concat) {
+	if p.match(tokens.Concat) {
 		operator := p.peek(-1)
 		if expr.GetType() == ast.NA {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), "as left value in concat expression")
-		} else {
-			p.coherencyFailed("operator", expr.GetToken(), operator)
 		}
 		right := p.concat()
 		if right.GetType() == ast.NA {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(right.GetToken()), "as right value in concat expression")
-		} else {
-			p.coherencyFailed("right value", operator, right.GetToken(), true)
 		}
 		return &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: p.determineValueType(expr, right)}
 	}
@@ -162,8 +143,6 @@ func (p *Parser) unary() ast.Node {
 		right := p.unary()
 		if right.GetType() == ast.NA {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(right.GetToken()), "in unary expression")
-		} else {
-			p.coherencyFailed("unary value", operator, right.GetToken())
 		}
 		return &ast.UnaryExpr{Operator: operator, Value: right}
 	}
@@ -176,30 +155,23 @@ func (p *Parser) entity() ast.Node {
 	currentStart := p.current
 
 	var conv *tokens.Token
-	var equal *tokens.Token
 	if p.match(tokens.Equal) {
 		token := variable.GetToken()
 		conv = &token
-		tkn := p.peek(-1)
-		equal = &tkn
 
 		expr = p.accessorExprDepth2(nil)
 	} else {
 		expr = variable
 	}
-	if p.match2(tokens.Is, tokens.Isnt) {
+	if p.match(tokens.Is, tokens.Isnt) {
 		if conv != nil {
 			if variable.GetType() != ast.Identifier {
 				p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(variable.GetToken()))
-			} else {
-				p.coherencyFailed("=", *conv, *equal)
 			}
 		}
 		op := p.peek(-1)
 		typ := p.typeExpr("in entity expression")
-		if typ.Name.GetType() != ast.NA {
-			p.coherencyFailed("type expression", op, typ.GetToken())
-		}
+
 		return &ast.EntityExpr{
 			Expr:             expr,
 			Type:             typ,
@@ -219,11 +191,12 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 	args := []*ast.TypeExpr{}
 	if p.check(tokens.Less) {
 		var ok bool
-		args, ok = p.genericArgs()
+		ok = p.tryGenericArgs()
 		if !ok {
 			return caller
 		}
-		hasGenerics = false
+		args, _ = p.genericArgs()
+		hasGenerics = true
 	}
 	if !p.check(tokens.LeftParen) {
 		if hasGenerics {
@@ -252,7 +225,7 @@ func (p *Parser) accessorExprDepth2(ident *ast.Node) ast.Node {
 	expr, call := p.accessorExpr(ident)
 
 	if call == nil {
-		return p.call(expr)
+		return expr
 	}
 
 	args, _ := p.genericArgs()
@@ -286,7 +259,6 @@ func (p *Parser) accessorExpr(ident *ast.Node) (ast.Node, *ast.IdentifierExpr) {
 	}
 
 	start := p.advance()
-	p.coherencyFailed(start.Lexeme, (*ident).GetToken(), start, isMember)
 
 	var expr ast.Accessor
 	if isField {
@@ -304,8 +276,6 @@ func (p *Parser) accessorExpr(ident *ast.Node) (ast.Node, *ast.IdentifierExpr) {
 		propIdentifier = &ast.IdentifierExpr{Name: p.advance()}
 		if propIdentifier.GetToken().Type != tokens.Identifier {
 			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(propIdentifier.GetToken()), "in field expression")
-		} else {
-			p.coherencyFailed(propIdentifier.GetToken().Lexeme, start, propIdentifier.GetToken())
 		}
 		if p.check(tokens.LeftParen) || p.check(tokens.Less) {
 			return *ident, propIdentifier.(*ast.IdentifierExpr)
@@ -314,11 +284,9 @@ func (p *Parser) accessorExpr(ident *ast.Node) (ast.Node, *ast.IdentifierExpr) {
 		propIdentifier = p.expression()
 		if propIdentifier.GetType() == ast.NA {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(propIdentifier.GetToken()), "in member expression")
-		} else {
-			p.coherencyFailed("member index expression", start, propIdentifier.GetToken())
 		}
 
-		p.consume2(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek()), tokens.RightBracket, "in member expression"), tokens.RightBracket)
+		p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek()), tokens.RightBracket, "in member expression"), tokens.RightBracket)
 	}
 
 	expr.SetPropertyIdentifier(propIdentifier)
@@ -331,7 +299,7 @@ func (p *Parser) accessorExpr(ident *ast.Node) (ast.Node, *ast.IdentifierExpr) {
 	}
 	expr.SetProperty(propIdentifier)
 
-	return expr, nil
+	return p.call(expr), nil
 }
 
 func (p *Parser) matchExpr() ast.Node {
@@ -365,7 +333,6 @@ func (p *Parser) new() ast.Node {
 		}
 
 		expr.Type = p.typeExpr("in new expression")
-		p.coherencyFailed("type expression", expr.Token, expr.Type.GetToken())
 		expr.Args = p.functionArgs()
 
 		return &expr
@@ -381,7 +348,6 @@ func (p *Parser) spawn() ast.Node {
 		}
 
 		expr.Type = p.typeExpr("in spawn expression")
-		p.coherencyFailed("type expression", expr.Token, expr.Type.GetToken())
 		expr.Args = p.functionArgs()
 
 		return &expr
@@ -485,7 +451,7 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 		if expr.GetType() == ast.NA {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()))
 		}
-		p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(token, p.peek()), tokens.RightParen, "in group expression"), tokens.RightParen)
+		p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.RightParen, "in group expression"), tokens.RightParen)
 		return &ast.GroupExpr{Expr: expr, Token: token, ValueType: expr.GetValueType()}
 	}
 
@@ -520,48 +486,11 @@ func (p *Parser) list() ast.Node {
 	return &ast.ListExpr{ValueType: ast.List, List: list, Token: token}
 }
 
-func (p *Parser) syncMap() tokens.TokenType {
-	delimiterBracket := 0
-	delimiterBrace := 0
-
-	current := p.current
-
-	for {
-		token := p.peek()
-		switch token.Type {
-		case tokens.Comma:
-			if delimiterBrace == 0 && delimiterBracket == 0 {
-				return tokens.Comma
-			}
-		case tokens.LeftBrace:
-			delimiterBrace += 1
-		case tokens.RightBrace:
-			if delimiterBrace == 0 && delimiterBracket == 0 {
-				return tokens.RightBrace
-			}
-			delimiterBrace -= 1
-		case tokens.LeftBracket:
-			delimiterBracket += 1
-		case tokens.RightBracket:
-			if delimiterBrace == 0 && delimiterBracket == 0 {
-				return tokens.RightBracket
-			}
-			delimiterBracket -= 1
-		default:
-			if p.isAtEnd() {
-				p.disadvance(p.current - current)
-				return tokens.Eof
-			}
-		}
-		p.advance()
-	}
-}
-
 func (p *Parser) parseMap() ast.Node {
 	token := p.peek(-1)
 	parsedMap := make([]ast.Property, 0)
 
-	if p.match2(tokens.RightBrace) {
+	if p.match(tokens.RightBrace) {
 		return &ast.MapExpr{KeyValueList: parsedMap, Token: token}
 	}
 
@@ -570,10 +499,8 @@ func (p *Parser) parseMap() ast.Node {
 		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(key.GetToken()), "as map key")
 		p.advance()
 		return ast.NewImproper(token, ast.MapExpression)
-	} else {
-		p.coherencyFailed("map key", token, key.GetToken())
 	}
-	equal, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Equal, "after map key"), tokens.Equal)
+	_, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Equal, "after map key"), tokens.Equal)
 	if !ok {
 		return ast.NewImproper(token, ast.MapExpression)
 	}
@@ -581,21 +508,17 @@ func (p *Parser) parseMap() ast.Node {
 	expr := p.expression()
 	if expr.GetType() == ast.NA {
 		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()), "as map key value")
-	} else {
-		p.coherencyFailed("map value", equal, expr.GetToken())
 	}
 	parsedMap = append(parsedMap, ast.Property{Key: key, Expr: expr, Type: expr.GetValueType()})
 
-	for p.match2(tokens.Comma) {
+	for p.match(tokens.Comma) {
 		key := p.primary(true) // { 1 d = [1,2,3], key2 = value2 }
 		if key.GetType() != ast.Identifier {
 			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(key.GetToken()), "as map key")
 			p.advance()
 			return ast.NewImproper(token, ast.MapExpression)
-		} else {
-			p.coherencyFailed("map key", token, key.GetToken(), true)
 		}
-		equal, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Equal, "after map key"), tokens.Equal)
+		_, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Equal, "after map key"), tokens.Equal)
 		if !ok {
 			return ast.NewImproper(token, ast.MapExpression)
 		}
@@ -603,8 +526,6 @@ func (p *Parser) parseMap() ast.Node {
 		expr := p.expression()
 		if expr.GetType() == ast.NA {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()), "as map key value")
-		} else {
-			p.coherencyFailed("map value", equal, expr.GetToken())
 		}
 		parsedMap = append(parsedMap, ast.Property{Key: key, Expr: expr, Type: expr.GetValueType()})
 	}
@@ -619,41 +540,40 @@ func (p *Parser) structExpr() ast.Node {
 		Fields: make([]*ast.FieldDecl, 0),
 	}
 
-	start, ok := p.consume2(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
+	start, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
 	if !ok {
 		return ast.NewImproper(structExpr.Token, ast.StructExpression)
 	}
-	if p.match2(tokens.RightBrace) {
+	if p.match(tokens.RightBrace) {
 		return &structExpr
 	}
+
 	field := p.fieldDeclaration()
 	if field.GetType() != ast.NA {
-		p.coherencyFailed("field declaration", structExpr.Token, field.GetToken(), true)
-		structExpr.Fields = append(structExpr.Fields, field.(*ast.FieldDecl))
-	} else {
+		structExpr.Fields = append(structExpr.Fields, &ast.FieldDecl{})
+	} else if ast.IsImproper(field, ast.NA) {
 		p.Alert(&alerts.ExpectedFieldDeclaration{}, alerts.NewSingle(field.GetToken()))
-		return ast.NewImproper(field.GetToken(), ast.NA)
+		return ast.NewImproper(structExpr.Token, ast.StructExpression)
+	} else {
+		return ast.NewImproper(structExpr.Token, ast.StructExpression)
 	}
 
-	for p.match2(tokens.SemiColon) {
-		semicolon := p.peek(-1)
+	for p.match(tokens.SemiColon) {
 		if p.check(tokens.RightBrace) {
 			break
 		}
 		field := p.fieldDeclaration()
 		if field.GetType() != ast.NA {
-			p.coherencyFailed("field declaration", semicolon, field.GetToken(), true)
 			structExpr.Fields = append(structExpr.Fields, field.(*ast.FieldDecl))
-		} else {
+		} else if ast.IsImproper(field, ast.NA) {
 			p.Alert(&alerts.ExpectedFieldDeclaration{}, alerts.NewSingle(field.GetToken()))
-			return ast.NewImproper(field.GetToken(), ast.NA)
+			return ast.NewImproper(structExpr.Token, ast.StructExpression)
+		} else {
+			return ast.NewImproper(structExpr.Token, ast.StructExpression)
 		}
 	}
 
-	rb, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek()), tokens.RightBrace), tokens.RightBrace)
-	if ok {
-		p.coherencyFailed("{", p.peek(-2), rb, true)
-	}
+	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek()), tokens.RightBrace), tokens.RightBrace)
 
 	return &structExpr
 }
@@ -668,7 +588,13 @@ func (p *Parser) wrappedTypeExpr(typeContext string) *ast.TypeExpr {
 	return p.typeExpr(typeContext)
 }
 
-func (p *Parser) typeExpr(typeContext string) *ast.TypeExpr {
+func (p *Parser) typeExpr(typeContext string, writeError ...bool) *ast.TypeExpr {
+	if writeError != nil && !writeError[0] {
+		p.context.IgnoreAlerts.Push("TypeExpr", true)
+		defer func() {
+			p.context.IgnoreAlerts.Pop("TypeExpr")
+		}()
+	}
 	var expr ast.Node
 	token := p.advance()
 
@@ -677,10 +603,12 @@ func (p *Parser) typeExpr(typeContext string) *ast.TypeExpr {
 
 		types := []*ast.TypeExpr{}
 
-		types = append(types, p.typeExpr(typeContext))
+		typ := p.typeExpr(typeContext, writeError...)
+		types = append(types, typ)
 
 		for p.match(tokens.Comma) {
-			types = append(types, p.typeExpr(typeContext))
+			typ = p.typeExpr(typeContext, writeError...)
+			types = append(types, typ)
 		}
 		p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.RightParen, "in tuple expression"), tokens.RightParen)
 
@@ -738,10 +666,10 @@ func (p *Parser) typeExpr(typeContext string) *ast.TypeExpr {
 			break
 		}
 		if !p.match(tokens.RightParen) {
-			_typ := p.typeExpr(typeContext)
+			_typ := p.typeExpr(typeContext, writeError...)
 			typeExpr.Params = append(typeExpr.Params, _typ)
 			for p.match(tokens.Comma) {
-				_typ := p.typeExpr(typeContext)
+				_typ = p.typeExpr(typeContext, writeError...)
 				typeExpr.Params = append(typeExpr.Params, _typ)
 			}
 			p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.RightParen), tokens.RightParen)

@@ -5,6 +5,7 @@ import "hybroid/tokens"
 type AssignmentStmt struct {
 	Values      []Node
 	Identifiers []Node
+	AssignOp    tokens.Token
 	Token       tokens.Token
 }
 

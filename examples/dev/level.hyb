@@ -1,103 +1,19 @@
-env Thing as Level
 
-// alias Thing number 
+// pub fn Length(fixed x, fixed y) -> fixed
+//   => Sqrt(x * x + y * y)
 
-// class {
-//   new() {
+// pub fn Normalize(fixed x, fixed y) -> (fixed, fixed) {
 
-//   }
-
-//   new() {
-//     let a = 
-//   } 
+//   return x / len, y / len
 // }
 
-// entity {
-//   spawn(fixed x, y) {
+EntityReactToWeapon(v, struct{ // if quadro is Quadro
+    type = WeaponType.Bullet; // if Pewpew:GetCustomizableEntityType(quadro) == Quadro { } 
+    x = velX;
+    y = velY;
+    player_index = -1
+})
 
-//   }
-
-//   spawn(fixed x, y) {
-
-//   }
-
-//   destroy() {
-
-//   }
-// }
-
-// enum {
-//   bazz,
-//   foo,
-//   "j"
-// }
-
-// let thing = spawn B(100fx, 2)
-
-// tick {
-//   if true {
+if fixedT < 0.5f {
     
-//   } else if false {
-
-//   } else {
-//     destroy thing()
-//   }
-// }
-
-// tick with i {
-  
-// }
-
-// let list = [1, 2, 3]
-
-// for i, v in list {
-//   list[i] = v*3
-// }
-
-// //let map = {a = , b 3}
-
-// //for k, v in {
-// //  map[i] = v*2
-// //}
-
-// repeat {
-
-// }
-
-// repeat to  { }
-
-// repeat to 10 from 3 by 2 {
-  
-// }
-
-// repeat from 0 to 10 by 5 with i {
-
-// }
-
-// while true {
-
-// }
-
-// a += 1
-
-// fn spawn<g>(g j, h) {
-//   if a > 0 {
-//     return a
-//   } else if a == 0 {
-//     return a*2
-//   }
-
-//   return 0, 0
-// }
-
-// let number b, c = func(1)
-
-// match b {
-//   1 => {
-
-//   }
-//   else => func(1)
-// }
-
-
-test(0)
+}

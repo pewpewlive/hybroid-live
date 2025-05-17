@@ -338,11 +338,14 @@ func (l *Lexer) handleNumber() (*tokens.Token, error) {
 	case "d":
 		token.Type = tokens.Degree
 	case "":
+		token.Column.End -= 1
 		break
 	default:
 		token.Location = postixLocation
 		l.Alert(&alerts.InvalidNumberPostfix{}, alerts.NewSingle(token), postfix)
 	}
+
+	token.Column.End += 1
 
 	return &token, nil
 }

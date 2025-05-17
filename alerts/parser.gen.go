@@ -330,7 +330,7 @@ func (et *ExpectedType) GetSpecifier() Snippet {
 }
 
 func (et *ExpectedType) GetNote() string {
-  return "access expressions are: identifier, environment access, self, member and field expressions"
+  return ""
 }
 
 func (et *ExpectedType) GetID() string {
@@ -845,33 +845,6 @@ func (ie *InvalidExpression) GetID() string {
 }
 
 func (ie *InvalidExpression) GetAlertType() Type {
-  return Error
-}
-
-// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type SyntaxIncoherency struct {
-  Specifier Snippet
-  ParsedSection string
-  AllowsNextLine bool
-}
-
-func (si *SyntaxIncoherency) GetMessage() string {
-  return fmt.Sprintf("'%s' needs to start in the same%s line as the previous parsed section", si.ParsedSection, func(cond bool, str string) string { if !cond { return "" }; return str }(si.AllowsNextLine, " or next"))
-}
-
-func (si *SyntaxIncoherency) GetSpecifier() Snippet {
-  return si.Specifier
-}
-
-func (si *SyntaxIncoherency) GetNote() string {
-  return ""
-}
-
-func (si *SyntaxIncoherency) GetID() string {
-  return "hyb034P"
-}
-
-func (si *SyntaxIncoherency) GetAlertType() Type {
   return Error
 }
 

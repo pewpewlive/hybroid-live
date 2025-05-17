@@ -13,6 +13,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	color "github.com/mitchellh/colorstring"
 )
 
 type Evaluator struct {
@@ -52,7 +54,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		}
 		defer sourceFile.Close()
 
-		fmt.Printf("-->File: %s\n", sourceFile.Name())
+		color.Printf("[dark_gray]-->File: %s\n", sourcePath)
 
 		start := time.Now()
 
@@ -98,7 +100,11 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 	}
 
 	for i, walker := range e.walkerList {
+		sourcePath := e.files[i].Path()
+		color.Printf("[dark_gray]-->File: %s\n", sourcePath)
+
 		start := time.Now()
+
 		fmt.Println("[Pass 2] Walking through the nodes...")
 
 		if !walker.Walked {
@@ -109,7 +115,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		e.printer.StageAlerts(e.files[i].Path(), walker.GetAlerts())
 	}
 
-	fmt.Println("Preparing values for generation...")
+	fmt.Printf("-Preparing values for generation...\n")
 	generator := generator.NewGenerator()
 	for _, walker := range e.walkerList {
 		generator.SetUniqueEnvName(walker.Environment.Name)
@@ -126,6 +132,9 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		if evalFailed[i] || cont {
 			continue
 		}
+		sourcePath := e.files[i].Path()
+		color.Printf("[dark_gray]-->File: %s\n", sourcePath)
+
 		start := time.Now()
 		fmt.Println("Generating the lua code...")
 
