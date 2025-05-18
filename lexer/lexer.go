@@ -63,9 +63,9 @@ func (l *Lexer) next() (*tokens.Token, error) {
 
 	token := tokens.Token{}
 	token.Line = l.line
+	token.Column.Start = l.column
 
 	c, err := l.advance()
-	token.Column.Start = l.column - 1
 
 	if err != nil {
 		return nil, err
@@ -338,14 +338,14 @@ func (l *Lexer) handleNumber() (*tokens.Token, error) {
 	case "d":
 		token.Type = tokens.Degree
 	case "":
-		token.Column.End -= 1
 		break
 	default:
-		token.Location = postixLocation
-		l.Alert(&alerts.InvalidNumberPostfix{}, alerts.NewSingle(token), postfix)
+		tokenCopy := token
+		tokenCopy.Location = postixLocation
+		l.Alert(&alerts.InvalidNumberPostfix{}, alerts.NewSingle(tokenCopy), postfix)
 	}
 
-	token.Column.End += 1
+	token.Column.End = postixLocation.Column.End
 
 	return &token, nil
 }

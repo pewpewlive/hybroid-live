@@ -22,13 +22,12 @@ func (l *Lexer) advance() (rune, error) {
 
 func (l *Lexer) consumeWhile(predicate func(rune) bool) error {
 	var err error
-	r, err := l.peek()
-	for err == nil && predicate(r) {
+
+	for r, err := l.peek(); err == nil && predicate(r); r, err = l.peek() {
 		_, err := l.advance()
 		if err != nil {
 			return err
 		}
-		r, err = l.peek()
 	}
 
 	return err
