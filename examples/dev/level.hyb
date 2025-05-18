@@ -11,3 +11,5 @@ pub entity SuperInertiac {
     }
   }
 }
+
+let a = alias

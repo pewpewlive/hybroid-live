@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 )
 
@@ -14,12 +15,7 @@ func IsZero[T comparable](v T) bool {
 }
 
 func Contains[T comparable](list []T, thing T) bool {
-	for i := range list {
-		if list[i] == thing {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(list, thing)
 }
 
 func GetValOfInterface[T, E any](val E) *T {
@@ -67,7 +63,7 @@ func ListsAreSame[T comparable](list1 []T, list2 []T) bool {
 func CollectFiles(cwd string) ([]FileInformation, error) {
 	files := make([]FileInformation, 0)
 	err := fs.WalkDir(os.DirFS(cwd), ".", func(path string, d fs.DirEntry, err error) error {
-		if !d.IsDir() {
+		if d != nil && !d.IsDir() {
 			ext := filepath.Ext(path)
 			if ext != ".hyb" {
 				return nil

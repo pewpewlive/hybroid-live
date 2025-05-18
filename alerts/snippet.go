@@ -26,21 +26,8 @@ func writeTruncatedLine(snippet *strings.Builder, loc tokens.Location, line []by
 	lineSize := len(line)
 
 	leadingSpace := start - 1
-	if leadingSpace < 0 {
-		leadingSpace = 0
-	}
 	markerSize := end - start
-	if markerSize < 0 {
-		markerSize = 1
-	}
-	if lineSize < 3 {
-		snippet.Write(line)
-		snippet.WriteByte('\n')
-		return leadingSpace, markerSize
-	}
-	if loc.Column.Start > lineSize {
-		start, end = lineSize-1, lineSize
-	}
+
 	lineStart, lineMiddle, lineEnd := line[:start-1], line[start-1:end-1], line[end-1:]
 
 	segments := make([]any, 0, 7)
@@ -102,6 +89,10 @@ func (ss SingleLine) GetSnippet(lines map[int][]byte) string {
 	snippet.WriteString(fmt.Sprintf("[cyan]%d |[default]   ", loc.Line))
 	spaceSize, markerSize := writeTruncatedLine(&snippet, loc, line)
 	leadingSpace, marker := strings.Repeat(" ", spaceSize), strings.Repeat("^", markerSize)
+	if ss.Token.Type == tokens.Eof {
+		leadingSpace = strings.Repeat(" ", len(line))
+		marker = "^- End Of File"
+	}
 	snippet.WriteString(fmt.Sprintf("[cyan]%s |[light_red]   %s%s\n", lineNumberSpaces, leadingSpace, marker))
 
 	return snippet.String()

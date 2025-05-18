@@ -39,7 +39,7 @@ func (l *Lexer) Tokenize() ([]tokens.Token, error) {
 	for {
 		token, err := l.next()
 		if err == io.EOF {
-			newToken := tokens.NewToken(tokens.Eof, "", "", tokens.NewLocation(l.line, l.column, l.column))
+			newToken := tokens.NewToken(tokens.Eof, "eof", "", lexerTokens[len(lexerTokens)-1].Location)
 			lexerTokens = append(lexerTokens, newToken)
 			break
 		} else if err != nil && token == nil {
