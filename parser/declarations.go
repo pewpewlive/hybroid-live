@@ -88,11 +88,6 @@ func (p *Parser) declaration() (returnNode ast.Node) {
 		p.context.IsPub = true
 	}
 
-	if p.peekTypeVariableDecl() && !p.context.IsPub {
-		returnNode = p.variableDeclaration(true)
-		goto exit
-	}
-
 	switch {
 	case p.match(tokens.Fn):
 		returnNode = p.functionDeclaration()
@@ -110,11 +105,14 @@ func (p *Parser) declaration() (returnNode ast.Node) {
 		returnNode = p.statement()
 	}
 
-	p.context.IsPub = false
-exit:
+	if returnNode.GetType() == ast.NA && p.peekTypeVariableDecl() && !p.context.IsPub {
+		returnNode = p.variableDeclaration(true)
+	}
 	if returnNode.GetType() == ast.NA {
 		p.synchronize()
 	}
+
+	p.context.IsPub = false
 
 	return
 }
@@ -270,7 +268,7 @@ func (p *Parser) enumDeclaration() ast.Node {
 		return ast.NewImproper(enumStmt.Token, ast.EnumDeclaration)
 	}
 
-	fields, _ := p.expressions("in enum declaration", true, true)
+	fields, _ := p.expressions("in enum declaration", true)
 	for _, v := range fields {
 		if v.GetType() == ast.Identifier {
 			enumStmt.Fields = append(enumStmt.Fields, v.(*ast.IdentifierExpr))
@@ -321,8 +319,9 @@ func (p *Parser) classDeclaration() ast.Node {
 	if !ok {
 		return ast.NewImproper(stmt.Token, ast.ClassDeclaration)
 	}
+	start := p.peek(-1)
 	stmt.Methods = []ast.MethodDecl{}
-	for !p.match(tokens.RightBrace) {
+	for p.doesntEndWith("in class declaration", start, tokens.RightBrace) {
 		auxiliaryDeclaration := p.auxiliaryDeclaration()
 		switch declaration := auxiliaryDeclaration.(type) {
 		case *ast.ConstructorDecl:
@@ -349,15 +348,19 @@ func (p *Parser) entityDeclaration() ast.Node {
 		Token: p.peek(-1),
 	}
 
-	name, _ := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name of the entity"), tokens.Identifier)
+	name := p.advance()
 	stmt.Name = name
 
-	_, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
-	if !ok {
-		return ast.NewImproper(stmt.Token, ast.EntityDeclaration)
+	if !p.match(tokens.LeftBrace) {
+		p.disadvance(2)
+		return ast.NewImproper(stmt.Token, ast.NA)
 	}
+	if name.Type != tokens.Identifier {
+		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name of the entity")
+	}
+	start := p.peek(-1)
 
-	for !p.match(tokens.RightBrace) {
+	for p.doesntEndWith("in entity declaration", start, tokens.RightBrace) {
 		auxiliaryDeclaration := p.auxiliaryDeclaration()
 		if auxiliaryDeclaration.GetType() == ast.FieldDeclaration {
 			stmt.Fields = append(stmt.Fields, *auxiliaryDeclaration.(*ast.FieldDecl))

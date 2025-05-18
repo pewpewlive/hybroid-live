@@ -3,6 +3,7 @@ package parser
 import (
 	"hybroid/alerts"
 	"hybroid/tokens"
+	"slices"
 )
 
 func (p *Parser) isMultiComparison() bool {
@@ -84,13 +85,21 @@ func (p *Parser) check(tokenType tokens.TokenType) bool {
 
 // Matches the given list of tokens and advances if they match.
 func (p *Parser) match(types ...tokens.TokenType) bool {
-	for _, tokenType := range types {
-		if p.check(tokenType) {
-			p.advance()
-			return true
-		}
+	if slices.ContainsFunc(types, p.check) {
+		p.advance()
+		return true
 	}
+
 	return false
+}
+
+func (p *Parser) doesntEndWith(context string, start tokens.Token, types ...tokens.TokenType) bool {
+	if p.isAtEnd() {
+		p.Alert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek(-1)), string(types[0]), context)
+		return false
+	}
+
+	return !p.match(types...)
 }
 
 // Consumes one of the tokens in the given list and advances if it matches.
@@ -99,10 +108,8 @@ func (p *Parser) consume(alert alerts.Alert, types ...tokens.TokenType) (tokens.
 		p.AlertI(alert)
 		return p.peek(), false // error
 	}
-	for _, tokenType := range types {
-		if p.check(tokenType) {
-			return p.advance(), true
-		}
+	if slices.ContainsFunc(types, p.check) {
+		return p.advance(), true
 	}
 	p.AlertI(alert)
 	return p.peek(), false // error

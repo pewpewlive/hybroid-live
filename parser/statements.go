@@ -62,24 +62,32 @@ func (p *Parser) statement() (returnNode ast.Node) {
 		return
 	}
 
+	current := p.current
 	returnNode = p.expressionStatement()
 	if ast.IsImproper(returnNode, ast.NA) {
-		p.advance()
+		p.disadvance(p.current - current)
 	}
 	return
 }
 
 func (p *Parser) expressionStatement() ast.Node {
 	expr := p.expression()
-	typ := expr.GetType()
+	exprType := expr.GetType()
 
-	if typ == ast.Identifier || typ == ast.EnvironmentAccessExpression ||
-		typ == ast.MemberExpression || typ == ast.FieldExpression {
+	if exprType == ast.Identifier || exprType == ast.EnvironmentAccessExpression ||
+		exprType == ast.MemberExpression || exprType == ast.FieldExpression {
 		return p.assignmentStmt(expr)
 	}
 
-	if typ != ast.CallExpression && typ != ast.MethodCallExpression && typ != ast.SpawnExpression && typ != ast.NewExpession {
-		return ast.NewImproper(expr.GetToken(), expr.GetType())
+	if exprType == ast.NA {
+		improperType := expr.(*ast.Improper).Type
+		if p.isCall(improperType) {
+			return expr
+		}
+	}
+
+	if !p.isCall(exprType) {
+		return ast.NewImproper(expr.GetToken(), ast.NA)
 	}
 
 	return expr
@@ -98,7 +106,11 @@ func (p *Parser) destroyStmt() ast.Node {
 	}
 	destroyStmt.Identifier = expr
 	destroyStmt.Generics, _ = p.genericArgs()
-	destroyStmt.Args = p.functionArgs()
+	args, ok := p.functionArgs()
+	if !ok {
+		return ast.NewImproper(destroyStmt.Token, ast.DestroyStatement)
+	}
+	destroyStmt.Args = args
 
 	return &destroyStmt
 }
@@ -148,13 +160,10 @@ func (p *Parser) assignmentStmt(expr ast.Node) ast.Node {
 	}
 	values := []ast.Node{}
 	if p.match(tokens.Equal) {
-		exprs, _ := p.expressions("in assignment statement", false, false)
+		exprs, _ := p.expressions("in assignment statement", false)
 		return &ast.AssignmentStmt{Identifiers: idents, Values: exprs, Token: p.peek(-1)}
 	}
 	if p.match(tokens.PlusEqual, tokens.MinusEqual, tokens.SlashEqual, tokens.StarEqual, tokens.CaretEqual, tokens.ModuloEqual, tokens.BackSlashEqual) {
-		// if len(idents) > 1 {
-		// 	p.Alert(&alerts.MultipleIdentifiersInCompoundAssignment{}, alerts.NewMulti(expr.GetToken(), idents[len(idents)-1].GetToken()))
-		// }
 		assignOp := p.peek(-1)
 		op := tokens.Token{Literal: assignOp.Literal, Location: assignOp.Location}
 		switch assignOp.Type {
@@ -175,7 +184,7 @@ func (p *Parser) assignmentStmt(expr ast.Node) ast.Node {
 		}
 
 		expr2 := p.expression()
-		if expr2.GetType() == ast.NA {
+		if ast.IsImproper(expr2, ast.NA) {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()), "in assignment statement")
 		} else {
 			values = append(values, expr2)
@@ -183,7 +192,7 @@ func (p *Parser) assignmentStmt(expr ast.Node) ast.Node {
 		for p.match(tokens.Comma) {
 			expr2 := p.expression()
 
-			if expr2.GetType() == ast.NA {
+			if ast.IsImproper(expr2, ast.NA) {
 				p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()), "in assignment statement")
 				continue
 			}
@@ -191,9 +200,8 @@ func (p *Parser) assignmentStmt(expr ast.Node) ast.Node {
 		}
 		return &ast.AssignmentStmt{Identifiers: idents, Values: values, AssignOp: op, Token: idents[0].GetToken()}
 	}
-	p.Alert(&alerts.ExpectedAssignmentSymbol{}, alerts.NewSingle(p.peek()))
-
-	return ast.NewImproper(expr.GetToken(), ast.AssignmentStatement)
+	//p.Alert(&alerts.ExpectedAssignmentSymbol{}, alerts.NewSingle(p.peek()))
+	return ast.NewImproper(expr.GetToken(), ast.NA)
 }
 
 func (p *Parser) returnStmt() ast.Node {
@@ -205,7 +213,7 @@ func (p *Parser) returnStmt() ast.Node {
 	if p.peek().Line != returnStmt.Token.Line {
 		return returnStmt
 	}
-	returnStmt.Args, _ = p.expressions("in return arguments", false, false)
+	returnStmt.Args, _ = p.expressions("in return arguments", false)
 
 	return returnStmt
 }
@@ -218,7 +226,7 @@ func (p *Parser) yieldStmt() ast.Node {
 	if p.peek().Line != yieldStmt.Token.Line {
 		return yieldStmt
 	}
-	yieldStmt.Args, _ = p.expressions("in yield statement", false, false)
+	yieldStmt.Args, _ = p.expressions("in yield statement", false)
 
 	return yieldStmt
 }
@@ -281,7 +289,7 @@ outer:
 		i += 1
 	}
 
-	if (repeatStmt.Start != nil || repeatStmt.Skip != nil || repeatStmt.Variable != nil) && repeatStmt.Iterator == nil {
+	if repeatStmt.Iterator == nil {
 		p.Alert(&alerts.MissingIterator{}, alerts.NewSingle(repeatStmt.Token), "in repeat statement")
 		repeatStmt.Iterator = &ast.LiteralExpr{Token: repeatStmt.Token, Value: "1", ValueType: ast.Number}
 	}
@@ -302,7 +310,7 @@ func (p *Parser) whileStmt() ast.Node {
 
 	condition := p.multiComparison()
 
-	if condition.GetType() == ast.NA {
+	if ast.IsImproper(condition, ast.NA) {
 		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(condition.GetToken()))
 		return ast.NewImproper(condition.GetToken(), ast.WhileStatement)
 	}
@@ -342,7 +350,7 @@ func (p *Parser) forStmt() ast.Node {
 	p.consume(p.NewAlert(&alerts.ExpectedKeyword{}, alerts.NewSingle(p.peek()), tokens.In), tokens.In)
 
 	forStmt.Iterator = p.expression()
-	if forStmt.Iterator.GetType() == ast.NA {
+	if ast.IsImproper(forStmt.Iterator, ast.NA) {
 		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(forStmt.Iterator.GetToken()))
 	}
 
@@ -478,7 +486,7 @@ func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
 	args := []ast.Node{expr}
 	for p.match(tokens.Comma) {
 		expr = p.expression()
-		if expr.GetType() == ast.NA {
+		if ast.IsImproper(expr, ast.NA) {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()))
 		}
 		args = append(args, expr)

@@ -9,10 +9,10 @@ SetLevelSize(WIDTH, 1000f)
 pub Ship = Pewpew:NewShip(WIDTH / 2f, HEIGHT / 2f, 0)
 
 ConfigureShipWeapon(Ship, struct{
-  frequency, cannon = CannonFreq.Freq10, Pewpew:CannonType.Double
+  frequency = CannonFreq.Freq10; cannon = Pewpew:CannonType.Double
 })
 let playerConfig = struct{
-  shield, camera_distance = 5, -50f
+  shield = 5; camera_distance = -50f
 }
 ConfigurePlayer(0, playerConfig)
 

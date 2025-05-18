@@ -28,7 +28,7 @@ pub entity SuperInertiac {
 
   fixed ringAmount = 3f
   list<entity> rings
-  list<struct{fixed x, y, z}> axises
+  list<struct{fixed x, y, z}> axes
 
   fixed predictionSpeed = 0.65f
   entity predictionLine
@@ -65,7 +65,9 @@ pub entity SuperInertiac {
       SetEntityInterpolation(ring, true)
       //SetEntityColor(ring, ColorHelpers:MakeColor(Fmath:ToNum(100 * t), Fmath:ToNum(255 * t), 255, 200))
       Table:Insert(axises, struct{
-        x, y, z = Fmath:RandomFixed(-1f, 1f), Fmath:RandomFixed(-1f, 1f), Fmath:RandomFixed(-0.3f, 0.3f)
+        x = Fmath:RandomFixed(-1f, 1f);
+        y = Fmath:RandomFixed(-1f, 1f);
+        z = Fmath:RandomFixed(-0.3f, 0.3f)
       })
       Table:Insert(frames, Fmath:RandomNum(0, 59))
     }
@@ -163,7 +165,7 @@ pub entity SuperInertiac {
         if v == self {
           continue
         }
-        if converted = v is SuperInertiac and IsEntityAlive(v) {
+        if let converted = v is SuperInertiac and IsEntityAlive(v) {
           if converted.isDead {
             continue
           }

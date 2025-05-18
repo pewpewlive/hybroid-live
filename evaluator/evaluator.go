@@ -140,11 +140,11 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 
 		generator.SetEnv(walker.Environment.Name, walker.Environment.Type)
 		if e.files[i].FileName == "level" {
-			generator.GenerateWithBuiltins(walker.Nodes)
+			//generator.GenerateWithBuiltins(walker.Nodes)
 		} else if e.walkerList[i].Environment.Type != ast.LevelEnv {
-			generator.Generate(walker.Nodes, e.walkerList[i].Environment.UsedBuiltinVars)
+			//generator.Generate(walker.Nodes, e.walkerList[i].Environment.UsedBuiltinVars)
 		} else {
-			generator.Generate(walker.Nodes, []string{})
+			//generator.Generate(walker.Nodes, []string{})
 		}
 
 		e.printer.StageAlerts(e.files[i].Path(), generator.GetAlerts())

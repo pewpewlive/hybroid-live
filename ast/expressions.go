@@ -162,7 +162,7 @@ type EntityExpr struct {
 }
 
 func (ge *EntityExpr) GetType() NodeType {
-	return GroupingExpression
+	return GroupExpression
 }
 
 func (ge *EntityExpr) GetToken() tokens.Token {
@@ -180,7 +180,7 @@ type GroupExpr struct {
 }
 
 func (ge *GroupExpr) GetType() NodeType {
-	return GroupingExpression
+	return GroupExpression
 }
 
 func (ge *GroupExpr) GetToken() tokens.Token {
@@ -541,8 +541,13 @@ func IsImproperNotStatement(improper Node) bool {
 	if improper.GetType() != NA {
 		return false
 	}
-	typ := string(improper.(*Improper).Type)
-	return (!strings.Contains(typ, "Statement") && !strings.Contains(typ, "Declaration"))
+	improperType := improper.(*Improper).Type
+	str := strings.ToLower(string(improperType))
+	return !strings.Contains(str, "statement") &&
+		!strings.Contains(str, "declaration") &&
+		!strings.Contains(str, "call") &&
+		improperType != NewExpession &&
+		improperType != SpawnExpression
 }
 
 func (i *Improper) GetType() NodeType {

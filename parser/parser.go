@@ -20,6 +20,7 @@ type ParserContext struct {
 	EnvDeclaration *ast.EnvironmentDecl
 	IsPub          bool
 	IgnoreAlerts   helpers.Stack[bool]
+	BraceEntries   helpers.Stack[bool]
 }
 
 func NewParser(tokens []tokens.Token) Parser {
@@ -30,6 +31,7 @@ func NewParser(tokens []tokens.Token) Parser {
 		context: ParserContext{
 			EnvDeclaration: nil,
 			IgnoreAlerts:   helpers.NewStack[bool]("IgnoreAlerts"),
+			BraceEntries:   helpers.NewStack[bool]("BraceEntries"),
 		},
 		Collector: alerts.NewCollector(),
 	}
@@ -55,54 +57,6 @@ func (p *Parser) AlertI(alert alerts.Alert) {
 	}
 
 	p.AlertI_(alert)
-}
-
-func IsCall(nodeType ast.NodeType) bool {
-	return nodeType == ast.CallExpression ||
-		nodeType == ast.MethodCallExpression ||
-		nodeType == ast.NewExpession ||
-		nodeType == ast.SpawnExpression
-}
-
-func (p *Parser) synchronize() {
-	expectedBlockCount := 0
-	for !p.isAtEnd() {
-		switch p.peek().Type {
-		case tokens.Fn:
-			p.advance()
-			if p.peek().Type != tokens.LeftParen {
-				p.disadvance()
-				return
-			}
-		case tokens.LeftBrace:
-			expectedBlockCount++
-		case tokens.RightBrace:
-			if expectedBlockCount == 0 {
-				return
-			}
-			expectedBlockCount--
-		case tokens.Entity, tokens.Let, tokens.Pub, tokens.Const, tokens.Class, tokens.Alias:
-			return
-		default:
-			current := p.current
-			p.context.IgnoreAlerts.Push("Synchronize", true)
-
-			expr := p.expression()
-			exprType := expr.GetType()
-			if exprType == ast.NA {
-				exprType = expr.(*ast.Improper).Type
-			}
-
-			p.disadvance(p.current - current)
-			p.context.IgnoreAlerts.Pop("Synchronize")
-
-			if IsCall(exprType) {
-				return
-			}
-		}
-
-		p.advance()
-	}
 }
 
 func (p *Parser) Parse() []ast.Node {

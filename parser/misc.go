@@ -6,17 +6,6 @@ import (
 	"hybroid/tokens"
 )
 
-// Creates a BinaryExpr
-func (p *Parser) createBinExpr(left ast.Node, operator tokens.Token, tokenType tokens.TokenType, lexeme string, right ast.Node) ast.Node {
-	valueType := p.determineValueType(left, right)
-	return &ast.BinaryExpr{
-		Left:      left,
-		Operator:  tokens.NewToken(tokenType, lexeme, "", operator.Location),
-		Right:     right,
-		ValueType: valueType,
-	}
-}
-
 // Checks if the value type is expected to be a fixedpoint
 func IsFx(valueType ast.PrimitiveValueType) bool {
 	return valueType == ast.FixedPoint || valueType == ast.Fixed || valueType == ast.Radian || valueType == ast.Degree
@@ -107,13 +96,18 @@ func (p *Parser) genericParams() []*ast.IdentifierExpr {
 
 // Prerequisite of calling this function is that you checked on peek and it was tokens.Less
 func (p *Parser) tryGenericArgs() bool {
+	p.context.IgnoreAlerts.Push("TryGenericArgs", true)
+	defer func() {
+		p.context.IgnoreAlerts.Pop("TryGenericArgs")
+	}()
+
 	currentStart := p.current
 	p.match(tokens.Less)
 
-	p.typeExpr("in generic arguments", false)
+	p.typeExpr("in generic arguments")
 
 	for p.match(tokens.Comma) {
-		p.typeExpr("in generic arguments", false)
+		p.typeExpr("in generic arguments")
 	}
 
 	next := p.peek()
@@ -149,22 +143,22 @@ func (p *Parser) genericArgs() ([]*ast.TypeExpr, bool) {
 	return params, false
 }
 
-func (p *Parser) functionArgs() []ast.Node {
+func (p *Parser) functionArgs() ([]ast.Node, bool) {
 	if _, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftParen), tokens.LeftParen); !ok {
-		return nil
+		return nil, false
 	}
 
 	if p.match(tokens.RightParen) {
-		return make([]ast.Node, 0)
+		return make([]ast.Node, 0), true
 	}
 
-	args, ok := p.expressions("in function arguments", false, true)
-	if !ok && p.peek().Type != tokens.RightParen {
-		p.advance()
+	args, ok := p.expressions("in function arguments", false)
+	if !ok {
+		return args, false
 	}
 	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.RightParen), tokens.RightParen)
 
-	return args
+	return args, true
 }
 
 func (p *Parser) functionReturns() *ast.TypeExpr {
@@ -215,7 +209,7 @@ func (p *Parser) identifiers(typeContext string, allowTrailing bool) ([]*ast.Ide
 }
 
 // bool tells you if the parsing was successful or not
-func (p *Parser) expressions(typeContext string, allowTrailing bool, allowNewLine bool) ([]ast.Node, bool) {
+func (p *Parser) expressions(typeContext string, allowTrailing bool) ([]ast.Node, bool) {
 	exprs := []ast.Node{}
 	expr := p.expression()
 	success := expr.GetType() != ast.NA
@@ -258,7 +252,7 @@ func (p *Parser) identExprPairs(typeContext string, optional bool) ([]*ast.Ident
 		return nil, nil, ok
 	}
 
-	exprs, ok := p.expressions(typeContext, false, false)
+	exprs, ok := p.expressions(typeContext, false)
 	if !ok {
 		return nil, nil, ok
 	}
@@ -266,19 +260,53 @@ func (p *Parser) identExprPairs(typeContext string, optional bool) ([]*ast.Ident
 	return idents, exprs, true
 }
 
+func (p *Parser) keyValuePair(context string) (ast.Node, ast.Node, bool) {
+	key := p.expression()
+	if key.GetType() != ast.Identifier {
+		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(key.GetToken()), "as "+context)
+		p.advance()
+		return nil, nil, false
+	}
+	_, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Equal, "after "+context), tokens.Equal)
+	if !ok {
+		return nil, nil, false
+	}
+
+	expr := p.expression()
+	if ast.IsImproper(expr, ast.NA) {
+		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()), "as "+context+" value")
+	}
+
+	return key, expr, expr.GetType() != ast.NA
+}
+
+func (p *Parser) tryIdentifiers() bool {
+	ident := p.advance()
+	if ident.Type != tokens.Identifier {
+		return false
+	}
+
+	for p.match(tokens.Comma) {
+		ident := p.advance()
+		if ident.Type != tokens.Identifier {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (p *Parser) peekTypeVariableDecl() bool {
 	currentStart := p.current
 	p.context.IgnoreAlerts.Push("PeekTypeVariableDecl", true)
 
+	valid := false
+
 	typeExpr := p.typeExpr("")
-	expr := p.expression()
+	ok := p.tryIdentifiers()
+	valid = typeExpr.Name.GetType() != ast.NA && ok
 
 	p.context.IgnoreAlerts.Pop("PeekTypeVariableDecl")
-
-	valid := typeExpr.Name.GetType() != ast.NA && expr.GetType() == ast.Identifier
-	if typeExpr.Name.GetToken().Type == tokens.Entity && p.peek().Type == tokens.LeftBrace {
-		valid = false
-	}
 	p.disadvance(p.current - currentStart)
 
 	return valid
@@ -303,7 +331,7 @@ func (p *Parser) checkType() (*ast.TypeExpr, bool) {
 func (p *Parser) body(allowSingleSatement, allowArrow bool) ([]ast.Node, bool) {
 	body := make([]ast.Node, 0)
 	if p.match(tokens.FatArrow) && allowArrow {
-		args, ok := p.expressions("in fat arrow return arguments", false, false)
+		args, ok := p.expressions("in fat arrow return arguments", false)
 		if !ok {
 			p.Alert(&alerts.ExpectedReturnArgs{}, alerts.NewSingle(p.peek()))
 			return []ast.Node{}, false
@@ -324,11 +352,7 @@ func (p *Parser) body(allowSingleSatement, allowArrow bool) ([]ast.Node, bool) {
 	}
 	start := p.peek(-1)
 
-	for !p.match(tokens.RightBrace) {
-		if p.isAtEnd() {
-			p.Alert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek(-1)), tokens.RightBrace)
-			return body, false
-		}
+	for p.doesntEndWith("in body", start, tokens.RightBrace) {
 
 		declaration := p.declaration()
 		if ast.IsImproperNotStatement(declaration) {
@@ -344,7 +368,7 @@ func (p *Parser) body(allowSingleSatement, allowArrow bool) ([]ast.Node, bool) {
 func (p *Parser) limitedExpression(context string, types ...ast.NodeType) ast.Node {
 	expr := p.expression()
 	exprType := expr.GetType()
-	if exprType == ast.NA {
+	if ast.IsImproper(expr, ast.NA) {
 		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), context)
 		return expr
 	}
@@ -361,18 +385,40 @@ func (p *Parser) limitedExpression(context string, types ...ast.NodeType) ast.No
 	return expr
 }
 
-// Checks if there is a discrepancy between the line location of tokenStart and tokenEnd
-//
-// Returns true if there was a discrepancy. AllowNewLine is false by default.
-func (p *Parser) coherencyCheck(tokenStart, tokenEnd tokens.Token, allowNewLine ...bool) bool {
-	diffTolerance := 0
-	if allowNewLine != nil && allowNewLine[0] {
-		diffTolerance = 1
-	}
-	if tokenEnd.Line-tokenStart.Line > diffTolerance {
-		//p.Alert(&alerts.SyntaxIncoherency{}, alerts.NewMulti(tokenStart, tokenEnd), parsedSection, diffTolerance == 1)
-		return true
-	}
+func (p *Parser) isCall(nodeType ast.NodeType) bool {
+	return nodeType == ast.CallExpression ||
+		nodeType == ast.MethodCallExpression ||
+		nodeType == ast.NewExpession ||
+		nodeType == ast.SpawnExpression
+}
 
-	return false
+func (p *Parser) synchronize() {
+	expectedBlockCount := 0
+	for !p.isAtEnd() {
+		switch p.peek().Type {
+		case tokens.Fn:
+			p.advance()
+			if p.peek().Type != tokens.LeftParen {
+				p.disadvance()
+				return
+			}
+		case tokens.LeftBrace:
+			expectedBlockCount++
+		case tokens.RightBrace:
+			if expectedBlockCount == 0 {
+				if p.context.BraceEntries.Count() != 0 {
+					p.context.BraceEntries.Pop("Brace")
+					p.advance()
+					continue
+				}
+				return
+			}
+
+			expectedBlockCount--
+		case tokens.Entity, tokens.Let, tokens.Pub, tokens.Const, tokens.Class, tokens.Alias:
+			return
+		}
+
+		p.advance()
+	}
 }

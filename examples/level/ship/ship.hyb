@@ -11,7 +11,8 @@ pub entity Ship {
     id = NewShip(x, y, 0)
 
     let playerConfig = struct{
-      shield, camera_distance = 5, -50f
+      shield = 5;
+      camera_distance = -50f
     }
 
     ConfigurePlayer(0, playerConfig)

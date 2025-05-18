@@ -1,19 +1,13 @@
+pub entity SuperInertiac {
+  fixed x, y = 0f, 0f
 
-// pub fn Length(fixed x, fixed y) -> fixed
-//   => Sqrt(x * x + y * y)
-
-// pub fn Normalize(fixed x, fixed y) -> (fixed, fixed) {
-
-//   return x / len, y / len
-// }
-
-EntityReactToWeapon(v, struct{ // if quadro is Quadro
-    type = WeaponType.Bullet; // if Pewpew:GetCustomizableEntityType(quadro) == Quadro { } 
-    x = velX;
-    y = velY;
-    player_index = -1
-})
-
-if fixedT < 0.5f {
-    
+  spawn(fixed x, fixed y) {
+    repeat from ringAmount to 1f by -1f with i {
+      call(struct{
+        field = struct{
+          ,
+        }
+      })
+    }
+  }
 }

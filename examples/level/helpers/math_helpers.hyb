@@ -41,11 +41,26 @@ alias Parameter = struct{number x, y, ParamType pt}
 alias Parameters = list<Parameter>
 
 pub SineWave = [
-    struct{x, y = 0, 0     ; pt = ParamType.Linear},
-    struct{x, y = 0.25, 0.5; pt = ParamType.Linear},
-    struct{x, y = 0.5, 1   ; pt = ParamType.Rooted},
-    struct{x, y = 0.75, 0.5; pt = ParamType.Rooted},
-    struct{x, y = 1, 0     ; pt = ParamType.Linear}
+    struct{
+        x = 0; y = 0; 
+        pt = ParamType.Linear
+    },
+    struct{
+        x = 0.25; y = 0.5; 
+        pt = ParamType.Linear
+    },
+    struct{
+        x = 0.5; y = 1; 
+        pt = ParamType.Rooted
+    },
+    struct{
+        x = 0.75; y = 0.5;
+        pt = ParamType.Rooted
+    },
+    struct{
+        x = 1; y = 0;
+        pt = ParamType.Linear
+    }
 ]
 
 pub fn ParametricInvLerp(number a, b, v, Parameters parameters) -> number {

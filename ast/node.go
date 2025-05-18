@@ -42,7 +42,7 @@ const (
 	LiteralExpression           NodeType = "literalExpression"
 	UnaryExpression             NodeType = "unaryExpression"
 	BinaryExpression            NodeType = "binaryExpression"
-	GroupingExpression          NodeType = "groupingExpression"
+	GroupExpression             NodeType = "groupExpression"
 	ListExpression              NodeType = "listExpression"
 	MapExpression               NodeType = "mapExpression"
 	CallExpression              NodeType = "callExpression"
