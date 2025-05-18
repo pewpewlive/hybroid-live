@@ -45,7 +45,7 @@ func (gen *Generator) assignmentStmt(assignStmt ast.AssignmentStmt, scope *GenSc
 	vars := []string{}
 
 	index := 0
-	for i := 0; i < len(assignStmt.Values); i++ {
+	for i := range assignStmt.Values {
 		src.WriteTabbed()
 		if assignStmt.Values[i].GetType() == ast.CallExpression {
 			call := assignStmt.Values[i].(*ast.CallExpr)
@@ -342,8 +342,8 @@ func (gen *Generator) entityDeclarationStmt(node ast.EntityDecl, scope *GenScope
 		entityScope.WriteTabbed("end\n")
 	}
 
-	gen.spawnDeclarationStmt(*node.Spawner, node, &entityScope)
-	gen.destroyDeclarationStmt(*node.Destroyer, node, &entityScope)
+	//gen.spawnDeclarationStmt(*node.Spawner, node, &entityScope)
+	//gen.destroyDeclarationStmt(*node.Destroyer, node, &entityScope)
 
 	for _, v := range node.Methods {
 		gen.entityMethodDeclarationStmt(v, node, scope)

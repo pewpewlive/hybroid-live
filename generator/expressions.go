@@ -14,10 +14,14 @@ func (gen *Generator) entityExpr(node ast.EntityExpr, scope *GenScope) string {
 		op = "~="
 	case tokens.Isnt:
 		op = "=="
-	default:
-		op = node.Operator.Lexeme
 	}
 	if node.OfficialEntityType {
+		switch node.Operator.Type {
+		case tokens.Is:
+			op = "=="
+		case tokens.Isnt:
+			op = "~="
+		}
 		src.Write("pewpew.get_entity_type(", gen.GenerateExpr(node.Expr, scope), ") ", op, " ", "pewpew.EntityType.", PewpewEnums["EntityType"][node.Type.GetToken().Lexeme])
 		return src.String()
 	}
