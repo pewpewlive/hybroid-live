@@ -24,7 +24,7 @@ func (p *Parser) fn() ast.Node {
 		fn.Return = p.functionReturns()
 
 		var success bool
-		fn.Body, success = p.body(false, false)
+		fn.Body, success = p.body(false, true)
 		if !success {
 			return ast.NewImproper(fn.Token, ast.FunctionExpression)
 		}
@@ -496,27 +496,24 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 }
 
 func (p *Parser) list() ast.Node {
-	token := p.peek(-1)
-	list := make([]ast.Node, 0)
-	if p.match(tokens.RightBracket) {
-		return &ast.ListExpr{ValueType: ast.List, List: list, Token: token}
+	listExpr := &ast.ListExpr{
+		ValueType: ast.List,
+		Token:     p.peek(-1),
 	}
-	exprInList := p.expression()
-	if ast.IsImproper(exprInList, ast.NA) {
-		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()))
-	}
-	list = append(list, exprInList)
-	for p.match(tokens.Comma) {
-		exprInList := p.expression()
-		if ast.IsImproper(exprInList, ast.NA) {
-			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()))
-			p.advance()
-		}
-		list = append(list, exprInList)
-	}
-	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(token, p.peek()), tokens.RightBracket, "in list expression"), tokens.RightBracket)
 
-	return &ast.ListExpr{ValueType: ast.List, List: list, Token: token}
+	if p.match(tokens.RightBracket) {
+		return listExpr
+	}
+
+	list, ok := p.expressions("in list expression", true)
+	if !ok {
+		return ast.NewImproper(listExpr.Token, ast.ListExpression)
+	}
+	listExpr.List = list
+
+	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(listExpr.Token, p.peek()), tokens.RightBracket, "in list expression"), tokens.RightBracket)
+
+	return listExpr
 }
 
 func (p *Parser) parseMap() ast.Node {

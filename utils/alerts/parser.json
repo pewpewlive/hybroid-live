@@ -208,7 +208,7 @@
   {
     "name": "InvalidEnumVariantName",
     "type": "Error",
-    "message": "enum variant name must be an identifier or a number"
+    "message": "enum variant name must be an identifier"
   },
   {
     "name": "InvalidExpression",
@@ -217,7 +217,7 @@
       "Type": "string",
       "Context": "string `default:\"\"`"
     },
-    "message":"'%s' not allowed %s",
-    "message_format":["Type", "Context"]
+    "message": "'%s' not allowed %s",
+    "message_format": ["Type", "Context"]
   }
 ]
