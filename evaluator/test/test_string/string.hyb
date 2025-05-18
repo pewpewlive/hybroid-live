@@ -1,9 +1,0 @@
-env StringTest as Level
-
-use String
-
-let a = "string %s%v"
-
-let number b = String:Byte(a, 2, 4)
-
-let text formatted = Format(a, "a", 1)
