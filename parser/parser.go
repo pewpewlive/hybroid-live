@@ -10,10 +10,11 @@ import (
 type Parser struct {
 	alerts.Collector
 
-	program []ast.Node
-	current int
-	tokens  []tokens.Token
-	context ParserContext
+	program   []ast.Node
+	current   int
+	tokens    []tokens.Token
+	forceStop bool
+	context   ParserContext
 }
 
 type ParserContext struct {
@@ -21,17 +22,20 @@ type ParserContext struct {
 	IsPub          bool
 	IgnoreAlerts   helpers.Stack[bool]
 	BraceEntries   helpers.Stack[bool]
+	BodyEntries    helpers.Stack[bool]
 }
 
 func NewParser(tokens []tokens.Token) Parser {
 	parser := Parser{
-		program: make([]ast.Node, 0),
-		current: 0,
-		tokens:  tokens,
+		program:   make([]ast.Node, 0),
+		current:   0,
+		tokens:    tokens,
+		forceStop: false,
 		context: ParserContext{
 			EnvDeclaration: nil,
 			IgnoreAlerts:   helpers.NewStack[bool]("IgnoreAlerts"),
 			BraceEntries:   helpers.NewStack[bool]("BraceEntries"),
+			BodyEntries:    helpers.NewStack[bool]("BodyEntries"),
 		},
 		Collector: alerts.NewCollector(),
 	}
@@ -59,10 +63,21 @@ func (p *Parser) AlertI(alert alerts.Alert) {
 	p.AlertI_(alert)
 }
 
+func (p *Parser) ForceStop() {
+	p.forceStop = true
+}
+
 func (p *Parser) Parse() []ast.Node {
 	for !p.isAtEnd() {
+		if p.forceStop {
+			break
+		}
 		declaration := p.declaration()
 		if declaration == nil {
+			continue
+		}
+		if ast.IsImproperNotStatement(declaration) {
+			p.Alert(&alerts.UnknownStatement{}, alerts.NewSingle(declaration.GetToken()))
 			continue
 		}
 		if declaration.GetType() != ast.NA {

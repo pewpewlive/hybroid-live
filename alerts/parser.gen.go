@@ -802,7 +802,7 @@ type InvalidEnumVariantName struct {
 }
 
 func (ievn *InvalidEnumVariantName) GetMessage() string {
-  return "enum variant name must be an identifier or a number"
+  return "enum variant name must be an identifier"
 }
 
 func (ievn *InvalidEnumVariantName) GetSpecifier() Snippet {
@@ -845,6 +845,34 @@ func (ie *InvalidExpression) GetID() string {
 }
 
 func (ie *InvalidExpression) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type SyntaxIncoherency struct {
+  Specifier Snippet
+  ParsedSection string
+  PreviousSection string
+  AllowsNextLine bool
+}
+
+func (si *SyntaxIncoherency) GetMessage() string {
+  return fmt.Sprintf("'%s' needs to start in the same%s line as '%s'", si.ParsedSection, func(cond bool, str string) string { if !cond { return "" }; return str }(si.AllowsNextLine, " or next"), si.PreviousSection)
+}
+
+func (si *SyntaxIncoherency) GetSpecifier() Snippet {
+  return si.Specifier
+}
+
+func (si *SyntaxIncoherency) GetNote() string {
+  return ""
+}
+
+func (si *SyntaxIncoherency) GetID() string {
+  return "hyb034P"
+}
+
+func (si *SyntaxIncoherency) GetAlertType() Type {
   return Error
 }
 

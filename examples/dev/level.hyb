@@ -1,15 +1,8 @@
-pub entity SuperInertiac {
-  fixed x, y = 0f, 0f
-
-  spawn(fixed x, fixed y) {
-    repeat from ringAmount to 1f by -1f with i {
-      call(struct{
-        field = struct{
-          ,
-        }
-      })
-    }
-  }
+alias f = fn() -> (e, zb(
 }
 
-let a = alias
+fn name() {
+    let a = 
+}
+
+let a = 1

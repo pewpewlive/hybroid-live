@@ -107,12 +107,21 @@ func (p *Parser) declaration() (returnNode ast.Node) {
 
 	if returnNode.GetType() == ast.NA && p.peekTypeVariableDecl() && !p.context.IsPub {
 		returnNode = p.variableDeclaration(true)
-	}
-	if returnNode.GetType() == ast.NA {
-		p.synchronize()
+	} else if returnNode.GetType() == ast.NA {
+		current := p.current
+		p.context.IgnoreAlerts.Push("ExpressionStatement", true)
+		node := p.expressionStatement()
+		p.context.IgnoreAlerts.Push("ExpressionStatement", false)
+		p.disadvance(p.current - current)
+		if !ast.IsImproper(node, ast.NA) {
+			returnNode = p.expressionStatement()
+		}
 	}
 
 	p.context.IsPub = false
+	if returnNode.GetType() == ast.NA {
+		p.synchronize()
+	}
 
 	return
 }
@@ -186,6 +195,7 @@ func (p *Parser) environmentDeclaration() ast.Node {
 	}
 
 	envPathExpr, _ := pathExpr.(*ast.EnvPathExpr)
+
 	envDecl.EnvType = p.envTypeExpr()
 	envDecl.Env = envPathExpr
 	p.context.EnvDeclaration = envDecl
@@ -211,7 +221,7 @@ func (p *Parser) variableDeclaration(bypassKeyword bool) ast.Node {
 	}
 
 	typeCheckStart := p.current
-	if typeExpr, ok := p.checkType(); ok {
+	if typeExpr, ok := p.checkType("in variable declaration"); ok {
 		variableDecl.Type = typeExpr
 		if !p.check(tokens.Identifier) {
 			p.disadvance(p.current - typeCheckStart)
@@ -242,7 +252,7 @@ func (p *Parser) functionDeclaration() ast.Node {
 
 	functionDecl.Name = name
 	functionDecl.Generics = p.genericParams()
-	functionDecl.Params = p.functionParams(tokens.LeftParen, tokens.RightParen)
+	functionDecl.Params, _ = p.functionParams(tokens.LeftParen, tokens.RightParen)
 	functionDecl.Return = p.functionReturns()
 
 	body, ok := p.body(false, true)
@@ -298,7 +308,7 @@ func (p *Parser) aliasDeclaration() ast.Node {
 
 	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Equal, "after name in alias declaration"), tokens.Equal)
 
-	aliasDecl.Type, ok = p.checkType()
+	aliasDecl.Type, ok = p.checkType("in alias declaration")
 	if !ok {
 		p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(aliasDecl.Type.GetToken()), "to be aliased in alias declaration")
 	}
@@ -416,7 +426,7 @@ func (p *Parser) entityFunctionDeclaration(token tokens.Token, functionType ast.
 	}
 
 	stmt.Generics = p.genericParams()
-	stmt.Params = p.functionParams(tokens.LeftParen, tokens.RightParen)
+	stmt.Params, _ = p.functionParams(tokens.LeftParen, tokens.RightParen)
 	stmt.Return = p.functionReturns()
 
 	var success bool
@@ -432,7 +442,7 @@ func (p *Parser) constructorDeclaration() ast.Node {
 	stmt := &ast.ConstructorDecl{Token: p.peek(-1)}
 
 	stmt.Generics = p.genericParams()
-	stmt.Params = p.functionParams(tokens.LeftParen, tokens.RightParen)
+	stmt.Params, _ = p.functionParams(tokens.LeftParen, tokens.RightParen)
 	returns := p.functionReturns()
 	if returns != nil {
 		p.Alert(&alerts.ReturnsInConstructor{}, alerts.NewSingle(returns.GetToken()))
@@ -452,7 +462,7 @@ func (p *Parser) fieldDeclaration() ast.Node {
 	}
 
 	typeCheckStart := p.current
-	if typeExpr, ok := p.checkType(); ok {
+	if typeExpr, ok := p.checkType("in field declaration"); ok {
 		fieldDecl.Type = typeExpr
 		if !p.check(tokens.Identifier) {
 			p.disadvance(p.current - typeCheckStart)

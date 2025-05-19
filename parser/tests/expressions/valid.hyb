@@ -67,6 +67,10 @@ entity EntityTest {
     text a = ""
     Test b = new Test()
 
+    fn test((bool, bool) thing) -> Env:Type {
+        thing, a = b == 4, a == ""
+    }
+
     spawn(fixed x, fixed y) {}
 
     destroy() {}
@@ -81,3 +85,19 @@ let y = [
 ]
 
 let z = y[1].a[2].b.method1(false, true)
+let za = v[1]["a"].call()[0].field["a"]()
+
+alias zb = number
+alias zc = list<number>
+alias p = (number, list<number>, zb)
+alias e = struct{WeaponType a, bool b, p i}
+alias Alias = fn(number, Thing:Type) -> entity
+enum O {
+    Field1,
+    Field2,
+    Field3,
+    Field4,
+}
+fn function(fixed param1, param2, Type2 param3) -> fn() -> (bool, bool) {
+    fixed u = 1+param1
+}

@@ -219,5 +219,16 @@
     },
     "message": "'%s' not allowed %s",
     "message_format": ["Type", "Context"]
+  },
+  {
+    "name": "SyntaxIncoherency",
+    "type": "Error",
+    "params": {
+      "ParsedSection": "string",
+      "PreviousSection": "string",
+      "AllowsNextLine": "bool"
+    },
+    "message": "'%s' needs to start in the same%s line as '%s'",
+    "message_format":["ParsedSection", { "AllowsNextLine":"func(cond bool, str string) string {{ if !cond {{ return \"\" }}; return str }}({}, \" or next\")"}, "PreviousSection"]
   }
 ]

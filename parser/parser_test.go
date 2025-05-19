@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 )
 
 func printAlerts[A any](t *testing.T, kind string, alertsToPrint ...A) {
@@ -64,12 +65,24 @@ func performParsing(path, subtest string) (parseResults, error) {
 	tokens, _ := lexer.Tokenize()
 
 	parser := parser.NewParser(tokens)
+	isDone := false
+	var parserError error = nil
+	go func() {
+		time.Sleep(6 * time.Second)
+		if !isDone {
+			parserError = fmt.Errorf("[Invalid] Parser hung on %s.\n", sourcePath)
+			parser.ForceStop()
+			return
+		}
+		return
+	}()
 	parser.Parse()
+	isDone = true
 
 	results.alerts = parser.GetAlerts()
 	results.hasAlerts = len(results.alerts) != 0
 
-	return results, nil
+	return results, parserError
 }
 
 func performTest(t *testing.T, testName string, expectedAlerts []reflect.Type) {
@@ -82,6 +95,9 @@ func performTest(t *testing.T, testName string, expectedAlerts []reflect.Type) {
 		results, err := performParsing(path, "valid")
 		if err != nil {
 			t.Error(err)
+			if strings.Contains(strings.ToLower(err.Error()), "parser hung") {
+				printAlerts(t, "Unexpected", results.alerts...)
+			}
 			return
 		}
 		if results.hasAlerts {
@@ -94,6 +110,9 @@ func performTest(t *testing.T, testName string, expectedAlerts []reflect.Type) {
 		results, err := performParsing(path, "invalid")
 		if err != nil {
 			t.Error(err)
+			if strings.Contains(strings.ToLower(err.Error()), "parser hung") {
+				printAlerts(t, "Unexpected", results.alerts...)
+			}
 			return
 		}
 		if !results.hasAlerts {
@@ -117,7 +136,8 @@ func performTest(t *testing.T, testName string, expectedAlerts []reflect.Type) {
 
 func TestExpressions(t *testing.T) {
 	expectedAlerts := []reflect.Type{
-		reflect.TypeFor[alerts.ExpectedIdentifier](),
+		reflect.TypeFor[alerts.UnknownStatement](),
+		reflect.TypeFor[alerts.ExpectedExpression](),
 	}
 	performTest(t, "expressions", expectedAlerts)
 }

@@ -61,12 +61,6 @@ func (p *Parser) statement() (returnNode ast.Node) {
 		returnNode = p.matchStmt(false)
 		return
 	}
-
-	current := p.current
-	returnNode = p.expressionStatement()
-	if ast.IsImproper(returnNode, ast.NA) {
-		p.disadvance(p.current - current)
-	}
 	return
 }
 

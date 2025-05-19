@@ -16,7 +16,7 @@ func (p *Parser) fn() ast.Node {
 			Token: p.peek(-1),
 		}
 		if p.check(tokens.LeftParen) {
-			fn.Params = p.functionParams(tokens.LeftParen, tokens.RightParen)
+			fn.Params, _ = p.functionParams(tokens.LeftParen, tokens.RightParen)
 		} else {
 			fn.Params = make([]ast.FunctionParam, 0)
 			p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftParen, "in function parameters")
@@ -478,7 +478,7 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 		token := p.peek(-1)
 		expr := p.expression()
 		if ast.IsImproper(expr, ast.NA) {
-			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()))
+			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()), "in group expression")
 			return ast.NewImproper(token, ast.GroupExpression)
 		}
 		_, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.RightParen, "in group expression"), tokens.RightParen)
@@ -606,20 +606,32 @@ func (p *Parser) wrappedTypeExpr(typeContext string) *ast.TypeExpr {
 func (p *Parser) typeExpr(typeContext string) *ast.TypeExpr {
 	var expr ast.Node
 	token := p.advance()
+	improperType := &ast.TypeExpr{Name: ast.NewImproper(token, ast.TypeExpression)}
 
 	if token.Type == tokens.LeftParen {
 		tuple := &ast.TupleExpr{LeftParen: token}
 
 		types := []*ast.TypeExpr{}
 
-		types = append(types, p.typeExpr(typeContext))
+		typ := p.typeExpr(typeContext)
+		if typ.GetType() == ast.NA {
+			return improperType
+		}
+		types = append(types, typ)
 
 		for p.match(tokens.Comma) {
-			types = append(types, p.typeExpr(typeContext))
+			typ := p.typeExpr(typeContext)
+			if typ.GetType() == ast.NA {
+				return improperType
+			}
+			types = append(types, typ)
 		}
-		p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.RightParen, "in tuple expression"), tokens.RightParen)
+		_, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.RightParen, "in tuple expression"), tokens.RightParen)
 
 		tuple.Types = types
+		if !ok {
+			return improperType
+		}
 
 		return &ast.TypeExpr{Name: tuple}
 	}
@@ -627,6 +639,7 @@ func (p *Parser) typeExpr(typeContext string) *ast.TypeExpr {
 	if p.match(tokens.Colon) {
 		if token.Type != tokens.Identifier {
 			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(token))
+			return improperType
 		}
 		envAccess := &ast.EnvAccessExpr{
 			PathExpr: &ast.EnvPathExpr{
@@ -638,6 +651,7 @@ func (p *Parser) typeExpr(typeContext string) *ast.TypeExpr {
 			envAccess.PathExpr.Combine(next)
 			if next.Type != tokens.Identifier {
 				p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(next))
+				return improperType
 			}
 			next = p.advance()
 		}
@@ -664,25 +678,48 @@ func (p *Parser) typeExpr(typeContext string) *ast.TypeExpr {
 	case tokens.Identifier:
 		if p.match(tokens.Less) {
 			typeExpr.WrappedType = p.wrappedTypeExpr(typeContext)
-			p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Greater), tokens.Greater)
+			_, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Greater), tokens.Greater)
+			if !ok {
+				return improperType
+			}
 		}
 		typeExpr.Name = expr
 	case tokens.Fn: // fn
-		if !p.match(tokens.LeftParen) {
-			typeExpr.Name = expr
-			break
+		_, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftParen, "after 'fn' in type expression"), tokens.LeftParen)
+		if !ok {
+			return improperType
 		}
 		if !p.match(tokens.RightParen) {
-			typeExpr.Params = append(typeExpr.Params, p.typeExpr(typeContext))
-			for p.match(tokens.Comma) {
-				typeExpr.Params = append(typeExpr.Params, p.typeExpr(typeContext))
+			typ := p.typeExpr(typeContext)
+			if typ.GetType() == ast.NA {
+				return improperType
 			}
-			p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.RightParen), tokens.RightParen)
+			typeExpr.Params = append(typeExpr.Params, typ)
+			for p.match(tokens.Comma) {
+				typ := p.typeExpr(typeContext)
+				if typ.GetType() == ast.NA {
+					return improperType
+				}
+				typeExpr.Params = append(typeExpr.Params, typ)
+			}
+			_, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.RightParen, "in fn type expression"), tokens.RightParen)
+			if !ok {
+				return improperType
+			}
 		}
-		typeExpr.Return = p.functionReturns()
+		returns := p.functionReturns()
+		if returns != nil {
+			if returns.GetType() == ast.NA {
+				return improperType
+			}
+			typeExpr.Return = returns
+		}
 		typeExpr.Name = expr
 	case tokens.Struct:
-		fields := p.functionParams(tokens.LeftBrace, tokens.RightBrace)
+		fields, ok := p.functionParams(tokens.LeftBrace, tokens.RightBrace)
+		if !ok {
+			return improperType
+		}
 		typeExpr.Name = expr
 		typeExpr.Fields = fields
 	case tokens.Entity:
@@ -697,12 +734,16 @@ func (p *Parser) typeExpr(typeContext string) *ast.TypeExpr {
 }
 
 func (p *Parser) envTypeExpr() *ast.EnvTypeExpr {
-	envTypeExpr := ast.EnvTypeExpr{
+	envTypeExpr := &ast.EnvTypeExpr{
 		Type: ast.InvalidEnv,
 	}
-	envTypeExpr.Token, _ = p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "for an environment type"), tokens.Identifier)
 
-	return &envTypeExpr
+	token, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "for an environment type"), tokens.Identifier)
+	if ok {
+		p.coherencyCheck(p.peek(-2), token)
+	}
+
+	return envTypeExpr
 }
 
 func (p *Parser) envPathExpr() ast.Node {

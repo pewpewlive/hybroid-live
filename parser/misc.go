@@ -32,30 +32,34 @@ func (p *Parser) getFunctionParam() (ast.FunctionParam, bool) {
 	return functionParam, false
 }
 
-func (p *Parser) functionParams(opening tokens.TokenType, closing tokens.TokenType) []ast.FunctionParam {
+func (p *Parser) functionParams(opening tokens.TokenType, closing tokens.TokenType) ([]ast.FunctionParam, bool) {
 	if !p.match(opening) {
 		p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), opening)
-		return []ast.FunctionParam{}
+		return []ast.FunctionParam{}, false
 	}
 
 	var args []ast.FunctionParam
 	if p.match(closing) {
-		return args
+		return args, true
 	}
 	var previous *ast.TypeExpr
-	param, _ := p.getFunctionParam()
+	param, ok := p.getFunctionParam()
 
+	success := ok
 	if param.Type == nil {
+		success = false
 		p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(param.Name))
 	} else {
 		previous = param.Type
 	}
 	args = append(args, param)
 	for p.match(tokens.Comma) {
-		param, _ := p.getFunctionParam()
+		param, ok := p.getFunctionParam()
+		success = success && ok
 
 		if param.Type == nil {
 			if len(args) == 0 {
+				success = false
 				p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(p.peek(-1)))
 			} else {
 				param.Type = previous
@@ -66,9 +70,10 @@ func (p *Parser) functionParams(opening tokens.TokenType, closing tokens.TokenTy
 
 		args = append(args, param)
 	}
-	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), closing), closing)
+	_, ok = p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), closing), closing)
+	success = success && ok
 
-	return args
+	return args, success
 }
 
 func (p *Parser) genericParams() []*ast.IdentifierExpr {
@@ -312,16 +317,19 @@ func (p *Parser) peekTypeVariableDecl() bool {
 	return valid
 }
 
-func (p *Parser) checkType() (*ast.TypeExpr, bool) {
+// Tells you whether the attempted parsed type is an actual TypeExpression (or Improper{Type:ast.TypeExpression}), in which case returning true, or Improper{Type:ast.NA}, in which case returning false
+func (p *Parser) checkType(context string) (*ast.TypeExpr, bool) {
 	currentStart := p.current
 	p.context.IgnoreAlerts.Push("CheckType", true)
 
 	typeExpr := p.typeExpr("")
 
 	p.context.IgnoreAlerts.Pop("CheckType")
-	valid := typeExpr != nil && typeExpr.Name.GetType() != ast.NA
-	if !valid {
-		p.disadvance(p.current - currentStart)
+	valid := typeExpr != nil && !ast.IsImproper(typeExpr.Name, ast.NA)
+	p.disadvance(p.current - currentStart)
+
+	if valid {
+		typeExpr = p.typeExpr(context) // so that potential alerts are not ignored
 	}
 
 	return typeExpr, valid
@@ -352,6 +360,7 @@ func (p *Parser) body(allowSingleSatement, allowArrow bool) ([]ast.Node, bool) {
 	}
 	start := p.peek(-1)
 
+	p.context.BodyEntries.Push("Body", false)
 	for p.doesntEndWith("in body", start, tokens.RightBrace) {
 
 		declaration := p.declaration()
@@ -361,6 +370,7 @@ func (p *Parser) body(allowSingleSatement, allowArrow bool) ([]ast.Node, bool) {
 		}
 		body = append(body, declaration)
 	}
+	p.context.BodyEntries.Pop("Body")
 
 	return body, true
 }
@@ -393,6 +403,7 @@ func (p *Parser) isCall(nodeType ast.NodeType) bool {
 }
 
 func (p *Parser) synchronize() {
+	bodyCount := p.context.BodyEntries.Count()
 	expectedBlockCount := 0
 	for !p.isAtEnd() {
 		switch p.peek().Type {
@@ -411,14 +422,38 @@ func (p *Parser) synchronize() {
 					p.advance()
 					continue
 				}
+				if bodyCount == 0 {
+					p.advance()
+					continue
+				}
 				return
 			}
 
 			expectedBlockCount--
-		case tokens.Entity, tokens.Let, tokens.Pub, tokens.Const, tokens.Class, tokens.Alias:
+		case tokens.Entity:
+			if p.peek(1).Type == tokens.Identifier && p.peek(2).Type == tokens.LeftBrace {
+				return
+			}
+		case tokens.Let, tokens.Pub, tokens.Const, tokens.Class, tokens.Alias:
 			return
 		}
 
 		p.advance()
 	}
+}
+
+// Checks if there is a discrepancy between the line location of tokenStart and tokenEnd
+//
+// Returns true if there was a discrepancy. AllowNewLine is false by default.
+func (p *Parser) coherencyCheck(tokenStart, tokenEnd tokens.Token, allowNewLine ...bool) bool {
+	diffTolerance := 0
+	if allowNewLine != nil && allowNewLine[0] {
+		diffTolerance = 1
+	}
+	if tokenEnd.Line-tokenStart.Line > diffTolerance {
+		p.Alert(&alerts.SyntaxIncoherency{}, alerts.NewMulti(tokenStart, tokenEnd), tokenEnd.Lexeme, tokenStart.Lexeme, diffTolerance == 1)
+		return false
+	}
+
+	return true
 }
