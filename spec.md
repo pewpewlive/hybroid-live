@@ -10,7 +10,7 @@ Comments in Hybroid are like in any other C-style language.
 
 ```rs
 // I am a single-line comment!
-Print("Hello, World!")
+Pewpew:Print("Hello, World!")
 ```
 
 `/*` and `*/` indicate a multi-line comment.
@@ -20,8 +20,10 @@ Print("Hello, World!")
  I am a multi-line comment!
  Cool, right?
 */
-Print("Hello, World!")
+Pewpew:Print("Hello, World!")
 ```
+
+Comments are ignored, and will not show up in the generated Lua source code
 
 ## Semicolons
 
@@ -36,7 +38,7 @@ Environments are an important aspect of PPL and Hybroid. Not specifying the envi
 The environment definition must be the first statement in the file.
 
 ```rs
-@Environment(Level)
+env HelloWorld as Level
 
 // The rest of the code
 ```
@@ -51,8 +53,6 @@ The following environments are available:
   - Same as `Mesh`
 - `Shared` - for creating constant files referenced in multiple environments
   - When choosing this environment, `math` is disabled to work with `Level`, libraries open to `Level` are available
-- `LuaGeneric` - for using standard Lua (e.g. console applications, etc.)
-  - When choosing this environment, some features of the language would be disabled: `spawnable`s, `tick`, `spawn`, fixedpoint support, PPL libraries. All standard Lua libraries are available.
 
 ## Declaration of variables
 
@@ -65,26 +65,26 @@ let name = "Alpha"
 // Global (public) variables
 pub meaning_of_life = 42
 
-// Reassignment
+// Assignment
 name = "blade"
 ```
 
 ## Typed declarations
 
-- [ ] Completed
+- [x] Completed
 
 Types allow you to explicitly describe a variable's type. In Hybroid, types are not always necessary. Types might be necessary when you want to describe a complex type variable, or if the variable is left undefined. Types are what allows Hybroid to make sure you can write valid code without much headache and without the need to debug a lot.
 
 ```rs
-let a: number // variable uninitialized, type required
+let number a  // variable uninitialized, type required
 let num = 1 // variable initialized, type inferred
-let numbers: list<number> = [] // list is empty, list value type required
-let callback: fn(text, bool) // function uninitialized, type required
+list<number> numbers = [] // list is empty, list value type required
+pub fn(text, bool) callback // function uninitialized, type required
 ```
 
 ## Declaration of constants
 
-- [ ] Completed
+- [x] Completed
 
 ```rs
 const PI = 3.14f
@@ -92,7 +92,7 @@ const PI = 3.14f
 
 ## Entities and spawning syntax
 
-- [ ] Completed
+- [x] Completed
 
 Entities are transpile-time classes. They are designed to provide OOP-like feel when working with entities. This feature is disallowed in `Generic` environments. Use `struct` keyword there instead.
 
@@ -100,98 +100,29 @@ Entities are transpile-time classes. They are designed to provide OOP-like feel 
 
 ```rs
 entity Quadro {
-  id: number
+  fixed x, y
+  fixed speed
 
-  mesh_id: number
-  mesh_id2: number
-  mesh_id3: number
-
-  x = 1f y: fixed z: fixed = 0f
-
-  /* you can also do this
-  x = 1f; y: fixed; z: fixed = 0f
-
-  x = 1f
-  y: fixed
-  z: fixed = 0f
-  */
-  speed = 10f
-  damage = 2
-
-  Spawn(x fixed, y fixed, speed fixed) {
+  spawn(fixed x, y, speed) {
+    self.x = x
+    self.y = y
     self.speed = speed
-    self.mesh_id2 = PewPew.NewEntity(x, y)
-    PewPew.SetMesh(self, "file_path", 0)
-    PewPew.SetMesh(self.mesh_id2, "file_path", 1)
-
-    return self
   }
 
-  Destroy() {
-    PewPew.start_exploding(self, 30)
+  destroy() {
+    PewPew.ExplodeEntity(self, 30)
   }
 
   Update() {
     let x, y = PewPew.GetPosition(self)
-    x = x + 10fx * self.speed
-    PewPew.GetPosition(self, x, y)
-  }
-
-  WeaponCollision(index, wtype) {
-  }
-
-  PlayerCollision(index, ship_id) {
-  }
-
-  WallCollision(wall_x, wall_y) {
+    x = x + 10f * self.speed
+    PewPew.SetPosition(self, x, y)
   }
 
   fn DamageOtherEntity(entity OtherEntity) {
     entity.Damage(self.damage)
   }
 }
-```
-
-The Hybroid code shown gets generated into Lua like so:
-
-```lua
-QuadroStates = {}
-
-local function quadro_update(id)
-  local x, y = pewpew.entity_get_position(id)
-  x = x + 10fx * QuadroState[id][8] -- this is speed because all of the entity fields get mapped to their indexes
-  pewpew.entity_set_position(id, x, y)
-end
-
-local function quadro_weapon_collision(id, index, wtype)
-end
-
-local function quadro_player_collision(id, index, ship_id)
-end
-
-local function quadro_wall_collision(id, wall_x, wall_y)
-end
-
-function quadro_damage_other_entity(id, entity)
-  other_entity_damage(entity, QuadroStates[id][9])
-end
-
-function Quadro.new(x, y, speed)
-  local id = pewpew.new_customizable_entity(x, y)
-  QuadroState[id] = {id, 0, 1, 2, 1fx, 0fx, 0fx, 10fx, 2} -- set default values specified in the entity fields
-
-  pewpew.entity_set_update_callback(id, quadro_update)
-  pewpew.customizable_entity_set_weapon_collision_callback(id, quadro_weapon_collision)
-  pewpew.customizable_entity_set_player_collision_callback(id, quadro_player_collision)
-  pewpew.customizable_entity_configure_wall_collision(id, quadro_wall_collision)
-
-  QuadroState[id][8] = speed
-  QuadroState[id][3] = pewpew.new_customizable_entity(x, y)
-  pewpew.customizable_entity_set_mesh(id, "file_path", 0)
-  pewpew.customizable_entity_set_mesh(QuadroState[id][3], "file_path", 1)
-
-  return id
-end
 ```
 
 ### Creating an entity
@@ -201,31 +132,6 @@ let quadro = spawn Quadro(100fx, 100fx, 10fx)
 
 destroy quadro
 ```
-
-## Lua interop & importing
-
-- [ ] Completed
-
-Original `pewpew`, `fmath`, `math`, `table` functions are available under `Origin` namespace.
-
-Importing Lua libraries works as expected, just with omission of `/dynamic`.
-
-```rs
-use "mesh_helper.hyb" as mesh_helper_hybroid
-use "shared.hyb"
-```
-
-You can write lua code with a special `@Lua` directive:
-
-```rs
-let number = 0
-
-@Lua("number = number + 1")
-
-Print(number) // -> 1
-```
-
-However, this is discouraged, as the transpiler can lose important context, such as variable declarations.
 
 ## Number Literals
 
@@ -277,7 +183,7 @@ When using angle literals, the transpiler will automatically convert their value
 
 ## Loops
 
-- [ ] Completed
+- [x] Completed
 
 ### Tick loops
 
@@ -285,7 +191,7 @@ In PPL, for updating every tick, `pewpew.add_update_callback` is used. Hybroid w
 
 ```rs
 tick {
-  Print("I am printed every tick!")
+  Pewpew:Print("I am Pewpew:Printed every tick!")
 }
 ```
 
@@ -293,7 +199,7 @@ It is possible to create a `tick` statement with a time variable.
 
 ```rs
 tick with time {
-  Print(time .. " has elapsed")
+  Pewpew:Print(time .. " has elapsed")
 }
 ```
 
@@ -303,7 +209,7 @@ In Hybroid and PPL while loops are discouraged. However, you can still use them 
 
 ```rs
 while true {
-  Print("Running infinitely and as fast as possible!")
+  Pewpew:Print("Running infinitely and as fast as possible!")
 }
 ```
 
@@ -313,7 +219,7 @@ Repeat loops are simple `for` loops.
 
 ```rs
 repeat 10 {
-  Print("Hybroid is awesome!")
+  Pewpew:Print("Hybroid is awesome!")
 }
 ```
 
@@ -321,7 +227,7 @@ It is possible to create a `repeat` loop with an iteration variable.
 
 ```rs
 repeat 10 with index {
-  Print("This is " .. index .. "th iteration!") // -> This is 1th iteration!
+  Pewpew:Print("This is " .. index .. "th iteration!") // -> This is 1th iteration!
 }
 ```
 
@@ -333,7 +239,7 @@ repeat 10 with index {
 let fruits = ["banana", "kiwi", "apple", "pear", "cherry"]
 
 for fruit in fruits {
-  Print(fruit)
+  Pewpew:Print(fruit)
 }
 ```
 
@@ -343,7 +249,7 @@ It is possible to also get an index.
 let fruits = ["banana", "kiwi", "apple", "pear", "cherry"]
 
 for index, item in fruits {
-  Print(index)
+  Pewpew:Print(index)
 }
 ```
 
@@ -356,7 +262,7 @@ In Lua, these structures are called "tables". These structures hold multiple dat
 ```rs
 let fruits = ["banana", "kiwi", "apple", "pear", "cherry"]
 
-Print(fruits[2]) // -> kiwi
+Pewpew:Print(fruits[2]) // -> kiwi
 ```
 
 To get the length of the list or , use `#` prefix.
@@ -365,7 +271,7 @@ To get the length of the list or , use `#` prefix.
 let fruits = ["banana", "kiwi", "apple", "pear", "cherry"]
 
 repeat @Len(fruits) with i {
-  Print(fruits[i])
+  Pewpew:Print(fruits[i])
 }
 ```
 
@@ -380,7 +286,7 @@ let fruits = ["banana", "kiwi", "apple", "pear", "cherry"]
 
 add "watermelon" to fruits
 
-Print(@ListToStr(fruits)) // -> ["banana", "kiwi", "apple", "pear", "cherry", "watermelon"]
+Pewpew:Print(@ListToStr(fruits)) // -> ["banana", "kiwi", "apple", "pear", "cherry", "watermelon"]
 ```
 
 ### Finding the index of the item
@@ -392,7 +298,7 @@ Using `find` keyword. Only the first match is returned.
 ```rs
 let fruits = ["banana", "kiwi", "apple", "pear", "cherry"]
 
-Print(find "apple" in fruits) // -> 3
+Pewpew:Print(find "apple" in fruits) // -> 3
 ```
 
 ### Removing an element from the list
@@ -406,7 +312,7 @@ let fruits = ["banana", "kiwi", "apple", "pear", "cherry"]
 
 remove 4 from fruits
 
-Print(@ListToStr(fruits)) // -> ["banana", "kiwi", "apple", "cherry"]
+Pewpew:Print(@ListToStr(fruits)) // -> ["banana", "kiwi", "apple", "cherry"]
 ```
 
 ## Maps
@@ -417,38 +323,34 @@ In Lua, these structures are also called _tables_. These structures hold multipl
 
 ```rs
 let inventory = {
-  bananas: 2,
-  apples: 5,
-  kiwis: 10,
-  pears: 0,
-  cherries: 12
+  bananas = 2,
+  apples = 5,
+  kiwis = 10,
+  pears = 0,
+  cherries = 12
 }
 
-Print(fruits["apples"]) // -> 5
-
-// or
-
-Print(fruits.apples) // -> 5
+Pewpew:Print(fruits["apples"]) // -> 5
 ```
 
 ### Adding elements to the map
 
-- [ ] Completed
+- [x] Completed
 
 Using `add` keyword.
 
 ```rs
 let inventory = {
-  bananas: 2,
-  apples: 5,
-  kiwis: 10,
-  pears: 0,
-  cherries: 12
+  bananas = 2,
+  apples = 5,
+  kiwis = 10,
+  pears = 0,
+  cherries = 12
 }
 
 add 10 as "watermelon" to inventory
 
-Print(@MapToStr(fruits))
+Pewpew:Print(@MapToStr(fruits))
 
 /*
 -> {
@@ -470,14 +372,14 @@ Using `find` keyword. Only the first match is returned.
 
 ```rs
 let inventory = {
-  bananas: 2,
-  apples: 5,
-  kiwis: 10,
-  pears: 0,
-  cherries: 12
+  bananas = 2,
+  apples = 5,
+  kiwis = 10,
+  pears = 0,
+  cherries = 12
 }
 
-Print(find 10 in fruits) // -> "kiwis"
+Pewpew:Print(find 10 in fruits) // -> "kiwis"
 ```
 
 ### Removing an element from the map
@@ -488,16 +390,16 @@ Using `remove` keyword.
 
 ```rs
 let inventory = {
-  bananas: 2,
-  apples: 5,
-  kiwis: 10,
-  pears: 0,
-  cherries: 12
+  bananas = 2,
+  apples = 5,
+  kiwis = 10,
+  pears = 0,
+  cherries = 12
 }
 
 remove "cherries" from fruits
 
-Print(@MapToStr(fruits))
+Pewpew:Print(@MapToStr(fruits))
 
 /*
 -> {
@@ -516,8 +418,8 @@ Print(@MapToStr(fruits))
 Declaring a function works with the `fn` keyword. Functions are local by default.
 
 ```rs
-fn Greet(name) {
-  Print("Hello" .. name .. "!")
+fn Greet(text name) {
+  Pewpew:Print("Hello" .. name .. "!")
 }
 
 Greet("John") // -> Hello, John!
@@ -526,18 +428,18 @@ Greet("John") // -> Hello, John!
 Functions can be annonymous, too! Useful for callbacks.
 
 ```rs
-let Greet = fn (name) {
-  Print("Hello" .. name .. "!")
+let Greet = fn(name) {
+  Pewpew:Print("Hello" .. name .. "!")
 }
 
 Greet("John") // -> Hello, John!
 ```
 
-## Directives
+## Macros
 
 - [ ] Completed
 
-Directives are special functions that are evaluated in the transpiler. They work similarly to _macros_.
+Macros are special functions that are evaluated in the transpiler.
 
 ```rs
 macro Directiv1(params) => "hello" .. params 
@@ -551,12 +453,12 @@ macro HandleEntity($params) => {
 The generated code looks something like this:
 
 ```lua
-print("Hello " .. "John" .. "!")
+Pewpew:Print("Hello " .. "John" .. "!")
 ```
 
 ## Conditional statements
 
-- [ ] Completed
+- [x] Completed
 
 ### If statement
 
@@ -564,11 +466,11 @@ print("Hello " .. "John" .. "!")
 let a = 10
 
 if a == 10 {
-  Print("It's 10!")
+  Pewpew:Print("It's 10!")
 } else if a == 20 {
-  Print("It's 20!")
+  Pewpew:Print("It's 20!")
 } else {
-  Print("It's a different number!")
+  Pewpew:Print("It's a different number!")
 }
 ```
 
@@ -585,22 +487,21 @@ let check = if a == 10 {
   return "It's a different number!"
 }
 
-Print(check)
+Pewpew:Print(check)
 ```
 
 ### Match statement
 
 ```rs
 match a {
-  1 => // if a is 1 or 10 then execute
-  10 => {
-    //execute
+  1, 10 => {
+    // if a is 1 or 10 then execute
   }
   20 => {
     a = 24
     return
   }
-  _ => { // else
+  else => {
     a = nil
   }
 }
@@ -609,15 +510,15 @@ let a = 10
 let check = match a {
   10 => "It's 10!"
   20 => "It's 20!"
-  _ => "It's a different number!"
+  else => "It's a different number!"
 }
 
-Print(check)
+Pewpew:Print(check)
 ```
 
 ## Enums
 
-- [ ] Completed
+- [x] Completed
 
 Enums are converted to tables if compiling to Lua.
 
@@ -630,86 +531,28 @@ enum SandwichType {
 }
 ```
 
-## Structures
+## Classes
 
 - [x] Completed
 
-Structures are classes that do not have inheritance.
+Classes are structs that allow methods.
 
 ```rs
 
-struct Rectangle {
-  mesh_id1: number
-  mesh_id1, mesh_id1, mesh_id1, mesh_id1 = 0f, 0f, 0f, 0f, 0f
+class Rectangle {
+  number width, height
 
-  x, y = 0,0
-
-  New(length number, height number) {
-    self.length = length
+  new(number width, height) {
+    self.width = width
     self.height = height
-    return self
   }
 
   fn Area() {
-    return self.length * self.height
-  }
-
-  fn Perimeter() {
-    return (self.length + self.height) * 2
-  }
-
-  fn Move() {
-    x += 5
+    return width * height
   }
 }
 
 let rect = new Rectangle(100, 100)
 
-
-Print(rect.Area())
+Pewpew:Print(rect.Area())
 ```
-
-```lua
-function Rectangle_New(length, height)
-  local new = {0, 0, nil}
-  new[1] = length
-  new[2] = height
-  return new
-end
-
-function Rectangle_Area(self)
-  return self[1] * self[2]
-end
-
-function Rectangle_Perimeter(self)
-  return (self[1] + self[2]) * 2
-end
-
-function Rectangle_Move(self)
-  self.x = self.x + 5
-end
-
-local rect = Rectangle_New(100, 100)
-
-print(Area(rect))
-```
-
-## Proposals
-
-### Importing Lua files
-
-Require function:
-
-```rs
-Require(path text) -> any
-```
-
-```rs
-let Set = Require("/dynamic/set_timeout.lua")
-
-Set.timeout(10, fn() {
-  Print("uwu")
-})
-```
-
-### Using static namespace
