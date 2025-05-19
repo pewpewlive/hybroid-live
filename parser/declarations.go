@@ -80,34 +80,61 @@ func (p *Parser) declaration() (returnNode ast.Node) {
 	returnNode = ast.NewImproper(p.peek(), ast.NA)
 	p.context.IsPub = false
 
+	defer func() {
+		p.context.IsPub = false
+		if returnNode.GetType() == ast.NA {
+			p.synchronize()
+		}
+	}()
+
 	if p.match(tokens.Env) {
-		return p.environmentDeclaration()
+		returnNode = p.environmentDeclaration()
+		return
 	}
 
 	if p.match(tokens.Pub) {
 		p.context.IsPub = true
 	}
 
+	if p.peek().Type == tokens.Entity && p.peek(1).Type == tokens.Identifier && p.peek(2).Type == tokens.LeftBrace {
+		p.advance()
+		returnNode = p.entityDeclaration()
+		return
+	}
+
+	current := p.current
+	p.context.IgnoreAlerts.Push("VariableDeclaration", true)
+	node := p.variableDeclaration(true)
+	p.context.IgnoreAlerts.Pop("VariableDeclaration")
+	p.disadvance(p.current - current)
+	if node.GetType() != ast.NA {
+		returnNode = p.variableDeclaration(true)
+		return
+	}
+
 	switch {
+	case p.check(tokens.Let) || p.check(tokens.Const):
+		returnNode = p.variableDeclaration(false)
 	case p.match(tokens.Fn):
 		returnNode = p.functionDeclaration()
 	case p.match(tokens.Enum):
 		returnNode = p.enumDeclaration()
-	case p.match(tokens.Alias):
-		returnNode = p.aliasDeclaration()
 	case p.match(tokens.Class):
 		returnNode = p.classDeclaration()
-	case p.match(tokens.Entity):
-		returnNode = p.entityDeclaration()
-	case p.check(tokens.Let) || p.check(tokens.Const) || p.context.IsPub:
-		returnNode = p.variableDeclaration(false)
+	case p.match(tokens.Alias):
+		returnNode = p.aliasDeclaration()
 	default:
+		if p.context.IsPub {
+			p.Alert(&alerts.UnexpectedKeyword{}, alerts.NewSingle(p.peek(-1)), tokens.Pub, "before statement")
+			p.context.IsPub = false
+		}
+
 		returnNode = p.statement()
 	}
 
-	if returnNode.GetType() == ast.NA && p.peekTypeVariableDecl() && !p.context.IsPub {
-		returnNode = p.variableDeclaration(true)
-	} else if returnNode.GetType() == ast.NA {
+	p.context.IsPub = false
+
+	if returnNode.GetType() == ast.NA {
 		current := p.current
 		p.context.IgnoreAlerts.Push("ExpressionStatement", true)
 		node := p.expressionStatement()
@@ -118,11 +145,6 @@ func (p *Parser) declaration() (returnNode ast.Node) {
 		}
 	}
 
-	p.context.IsPub = false
-	if returnNode.GetType() == ast.NA {
-		p.synchronize()
-	}
-
 	return
 }
 
@@ -131,6 +153,7 @@ func (p *Parser) auxiliaryDeclaration() ast.Node {
 		fnDec := p.functionDeclaration()
 
 		if ast.IsImproper(fnDec, ast.FunctionDeclaration) {
+			p.synchronize()
 			return ast.NewImproper(fnDec.GetToken(), ast.MethodDeclaration)
 		}
 
@@ -145,6 +168,10 @@ func (p *Parser) auxiliaryDeclaration() ast.Node {
 		}
 	} else if p.match(tokens.New) {
 		constructor := p.constructorDeclaration()
+		if ast.IsImproper(constructor, ast.ConstructorDeclaration) {
+			p.synchronize()
+			return ast.NewImproper(constructor.GetToken(), ast.ConstructorDeclaration)
+		}
 		if constructor.GetType() == ast.ConstructorDeclaration {
 			return constructor
 		}
@@ -175,7 +202,12 @@ func (p *Parser) auxiliaryDeclaration() ast.Node {
 		}
 	}
 	if functionType != "" {
-		return p.entityFunctionDeclaration(p.peek(-1), functionType)
+		entityFunction := p.entityFunctionDeclaration(p.peek(-1), functionType)
+		if ast.IsImproper(entityFunction, ast.EntityFunctionDeclaration) {
+			p.synchronize()
+			return ast.NewImproper(entityFunction.GetToken(), ast.EntityFunctionDeclaration)
+		}
+		return entityFunction
 	}
 
 	// No auxiliary declaration found, try normal declaration anyway
@@ -217,16 +249,19 @@ func (p *Parser) variableDeclaration(bypassKeyword bool) ast.Node {
 	if !bypassKeyword && p.match(tokens.Const) {
 		variableDecl.IsConst = true
 	} else if !bypassKeyword && p.match(tokens.Let) && variableDecl.IsPub {
-		p.Alert(&alerts.UnexpectedKeyword{}, alerts.NewSingle(p.peek(-1)), variableDecl.Token.Lexeme, "in variable declaration")
+		p.Alert(&alerts.UnexpectedKeyword{}, alerts.NewSingle(variableDecl.Token), variableDecl.Token.Lexeme, "in variable declaration")
 	}
 
 	typeCheckStart := p.current
-	if typeExpr, ok := p.checkType("in variable declaration"); ok {
+	typeExpr, ok := p.checkType("in variable declaration")
+	if ok {
 		variableDecl.Type = typeExpr
 		if !p.check(tokens.Identifier) {
 			p.disadvance(p.current - typeCheckStart)
 			variableDecl.Type = nil
 		}
+	} else if bypassKeyword {
+		return ast.NewImproper(variableDecl.Token, ast.VariableDeclaration)
 	}
 
 	idents, exprs, ok := p.identExprPairs("in variable declaration", variableDecl.Type != nil)
@@ -246,13 +281,17 @@ func (p *Parser) functionDeclaration() ast.Node {
 	}
 
 	name, nameOk := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name of the function"), tokens.Identifier)
-	if !nameOk && (!p.check(tokens.Less) || !p.check(tokens.LeftParen)) {
+	if !nameOk && !p.check(tokens.Less) && !p.check(tokens.LeftParen) {
 		p.advance()
 	}
 
 	functionDecl.Name = name
 	functionDecl.Generics = p.genericParams()
-	functionDecl.Params, _ = p.functionParams(tokens.LeftParen, tokens.RightParen)
+	params, ok := p.functionParams(tokens.LeftParen, tokens.RightParen)
+	if !ok {
+		return ast.NewImproper(functionDecl.Name, ast.FunctionDeclaration)
+	}
+	functionDecl.Params = params
 	functionDecl.Return = p.functionReturns()
 
 	body, ok := p.body(false, true)
@@ -266,8 +305,8 @@ func (p *Parser) functionDeclaration() ast.Node {
 
 func (p *Parser) enumDeclaration() ast.Node {
 	enumStmt := &ast.EnumDecl{
-		IsPub: p.context.IsPub,
 		Token: p.peek(-1),
+		IsPub: p.context.IsPub,
 	}
 
 	name, _ := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in enum declaration"), tokens.Identifier)
@@ -295,8 +334,8 @@ func (p *Parser) enumDeclaration() ast.Node {
 
 func (p *Parser) aliasDeclaration() ast.Node {
 	aliasDecl := &ast.AliasDecl{
-		IsPub: p.context.IsPub,
 		Token: p.peek(-1),
+		IsPub: p.context.IsPub,
 	}
 
 	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name in alias declaration"), tokens.Identifier)
@@ -331,7 +370,7 @@ func (p *Parser) classDeclaration() ast.Node {
 	}
 	start := p.peek(-1)
 	stmt.Methods = []ast.MethodDecl{}
-	for p.doesntEndWith("in class declaration", start, tokens.RightBrace) {
+	for p.consumeTill("in class declaration", start, tokens.RightBrace) {
 		auxiliaryDeclaration := p.auxiliaryDeclaration()
 		switch declaration := auxiliaryDeclaration.(type) {
 		case *ast.ConstructorDecl:
@@ -370,7 +409,7 @@ func (p *Parser) entityDeclaration() ast.Node {
 	}
 	start := p.peek(-1)
 
-	for p.doesntEndWith("in entity declaration", start, tokens.RightBrace) {
+	for p.consumeTill("in entity declaration", start, tokens.RightBrace) {
 		auxiliaryDeclaration := p.auxiliaryDeclaration()
 		if auxiliaryDeclaration.GetType() == ast.FieldDeclaration {
 			stmt.Fields = append(stmt.Fields, *auxiliaryDeclaration.(*ast.FieldDecl))

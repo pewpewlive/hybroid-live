@@ -93,7 +93,7 @@ func (p *Parser) match(types ...tokens.TokenType) bool {
 	return false
 }
 
-func (p *Parser) doesntEndWith(context string, start tokens.Token, types ...tokens.TokenType) bool {
+func (p *Parser) consumeTill(context string, start tokens.Token, types ...tokens.TokenType) bool {
 	if p.isAtEnd() {
 		p.Alert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek(-1)), string(types[0]), context)
 		return false

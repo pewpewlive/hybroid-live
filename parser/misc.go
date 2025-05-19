@@ -254,7 +254,7 @@ func (p *Parser) identExprPairs(typeContext string, optional bool) ([]*ast.Ident
 		}
 
 		p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Equal)
-		return nil, nil, ok
+		return nil, nil, false
 	}
 
 	exprs, ok := p.expressions(typeContext, false)
@@ -361,8 +361,7 @@ func (p *Parser) body(allowSingleSatement, allowArrow bool) ([]ast.Node, bool) {
 	start := p.peek(-1)
 
 	p.context.BodyEntries.Push("Body", false)
-	for p.doesntEndWith("in body", start, tokens.RightBrace) {
-
+	for p.consumeTill("in body", start, tokens.RightBrace) {
 		declaration := p.declaration()
 		if ast.IsImproperNotStatement(declaration) {
 			p.Alert(&alerts.UnknownStatement{}, alerts.NewSingle(declaration.GetToken()))

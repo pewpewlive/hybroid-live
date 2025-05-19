@@ -9,58 +9,37 @@ import (
 func (p *Parser) statement() (returnNode ast.Node) {
 	returnNode = ast.NewImproper(p.peek(), ast.NA)
 
-	token := p.peek().Type
-
-	switch token {
+	switch p.advance().Type {
 	case tokens.Return:
-		p.advance()
 		returnNode = p.returnStmt()
-		return
 	case tokens.Yield:
-		p.advance()
 		returnNode = p.yieldStmt()
-		return
 	case tokens.Break:
-		p.advance()
 		returnNode = &ast.BreakStmt{Token: p.peek(-1)}
-		return
 	case tokens.Destroy:
-		p.advance()
 		returnNode = p.destroyStmt()
-		return
 	case tokens.Continue:
-		p.advance()
 		returnNode = &ast.ContinueStmt{Token: p.peek(-1)}
-		return
 	case tokens.If:
-		p.advance()
 		returnNode = p.ifStmt(false, false, false)
-		return
 	case tokens.Repeat:
-		p.advance()
 		returnNode = p.repeatStmt()
-		return
 	case tokens.For:
-		p.advance()
 		returnNode = p.forStmt()
-		return
 	case tokens.Tick:
-		p.advance()
 		returnNode = p.tickStmt()
-		return
 	case tokens.Use:
-		p.advance()
 		returnNode = p.useStmt()
-		return
 	case tokens.While:
-		p.advance()
 		returnNode = p.whileStmt()
-		return
 	case tokens.Match:
-		p.advance()
 		returnNode = p.matchStmt(false)
-		return
 	}
+
+	if returnNode.GetType() == ast.NA {
+		p.disadvance()
+	}
+
 	return
 }
 

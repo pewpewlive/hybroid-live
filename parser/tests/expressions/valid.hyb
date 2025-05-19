@@ -1,13 +1,19 @@
-let a = 1
-let b = [1,2,3]
-let c = {a = {b = fn() -> number => 2}}
-let d = struct{a = 1; b = 2; c = 3}
+let number a = 1
+list<number> b = [1,2,3]
+const c = {a = {b = fn() -> number => 2}}
+pub d = struct{a = 1; b = 2; c = 3}
 let e = true
-let f = false
-let g = !true
-let g2 = !!!!false
-let h = -1
-let i = fn() {}
+const bool f = false
+bool g = !true
+pub bool g2 = !!!!false
+pub const thing = 10
+const thing = []
+entity id = 1
+pub entity id = 1
+pub const entity id = 1
+let entity id = 1
+fixed h = -1f
+pub fn() i = fn() {}
 let j = fn() -> number => 2
 let k = fn(fixed param) -> bool {
     return false
@@ -21,13 +27,13 @@ let m = fn() -> fn() -> fn() {
         }
     }
 }
-let n = [
+const list<fn(number, fixed) -> bool> n = [
     fn(number a, fixed b) -> bool {
         return false
     },
     fn(number a, fixed b) -> bool => true
 ]
-let o = "string"
+text o = "string"
 
 enum EnumTest {
     One,
@@ -98,6 +104,15 @@ enum O {
     Field3,
     Field4,
 }
-fn function(fixed param1, param2, Type2 param3) -> fn() -> (bool, bool) {
+pub fn function(fixed param1, param2, Type2 param3) -> fn() -> (bool, bool) {
     fixed u = 1+param1
+}
+pub class thing {
+    fn a() {
+
+    }
+}
+
+pub entity e {
+
 }

@@ -1,8 +1,9 @@
-alias f = fn() -> (e, zb(
+pub class thing {
+    fn() {
+
+    }
 }
 
-fn name() {
-    let a = 
-}
+pub entity e {
 
-let a = 1
+}
