@@ -16,7 +16,12 @@ import (
 )
 
 func printAlerts[A any](t *testing.T, kind string, alertsToPrint ...A) {
-	t.Logf("%s %d alert(s):", kind, len(alertsToPrint))
+	if len(alertsToPrint) == 100 {
+		t.Logf("%s 100+ alert(s):", kind)
+	} else {
+		t.Logf("%s %d alert(s):", kind, len(alertsToPrint))
+	}
+
 	for i, alert := range alertsToPrint {
 		if alert, ok := any(alert).(reflect.Type); ok {
 			t.Logf("%d. %s", i+1, alert.Name())
@@ -92,7 +97,9 @@ func performParsing(t *testing.T, path, subtest string) (parseResults, error) {
 	// Will return true if success, false if timeout
 	if !<-hangFree {
 		t.Errorf("Parser hung on %s", sourcePath)
-		printAlerts(t, "Hung with", parser.GetAlerts()...)
+		alerts := parser.GetAlerts()
+		printAlerts(t, "Hung with", alerts[:min(len(alerts), 100)]...)
+		t.FailNow()
 	}
 
 	results.alerts = parser.GetAlerts()
