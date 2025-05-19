@@ -3,13 +3,10 @@ package evaluator
 import (
 	"fmt"
 	"hybroid/alerts"
-	"hybroid/ast"
-	"hybroid/generator"
 	"hybroid/helpers"
 	"hybroid/lexer"
 	"hybroid/parser"
 	"hybroid/walker"
-	"hybroid/walker/pass1"
 	"os"
 	"path/filepath"
 	"time"
@@ -90,78 +87,78 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 			continue
 		}
 
-		start = time.Now()
-		fmt.Println("[Pass 1] Walking through the nodes...")
-		if env, ok := prog[0].(*ast.EnvironmentDecl); ok {
-			e.walkerList[i].Environment.Type = env.EnvType.Type
-		}
-		pass1.Action(e.walkerList[i], prog, e.walkers)
-		fmt.Printf("Pass 1 time: %f seconds\n\n", time.Since(start).Seconds())
+		// start = time.Now()
+		// fmt.Println("[Pass 1] Walking through the nodes...")
+		// if env, ok := prog[0].(*ast.EnvironmentDecl); ok {
+		// 	e.walkerList[i].Environment.Type = env.EnvType.Type
+		// }
+		// pass1.Action(e.walkerList[i], prog, e.walkers)
+		// fmt.Printf("Pass 1 time: %f seconds\n\n", time.Since(start).Seconds())
 	}
 
-	for i, walker := range e.walkerList {
-		sourcePath := e.files[i].Path()
-		color.Printf("[dark_gray]-->File: %s\n", sourcePath)
+	// for i, walker := range e.walkerList {
+	// 	sourcePath := e.files[i].Path()
+	// 	color.Printf("[dark_gray]-->File: %s\n", sourcePath)
 
-		start := time.Now()
+	// 	start := time.Now()
 
-		fmt.Println("[Pass 2] Walking through the nodes...")
+	// 	fmt.Println("[Pass 2] Walking through the nodes...")
 
-		if !walker.Walked {
-			//pass2.Action(walker, e.walkers)
-		}
-		fmt.Printf("Pass 2 time: %f seconds\n\n", time.Since(start).Seconds())
+	// 	if !walker.Walked {
+	// 		//pass2.Action(walker, e.walkers)
+	// 	}
+	// 	fmt.Printf("Pass 2 time: %f seconds\n\n", time.Since(start).Seconds())
 
-		e.printer.StageAlerts(e.files[i].Path(), walker.GetAlerts())
-	}
+	// 	e.printer.StageAlerts(e.files[i].Path(), walker.GetAlerts())
+	// }
 
-	fmt.Printf("-Preparing values for generation...\n")
-	generator := generator.NewGenerator()
-	for _, walker := range e.walkerList {
-		generator.SetUniqueEnvName(walker.Environment.Name)
-	}
+	// fmt.Printf("-Preparing values for generation...\n")
+	// generator := generator.NewGenerator()
+	// for _, walker := range e.walkerList {
+	// 	generator.SetUniqueEnvName(walker.Environment.Name)
+	// }
 
-	for i, walker := range e.walkerList {
-		cont := false
-		for _, v := range walker.GetAlerts() {
-			if v.GetAlertType() == alerts.Error {
-				cont = true
-				break
-			}
-		}
-		if evalFailed[i] || cont {
-			continue
-		}
-		sourcePath := e.files[i].Path()
-		color.Printf("[dark_gray]-->File: %s\n", sourcePath)
+	// for i, walker := range e.walkerList {
+	// 	cont := false
+	// 	for _, v := range walker.GetAlerts() {
+	// 		if v.GetAlertType() == alerts.Error {
+	// 			cont = true
+	// 			break
+	// 		}
+	// 	}
+	// 	if evalFailed[i] || cont {
+	// 		continue
+	// 	}
+	// 	sourcePath := e.files[i].Path()
+	// 	color.Printf("[dark_gray]-->File: %s\n", sourcePath)
 
-		start := time.Now()
-		fmt.Println("Generating the lua code...")
+	// 	start := time.Now()
+	// 	fmt.Println("Generating the lua code...")
 
-		generator.SetEnv(walker.Environment.Name, walker.Environment.Type)
-		if e.files[i].FileName == "level" {
-			//generator.GenerateWithBuiltins(walker.Nodes)
-		} else if e.walkerList[i].Environment.Type != ast.LevelEnv {
-			//generator.Generate(walker.Nodes, e.walkerList[i].Environment.UsedBuiltinVars)
-		} else {
-			//generator.Generate(walker.Nodes, []string{})
-		}
+	// 	generator.SetEnv(walker.Environment.Name, walker.Environment.Type)
+	// 	if e.files[i].FileName == "level" {
+	// 		//generator.GenerateWithBuiltins(walker.Nodes)
+	// 	} else if e.walkerList[i].Environment.Type != ast.LevelEnv {
+	// 		//generator.Generate(walker.Nodes, e.walkerList[i].Environment.UsedBuiltinVars)
+	// 	} else {
+	// 		//generator.Generate(walker.Nodes, []string{})
+	// 	}
 
-		e.printer.StageAlerts(e.files[i].Path(), generator.GetAlerts())
+	// 	e.printer.StageAlerts(e.files[i].Path(), generator.GetAlerts())
 
-		fmt.Printf("Generating time: %f seconds\n\n", time.Since(start).Seconds())
+	// 	fmt.Printf("Generating time: %f seconds\n\n", time.Since(start).Seconds())
 
-		err := os.MkdirAll(filepath.Join(cwd, outputDir, e.files[i].DirectoryPath), os.ModePerm)
-		if err != nil {
-			return fmt.Errorf("failed to write transpiled file to destination: %v", err)
-		}
-		err = os.WriteFile(e.files[i].NewPath(filepath.Join(cwd, outputDir), ".lua"), []byte(generator.GetSrc()), os.ModePerm)
-		if err != nil {
-			return fmt.Errorf("failed to write transpiled file to destination: %v", err)
-		}
+	// 	err := os.MkdirAll(filepath.Join(cwd, outputDir, e.files[i].DirectoryPath), os.ModePerm)
+	// 	if err != nil {
+	// 		return fmt.Errorf("failed to write transpiled file to destination: %v", err)
+	// 	}
+	// 	err = os.WriteFile(e.files[i].NewPath(filepath.Join(cwd, outputDir), ".lua"), []byte(generator.GetSrc()), os.ModePerm)
+	// 	if err != nil {
+	// 		return fmt.Errorf("failed to write transpiled file to destination: %v", err)
+	// 	}
 
-		generator.Clear()
-	}
+	// 	generator.Clear()
+	// }
 
 	e.printer.PrintAlerts()
 
