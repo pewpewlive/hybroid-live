@@ -111,7 +111,7 @@ func (p *Parser) declaration() (returnNode ast.Node) {
 		current := p.current
 		p.context.IgnoreAlerts.Push("ExpressionStatement", true)
 		node := p.expressionStatement()
-		p.context.IgnoreAlerts.Push("ExpressionStatement", false)
+		p.context.IgnoreAlerts.Pop("ExpressionStatement")
 		p.disadvance(p.current - current)
 		if !ast.IsImproper(node, ast.NA) {
 			returnNode = p.expressionStatement()

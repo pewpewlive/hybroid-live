@@ -614,14 +614,14 @@ func (p *Parser) typeExpr(typeContext string) *ast.TypeExpr {
 		types := []*ast.TypeExpr{}
 
 		typ := p.typeExpr(typeContext)
-		if typ.GetType() == ast.NA {
+		if typ.Name.GetType() == ast.NA {
 			return improperType
 		}
 		types = append(types, typ)
 
 		for p.match(tokens.Comma) {
 			typ := p.typeExpr(typeContext)
-			if typ.GetType() == ast.NA {
+			if typ.Name.GetType() == ast.NA {
 				return improperType
 			}
 			types = append(types, typ)
@@ -691,13 +691,13 @@ func (p *Parser) typeExpr(typeContext string) *ast.TypeExpr {
 		}
 		if !p.match(tokens.RightParen) {
 			typ := p.typeExpr(typeContext)
-			if typ.GetType() == ast.NA {
+			if typ.Name.GetType() == ast.NA {
 				return improperType
 			}
 			typeExpr.Params = append(typeExpr.Params, typ)
 			for p.match(tokens.Comma) {
 				typ := p.typeExpr(typeContext)
-				if typ.GetType() == ast.NA {
+				if typ.Name.GetType() == ast.NA {
 					return improperType
 				}
 				typeExpr.Params = append(typeExpr.Params, typ)
@@ -709,7 +709,7 @@ func (p *Parser) typeExpr(typeContext string) *ast.TypeExpr {
 		}
 		returns := p.functionReturns()
 		if returns != nil {
-			if returns.GetType() == ast.NA {
+			if returns.Name.GetType() == ast.NA {
 				return improperType
 			}
 			typeExpr.Return = returns

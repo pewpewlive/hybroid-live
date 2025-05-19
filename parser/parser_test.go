@@ -37,7 +37,7 @@ type parseResults struct {
 	hasAlerts bool
 }
 
-func performParsing(path, subtest string) (parseResults, error) {
+func performParsing(t *testing.T, path, subtest string) (parseResults, error) {
 	results := parseResults{}
 
 	files, err := helpers.CollectFiles(path)
@@ -64,25 +64,41 @@ func performParsing(path, subtest string) (parseResults, error) {
 	lexer := lexer.NewLexer(sourceFile)
 	tokens, _ := lexer.Tokenize()
 
-	parser := parser.NewParser(tokens)
-	isDone := false
-	var parserError error = nil
-	go func() {
-		time.Sleep(6 * time.Second)
-		if !isDone {
-			parserError = fmt.Errorf("[Invalid] Parser hung on %s.\n", sourcePath)
-			parser.ForceStop()
-			return
+	// Two functions that work as callbacks to finishing parsing and checking for timeout
+	parseFunc := func(parser *parser.Parser, succeeded chan<- bool) {
+		parser.Parse()
+		succeeded <- true
+	}
+	hangCheck := func(succeeded <-chan bool, hangFree chan<- bool) {
+		timeout := time.After(2 * time.Second)
+		select {
+		case <-succeeded:
+			hangFree <- true // The parser successfully finished parsing, send true
+		case <-timeout:
+			hangFree <- false // The parser reached timeout, send false
 		}
-		return
-	}()
-	parser.Parse()
-	isDone = true
+	}
+
+	// Create a channel to receive successful parsing and to see if it hasn't hung
+	succeeded := make(chan bool)
+	hangFree := make(chan bool, 1)
+
+	parser := parser.NewParser(tokens)
+
+	// Initiate the parsing and the hang check
+	go parseFunc(&parser, succeeded)
+	go hangCheck(succeeded, hangFree)
+
+	// Will return true if success, false if timeout
+	if !<-hangFree {
+		t.Errorf("Parser hung on %s", sourcePath)
+		printAlerts(t, "Hung with", parser.GetAlerts()...)
+	}
 
 	results.alerts = parser.GetAlerts()
 	results.hasAlerts = len(results.alerts) != 0
 
-	return results, parserError
+	return results, nil
 }
 
 func performTest(t *testing.T, testName string, expectedAlerts []reflect.Type) {
@@ -92,12 +108,9 @@ func performTest(t *testing.T, testName string, expectedAlerts []reflect.Type) {
 	os.Chdir(path)
 
 	t.Run("Valid", func(t *testing.T) {
-		results, err := performParsing(path, "valid")
+		results, err := performParsing(t, path, "valid")
 		if err != nil {
 			t.Error(err)
-			if strings.Contains(strings.ToLower(err.Error()), "parser hung") {
-				printAlerts(t, "Unexpected", results.alerts...)
-			}
 			return
 		}
 		if results.hasAlerts {
@@ -107,12 +120,9 @@ func performTest(t *testing.T, testName string, expectedAlerts []reflect.Type) {
 	})
 
 	t.Run("Invalid", func(t *testing.T) {
-		results, err := performParsing(path, "invalid")
+		results, err := performParsing(t, path, "invalid")
 		if err != nil {
 			t.Error(err)
-			if strings.Contains(strings.ToLower(err.Error()), "parser hung") {
-				printAlerts(t, "Unexpected", results.alerts...)
-			}
 			return
 		}
 		if !results.hasAlerts {
