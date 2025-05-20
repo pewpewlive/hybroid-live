@@ -93,11 +93,6 @@ func NewPrinter() Printer {
 }
 
 func (p *Printer) StageAlerts(sourcePath string, alerts []Alert) {
-	// Sort alerts by line first
-	sort.Slice(alerts, func(i, j int) bool {
-		return alerts[i].GetSpecifier().GetTokens()[0].Line < alerts[j].GetSpecifier().GetTokens()[0].Line
-	})
-
 	fileAlerts, existed := p.alertsByFile[sourcePath]
 	if !existed {
 		p.alertsByFile[sourcePath] = make([]Alert, 0)
@@ -105,6 +100,11 @@ func (p *Printer) StageAlerts(sourcePath string, alerts []Alert) {
 	}
 	fileAlerts = append(fileAlerts, alerts...)
 	p.alertsByFile[sourcePath] = fileAlerts
+
+	// Sort alerts by line
+	sort.Slice(p.alertsByFile[sourcePath], func(i, j int) bool {
+		return p.alertsByFile[sourcePath][i].GetSpecifier().GetTokens()[0].Line < p.alertsByFile[sourcePath][j].GetSpecifier().GetTokens()[0].Line
+	})
 }
 
 func (p *Printer) PrintAlerts() error {

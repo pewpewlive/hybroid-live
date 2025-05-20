@@ -730,6 +730,7 @@ func (p *Parser) envTypeExpr() *ast.EnvTypeExpr {
 	if ok {
 		p.coherencyCheck(p.peek(-2), token)
 	}
+	envTypeExpr.Token = token
 
 	return envTypeExpr
 }

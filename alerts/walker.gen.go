@@ -8,32 +8,6 @@ import (
 )
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type ExpectedParenthesiss struct {
-  Specifier Snippet
-  Symbol string
-}
-
-func (ep *ExpectedParenthesiss) GetMessage() string {
-  return fmt.Sprintf("Expected '%s'", ep.Symbol)
-}
-
-func (ep *ExpectedParenthesiss) GetSpecifier() Snippet {
-  return ep.Specifier
-}
-
-func (ep *ExpectedParenthesiss) GetNote() string {
-  return ""
-}
-
-func (ep *ExpectedParenthesiss) GetID() string {
-  return "hyb001W"
-}
-
-func (ep *ExpectedParenthesiss) GetAlertType() Type {
-  return Error
-}
-
-// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ForbiddenTypeInEnvironment struct {
   Specifier Snippet
   Type string
@@ -53,10 +27,36 @@ func (ftie *ForbiddenTypeInEnvironment) GetNote() string {
 }
 
 func (ftie *ForbiddenTypeInEnvironment) GetID() string {
-  return "hyb002W"
+  return "hyb001W"
 }
 
 func (ftie *ForbiddenTypeInEnvironment) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidEnvironmentType struct {
+  Specifier Snippet
+  GivenType string
+}
+
+func (iet *InvalidEnvironmentType) GetMessage() string {
+  return fmt.Sprintf("'%s' is not a valid environment type", iet.GivenType)
+}
+
+func (iet *InvalidEnvironmentType) GetSpecifier() Snippet {
+  return iet.Specifier
+}
+
+func (iet *InvalidEnvironmentType) GetNote() string {
+  return "environment type can be 'Level', 'Mesh' or 'Sound'"
+}
+
+func (iet *InvalidEnvironmentType) GetID() string {
+  return "hyb002W"
+}
+
+func (iet *InvalidEnvironmentType) GetAlertType() Type {
   return Error
 }
 
@@ -107,6 +107,33 @@ func (ee *ExpectedEnvironment) GetID() string {
 }
 
 func (ee *ExpectedEnvironment) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type DuplicateEnvironmentNames struct {
+  Specifier Snippet
+  Path1 string
+  Path2 string
+}
+
+func (den *DuplicateEnvironmentNames) GetMessage() string {
+  return fmt.Sprintf("duplicate environment names found between '%s' and '%s'", den.Path1, den.Path2)
+}
+
+func (den *DuplicateEnvironmentNames) GetSpecifier() Snippet {
+  return den.Specifier
+}
+
+func (den *DuplicateEnvironmentNames) GetNote() string {
+  return ""
+}
+
+func (den *DuplicateEnvironmentNames) GetID() string {
+  return "hyb005W"
+}
+
+func (den *DuplicateEnvironmentNames) GetAlertType() Type {
   return Error
 }
 

@@ -1,10 +1,8 @@
-package walker
+package walker // THE ACTUAL WALKING
 
 import (
-	"fmt"
 	"hybroid/alerts"
 	"hybroid/ast"
-	"hybroid/helpers"
 	"hybroid/tokens"
 	"slices"
 )
@@ -19,7 +17,8 @@ var LibraryEnvs = map[Library]*Environment{
 
 type Environment struct {
 	Name            string
-	Path            string // dynamic lua path
+	luaPath         string // dynamic lua path
+	hybroidPath     string
 	Type            ast.EnvType
 	Scope           Scope
 	UsedWalkers     []*Walker
@@ -29,6 +28,7 @@ type Environment struct {
 	Entities        map[string]*EntityVal
 	CustomTypes     map[string]*CustomType
 	AliasTypes      map[string]*AliasType
+	EnvStmt         *ast.EnvironmentDecl
 }
 
 func (e *Environment) AddBuiltinVar(name string) {
@@ -39,15 +39,16 @@ func (e *Environment) AddBuiltinVar(name string) {
 	e.UsedBuiltinVars = append(e.UsedBuiltinVars, name)
 }
 
-func NewEnvironment(path string) *Environment {
+func NewEnvironment(hybroidPath, luaPath string) *Environment {
 	scope := Scope{
 		Tag:       &UntaggedTag{},
 		Variables: map[string]*VariableVal{},
 	}
 	global := &Environment{
-		Path:  path,
-		Type:  ast.InvalidEnv,
-		Scope: scope,
+		hybroidPath: hybroidPath,
+		luaPath:     luaPath,
+		Type:        ast.InvalidEnv,
+		Scope:       scope,
 		UsedLibraries: map[Library]bool{
 			Pewpew: false,
 			Table:  false,
@@ -78,513 +79,305 @@ const (
 type Walker struct {
 	alerts.Collector
 
-	CurrentEnvironment *Environment
-	Environment        *Environment
-	Walkers            map[string]*Walker
-	Nodes              []ast.Node
-	Context            Context
+	currentEnvironment *Environment
+	environment        *Environment
+	walkers            map[string]*Walker
+	nodes              []ast.Node
+	context            Context
 	Walked             bool
 }
 
-// var pewpewEnv = &Environment{
-// 	Path: "pewpew_path",
-// 	Variables: map[string]*VariableVal{
-// 		"WeaponType":
-// 	},
-// }
+func (w *Walker) Alert(alertType alerts.Alert, args ...any) {
+	w.Alert_(alertType, args...)
+}
 
-func NewWalker(path string) *Walker {
+func (w *Walker) AlertI(alert alerts.Alert) {
+	w.AlertI_(alert)
+}
+
+func (w *Walker) AlertSingle(alertType alerts.Alert, token tokens.Token, args ...any) {
+	args = append([]any{alerts.NewSingle(token)}, args...)
+	w.Alert(alertType, args...)
+}
+
+func NewWalker(hybroidPath, luaPath string) *Walker {
 	walker := &Walker{
-		Environment: NewEnvironment(path),
-		Nodes:       []ast.Node{},
-		Context: Context{
+		environment: NewEnvironment(hybroidPath, luaPath),
+		nodes:       []ast.Node{},
+		context: Context{
 			Node:   &ast.Improper{},
 			Value:  &Unknown{},
 			Value2: &Unknown{},
 		},
 		Collector: alerts.NewCollector(),
 	}
-	walker.CurrentEnvironment = walker.Environment
+	walker.currentEnvironment = walker.environment
 	return walker
 }
 
-func (w *Walker) GetEnvStmt() *ast.EnvironmentDecl {
-	return w.Nodes[0].(*ast.EnvironmentDecl)
+func (w *Walker) SetProgram(program []ast.Node) {
+	w.nodes = program
 }
 
-// ONLY CALL THIS IF YOU ALREADY CALLED ResolveVariable
-func (w *Walker) GetVariable(s *Scope, name string) (*VariableVal, bool) {
-	variable, ok := s.Variables[name]
-
-	if !ok {
-		return nil, false
-	}
-	return variable, s.Environment.Name != w.Environment.Name && variable.IsLocal
-}
-
-func (w *Walker) TypeExists(name string) bool {
-	if _, found := w.GetEntity(name); found {
-		return true
-	}
-	if _, found := w.GetStruct(name); found {
-		return true
-	}
-
-	return false
-}
-
-func (w *Walker) GetStruct(name string) (*ClassVal, bool) {
-	structType, found := w.Environment.Structs[name]
-	if !found {
-		// w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s exists", name))
-		return nil, false
-	}
-
-	structType.Type.IsUsed = true
-
-	w.Environment.Structs[name] = structType
-
-	return structType, true
-}
-
-func (w *Walker) GetEntity(name string) (*EntityVal, bool) {
-	entityType, found := w.Environment.Entities[name]
-	if !found {
-		// w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s exists", name))
-		return nil, false
-	}
-
-	entityType.Type.IsUsed = true
-
-	w.Environment.Entities[name] = entityType
-
-	return entityType, true
-}
-
-func (w *Walker) AssignVariableByName(s *Scope, name string, value Value) Value {
-	scope := w.ResolveVariable(s, name)
-
-	if scope == nil {
-		// return &Invalid{}, &ast.Error{Message: "cannot assign to an undeclared variable"}
-	}
-
-	variable := scope.Variables[name]
-	if variable.IsConst {
-		// return &Invalid{}, &ast.Error{Message: "cannot assign to a constant variable"}
-	}
-
-	variable.Value = value
-
-	scope.Variables[name] = variable
-
-	temp := scope.Variables[name]
-
-	return temp
-}
-
-func (s *Scope) AssignVariable(variable *VariableVal, value Value) Value {
-	if variable.IsConst {
-		// return &Invalid{}, &ast.Error{Message: "cannot assign to a constant variable"}
-	}
-
-	//variable.Value = value
-
-	return variable
-}
-
-func (w *Walker) DeclareVariable(s *Scope, value *VariableVal, token tokens.Token) (*VariableVal, bool) {
-	if varFound, found := s.Variables[value.Name]; found {
-		// w.Error(token, fmt.Sprintf("variable with name '%s' already exists", varFound.Name))
-		return varFound, false
-	}
-
-	s.Variables[value.Name] = value
-	return value, true
-}
-
-func (w *Walker) DeclareClass(structVal *ClassVal) bool {
-	if _, found := w.Environment.Structs[structVal.Type.Name]; found {
-		return false
-	}
-
-	w.Environment.Structs[structVal.Type.Name] = structVal
-	return true
-}
-
-func (w *Walker) DeclareEntity(entityVal *EntityVal) bool {
-	if _, found := w.Environment.Entities[entityVal.Type.Name]; found {
-		return false
-	}
-
-	w.Environment.Entities[entityVal.Type.Name] = entityVal
-	return true
-}
-
-func (w *Walker) ResolveVariable(s *Scope, name string) *Scope {
-	if _, found := s.Variables[name]; found {
-		return s
-	}
-
-	if s.Parent == nil {
-		_, ok := BuiltinEnv.Scope.Variables[name]
-		if ok {
-			return &BuiltinEnv.Scope
-		}
-		for i := range s.Environment.UsedWalkers {
-			variable, _ := s.Environment.UsedWalkers[i].GetVariable(&s.Environment.UsedWalkers[i].Environment.Scope, name)
-			if variable != nil {
-				return &s.Environment.UsedWalkers[i].Environment.Scope
-			}
-		}
-		for k, v := range s.Environment.UsedLibraries {
-			if !v {
-				continue
-			}
-
-			_, ok := LibraryEnvs[k].Scope.Variables[name]
-			if ok {
-				return &LibraryEnvs[k].Scope
-			}
-		}
-		return nil
-	}
-
-	return w.ResolveVariable(s.Parent, name)
-}
-
-func ResolveTagScope[T ScopeTag](sc *Scope) (*Scope, *ScopeTag, *T) {
-	if tag, ok := sc.Tag.(T); ok {
-		return sc, &sc.Tag, &tag
-	}
-
-	if sc.Parent == nil {
-		return nil, nil, nil
-	}
-
-	return ResolveTagScope[T](sc.Parent)
-}
-
-func (sc *Scope) ResolveReturnable() *ExitableTag {
-	if sc.Parent == nil {
-		return nil
-	}
-
-	if returnable := helpers.GetValOfInterface[ExitableTag](sc.Tag); returnable != nil {
-		return returnable
-	}
-
-	if helpers.IsZero(sc.Tag) {
-		return nil
-	}
-
-	return sc.Parent.ResolveReturnable()
-}
-
-func (w *Walker) ValidateArguments(generics map[string]Type, args []Type, params []Type, callToken tokens.Token) (int, bool) {
-
-	paramCount := len(params)
-	if paramCount > len(args) {
-		// w.Error(callToken, "too few arguments given in call")
-		return -1, true
-	}
-	var param Type
-	for i, typeVal := range args {
-		if i >= paramCount-1 {
-			if params[paramCount-1].GetType() == Variadic {
-				param = params[paramCount-1].(*VariadicType).Type
-			} else if i > paramCount-1 {
-				// w.Error(callToken, "too many arguments given in call")
-				return -1, true
-			} else {
-				param = params[i]
-			}
-		} else {
-			param = params[i]
-		}
-
-		if typFound, found := ResolveGenericType(&param); found {
-			generic := (*typFound).(*GenericType)
-			if typ, found := generics[generic.Name]; found {
-				*typFound = typ
-			} else {
-				generics[generic.Name] = ResolveMatchingType(param, typeVal)
-				param = typeVal
-			}
-		}
-
-		if !TypeEquals(param, typeVal) {
-			// w.Error(callToken, fmt.Sprintf("argument is of type %s, but should be %s", typeVal.ToString(), param.ToString()))
-			return i, false
-		}
-	}
-	return -1, true
-}
-
-func ResolveGenericType(typ *Type) (*Type, bool) {
-	if (*typ).GetType() == Generic {
-		return typ, true
-	}
-
-	if (*typ).GetType() == Wrapper {
-		return ResolveGenericType(&(*typ).(*WrapperType).WrappedType)
-	}
-
-	return nil, false
-}
-
-func ResolveMatchingType(predefinedType Type, receivedType Type) Type {
-	if predefinedType.GetType() == Wrapper && receivedType.GetType() == Wrapper {
-		wrapper1 := predefinedType.(*WrapperType)
-		wrapper2 := receivedType.(*WrapperType)
-
-		if TypeEquals(wrapper1.Type, wrapper2.Type) {
-			return ResolveMatchingType(wrapper1.WrappedType, wrapper2.WrappedType)
-		}
-
-		return wrapper2.Type
-	}
-
-	return receivedType
-}
-
-func (w *Walker) DetermineValueType(left Type, right Type) Type {
-	if TypeEquals(left, right) {
-		if left.GetType() == Fixed {
-			return left
-		}
-		return right
-	}
-	if left.GetType() == Fixed {
-		if right.GetType() == Fixed || right.PVT() == ast.Number {
-			return left
-		}
-	}
-	if right.GetType() == Fixed {
-		if left.GetType() == Fixed || left.PVT() == ast.Number {
-			return right
-		}
-	}
-
-	return InvalidType
-}
-
-func (w *Walker) ValidateArithmeticOperands(left Type, right Type, expr *ast.BinaryExpr) bool {
-	if left.PVT() == ast.Invalid {
-		// w.Error(expr.Left.GetToken(), "cannot perform arithmetic on Invalid value")
-		return false
-	}
-
-	if right.PVT() == ast.Invalid {
-		// w.Error(expr.Right.GetToken(), "cannot perform arithmetic on Invalid value")
-		return false
-	}
-
-	switch left.PVT() {
-	case ast.List, ast.Map, ast.String, ast.Bool, ast.Entity, ast.Struct:
-		// w.Error(expr.Left.GetToken(), "cannot perform arithmetic on a non-number value")
-		return false
-	}
-
-	switch right.PVT() {
-	case ast.List, ast.Map, ast.String, ast.Bool, ast.Entity, ast.Struct:
-		// w.Error(expr.Right.GetToken(), "cannot perform arithmetic on a non-number value")
-		return false
-	}
-
-	return true
-}
-
-func returnsAreValid(list1 []Type, list2 []Type) bool {
-	if len(list1) != len(list2) {
-		return false
-	}
-
-	for i, v := range list1 {
-		if !TypeEquals(v, list2[i]) {
-			return false
-		}
-	}
-	return true
-}
-
-func (w *Walker) ValidateReturnValues(_return Types, expectReturn Types) string {
-	returnValues, expectedReturnValues := _return, expectReturn
-	if len(returnValues) < len(expectedReturnValues) { // debug?
-		return "not enough return values given"
-	} else if len(returnValues) > len(expectedReturnValues) {
-		return "too many return values given"
-	}
-	if !returnsAreValid(returnValues, expectedReturnValues) {
-		return "invalid return type(s)"
-	}
-	return ""
-}
-
-func (w *Walker) CheckAccessibility(s *Scope, isLocal bool, node ast.Node) {
-	if s.Environment.Name != w.Environment.Name && isLocal {
-		// w.Error(node.GetToken(), "Not allowed to access a local variable/type from a different environment")
-	}
-}
-
-func (w *Walker) TypeToValue(_type Type) Value {
-	if _type.GetType() == RawEntity {
-		return &RawEntityVal{}
-	}
-	if _type.GetType() == CstmType {
-		return NewCustomVal(_type.(*CustomType))
-	}
-	if _type.GetType() == Variadic {
-		return &ListVal{
-			ValueType: _type.(*VariadicType).Type,
-			Values:    make([]Value, 0),
-		}
-	}
-	switch _type.PVT() {
-	case ast.Radian, ast.Fixed, ast.FixedPoint, ast.Degree:
-		return &FixedVal{SpecificType: _type.PVT()}
-	case ast.Bool:
-		return &BoolVal{} // there is no func here
-	case ast.Func:
-		ft := _type.(*FunctionType)
-		return &FunctionVal{
-			Params:  ft.Params,
-			Returns: ft.Returns,
-		}
-	case ast.String:
-		return &StringVal{}
-	case ast.Number:
-		return &NumberVal{}
-	case ast.List:
-		return &ListVal{
-			ValueType: _type.(*WrapperType).WrappedType,
-		}
-	case ast.Map:
-		return &MapVal{
-			MemberType: _type.(*WrapperType).WrappedType,
-		}
-	case ast.Struct:
-		val, _ := w.Walkers[_type.(*NamedType).EnvName].GetStruct(_type.ToString())
-		return val
-	case ast.AnonStruct:
-		return &AnonStructVal{
-			Fields: _type.(*StructType).Fields,
-		}
-	case ast.Enum:
-		enum := _type.(*EnumType)
-		walker, found := w.Walkers[enum.EnvName]
-		var variable *VariableVal
-		switch enum.EnvName {
-		case "Pewpew":
-			variable = PewpewEnv.Scope.Variables[enum.Name]
-		default:
-			variable, _ = walker.GetVariable(&walker.Environment.Scope, enum.Name)
-		}
-		if variable == nil {
-			panic(fmt.Sprintf("Enum variable could not be found when converting enum type to value (envName:%v, name:%v, walkerFound:%v)", enum.EnvName, enum.Name, found))
-		}
-		return variable
-	case ast.Entity:
-		val, _ := w.Walkers[_type.(*NamedType).EnvName].GetEntity(_type.ToString())
-		return val
-	case ast.Object:
-		return &Unknown{}
-	case ast.Generic:
-		return &GenericVal{
-			Type: _type.(*GenericType),
-		}
-	default:
-		return &Invalid{}
-	}
-}
-
-func (w *Walker) AddTypesToValues(list *[]Value, tys *Types) {
-	for _, typ := range *tys {
-		val := w.TypeToValue(typ)
-		*list = append(*list, val)
-	}
-}
-
-func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
-	switch str {
-	case "number":
-		return ast.Number
-	case "fixed":
-		return ast.FixedPoint
-	case "text":
-		return ast.String
-	case "map":
-		return ast.Map
-	case "list":
-		return ast.List
-	case "fn":
-		return ast.Func
-	case "bool":
-		return ast.Bool
-	case "struct":
-		return ast.AnonStruct
-	default:
-		return ast.Invalid
-	}
-}
-
-func (w *Walker) DetermineCallTypeString(callType ProcedureType) string {
-	if callType == Function {
-		return "function"
-	}
-
-	return "method"
-}
-
-func (w *Walker) ReportExits(sender ExitableTag, scope *Scope) {
-	receiver_ := scope.ResolveReturnable()
-
-	if receiver_ == nil {
+func (w *Walker) Action(wlkrs map[string]*Walker) {
+	w.walkers = wlkrs
+	nodes := w.nodes
+
+	if len(nodes) == 0 {
 		return
 	}
 
-	receiver := *receiver_
+	if nodes[0].GetType() != ast.EnvironmentDeclaration {
+		w.AlertSingle(&alerts.ExpectedEnvironment{}, nodes[0].GetToken())
+		return
+	}
 
-	receiver.SetExit(sender.GetIfExits(Yield), Yield)
-	receiver.SetExit(sender.GetIfExits(Return), Return)
-	receiver.SetExit(sender.GetIfExits(Break), Break)
-	receiver.SetExit(sender.GetIfExits(Continue), Continue)
-	receiver.SetExit(sender.GetIfExits(All), All)
+	scope := &w.environment.Scope
+	for i := range nodes {
+		w.WalkNode(&nodes[i], scope)
+	}
+
+	// for i := range w.nodes {
+	// 	w.WalkNode2(&w.nodes[i], scope)
+	// }
+
+	w.Walked = true
 }
 
-type ProcedureType int
+func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
+	switch node := (*node).(type) {
+	case *ast.EnvironmentDecl:
+		if w.environment.Name != "" {
+			w.AlertSingle(&alerts.EnvironmentRedaclaration{}, node.GetToken())
+			return
+		}
+		switch node.EnvType.Token.Lexeme {
+		case "Level":
+			node.EnvType.Type = ast.LevelEnv
+		case "Mesh":
+			node.EnvType.Type = ast.MeshEnv
+		case "Sound":
+			node.EnvType.Type = ast.SoundEnv
+		default:
+			w.AlertSingle(&alerts.InvalidEnvironmentType{}, node.EnvType.Token, node.EnvType.Token.Lexeme)
+		}
+		w.environment.Type = node.EnvType.Type
+		w.environment.Name = node.Env.Path.Lexeme
+		w.environment.EnvStmt = node
+		if w2, ok := w.walkers[w.environment.Name]; ok {
+			w.AlertSingle(&alerts.DuplicateEnvironmentNames{}, node.GetToken(), w.environment.hybroidPath, w2.environment.hybroidPath)
+			return
+		}
 
-const (
-	Function ProcedureType = iota
-	Method
-)
-
-func IsOfPrimitiveType(value Value, types ...ast.PrimitiveValueType) bool {
-	if types == nil {
-		return false
+		w.walkers[w.environment.Name] = w
+	default:
 	}
-	valType := value.GetType().PVT()
-	for _, prim := range types {
-		if valType == prim {
-			return true
+}
+
+func (w *Walker) WalkNode2(node *ast.Node, scope *Scope) {
+	switch newNode := (*node).(type) {
+	case *ast.EnvironmentDecl:
+	case *ast.VariableDecl:
+		w.VariableDeclarationStmt(newNode, scope)
+	case *ast.IfStmt:
+		w.IfStmt(newNode, scope)
+	case *ast.FunctionDecl:
+		w.FunctionDeclarationStmt(newNode, scope, Function)
+	case *ast.ReturnStmt:
+		w.ReturnStmt(newNode, scope)
+	case *ast.YieldStmt:
+		w.YieldStmt(newNode, scope)
+	case *ast.BreakStmt:
+		w.BreakStmt(newNode, scope)
+	case *ast.ContinueStmt:
+		w.ContinueStmt(newNode, scope)
+	case *ast.RepeatStmt:
+		w.RepeatStmt(newNode, scope)
+	case *ast.WhileStmt:
+		w.WhileStmt(newNode, scope)
+	case *ast.ForStmt:
+		w.ForloopStmt(newNode, scope)
+	case *ast.TickStmt:
+		w.TickStmt(newNode, scope)
+	case *ast.CallExpr:
+		val := w.GetNodeValue(&newNode.Caller, scope)
+		_, finalNode := w.CallExpr(val, newNode, scope)
+		*node = finalNode
+	case *ast.MethodCallExpr:
+		_, *node = w.MethodCallExpr(newNode, scope)
+	case *ast.EnvAccessExpr:
+		_, newVersion := w.EnvAccessExpr(newNode)
+		if newVersion != nil {
+			*node = newVersion
+		}
+	case *ast.ClassDecl:
+		w.ClassDeclarationStmt(newNode, scope)
+	case *ast.EnumDecl:
+		w.EnumDeclarationStmt(newNode, scope)
+	case *ast.MatchStmt:
+		w.MatchStmt(newNode, false, scope)
+	case *ast.AssignmentStmt:
+		w.AssignmentStmt(newNode, scope)
+	case *ast.UseStmt:
+		w.UseStmt(newNode, scope)
+	case *ast.DestroyStmt:
+		w.DestroyStmt(newNode, scope)
+	case *ast.SpawnExpr:
+		w.SpawnExpr(newNode, scope)
+	case *ast.NewExpr:
+		w.NewExpr(newNode, scope)
+	case *ast.AliasDecl:
+		w.AliasDeclarationStmt(newNode, scope)
+	// case *ast.TypeDeclarationStmt:
+	// 	TypeDeclarationStmt(newNode, scope)
+	case *ast.Improper:
+		// w.Error(newNode.GetToken(), "Improper statement: parser fault")
+	case *ast.MacroDecl:
+	case *ast.EntityDecl:
+		w.EntityDeclarationStmt(newNode, scope)
+	default:
+		// w.Error(newNode.GetToken(), "Expected statement")
+	}
+}
+
+func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
+	var val Value
+
+	switch newNode := (*node).(type) {
+	case *ast.LiteralExpr:
+		val = w.LiteralExpr(newNode)
+	case *ast.BinaryExpr:
+		val = w.BinaryExpr(newNode, scope)
+	case *ast.IdentifierExpr:
+		val = w.IdentifierExpr(node, scope)
+	case *ast.GroupExpr:
+		val = w.GroupingExpr(newNode, scope)
+	case *ast.ListExpr:
+		val = w.ListExpr(newNode, scope)
+	case *ast.UnaryExpr:
+		val = w.UnaryExpr(newNode, scope)
+	case *ast.CallExpr:
+		callVal := w.GetNodeValue(&newNode.Caller, scope)
+		localVal, finalNode := w.CallExpr(callVal, newNode, scope)
+		val = localVal
+		*node = finalNode
+	case *ast.MethodCallExpr:
+		val, *node = w.MethodCallExpr(newNode, scope)
+	case *ast.MapExpr:
+		val = w.MapExpr(newNode, scope)
+	case *ast.FunctionExpr:
+		val = w.FunctionExpr(newNode, scope)
+	case *ast.StructExpr:
+		val = w.StructExpr(newNode, scope)
+	case *ast.MemberExpr:
+		val = w.MemberExpr(newNode, scope)
+	case *ast.FieldExpr:
+		val = w.FieldExpr(newNode, scope)
+	case *ast.NewExpr:
+		val = w.NewExpr(newNode, scope)
+	case *ast.SelfExpr:
+		val = w.SelfExpr(newNode, scope)
+	case *ast.MatchExpr:
+		val = w.MatchExpr(newNode, scope)
+	case *ast.EntityExpr:
+		val = w.EntityExpr(newNode, scope)
+	case *ast.EnvAccessExpr:
+		var newVersion ast.Node
+		val, newVersion = w.EnvAccessExpr(newNode)
+		if newVersion != nil {
+			*node = newVersion
+		}
+	case *ast.SpawnExpr:
+		val = w.SpawnExpr(newNode, scope)
+	// case *ast.CastExpr:
+	// 	val = CastExpr(newNode, scope)
+	case *ast.UseStmt:
+	default:
+		// w.Error(newNode.GetToken(), "Expected expression")
+		return &Invalid{}
+	}
+
+	if field, ok := w.context.Node.(*ast.FieldExpr); ok {
+		if w.context.Value.GetType().GetType() == Strct {
+			field.Index = -1
+			return val
+		}
+		if w.context.PewpewVarFound {
+			field.Index = -1
+			w.context.PewpewVarFound = false
+			return val
+		}
+		if container, ok := w.context.Value.(FieldContainer); ok {
+			_, field.Index, _ = container.ContainsField((*node).GetToken().Lexeme)
 		}
 	}
-
-	return false
+	return val
 }
 
-func DetermineCallTypeString(callType ProcedureType) string {
-	if callType == Function {
-		return "function"
+func (w *Walker) WalkBody(body *[]ast.Node, tag ExitableTag, scope *Scope) {
+	endIndex := -1
+	for i := range *body {
+		if tag.GetIfExits(All) {
+			// w.Warn((*body)[i].GetToken(), "unreachable code detected")
+			endIndex = i
+			break
+		}
+		w.WalkNode(&(*body)[i], scope)
+	}
+	if endIndex != -1 {
+		*body = (*body)[:endIndex]
+	}
+}
+
+// func WalkBody(w *Walker, body *[]ast.Node, tag ExitableTag, scope *Scope) {
+// 	endIndex := -1
+// 	for i := range *body {
+// 		if tag.GetIfExits(All) {
+// 			w.Warn((*body)[i].GetToken(), "unreachable code detected")
+// 			endIndex = i
+// 			break
+// 		}
+// 		WalkNode(&(*body)[i], scope)
+// 	}
+// 	if endIndex != -1 {
+// 		*body = (*body)[:endIndex]
+// 	}
+// }
+
+func (w *Walker) TypeifyNodeList(nodes *[]ast.Node, scope *Scope) []Type {
+	arguments := make([]Type, 0)
+	for i := range *nodes {
+		val := w.GetNodeValue(&(*nodes)[i], scope)
+		if function, ok := val.(*FunctionVal); ok {
+			arguments = append(arguments, function.Returns...)
+		} else {
+			arguments = append(arguments, val.GetType())
+		}
+	}
+	return arguments
+}
+
+func (w *Walker) WalkParams(parameters []ast.FunctionParam, scope *Scope, declare func(name tokens.Token, value Value)) []Type {
+	variadicParams := make(map[tokens.Token]int)
+	params := make([]Type, 0)
+	for i, param := range parameters {
+		params = append(params, w.TypeExpr(param.Type, scope, false))
+		if params[i].GetType() == Variadic {
+			variadicParams[parameters[i].Name] = i
+		}
+		value := w.TypeToValue(params[i])
+		declare(param.Name, value)
 	}
 
-	return "method"
-}
+	if len(variadicParams) > 1 {
+		// w.Error(parameters[0].Name, "can only have one vartiadic parameter")
+	} else if len(variadicParams) != 0 {
+		// for k, v := range variadicParams {
+		// 	if v != len(parameters)-1 {
+		// 		w.Error(k, "variadic parameter should be last")
+		// 	}
+		// }
+	}
 
-func SetupLibraryEnvironments() {
-	PewpewEnv.Scope.Environment = PewpewEnv
-	FmathEnv.Scope.Environment = FmathEnv
-	MathEnv.Scope.Environment = MathEnv
-	StringEnv.Scope.Environment = StringEnv
-	TableEnv.Scope.Environment = TableEnv
-	BuiltinEnv.Scope.Environment = BuiltinEnv
+	return params
 }

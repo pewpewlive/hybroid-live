@@ -447,7 +447,7 @@ func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
 		exprs = exprs2
 	}
 
-	_, ok := p.consumeSingle(&alerts.ExpectedSymbol{}, "in match case", tokens.FatArrow)
+	_, ok := p.consume(p.SingleAlert(&alerts.ExpectedSymbol{}, tokens.FatArrow, "in match case"), tokens.FatArrow)
 	if !ok {
 		return caseStmts, false
 	}

@@ -1,14 +1,5 @@
 [
   {
-    "name": "ExpectedParenthesiss",
-    "type": "Error",
-    "params": {
-      "Symbol": "string"
-    },
-    "message": "Expected '%s'",
-    "message_format": ["Symbol"]
-  },
-    {
     "name": "ForbiddenTypeInEnvironment",
     "type": "Error",
     "params": {
@@ -17,6 +8,16 @@
     },
     "message": "cannot have a %s in the following environments: %s",
     "message_format": ["Type", { "Envs": "strings.Join({}, \", \")" }]
+  },
+  {
+    "name": "InvalidEnvironmentType",
+    "type": "Error",
+    "params": {
+      "GivenType": "string"
+    },
+    "message": "'%s' is not a valid environment type",
+    "message_format": ["GivenType"],
+    "note": "environment type can be 'Level', 'Mesh' or 'Sound'"
   },
   {
     "name": "EnvironmentRedaclaration",
@@ -28,5 +29,15 @@
     "type": "Error",
     "message": "expected environment declaration",
     "note": "the first declaration in any Hybroid file has to be an environment declaration"
+  },
+  {
+    "name": "DuplicateEnvironmentNames",
+    "type": "Error",
+    "params": {
+      "Path1": "string",
+      "Path2": "string"
+    },
+    "message": "duplicate environment names found between '%s' and '%s'",
+    "message_format": ["Path1", "Path2"]
   }
 ]

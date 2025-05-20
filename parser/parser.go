@@ -57,6 +57,11 @@ func (p *Parser) AlertI(alert alerts.Alert) {
 	p.AlertI_(alert)
 }
 
+func (p *Parser) SingleAlert(alertType alerts.Alert, args ...any) alerts.Alert {
+	args = append([]any{alerts.NewSingle(p.peek())}, args...)
+	return p.NewAlert(alertType, args...)
+}
+
 func (p *Parser) Parse() []ast.Node {
 	for !p.isAtEnd() {
 		node := p.parseNode(p.synchronizeBody)
@@ -146,4 +151,70 @@ func (p *Parser) parseNode(syncFunc func()) (returnNode ast.Node) {
 	}
 
 	return
+}
+
+func (p *Parser) auxiliaryNode() ast.Node {
+	if p.match(tokens.Fn) {
+		fnDec := p.functionDeclaration()
+
+		if ast.IsImproper(fnDec, ast.FunctionDeclaration) {
+			p.synchronizeDeclBody()
+			return ast.NewImproper(fnDec.GetToken(), ast.MethodDeclaration)
+		}
+
+		fnDecl := fnDec.(*ast.FunctionDecl)
+		return &ast.MethodDecl{
+			IsPub:    fnDecl.IsPub,
+			Name:     fnDecl.Name,
+			Return:   fnDecl.Return,
+			Params:   fnDecl.Params,
+			Generics: fnDecl.Generics,
+			Body:     fnDecl.Body,
+		}
+	} else if p.match(tokens.New) {
+		constructor := p.constructorDeclaration()
+		if ast.IsImproper(constructor, ast.ConstructorDeclaration) {
+			p.synchronizeDeclBody()
+			return ast.NewImproper(constructor.GetToken(), ast.ConstructorDeclaration)
+		}
+		if constructor.GetType() == ast.ConstructorDeclaration {
+			return constructor
+		}
+	} else if p.match(tokens.Let) || p.peekTypeVariableDecl() {
+		field := p.fieldDeclaration()
+		if field.GetType() == ast.FieldDeclaration {
+			return field
+		}
+	}
+	var functionType ast.EntityFunctionType = ""
+	if p.match(tokens.Spawn) {
+		functionType = ast.Spawn
+	} else if p.match(tokens.Destroy) {
+		functionType = ast.Destroy
+	} else if p.check(tokens.Identifier) {
+		switch p.peek().Lexeme {
+		case "WeaponCollision":
+			functionType = ast.WeaponCollision
+		case "WallCollision":
+			functionType = ast.WallCollision
+		case "PlayerCollision":
+			functionType = ast.PlayerCollision
+		case "Update":
+			functionType = ast.Update
+		}
+		if functionType != "" {
+			p.advance()
+		}
+	}
+	if functionType != "" {
+		entityFunction := p.entityFunctionDeclaration(p.peek(-1), functionType)
+		if ast.IsImproper(entityFunction, ast.EntityFunctionDeclaration) {
+			p.synchronizeDeclBody()
+			return ast.NewImproper(entityFunction.GetToken(), ast.EntityFunctionDeclaration)
+		}
+		return entityFunction
+	}
+
+	// No auxiliary node found, try parsing a node instead (for error handling)
+	return p.parseNode(p.synchronizeDeclBody)
 }

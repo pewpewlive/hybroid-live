@@ -30,7 +30,7 @@ func NewEvaluator(files []helpers.FileInformation) Evaluator {
 	}
 
 	for _, file := range evaluator.files {
-		evaluator.walkerList = append(evaluator.walkerList, walker.NewWalker(file.NewPath("/dynamic", ".lua")))
+		evaluator.walkerList = append(evaluator.walkerList, walker.NewWalker(file.Path(), file.NewPath("/dynamic", ".lua")))
 	}
 
 	return evaluator
@@ -70,7 +70,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		fmt.Printf("Parsing %d tokens\n", len(tokens))
 
 		parser := parser.NewParser(tokens)
-		prog := parser.Parse()
+		program := parser.Parse()
 		for _, v := range parser.GetAlerts() {
 			if v.GetAlertType() == alerts.Error {
 				evalFailed[i] = true
@@ -83,34 +83,25 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		// ast.DrawNodes(prog)
 
 		// Continue to next file
-		if len(prog) == 0 {
+		if len(program) == 0 {
 			continue
 		}
 
-		// start = time.Now()
-		// fmt.Println("[Pass 1] Walking through the nodes...")
-		// if env, ok := prog[0].(*ast.EnvironmentDecl); ok {
-		// 	e.walkerList[i].Environment.Type = env.EnvType.Type
-		// }
-		// pass1.Action(e.walkerList[i], prog, e.walkers)
-		// fmt.Printf("Pass 1 time: %f seconds\n\n", time.Since(start).Seconds())
+		e.walkerList[i].SetProgram(program)
 	}
 
-	// for i, walker := range e.walkerList {
-	// 	sourcePath := e.files[i].Path()
-	// 	color.Printf("[dark_gray]-->File: %s\n", sourcePath)
+	for i, walker := range e.walkerList {
+		sourcePath := e.files[i].Path()
+		color.Printf("[dark_gray]-->File: %s\n", sourcePath)
 
-	// 	start := time.Now()
+		start := time.Now()
 
-	// 	fmt.Println("[Pass 2] Walking through the nodes...")
+		fmt.Println("[Pass 2] Walking through the nodes...")
+		walker.Action(e.walkers)
+		fmt.Printf("Pass 2 time: %f seconds\n\n", time.Since(start).Seconds())
 
-	// 	if !walker.Walked {
-	// 		//pass2.Action(walker, e.walkers)
-	// 	}
-	// 	fmt.Printf("Pass 2 time: %f seconds\n\n", time.Since(start).Seconds())
-
-	// 	e.printer.StageAlerts(e.files[i].Path(), walker.GetAlerts())
-	// }
+		e.printer.StageAlerts(e.files[i].Path(), walker.GetAlerts())
+	}
 
 	// fmt.Printf("-Preparing values for generation...\n")
 	// generator := generator.NewGenerator()

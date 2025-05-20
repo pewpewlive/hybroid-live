@@ -31,7 +31,7 @@ func (epe *EnvPathExpr) GetType() NodeType {
 }
 
 func (epe *EnvPathExpr) GetToken() tokens.Token {
-	return tokens.Token{Lexeme: epe.Path.Lexeme}
+	return epe.Path
 }
 
 func (epe *EnvPathExpr) GetValueType() PrimitiveValueType {
