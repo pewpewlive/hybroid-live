@@ -230,14 +230,13 @@ func (p *Parser) environmentDeclaration() ast.Node {
 
 	envDecl.EnvType = p.envTypeExpr()
 	envDecl.Env = envPathExpr
-	p.context.EnvDeclaration = envDecl
 
 	return envDecl
 }
 
 func (p *Parser) variableDeclaration(matchedLetOrConst bool) ast.Node {
 	variableDecl := ast.VariableDecl{
-		IsPub:   p.context.IsPub,
+		IsPub:   p.context.isPub,
 		IsConst: false,
 	}
 
@@ -290,7 +289,7 @@ func (p *Parser) variableDeclaration(matchedLetOrConst bool) ast.Node {
 
 func (p *Parser) functionDeclaration() ast.Node {
 	functionDecl := ast.FunctionDecl{
-		IsPub: p.context.IsPub,
+		IsPub: p.context.isPub,
 	}
 	if functionDecl.IsPub {
 		functionDecl.Token = p.peek(-2)
@@ -328,7 +327,7 @@ func (p *Parser) functionDeclaration() ast.Node {
 func (p *Parser) enumDeclaration() ast.Node {
 	enumStmt := &ast.EnumDecl{
 		Token: p.peek(-1),
-		IsPub: p.context.IsPub,
+		IsPub: p.context.isPub,
 	}
 
 	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in enum declaration"), tokens.Identifier)
@@ -342,10 +341,8 @@ func (p *Parser) enumDeclaration() ast.Node {
 		return ast.NewImproper(enumStmt.Token, ast.EnumDeclaration)
 	}
 
-	p.context.BraceEntries.Push("Enum", false)
-	defer func() {
-		p.context.BraceEntries.Pop("Enum")
-	}()
+	p.context.braceCounter.Increment()
+	defer p.context.braceCounter.Decrement()
 
 	fields, _ := p.expressions("in enum declaration", true)
 	for _, v := range fields {
@@ -368,7 +365,7 @@ func (p *Parser) enumDeclaration() ast.Node {
 func (p *Parser) aliasDeclaration() ast.Node {
 	aliasDecl := &ast.AliasDecl{
 		Token: p.peek(-1),
-		IsPub: p.context.IsPub,
+		IsPub: p.context.isPub,
 	}
 
 	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name in alias declaration"), tokens.Identifier)
@@ -399,7 +396,7 @@ func (p *Parser) aliasDeclaration() ast.Node {
 
 func (p *Parser) classDeclaration() ast.Node {
 	stmt := &ast.ClassDecl{
-		IsPub: p.context.IsPub,
+		IsPub: p.context.isPub,
 		Token: p.peek(-1),
 	}
 
@@ -410,10 +407,8 @@ func (p *Parser) classDeclaration() ast.Node {
 	if !ok {
 		return ast.NewImproper(stmt.Token, ast.ClassDeclaration)
 	}
-	p.context.BraceEntries.Push("Class", false)
-	defer func() {
-		p.context.BraceEntries.Pop("Class")
-	}()
+	p.context.braceCounter.Increment()
+	defer p.context.braceCounter.Decrement()
 
 	start := p.peek(-1)
 	stmt.Methods = []ast.MethodDecl{}
@@ -440,7 +435,7 @@ func (p *Parser) classDeclaration() ast.Node {
 
 func (p *Parser) entityDeclaration() ast.Node {
 	stmt := &ast.EntityDecl{
-		IsPub: p.context.IsPub,
+		IsPub: p.context.isPub,
 		Token: p.peek(-1),
 	}
 
@@ -454,10 +449,8 @@ func (p *Parser) entityDeclaration() ast.Node {
 	if name.Type != tokens.Identifier {
 		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name of the entity")
 	}
-	p.context.BraceEntries.Push("Entity", false)
-	defer func() {
-		p.context.BraceEntries.Pop("Entity")
-	}()
+	p.context.braceCounter.Increment()
+	defer p.context.braceCounter.Decrement()
 
 	start := p.peek(-1)
 	for p.consumeTill("in entity declaration", start, tokens.RightBrace) {

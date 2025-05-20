@@ -71,17 +71,6 @@ func (p *Parser) comparison() ast.Node {
 	return expr
 }
 
-func (p *Parser) determineValueType(left ast.Node, right ast.Node) ast.PrimitiveValueType {
-	if left.GetValueType() == right.GetValueType() {
-		return left.GetValueType()
-	}
-	if IsFx(left.GetValueType()) && IsFx(right.GetValueType()) {
-		return ast.FixedPoint
-	}
-
-	return ast.Invalid
-}
-
 func (p *Parser) term() ast.Node {
 	expr := p.factor()
 	if ast.IsImproper(expr, ast.NA) {
@@ -93,7 +82,7 @@ func (p *Parser) term() ast.Node {
 		if ast.IsImproper(right, ast.NA) {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(right.GetToken()), "as right value in binary expression")
 		}
-		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: p.determineValueType(expr, right)}
+		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: ast.Uninitialized}
 	}
 
 	return expr
@@ -111,7 +100,7 @@ func (p *Parser) factor() ast.Node {
 		if ast.IsImproper(right, ast.NA) {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(right.GetToken()), "as right value in binary expression")
 		}
-		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: p.determineValueType(expr, right)}
+		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: ast.Uninitialized}
 	}
 
 	return expr
@@ -129,7 +118,7 @@ func (p *Parser) concat() ast.Node {
 		if ast.IsImproper(right, ast.NA) {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(right.GetToken()), "as right value in concat expression")
 		}
-		return &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: p.determineValueType(expr, right)}
+		return &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: ast.Uninitialized}
 	}
 
 	return expr
@@ -412,27 +401,20 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 	if p.match(tokens.Number, tokens.Fixed, tokens.FixedPoint, tokens.Degree, tokens.Radian, tokens.String) {
 		literal := p.peek(-1)
 		var valueType ast.PrimitiveValueType
-		env := p.context.EnvDeclaration
 
-		if env != nil {
-			switch literal.Type {
-			case tokens.Number:
-				// 1
-				// if allowFX && strings.ContainsRune(literal.Lexeme, '.') {
-				// 	p.Alert(&alerts.ForbiddenTypeInEnvironment{}, alerts.NewSingle(literal), "float", []string{"level", "shared"})
-				// }
-				valueType = ast.Number
-			case tokens.Fixed:
-				valueType = ast.Fixed
-			case tokens.FixedPoint:
-				valueType = ast.FixedPoint
-			case tokens.Degree:
-				valueType = ast.Degree
-			case tokens.Radian:
-				valueType = ast.Radian
-			case tokens.String:
-				valueType = ast.String
-			}
+		switch literal.Type {
+		case tokens.Number:
+			valueType = ast.Number
+		case tokens.Fixed:
+			valueType = ast.Fixed
+		case tokens.FixedPoint:
+			valueType = ast.FixedPoint
+		case tokens.Degree:
+			valueType = ast.Degree
+		case tokens.Radian:
+			valueType = ast.Radian
+		case tokens.String:
+			valueType = ast.String
 		}
 
 		return &ast.LiteralExpr{Value: literal.Literal, ValueType: valueType, Token: literal}
@@ -532,10 +514,8 @@ func (p *Parser) parseMap() ast.Node {
 		return mapExpr
 	}
 
-	p.context.BraceEntries.Push("Map", true)
-	defer func() {
-		p.context.BraceEntries.Pop("Map")
-	}()
+	p.context.braceCounter.Increment()
+	defer p.context.braceCounter.Decrement()
 
 	key, value, ok := p.keyValuePair("map key")
 	if !ok {
@@ -568,10 +548,8 @@ func (p *Parser) structExpr() ast.Node {
 	if p.match(tokens.RightBrace) {
 		return &structExpr
 	}
-	p.context.BraceEntries.Push("Struct", true)
-	defer func() {
-		p.context.BraceEntries.Pop("Struct")
-	}()
+	p.context.braceCounter.Increment()
+	defer p.context.braceCounter.Decrement()
 
 	field, value, ok := p.keyValuePair("struct field")
 	if !ok {

@@ -402,10 +402,8 @@ func (p *Parser) matchStmt(isExpr bool) ast.Node {
 		return ast.NewImproper(matchStmt.Token, matchType)
 	}
 
-	p.context.BraceEntries.Push("Match", false)
-	defer func() {
-		p.context.BraceEntries.Pop("Match")
-	}()
+	p.context.braceCounter.Increment()
+	defer p.context.braceCounter.Decrement()
 
 	for p.consumeTill("in match statement", start, tokens.RightBrace) {
 		stmts, ok := p.caseStmt(isExpr)

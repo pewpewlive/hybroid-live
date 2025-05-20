@@ -3,7 +3,6 @@ package pass2
 import (
 	"hybroid/ast"
 	"hybroid/helpers"
-	"hybroid/parser"
 	"hybroid/tokens"
 	wkr "hybroid/walker"
 	"strings"
@@ -599,17 +598,17 @@ func RepeatStmt(w *wkr.Walker, node *ast.RepeatStmt, scope *wkr.Scope) {
 
 	end := GetNodeValue(w, &node.Iterator, scope)
 	endType := end.GetType()
-	if !parser.IsFx(endType.PVT()) && endType.PVT() != ast.Number {
-		// w.Error(node.Iterator.GetToken(), "invalid value type of iterator")
-	} else if variable, ok := end.(*wkr.VariableVal); ok {
-		if fixedpoint, ok := variable.Value.(*wkr.FixedVal); ok {
-			endType = wkr.NewBasicType(fixedpoint.SpecificType)
-		}
-	} else {
-		if fixedpoint, ok := end.(*wkr.FixedVal); ok {
-			endType = wkr.NewBasicType(fixedpoint.SpecificType)
-		}
+	//if !parser.IsFx(endType.PVT()) && endType.PVT() != ast.Number {
+	// w.Error(node.Iterator.GetToken(), "invalid value type of iterator")
+	//} else if variable, ok := end.(*wkr.VariableVal); ok {
+	//if fixedpoint, ok := variable.Value.(*wkr.FixedVal); ok {
+	//	endType = wkr.NewBasicType(fixedpoint.SpecificType)
+	//}
+	//} else {
+	if fixedpoint, ok := end.(*wkr.FixedVal); ok {
+		endType = wkr.NewBasicType(fixedpoint.SpecificType)
 	}
+	//}
 	if node.Start.GetType() == ast.NA {
 		node.Start = &ast.LiteralExpr{Token: node.Start.GetToken(), ValueType: endType.PVT(), Value: "1"}
 	}

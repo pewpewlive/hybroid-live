@@ -13,14 +13,13 @@ type Parser struct {
 	program []ast.Node
 	current int
 	tokens  []tokens.Token
-	context ParserContext
+	context parserContext
 }
 
-type ParserContext struct {
-	EnvDeclaration *ast.EnvironmentDecl
-	IsPub          bool
-	IgnoreAlerts   helpers.Stack[bool]
-	BraceEntries   helpers.Stack[bool]
+type parserContext struct {
+	isPub        bool
+	ignoreAlerts helpers.Stack[bool]
+	braceCounter helpers.Counter
 }
 
 func NewParser(tokens []tokens.Token) Parser {
@@ -28,15 +27,14 @@ func NewParser(tokens []tokens.Token) Parser {
 		program: make([]ast.Node, 0),
 		current: 0,
 		tokens:  tokens,
-		context: ParserContext{
-			EnvDeclaration: nil,
-			IgnoreAlerts:   helpers.NewStack[bool]("IgnoreAlerts"),
-			BraceEntries:   helpers.NewStack[bool]("BraceEntries"),
+		context: parserContext{
+			ignoreAlerts: helpers.NewStack[bool]("IgnoreAlerts"),
+			braceCounter: helpers.NewCounter("BraceCounter"),
 		},
 		Collector: alerts.NewCollector(),
 	}
 
-	parser.context.IgnoreAlerts.Push("default", false)
+	parser.context.ignoreAlerts.Push("default", false)
 
 	return parser
 }
@@ -44,7 +42,7 @@ func NewParser(tokens []tokens.Token) Parser {
 type ParserError struct{}
 
 func (p *Parser) Alert(alertType alerts.Alert, args ...any) {
-	if p.context.IgnoreAlerts.Top().Item {
+	if p.context.ignoreAlerts.Top().Item {
 		return
 	}
 
@@ -52,7 +50,7 @@ func (p *Parser) Alert(alertType alerts.Alert, args ...any) {
 }
 
 func (p *Parser) AlertI(alert alerts.Alert) {
-	if p.context.IgnoreAlerts.Top().Item {
+	if p.context.ignoreAlerts.Top().Item {
 		return
 	}
 

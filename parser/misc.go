@@ -6,11 +6,6 @@ import (
 	"hybroid/tokens"
 )
 
-// Checks if the value type is expected to be a fixedpoint
-func IsFx(valueType ast.PrimitiveValueType) bool {
-	return valueType == ast.FixedPoint || valueType == ast.Fixed || valueType == ast.Radian || valueType == ast.Degree
-}
-
 func (p *Parser) getFunctionParam() (ast.FunctionParam, bool) {
 	functionParam := ast.FunctionParam{}
 	typeExpr := p.typeExpr("in function parameters")
@@ -104,10 +99,8 @@ func (p *Parser) genericParams() ([]*ast.IdentifierExpr, bool) {
 
 // Prerequisite of calling this function is that you checked on peek and it was tokens.Less
 func (p *Parser) tryGenericArgs() bool {
-	p.context.IgnoreAlerts.Push("TryGenericArgs", true)
-	defer func() {
-		p.context.IgnoreAlerts.Pop("TryGenericArgs")
-	}()
+	p.context.ignoreAlerts.Push("TryGenericArgs", true)
+	defer p.context.ignoreAlerts.Pop("TryGenericArgs")
 
 	currentStart := p.current
 	p.match(tokens.Less)
@@ -306,7 +299,7 @@ func (p *Parser) tryIdentifiers() bool {
 
 func (p *Parser) peekTypeVariableDecl() bool {
 	currentStart := p.current
-	p.context.IgnoreAlerts.Push("PeekTypeVariableDecl", true)
+	p.context.ignoreAlerts.Push("PeekTypeVariableDecl", true)
 
 	valid := false
 
@@ -314,7 +307,7 @@ func (p *Parser) peekTypeVariableDecl() bool {
 	ok := p.tryIdentifiers()
 	valid = typeExpr.Name.GetType() != ast.NA && ok
 
-	p.context.IgnoreAlerts.Pop("PeekTypeVariableDecl")
+	p.context.ignoreAlerts.Pop("PeekTypeVariableDecl")
 	p.disadvance(p.current - currentStart)
 
 	return valid
@@ -323,11 +316,11 @@ func (p *Parser) peekTypeVariableDecl() bool {
 // Tells you whether the attempted parsed type is an actual TypeExpression (or Improper{Type:ast.TypeExpression}), in which case returning true, or Improper{Type:ast.NA}, in which case returning false
 func (p *Parser) checkType(context string) (*ast.TypeExpr, bool) {
 	currentStart := p.current
-	p.context.IgnoreAlerts.Push("CheckType", true)
+	p.context.ignoreAlerts.Push("CheckType", true)
 
 	typeExpr := p.typeExpr("")
 
-	p.context.IgnoreAlerts.Pop("CheckType")
+	p.context.ignoreAlerts.Pop("CheckType")
 	valid := typeExpr != nil && !ast.IsImproper(typeExpr.Name, ast.NA)
 	p.disadvance(p.current - currentStart)
 
@@ -371,10 +364,9 @@ func (p *Parser) body(allowSingleSatement, allowArrow bool) ([]ast.Node, bool) {
 	}
 	start := p.peek(-1)
 
-	p.context.BraceEntries.Push("Body", false)
-	defer func() {
-		p.context.BraceEntries.Pop("Body")
-	}()
+	p.context.braceCounter.Increment()
+	defer p.context.braceCounter.Decrement()
+
 	for p.consumeTill("in body", start, tokens.RightBrace) {
 		declaration := p.bodyNode(p.synchronizeBody)
 		if ast.IsImproperNotStatement(declaration) {
@@ -415,7 +407,7 @@ func (p *Parser) isCall(nodeType ast.NodeType) bool {
 }
 
 func (p *Parser) synchronizeBody() {
-	braceCount := p.context.BraceEntries.Count()
+	braceCount := p.context.braceCounter.Value()
 	expectedBlockCount := 0
 	for !p.isAtEnd() {
 		switch p.peek().Type {
@@ -474,15 +466,15 @@ func (p *Parser) synchronizeDeclBody() {
 		case tokens.Identifier:
 			current := p.current
 			p.advance()
-			p.context.IgnoreAlerts.Push("SynchronizeDeclBody", true)
+			p.context.ignoreAlerts.Push("SynchronizeDeclBody", true)
 			if _, ok := p.functionParams(tokens.LeftParen, tokens.RightParen); ok && p.check(tokens.LeftBrace) {
 				p.disadvance(p.current - current)
-				p.context.IgnoreAlerts.Pop("SynchronizeDeclBody")
+				p.context.ignoreAlerts.Pop("SynchronizeDeclBody")
 				return
 			}
 			p.disadvance(p.current - current)
 			node := p.variableDeclaration(false)
-			p.context.IgnoreAlerts.Pop("SynchronizeDeclBody")
+			p.context.ignoreAlerts.Pop("SynchronizeDeclBody")
 			if !ast.IsImproper(node, ast.NA) {
 				p.disadvance(p.current - current)
 				return
@@ -509,9 +501,9 @@ func (p *Parser) synchronizeMatchBody() {
 			expectedBlockCount--
 		default:
 			current := p.current
-			p.context.IgnoreAlerts.Push("SynchronizeMatchBody", true)
+			p.context.ignoreAlerts.Push("SynchronizeMatchBody", true)
 			_, ok := p.expressions("", false)
-			p.context.IgnoreAlerts.Pop("SynchronizeMatchBody")
+			p.context.ignoreAlerts.Pop("SynchronizeMatchBody")
 			if ok && p.check(tokens.FatArrow) {
 				p.disadvance(p.current - current)
 				return
