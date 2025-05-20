@@ -114,3 +114,16 @@ func (p *Parser) consume(alert alerts.Alert, types ...tokens.TokenType) (tokens.
 	p.AlertI(alert)
 	return p.peek(), false // error
 }
+
+// Consumes one of the tokens in the given list and advances if it matches.
+func (p *Parser) consumeSingle(alert alerts.Alert, context string, types ...tokens.TokenType) (tokens.Token, bool) {
+	if p.isAtEnd() {
+		p.Alert(alert, alerts.NewSingle(p.peek()), types[0], context)
+		return p.peek(), false // error
+	}
+	if slices.ContainsFunc(types, p.check) {
+		return p.advance(), true
+	}
+	p.Alert(alert, alerts.NewSingle(p.peek()), types[0], context)
+	return p.peek(), false // error
+}

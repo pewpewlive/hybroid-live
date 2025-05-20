@@ -37,15 +37,15 @@ func (p *Parser) fn() ast.Node {
 
 func (p *Parser) multiComparison() ast.Node {
 	expr := p.comparison()
+	if ast.IsImproper(expr, ast.NA) {
+		return expr
+	}
 
 	if p.isMultiComparison() {
 		operator := p.peek(-1)
-		if ast.IsImproper(expr, ast.NA) {
-			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), "as left value in binary expression")
-		}
 		right := p.multiComparison()
 		if ast.IsImproper(right, ast.NA) {
-			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), "as left value in binary expression")
+			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(right.GetToken()), "as right value in binary expression")
 		}
 		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: ast.Bool}
 	}
@@ -55,16 +55,15 @@ func (p *Parser) multiComparison() ast.Node {
 
 func (p *Parser) comparison() ast.Node {
 	expr := p.term()
+	if ast.IsImproper(expr, ast.NA) {
+		return expr
+	}
 
 	if p.isComparison() {
 		operator := p.peek(-1)
-
-		if ast.IsImproper(expr, ast.NA) {
-			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), "as left value in binary expression")
-		}
 		right := p.term()
 		if ast.IsImproper(right, ast.NA) {
-			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), "as left value in binary expression")
+			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(right.GetToken()), "as right value in binary expression")
 		}
 		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: ast.Bool}
 	}
@@ -85,12 +84,11 @@ func (p *Parser) determineValueType(left ast.Node, right ast.Node) ast.Primitive
 
 func (p *Parser) term() ast.Node {
 	expr := p.factor()
-
+	if ast.IsImproper(expr, ast.NA) {
+		return expr
+	}
 	if p.match(tokens.Plus, tokens.Minus) {
 		operator := p.peek(-1)
-		if ast.IsImproper(expr, ast.NA) {
-			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), "as left value in binary expression")
-		}
 		right := p.term()
 		if ast.IsImproper(right, ast.NA) {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(right.GetToken()), "as right value in binary expression")
@@ -103,12 +101,12 @@ func (p *Parser) term() ast.Node {
 
 func (p *Parser) factor() ast.Node {
 	expr := p.concat()
+	if ast.IsImproper(expr, ast.NA) {
+		return expr
+	}
 
 	if p.match(tokens.Star, tokens.Slash, tokens.Caret, tokens.Modulo, tokens.BackSlash) {
 		operator := p.peek(-1)
-		if ast.IsImproper(expr, ast.NA) {
-			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), "as left value in binary expression")
-		}
 		right := p.factor()
 		if ast.IsImproper(right, ast.NA) {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(right.GetToken()), "as right value in binary expression")
@@ -121,12 +119,12 @@ func (p *Parser) factor() ast.Node {
 
 func (p *Parser) concat() ast.Node {
 	expr := p.unary()
+	if ast.IsImproper(expr, ast.NA) {
+		return expr
+	}
 
 	if p.match(tokens.Concat) {
 		operator := p.peek(-1)
-		if ast.IsImproper(expr, ast.NA) {
-			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), "as left value in concat expression")
-		}
 		right := p.concat()
 		if ast.IsImproper(right, ast.NA) {
 			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(right.GetToken()), "as right value in concat expression")
@@ -325,7 +323,15 @@ func (p *Parser) accessorExpr(ident *ast.Node) (ast.Node, *ast.IdentifierExpr) {
 
 func (p *Parser) matchExpr() ast.Node {
 	if p.match(tokens.Match) {
-		return &ast.MatchExpr{MatchStmt: *p.matchStmt(true)}
+		start := p.peek(-1)
+		node := p.matchStmt(true)
+		if ast.IsImproper(node, ast.NA) {
+			return node
+		}
+		if node.GetType() == ast.NA {
+			return ast.NewImproper(start, ast.MatchExpression)
+		}
+		return &ast.MatchExpr{MatchStmt: *node.(*ast.MatchStmt)}
 	}
 
 	return p.macroCall()
@@ -526,7 +532,10 @@ func (p *Parser) parseMap() ast.Node {
 		return mapExpr
 	}
 
-	p.context.BraceEntries.Push("Brace", true)
+	p.context.BraceEntries.Push("Map", true)
+	defer func() {
+		p.context.BraceEntries.Pop("Map")
+	}()
 
 	key, value, ok := p.keyValuePair("map key")
 	if !ok {
@@ -542,7 +551,6 @@ func (p *Parser) parseMap() ast.Node {
 		mapExpr.KeyValueList = append(mapExpr.KeyValueList, ast.Property{Key: key, Expr: value, Type: value.GetValueType()})
 	}
 	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(mapExpr.Token, p.peek()), tokens.RightBrace, "in map expression"), tokens.RightBrace)
-	p.context.BraceEntries.Pop("Brace")
 
 	return mapExpr
 }
@@ -560,7 +568,10 @@ func (p *Parser) structExpr() ast.Node {
 	if p.match(tokens.RightBrace) {
 		return &structExpr
 	}
-	p.context.BraceEntries.Push("Brace", true)
+	p.context.BraceEntries.Push("Struct", true)
+	defer func() {
+		p.context.BraceEntries.Pop("Struct")
+	}()
 
 	field, value, ok := p.keyValuePair("struct field")
 	if !ok {
@@ -588,7 +599,6 @@ func (p *Parser) structExpr() ast.Node {
 	}
 
 	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek()), tokens.RightBrace), tokens.RightBrace)
-	p.context.BraceEntries.Pop("Brace")
 
 	return &structExpr
 }

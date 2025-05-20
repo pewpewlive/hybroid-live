@@ -21,7 +21,6 @@ type ParserContext struct {
 	IsPub          bool
 	IgnoreAlerts   helpers.Stack[bool]
 	BraceEntries   helpers.Stack[bool]
-	BodyEntries    helpers.Stack[bool]
 }
 
 func NewParser(tokens []tokens.Token) Parser {
@@ -33,7 +32,6 @@ func NewParser(tokens []tokens.Token) Parser {
 			EnvDeclaration: nil,
 			IgnoreAlerts:   helpers.NewStack[bool]("IgnoreAlerts"),
 			BraceEntries:   helpers.NewStack[bool]("BraceEntries"),
-			BodyEntries:    helpers.NewStack[bool]("BodyEntries"),
 		},
 		Collector: alerts.NewCollector(),
 	}
@@ -63,7 +61,7 @@ func (p *Parser) AlertI(alert alerts.Alert) {
 
 func (p *Parser) Parse() []ast.Node {
 	for !p.isAtEnd() {
-		declaration := p.declaration()
+		declaration := p.bodyNode(p.synchronizeBody)
 		if declaration == nil {
 			continue
 		}

@@ -177,6 +177,7 @@ type FunctionParam struct {
 }
 
 type FunctionDecl struct {
+	Token    tokens.Token
 	Name     tokens.Token
 	IsPub    bool
 	Generics []*IdentifierExpr
@@ -190,7 +191,7 @@ func (fd *FunctionDecl) GetType() NodeType {
 }
 
 func (fd *FunctionDecl) GetToken() tokens.Token {
-	return fd.Name
+	return fd.Token
 }
 
 func (fd *FunctionDecl) GetValueType() PrimitiveValueType {

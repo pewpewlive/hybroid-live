@@ -76,27 +76,30 @@ func (p *Parser) functionParams(opening tokens.TokenType, closing tokens.TokenTy
 	return args, success
 }
 
-func (p *Parser) genericParams() []*ast.IdentifierExpr {
+func (p *Parser) genericParams() ([]*ast.IdentifierExpr, bool) {
 	params := []*ast.IdentifierExpr{}
 	if !p.match(tokens.Less) {
-		return params
+		return params, true
 	}
 
 	token, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in generic parameters"), tokens.Identifier)
+	success := ok
 	if ok {
 		params = append(params, &ast.IdentifierExpr{Name: token, ValueType: ast.Invalid})
 	}
 
 	for p.match(tokens.Comma) {
 		token, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in generic parameters"), tokens.Identifier)
+		success = success && ok
 		if ok {
 			params = append(params, &ast.IdentifierExpr{Name: token, ValueType: ast.Invalid})
 		}
 	}
 
-	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Greater, "in generic parameters"), tokens.Greater)
+	_, ok = p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Greater, "in generic parameters"), tokens.Greater)
+	success = success && ok
 
-	return params
+	return params, success
 }
 
 // Prerequisite of calling this function is that you checked on peek and it was tokens.Less
@@ -337,6 +340,9 @@ func (p *Parser) checkType(context string) (*ast.TypeExpr, bool) {
 
 // Bool indicates whether it got a valid body or not; the success of the function
 func (p *Parser) body(allowSingleSatement, allowArrow bool) ([]ast.Node, bool) {
+	if !p.check(tokens.LeftBrace) && p.peek(1).Type == tokens.LeftBrace {
+		p.advance()
+	}
 	body := make([]ast.Node, 0)
 	if p.match(tokens.FatArrow) && allowArrow {
 		args, ok := p.expressions("in fat arrow return arguments", false)
@@ -352,7 +358,12 @@ func (p *Parser) body(allowSingleSatement, allowArrow bool) ([]ast.Node, bool) {
 		}
 		return body, true
 	} else if !p.check(tokens.LeftBrace) && allowSingleSatement {
-		body = []ast.Node{p.statement()}
+		stmt := p.bodyNode(p.synchronizeBody)
+		if ast.IsImproperNotStatement(stmt) {
+			p.Alert(&alerts.UnknownStatement{}, alerts.NewSingle(stmt.GetToken()))
+			return body, false
+		}
+		body = []ast.Node{stmt}
 		return body, true
 	}
 	if _, success := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace); !success {
@@ -360,16 +371,18 @@ func (p *Parser) body(allowSingleSatement, allowArrow bool) ([]ast.Node, bool) {
 	}
 	start := p.peek(-1)
 
-	p.context.BodyEntries.Push("Body", false)
+	p.context.BraceEntries.Push("Body", false)
+	defer func() {
+		p.context.BraceEntries.Pop("Body")
+	}()
 	for p.consumeTill("in body", start, tokens.RightBrace) {
-		declaration := p.declaration()
+		declaration := p.bodyNode(p.synchronizeBody)
 		if ast.IsImproperNotStatement(declaration) {
 			p.Alert(&alerts.UnknownStatement{}, alerts.NewSingle(declaration.GetToken()))
 			continue
 		}
 		body = append(body, declaration)
 	}
-	p.context.BodyEntries.Pop("Body")
 
 	return body, true
 }
@@ -401,8 +414,8 @@ func (p *Parser) isCall(nodeType ast.NodeType) bool {
 		nodeType == ast.SpawnExpression
 }
 
-func (p *Parser) synchronize() {
-	bodyCount := p.context.BodyEntries.Count()
+func (p *Parser) synchronizeBody() {
+	braceCount := p.context.BraceEntries.Count()
 	expectedBlockCount := 0
 	for !p.isAtEnd() {
 		switch p.peek().Type {
@@ -416,12 +429,7 @@ func (p *Parser) synchronize() {
 			expectedBlockCount++
 		case tokens.RightBrace:
 			if expectedBlockCount == 0 {
-				if p.context.BraceEntries.Count() != 0 {
-					p.context.BraceEntries.Pop("Brace")
-					p.advance()
-					continue
-				}
-				if bodyCount == 0 {
+				if braceCount == 0 {
 					p.advance()
 					continue
 				}
@@ -435,6 +443,80 @@ func (p *Parser) synchronize() {
 			}
 		case tokens.Let, tokens.Pub, tokens.Const, tokens.Class, tokens.Alias:
 			return
+		}
+
+		p.advance()
+	}
+}
+
+func (p *Parser) synchronizeDeclBody() {
+	expectedBlockCount := 0
+	for !p.isAtEnd() {
+		switch p.peek().Type {
+		case tokens.Fn:
+			p.advance()
+			if p.peek().Type != tokens.LeftParen {
+				p.disadvance()
+				return
+			}
+		case tokens.LeftBrace:
+			expectedBlockCount++
+		case tokens.RightBrace:
+			if expectedBlockCount == 0 {
+				return
+			}
+
+			expectedBlockCount--
+		case tokens.Entity:
+			if p.peek(1).Type == tokens.Identifier && p.peek(2).Type == tokens.LeftBrace {
+				return
+			}
+		case tokens.Identifier:
+			current := p.current
+			p.advance()
+			p.context.IgnoreAlerts.Push("SynchronizeDeclBody", true)
+			if _, ok := p.functionParams(tokens.LeftParen, tokens.RightParen); ok && p.check(tokens.LeftBrace) {
+				p.disadvance(p.current - current)
+				p.context.IgnoreAlerts.Pop("SynchronizeDeclBody")
+				return
+			}
+			p.disadvance(p.current - current)
+			node := p.variableDeclaration(false)
+			p.context.IgnoreAlerts.Pop("SynchronizeDeclBody")
+			if !ast.IsImproper(node, ast.NA) {
+				p.disadvance(p.current - current)
+				return
+			}
+		case tokens.Let, tokens.Pub, tokens.Const, tokens.Class, tokens.Alias, tokens.New, tokens.Spawn, tokens.Destroy:
+			return
+		}
+
+		p.advance()
+	}
+}
+
+func (p *Parser) synchronizeMatchBody() {
+	expectedBlockCount := 0
+	for !p.isAtEnd() {
+		switch p.peek().Type {
+		case tokens.LeftBrace:
+			expectedBlockCount++
+		case tokens.RightBrace:
+			if expectedBlockCount == 0 {
+				return
+			}
+
+			expectedBlockCount--
+		default:
+			current := p.current
+			p.context.IgnoreAlerts.Push("SynchronizeMatchBody", true)
+			_, ok := p.expressions("", false)
+			p.context.IgnoreAlerts.Pop("SynchronizeMatchBody")
+			if ok && p.check(tokens.FatArrow) {
+				p.disadvance(p.current - current)
+				return
+			}
+			p.disadvance(p.current - current)
 		}
 
 		p.advance()
