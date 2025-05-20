@@ -117,11 +117,6 @@
     "message": "invalid expression to call"
   },
   {
-    "name": "InvalidEnvironmentType",
-    "type": "Error",
-    "message": "expected 'Level', 'Mesh' or 'Sound' as environment type"
-  },
-  {
     "name": "ExpectedCallAfterMacroSymbol",
     "type": "Error",
     "message": "expected a macro call after '@'"
@@ -229,6 +224,12 @@
       "AllowsNextLine": "bool"
     },
     "message": "'%s' needs to start in the same%s line as '%s'",
-    "message_format":["ParsedSection", { "AllowsNextLine":"func(cond bool, str string) string {{ if !cond {{ return \"\" }}; return str }}({}, \" or next\")"}, "PreviousSection"]
+    "message_format": [
+      "ParsedSection",
+      {
+        "AllowsNextLine": "func(cond bool, str string) string {{ if !cond {{ return \"\" }}; return str }}({}, \" or next\")"
+      },
+      "PreviousSection"
+    ]
   }
 ]

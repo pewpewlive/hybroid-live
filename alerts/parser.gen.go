@@ -442,31 +442,6 @@ func (ic *InvalidCall) GetAlertType() Type {
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type InvalidEnvironmentType struct {
-  Specifier Snippet
-}
-
-func (iet *InvalidEnvironmentType) GetMessage() string {
-  return "expected 'Level', 'Mesh' or 'Sound' as environment type"
-}
-
-func (iet *InvalidEnvironmentType) GetSpecifier() Snippet {
-  return iet.Specifier
-}
-
-func (iet *InvalidEnvironmentType) GetNote() string {
-  return ""
-}
-
-func (iet *InvalidEnvironmentType) GetID() string {
-  return "hyb018P"
-}
-
-func (iet *InvalidEnvironmentType) GetAlertType() Type {
-  return Error
-}
-
-// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ExpectedCallAfterMacroSymbol struct {
   Specifier Snippet
 }
@@ -484,7 +459,7 @@ func (ecams *ExpectedCallAfterMacroSymbol) GetNote() string {
 }
 
 func (ecams *ExpectedCallAfterMacroSymbol) GetID() string {
-  return "hyb019P"
+  return "hyb018P"
 }
 
 func (ecams *ExpectedCallAfterMacroSymbol) GetAlertType() Type {
@@ -509,7 +484,7 @@ func (efd *ExpectedFieldDeclaration) GetNote() string {
 }
 
 func (efd *ExpectedFieldDeclaration) GetID() string {
-  return "hyb020P"
+  return "hyb019P"
 }
 
 func (efd *ExpectedFieldDeclaration) GetAlertType() Type {
@@ -534,7 +509,7 @@ func (ewt *EmptyWrappedType) GetNote() string {
 }
 
 func (ewt *EmptyWrappedType) GetID() string {
-  return "hyb021P"
+  return "hyb020P"
 }
 
 func (ewt *EmptyWrappedType) GetAlertType() Type {
@@ -559,7 +534,7 @@ func (era *ExpectedReturnArgs) GetNote() string {
 }
 
 func (era *ExpectedReturnArgs) GetID() string {
-  return "hyb022P"
+  return "hyb021P"
 }
 
 func (era *ExpectedReturnArgs) GetAlertType() Type {
@@ -584,7 +559,7 @@ func (eae *ExpectedAccessExpression) GetNote() string {
 }
 
 func (eae *ExpectedAccessExpression) GetID() string {
-  return "hyb023P"
+  return "hyb022P"
 }
 
 func (eae *ExpectedAccessExpression) GetAlertType() Type {
@@ -610,7 +585,7 @@ func (mi *MissingIterator) GetNote() string {
 }
 
 func (mi *MissingIterator) GetID() string {
-  return "hyb024P"
+  return "hyb023P"
 }
 
 func (mi *MissingIterator) GetAlertType() Type {
@@ -636,7 +611,7 @@ func (dk *DuplicateKeyword) GetNote() string {
 }
 
 func (dk *DuplicateKeyword) GetID() string {
-  return "hyb025P"
+  return "hyb024P"
 }
 
 func (dk *DuplicateKeyword) GetAlertType() Type {
@@ -663,7 +638,7 @@ func (uk *UnexpectedKeyword) GetNote() string {
 }
 
 func (uk *UnexpectedKeyword) GetID() string {
-  return "hyb026P"
+  return "hyb025P"
 }
 
 func (uk *UnexpectedKeyword) GetAlertType() Type {
@@ -689,7 +664,7 @@ func (ir *IteratorRedefinition) GetNote() string {
 }
 
 func (ir *IteratorRedefinition) GetID() string {
-  return "hyb027P"
+  return "hyb026P"
 }
 
 func (ir *IteratorRedefinition) GetAlertType() Type {
@@ -714,7 +689,7 @@ func (eibaeb *ElseIfBlockAfterElseBlock) GetNote() string {
 }
 
 func (eibaeb *ElseIfBlockAfterElseBlock) GetID() string {
-  return "hyb028P"
+  return "hyb027P"
 }
 
 func (eibaeb *ElseIfBlockAfterElseBlock) GetAlertType() Type {
@@ -739,7 +714,7 @@ func (mtodc *MoreThanOneDefaultCase) GetNote() string {
 }
 
 func (mtodc *MoreThanOneDefaultCase) GetID() string {
-  return "hyb029P"
+  return "hyb028P"
 }
 
 func (mtodc *MoreThanOneDefaultCase) GetAlertType() Type {
@@ -764,7 +739,7 @@ func (ic *InsufficientCases) GetNote() string {
 }
 
 func (ic *InsufficientCases) GetID() string {
-  return "hyb030P"
+  return "hyb029P"
 }
 
 func (ic *InsufficientCases) GetAlertType() Type {
@@ -789,7 +764,7 @@ func (dcm *DefaultCaseMissing) GetNote() string {
 }
 
 func (dcm *DefaultCaseMissing) GetID() string {
-  return "hyb031P"
+  return "hyb030P"
 }
 
 func (dcm *DefaultCaseMissing) GetAlertType() Type {
@@ -814,7 +789,7 @@ func (ievn *InvalidEnumVariantName) GetNote() string {
 }
 
 func (ievn *InvalidEnumVariantName) GetID() string {
-  return "hyb032P"
+  return "hyb031P"
 }
 
 func (ievn *InvalidEnumVariantName) GetAlertType() Type {
@@ -841,7 +816,7 @@ func (ie *InvalidExpression) GetNote() string {
 }
 
 func (ie *InvalidExpression) GetID() string {
-  return "hyb033P"
+  return "hyb032P"
 }
 
 func (ie *InvalidExpression) GetAlertType() Type {
@@ -869,7 +844,7 @@ func (si *SyntaxIncoherency) GetNote() string {
 }
 
 func (si *SyntaxIncoherency) GetID() string {
-  return "hyb034P"
+  return "hyb033P"
 }
 
 func (si *SyntaxIncoherency) GetAlertType() Type {

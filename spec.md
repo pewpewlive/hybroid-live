@@ -51,8 +51,6 @@ The following environments are available:
   - When choosing this environment, all of the standard libraries that are enabled globally in PPL are available (exceptions being `coroutine`, `io`, `os`, etc.)
 - `Sound` - for working with sounds
   - Same as `Mesh`
-- `Shared` - for creating constant files referenced in multiple environments
-  - When choosing this environment, `math` is disabled to work with `Level`, libraries open to `Level` are available
 
 ## Declaration of variables
 

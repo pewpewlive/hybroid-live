@@ -351,7 +351,7 @@ func (p *Parser) body(allowSingleSatement, allowArrow bool) ([]ast.Node, bool) {
 		}
 		return body, true
 	} else if !p.check(tokens.LeftBrace) && allowSingleSatement {
-		stmt := p.bodyNode(p.synchronizeBody)
+		stmt := p.parseNode(p.synchronizeBody)
 		if ast.IsImproperNotStatement(stmt) {
 			p.Alert(&alerts.UnknownStatement{}, alerts.NewSingle(stmt.GetToken()))
 			return body, false
@@ -368,7 +368,7 @@ func (p *Parser) body(allowSingleSatement, allowArrow bool) ([]ast.Node, bool) {
 	defer p.context.braceCounter.Decrement()
 
 	for p.consumeTill("in body", start, tokens.RightBrace) {
-		declaration := p.bodyNode(p.synchronizeBody)
+		declaration := p.parseNode(p.synchronizeBody)
 		if ast.IsImproperNotStatement(declaration) {
 			p.Alert(&alerts.UnknownStatement{}, alerts.NewSingle(declaration.GetToken()))
 			continue

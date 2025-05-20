@@ -6,149 +6,7 @@ import (
 	"hybroid/tokens"
 )
 
-/*
-declarations:
-
-declaration     → classDecl
-				| entityDecl
-				| funDecl
-				| varDecl
-				| statement ;
-
-classDecl       → "class" IDENTIFIER ( "<" IDENTIFIER )?
-				  "{" function* "}" ;
-
-funDecl        → "fun" function ;
-varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
-*/
-
-/*
-statements:
-
-statement      → exprStmt
-
-	| forStmt
-	| ifStmt
-	| printStmt
-	| returnStmt
-	| whileStmt
-	| block ;
-
-exprStmt       → expression ";" ;
-forStmt        → "for" "(" ( varDecl | exprStmt | ";" )
-
-	expression? ";"
-	expression? ")" statement ;
-
-ifStmt         → "if" "(" expression ")" statement
-
-	( "else" statement )? ;
-
-printStmt      → "print" expression ";" ;
-returnStmt     → "return" expression? ";" ;
-whileStmt      → "while" "(" expression ")" statement ;
-assignmentStmt → ( call "." )? IDENTIFIER "="
-
-block          → "{" declaration* "}" ;
-
-expressions:
-
-expression     → logic_or ;
-
-logic_or       → logic_and ( "or" logic_and )* ;
-logic_and      → equality ( "and" equality )* ;
-equality       → comparison ( ( "!=" | "==" ) comparison )* ;
-comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
-term           → factor ( ( "-" | "+" ) factor )* ;
-factor         → unary ( ( "/" | "*" ) unary )* ;
-
-unary          → ( "!" | "-" ) unary | call ;
-call           → primary ( "(" arguments? ")" | "." IDENTIFIER )* ;
-primary        → "true" | "false" | "nil" | "this"
-
-	| NUMBER | STRING | IDENTIFIER | "(" expression ")"
-	| "super" "." IDENTIFIER ;
-
-utility:
-
-function       → IDENTIFIER "(" parameters? ")" block ;
-parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
-arguments      → expression ( "," expression )* ;
-*/
-
-func (p *Parser) bodyNode(syncFunc func()) (returnNode ast.Node) {
-	returnNode = ast.NewImproper(p.peek(), ast.NA)
-	p.context.IsPub = false
-
-	defer func() {
-		p.context.IsPub = false
-		if returnNode.GetType() == ast.NA {
-			syncFunc()
-		}
-	}()
-
-	if p.match(tokens.Env) {
-		returnNode = p.environmentDeclaration()
-		return
-	}
-
-	if p.match(tokens.Pub) {
-		p.context.IsPub = true
-	}
-
-	if p.peek().Type == tokens.Entity && p.peek(1).Type == tokens.Identifier && p.peek(2).Type == tokens.LeftBrace {
-		p.advance()
-		returnNode = p.entityDeclaration()
-		return
-	}
-
-	current := p.current
-	p.context.IgnoreAlerts.Push("VariableDeclaration", true)
-	node := p.variableDeclaration(false)
-	p.context.IgnoreAlerts.Pop("VariableDeclaration")
-	p.disadvance(p.current - current)
-	if !ast.IsImproper(node, ast.NA) {
-		returnNode = p.variableDeclaration(false)
-		return
-	}
-
-	switch {
-	case p.match(tokens.Let) || p.match(tokens.Const):
-		returnNode = p.variableDeclaration(true)
-	case p.match(tokens.Fn):
-		returnNode = p.functionDeclaration()
-	case p.match(tokens.Enum):
-		returnNode = p.enumDeclaration()
-	case p.match(tokens.Class):
-		returnNode = p.classDeclaration()
-	case p.match(tokens.Alias):
-		returnNode = p.aliasDeclaration()
-	default:
-		if p.context.IsPub {
-			p.Alert(&alerts.UnexpectedKeyword{}, alerts.NewSingle(p.peek(-1)), tokens.Pub, "before statement")
-			p.context.IsPub = false
-		}
-
-		returnNode = p.statement()
-	}
-
-	p.context.IsPub = false
-
-	if ast.IsImproper(returnNode, ast.NA) {
-		current := p.current
-		p.context.IgnoreAlerts.Push("ExpressionStatement", true)
-		node := p.expressionStatement()
-		p.context.IgnoreAlerts.Pop("ExpressionStatement")
-		p.disadvance(p.current - current)
-		if !ast.IsImproper(node, ast.NA) {
-			returnNode = p.expressionStatement()
-		}
-	}
-
-	return
-}
-
-func (p *Parser) declBodyNode() ast.Node {
+func (p *Parser) auxiliaryNode() ast.Node {
 	if p.match(tokens.Fn) {
 		fnDec := p.functionDeclaration()
 
@@ -210,8 +68,8 @@ func (p *Parser) declBodyNode() ast.Node {
 		return entityFunction
 	}
 
-	// No auxiliary declaration found, try normal declaration anyway
-	return p.bodyNode(p.synchronizeDeclBody)
+	// No auxiliary node found, try parsing a node instead (for error handling)
+	return p.parseNode(p.synchronizeDeclBody)
 }
 
 func (p *Parser) environmentDeclaration() ast.Node {
@@ -413,7 +271,7 @@ func (p *Parser) classDeclaration() ast.Node {
 	start := p.peek(-1)
 	stmt.Methods = []ast.MethodDecl{}
 	for p.consumeTill("in class declaration", start, tokens.RightBrace) {
-		auxiliaryDeclaration := p.declBodyNode()
+		auxiliaryDeclaration := p.auxiliaryNode()
 		switch declaration := auxiliaryDeclaration.(type) {
 		case *ast.ConstructorDecl:
 			if stmt.Constructor != nil {
@@ -454,7 +312,7 @@ func (p *Parser) entityDeclaration() ast.Node {
 
 	start := p.peek(-1)
 	for p.consumeTill("in entity declaration", start, tokens.RightBrace) {
-		auxiliaryDeclaration := p.declBodyNode()
+		auxiliaryDeclaration := p.auxiliaryNode()
 		if auxiliaryDeclaration.GetType() == ast.FieldDeclaration {
 			stmt.Fields = append(stmt.Fields, *auxiliaryDeclaration.(*ast.FieldDecl))
 			continue

@@ -59,19 +59,91 @@ func (p *Parser) AlertI(alert alerts.Alert) {
 
 func (p *Parser) Parse() []ast.Node {
 	for !p.isAtEnd() {
-		declaration := p.bodyNode(p.synchronizeBody)
-		if declaration == nil {
+		node := p.parseNode(p.synchronizeBody)
+		if node == nil {
 			continue
 		}
-		if ast.IsImproperNotStatement(declaration) {
-			p.Alert(&alerts.UnknownStatement{}, alerts.NewSingle(declaration.GetToken()))
+		if ast.IsImproperNotStatement(node) {
+			p.Alert(&alerts.UnknownStatement{}, alerts.NewSingle(node.GetToken()))
 			continue
 		}
-		if declaration.GetType() != ast.NA {
-			p.program = append(p.program, declaration)
+		if node.GetType() != ast.NA {
+			p.program = append(p.program, node)
 			continue
 		}
 	}
 
 	return p.program
+}
+
+func (p *Parser) parseNode(syncFunc func()) (returnNode ast.Node) {
+	returnNode = ast.NewImproper(p.peek(), ast.NA)
+	p.context.isPub = false
+
+	defer func() {
+		p.context.isPub = false
+		if returnNode.GetType() == ast.NA {
+			syncFunc()
+		}
+	}()
+
+	if p.match(tokens.Env) {
+		returnNode = p.environmentDeclaration()
+		return
+	}
+
+	if p.match(tokens.Pub) {
+		p.context.isPub = true
+	}
+
+	if p.peek().Type == tokens.Entity && p.peek(1).Type == tokens.Identifier && p.peek(2).Type == tokens.LeftBrace {
+		p.advance()
+		returnNode = p.entityDeclaration()
+		return
+	}
+
+	current := p.current
+	p.context.ignoreAlerts.Push("VariableDeclaration", true)
+	node := p.variableDeclaration(false)
+	p.context.ignoreAlerts.Pop("VariableDeclaration")
+	p.disadvance(p.current - current)
+	if !ast.IsImproper(node, ast.NA) {
+		returnNode = p.variableDeclaration(false)
+		return
+	}
+
+	switch {
+	case p.match(tokens.Let) || p.match(tokens.Const):
+		returnNode = p.variableDeclaration(true)
+	case p.match(tokens.Fn):
+		returnNode = p.functionDeclaration()
+	case p.match(tokens.Enum):
+		returnNode = p.enumDeclaration()
+	case p.match(tokens.Class):
+		returnNode = p.classDeclaration()
+	case p.match(tokens.Alias):
+		returnNode = p.aliasDeclaration()
+	default:
+		if p.context.isPub {
+			p.Alert(&alerts.UnexpectedKeyword{}, alerts.NewSingle(p.peek(-1)), tokens.Pub, "before statement")
+			p.context.isPub = false
+		}
+
+		returnNode = p.statement()
+	}
+
+	p.context.isPub = false
+
+	if ast.IsImproper(returnNode, ast.NA) {
+		current := p.current
+		p.context.ignoreAlerts.Push("ExpressionStatement", true)
+		node := p.expressionStatement()
+		p.context.ignoreAlerts.Pop("ExpressionStatement")
+		p.disadvance(p.current - current)
+		if !ast.IsImproper(node, ast.NA) {
+			returnNode = p.expressionStatement()
+		}
+	}
+
+	return
 }
