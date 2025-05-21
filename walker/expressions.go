@@ -1,6 +1,7 @@
 package walker
 
 import (
+	"hybroid/alerts"
 	"hybroid/ast"
 	"hybroid/generator"
 	"hybroid/tokens"
@@ -167,46 +168,40 @@ func (w *Walker) LiteralExpr(node *ast.LiteralExpr) Value {
 		return &BoolVal{}
 	case ast.Number:
 		return &NumberVal{}
-	case ast.Entity:
-		return &RawEntityVal{}
 	default:
 		return &Invalid{}
 	}
 }
 
-func ConvertNodeToFieldExpr(ident ast.Node, index int, exprType ast.SelfExprType, envName string, entityName string) *ast.FieldExpr {
+func ConvertNodeToAccessFieldExpr(ident ast.Node, index int, exprType ast.SelfExprType, envName string, entityName string) *ast.AccessExpr {
 	fieldExpr := &ast.FieldExpr{
-		Index: index,
-		Identifier: &ast.SelfExpr{
-			Token: ident.GetToken(),
-			Type:  exprType,
-		},
+		Index:      index,
+		Field:      ident,
 		ExprType:   exprType,
 		EnvName:    envName,
 		EntityName: entityName,
 	}
 
-	fieldExpr.Property = ident
-	if access, ok := ident.(ast.Accessor); ok {
-		fieldExpr.PropertyIdentifier = access.GetIdentifier()
-	} else {
-		fieldExpr.PropertyIdentifier = &ast.IdentifierExpr{Name: ident.GetToken()}
+	return &ast.AccessExpr{
+		Start: &ast.SelfExpr{
+			Token: ident.GetToken(),
+			Type:  exprType,
+		},
+		Accessed: []ast.Node{
+			fieldExpr,
+		},
 	}
-
-	return fieldExpr
 }
 
 func ConvertCallToMethodCall(call *ast.CallExpr, exprType ast.SelfExprType, envName string, name string) *ast.MethodCallExpr {
 	copy := *call
 	return &ast.MethodCallExpr{
-		EnvName:  envName,
-		TypeName: name,
-		ExprType: exprType,
-		Identifier: &ast.SelfExpr{
-			EntityName: name,
-			Type:       exprType,
-		},
-		Call:       &copy,
+		EnvName:    envName,
+		TypeName:   name,
+		ExprType:   exprType,
+		Caller:     copy.Caller,
+		Generics:   copy.GenericArgs,
+		Args:       copy.Args,
 		MethodName: call.Caller.GetToken().Lexeme,
 	}
 }
@@ -235,13 +230,9 @@ func (w *Walker) IdentifierExpr(node *ast.Node, scope *Scope) Value {
 
 	if sc.Tag.GetType() == Struct {
 		class := sc.Tag.(*ClassTag).Val
-		if variable.Value.GetType().GetType() == Fn {
-			w.context.Value2 = class
-			return variable
-		}
 		field, index, found := class.ContainsField(variable.Name)
 
-		*node = ConvertNodeToFieldExpr(ident, index, ast.SelfStruct, class.Type.EnvName, "")
+		*node = ConvertNodeToAccessFieldExpr(ident, index, ast.SelfStruct, class.Type.EnvName, "")
 
 		if found {
 			return field
@@ -252,13 +243,9 @@ func (w *Walker) IdentifierExpr(node *ast.Node, scope *Scope) Value {
 		}
 	} else if sc.Tag.GetType() == Entity {
 		entity := sc.Tag.(*EntityTag).EntityType
-		if variable.Value.GetType().GetType() == Fn {
-			w.context.Value2 = entity
-			return variable
-		}
 		field, index, found := entity.ContainsField(variable.Name)
 
-		*node = ConvertNodeToFieldExpr(ident, index, ast.SelfEntity, entity.Type.EnvName, entity.Type.Name)
+		*node = ConvertNodeToAccessFieldExpr(ident, index, ast.SelfEntity, entity.Type.EnvName, entity.Type.Name)
 
 		if found {
 			return field
@@ -355,23 +342,23 @@ func (w *Walker) EnvAccessExpr(node *ast.EnvAccessExpr) (Value, ast.Node) {
 		// w.Error(node.GetToken(), "cannot access self")
 		return &Invalid{}, nil
 	} else if walker.environment.luaPath == "/dynamic/level.lua" {
-		if !walker.Walked {
+		if !walker.walked {
 			walker.Action(w.walkers)
 		}
 		value := w.GetNodeValue(&node.Accessed, &walker.environment.Scope)
 		return value, nil
 	}
 
-	for _, v := range walker.environment.EnvStmt.Requirements {
+	for _, v := range walker.environment.Requirements() {
 		if v == w.environment.luaPath {
 			// w.Error(node.GetToken(), fmt.Sprintf("import cycle detected: this environment and '%s' are using each other", walker.Environment.Name))
 			return &Invalid{}, nil
 		}
 	}
 
-	walker.environment.EnvStmt.AddRequirement(walker.environment.luaPath)
+	walker.environment.AddRequirement(walker.environment.luaPath)
 
-	if !walker.Walked {
+	if !walker.walked {
 		walker.Action(w.walkers)
 	}
 
@@ -397,68 +384,23 @@ func (w *Walker) ListExpr(node *ast.ListExpr, scope *Scope) Value {
 	return &value
 }
 
-func (w *Walker) CallExpr(val Value, node *ast.CallExpr, scope *Scope) (Value, ast.Node) {
+// Before calling it is assumed that the value of the caller is already gotten
+func (w *Walker) CallExpr(val Value, node *ast.Node, scope *Scope) Value {
+	call := (*node).(*ast.CallExpr)
+
 	valType := val.GetType().PVT()
 	if valType != ast.Func {
-		// w.Error(node.Caller.GetToken(), "caller is not a function")
-		return &Invalid{}, node
+		w.AlertSingle(&alerts.InvalidCallerType{}, call.GetToken(), string(valType))
+		return &Invalid{}
 	}
 
-	var finalNode ast.Node
-	finalNode = node
+	fn := val.(*FunctionVal)
 
-	if entity, ok := w.context.Value2.(*EntityVal); ok {
-		caller := node.Caller.GetToken().Lexeme
-		_, contains := entity.ContainsMethod(caller)
-		if !contains {
-			_, index, _ := entity.ContainsField(caller)
-			finalNode = ConvertNodeToFieldExpr(node, index, ast.SelfEntity, entity.Type.EnvName, entity.Type.Name)
-			goto skip
-		}
-		finalNode = ConvertCallToMethodCall(node, ast.SelfEntity, entity.Type.EnvName, entity.Type.Name)
-		w.context.Value2 = &Unknown{}
-	} else if class, ok := w.context.Value2.(*ClassVal); ok {
-		caller := node.Caller.GetToken().Lexeme
-		_, contains := class.ContainsMethod(caller)
-		if !contains {
-			_, index, _ := class.ContainsField(caller)
-			finalNode = ConvertNodeToFieldExpr(node, index, ast.SelfStruct, class.Type.EnvName, class.Type.Name)
-			goto skip
-		}
-		finalNode = ConvertCallToMethodCall(node, ast.SelfStruct, class.Type.EnvName, class.Type.Name)
-		w.context.Value2 = &Unknown{}
+	if fn.ProcType == Method {
+		caller := call.Caller.(*ast.AccessExpr)
+
+		node = ConvertCallToMethodCall(call)
 	}
-
-skip:
-
-	variable, it_is := val.(*VariableVal)
-	if it_is {
-		val = variable.Value
-	}
-	fun, _ := val.(*FunctionVal)
-
-	suppliedGenerics := w.GetGenerics(node, node.GenericArgs, fun.Generics, scope)
-
-	args := []Type{}
-	for i := range node.Args {
-		args = append(args, w.GetNodeValue(&node.Args[i], scope).GetType())
-	}
-	w.ValidateArguments(suppliedGenerics, args, fun.Params, node.Caller.GetToken())
-
-	for i := range fun.Returns {
-		if fun.Returns[i].GetType() == Generic {
-			fun.Returns[i] = suppliedGenerics[fun.Returns[i].(*GenericType).Name]
-		}
-	}
-
-	node.ReturnAmount = len(fun.Returns)
-
-	if node.ReturnAmount == 1 {
-		return w.TypeToValue(fun.Returns[0]), finalNode
-	} else if node.ReturnAmount == 0 {
-		return &Invalid{}, finalNode
-	}
-	return &fun.Returns, finalNode
 }
 
 func (w *Walker) GetGenerics(node ast.Node, genericArgs []*ast.TypeExpr, expectedGenerics []*GenericType, scope *Scope) map[string]Type {
@@ -477,107 +419,110 @@ func (w *Walker) GetGenerics(node ast.Node, genericArgs []*ast.TypeExpr, expecte
 	return suppliedGenerics
 }
 
-// Writes to context
-func (w *Walker) FieldExpr(node *ast.FieldExpr, scope *Scope) Value {
-	if node.Identifier.GetToken().Lexeme == "converted" {
-		print("brekpoint")
-	}
-	var scopeable ScopeableValue
-	var val Value
-	if w.context.Node.GetType() != ast.NA {
-		val = w.context.Value
-	} else {
-		val = w.GetNodeValue(&node.Identifier, scope)
-	}
-	if variable, ok := val.(*VariableVal); ok {
-		val = variable.Value
-	}
-	if val.GetType().GetType() == Named && val.GetType().PVT() == ast.Entity {
-		node.ExprType = ast.SelfEntity
-		named := val.GetType().(*NamedType)
-		node.EntityName = named.Name
-		node.EnvName = named.EnvName
-	}
+// Rewrote
+func (w *Walker) AccessExpr(node *ast.AccessExpr, scope *Scope) Value {
+	val := w.GetNodeValue(&node.Start, scope)
 
-	if scpbl, ok := val.(ScopeableValue); ok {
-		scopeable = scpbl
-	} else {
-		// w.Error(node.Identifier.GetToken(), "variable is not of type class, struct, entity or enum")
-		return &Invalid{}
-	}
+	prevNode := node.Start
+	for i := range node.Accessed {
+		valPVT := val.GetType().PVT()
 
-	newScope := scopeable.Scopify(scope, node)
-	w.context.Value = val
-	w.context.Node = node
+		scopedVal, scopeable := val.(ScopeableValue)
 
-	propVal := w.GetNodeValue(&node.PropertyIdentifier, newScope)
-	if propVal.GetType().PVT() == ast.Invalid {
-		// ident := node.PropertyIdentifier.GetToken()
-		// w.Error(ident, fmt.Sprintf("'%s' doesn't exist", ident.Lexeme))
-	}
-	w.context.Value = propVal
-	w.context.Node = node.Property
-
-	defer w.context.Clear()
-	if node.Property.GetType() != ast.Identifier {
-		return w.GetNodeValue(&node.Property, newScope)
-	} // var1[1]["test"].method()
-	return propVal
-}
-
-// Writes to context
-func (w *Walker) MemberExpr(node *ast.MemberExpr, scope *Scope) Value {
-	var val Value
-	if w.context.Value.GetType().GetType() != NA {
-		val = w.context.Value
-	} else {
-		val = w.GetNodeValue(&node.Identifier, scope)
-	}
-	valType := val.GetType()
-	if valType.GetType() != Wrapper {
-		// token := w.Context.Node.GetToken()
-		// w.Error(token, fmt.Sprintf("%s is not a map nor a list (found %s)", token.Lexeme, valType.ToString()))
-		return &Invalid{}
-	}
-
-	propValPVT := w.GetNodeValue(&node.PropertyIdentifier, scope).GetType().PVT()
-	if valType.PVT() == ast.Map {
-		if propValPVT != ast.String {
-			// w.Error(node.Property.GetToken(), "expected string inside brackets for map accessing")
+		if valPVT != ast.List && valPVT != ast.Map && !scopeable {
+			w.AlertSingle(&alerts.InvalidAccessValue{}, node.GetToken(), string(valPVT))
+			return &Invalid{}
 		}
-	} else if valType.PVT() == ast.List {
-		if propValPVT != ast.Number {
-			// w.Error(node.Property.GetToken(), "expected number inside brackets for list accessing")
+		token := node.Accessed[i].GetToken()
+		exprType := node.Accessed[i].GetType()
+
+		// list and map error handling
+		if valPVT == ast.List || valPVT == ast.Map {
+			if exprType == ast.FieldExpression {
+				w.AlertSingle(&alerts.FieldAccessOnListOrMap{}, token,
+					prevNode.GetToken().Lexeme,
+					string(valPVT),
+				)
+				return &Invalid{}
+			}
+
+			member := node.Accessed[i].(*ast.MemberExpr).Member
+			memberVal := w.GetNodeValue(&member, scope)
+			if (memberVal.GetType().PVT() != ast.Number && valPVT == ast.List) ||
+				(memberVal.GetType().PVT() != ast.String && valPVT == ast.Map) {
+
+				w.AlertSingle(&alerts.InvalidMemberIndex{}, token,
+					string(valPVT),
+					member.GetToken().Lexeme,
+				)
+			}
+
+			val = w.TypeToValue(val.GetType().(*WrapperType).WrappedType)
+			prevNode = node.Accessed[i]
+			continue
+		}
+
+		//struct, class, entity, enum error handling
+		if scopeable {
+			if exprType == ast.MemberExpression {
+				w.AlertSingle(&alerts.MemberAccessOnNonListOrMap{}, token,
+					prevNode.GetToken().Lexeme,
+					string(valPVT),
+				)
+				return &Invalid{}
+			}
+
+			field := node.Accessed[i].(*ast.FieldExpr).Field
+			fieldVal := w.GetNodeValue(&field, scopedVal.Scopify(scope))
+
+			if fieldVal.GetType().PVT() == ast.Invalid {
+				w.AlertSingle(&alerts.InvalidField{}, token,
+					string(valPVT),
+					token.Lexeme,
+				)
+			}
+
+			val = fieldVal
+			prevNode = node.Accessed[i]
+			continue
 		}
 	}
-	property := w.TypeToValue(valType.(*WrapperType).WrappedType)
-	w.context.Value = property
-	w.context.Node = node.Property
-	nodePropertyType := node.Property.GetType()
-	if nodePropertyType == ast.Identifier {
-		w.context.Clear()
-		return property
-	} else if nodePropertyType == ast.CallExpression {
-		w.context.Clear()
-		val, newNode := w.CallExpr(property, node.Property.(*ast.CallExpr), scope)
-		node.Property = newNode
-		return val
-	} else if nodePropertyType == ast.LiteralExpression {
-		w.context.Clear()
-		return property
-	}
-	final := w.GetNodeValue(&node.Property, scope)
-	w.context.Clear()
-	return final
+
+	return val
 }
 
+// Rewrote
 func (w *Walker) MapExpr(node *ast.MapExpr, scope *Scope) Value {
 	mapVal := MapVal{Members: []Value{}}
-	// for _, v := range node.Map {
-	// 	val := w.GetNodeValue(&v.Expr, scope)
-	// 	mapVal.Members = append(mapVal.Members, val)
-	// }
-	mapVal.MemberType = GetContentsValueType(mapVal.Members)
+
+	var currentType Type = InvalidType
+	keymap := make(map[string]bool, len(node.KeyValueList))
+	for i := range node.KeyValueList {
+		prop := node.KeyValueList[i]
+		key := prop.Key.GetToken()
+
+		if _, alreadyExists := keymap[key.Lexeme]; alreadyExists {
+			w.AlertSingle(&alerts.DuplicateKeyInMap{}, key)
+		} else {
+			keymap[key.Lexeme] = true
+		}
+
+		memberVal := w.GetNodeValue(&prop.Expr, scope)
+		memberType := memberVal.GetType()
+
+		if i != 0 && !TypeEquals(currentType, memberType) {
+			w.AlertSingle(&alerts.MixedMapOrListContents{}, prop.Expr.GetToken(),
+				string(currentType.GetType()),
+				string(memberType.GetType()),
+			)
+			currentType = InvalidType
+			break
+		}
+
+		currentType = memberType
+	}
+
+	mapVal.MemberType = currentType
 	return &mapVal
 }
 
@@ -720,18 +665,14 @@ func (w *Walker) MethodCallExpr(mcall *ast.MethodCallExpr, scope *Scope) (Value,
 			return val, mcall
 		}
 	}
-	if fieldContainer, ok := val.(FieldContainer); ok && valType.PVT() != ast.Enum {
-		_, _, found := fieldContainer.ContainsField(callToken.Lexeme)
+	if _, ok := val.(FieldContainer); ok && valType.PVT() != ast.Enum {
+		// _, _, found := fieldContainer.ContainsField(callToken.Lexeme)
 
-		if found {
-			fieldExpr := &ast.FieldExpr{
-				Property:           mcall.Call,
-				PropertyIdentifier: mcall.Call.Caller,
-				Identifier:         mcall.Identifier,
-			}
+		// if found {
+		// 	fieldExpr := &ast.FieldExpr{}
 
-			return w.FieldExpr(fieldExpr, scope), fieldExpr
-		}
+		// 	return w.FieldExpr(fieldExpr, scope), fieldExpr
+		// }
 	} else {
 		// w.Error(mcall.Identifier.GetToken(), "value is not of type class or entity")
 		return &Invalid{}, mcall
@@ -750,24 +691,6 @@ func (w *Walker) GetNodeValueFromExternalEnv(expr ast.Node, env *Environment) Va
 	}
 	return val
 }
-
-// func (w *Walker) CastExpr(cast *ast.CastExpr, scope *Scope) Value {
-// 	val := w.GetNodeValue(&cast.Value, scope)
-// 	typ := w.TypeExpr(cast.Type, w.Environment)
-
-// 	if typ.GetType() != CstmType {
-// 		return &Invalid{}
-// 	}
-
-// 	cstm := typ.(*CustomType)
-
-// 	if !TypeEquals(val.GetType(), cstm.UnderlyingType) {
-// 		// w.Error(cast.Value.GetToken(), fmt.Sprintf("expression type is %s, but underlying type is %s", val.GetType().ToString(), cstm.UnderlyingType.ToString()))
-// 		return &Invalid{}
-// 	}
-
-// 	return NewCustomVal(cstm)
-// }
 
 func (w *Walker) TypeExpr(typee *ast.TypeExpr, scope *Scope, throw bool) Type {
 	if typee == nil {
@@ -799,22 +722,22 @@ func (w *Walker) TypeExpr(typee *ast.TypeExpr, scope *Scope, throw bool) Type {
 			}
 
 		} else if walker.environment.luaPath == "/dynamic/level.lua" {
-			if !walker.Walked {
+			if !walker.walked {
 				walker.Action(w.walkers)
 			}
 			env = walker.environment
 		} else {
 
-			for _, v := range walker.environment.EnvStmt.Requirements {
+			for _, v := range walker.environment.Requirements() {
 				if v == w.environment.luaPath {
 					// w.Error(typee.GetToken(), fmt.Sprintf("import cycle detected: this environment and '%s' are using each other", walker.Environment.Name))
 					return InvalidType
 				}
 			}
 
-			w.environment.EnvStmt.AddRequirement(walker.environment.luaPath)
+			w.environment.AddRequirement(walker.environment.luaPath)
 
-			if !walker.Walked {
+			if !walker.walked {
 				walker.Action(w.walkers)
 			}
 
@@ -929,13 +852,13 @@ func (w *Walker) TypeExpr(typee *ast.TypeExpr, scope *Scope, throw bool) Type {
 		}
 
 		types := map[string]Type{}
-		for i := range scope.Environment.UsedWalkers {
-			if !scope.Environment.UsedWalkers[i].Walked {
-				scope.Environment.UsedWalkers[i].Action(w.walkers)
+		for i := range scope.Environment.importedWalkers {
+			if !scope.Environment.importedWalkers[i].walked {
+				scope.Environment.importedWalkers[i].Action(w.walkers)
 			}
-			typ := w.TypeExpr(typee, &scope.Environment.UsedWalkers[i].environment.Scope, false)
+			typ := w.TypeExpr(typee, &scope.Environment.importedWalkers[i].environment.Scope, false)
 			if typ.PVT() != ast.Invalid {
-				types[scope.Environment.UsedWalkers[i].environment.Name] = typ
+				types[scope.Environment.importedWalkers[i].environment.Name] = typ
 			}
 		}
 

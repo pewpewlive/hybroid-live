@@ -9,7 +9,7 @@ import (
 
 type ScopeableValue interface {
 	Value
-	Scopify(parent *Scope, expr *ast.FieldExpr) *Scope
+	Scopify(parent *Scope) *Scope
 }
 
 type Value interface {
@@ -55,9 +55,6 @@ func FindFromList(list []*VariableVal, name string) (*VariableVal, int, bool) {
 	}
 	return nil, -1, false
 }
-
-// this will check if it actually has a scopable value inside of it if not then its invalid
-//func (v *VariableVal) Scopify()
 
 type PathVal struct {
 	Path    string
@@ -126,7 +123,7 @@ func (asv *AnonStructVal) ContainsField(name string) (*VariableVal, int, bool) {
 	return nil, -1, false
 }
 
-func (asv *AnonStructVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
+func (asv *AnonStructVal) Scopify(parent *Scope) *Scope {
 	scope := NewScope(parent, &UntaggedTag{})
 
 	for k, v := range asv.Fields {
@@ -197,7 +194,7 @@ func (ev *EnumVal) ContainsField(name string) (*VariableVal, int, bool) {
 	return nil, -1, false
 }
 
-func (ev *EnumVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
+func (ev *EnumVal) Scopify(parent *Scope) *Scope {
 	scope := NewScope(parent, &UntaggedTag{})
 
 	scope.Variables = ev.Fields
@@ -304,7 +301,7 @@ func (ev *EntityVal) ContainsMethod(name string) (*VariableVal, bool) {
 	return nil, false
 }
 
-func (ev *EntityVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
+func (ev *EntityVal) Scopify(parent *Scope) *Scope {
 	scope := NewScope(parent, &UntaggedTag{})
 
 	for _, v := range ev.Fields {
@@ -360,7 +357,7 @@ func (cv *ClassVal) ContainsMethod(name string) (*VariableVal, bool) {
 	return nil, false
 }
 
-func (cv *ClassVal) Scopify(parent *Scope, expr *ast.FieldExpr) *Scope {
+func (cv *ClassVal) Scopify(parent *Scope) *Scope {
 	scope := NewScope(parent, &UntaggedTag{})
 
 	for _, v := range cv.Fields {
@@ -496,12 +493,22 @@ type FunctionVal struct {
 	Generics []*GenericType
 	Params   Types
 	Returns  Types
+	ProcType ProcedureType
 }
 
 func NewFunction(params ...Type) *FunctionVal {
 	return &FunctionVal{
-		Params:  params,
-		Returns: EmptyReturn,
+		ProcType: Function,
+		Params:   params,
+		Returns:  EmptyReturn,
+	}
+}
+
+func NewFunction2(pt ProcedureType, params ...Type) *FunctionVal {
+	return &FunctionVal{
+		ProcType: pt,
+		Params:   params,
+		Returns:  EmptyReturn,
 	}
 }
 
@@ -516,7 +523,7 @@ func (fn FunctionVal) WithGenerics(generics ...*GenericType) *FunctionVal {
 }
 
 func (f *FunctionVal) GetType() Type {
-	return NewFunctionType(f.Params, f.Returns)
+	return NewFunctionType(f.Params, f.Returns, f.ProcType)
 }
 
 func (f *FunctionVal) GetReturns() Types {

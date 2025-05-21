@@ -125,10 +125,10 @@ func (w *Walker) ResolveVariable(s *Scope, name string) *Scope {
 		if ok {
 			return &BuiltinEnv.Scope
 		}
-		for i := range s.Environment.UsedWalkers {
-			variable, _ := s.Environment.UsedWalkers[i].GetVariable(&s.Environment.UsedWalkers[i].environment.Scope, name)
+		for i := range s.Environment.importedWalkers {
+			variable, _ := s.Environment.importedWalkers[i].GetVariable(&s.Environment.importedWalkers[i].environment.Scope, name)
 			if variable != nil {
-				return &s.Environment.UsedWalkers[i].environment.Scope
+				return &s.Environment.importedWalkers[i].environment.Scope
 			}
 		}
 		for k, v := range s.Environment.UsedLibraries {

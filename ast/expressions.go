@@ -232,8 +232,9 @@ type MethodCallExpr struct {
 	EnvName    string
 	TypeName   string
 	ExprType   SelfExprType
-	Identifier Node
-	Call       *CallExpr
+	Caller     Node
+	Generics   []*TypeExpr
+	Args       []Node
 	MethodName string
 }
 
@@ -242,7 +243,7 @@ func (mce *MethodCallExpr) GetType() NodeType {
 }
 
 func (mce *MethodCallExpr) GetToken() tokens.Token {
-	return mce.Call.GetToken()
+	return mce.Caller.GetToken()
 }
 
 func (mce *MethodCallExpr) GetValueType() PrimitiveValueType {
@@ -374,14 +375,29 @@ func (ne *SpawnExpr) GetValueType() PrimitiveValueType {
 	return Invalid
 }
 
+type AccessExpr struct {
+	Start    Node
+	Accessed []Node
+}
+
+func (ae *AccessExpr) GetType() NodeType {
+	return ae.Accessed[len(ae.Accessed)-1].GetType()
+}
+
+func (ae *AccessExpr) GetToken() tokens.Token {
+	return ae.Start.GetToken()
+}
+
+func (ae *AccessExpr) GetValueType() PrimitiveValueType {
+	return Invalid
+}
+
 type FieldExpr struct {
-	Property           Node
-	PropertyIdentifier Node
-	Identifier         Node
-	ExprType           SelfExprType
-	EnvName            string
-	EntityName         string
-	Index              int
+	Field      Node
+	ExprType   SelfExprType
+	EnvName    string
+	EntityName string
+	Index      int
 }
 
 func (fe *FieldExpr) GetType() NodeType {
@@ -389,41 +405,16 @@ func (fe *FieldExpr) GetType() NodeType {
 }
 
 func (fe *FieldExpr) GetToken() tokens.Token {
-	return fe.Identifier.GetToken()
+	return fe.Field.GetToken()
 }
 
 func (fe *FieldExpr) GetValueType() PrimitiveValueType {
 	return Invalid
 }
 
-func (fe *FieldExpr) GetIdentifier() Node {
-	return fe.Identifier
-}
-func (fe *FieldExpr) SetProperty(prop Node) {
-	fe.Property = prop
-}
-
-func (fe *FieldExpr) SetPropertyIdentifier(ident Node) {
-	fe.PropertyIdentifier = ident
-}
-
-func (fe *FieldExpr) GetPropertyIdentifier() Node {
-	return fe.PropertyIdentifier
-}
-
-func (fe *FieldExpr) GetProperty() Node {
-	return fe.Property
-}
-
-func (fe *FieldExpr) SetIdentifier(ident Node) {
-	fe.Identifier = ident
-}
-
 type MemberExpr struct {
-	Property           Node
-	PropertyIdentifier Node
-	Identifier         Node
-	IsList             bool
+	Member Node
+	IsList bool
 }
 
 func (me *MemberExpr) GetType() NodeType {
@@ -431,35 +422,15 @@ func (me *MemberExpr) GetType() NodeType {
 }
 
 func (me *MemberExpr) GetToken() tokens.Token {
-	return me.Identifier.GetToken()
+	return me.Member.GetToken()
 }
 
 func (me *MemberExpr) GetValueType() PrimitiveValueType {
-	return me.Identifier.GetValueType()
+	return me.Member.GetValueType()
 }
 
 func (me *MemberExpr) GetIdentifier() Node {
-	return me.Identifier
-}
-
-func (me *MemberExpr) SetProperty(prop Node) {
-	me.Property = prop
-}
-
-func (me *MemberExpr) SetPropertyIdentifier(ident Node) {
-	me.PropertyIdentifier = ident
-}
-
-func (me *MemberExpr) GetPropertyIdentifier() Node {
-	return me.PropertyIdentifier
-}
-
-func (me *MemberExpr) GetProperty() Node {
-	return me.Property
-}
-
-func (me *MemberExpr) SetIdentifier(ident Node) {
-	me.Identifier = ident
+	return me.Member
 }
 
 // used only for map expression

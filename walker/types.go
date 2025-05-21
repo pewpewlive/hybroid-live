@@ -145,14 +145,20 @@ func (ct *CustomType) ToString() string {
 }
 
 type FunctionType struct {
-	Params  Types
-	Returns Types
+	Params   Types
+	Returns  Types
+	ProcType ProcedureType
 }
 
-func NewFunctionType(params Types, returns Types) *FunctionType {
+func NewFunctionType(params Types, returns Types, procType ...ProcedureType) *FunctionType {
+	pt := Function
+	if procType != nil {
+		pt = procType[0]
+	}
 	return &FunctionType{
-		Params:  params,
-		Returns: returns,
+		Params:   params,
+		Returns:  returns,
+		ProcType: pt,
 	}
 }
 

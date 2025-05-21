@@ -144,7 +144,7 @@ func (p *Parser) entity() ast.Node {
 		token = p.peek(-1)
 	}
 
-	variable := p.accessorExprDepth2(nil)
+	variable := p.AccessorExpr()
 	var expr ast.Node
 	var conv *tokens.Token
 	if letMatched {
@@ -152,7 +152,7 @@ func (p *Parser) entity() ast.Node {
 			tkn := variable.GetToken()
 			conv = &tkn
 
-			expr = p.accessorExprDepth2(nil)
+			expr = p.AccessorExpr()
 		} else {
 			p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Equal, "in entity expression")
 		}
@@ -205,7 +205,7 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 	}
 
 	callerType := caller.GetType()
-	if callerType != ast.Identifier && callerType != ast.CallExpression && callerType != ast.EnvironmentAccessExpression && callerType != ast.MemberExpression {
+	if callerType != ast.Identifier && callerType != ast.CallExpression && callerType != ast.EnvironmentAccessExpression && callerType != ast.MemberExpression && callerType != ast.FieldExpression {
 		p.Alert(&alerts.InvalidCall{}, alerts.NewSingle(p.peek(-1)))
 		p.functionArgs()
 		return ast.NewImproper(caller.GetToken(), ast.CallExpression)
@@ -216,98 +216,58 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 		return ast.NewImproper(caller.GetToken(), ast.CallExpression)
 	}
 
-	call_expr := &ast.CallExpr{
-		Caller:      caller,
-		GenericArgs: genericArgs,
-		Args:        args,
-	}
-
-	return p.call(call_expr)
-}
-
-func (p *Parser) accessorExprDepth2(ident *ast.Node) ast.Node {
-	expr, call := p.accessorExpr(ident)
-
-	if call == nil {
-		return expr
-	}
-
-	genericsArgs, _ := p.genericArgs()
-	args, ok := p.functionArgs()
-	if !ok {
-		return ast.NewImproper(call.GetToken(), ast.MethodCallExpression)
-	}
-
-	var methodCall ast.Node = &ast.MethodCallExpr{
-		Identifier: expr,
-		Call: &ast.CallExpr{
-			Caller:      call,
-			GenericArgs: genericsArgs,
-			Args:        args,
-		},
-	}
-
-	if p.check(tokens.Dot) || p.check(tokens.LeftBracket) {
-		return p.accessorExprDepth2(&methodCall)
-	}
-
-	return p.call(methodCall)
-}
-
-func (p *Parser) accessorExpr(ident *ast.Node) (ast.Node, *ast.IdentifierExpr) {
-	if ident == nil {
-		expr := p.call(p.matchExpr())
-		ident = &expr
-	}
-
-	isField, isMember := p.check(tokens.Dot), p.check(tokens.LeftBracket)
-
-	if !isField && !isMember {
-		return *ident, nil
-	}
-
-	start := p.advance()
-
-	var expr ast.Accessor
-	if isField {
-		expr = &ast.FieldExpr{
-			Identifier: *ident,
+	var callExpr ast.Node
+	if callerType == ast.FieldExpression {
+		callExpr = &ast.MethodCallExpr{
+			Caller:   caller,
+			Generics: genericArgs,
+			Args:     args,
 		}
 	} else {
-		expr = &ast.MemberExpr{
-			Identifier: *ident,
+		callExpr = &ast.CallExpr{
+			Caller:      caller,
+			GenericArgs: genericArgs,
+			Args:        args,
 		}
 	}
 
-	var propIdentifier ast.Node
-	if isField {
-		propIdentifier = &ast.IdentifierExpr{Name: p.advance()}
-		if propIdentifier.GetToken().Type != tokens.Identifier {
-			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(propIdentifier.GetToken()), "in field expression")
-		}
-		if p.check(tokens.LeftParen) || p.check(tokens.Less) {
-			return *ident, propIdentifier.(*ast.IdentifierExpr)
-		}
-	} else if isMember {
-		propIdentifier = p.expression()
-		if ast.IsImproper(propIdentifier, ast.NA) {
-			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(propIdentifier.GetToken()), "in member expression")
-		}
+	return p.call(callExpr)
+}
 
-		p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek()), tokens.RightBracket, "in member expression"), tokens.RightBracket)
-	}
+func (p *Parser) AccessorExpr() ast.Node {
+	expr := p.call(p.matchExpr())
 
-	expr.SetPropertyIdentifier(propIdentifier)
+accessCheck:
+	var access *ast.AccessExpr
 	if p.check(tokens.Dot) || p.check(tokens.LeftBracket) {
-		prop, call := p.accessorExpr(&propIdentifier)
-
-		expr.SetProperty(prop)
-
-		return expr, call
+		access = &ast.AccessExpr{
+			Start:    expr,
+			Accessed: []ast.Node{},
+		}
 	}
-	expr.SetProperty(propIdentifier)
+	for p.match(tokens.Dot, tokens.LeftBracket) {
+		tokenType := p.peek(-1).Type
 
-	return p.call(expr), nil
+		if tokenType == tokens.Dot {
+			expr2 := p.matchExpr()
+			access.Accessed = append(access.Accessed, &ast.FieldExpr{
+				Field: expr2,
+			})
+		} else {
+			expr2 := p.matchExpr()
+			p.consumeSingle(&alerts.ExpectedSymbol{}, "in member expression", tokens.RightBracket)
+			access.Accessed = append(access.Accessed, &ast.MemberExpr{
+				Member: expr2,
+			})
+		}
+
+		if p.check(tokens.Less) || p.check(tokens.LeftParen) {
+			expr = p.call(access)
+			goto accessCheck
+		}
+	}
+
+	return expr
 }
 
 func (p *Parser) matchExpr() ast.Node {

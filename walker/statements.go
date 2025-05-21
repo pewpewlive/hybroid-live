@@ -302,9 +302,6 @@ func (w *Walker) MethodDeclarationStmt(node *ast.MethodDecl, container MethodCon
 }
 
 func (w *Walker) FunctionDeclarationStmt(node *ast.FunctionDecl, scope *Scope, procType ProcedureType) *VariableVal {
-	if node.Name.Lexeme == "Bounce" {
-		print("breakpoint")
-	}
 	generics := make([]*GenericType, 0)
 
 	for _, param := range node.Generics {
@@ -325,8 +322,10 @@ func (w *Walker) FunctionDeclarationStmt(node *ast.FunctionDecl, scope *Scope, p
 	}
 
 	variable := &VariableVal{
-		Name:    node.Name.Lexeme,
-		Value:   &FunctionVal{Params: params, Returns: ret, Generics: generics},
+		Name: node.Name.Lexeme,
+		Value: NewFunction2(procType, params...).
+			WithGenerics(generics...).
+			WithReturns(ret...),
 		Token:   node.GetToken(),
 		IsLocal: node.IsPub,
 	}
@@ -344,136 +343,16 @@ func (w *Walker) FunctionDeclarationStmt(node *ast.FunctionDecl, scope *Scope, p
 }
 
 func (w *Walker) VariableDeclarationStmt(declaration *ast.VariableDecl, scope *Scope) []*VariableVal {
-	declaredVariables := []*VariableVal{}
+	// values := make([]Value, 0)
 
-	types := make([]Type, 0)
+	// for i, _ := range declaration.Expressions {
+	// 	exprValue := w.GetNodeValue(&declaration.Expressions[i], scope)
+	// 	if types, ok := exprValue.(*Types); ok {
 
-	index := 0
-	for i := range declaration.Expressions {
-		index++
-		exprValue := w.GetNodeValue(&declaration.Expressions[i], scope)
-		// if declaration.Values[i].GetType() == ast.SelfExpression {
-		// 	// w.Error(declaration.Values[i].GetToken(), "cannot assign self to a variable")
-		// }
-		if _typs, ok := exprValue.(*Types); ok {
-			for _, v := range *_typs {
-				types = append(types, v)
-			}
-		} else {
-			types = append(types, exprValue.GetType())
-		}
-	}
+	// 	}
+	// }
 
-	identsLength := len(declaration.Identifiers)
-	trueValuesLength := len(types)
-	if identsLength < trueValuesLength {
-		// w.Error(declaration.Token, "too many values given in variable declaration")
-	} else if identsLength > trueValuesLength {
-		filledAll := true
-		for i := index; i < identsLength; i++ {
-			if declaration.Type != nil {
-				typ := w.TypeExpr(declaration.Type, scope, true)
-				val := w.TypeToValue(typ)
-				_default := val.GetDefault()
-				if _default.Value == "nil" {
-					types = append(types, nil)
-				} else {
-					types = append(types, typ)
-				}
-
-				declaration.Expressions = append(declaration.Expressions, _default)
-			} else {
-				// w.Error(declaration.Identifiers[i], "variable is uninitialized and no explicit type was given")
-				filledAll = false
-			}
-		}
-		if !filledAll {
-			// w.Error(declaration.Token, "too few values given in variable declaration")
-			return []*VariableVal{}
-		}
-	}
-
-	if declaration.IsPub && scope.Parent != nil {
-		// w.Error(declaration.Token, "cannot declare a global variable inside a local block")
-	}
-	if declaration.Token.Type == tokens.Const && scope.Parent != nil {
-		// w.Error(declaration.Token, "cannot declare a global constant inside a local block")
-	}
-
-	for i, ident := range declaration.Identifiers {
-		if ident.Name.Lexeme == "_" {
-			continue
-		}
-
-		valType := types[i]
-		if w.environment.Type == ast.MeshEnv && ident.Name.Lexeme == "meshes" {
-			if len(declaration.Identifiers) > 1 {
-				// w.Error(ident, "'meshes' variable cannot be declared with other variables")
-			} else if !declaration.IsPub {
-				// w.Error(ident, "'meshes' has to be global")
-			}
-
-			if !TypeEquals(valType, MeshesValueType) {
-				// w.Error(ident, "'meshes' needs to be of type %s", MeshesValueType.ToString())
-			}
-		}
-
-		if w.environment.Type == ast.SoundEnv && ident.Name.Lexeme == "sounds" {
-			if len(declaration.Identifiers) > 1 {
-				// w.Error(ident, "'sounds' variable cannot be declared with other variables")
-			} else if !declaration.IsPub {
-				// w.Error(ident, "'sounds' has to be global")
-			}
-
-			if !TypeEquals(valType, SoundsValueType) {
-				// w.Error(ident, "'sounds' needs to be of type %s", SoundsValueType.ToString())
-			}
-		}
-
-		if declaration.Type == nil && types[i] == nil {
-			// w.Error(declaration.Token, "Must provide an explicit type for an uninitialized variable")
-		}
-		if declaration.Type != nil && types[i] != nil {
-			explicitType := w.TypeExpr(declaration.Type, scope, false)
-			if !TypeEquals(valType, explicitType) {
-				// w.Error(declaration.Identifiers[i], "Given value is %s, but explicit type is %s", valType.ToString(), explicitType.ToString())
-			}
-		} else if types[i] != nil && valType.PVT() == ast.Invalid {
-			// w.Error(declaration.Expressions[i].GetToken(), "value is invalid")
-		}
-
-		var val Value
-		if types[i] == nil {
-			if declaration.Type == nil {
-				val = &Invalid{}
-			} else {
-				val = w.TypeToValue(w.TypeExpr(declaration.Type, scope, false))
-			}
-		} else {
-			if types[i].GetType() == Wrapper && types[i].(*WrapperType).WrappedType.PVT() == ast.Object {
-				if declaration.Type == nil {
-					// w.Error(declaration.Identifiers[i], "cannot infer the wrapped type of the map/list")
-				} else {
-					val = w.TypeToValue(w.TypeExpr(declaration.Type, scope, false))
-				}
-			} else {
-				val = w.TypeToValue(types[i])
-			}
-		}
-
-		variable := &VariableVal{
-			Value:   val,
-			Name:    ident.Name.Lexeme,
-			IsLocal: declaration.IsPub,
-			IsConst: declaration.IsConst,
-			IsInit:  types[i] != nil,
-			Token:   ident.Name,
-		}
-		declaredVariables = append(declaredVariables, variable)
-		w.DeclareVariable(scope, variable, ident.Name)
-	}
-
-	return declaredVariables
+	return make([]*VariableVal, 0)
 }
 
 func (w *Walker) DeclareConversion(scope *Scope) {
@@ -846,7 +725,6 @@ func (w *Walker) UseStmt(node *ast.UseStmt, scope *Scope) {
 		return
 	}
 
-	envStmt := w.environment.EnvStmt
 	envName := node.Path.Path.Lexeme
 	walker, found := w.walkers[envName]
 
@@ -856,25 +734,25 @@ func (w *Walker) UseStmt(node *ast.UseStmt, scope *Scope) {
 	}
 
 	if walker.environment.luaPath == "/dynamic/level.lua" {
-		w.environment.UsedWalkers = append(w.environment.UsedWalkers, walker)
+		w.environment.importedWalkers = append(w.environment.importedWalkers, walker)
 		return
 	}
 
-	for _, v := range walker.environment.EnvStmt.Requirements {
+	for _, v := range walker.environment.Requirements() {
 		if v == w.environment.luaPath {
 			// w.Error(node.GetToken(), fmt.Sprintf("import cycle detected: this environment and '%s' are using each other", walker.Environment.Name))
 			return
 		}
 	}
 
-	success := envStmt.AddRequirement(walker.environment.luaPath)
+	success := w.environment.AddRequirement(walker.environment.luaPath)
 
 	if !success {
 		// w.Error(node.GetToken(), fmt.Sprintf("Environment '%s' is already used", envName))
 		return
 	}
 
-	w.environment.UsedWalkers = append(w.environment.UsedWalkers, walker)
+	w.environment.importedWalkers = append(w.environment.importedWalkers, walker)
 }
 
 func (w *Walker) DestroyStmt(node *ast.DestroyStmt, scope *Scope) {

@@ -24,7 +24,12 @@ def _to_receiver(original: str) -> str:
 
     # For example: HelloThisISAnExample -> htisae
 
-    return "".join(re.findall(r"[A-Z]", original)).lower()
+    receiver = "".join(re.findall(r"[A-Z]", original)).lower()
+
+    if receiver == "if":
+        receiver = "_if"
+
+    return receiver
 
 
 def _extract_imports(string: str):

@@ -136,13 +136,3 @@ type Node interface {
 	GetToken() tokens.Token
 	GetValueType() PrimitiveValueType
 }
-
-type Accessor interface {
-	Node
-	GetPropertyIdentifier() Node
-	GetProperty() Node
-	SetProperty(prop Node)
-	GetIdentifier() Node
-	SetPropertyIdentifier(ident Node)
-	SetIdentifier(ident Node)
-}

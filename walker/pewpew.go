@@ -10,12 +10,12 @@ var PewpewEnv = &Environment{
 		Variables: PewpewVariables,
 		Tag:       &UntaggedTag{},
 	},
-	UsedWalkers:   make([]*Walker, 0),
-	UsedLibraries: make(map[Library]bool),
-	Structs:       make(map[string]*ClassVal),
-	Entities:      make(map[string]*EntityVal),
-	CustomTypes:   make(map[string]*CustomType),
-	AliasTypes:    make(map[string]*AliasType),
+	importedWalkers: make([]*Walker, 0),
+	UsedLibraries:   make(map[Library]bool),
+	Structs:         make(map[string]*ClassVal),
+	Entities:        make(map[string]*EntityVal),
+	CustomTypes:     make(map[string]*CustomType),
+	AliasTypes:      make(map[string]*AliasType),
 }
 
 var PewpewVariables = map[string]*VariableVal{

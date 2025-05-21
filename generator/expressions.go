@@ -167,37 +167,37 @@ func (gen *Generator) unaryExpr(node ast.UnaryExpr, scope *GenScope) string {
 func (gen *Generator) fieldExpr(node ast.FieldExpr, scope *GenScope) string {
 	src := StringBuilder{}
 
-	if node.ExprType == ast.SelfEntity {
-		src.Write(envMap[node.EnvName], hyEntity, node.EntityName, "[", gen.GenerateExpr(node.Identifier, scope), "]")
-	} else {
-		src.Write(gen.GenerateExpr(node.Identifier, scope))
-	}
+	// if node.ExprType == ast.SelfEntity {
+	// 	src.Write(envMap[node.EnvName], hyEntity, node.EntityName, "[", gen.GenerateExpr(node.Identifier, scope), "]")
+	// } else {
+	// 	src.Write(gen.GenerateExpr(node.Identifier, scope))
+	// }
 
-	val := gen.GenerateExpr(node.Property, scope)
-	cut := ""
-	for i := range val {
-		if val[i] == '[' {
-			cut = val[i:]
-			break
-		}
-	}
-	if node.Index >= 0 {
-		val = fmt.Sprintf("[%v]%s", node.Index, cut)
-	} else {
-		val = "." + val[len(gen.envName):]
-	}
-	src.Write(val)
+	// val := gen.GenerateExpr(node.Property, scope)
+	// cut := ""
+	// for i := range val {
+	// 	if val[i] == '[' {
+	// 		cut = val[i:]
+	// 		break
+	// 	}
+	// }
+	// if node.Index >= 0 {
+	// 	val = fmt.Sprintf("[%v]%s", node.Index, cut)
+	// } else {
+	// 	val = "." + val[len(gen.envName):]
+	// }
+	// src.Write(val)
 	return src.String()
 }
 
 func (gen *Generator) memberExpr(node ast.MemberExpr, scope *GenScope) string {
 	src := StringBuilder{}
 
-	src.Write(gen.GenerateExpr(node.Identifier, scope))
-	val := gen.GenerateExpr(node.Property, scope)
-	name := gen.GenerateExpr(node.PropertyIdentifier, scope)
-	val = fmt.Sprintf("[%s]%s", name, val[len(name):])
-	src.Write(val)
+	// src.Write(gen.GenerateExpr(node.Identifier, scope))
+	// val := gen.GenerateExpr(node.Property, scope)
+	// name := gen.GenerateExpr(node.PropertyIdentifier, scope)
+	// val = fmt.Sprintf("[%s]%s", name, val[len(name):])
+	// src.Write(val)
 
 	return src.String()
 }
@@ -371,24 +371,24 @@ func (gen *Generator) spawnExpr(spawn ast.SpawnExpr, stmt bool, scope *GenScope)
 func (gen *Generator) methodCallExpr(methodCall ast.MethodCallExpr, stmt bool, scope *GenScope) string {
 	src := StringBuilder{}
 
-	if stmt {
-		src.WriteTabbed()
-	}
-	var extra string
-	if methodCall.ExprType == ast.SelfStruct {
-		extra = hyClass
-	} else {
-		extra = hyEntity
-	}
-	src.Write(envMap[methodCall.EnvName], extra, methodCall.TypeName, "_", methodCall.MethodName, "(", gen.GenerateExpr(methodCall.Identifier, scope))
-	for i := range methodCall.Call.Args {
-		src.Write(", ", gen.GenerateExpr(methodCall.Call.Args[i], scope))
-	}
-	if stmt {
-		src.Write(")\n")
-	} else {
-		src.Write(")")
-	}
+	// if stmt {
+	// 	src.WriteTabbed()
+	// }
+	// var extra string
+	// if methodCall.ExprType == ast.SelfStruct {
+	// 	extra = hyClass
+	// } else {
+	// 	extra = hyEntity
+	// }
+	// src.Write(envMap[methodCall.EnvName], extra, methodCall.TypeName, "_", methodCall.MethodName, "(", gen.GenerateExpr(methodCall.Identifier, scope))
+	// for i := range methodCall.Call.Args {
+	// 	src.Write(", ", gen.GenerateExpr(methodCall.Call.Args[i], scope))
+	// }
+	// if stmt {
+	// 	src.Write(")\n")
+	// } else {
+	// 	src.Write(")")
+	// }
 
 	return src.String()
 }

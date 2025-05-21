@@ -8,12 +8,12 @@ var TableEnv = &Environment{
 		Variables: TableVariables,
 		Tag:       &UntaggedTag{},
 	},
-	UsedWalkers:   make([]*Walker, 0),
-	UsedLibraries: make(map[Library]bool),
-	Structs:       make(map[string]*ClassVal),
-	Entities:      make(map[string]*EntityVal),
-	CustomTypes:   make(map[string]*CustomType),
-	AliasTypes:    make(map[string]*AliasType),
+	importedWalkers: make([]*Walker, 0),
+	UsedLibraries:   make(map[Library]bool),
+	Structs:         make(map[string]*ClassVal),
+	Entities:        make(map[string]*EntityVal),
+	CustomTypes:     make(map[string]*CustomType),
+	AliasTypes:      make(map[string]*AliasType),
 }
 
 var TableVariables = map[string]*VariableVal{
@@ -23,19 +23,19 @@ var TableVariables = map[string]*VariableVal{
 			WithReturns(NewBasicType(ast.String)),
 	},
 	"Insert": {
-		Name:    "Insert",
-		Value:   NewFunction(NewWrapperType(NewBasicType(ast.List), NewGeneric("T")), NewGeneric("T")).WithGenerics(NewGeneric("T")),
+		Name:  "Insert",
+		Value: NewFunction(NewWrapperType(NewBasicType(ast.List), NewGeneric("T")), NewGeneric("T")).WithGenerics(NewGeneric("T")),
 	},
 	"InsertAt": {
-		Name:    "InsertAt",
-		Value:   NewFunction(NewWrapperType(NewBasicType(ast.List), NewGeneric("T")), NewBasicType(ast.Number), NewGeneric("T")).WithGenerics(NewGeneric("T")),
+		Name:  "InsertAt",
+		Value: NewFunction(NewWrapperType(NewBasicType(ast.List), NewGeneric("T")), NewBasicType(ast.Number), NewGeneric("T")).WithGenerics(NewGeneric("T")),
 	},
 	"Remove": {
-		Name:    "Remove",
-		Value:   NewFunction(NewWrapperType(NewBasicType(ast.List), NewGeneric("T")), NewBasicType(ast.Number)),
+		Name:  "Remove",
+		Value: NewFunction(NewWrapperType(NewBasicType(ast.List), NewGeneric("T")), NewBasicType(ast.Number)),
 	},
 	"Sort": {
-		Name:    "Sort",
-		Value:   NewFunction(NewWrapperType(NewBasicType(ast.List), NewGeneric("T"))),
+		Name:  "Sort",
+		Value: NewFunction(NewWrapperType(NewBasicType(ast.List), NewGeneric("T"))),
 	},
 } // Table.Insert(list, 9)

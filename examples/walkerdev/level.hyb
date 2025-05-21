@@ -1,2 +1,8 @@
-env Env1 as Level
+env Level as Level // Environment{Name:Level, Type:Level, Requirements:None}
+
+use Env1 // add the walker of Env1 to importedWalkers
+
+let entity id // Var{Name:id, Value:RawEntityVal{}}
+
+
 

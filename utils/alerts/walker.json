@@ -39,5 +39,84 @@
     },
     "message": "duplicate environment names found between '%s' and '%s'",
     "message_format": ["Path1", "Path2"]
+  },
+  {
+    "name": "InvalidAccessValue",
+    "type": "Error",
+    "params": {
+      "ValueType": "string"
+    },
+    "message": "value is of type '%s', so it cannot be accessed from",
+    "message_format": ["ValueType"],
+    "note": "only lists, maps, classes, entities, structs and enums can be used to access values from"
+  },
+  {
+    "name": "FieldAccessOnListOrMap",
+    "type": "Error",
+    "params": {
+      "Field": "string",
+      "AccessType": "string"
+    },
+    "message": "cannot access field '%s' from the %s",
+    "message_format": ["Field", "AccessType"],
+    "note": "to access a value from a %s you use brackets, e.g. example[%s]",
+    "note_format": ["AccessType", "Field"]
+  },
+  {
+    "name": "MemberAccessOnNonListOrMap",
+    "type": "Error",
+    "params": {
+      "Member": "string",
+      "AccessType": "string"
+    },
+    "message": "cannot access member '[%s]' from the %s",
+    "message_format": ["Member", "AccessType"],
+    "note": "to access a value you use a dot and then an identifier, e.g. example.identifier"
+  },
+  {
+    "name": "InvalidMemberIndex",
+    "type": "Error",
+    "params": {
+      "AccessType": "string",
+      "Index": "string"
+    },
+    "message": "'%s' is not of type number to be an index for the %s",
+    "message_format": ["Index", "AccessType"],
+    "note": "for lists, an index (number) is used to access values, for maps, a key (text) is used"
+  },
+  {
+    "name": "InvalidField",
+    "type": "Error",
+    "params": {
+      "AccessType": "string",
+      "FieldName": "string"
+    },
+    "message": "field '%s' does not belong to the %s",
+    "message_format": ["FieldName", "AccessType"]
+  },
+  {
+    "name": "MixedMapOrListContents",
+    "type": "Error",
+    "params": {
+      "ContainerType": "string",
+      "Type1": "string",
+      "Type2": "string"
+    },
+    "message": "a %s's members must be the same type (found types: %s and %s)",
+    "message_format": ["ContainerType", "Type1", "Type2"]
+  },
+  {
+    "name": "DuplicateKeyInMap",
+    "type": "Error",
+    "message": "found duplicate key in map"
+  },
+  {
+    "name": "InvalidCallerType",
+    "type": "Error",
+    "params": {
+      "Type": "string"
+    },
+    "message": "caller is not a function (type found: %s)",
+    "message_format": ["Type"]
   }
 ]
