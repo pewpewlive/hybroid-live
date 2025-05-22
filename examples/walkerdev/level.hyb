@@ -2,7 +2,11 @@ env Level as Level // Environment{Name:Level, Type:Level, Requirements:None}
 
 use Env1 // add the walker of Env1 to importedWalkers
 
-let entity id // Var{Name:id, Value:RawEntityVal{}}
+fn thing() -> (number, bool) {
+    return 2, true
+}
 
-
-
+pub name = "po"
+let a, b = thing()
+let bool c
+const o = 2

@@ -21,31 +21,13 @@ func (as *AssignmentStmt) GetValueType() PrimitiveValueType {
 	return Invalid
 }
 
-// type TypeDeclarationStmt struct {
-// 	AliasedType *TypeExpr
-// 	Alias tokens.Token
-// 	Token tokens.Token
-// }
-
-// func (vds *TypeDeclarationStmt) GetType() NodeType {
-// 	return TypeDeclarationStatement
-// }
-
-// func (vds *TypeDeclarationStmt) GetToken() tokens.Token {
-// 	return vds.Token
-// }
-
-// func (vds *TypeDeclarationStmt) GetValueType() PrimitiveValueType {
-// 	return Invalid
-// }
-
 type DestroyStmt struct {
-	Identifier Node
-	Args       []Node
-	Generics   []*TypeExpr
-	EntityName string
-	EnvName    string
-	Token      tokens.Token
+	Identifier  Node
+	Args        []Node
+	GenericArgs []*TypeExpr
+	EntityName  string
+	EnvName     string
+	Token       tokens.Token
 }
 
 func (ne *DestroyStmt) GetType() NodeType {
@@ -58,6 +40,14 @@ func (ne *DestroyStmt) GetToken() tokens.Token {
 
 func (ne *DestroyStmt) GetValueType() PrimitiveValueType {
 	return Invalid
+}
+
+func (ne *DestroyStmt) GetGenerics() []*TypeExpr {
+	return ne.GenericArgs
+}
+
+func (ne *DestroyStmt) GetArgs() []Node {
+	return ne.Args
 }
 
 type IfStmt struct {

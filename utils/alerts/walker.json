@@ -91,7 +91,7 @@
       "AccessType": "string",
       "FieldName": "string"
     },
-    "message": "field '%s' does not belong to the %s",
+    "message": "field '%s' does not belong to the '%s'",
     "message_format": ["FieldName", "AccessType"]
   },
   {
@@ -102,7 +102,7 @@
       "Type1": "string",
       "Type2": "string"
     },
-    "message": "a %s's members must be the same type (found types: %s and %s)",
+    "message": "a %s's members must be the same type (found types: '%s' and '%s')",
     "message_format": ["ContainerType", "Type1", "Type2"]
   },
   {
@@ -116,7 +116,122 @@
     "params": {
       "Type": "string"
     },
-    "message": "caller is not a function (type found: %s)",
+    "message": "caller is not a function (type found: '%s')",
     "message_format": ["Type"]
+  },
+  {
+    "name": "MethodOrFieldNotFound",
+    "type": "Error",
+    "params": {
+      "Name": "string"
+    },
+    "message": "no method or field named '%s'",
+    "message_format": ["Name"]
+  },
+  {
+    "name": "ForeignLocalVariableAccess",
+    "type": "Error",
+    "params": {
+      "Name": "string"
+    },
+    "message": "cannot access local variable '%s' belonging to a different environment",
+    "message_format": ["Name"]
+  },
+  {
+    "name": "InvalidArgumentType",
+    "type": "Error",
+    "params": {
+      "GivenType": "string",
+      "ExpectedType": "string"
+    },
+    "message": "argument was of type %s, but should be %s",
+    "message_format": ["GivenType", "ExpectedType"]
+  },
+  {
+    "name": "PublicDeclarationInLocalScope",
+    "type": "Error",
+    "message": "cannot have a public declaration that is in a local scope"
+  },
+  {
+    "name": "Redeclaration",
+    "type": "Error",
+    "params": {
+      "VarName": "string",
+      "DeclType": "string"
+    },
+    "message": "a %s named '%s' already exists",
+    "message_format": ["DeclType", "VarName"]
+  },
+  {
+    "name": "UnnecessaryTypeInConstDeclaration",
+    "type": "Error",
+    "message": "an explicit type is not necessary for a const declaration"
+  },
+  {
+    "name": "NoValueGivenForConstant",
+    "type": "Error",
+    "message": "constant must be declared with a value"
+  },
+  {
+    "name": "TooFewValuesInDeclaration",
+    "type": "Error",
+    "params": {
+      "RequiredAmount": "int"
+    },
+    "message": "%d more value(s) required in variable declaration",
+    "message_format": ["RequiredAmount"]
+  },
+  {
+    "name": "ExplicitTypeRequiredInDeclaration",
+    "type": "Error",
+    "message": "a variable declared without a value requires an explicit type"
+  },
+  {
+    "name": "ExplicitTypeMismatch",
+    "type": "Error",
+    "params":{
+      "ExplicitType": "string",
+      "ValueType": "string"
+    },
+    "message": "variable was given explicit type '%s', but its value is a '%s'",
+    "message_format": ["ExplicitType", "ValueType"]
+  },
+  {
+    "name": "ExplicitTypeNotAllowed",
+    "type": "Error",
+    "params":{
+      "ExplicitType": "string"
+    },
+    "message": "cannot create a default value from the explicit type '%s'",
+    "message_format": ["ExplicitType"],
+    "note": "some types don't have default values, like entities and classes"
+  },
+  {
+    "name": "TooManyValuesInDeclaration",
+    "type": "Error",
+    "params": {
+      "ExtraAmount": "int"
+    },
+    "message": "%d less value(s) required in variable declaration",
+    "message_format": ["ExtraAmount"]
+  },
+  {
+    "name": "ImportCycle",
+    "type": "Error",
+    "params": {
+      "HybPath1": "string",
+      "HybPath2": "string"
+    },
+    "message": "",
+    "message_format": ["HybPath1", "HybPath1"]
+  },
+  {
+    "name": "UndeclaredVariableAccess",
+    "type": "Error",
+    "params": {
+      "Var": "string"
+    },
+    "message": "'%s' is not a declared variable",
+    "message_format": ["Var"]
   }
 ]

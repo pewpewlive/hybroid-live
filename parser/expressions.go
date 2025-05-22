@@ -7,6 +7,28 @@ import (
 )
 
 func (p *Parser) expression() ast.Node {
+	return p.mapExpr()
+}
+
+func (p *Parser) mapExpr() ast.Node {
+	if p.match(tokens.LeftBrace) {
+		return p.parseMap()
+	}
+	return p.list()
+}
+
+func (p *Parser) list() ast.Node {
+	if p.match(tokens.LeftBracket) {
+		return p.parseList()
+	}
+	return p.anonStruct()
+}
+
+func (p *Parser) anonStruct() ast.Node {
+	if p.match(tokens.Struct) {
+		return p.structExpr()
+	}
+
 	return p.fn()
 }
 
@@ -21,7 +43,11 @@ func (p *Parser) fn() ast.Node {
 			fn.Params = make([]ast.FunctionParam, 0)
 			p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftParen, "in function parameters")
 		}
-		fn.Return = p.functionReturns()
+		returns, ok := p.functionReturns()
+		if !ok {
+			return ast.NewImproper(fn.Token, ast.FunctionExpression)
+		}
+		fn.Returns = returns
 
 		var success bool
 		fn.Body, success = p.body(false, true)
@@ -216,19 +242,10 @@ func (p *Parser) call(caller ast.Node) ast.Node {
 		return ast.NewImproper(caller.GetToken(), ast.CallExpression)
 	}
 
-	var callExpr ast.Node
-	if callerType == ast.FieldExpression {
-		callExpr = &ast.MethodCallExpr{
-			Caller:   caller,
-			Generics: genericArgs,
-			Args:     args,
-		}
-	} else {
-		callExpr = &ast.CallExpr{
-			Caller:      caller,
-			GenericArgs: genericArgs,
-			Args:        args,
-		}
+	callExpr := &ast.CallExpr{
+		Caller:      caller,
+		GenericArgs: genericArgs,
+		Args:        args,
 	}
 
 	return p.call(callExpr)
@@ -273,7 +290,7 @@ accessCheck:
 func (p *Parser) matchExpr() ast.Node {
 	if p.match(tokens.Match) {
 		start := p.peek(-1)
-		node := p.matchStmt(true)
+		node := p.matchStatement(true)
 		if ast.IsImproper(node, ast.NA) {
 			return node
 		}
@@ -289,7 +306,7 @@ func (p *Parser) matchExpr() ast.Node {
 func (p *Parser) macroCall() ast.Node {
 	if p.match(tokens.At) {
 		macroCall := &ast.MacroCallExpr{}
-		caller := p.primary(true)
+		caller := p.primary()
 		callerType := caller.GetType()
 		if callerType != ast.CallExpression {
 			p.Alert(&alerts.ExpectedCallAfterMacroSymbol{}, alerts.NewSingle(caller.GetToken()))
@@ -347,10 +364,10 @@ func (p *Parser) self() ast.Node {
 		}
 	}
 
-	return p.primary(true)
+	return p.primary()
 }
 
-func (p *Parser) primary(allowStruct bool) ast.Node {
+func (p *Parser) primary() ast.Node {
 	if p.match(tokens.False) {
 		return &ast.LiteralExpr{Value: "false", ValueType: ast.Bool, Token: p.peek(-1)}
 	}
@@ -378,18 +395,6 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 		}
 
 		return &ast.LiteralExpr{Value: literal.Literal, ValueType: valueType, Token: literal}
-	}
-
-	if p.match(tokens.LeftBrace) {
-		return p.parseMap()
-	}
-
-	if p.match(tokens.LeftBracket) {
-		return p.list()
-	}
-
-	if allowStruct && p.match(tokens.Struct) {
-		return p.structExpr()
 	}
 
 	if p.match(tokens.Identifier) {
@@ -443,7 +448,7 @@ func (p *Parser) primary(allowStruct bool) ast.Node {
 	return ast.NewImproper(p.peek(), ast.NA)
 }
 
-func (p *Parser) list() ast.Node {
+func (p *Parser) parseList() ast.Node {
 	listExpr := &ast.ListExpr{
 		ValueType: ast.List,
 		Token:     p.peek(-1),
@@ -556,34 +561,6 @@ func (p *Parser) typeExpr(typeContext string) *ast.TypeExpr {
 	token := p.advance()
 	improperType := &ast.TypeExpr{Name: ast.NewImproper(token, ast.TypeExpression)}
 
-	if token.Type == tokens.LeftParen {
-		tuple := &ast.TupleExpr{LeftParen: token}
-
-		types := []*ast.TypeExpr{}
-
-		typ := p.typeExpr(typeContext)
-		if typ.Name.GetType() == ast.NA {
-			return improperType
-		}
-		types = append(types, typ)
-
-		for p.match(tokens.Comma) {
-			typ := p.typeExpr(typeContext)
-			if typ.Name.GetType() == ast.NA {
-				return improperType
-			}
-			types = append(types, typ)
-		}
-		_, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.RightParen, "in tuple expression"), tokens.RightParen)
-
-		tuple.Types = types
-		if !ok {
-			return improperType
-		}
-
-		return &ast.TypeExpr{Name: tuple}
-	}
-
 	if p.match(tokens.Colon) {
 		if token.Type != tokens.Identifier {
 			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(token))
@@ -655,12 +632,12 @@ func (p *Parser) typeExpr(typeContext string) *ast.TypeExpr {
 				return improperType
 			}
 		}
-		returns := p.functionReturns()
+		returns, ok := p.functionReturns()
 		if returns != nil {
-			if returns.Name.GetType() == ast.NA {
+			if !ok {
 				return improperType
 			}
-			typeExpr.Return = returns
+			typeExpr.Returns = returns
 		}
 		typeExpr.Name = expr
 	case tokens.Struct:

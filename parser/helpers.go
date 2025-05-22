@@ -95,7 +95,7 @@ func (p *Parser) match(types ...tokens.TokenType) bool {
 
 func (p *Parser) consumeTill(context string, start tokens.Token, types ...tokens.TokenType) bool {
 	if p.isAtEnd() {
-		p.Alert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek(-1)), string(types[0]), context)
+		p.Alert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek(-1)), types[0], context)
 		return false
 	}
 
@@ -103,12 +103,12 @@ func (p *Parser) consumeTill(context string, start tokens.Token, types ...tokens
 }
 
 // Consumes one of the tokens in the given list and advances if it matches.
-func (p *Parser) consume(alert alerts.Alert, types ...tokens.TokenType) (tokens.Token, bool) {
+func (p *Parser) consume(alert alerts.Alert, typ tokens.TokenType) (tokens.Token, bool) {
 	if p.isAtEnd() {
 		p.AlertI(alert)
 		return p.peek(), false // error
 	}
-	if slices.ContainsFunc(types, p.check) {
+	if p.check(typ) {
 		return p.advance(), true
 	}
 	p.AlertI(alert)
@@ -116,14 +116,14 @@ func (p *Parser) consume(alert alerts.Alert, types ...tokens.TokenType) (tokens.
 }
 
 // Consumes one of the tokens in the given list and advances if it matches.
-func (p *Parser) consumeSingle(alert alerts.Alert, context string, types ...tokens.TokenType) (tokens.Token, bool) {
+func (p *Parser) consumeSingle(alert alerts.Alert, context string, typ tokens.TokenType) (tokens.Token, bool) {
 	if p.isAtEnd() {
-		p.Alert(alert, alerts.NewSingle(p.peek()), types[0], context)
+		p.Alert(alert, alerts.NewSingle(p.peek()), typ, context)
 		return p.peek(), false // error
 	}
-	if slices.ContainsFunc(types, p.check) {
+	if p.check(typ) {
 		return p.advance(), true
 	}
-	p.Alert(alert, alerts.NewSingle(p.peek()), types[0], context)
+	p.Alert(alert, alerts.NewSingle(p.peek()), typ, context)
 	return p.peek(), false // error
 }

@@ -136,3 +136,8 @@ type Node interface {
 	GetToken() tokens.Token
 	GetValueType() PrimitiveValueType
 }
+
+type NodeCall interface {
+	GetGenerics() []*TypeExpr
+	GetArgs() []Node
+}

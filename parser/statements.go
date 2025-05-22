@@ -11,29 +11,29 @@ func (p *Parser) statement() (returnNode ast.Node) {
 
 	switch p.advance().Type {
 	case tokens.Return:
-		returnNode = p.returnStmt()
+		returnNode = p.returnStatement()
 	case tokens.Yield:
-		returnNode = p.yieldStmt()
+		returnNode = p.yieldStatement()
 	case tokens.Break:
 		returnNode = &ast.BreakStmt{Token: p.peek(-1)}
 	case tokens.Destroy:
-		returnNode = p.destroyStmt()
+		returnNode = p.destroyStatement()
 	case tokens.Continue:
 		returnNode = &ast.ContinueStmt{Token: p.peek(-1)}
 	case tokens.If:
-		returnNode = p.ifStmt(false, false, false)
+		returnNode = p.ifStatement(false, false, false)
 	case tokens.Repeat:
-		returnNode = p.repeatStmt()
+		returnNode = p.repeatStatement()
 	case tokens.For:
-		returnNode = p.forStmt()
+		returnNode = p.forStatement()
 	case tokens.Tick:
-		returnNode = p.tickStmt()
+		returnNode = p.tickStatement()
 	case tokens.Use:
-		returnNode = p.useStmt()
+		returnNode = p.useStatement()
 	case tokens.While:
-		returnNode = p.whileStmt()
+		returnNode = p.whileStatement()
 	case tokens.Match:
-		returnNode = p.matchStmt(false)
+		returnNode = p.matchStatement(false)
 	}
 
 	if ast.IsImproper(returnNode, ast.NA) {
@@ -49,7 +49,7 @@ func (p *Parser) expressionStatement() ast.Node {
 
 	if exprType == ast.Identifier || exprType == ast.EnvironmentAccessExpression ||
 		exprType == ast.MemberExpression || exprType == ast.FieldExpression {
-		return p.assignmentStmt(expr)
+		return p.assignmentStatement(expr)
 	}
 
 	if exprType == ast.NA {
@@ -66,7 +66,7 @@ func (p *Parser) expressionStatement() ast.Node {
 	return expr
 }
 
-func (p *Parser) destroyStmt() ast.Node {
+func (p *Parser) destroyStatement() ast.Node {
 	destroyStmt := ast.DestroyStmt{
 		Token: p.peek(-1),
 	}
@@ -78,7 +78,7 @@ func (p *Parser) destroyStmt() ast.Node {
 		return ast.NewImproper(destroyStmt.Token, ast.DestroyStatement)
 	}
 	destroyStmt.Identifier = expr
-	destroyStmt.Generics, _ = p.genericArgs()
+	destroyStmt.GenericArgs, _ = p.genericArgs()
 	args, ok := p.functionArgs()
 	if !ok {
 		return ast.NewImproper(destroyStmt.Token, ast.DestroyStatement)
@@ -88,7 +88,7 @@ func (p *Parser) destroyStmt() ast.Node {
 	return &destroyStmt
 }
 
-func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) ast.Node {
+func (p *Parser) ifStatement(else_exists bool, is_else bool, is_elseif bool) ast.Node {
 	ifStmt := ast.IfStmt{
 		Token: p.peek(-1),
 	}
@@ -116,7 +116,7 @@ func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) ast.Node
 			if else_exists {
 				p.Alert(&alerts.ElseIfBlockAfterElseBlock{}, alerts.NewSingle(p.peek(-1)))
 			}
-			ifStmt2 = p.ifStmt(else_exists, false, true)
+			ifStmt2 = p.ifStatement(else_exists, false, true)
 			if ifStmt2.GetType() == ast.NA {
 				return ast.NewImproper(ifStmt.Token, ast.IfStatement)
 			}
@@ -126,7 +126,7 @@ func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) ast.Node
 				p.Alert(&alerts.MoreThanOneElseBlock{}, alerts.NewSingle(p.peek(-1)))
 			}
 			else_exists = true
-			ifStmt2 = p.ifStmt(else_exists, true, false)
+			ifStmt2 = p.ifStatement(else_exists, true, false)
 			if ifStmt2.GetType() == ast.NA {
 				return ast.NewImproper(ifStmt.Token, ast.IfStatement)
 			}
@@ -137,7 +137,7 @@ func (p *Parser) ifStmt(else_exists bool, is_else bool, is_elseif bool) ast.Node
 	return &ifStmt
 }
 
-func (p *Parser) assignmentStmt(expr ast.Node) ast.Node {
+func (p *Parser) assignmentStatement(expr ast.Node) ast.Node {
 	idents := []ast.Node{expr}
 
 	for p.match(tokens.Comma) {
@@ -183,7 +183,7 @@ func (p *Parser) assignmentStmt(expr ast.Node) ast.Node {
 	return ast.NewImproper(expr.GetToken(), ast.NA)
 }
 
-func (p *Parser) returnStmt() ast.Node {
+func (p *Parser) returnStatement() ast.Node {
 	returnStmt := &ast.ReturnStmt{
 		Token: p.peek(-1),
 		Args:  []ast.Node{},
@@ -197,7 +197,7 @@ func (p *Parser) returnStmt() ast.Node {
 	return returnStmt
 }
 
-func (p *Parser) yieldStmt() ast.Node {
+func (p *Parser) yieldStatement() ast.Node {
 	yieldStmt := &ast.YieldStmt{
 		Token: p.peek(-1),
 	}
@@ -210,7 +210,7 @@ func (p *Parser) yieldStmt() ast.Node {
 	return yieldStmt
 }
 
-func (p *Parser) repeatStmt() ast.Node {
+func (p *Parser) repeatStatement() ast.Node {
 	repeatStmt := ast.RepeatStmt{
 		Token: p.peek(-1),
 	}
@@ -282,7 +282,7 @@ outer:
 	return &repeatStmt
 }
 
-func (p *Parser) whileStmt() ast.Node {
+func (p *Parser) whileStatement() ast.Node {
 	whileStmt := &ast.WhileStmt{
 		Token: p.peek(-1),
 	}
@@ -305,7 +305,7 @@ func (p *Parser) whileStmt() ast.Node {
 	return whileStmt
 }
 
-func (p *Parser) forStmt() ast.Node {
+func (p *Parser) forStatement() ast.Node {
 	forStmt := ast.ForStmt{
 		Token: p.peek(-1),
 	}
@@ -347,7 +347,7 @@ func (p *Parser) forStmt() ast.Node {
 	return &forStmt
 }
 
-func (p *Parser) tickStmt() ast.Node {
+func (p *Parser) tickStatement() ast.Node {
 	tickStmt := ast.TickStmt{
 		Token: p.peek(-1),
 	}
@@ -371,7 +371,7 @@ func (p *Parser) tickStmt() ast.Node {
 	return &tickStmt
 }
 
-func (p *Parser) useStmt() ast.Node {
+func (p *Parser) useStatement() ast.Node {
 	useStmt := ast.UseStmt{}
 
 	filepath := p.envPathExpr()
@@ -384,7 +384,7 @@ func (p *Parser) useStmt() ast.Node {
 	return &useStmt
 }
 
-func (p *Parser) matchStmt(isExpr bool) ast.Node {
+func (p *Parser) matchStatement(isExpr bool) ast.Node {
 	var matchType ast.NodeType
 	if isExpr {
 		matchType = ast.MatchExpression
@@ -406,7 +406,7 @@ func (p *Parser) matchStmt(isExpr bool) ast.Node {
 	defer p.context.braceCounter.Decrement()
 
 	for p.consumeTill("in match statement", start, tokens.RightBrace) {
-		stmts, ok := p.caseStmt(isExpr)
+		stmts, ok := p.caseStatement(isExpr)
 		if !ok {
 			p.synchronizeMatchBody()
 			continue
@@ -433,7 +433,7 @@ func (p *Parser) matchStmt(isExpr bool) ast.Node {
 	return &matchStmt
 }
 
-func (p *Parser) caseStmt(isExpr bool) ([]ast.CaseStmt, bool) {
+func (p *Parser) caseStatement(isExpr bool) ([]ast.CaseStmt, bool) {
 	caseStmts := []ast.CaseStmt{}
 
 	exprs := []ast.Node{}

@@ -5,15 +5,14 @@ import "hybroid/ast"
 var StringEnv = &Environment{
 	Name: "String",
 	Scope: Scope{
-		Variables: StringVariables,
-		Tag:       &UntaggedTag{},
+		Variables:  StringVariables,
+		Tag:        &UntaggedTag{},
+		AliasTypes: make(map[string]*AliasType),
 	},
 	importedWalkers: make([]*Walker, 0),
 	UsedLibraries:   make(map[Library]bool),
-	Structs:         make(map[string]*ClassVal),
+	Classes:         make(map[string]*ClassVal),
 	Entities:        make(map[string]*EntityVal),
-	CustomTypes:     make(map[string]*CustomType),
-	AliasTypes:      make(map[string]*AliasType),
 }
 
 var StringVariables = map[string]*VariableVal{
@@ -44,7 +43,7 @@ var StringVariables = map[string]*VariableVal{
 	},
 	"Dump": {
 		Name:  "Dump",
-		Value: NewFunction(NewFunctionType(Types{}, Types{}), NewBasicType(ast.Bool)).WithReturns(NewBasicType(ast.String)),
+		Value: NewFunction(NewFunctionType([]Type{}, []Type{}), NewBasicType(ast.Bool)).WithReturns(NewBasicType(ast.String)),
 	},
 	"Len": {
 		Name:  "Len",

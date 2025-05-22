@@ -87,7 +87,7 @@ func (et *EntityTag) GetType() ScopeTagType {
 
 type FuncTag struct {
 	Returns     []bool
-	ReturnTypes Types
+	ReturnTypes []Type
 
 	Generics []*GenericType
 }
@@ -121,8 +121,8 @@ func (ft *FuncTag) GetIfExits(et ExitType) bool {
 }
 
 type MatchExprTag struct {
-	Mpt         *MultiPathTag
-	YieldValues Types
+	Mpt        *MultiPathTag
+	YieldTypes []Type
 }
 
 func (met *MatchExprTag) GetType() ScopeTagType {
@@ -223,7 +223,8 @@ type Scope struct {
 	Tag        ScopeTag
 	Attributes ScopeAttributes
 
-	Variables map[string]*VariableVal
+	Variables  map[string]*VariableVal
+	AliasTypes map[string]*AliasType
 
 	Body *[]*ast.Node
 }

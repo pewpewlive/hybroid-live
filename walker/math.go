@@ -5,15 +5,14 @@ import "hybroid/ast"
 var MathEnv = &Environment{
 	Name: "Math",
 	Scope: Scope{
-		Variables: MathVariables,
-		Tag:       &UntaggedTag{},
+		Variables:  MathVariables,
+		Tag:        &UntaggedTag{},
+		AliasTypes: make(map[string]*AliasType),
 	},
 	importedWalkers: make([]*Walker, 0),
 	UsedLibraries:   make(map[Library]bool),
-	Structs:         make(map[string]*ClassVal),
+	Classes:         make(map[string]*ClassVal),
 	Entities:        make(map[string]*EntityVal),
-	CustomTypes:     make(map[string]*CustomType),
-	AliasTypes:      make(map[string]*AliasType),
 }
 
 var MathVariables = map[string]*VariableVal{

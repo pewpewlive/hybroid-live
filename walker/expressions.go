@@ -12,30 +12,23 @@ func (w *Walker) StructExpr(node *ast.StructExpr, scope *Scope) *AnonStructVal {
 	structTypeVal := NewAnonStructVal(make(map[string]Field), false)
 
 	for i := range node.Fields {
-		w.FieldDeclarationStmt(node.Fields[i], structTypeVal, anonStructScope)
+		w.fieldDeclaration(node.Fields[i], structTypeVal, anonStructScope)
 	}
 
 	return structTypeVal
 }
 
-func (w *Walker) GetReturns(returns *ast.TypeExpr, scope *Scope) Types {
-	returnTypes := EmptyReturn
-	if returns != nil {
-		if returns.Name.GetType() != ast.TupleExpression {
-			returnTypes = append(returnTypes, w.TypeExpr(returns, scope, true))
-		} else {
-			types := returns.Name.(*ast.TupleExpr).Types
-			for _, typee := range types {
-				returnTypes = append(returnTypes, w.TypeExpr(typee, scope, true))
-			}
-		}
+func (w *Walker) GetReturns(returns []*ast.TypeExpr, scope *Scope) []Type {
+	returnType := EmptyReturn
+	for i := range returns {
+		returnType = append(returnType, w.TypeExpr(returns[i], scope, true))
 	}
 
-	return returnTypes
+	return returnType
 }
 
 func (w *Walker) FunctionExpr(fn *ast.FunctionExpr, scope *Scope) Value {
-	returnTypes := w.GetReturns(fn.Return, scope)
+	returnTypes := w.GetReturns(fn.Returns, scope)
 
 	funcTag := &FuncTag{ReturnTypes: returnTypes}
 	fnScope := NewScope(scope, funcTag, ReturnAllowing)
@@ -45,9 +38,10 @@ func (w *Walker) FunctionExpr(fn *ast.FunctionExpr, scope *Scope) Value {
 	params := make([]Type, 0)
 	for i, param := range fn.Params {
 		params = append(params, w.TypeExpr(param.Type, scope, true))
-		w.DeclareVariable(fnScope, &VariableVal{Name: param.Name.Lexeme, Value: w.TypeToValue(params[i]), IsLocal: true}, param.Name)
+		variable := NewVariable(param.Name, w.TypeToValue(params[i]))
+		w.DeclareVariable(fnScope, variable)
 	}
-	return &FunctionVal{ // returnTypes should contain a fn()
+	return &FunctionVal{
 		Params:  params,
 		Returns: returnTypes,
 	}
@@ -61,7 +55,7 @@ func (w *Walker) MatchExpr(node *ast.MatchExpr, scope *Scope) Value {
 	if node.MatchStmt.HasDefault {
 		casesLength--
 	}
-	matchScope.Tag = &MatchExprTag{YieldValues: make(Types, 0)}
+	matchScope.Tag = &MatchExprTag{YieldTypes: make([]Type, 0)}
 	mpt := NewMultiPathTag(casesLength)
 
 	w.GetNodeValue(&node.MatchStmt.ExprToMatch, scope)
@@ -72,11 +66,16 @@ func (w *Walker) MatchExpr(node *ast.MatchExpr, scope *Scope) Value {
 		w.WalkBody(&node.MatchStmt.Cases[i].Body, mpt, caseScope)
 	}
 
-	yieldValues := matchScope.Tag.(*MatchExprTag).YieldValues
+	yieldTypes := matchScope.Tag.(*MatchExprTag).YieldTypes
+	node.ReturnAmount = len(yieldTypes)
 
-	node.ReturnAmount = len(yieldValues)
+	if node.ReturnAmount == 0 {
+		return &Invalid{}
+	} else if node.ReturnAmount == 1 {
+		return w.TypeToValue(yieldTypes[0])
+	}
 
-	return yieldValues
+	return w.TypesToValues(yieldTypes)
 }
 
 func (w *Walker) EntityExpr(node *ast.EntityExpr, scope *Scope) Value {
@@ -196,21 +195,22 @@ func ConvertNodeToAccessFieldExpr(ident ast.Node, index int, exprType ast.SelfEx
 func ConvertCallToMethodCall(call *ast.CallExpr, exprType ast.SelfExprType, envName string, name string) *ast.MethodCallExpr {
 	copy := *call
 	return &ast.MethodCallExpr{
-		EnvName:    envName,
-		TypeName:   name,
-		ExprType:   exprType,
-		Caller:     copy.Caller,
-		Generics:   copy.GenericArgs,
-		Args:       copy.Args,
-		MethodName: call.Caller.GetToken().Lexeme,
+		EnvName:     envName,
+		TypeName:    name,
+		ExprType:    exprType,
+		Caller:      copy.Caller,
+		GenericArgs: copy.GenericArgs,
+		Args:        copy.Args,
+		MethodName:  call.Caller.GetToken().Lexeme,
 	}
 }
 
 func (w *Walker) IdentifierExpr(node *ast.Node, scope *Scope) Value {
 	valueNode := *node
 	ident := valueNode.(*ast.IdentifierExpr)
+	identToken := ident.GetToken()
 
-	sc := w.ResolveVariable(scope, ident.Name.Lexeme)
+	sc := w.ResolveVariable(scope, ident.Name)
 	if sc == nil {
 		walker, found := w.walkers[ident.Name.Lexeme]
 		if found {
@@ -220,14 +220,11 @@ func (w *Walker) IdentifierExpr(node *ast.Node, scope *Scope) Value {
 			return NewPathVal(walker.environment.luaPath, walker.environment.Type)
 		}
 
+		w.AlertSingle(&alerts.UndeclaredVariableAccess{}, identToken, identToken.Lexeme)
 		return &Invalid{}
 	}
 
-	variable, notAllowed := w.GetVariable(sc, ident.Name.Lexeme)
-	if notAllowed {
-		// w.Error(ident.GetToken(), "Not allowed to access a local variable from a different environment")
-	}
-
+	variable := w.GetVariable(sc, ident.Name)
 	if sc.Tag.GetType() == Struct {
 		class := sc.Tag.(*ClassTag).Val
 		field, index, found := class.ContainsField(variable.Name)
@@ -241,6 +238,7 @@ func (w *Walker) IdentifierExpr(node *ast.Node, scope *Scope) Value {
 		if found {
 			return method
 		}
+		w.AlertSingle(&alerts.MethodOrFieldNotFound{}, identToken, ident.Name.Lexeme)
 	} else if sc.Tag.GetType() == Entity {
 		entity := sc.Tag.(*EntityTag).EntityType
 		field, index, found := entity.ContainsField(variable.Name)
@@ -254,6 +252,7 @@ func (w *Walker) IdentifierExpr(node *ast.Node, scope *Scope) Value {
 		if found {
 			return method
 		}
+		w.AlertSingle(&alerts.MethodOrFieldNotFound{}, identToken, variable.Name)
 	} else if sc.Environment.Name == "Builtin" {
 		scope.Environment.AddBuiltinVar(ident.Name.Lexeme)
 		*node = &ast.BuiltinExpr{
@@ -372,16 +371,9 @@ func (w *Walker) GroupingExpr(node *ast.GroupExpr, scope *Scope) Value {
 }
 
 func (w *Walker) ListExpr(node *ast.ListExpr, scope *Scope) Value {
-	var value ListVal
-	for i := range node.List {
-		val := w.GetNodeValue(&node.List[i], scope)
-		if val.GetType().PVT() == ast.Invalid {
-			// w.Error(node.List[i].GetToken(), fmt.Sprintf("variable '%s' inside list is invalid", node.List[i].GetToken().Lexeme))
-		}
-		value.Values = append(value.Values, val)
-	}
-	value.ValueType = GetContentsValueType(value.Values)
-	return &value
+	value := &ListVal{}
+	value.ValueType = w.GetContentsValueType(node.List, scope)
+	return value
 }
 
 // Before calling it is assumed that the value of the caller is already gotten
@@ -389,18 +381,58 @@ func (w *Walker) CallExpr(val Value, node *ast.Node, scope *Scope) Value {
 	call := (*node).(*ast.CallExpr)
 
 	valType := val.GetType().PVT()
-	if valType != ast.Func {
-		w.AlertSingle(&alerts.InvalidCallerType{}, call.GetToken(), string(valType))
+	if valType == ast.Invalid {
 		return &Invalid{}
+	}
+	if valType != ast.Func {
+		w.AlertSingle(&alerts.InvalidCallerType{}, call.GetToken(), valType)
+		return &Invalid{}
+	}
+
+	if variable, ok := val.(*VariableVal); ok {
+		val = variable.Value
 	}
 
 	fn := val.(*FunctionVal)
 
+	nodeGenerics := call.GenericArgs
+	nodeArgs := call.Args
 	if fn.ProcType == Method {
 		caller := call.Caller.(*ast.AccessExpr)
+		field := caller.Accessed[len(caller.Accessed)].(*ast.FieldExpr)
 
-		node = ConvertCallToMethodCall(call)
+		*node = ConvertCallToMethodCall(call, field.ExprType, field.EnvName, field.EntityName)
+		mcall := (*node).(*ast.MethodCallExpr)
+
+		nodeGenerics = mcall.GenericArgs
+		nodeArgs = mcall.Args
 	}
+
+	genericArgs := w.GetGenerics(call, nodeGenerics, fn.Generics, scope)
+	for i := range fn.Params {
+		if fn.Params[i].GetType() == Generic {
+			fn.Params[i] = genericArgs[fn.Params[i].(*GenericType).Name]
+		}
+	}
+	args := []Type{}
+	for i := range call.Args {
+		args = append(args, w.GetNodeValue(&nodeArgs[i], scope).GetType())
+	}
+	w.ValidateArguments(genericArgs, args, fn.Params, call)
+	for i := range fn.Returns {
+		if fn.Returns[i].GetType() == Generic {
+			fn.Returns[i] = genericArgs[fn.Returns[i].(*GenericType).Name]
+		}
+	}
+
+	returnLen := len(fn.Returns)
+	if returnLen == 0 {
+		return &Invalid{}
+	} else if returnLen == 1 {
+		return w.TypeToValue(fn.Returns[returnLen-1])
+	}
+
+	return w.TypesToValues(fn.Returns)
 }
 
 func (w *Walker) GetGenerics(node ast.Node, genericArgs []*ast.TypeExpr, expectedGenerics []*GenericType, scope *Scope) map[string]Type {
@@ -421,16 +453,19 @@ func (w *Walker) GetGenerics(node ast.Node, genericArgs []*ast.TypeExpr, expecte
 
 // Rewrote
 func (w *Walker) AccessExpr(node *ast.AccessExpr, scope *Scope) Value {
-	val := w.GetNodeValue(&node.Start, scope)
+	val := w.GetNodeActualValue(&node.Start, scope)
 
 	prevNode := node.Start
 	for i := range node.Accessed {
 		valPVT := val.GetType().PVT()
+		if valPVT == ast.Invalid {
+			return &Invalid{}
+		}
 
 		scopedVal, scopeable := val.(ScopeableValue)
 
 		if valPVT != ast.List && valPVT != ast.Map && !scopeable {
-			w.AlertSingle(&alerts.InvalidAccessValue{}, node.GetToken(), string(valPVT))
+			w.AlertSingle(&alerts.InvalidAccessValue{}, node.GetToken(), valPVT)
 			return &Invalid{}
 		}
 		token := node.Accessed[i].GetToken()
@@ -441,18 +476,18 @@ func (w *Walker) AccessExpr(node *ast.AccessExpr, scope *Scope) Value {
 			if exprType == ast.FieldExpression {
 				w.AlertSingle(&alerts.FieldAccessOnListOrMap{}, token,
 					prevNode.GetToken().Lexeme,
-					string(valPVT),
+					valPVT,
 				)
 				return &Invalid{}
 			}
 
 			member := node.Accessed[i].(*ast.MemberExpr).Member
-			memberVal := w.GetNodeValue(&member, scope)
+			memberVal := w.GetNodeActualValue(&member, scope)
 			if (memberVal.GetType().PVT() != ast.Number && valPVT == ast.List) ||
 				(memberVal.GetType().PVT() != ast.String && valPVT == ast.Map) {
 
 				w.AlertSingle(&alerts.InvalidMemberIndex{}, token,
-					string(valPVT),
+					valPVT,
 					member.GetToken().Lexeme,
 				)
 			}
@@ -467,7 +502,7 @@ func (w *Walker) AccessExpr(node *ast.AccessExpr, scope *Scope) Value {
 			if exprType == ast.MemberExpression {
 				w.AlertSingle(&alerts.MemberAccessOnNonListOrMap{}, token,
 					prevNode.GetToken().Lexeme,
-					string(valPVT),
+					valPVT,
 				)
 				return &Invalid{}
 			}
@@ -477,7 +512,7 @@ func (w *Walker) AccessExpr(node *ast.AccessExpr, scope *Scope) Value {
 
 			if fieldVal.GetType().PVT() == ast.Invalid {
 				w.AlertSingle(&alerts.InvalidField{}, token,
-					string(valPVT),
+					valPVT,
 					token.Lexeme,
 				)
 			}
@@ -493,10 +528,10 @@ func (w *Walker) AccessExpr(node *ast.AccessExpr, scope *Scope) Value {
 
 // Rewrote
 func (w *Walker) MapExpr(node *ast.MapExpr, scope *Scope) Value {
-	mapVal := MapVal{Members: []Value{}}
+	mapVal := MapVal{}
 
 	var currentType Type = InvalidType
-	keymap := make(map[string]bool, len(node.KeyValueList))
+	keymap := make(map[string]bool)
 	for i := range node.KeyValueList {
 		prop := node.KeyValueList[i]
 		key := prop.Key.GetToken()
@@ -512,8 +547,8 @@ func (w *Walker) MapExpr(node *ast.MapExpr, scope *Scope) Value {
 
 		if i != 0 && !TypeEquals(currentType, memberType) {
 			w.AlertSingle(&alerts.MixedMapOrListContents{}, prop.Expr.GetToken(),
-				string(currentType.GetType()),
-				string(memberType.GetType()),
+				currentType.ToString(),
+				memberType.ToString(),
 			)
 			currentType = InvalidType
 			break
@@ -600,9 +635,9 @@ func (w *Walker) NewExpr(new *ast.NewExpr, scope *Scope) Value {
 		args = append(args, w.GetNodeValue(&new.Args[i], scope).GetType())
 	}
 
-	suppliedGenerics := w.GetGenerics(new, new.Generics, val.Generics, scope)
+	suppliedGenerics := w.GetGenerics(new, new.GenericArgs, val.Generics, scope)
 
-	w.ValidateArguments(suppliedGenerics, args, val.Params, new.Token)
+	w.ValidateArguments(suppliedGenerics, args, val.Params, new)
 
 	return val
 }
@@ -625,68 +660,17 @@ func (w *Walker) SpawnExpr(new *ast.SpawnExpr, scope *Scope) Value {
 		args = append(args, w.GetNodeValue(&new.Args[i], scope).GetType())
 	}
 
-	suppliedGenerics := w.GetGenerics(new, new.Generics, val.SpawnGenerics, scope)
+	suppliedGenerics := w.GetGenerics(new, new.GenericArgs, val.SpawnGenerics, scope)
 
-	w.ValidateArguments(suppliedGenerics, args, val.SpawnParams, new.Token)
+	w.ValidateArguments(suppliedGenerics, args, val.SpawnParams, new)
 
 	return val
 }
 
-func (w *Walker) MethodCallExpr(mcall *ast.MethodCallExpr, scope *Scope) (Value, ast.Node) {
-	val := w.GetNodeValue(&mcall.Identifier, scope)
-	if variable, ok := val.(*VariableVal); ok {
-		val = variable.Value
-	}
-	valType := val.GetType()
-
-	if valType.PVT() == ast.Invalid {
-		// w.Error(mcall.Identifier.GetToken(), "value is invalid")
-		return &Invalid{}, mcall
-	}
-
-	if structVal, ok := val.(*ClassVal); ok {
-		mcall.EnvName = structVal.Type.EnvName
-		mcall.TypeName = structVal.Type.Name
-		mcall.ExprType = ast.SelfStruct
-	} else if entityVal, ok := val.(*EntityVal); ok {
-		mcall.EnvName = entityVal.Type.EnvName
-		mcall.TypeName = entityVal.Type.Name
-		mcall.ExprType = ast.SelfEntity
-	}
-
-	callToken := mcall.Call.Caller.GetToken()
-	if methodContainer, ok := val.(MethodContainer); ok {
-		method, found := methodContainer.ContainsMethod(callToken.Lexeme)
-
-		mcall.MethodName = callToken.Lexeme
-
-		if found {
-			val, _ := w.CallExpr(method, mcall.Call, scope)
-			return val, mcall
-		}
-	}
-	if _, ok := val.(FieldContainer); ok && valType.PVT() != ast.Enum {
-		// _, _, found := fieldContainer.ContainsField(callToken.Lexeme)
-
-		// if found {
-		// 	fieldExpr := &ast.FieldExpr{}
-
-		// 	return w.FieldExpr(fieldExpr, scope), fieldExpr
-		// }
-	} else {
-		// w.Error(mcall.Identifier.GetToken(), "value is not of type class or entity")
-		return &Invalid{}, mcall
-	}
-
-	// w.Error(mcall.GetToken(), "no method found")
-
-	return &Invalid{}, mcall
-}
-
 func (w *Walker) GetNodeValueFromExternalEnv(expr ast.Node, env *Environment) Value {
 	val := w.GetNodeValue(&expr, &env.Scope)
-	_, isTypes := val.(*Types)
-	if !isTypes && val.GetType().PVT() == ast.Invalid {
+	_, isValues := val.(*Values)
+	if !isValues && val.GetType().PVT() == ast.Invalid {
 		// w.Error(expr.GetToken(), fmt.Sprintf("variable named '%s' doesn't exist", expr.GetToken().Lexeme))
 	}
 	return val
@@ -720,7 +704,6 @@ func (w *Walker) TypeExpr(typee *ast.TypeExpr, scope *Scope, throw bool) Type {
 				// w.Error(expr.GetToken(), "Environment name so doesn't exist")
 				return InvalidType
 			}
-
 		} else if walker.environment.luaPath == "/dynamic/level.lua" {
 			if !walker.walked {
 				walker.Action(w.walkers)
@@ -730,7 +713,7 @@ func (w *Walker) TypeExpr(typee *ast.TypeExpr, scope *Scope, throw bool) Type {
 
 			for _, v := range walker.environment.Requirements() {
 				if v == w.environment.luaPath {
-					// w.Error(typee.GetToken(), fmt.Sprintf("import cycle detected: this environment and '%s' are using each other", walker.Environment.Name))
+					w.AlertSingle(&alerts.ImportCycle{}, typee.GetToken(), w.environment.hybroidPath, walker.environment.hybroidPath)
 					return InvalidType
 				}
 			}
@@ -781,13 +764,13 @@ func (w *Walker) TypeExpr(typee *ast.TypeExpr, scope *Scope, throw bool) Type {
 
 		typ = NewStructType(fields, false)
 	case ast.Func:
-		params := Types{}
+		params := []Type{}
 
 		for _, v := range typee.Params {
 			params = append(params, w.TypeExpr(v, scope, throw))
 		}
 
-		returns := w.GetReturns(typee.Return, scope)
+		returns := w.GetReturns(typee.Returns, scope)
 
 		typ = &FunctionType{
 			Params:  params,
@@ -802,28 +785,21 @@ func (w *Walker) TypeExpr(typee *ast.TypeExpr, scope *Scope, throw bool) Type {
 		typeName := typee.Name.GetToken().Lexeme
 		if entityVal, found := scope.Environment.Entities[typeName]; found {
 			typ = entityVal.GetType()
-			w.CheckAccessibility(scope, entityVal.IsLocal, typee)
 			break
 		}
-		if structVal, found := scope.Environment.Structs[typeName]; found {
+		if structVal, found := scope.Environment.Classes[typeName]; found {
 			typ = structVal.GetType()
-			w.CheckAccessibility(scope, structVal.IsLocal, typee)
 			break
 		}
-		if customType, found := scope.Environment.CustomTypes[typeName]; found {
-			typ = customType
-			//w.CheckAccessibility(scope, customType.IsLocal, typee)
-			break
-		}
-		if aliasType, found := scope.Environment.AliasTypes[typeName]; found {
+		if aliasType, found := scope.AliasTypes[typeName]; found {
 			typ = aliasType.UnderlyingType
 
 			break
 		}
-		if val, _ := w.GetVariable(&scope.Environment.Scope, typeName); val != nil {
+		if val, ok := scope.Environment.Scope.Variables[typeName]; ok {
 			if val.GetType().PVT() == ast.Enum {
 				typ = val.GetType()
-				w.CheckAccessibility(scope, val.IsLocal, typee)
+				w.CheckAccessibility(scope, val.IsLocal, typee.Name.GetToken())
 				break
 			}
 		}
@@ -840,7 +816,7 @@ func (w *Walker) TypeExpr(typee *ast.TypeExpr, scope *Scope, throw bool) Type {
 		}
 
 		if len(scope.Environment.UsedLibraries) != 0 {
-			if alias, found := BuiltinEnv.AliasTypes[typeName]; found {
+			if alias, found := BuiltinEnv.Scope.AliasTypes[typeName]; found {
 				typ = alias.UnderlyingType
 				break
 			}
@@ -912,9 +888,8 @@ func (w *Walker) TypeExpr(typee *ast.TypeExpr, scope *Scope, throw bool) Type {
 		}
 
 		if len(scope.Environment.UsedLibraries) != 0 {
-			if alias, found := BuiltinEnv.AliasTypes[typeName]; found {
+			if alias, found := BuiltinEnv.Scope.AliasTypes[typeName]; found {
 				typ = alias.UnderlyingType
-
 				break
 			}
 		}

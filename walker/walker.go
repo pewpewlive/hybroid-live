@@ -27,10 +27,8 @@ type Environment struct {
 	UsedLibraries   map[Library]bool
 	UsedBuiltinVars []string
 
-	Structs     map[string]*ClassVal
-	Entities    map[string]*EntityVal
-	CustomTypes map[string]*CustomType
-	AliasTypes  map[string]*AliasType
+	Classes  map[string]*ClassVal
+	Entities map[string]*EntityVal
 
 	_envStmt *ast.EnvironmentDecl
 }
@@ -53,8 +51,9 @@ func (e *Environment) AddBuiltinVar(name string) {
 
 func NewEnvironment(hybroidPath, luaPath string) *Environment {
 	scope := Scope{
-		Tag:       &UntaggedTag{},
-		Variables: map[string]*VariableVal{},
+		Tag:        &UntaggedTag{},
+		Variables:  map[string]*VariableVal{},
+		AliasTypes: make(map[string]*AliasType),
 	}
 	global := &Environment{
 		hybroidPath: hybroidPath,
@@ -68,10 +67,8 @@ func NewEnvironment(hybroidPath, luaPath string) *Environment {
 			Math:   false,
 			Fmath:  false,
 		},
-		Structs:     map[string]*ClassVal{},
-		Entities:    map[string]*EntityVal{},
-		CustomTypes: map[string]*CustomType{},
-		AliasTypes:  make(map[string]*AliasType),
+		Classes:  map[string]*ClassVal{},
+		Entities: map[string]*EntityVal{},
 	}
 
 	global.Scope.Environment = global
@@ -91,11 +88,13 @@ const (
 type Walker struct {
 	alerts.Collector
 
+	// ENVIRONMENT SHOULD NEVER CHANGE ONCE INITIALIZED
 	environment *Environment
-	walkers     map[string]*Walker
-	program     []ast.Node
-	context     Context
-	walked      bool
+
+	walkers map[string]*Walker
+	program []ast.Node
+	context Context
+	walked  bool
 }
 
 func (w *Walker) Alert(alertType alerts.Alert, args ...any) {
@@ -111,8 +110,13 @@ func (w *Walker) AlertSingle(alertType alerts.Alert, token tokens.Token, args ..
 	w.Alert(alertType, args...)
 }
 
+func (w *Walker) AlertMulti(alertType alerts.Alert, tokenStart, tokenEnd tokens.Token, args ...any) {
+	args = append([]any{alerts.NewMulti(tokenStart, tokenEnd)}, args...)
+	w.Alert(alertType, args...)
+}
+
 func NewWalker(hybroidPath, luaPath string) *Walker {
-	walker := &Walker{
+	return &Walker{
 		environment: NewEnvironment(hybroidPath, luaPath),
 		program:     []ast.Node{},
 		context: Context{
@@ -120,7 +124,6 @@ func NewWalker(hybroidPath, luaPath string) *Walker {
 		},
 		Collector: alerts.NewCollector(),
 	}
-	return walker
 }
 
 func (w *Walker) SetProgram(program []ast.Node) {
@@ -142,7 +145,7 @@ func (w *Walker) Action(wlkrs map[string]*Walker) {
 
 	scope := &w.environment.Scope
 	for i := range nodes {
-		w.WalkNode(&nodes[i], scope)
+		w.WalkNode(nodes[i], scope)
 	}
 
 	for i := range nodes {
@@ -152,8 +155,8 @@ func (w *Walker) Action(wlkrs map[string]*Walker) {
 	w.walked = true
 }
 
-func (w *Walker) WalkNode(node *ast.Node, scope *Scope) {
-	switch node := (*node).(type) {
+func (w *Walker) WalkNode(node ast.Node, scope *Scope) {
+	switch node := node.(type) {
 	case *ast.EnvironmentDecl:
 		if w.environment.Name != "" {
 			w.AlertSingle(&alerts.EnvironmentRedaclaration{}, node.GetToken())
@@ -186,64 +189,71 @@ func (w *Walker) WalkNode2(node *ast.Node, scope *Scope) {
 	switch newNode := (*node).(type) {
 	case *ast.EnvironmentDecl:
 	case *ast.VariableDecl:
-		w.VariableDeclarationStmt(newNode, scope)
+		w.variableDeclaration(newNode, scope)
 	case *ast.IfStmt:
-		w.IfStmt(newNode, scope)
+		w.ifStatement(newNode, scope)
 	case *ast.FunctionDecl:
-		w.FunctionDeclarationStmt(newNode, scope, Function)
+		w.functionDeclaration(newNode, scope, Function)
 	case *ast.ReturnStmt:
-		w.ReturnStmt(newNode, scope)
+		w.returnStatement(newNode, scope)
 	case *ast.YieldStmt:
-		w.YieldStmt(newNode, scope)
+		w.yieldStatement(newNode, scope)
 	case *ast.BreakStmt:
-		w.BreakStmt(newNode, scope)
+		w.breakStatement(newNode, scope)
 	case *ast.ContinueStmt:
-		w.ContinueStmt(newNode, scope)
+		w.continueStatement(newNode, scope)
 	case *ast.RepeatStmt:
-		w.RepeatStmt(newNode, scope)
+		w.repeatStatement(newNode, scope)
 	case *ast.WhileStmt:
-		w.WhileStmt(newNode, scope)
+		w.whileStatement(newNode, scope)
 	case *ast.ForStmt:
-		w.ForloopStmt(newNode, scope)
+		w.forStatement(newNode, scope)
 	case *ast.TickStmt:
-		w.TickStmt(newNode, scope)
+		w.tickStatement(newNode, scope)
 	case *ast.CallExpr:
 		val := w.GetNodeValue(&newNode.Caller, scope)
 		w.CallExpr(val, node, scope)
-	case *ast.MethodCallExpr:
-		_, *node = w.MethodCallExpr(newNode, scope)
 	case *ast.EnvAccessExpr:
 		_, newVersion := w.EnvAccessExpr(newNode)
 		if newVersion != nil {
 			*node = newVersion
 		}
 	case *ast.ClassDecl:
-		w.ClassDeclarationStmt(newNode, scope)
+		w.classDeclaration(newNode, scope)
 	case *ast.EnumDecl:
-		w.EnumDeclarationStmt(newNode, scope)
+		w.enumDeclaration(newNode, scope)
 	case *ast.MatchStmt:
-		w.MatchStmt(newNode, false, scope)
+		w.matchStatement(newNode, false, scope)
 	case *ast.AssignmentStmt:
-		w.AssignmentStmt(newNode, scope)
+		w.assignmentStatement(newNode, scope)
 	case *ast.UseStmt:
-		w.UseStmt(newNode, scope)
+		w.useStatement(newNode, scope)
 	case *ast.DestroyStmt:
-		w.DestroyStmt(newNode, scope)
+		w.destroyStatement(newNode, scope)
 	case *ast.SpawnExpr:
 		w.SpawnExpr(newNode, scope)
 	case *ast.NewExpr:
 		w.NewExpr(newNode, scope)
 	case *ast.AliasDecl:
-		w.AliasDeclarationStmt(newNode, scope)
+		w.aliasDeclaration(newNode, scope)
 	// case *ast.TypeDeclarationStmt:
 	// 	TypeDeclarationStmt(newNode, scope)
 	case *ast.Improper:
 		// w.Error(newNode.GetToken(), "Improper statement: parser fault")
 	case *ast.EntityDecl:
-		w.EntityDeclarationStmt(newNode, scope)
+		w.entityDeclaration(newNode, scope)
 	default:
 		// w.Error(newNode.GetToken(), "Expected statement")
 	}
+}
+
+func (w *Walker) GetNodeActualValue(node *ast.Node, scope *Scope) Value {
+	val := w.GetNodeValue(node, scope)
+	if val, ok := val.(*VariableVal); ok {
+		return val.Value
+	}
+
+	return val
 }
 
 func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
@@ -266,18 +276,14 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 		callVal := w.GetNodeValue(&newNode.Caller, scope)
 		localVal := w.CallExpr(callVal, node, scope)
 		val = localVal
-	case *ast.MethodCallExpr:
-		val, *node = w.MethodCallExpr(newNode, scope)
 	case *ast.MapExpr:
 		val = w.MapExpr(newNode, scope)
 	case *ast.FunctionExpr:
 		val = w.FunctionExpr(newNode, scope)
 	case *ast.StructExpr:
 		val = w.StructExpr(newNode, scope)
-	// case *ast.MemberExpr:
-	// 	val = w.MemberExpr(newNode, scope)
-	// case *ast.FieldExpr:
-	// 	val = w.FieldExpr(newNode, scope)
+	case *ast.AccessExpr:
+		val = w.AccessExpr(newNode, scope)
 	case *ast.NewExpr:
 		val = w.NewExpr(newNode, scope)
 	case *ast.SelfExpr:
@@ -324,7 +330,7 @@ func (w *Walker) WalkBody(body *[]ast.Node, tag ExitableTag, scope *Scope) {
 			endIndex = i
 			break
 		}
-		w.WalkNode(&(*body)[i], scope)
+		w.WalkNode((*body)[i], scope)
 	}
 	if endIndex != -1 {
 		*body = (*body)[:endIndex]

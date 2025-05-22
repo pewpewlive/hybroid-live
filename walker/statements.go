@@ -3,357 +3,8 @@ package walker
 import (
 	"hybroid/ast"
 	"hybroid/helpers"
-	"hybroid/tokens"
 	"strings"
 )
-
-// (w *Walker) func alker, node *ast.TypeDeclarationStmt, scope *Scope) {
-// 	w.Environment.CustomTypes[node.Alias.Lexeme] = NewCustomType(node.Alias.Lexeme, TypeExpr(node.AliasedType, w.Environment))
-// }
-
-func (w *Walker) AliasDeclarationStmt(node *ast.AliasDecl, scope *Scope) {
-	w.environment.AliasTypes[node.Name.Lexeme] = NewAliasType(node.Name.Lexeme, w.TypeExpr(node.Type, &w.environment.Scope, true))
-}
-
-func (w *Walker) ClassDeclarationStmt(node *ast.ClassDecl, scope *Scope) {
-	if node.Constructor == nil {
-		// w.Error(node.Name, "structs must be declared with a constructor")
-		return
-	}
-
-	if w.TypeExists(node.Name.Lexeme) {
-		// w.Error(node.Name, "a type with this name already exists")
-	}
-
-	generics := make([]*GenericType, 0)
-
-	for _, param := range node.Constructor.Generics {
-		generics = append(generics, NewGeneric(param.Name.Lexeme))
-	}
-
-	classVal := &ClassVal{
-		Type:     *NewNamedType(w.environment.Name, node.Name.Lexeme, ast.Struct),
-		IsLocal:  node.IsPub,
-		Fields:   make(map[string]Field),
-		Methods:  map[string]*VariableVal{},
-		Generics: generics,
-		Params:   Types{},
-	}
-
-	// DECLARATIONS
-	w.DeclareClass(classVal)
-
-	classScope := NewScope(scope, &ClassTag{Val: classVal}, SelfAllowing)
-
-	params := make([]Type, 0)
-	for _, param := range node.Constructor.Params {
-		params = append(params, w.TypeExpr(param.Type, scope, true))
-	}
-	classVal.Params = params
-
-	funcDeclaration := ast.MethodDecl{
-		Name:     node.Constructor.Token,
-		Params:   node.Constructor.Params,
-		Generics: node.Constructor.Generics,
-		IsPub:    true,
-		Body:     node.Constructor.Body,
-	}
-
-	for i := range node.Fields {
-		w.FieldDeclarationStmt(&node.Fields[i], classVal, classScope)
-	}
-
-	for i := range node.Methods {
-		w.MethodDeclarationStmt(&node.Methods[i], classVal, classScope)
-	}
-
-	w.MethodDeclarationStmt(&funcDeclaration, classVal, classScope)
-
-	// WALKING
-	w.MethodDeclarationStmt(&funcDeclaration, classVal, classScope)
-
-	for _, v := range classVal.Fields {
-		if !v.Var.IsInit {
-			// w.Error(node.GetToken(), "all fields need to be initialized in constructor (found '%s')", v.Var.Name)
-			break
-		}
-	}
-
-	for i := range node.Methods {
-		w.MethodDeclarationStmt(&node.Methods[i], classVal, classScope)
-	}
-}
-
-func (w *Walker) EntityDeclarationStmt(node *ast.EntityDecl, scope *Scope) {
-	et := &EntityTag{}
-	entityScope := NewScope(scope, et, SelfAllowing)
-
-	if scope.Parent != nil {
-		// w.Error(node.Token, "can't declare an entity inside a local block")
-	}
-
-	if w.TypeExists(node.Name.Lexeme) {
-		// w.Error(node.Name, "a type with this name already exists")
-	}
-
-	entityVal := NewEntityVal(w.environment.Name, node.Name.Lexeme, node.IsPub)
-
-	// DECLARATIONS
-	for i := range node.Fields {
-		w.FieldDeclarationStmt(&node.Fields[i], entityVal, entityScope)
-	}
-
-	et.EntityType = entityVal
-
-	w.DeclareEntity(entityVal)
-
-	for i := range node.Methods {
-		w.MethodDeclarationStmt(&node.Methods[i], entityVal, entityScope)
-	}
-
-	//callbacks
-	found := map[ast.EntityFunctionType][]tokens.Token{}
-
-	if node.Destroyer == nil {
-		// w.Error(node.Token, "entities must be declared with a destroyer")
-	} else {
-		w.EntityFunctionDeclarationStmt(node.Destroyer, entityVal, entityScope)
-	}
-
-	if node.Spawner == nil {
-		// w.Error(node.Token, "entities must be declared with a spawner")
-	} else {
-		w.EntityFunctionDeclarationStmt(node.Spawner, entityVal, entityScope)
-	}
-
-	// WALKING
-	if node.Destroyer != nil {
-		w.EntityFunctionDeclarationStmt(node.Destroyer, entityVal, entityScope)
-	}
-
-	for i := range node.Methods {
-		w.MethodDeclarationStmt(&node.Methods[i], entityVal, entityScope)
-	}
-
-	for i := range node.Callbacks {
-		found[node.Callbacks[i].Type] = append(found[node.Callbacks[i].Type], node.Callbacks[i].Token)
-		w.EntityFunctionDeclarationStmt(node.Callbacks[i], entityVal, entityScope)
-	}
-
-	for k := range found {
-		if len(found[k]) > 1 {
-			// for i := range found[k] {
-			// 	w.Error(found[k][i], fmt.Sprintf("multiple instances of the same entity function is not allowed (%s)", k))
-			// }
-		}
-	}
-}
-
-func (w *Walker) EntityFunctionDeclarationStmt(node *ast.EntityFunctionDecl, entityVal *EntityVal, scope *Scope) {
-	generics := make([]*GenericType, 0)
-
-	for _, param := range node.Generics {
-		generics = append(generics, NewGeneric(param.Name.Lexeme))
-	}
-
-	ret := w.GetReturns(node.Return, scope)
-
-	ft := &FuncTag{
-		Generics:    generics,
-		ReturnTypes: ret,
-		Returns:     make([]bool, len(ret)),
-	}
-	fnScope := NewScope(scope, ft, ReturnAllowing)
-	params := w.WalkParams(node.Params, scope, func(name tokens.Token, value Value) {
-		w.DeclareVariable(fnScope, &VariableVal{
-			Name:    name.Lexeme,
-			Value:   value,
-			IsLocal: true,
-			Token:   node.GetToken(),
-		}, name)
-	})
-
-	funcSign := NewFuncSignature().
-		WithParams(params...).
-		WithReturns(ret...)
-
-	w.context.Clear()
-
-	if node.Type != ast.Destroy || entityVal.DestroyParams != nil {
-		w.WalkBody(&node.Body, ft, fnScope)
-
-		if !ft.GetIfExits(Return) && len(ft.ReturnTypes) != 0 {
-			// w.Error(node.GetToken(), "not all code paths return")
-		}
-	}
-
-	switch node.Type {
-	case ast.Spawn:
-		for _, v := range entityVal.Fields {
-			if !v.Var.IsInit {
-				// w.Error(node.GetToken(), "all fields need to be initialized in spawner")
-				break
-			}
-		}
-		if len(params) < 2 || !(params[0].GetType() == Fixed && params[1].GetType() == Fixed) {
-			// w.Error(node.Token, "first two parameters of %s must be of fixed type", node.Type)
-		}
-		if len(ret) != 0 {
-			// w.Error(node.Token, "spawner must have no return types")
-		}
-		entityVal.SpawnParams = params
-	case ast.Destroy:
-		entityVal.DestroyParams = params
-		entityVal.DestroyGenerics = generics
-	case ast.WallCollision:
-		if !funcSign.Equals(WallCollisionSign) {
-			// w.Error(node.Token, "wrong function signature: expected %s", WallCollisionSign.ToString())
-		}
-	case ast.PlayerCollision:
-		if !funcSign.Equals(PlayerCollisionSign) {
-			// w.Error(node.Token, "wrong function signature: expected %s", PlayerCollisionSign.ToString())
-		}
-	case ast.WeaponCollision:
-		if !funcSign.Equals(WeaponCollisionSign) {
-			// w.Error(node.Token, "wrong function signature: expected %s", WeaponCollisionSign.ToString())
-		}
-	}
-}
-
-func (w *Walker) EnumDeclarationStmt(node *ast.EnumDecl, scope *Scope) {
-	enumVal := &EnumVal{
-		Type:   NewEnumType(scope.Environment.Name, node.Name.Lexeme),
-		Fields: make(map[string]*VariableVal),
-	}
-
-	if len(node.Fields) == 0 {
-		// w.Error(node.GetToken(), "can't declare an enum with no fields")
-	}
-	for _, v := range node.Fields {
-		variable := &VariableVal{
-			Name:    v.Name.Lexeme,
-			Value:   &EnumFieldVal{Type: enumVal.Type},
-			IsLocal: node.IsPub,
-			IsConst: true,
-		}
-		enumVal.AddField(variable)
-	}
-
-	enumVar := &VariableVal{
-		Name:    enumVal.Type.Name,
-		Value:   enumVal,
-		IsLocal: node.IsPub,
-		IsConst: true,
-	}
-
-	if w.TypeExists(enumVar.Name) {
-		// w.Error(node.Name, "a type with this name already exists")
-	}
-
-	w.DeclareVariable(scope, enumVar, node.GetToken())
-}
-
-func (w *Walker) FieldDeclarationStmt(node *ast.FieldDecl, container FieldContainer, scope *Scope) {
-	varDecl := ast.VariableDecl{
-		Identifiers: node.Identifiers,
-		Type:        node.Type,
-		Expressions: node.Values,
-		IsPub:       false,
-		Token:       node.Token,
-	}
-
-	variables := w.VariableDeclarationStmt(&varDecl, scope)
-	node.Values = varDecl.Expressions
-	for i := range variables {
-		container.AddField(variables[i])
-	}
-}
-
-func (w *Walker) MethodDeclarationStmt(node *ast.MethodDecl, container MethodContainer, scope *Scope) {
-	if variable, found := container.ContainsMethod(node.Name.Lexeme); found {
-		fn := variable.Value.(*FunctionVal)
-		fnTag := &FuncTag{
-			Returns:     make([]bool, 0),
-			ReturnTypes: fn.Returns,
-
-			Generics: fn.Generics,
-		}
-
-		fnScope := NewScope(scope, fnTag, ReturnAllowing)
-
-		for i, param := range node.Params {
-			w.DeclareVariable(fnScope, &VariableVal{Name: param.Name.Lexeme, Value: w.TypeToValue(fn.Params[i]), IsLocal: true, IsInit: true}, param.Name)
-		}
-
-		w.WalkBody(&node.Body, fnTag, fnScope)
-	} else {
-		funcExpr := ast.FunctionDecl{
-			Name:     node.Name,
-			Return:   node.Return,
-			Params:   node.Params,
-			Generics: node.Generics,
-			Body:     node.Body,
-			IsPub:    false,
-		}
-
-		variable := w.FunctionDeclarationStmt(&funcExpr, scope, Method)
-		container.AddMethod(variable)
-	}
-}
-
-func (w *Walker) FunctionDeclarationStmt(node *ast.FunctionDecl, scope *Scope, procType ProcedureType) *VariableVal {
-	generics := make([]*GenericType, 0)
-
-	for _, param := range node.Generics {
-		generics = append(generics, NewGeneric(param.Name.Lexeme))
-	}
-
-	funcTag := &FuncTag{Generics: generics}
-	fnScope := NewScope(scope, funcTag, ReturnAllowing)
-
-	ret := w.GetReturns(node.Return, fnScope)
-
-	funcTag.ReturnTypes = ret
-
-	params := make([]Type, 0)
-	for i, param := range node.Params {
-		params = append(params, w.TypeExpr(param.Type, fnScope, true))
-		w.DeclareVariable(fnScope, &VariableVal{Name: param.Name.Lexeme, Value: w.TypeToValue(params[i]), IsLocal: true, IsInit: true}, param.Name)
-	}
-
-	variable := &VariableVal{
-		Name: node.Name.Lexeme,
-		Value: NewFunction2(procType, params...).
-			WithGenerics(generics...).
-			WithReturns(ret...),
-		Token:   node.GetToken(),
-		IsLocal: node.IsPub,
-	}
-	w.DeclareVariable(scope, variable, variable.Token)
-
-	if procType == Function {
-		w.WalkBody(&node.Body, funcTag, fnScope)
-
-		if !funcTag.GetIfExits(Return) && len(ret) != 0 {
-			// w.Error(node.GetToken(), "not all code paths return")
-		}
-	}
-
-	return variable
-}
-
-func (w *Walker) VariableDeclarationStmt(declaration *ast.VariableDecl, scope *Scope) []*VariableVal {
-	// values := make([]Value, 0)
-
-	// for i, _ := range declaration.Expressions {
-	// 	exprValue := w.GetNodeValue(&declaration.Expressions[i], scope)
-	// 	if types, ok := exprValue.(*Types); ok {
-
-	// 	}
-	// }
-
-	return make([]*VariableVal, 0)
-}
 
 func (w *Walker) DeclareConversion(scope *Scope) {
 	if len(w.context.Conversions) == 1 {
@@ -362,12 +13,12 @@ func (w *Walker) DeclareConversion(scope *Scope) {
 			Name:   conv.Name.Lexeme,
 			Value:  conv.Entity,
 			IsInit: true,
-		}, conv.Name)
+		})
 	}
 	w.context.Conversions = make([]EntityConversion, 0)
 }
 
-func (w *Walker) IfStmt(node *ast.IfStmt, scope *Scope) {
+func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 	length := len(node.Elseifs) + 2
 	mpt := NewMultiPathTag(length, scope.Attributes...)
 	multiPathScope := NewScope(scope, mpt)
@@ -398,7 +49,7 @@ func (w *Walker) IfStmt(node *ast.IfStmt, scope *Scope) {
 	}
 }
 
-func (w *Walker) AssignmentStmt(assignStmt *ast.AssignmentStmt, scope *Scope) {
+func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scope) {
 	type Value2 struct {
 		Value
 		Index int
@@ -412,9 +63,9 @@ func (w *Walker) AssignmentStmt(assignStmt *ast.AssignmentStmt, scope *Scope) {
 		// if assignStmt.Values[i].GetType() == ast.SelfExpression {
 		// 	// w.Error(assignStmt.Values[i].GetToken(), "cannot assign self to a variable")
 		// }
-		if types, ok := exprValue.(*Types); ok {
-			for j := range *types {
-				values = append(values, Value2{w.TypeToValue((*types)[j]), i})
+		if vals, ok := exprValue.(Values); ok {
+			for j := range vals {
+				values = append(values, Value2{vals[j], i})
 			}
 		} else {
 			values = append(values, Value2{exprValue, i})
@@ -469,7 +120,7 @@ func (w *Walker) AssignmentStmt(assignStmt *ast.AssignmentStmt, scope *Scope) {
 	}
 }
 
-func (w *Walker) RepeatStmt(node *ast.RepeatStmt, scope *Scope) {
+func (w *Walker) repeatStatement(node *ast.RepeatStmt, scope *Scope) {
 	repeatScope := NewScope(scope, &MultiPathTag{}, BreakAllowing, ContinueAllowing)
 	lt := NewMultiPathTag(1, repeatScope.Attributes...)
 	repeatScope.Tag = lt
@@ -505,13 +156,13 @@ func (w *Walker) RepeatStmt(node *ast.RepeatStmt, scope *Scope) {
 	}
 
 	if node.Variable != nil {
-		w.DeclareVariable(repeatScope, &VariableVal{Name: node.Variable.Name.Lexeme, Value: w.TypeToValue(repeatType), IsLocal: true}, node.Variable.Name)
+		w.DeclareVariable(repeatScope, NewVariable(node.Variable.Name, w.TypeToValue(repeatType)))
 	}
 
 	w.WalkBody(&node.Body, lt, repeatScope)
 }
 
-func (w *Walker) WhileStmt(node *ast.WhileStmt, scope *Scope) {
+func (w *Walker) whileStatement(node *ast.WhileStmt, scope *Scope) {
 	whileScope := NewScope(scope, &MultiPathTag{}, BreakAllowing, ContinueAllowing)
 	lt := NewMultiPathTag(1, whileScope.Attributes...)
 	whileScope.Tag = lt
@@ -521,14 +172,12 @@ func (w *Walker) WhileStmt(node *ast.WhileStmt, scope *Scope) {
 	w.WalkBody(&node.Body, lt, whileScope)
 }
 
-func (w *Walker) ForloopStmt(node *ast.ForStmt, scope *Scope) {
+func (w *Walker) forStatement(node *ast.ForStmt, scope *Scope) {
 	forScope := NewScope(scope, &MultiPathTag{}, BreakAllowing, ContinueAllowing)
 	lt := NewMultiPathTag(1, forScope.Attributes...)
 	forScope.Tag = lt
 
-	w.DeclareVariable(forScope,
-		&VariableVal{Name: node.First.Name.Lexeme, Value: &NumberVal{}},
-		node.First.Name)
+	w.DeclareVariable(forScope, NewVariable(node.First.Name, &NumberVal{}))
 
 	valType := w.GetNodeValue(&node.Iterator, scope).GetType()
 	wrapper, ok := valType.(*WrapperType)
@@ -536,26 +185,24 @@ func (w *Walker) ForloopStmt(node *ast.ForStmt, scope *Scope) {
 		// w.Error(node.Iterator.GetToken(), "iterator must be of type map or list")
 	} else if node.Second != nil {
 		node.OrderedIteration = wrapper.PVT() == ast.List
-		w.DeclareVariable(forScope,
-			&VariableVal{Name: node.Second.Name.Lexeme, Value: w.TypeToValue(wrapper.WrappedType)},
-			node.Second.Name)
+		w.DeclareVariable(forScope, NewVariable(node.Second.Name, w.TypeToValue(wrapper)))
 	}
 
 	w.WalkBody(&node.Body, lt, forScope)
 }
 
-func (w *Walker) TickStmt(node *ast.TickStmt, scope *Scope) {
+func (w *Walker) tickStatement(node *ast.TickStmt, scope *Scope) {
 	funcTag := &FuncTag{ReturnTypes: EmptyReturn}
 	tickScope := NewScope(scope, funcTag, ReturnAllowing)
 
 	if node.Variable != nil {
-		w.DeclareVariable(tickScope, &VariableVal{Name: node.Variable.Name.Lexeme, Value: &NumberVal{}}, node.Token)
+		w.DeclareVariable(tickScope, NewVariable(node.Variable.Name, &NumberVal{}))
 	}
 
 	w.WalkBody(&node.Body, funcTag, tickScope)
 }
 
-func (w *Walker) MatchStmt(node *ast.MatchStmt, isExpr bool, scope *Scope) {
+func (w *Walker) matchStatement(node *ast.MatchStmt, isExpr bool, scope *Scope) {
 	val := w.GetNodeValue(&node.ExprToMatch, scope)
 	if val.GetType().PVT() == ast.Invalid {
 		// w.Error(node.ExprToMatch.GetToken(), "variable is of type invalid")
@@ -590,7 +237,7 @@ func (w *Walker) MatchStmt(node *ast.MatchStmt, isExpr bool, scope *Scope) {
 	}
 }
 
-func (w *Walker) BreakStmt(node *ast.BreakStmt, scope *Scope) {
+func (w *Walker) breakStatement(node *ast.BreakStmt, scope *Scope) {
 	if !scope.Is(BreakAllowing) {
 		// w.Error(node.GetToken(), "cannot use break outside of loops")
 	}
@@ -601,7 +248,7 @@ func (w *Walker) BreakStmt(node *ast.BreakStmt, scope *Scope) {
 	}
 }
 
-func (w *Walker) ContinueStmt(node *ast.ContinueStmt, scope *Scope) {
+func (w *Walker) continueStatement(node *ast.ContinueStmt, scope *Scope) {
 	if !scope.Is(ContinueAllowing) {
 		// w.Error(node.GetToken(), "cannot use break outside of loops")
 	}
@@ -612,7 +259,7 @@ func (w *Walker) ContinueStmt(node *ast.ContinueStmt, scope *Scope) {
 	}
 }
 
-func (w *Walker) ReturnStmt(node *ast.ReturnStmt, scope *Scope) *Types {
+func (w *Walker) returnStatement(node *ast.ReturnStmt, scope *Scope) *[]Type {
 	if !scope.Is(ReturnAllowing) {
 		// w.Error(node.GetToken(), "can't have a return statement outside of a function or method")
 	}
@@ -621,8 +268,10 @@ func (w *Walker) ReturnStmt(node *ast.ReturnStmt, scope *Scope) *Types {
 	for i := range node.Args {
 		val := w.GetNodeValue(&node.Args[i], scope) // we need to check waht happens here
 		valType := val.GetType()
-		if types, ok := val.(*Types); ok {
-			ret = append(ret, *types...)
+		if vls, ok := val.(Values); ok {
+			for i := range vls {
+				ret = append(ret, vls[i].GetType())
+			}
 		} else {
 			ret = append(ret, valType)
 		}
@@ -645,7 +294,7 @@ func (w *Walker) ReturnStmt(node *ast.ReturnStmt, scope *Scope) *Types {
 	return &ret
 }
 
-func (w *Walker) YieldStmt(node *ast.YieldStmt, scope *Scope) *Types {
+func (w *Walker) yieldStatement(node *ast.YieldStmt, scope *Scope) *[]Type {
 	if !scope.Is(YieldAllowing) {
 		// w.Error(node.GetToken(), "cannot use yield outside of statement expressions") // wut
 	}
@@ -654,8 +303,10 @@ func (w *Walker) YieldStmt(node *ast.YieldStmt, scope *Scope) *Types {
 	for i := range node.Args {
 		val := w.GetNodeValue(&node.Args[i], scope)
 		valType := val.GetType()
-		if types, ok := val.(*Types); ok {
-			ret = append(ret, *types...)
+		if vls, ok := val.(Values); ok {
+			for i := range vls {
+				ret = append(ret, vls[i].GetType())
+			}
 		} else {
 			ret = append(ret, valType)
 		}
@@ -669,10 +320,10 @@ func (w *Walker) YieldStmt(node *ast.YieldStmt, scope *Scope) *Types {
 
 	matchExprTag := *matchExprT
 
-	if helpers.ListsAreSame(matchExprTag.YieldValues, EmptyReturn) {
-		matchExprTag.YieldValues = ret
+	if helpers.ListsAreSame(matchExprTag.YieldTypes, EmptyReturn) {
+		matchExprTag.YieldTypes = ret
 	} else {
-		errorMsg := w.ValidateReturnValues(ret, matchExprTag.YieldValues)
+		errorMsg := w.ValidateReturnValues(ret, matchExprTag.YieldTypes)
 		if errorMsg != "" {
 			errorMsg = strings.Replace(errorMsg, "return", "yield", -1)
 			// w.Error(node.GetToken(), errorMsg)
@@ -687,7 +338,7 @@ func (w *Walker) YieldStmt(node *ast.YieldStmt, scope *Scope) *Types {
 	return &ret
 }
 
-func (w *Walker) UseStmt(node *ast.UseStmt, scope *Scope) {
+func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 	if scope.Parent != nil {
 		// w.Error(node.GetToken(), "cannot have a use statement inside a local block")
 		return
@@ -755,7 +406,7 @@ func (w *Walker) UseStmt(node *ast.UseStmt, scope *Scope) {
 	w.environment.importedWalkers = append(w.environment.importedWalkers, walker)
 }
 
-func (w *Walker) DestroyStmt(node *ast.DestroyStmt, scope *Scope) {
+func (w *Walker) destroyStatement(node *ast.DestroyStmt, scope *Scope) {
 	val := w.GetNodeValue(&node.Identifier, scope)
 	valType := val.GetType()
 
@@ -781,7 +432,7 @@ func (w *Walker) DestroyStmt(node *ast.DestroyStmt, scope *Scope) {
 		args = append(args, w.GetNodeValue(&node.Args[i], scope).GetType())
 	}
 
-	suppliedGenerics := w.GetGenerics(node, node.Generics, entityVal.DestroyGenerics, scope)
+	suppliedGenerics := w.GetGenerics(node, node.GenericArgs, entityVal.DestroyGenerics, scope)
 
-	w.ValidateArguments(suppliedGenerics, args, entityVal.DestroyParams, node.Token)
+	w.ValidateArguments(suppliedGenerics, args, entityVal.DestroyParams, node)
 }

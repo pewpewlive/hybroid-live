@@ -62,7 +62,7 @@ func (p *Parser) variableDeclaration(matchedLetOrConst bool) ast.Node {
 		return ast.NewImproper(variableDecl.Token, ast.NA)
 	}
 
-	idents, exprs, ok := p.identExprPairs("in variable declaration", variableDecl.Type != nil)
+	idents, exprs, ok := p.identExprPairs("in variable declaration", variableDecl.Type != nil || variableDecl.IsConst)
 	if !ok {
 		if matchedLetOrConst {
 			return ast.NewImproper(variableDecl.Token, ast.VariableDeclaration)
@@ -105,7 +105,11 @@ func (p *Parser) functionDeclaration() ast.Node {
 		return ast.NewImproper(functionDecl.Name, ast.FunctionDeclaration)
 	}
 	functionDecl.Params = params
-	functionDecl.Return = p.functionReturns()
+	returns, ok := p.functionReturns()
+	if !ok {
+		return ast.NewImproper(functionDecl.Name, ast.FunctionDeclaration)
+	}
+	functionDecl.Returns = returns
 
 	body, ok := p.body(false, true)
 	if !ok {
@@ -316,7 +320,11 @@ func (p *Parser) entityFunctionDeclaration(token tokens.Token, functionType ast.
 		return ast.NewImproper(stmt.Token, ast.EntityFunctionDeclaration)
 	}
 	stmt.Params = params
-	stmt.Return = p.functionReturns()
+	returns, ok := p.functionReturns()
+	if !ok {
+		return ast.NewImproper(stmt.Token, ast.EntityFunctionDeclaration)
+	}
+	stmt.Returns = returns
 
 	var success bool
 	stmt.Body, success = p.body(true, true)
@@ -340,9 +348,9 @@ func (p *Parser) constructorDeclaration() ast.Node {
 		return ast.NewImproper(stmt.Token, ast.ConstructorDeclaration)
 	}
 	stmt.Params = params
-	returns := p.functionReturns()
+	returns, _ := p.functionReturns()
 	if returns != nil {
-		p.Alert(&alerts.ReturnsInConstructor{}, alerts.NewSingle(returns.GetToken()))
+		p.Alert(&alerts.ReturnsInConstructor{}, alerts.NewSingle(returns[0].GetToken()))
 	}
 	var success bool
 	stmt.Body, success = p.body(false, true)

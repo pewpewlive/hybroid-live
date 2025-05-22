@@ -97,7 +97,7 @@ type EntityFunctionDecl struct {
 	Type     EntityFunctionType
 	Generics []*IdentifierExpr
 	Params   []FunctionParam
-	Return   *TypeExpr
+	Returns  []*TypeExpr
 	Body     []Node
 	Token    tokens.Token
 }
@@ -182,7 +182,7 @@ type FunctionDecl struct {
 	IsPub    bool
 	Generics []*IdentifierExpr
 	Params   []FunctionParam
-	Return   *TypeExpr
+	Returns  []*TypeExpr
 	Body     []Node
 }
 
@@ -201,7 +201,7 @@ func (fd *FunctionDecl) GetValueType() PrimitiveValueType {
 type MethodDecl struct {
 	Owner    tokens.Token
 	Name     tokens.Token
-	Return   *TypeExpr
+	Returns  []*TypeExpr
 	Params   []FunctionParam
 	Generics []*IdentifierExpr
 	IsPub    bool

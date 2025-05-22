@@ -29,14 +29,56 @@ type MethodContainer interface {
 	ContainsMethod(name string) (*VariableVal, bool)
 }
 
+type ConstVal struct {
+	Node ast.Node
+	Val  Value
+}
+
+func (c *ConstVal) GetType() Type {
+	return c.GetType()
+}
+
+func (c *ConstVal) GetDefault() *ast.LiteralExpr {
+	return c.Val.GetDefault()
+}
+
 type VariableVal struct {
 	Name    string
 	Value   Value
 	IsUsed  bool
-	IsConst bool
 	IsLocal bool
 	IsInit  bool
+	IsConst bool
 	Token   tokens.Token
+}
+
+// args go as follows: value Value, isLocal bool
+func NewVariable(token tokens.Token, args ...any) *VariableVal {
+	var value Value
+	isLocal := true
+	if args != nil {
+		if args[0] != nil {
+			value = args[0].(Value)
+		}
+
+		if len(args) == 2 {
+			isLocal = args[1].(bool)
+		}
+	}
+
+	return &VariableVal{
+		Name:    token.Lexeme,
+		Token:   token,
+		Value:   value,
+		IsLocal: isLocal,
+		IsInit:  value != nil,
+	}
+}
+
+// Makes the variable const
+func (v *VariableVal) Const() *VariableVal {
+	v.IsConst = true
+	return v
 }
 
 func (v *VariableVal) GetType() Type {
@@ -132,24 +174,6 @@ func (asv *AnonStructVal) Scopify(parent *Scope) *Scope {
 	return scope
 }
 
-type CustomVal struct {
-	Type *CustomType
-}
-
-func NewCustomVal(typ *CustomType) *CustomVal {
-	return &CustomVal{
-		Type: typ,
-	}
-}
-
-func (cv *CustomVal) GetType() Type {
-	return cv.Type
-}
-
-func (cv *CustomVal) GetDefault() *ast.LiteralExpr {
-	return &ast.LiteralExpr{Value: "nil"}
-}
-
 type EnumVal struct {
 	Type   *EnumType
 	Fields map[string]*VariableVal
@@ -222,7 +246,6 @@ func NewEnumFieldVar(name string, enumType EnumType, index int) *VariableVal {
 			Type: &enumType,
 		},
 		IsLocal: true,
-		IsConst: true,
 	}
 }
 
@@ -253,8 +276,8 @@ type EntityVal struct {
 	IsLocal         bool
 	Fields          map[string]Field
 	Methods         map[string]*VariableVal
-	SpawnParams     Types
-	DestroyParams   Types
+	SpawnParams     []Type
+	DestroyParams   []Type
 	SpawnGenerics   []*GenericType
 	DestroyGenerics []*GenericType
 }
@@ -320,7 +343,7 @@ type ClassVal struct {
 	IsLocal  bool
 	Fields   map[string]Field
 	Methods  map[string]*VariableVal
-	Params   Types
+	Params   []Type
 	Generics []*GenericType
 }
 
@@ -373,7 +396,6 @@ func (cv *ClassVal) Scopify(parent *Scope) *Scope {
 
 type MapVal struct {
 	MemberType Type
-	Members    []Value
 }
 
 func (mv *MapVal) GetType() Type {
@@ -384,32 +406,8 @@ func (mv *MapVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "{}"}
 }
 
-func GetContentsValueType(values []Value) Type {
-	valTypes := []Type{}
-	index := 0
-	if len(values) == 0 {
-		return ObjectTyp
-	}
-	for _, v := range values {
-		if index == 0 {
-			valTypes = append(valTypes, v.GetType())
-			index++
-			continue
-		}
-		valTypes = append(valTypes, v.GetType())
-		prev, curr := index-1, len(valTypes)-1
-		if !TypeEquals(values[prev].GetType(), values[curr].GetType()) {
-			return InvalidType
-		}
-		index++
-	}
-
-	return valTypes[0]
-}
-
 type ListVal struct {
 	ValueType Type
-	Values    []Value
 }
 
 func (l *ListVal) GetType() Type {
@@ -446,26 +444,24 @@ func (f *FixedVal) GetSpecificType() ast.PrimitiveValueType {
 	return f.SpecificType
 }
 
-var EmptyReturn = Types{}
+type Values []Value
 
-type Types []Type
-
-func (ts Types) GetType() Type {
-	if len(ts) == 0 {
+func (ts Values) GetType() Type {
+	if len(ts) == 0 || len(ts) > 1 {
 		return (&Invalid{}).GetType()
 	}
-	return (ts)[0]
+	return (ts)[0].GetType()
 }
 
-func (ts Types) GetDefault() *ast.LiteralExpr {
+func (ts Values) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "nil"}
 }
 
-func (rt Types) Eq(otherRT Types) bool {
+func (rt Values) Eq(otherRT Values) bool {
 	typesSame := true
 	if len(rt) == len(otherRT) {
 		for i, v := range rt {
-			if !TypeEquals(v, otherRT[i]) {
+			if !TypeEquals(v.GetType(), otherRT[i].GetType()) {
 				typesSame = false
 				break
 			}
@@ -489,10 +485,12 @@ func TypesToString(types []Type) string {
 	return src.String()
 }
 
+var EmptyReturn = []Type{}
+
 type FunctionVal struct {
 	Generics []*GenericType
-	Params   Types
-	Returns  Types
+	Params   []Type
+	Returns  []Type
 	ProcType ProcedureType
 }
 
@@ -526,7 +524,7 @@ func (f *FunctionVal) GetType() Type {
 	return NewFunctionType(f.Params, f.Returns, f.ProcType)
 }
 
-func (f *FunctionVal) GetReturns() Types {
+func (f *FunctionVal) GetReturns() []Type {
 	return f.Returns
 }
 

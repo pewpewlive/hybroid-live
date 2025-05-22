@@ -166,7 +166,7 @@ func (p *Parser) auxiliaryNode() ast.Node {
 		return &ast.MethodDecl{
 			IsPub:    fnDecl.IsPub,
 			Name:     fnDecl.Name,
-			Return:   fnDecl.Return,
+			Returns:  fnDecl.Returns,
 			Params:   fnDecl.Params,
 			Generics: fnDecl.Generics,
 			Body:     fnDecl.Body,

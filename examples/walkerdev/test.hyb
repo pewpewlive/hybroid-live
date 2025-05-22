@@ -1,3 +1,7 @@
 env Env1 as Level
 
-field.member[0]
+let field = struct{
+    member = [1, 2]
+}
+
+field.member[0]()

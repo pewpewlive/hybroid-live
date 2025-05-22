@@ -99,12 +99,13 @@ func (p *Printer) StageAlerts(sourcePath string, alerts []Alert) {
 		fileAlerts = p.alertsByFile[sourcePath]
 	}
 	fileAlerts = append(fileAlerts, alerts...)
-	p.alertsByFile[sourcePath] = fileAlerts
 
 	// Sort alerts by line
-	sort.Slice(p.alertsByFile[sourcePath], func(i, j int) bool {
-		return p.alertsByFile[sourcePath][i].GetSpecifier().GetTokens()[0].Line < p.alertsByFile[sourcePath][j].GetSpecifier().GetTokens()[0].Line
+	sort.Slice(fileAlerts, func(i, j int) bool {
+		return fileAlerts[i].GetSpecifier().GetTokens()[0].Line < fileAlerts[j].GetSpecifier().GetTokens()[0].Line
 	})
+
+	p.alertsByFile[sourcePath] = fileAlerts
 }
 
 func (p *Printer) PrintAlerts() error {
@@ -194,7 +195,6 @@ func (p *Printer) writeCodeSnippet(alertMsg *strings.Builder, alert Alert) error
 				if err != nil {
 					return err
 				}
-				break
 			}
 
 			p.line++

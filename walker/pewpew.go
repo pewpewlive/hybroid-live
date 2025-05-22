@@ -7,15 +7,14 @@ import (
 var PewpewEnv = &Environment{
 	Name: "Pewpew",
 	Scope: Scope{
-		Variables: PewpewVariables,
-		Tag:       &UntaggedTag{},
+		Variables:  PewpewVariables,
+		Tag:        &UntaggedTag{},
+		AliasTypes: make(map[string]*AliasType),
 	},
 	importedWalkers: make([]*Walker, 0),
 	UsedLibraries:   make(map[Library]bool),
-	Structs:         make(map[string]*ClassVal),
+	Classes:         make(map[string]*ClassVal),
 	Entities:        make(map[string]*EntityVal),
-	CustomTypes:     make(map[string]*CustomType),
-	AliasTypes:      make(map[string]*AliasType),
 }
 
 var PewpewVariables = map[string]*VariableVal{
@@ -84,7 +83,7 @@ var PewpewVariables = map[string]*VariableVal{
 	},
 	"AddUpdateCallback": {
 		Name:  "AddUpdateCallback",
-		Value: NewFunction(NewFunctionType(Types{}, Types{})),
+		Value: NewFunction(NewFunctionType([]Type{}, []Type{})),
 	},
 	"GetNumberOfPlayers": {
 		Name:  "GetNumberOfPlayers",
@@ -300,7 +299,7 @@ var PewpewVariables = map[string]*VariableVal{
 			{
 				Name: "taken_callback",
 				Value: &FunctionVal{
-					Params: Types{
+					Params: []Type{
 						&RawEntityType{},
 						&RawEntityType{},
 						&RawEntityType{},
@@ -401,7 +400,7 @@ var PewpewVariables = map[string]*VariableVal{
 	},
 	"SetEntityCallback": {
 		Name:  "SetEntityCallback",
-		Value: NewFunction(&RawEntityType{}, NewFunctionType(Types{&RawEntityType{}}, Types{})),
+		Value: NewFunction(&RawEntityType{}, NewFunctionType([]Type{&RawEntityType{}}, []Type{})),
 	},
 	"DestroyEntity": {
 		Name:  "DestroyEntity",
@@ -515,7 +514,7 @@ var PewpewVariables = map[string]*VariableVal{
 	},
 	"ConfigureEntityWallCollision": {
 		Name:  "ConfigureEntityWallCollision",
-		Value: NewFunction(&RawEntityType{}, NewBasicType(ast.Bool), NewFunctionType(Types{NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)}, Types{})),
+		Value: NewFunction(&RawEntityType{}, NewBasicType(ast.Bool), NewFunctionType([]Type{NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed)}, []Type{})),
 	},
 	"SetEntityWallCollision": {
 		Name:  "SetEntityWallCollision",
@@ -523,11 +522,11 @@ var PewpewVariables = map[string]*VariableVal{
 	},
 	"SetEntityPlayerCollision": {
 		Name:  "SetEntityPlayerCollision",
-		Value: NewFunction(&RawEntityType{}, NewFunctionType(Types{&RawEntityType{}, NewBasicType(ast.Number), &RawEntityType{}}, Types{})),
+		Value: NewFunction(&RawEntityType{}, NewFunctionType([]Type{&RawEntityType{}, NewBasicType(ast.Number), &RawEntityType{}}, []Type{})),
 	},
 	"SetEntityWeaponCollision": {
 		Name:  "SetEntityWeaponCollision",
-		Value: NewFunction(&RawEntityType{}, NewFunctionType(Types{&RawEntityType{}, NewBasicType(ast.Number), NewEnumType("Pewpew", "WeaponType")}, Types{NewBasicType(ast.Bool)})),
+		Value: NewFunction(&RawEntityType{}, NewFunctionType([]Type{&RawEntityType{}, NewBasicType(ast.Number), NewEnumType("Pewpew", "WeaponType")}, []Type{NewBasicType(ast.Bool)})),
 	},
 	"SpawnEntity": {
 		Name:  "SpawnEntity",

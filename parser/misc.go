@@ -162,12 +162,36 @@ func (p *Parser) functionArgs() ([]ast.Node, bool) {
 	return args, true
 }
 
-func (p *Parser) functionReturns() *ast.TypeExpr {
+func (p *Parser) functionReturns() ([]*ast.TypeExpr, bool) {
+	typs := []*ast.TypeExpr{}
 	if !p.match(tokens.ThinArrow) {
-		return nil
+		return typs, true
 	}
 
-	return p.typeExpr("in function returns")
+	if p.match(tokens.LeftParen) {
+		success := true
+		typ := p.typeExpr("in function returns")
+		if typ.GetType() != ast.NA {
+			typs = append(typs, typ)
+		} else {
+			success = false
+		}
+
+		for p.match(tokens.Comma) {
+			typ := p.typeExpr("in function returns")
+			if typ.GetType() != ast.NA {
+				typs = append(typs, typ)
+			} else {
+				success = false
+			}
+		}
+
+		p.consumeSingle(&alerts.ExpectedSymbol{}, "in function return types", tokens.RightParen)
+		return typs, success
+	}
+
+	typs = append(typs, p.typeExpr("in function return types"))
+	return typs, typs[0].GetType() != ast.NA
 }
 
 func (p *Parser) identifier(typeContext string) *ast.IdentifierExpr {

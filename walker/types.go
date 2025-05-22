@@ -24,7 +24,6 @@ const (
 	Wrapper // List or Map
 	RawEntity
 	Enum
-	CstmType
 	Alias
 	Variadic
 	Generic
@@ -90,12 +89,15 @@ func (pt *PathType) ToString() string {
 type AliasType struct {
 	Name           string
 	UnderlyingType Type
+	IsUsed         bool
+	IsLocal        bool
 }
 
-func NewAliasType(name string, underlyingType Type) *AliasType {
+func NewAliasType(name string, underlyingType Type, isLocal bool) *AliasType {
 	return &AliasType{
 		Name:           name,
 		UnderlyingType: underlyingType,
+		IsLocal:        isLocal,
 	}
 }
 
@@ -115,42 +117,13 @@ func (at *AliasType) ToString() string {
 	return at.Name + "(alias for " + at.UnderlyingType.ToString() + ")"
 }
 
-type CustomType struct {
-	Name           string
-	UnderlyingType Type
-}
-
-func NewCustomType(name string, underlyingType Type) *CustomType {
-	return &CustomType{
-		Name:           name,
-		UnderlyingType: underlyingType,
-	}
-}
-
-func (ct *CustomType) PVT() ast.PrimitiveValueType {
-	return ct.UnderlyingType.PVT()
-}
-
-func (ct *CustomType) GetType() ValueType {
-	return CstmType
-}
-
-func (ct *CustomType) _eq(other Type) bool {
-	ret := other.(*CustomType)
-	return ret.Name == ct.Name
-}
-
-func (ct *CustomType) ToString() string {
-	return ct.Name + "(" + ct.UnderlyingType.ToString() + ")"
-}
-
 type FunctionType struct {
-	Params   Types
-	Returns  Types
+	Params   []Type
+	Returns  []Type
 	ProcType ProcedureType
 }
 
-func NewFunctionType(params Types, returns Types, procType ...ProcedureType) *FunctionType {
+func NewFunctionType(params []Type, returns []Type, procType ...ProcedureType) *FunctionType {
 	pt := Function
 	if procType != nil {
 		pt = procType[0]

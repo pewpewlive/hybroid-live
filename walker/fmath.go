@@ -7,15 +7,14 @@ import (
 var FmathEnv = &Environment{
 	Name: "Fmath",
 	Scope: Scope{
-		Variables: FmathVariables,
-		Tag:       &UntaggedTag{},
+		Variables:  FmathVariables,
+		Tag:        &UntaggedTag{},
+		AliasTypes: make(map[string]*AliasType),
 	},
 	importedWalkers: make([]*Walker, 0),
 	UsedLibraries:   make(map[Library]bool),
-	Structs:         make(map[string]*ClassVal),
+	Classes:         make(map[string]*ClassVal),
 	Entities:        make(map[string]*EntityVal),
-	CustomTypes:     make(map[string]*CustomType),
-	AliasTypes:      make(map[string]*AliasType),
 }
 
 var FmathVariables = map[string]*VariableVal{

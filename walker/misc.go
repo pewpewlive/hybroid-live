@@ -2,94 +2,92 @@ package walker
 
 import (
 	"fmt"
+	"hybroid/alerts"
 	"hybroid/ast"
 	"hybroid/helpers"
 	"hybroid/tokens"
 )
 
+func (w *Walker) CheckAccessibility(s *Scope, isLocal bool, token tokens.Token) {
+	if s.Environment.Name != w.environment.Name && isLocal {
+		w.AlertSingle(&alerts.ForeignLocalVariableAccess{}, token, token)
+	}
+}
+
 // ONLY CALL THIS IF YOU ALREADY CALLED ResolveVariable
-func (w *Walker) GetVariable(s *Scope, name string) (*VariableVal, bool) {
-	variable, ok := s.Variables[name]
+//
+// Returns the variable of name token.Lexeme
+func (w *Walker) GetVariable(s *Scope, token tokens.Token) *VariableVal {
+	variable, ok := s.Variables[token.Lexeme]
 
 	if !ok {
-		return nil, false
+		return nil
 	}
-	return variable, s.Environment.Name != w.environment.Name && variable.IsLocal
+	w.CheckAccessibility(s, variable.IsLocal, token)
+
+	return variable
 }
 
 func (w *Walker) TypeExists(name string) bool {
-	if _, found := w.GetEntity(name); found {
+	if _, found := w.environment.Entities[name]; found {
 		return true
 	}
-	if _, found := w.GetStruct(name); found {
+	if _, found := w.environment.Classes[name]; found {
+		return true
+	}
+	if _, found := w.environment.Scope.AliasTypes[name]; found {
 		return true
 	}
 
 	return false
 }
 
-func (w *Walker) GetStruct(name string) (*ClassVal, bool) {
-	structType, found := w.environment.Structs[name]
+func (w *Walker) GetAliasType(s *Scope, token tokens.Token) *AliasType {
+	alias, found := s.AliasTypes[token.Lexeme]
 	if !found {
 		// w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s exists", name))
-		return nil, false
+		return nil
 	}
 
-	structType.Type.IsUsed = true
+	alias.IsUsed = true
+	w.CheckAccessibility(s, alias.IsLocal, token)
 
-	w.environment.Structs[name] = structType
-
-	return structType, true
+	return alias
 }
 
-func (w *Walker) GetEntity(name string) (*EntityVal, bool) {
+func (w *Walker) GetClass(s *Scope, token tokens.Token) *ClassVal {
+	class, found := w.environment.Classes[token.Lexeme]
+	if !found {
+		// w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s exists", name))
+		return nil
+	}
+
+	class.Type.IsUsed = true
+	w.CheckAccessibility(s, class.IsLocal, token)
+
+	return class
+}
+
+func (w *Walker) GetEntity(name string) *EntityVal {
 	entityType, found := w.environment.Entities[name]
 	if !found {
 		// w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s exists", name))
-		return nil, false
+		return nil
 	}
 
 	entityType.Type.IsUsed = true
 
-	w.environment.Entities[name] = entityType
-
-	return entityType, true
-}
-
-func (w *Walker) AssignVariableByName(s *Scope, name string, value Value) Value {
-	scope := w.ResolveVariable(s, name)
-
-	if scope == nil {
-		// return &Invalid{}, &ast.Error{Message: "cannot assign to an undeclared variable"}
-	}
-
-	variable := scope.Variables[name]
-	if variable.IsConst {
-		// return &Invalid{}, &ast.Error{Message: "cannot assign to a constant variable"}
-	}
-
-	variable.Value = value
-
-	scope.Variables[name] = variable
-
-	temp := scope.Variables[name]
-
-	return temp
+	return entityType
 }
 
 func (s *Scope) AssignVariable(variable *VariableVal, value Value) Value {
-	if variable.IsConst {
-		// return &Invalid{}, &ast.Error{Message: "cannot assign to a constant variable"}
-	}
-
-	//variable.Value = value
+	variable.Value = value
 
 	return variable
 }
 
-func (w *Walker) DeclareVariable(s *Scope, value *VariableVal, token tokens.Token) (*VariableVal, bool) {
+func (w *Walker) DeclareVariable(s *Scope, value *VariableVal) (*VariableVal, bool) {
 	if varFound, found := s.Variables[value.Name]; found {
-		// w.Error(token, fmt.Sprintf("variable with name '%s' already exists", varFound.Name))
 		return varFound, false
 	}
 
@@ -98,11 +96,11 @@ func (w *Walker) DeclareVariable(s *Scope, value *VariableVal, token tokens.Toke
 }
 
 func (w *Walker) DeclareClass(structVal *ClassVal) bool {
-	if _, found := w.environment.Structs[structVal.Type.Name]; found {
+	if _, found := w.environment.Classes[structVal.Type.Name]; found {
 		return false
 	}
 
-	w.environment.Structs[structVal.Type.Name] = structVal
+	w.environment.Classes[structVal.Type.Name] = structVal
 	return true
 }
 
@@ -115,7 +113,8 @@ func (w *Walker) DeclareEntity(entityVal *EntityVal) bool {
 	return true
 }
 
-func (w *Walker) ResolveVariable(s *Scope, name string) *Scope {
+func (w *Walker) ResolveVariable(s *Scope, token tokens.Token) *Scope {
+	name := token.Lexeme
 	if _, found := s.Variables[name]; found {
 		return s
 	}
@@ -126,8 +125,8 @@ func (w *Walker) ResolveVariable(s *Scope, name string) *Scope {
 			return &BuiltinEnv.Scope
 		}
 		for i := range s.Environment.importedWalkers {
-			variable, _ := s.Environment.importedWalkers[i].GetVariable(&s.Environment.importedWalkers[i].environment.Scope, name)
-			if variable != nil {
+			_, ok := s.Environment.importedWalkers[i].environment.Scope.Variables[name]
+			if ok {
 				return &s.Environment.importedWalkers[i].environment.Scope
 			}
 		}
@@ -144,7 +143,7 @@ func (w *Walker) ResolveVariable(s *Scope, name string) *Scope {
 		return nil
 	}
 
-	return w.ResolveVariable(s.Parent, name)
+	return w.ResolveVariable(s.Parent, token)
 }
 
 func ResolveTagScope[T ScopeTag](sc *Scope) (*Scope, *ScopeTag, *T) {
@@ -175,7 +174,7 @@ func (sc *Scope) ResolveReturnable() *ExitableTag {
 	return sc.Parent.ResolveReturnable()
 }
 
-func (w *Walker) ValidateArguments(generics map[string]Type, args []Type, params []Type, callToken tokens.Token) (int, bool) {
+func (w *Walker) ValidateArguments(generics map[string]Type, args []Type, params []Type, call ast.NodeCall) (int, bool) {
 
 	paramCount := len(params)
 	if paramCount > len(args) {
@@ -208,7 +207,7 @@ func (w *Walker) ValidateArguments(generics map[string]Type, args []Type, params
 		}
 
 		if !TypeEquals(param, typeVal) {
-			// w.Error(callToken, fmt.Sprintf("argument is of type %s, but should be %s", typeVal.ToString(), param.ToString()))
+			w.AlertSingle(&alerts.InvalidArgumentType{}, call.GetArgs()[i].GetToken(), typeVal.ToString(), param.ToString())
 			return i, false
 		}
 	}
@@ -302,7 +301,7 @@ func returnsAreValid(list1 []Type, list2 []Type) bool {
 	return true
 }
 
-func (w *Walker) ValidateReturnValues(_return Types, expectReturn Types) string {
+func (w *Walker) ValidateReturnValues(_return []Type, expectReturn []Type) string {
 	returnValues, expectedReturnValues := _return, expectReturn
 	if len(returnValues) < len(expectedReturnValues) { // debug?
 		return "not enough return values given"
@@ -315,23 +314,13 @@ func (w *Walker) ValidateReturnValues(_return Types, expectReturn Types) string 
 	return ""
 }
 
-func (w *Walker) CheckAccessibility(s *Scope, isLocal bool, node ast.Node) {
-	if s.Environment.Name != w.environment.Name && isLocal {
-		// w.Error(node.GetToken(), "Not allowed to access a local variable/type from a different environment")
-	}
-}
-
 func (w *Walker) TypeToValue(_type Type) Value {
 	if _type.GetType() == RawEntity {
 		return &RawEntityVal{}
 	}
-	if _type.GetType() == CstmType {
-		return NewCustomVal(_type.(*CustomType))
-	}
 	if _type.GetType() == Variadic {
 		return &ListVal{
 			ValueType: _type.(*VariadicType).Type,
-			Values:    make([]Value, 0),
 		}
 	}
 	switch _type.PVT() {
@@ -358,7 +347,7 @@ func (w *Walker) TypeToValue(_type Type) Value {
 			MemberType: _type.(*WrapperType).WrappedType,
 		}
 	case ast.Struct:
-		val, _ := w.walkers[_type.(*NamedType).EnvName].GetStruct(_type.ToString())
+		val, _ := w.walkers[_type.(*NamedType).EnvName].environment.Classes[_type.ToString()]
 		return val
 	case ast.AnonStruct:
 		return &AnonStructVal{
@@ -372,14 +361,14 @@ func (w *Walker) TypeToValue(_type Type) Value {
 		case "Pewpew":
 			variable = PewpewEnv.Scope.Variables[enum.Name]
 		default:
-			variable, _ = walker.GetVariable(&walker.environment.Scope, enum.Name)
+			variable, _ = walker.environment.Scope.Variables[enum.Name]
 		}
 		if variable == nil {
 			panic(fmt.Sprintf("Enum variable could not be found when converting enum type to value (envName:%v, name:%v, walkerFound:%v)", enum.EnvName, enum.Name, found))
 		}
 		return variable
 	case ast.Entity:
-		val, _ := w.walkers[_type.(*NamedType).EnvName].GetEntity(_type.ToString())
+		val, _ := w.walkers[_type.(*NamedType).EnvName].environment.Entities[_type.ToString()]
 		return val
 	case ast.Object:
 		return &Unknown{}
@@ -392,11 +381,30 @@ func (w *Walker) TypeToValue(_type Type) Value {
 	}
 }
 
-func (w *Walker) AddTypesToValues(list *[]Value, tys *Types) {
-	for _, typ := range *tys {
-		val := w.TypeToValue(typ)
-		*list = append(*list, val)
+func (w *Walker) GetContentsValueType(elems []ast.Node, scope *Scope) Type {
+	valTypes := []Type{}
+	if len(elems) == 0 {
+		return ObjectTyp
 	}
+	val := w.GetNodeActualValue(&elems[0], scope)
+	valTypes = append(valTypes, val.GetType())
+	for i := range elems {
+		if i == 0 {
+			continue
+		}
+		val = w.GetNodeActualValue(&elems[i], scope)
+		valTypes = append(valTypes, val.GetType())
+		if !TypeEquals(valTypes[i-1], valTypes[i]) {
+			w.AlertSingle(&alerts.MixedMapOrListContents{}, elems[i].GetToken(),
+				"list",
+				valTypes[i-1].ToString(),
+				valTypes[i].ToString(),
+			)
+			return InvalidType
+		}
+	}
+
+	return valTypes[0]
 }
 
 func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
@@ -428,6 +436,16 @@ func (w *Walker) DetermineCallTypeString(callType ProcedureType) string {
 	}
 
 	return "method"
+}
+
+func (w *Walker) TypesToValues(types []Type) Values {
+	vals := Values{}
+
+	for _, v := range types {
+		vals = append(vals, w.TypeToValue(v))
+	}
+
+	return vals
 }
 
 func (w *Walker) ReportExits(sender ExitableTag, scope *Scope) {

@@ -116,7 +116,7 @@ type TypeExpr struct {
 	WrappedType *TypeExpr
 	Name        Node
 	Params      []*TypeExpr
-	Return      *TypeExpr
+	Returns     []*TypeExpr
 	Fields      []FunctionParam
 	IsVariadic  bool
 }
@@ -131,23 +131,6 @@ func (te *TypeExpr) GetToken() tokens.Token {
 
 func (te *TypeExpr) GetValueType() PrimitiveValueType {
 	return Invalid
-}
-
-type TupleExpr struct {
-	LeftParen tokens.Token
-	Types     []*TypeExpr
-}
-
-func (te *TupleExpr) GetType() NodeType {
-	return TupleExpression
-}
-
-func (te *TupleExpr) GetToken() tokens.Token {
-	return te.LeftParen
-}
-
-func (te *TupleExpr) GetValueType() PrimitiveValueType {
-	return Tuple
 }
 
 type EntityExpr struct {
@@ -228,14 +211,22 @@ func (ce *CallExpr) GetValueType() PrimitiveValueType {
 	return Invalid
 }
 
+func (ce *CallExpr) GetGenerics() []*TypeExpr {
+	return ce.GenericArgs
+}
+
+func (ce *CallExpr) GetArgs() []Node {
+	return ce.Args
+}
+
 type MethodCallExpr struct {
-	EnvName    string
-	TypeName   string
-	ExprType   SelfExprType
-	Caller     Node
-	Generics   []*TypeExpr
-	Args       []Node
-	MethodName string
+	EnvName     string
+	TypeName    string
+	ExprType    SelfExprType
+	Caller      Node
+	GenericArgs []*TypeExpr
+	Args        []Node
+	MethodName  string
 }
 
 func (mce *MethodCallExpr) GetType() NodeType {
@@ -248,6 +239,14 @@ func (mce *MethodCallExpr) GetToken() tokens.Token {
 
 func (mce *MethodCallExpr) GetValueType() PrimitiveValueType {
 	return Invalid
+}
+
+func (mce *MethodCallExpr) GetGenerics() []*TypeExpr {
+	return mce.GenericArgs
+}
+
+func (mce *MethodCallExpr) GetArgs() []Node {
+	return mce.Args
 }
 
 type BuiltinExpr struct {
@@ -267,10 +266,10 @@ func (ce *BuiltinExpr) GetValueType() PrimitiveValueType {
 }
 
 type FunctionExpr struct {
-	Token  tokens.Token
-	Return *TypeExpr
-	Params []FunctionParam
-	Body   []Node
+	Token   tokens.Token
+	Returns []*TypeExpr
+	Params  []FunctionParam
+	Body    []Node
 }
 
 func (fe *FunctionExpr) GetType() NodeType {
@@ -338,10 +337,10 @@ func (se *SelfExpr) GetValueType() PrimitiveValueType {
 }
 
 type NewExpr struct {
-	Type     *TypeExpr
-	Generics []*TypeExpr
-	Args     []Node
-	Token    tokens.Token
+	Type        *TypeExpr
+	GenericArgs []*TypeExpr
+	Args        []Node
+	Token       tokens.Token
 }
 
 func (ne *NewExpr) GetType() NodeType {
@@ -356,11 +355,19 @@ func (ne *NewExpr) GetValueType() PrimitiveValueType {
 	return Invalid
 }
 
+func (ne *NewExpr) GetGenerics() []*TypeExpr {
+	return ne.GenericArgs
+}
+
+func (ne *NewExpr) GetArgs() []Node {
+	return ne.Args
+}
+
 type SpawnExpr struct {
-	Type     *TypeExpr
-	Args     []Node
-	Generics []*TypeExpr
-	Token    tokens.Token
+	Type        *TypeExpr
+	Args        []Node
+	GenericArgs []*TypeExpr
+	Token       tokens.Token
 }
 
 func (ne *SpawnExpr) GetType() NodeType {
@@ -373,6 +380,14 @@ func (ne *SpawnExpr) GetToken() tokens.Token {
 
 func (ne *SpawnExpr) GetValueType() PrimitiveValueType {
 	return Invalid
+}
+
+func (ne *SpawnExpr) GetGenerics() []*TypeExpr {
+	return ne.GenericArgs
+}
+
+func (ne *SpawnExpr) GetArgs() []Node {
+	return ne.Args
 }
 
 type AccessExpr struct {
