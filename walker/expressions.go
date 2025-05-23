@@ -18,15 +18,6 @@ func (w *Walker) StructExpr(node *ast.StructExpr, scope *Scope) *AnonStructVal {
 	return structTypeVal
 }
 
-func (w *Walker) GetReturns(returns []*ast.TypeExpr, scope *Scope) []Type {
-	returnType := EmptyReturn
-	for i := range returns {
-		returnType = append(returnType, w.TypeExpr(returns[i], scope, true))
-	}
-
-	return returnType
-}
-
 func (w *Walker) FunctionExpr(fn *ast.FunctionExpr, scope *Scope) Value {
 	returnTypes := w.GetReturns(fn.Returns, scope)
 
@@ -37,7 +28,7 @@ func (w *Walker) FunctionExpr(fn *ast.FunctionExpr, scope *Scope) Value {
 
 	params := make([]Type, 0)
 	for i, param := range fn.Params {
-		params = append(params, w.TypeExpr(param.Type, scope, true))
+		params = append(params, w.TypeExpr(param.Type, scope))
 		variable := NewVariable(param.Name, w.TypeToValue(params[i]))
 		w.DeclareVariable(fnScope, variable)
 	}
@@ -80,7 +71,7 @@ func (w *Walker) MatchExpr(node *ast.MatchExpr, scope *Scope) Value {
 
 func (w *Walker) EntityExpr(node *ast.EntityExpr, scope *Scope) Value {
 	val := w.GetNodeValue(&node.Expr, scope)
-	typ := w.TypeExpr(node.Type, scope, false)
+	typ := w.TypeExpr(node.Type, scope)
 
 	if ident, ok := node.Type.Name.(*ast.IdentifierExpr); ok {
 		switch ident.Name.Lexeme {
@@ -258,7 +249,7 @@ func (w *Walker) IdentifierExpr(node *ast.Node, scope *Scope) Value {
 		*node = &ast.BuiltinExpr{
 			Name: ident.Name,
 		}
-	} else if sc.Environment.Name != w.environment.Name {
+	} else if sc.Environment.Name != w.environment.Name && scope != sc {
 		*node = &ast.EnvAccessExpr{
 			PathExpr: &ast.EnvPathExpr{
 				Path: tokens.Token{
@@ -340,29 +331,30 @@ func (w *Walker) EnvAccessExpr(node *ast.EnvAccessExpr) (Value, ast.Node) {
 	if walker.environment.Name == w.environment.Name {
 		// w.Error(node.GetToken(), "cannot access self")
 		return &Invalid{}, nil
-	} else if walker.environment.luaPath == "/dynamic/level.lua" {
-		if !walker.walked {
-			walker.Action(w.walkers)
+	}
+
+	for i := range walker.environment.importedWalkers {
+		if walker.environment.importedWalkers[i].environment.Name == w.environment.Name {
+			w.AlertSingle(&alerts.ImportCycle{}, node.GetToken(), w.environment.hybroidPath, walker.environment.hybroidPath)
+			return &Invalid{}, nil
+		}
+	}
+
+	if walker.environment.luaPath == "/dynamic/level.lua" {
+		if !walker.Walked {
+			walker.Pass2()
 		}
 		value := w.GetNodeValue(&node.Accessed, &walker.environment.Scope)
 		return value, nil
 	}
 
-	for _, v := range walker.environment.Requirements() {
-		if v == w.environment.luaPath {
-			// w.Error(node.GetToken(), fmt.Sprintf("import cycle detected: this environment and '%s' are using each other", walker.Environment.Name))
-			return &Invalid{}, nil
-		}
-	}
-
 	walker.environment.AddRequirement(walker.environment.luaPath)
 
-	if !walker.walked {
-		walker.Action(w.walkers)
+	if !walker.Walked {
+		walker.Pass2()
 	}
 
 	value := w.GetNodeValue(&node.Accessed, &walker.environment.Scope)
-
 	return value, nil
 }
 
@@ -408,47 +400,37 @@ func (w *Walker) CallExpr(val Value, node *ast.Node, scope *Scope) Value {
 		nodeArgs = mcall.Args
 	}
 
-	genericArgs := w.GetGenerics(call, nodeGenerics, fn.Generics, scope)
+	genericArgs := w.GetGenerics(nodeGenerics, fn.Generics, scope)
+	actualParams := make([]Type, 0)
 	for i := range fn.Params {
 		if fn.Params[i].GetType() == Generic {
-			fn.Params[i] = genericArgs[fn.Params[i].(*GenericType).Name]
+			actualParams = append(actualParams, genericArgs[fn.Params[i].(*GenericType).Name])
+		} else {
+			actualParams = append(actualParams, fn.Params[i])
 		}
 	}
 	args := []Type{}
 	for i := range call.Args {
 		args = append(args, w.GetNodeValue(&nodeArgs[i], scope).GetType())
 	}
-	w.ValidateArguments(genericArgs, args, fn.Params, call)
+	w.ValidateArguments(genericArgs, args, actualParams, call)
+	actualReturns := make([]Type, 0)
 	for i := range fn.Returns {
 		if fn.Returns[i].GetType() == Generic {
-			fn.Returns[i] = genericArgs[fn.Returns[i].(*GenericType).Name]
+			actualReturns = append(actualReturns, genericArgs[fn.Returns[i].(*GenericType).Name])
+		} else {
+			actualReturns = append(actualReturns, fn.Returns[i])
 		}
 	}
 
-	returnLen := len(fn.Returns)
+	returnLen := len(actualReturns)
 	if returnLen == 0 {
 		return &Invalid{}
 	} else if returnLen == 1 {
-		return w.TypeToValue(fn.Returns[returnLen-1])
+		return w.TypeToValue(actualReturns[returnLen-1])
 	}
 
-	return w.TypesToValues(fn.Returns)
-}
-
-func (w *Walker) GetGenerics(node ast.Node, genericArgs []*ast.TypeExpr, expectedGenerics []*GenericType, scope *Scope) map[string]Type {
-	receivedGenericsLength := len(genericArgs)
-	expectedGenericsLength := len(expectedGenerics)
-
-	suppliedGenerics := map[string]Type{}
-	if receivedGenericsLength > expectedGenericsLength {
-		// w.Error(node.GetToken(), "too many generic arguments supplied")
-	} else {
-		for i := range genericArgs {
-			suppliedGenerics[expectedGenerics[i].Name] = w.TypeExpr(genericArgs[i], scope, true)
-		}
-	}
-
-	return suppliedGenerics
+	return w.TypesToValues(actualReturns)
 }
 
 // Rewrote
@@ -594,13 +576,9 @@ func (w *Walker) UnaryExpr(node *ast.UnaryExpr, scope *Scope) Value {
 	return val
 }
 
+// Rewrote
 func (w *Walker) SelfExpr(self *ast.SelfExpr, scope *Scope) Value {
-	if !scope.Is(SelfAllowing) {
-		// w.Error(self.Token, "can't use self outside of struct/entity")
-		return &Invalid{}
-	}
-
-	sc, _, structTag := ResolveTagScope[*ClassTag](scope) // TODO: CHECK FOR ENTITY SCOPE
+	sc, _, classTag := ResolveTagScope[*ClassTag](scope)
 
 	if sc == nil {
 		entitySc, _, entityTag := ResolveTagScope[*EntityTag](scope)
@@ -609,16 +587,16 @@ func (w *Walker) SelfExpr(self *ast.SelfExpr, scope *Scope) Value {
 			self.EntityName = (*entityTag).EntityType.Type.Name
 			return (*entityTag).EntityType
 		}
-
+		w.AlertSingle(&alerts.InvalidUseOfSelf{}, self.Token)
 		return &Invalid{}
 	}
 
 	(*self).Type = ast.SelfStruct
-	return (*structTag).Val
+	return (*classTag).Val
 }
 
 func (w *Walker) NewExpr(new *ast.NewExpr, scope *Scope) Value {
-	_type := w.TypeExpr(new.Type, scope, false)
+	_type := w.TypeExpr(new.Type, scope)
 
 	if _type.PVT() == ast.Invalid {
 		// w.Error(new.Type.GetToken(), "invalid type given in new expression")
@@ -635,7 +613,7 @@ func (w *Walker) NewExpr(new *ast.NewExpr, scope *Scope) Value {
 		args = append(args, w.GetNodeValue(&new.Args[i], scope).GetType())
 	}
 
-	suppliedGenerics := w.GetGenerics(new, new.GenericArgs, val.Generics, scope)
+	suppliedGenerics := w.GetGenerics(new.GenericArgs, val.Generics, scope)
 
 	w.ValidateArguments(suppliedGenerics, args, val.Params, new)
 
@@ -643,7 +621,7 @@ func (w *Walker) NewExpr(new *ast.NewExpr, scope *Scope) Value {
 }
 
 func (w *Walker) SpawnExpr(new *ast.SpawnExpr, scope *Scope) Value {
-	typeExpr := w.TypeExpr(new.Type, scope, false)
+	typeExpr := w.TypeExpr(new.Type, scope)
 
 	if typeExpr.PVT() == ast.Invalid {
 		// w.Error(new.Type.GetToken(), "invalid type given in spawn expression")
@@ -660,7 +638,7 @@ func (w *Walker) SpawnExpr(new *ast.SpawnExpr, scope *Scope) Value {
 		args = append(args, w.GetNodeValue(&new.Args[i], scope).GetType())
 	}
 
-	suppliedGenerics := w.GetGenerics(new, new.GenericArgs, val.SpawnGenerics, scope)
+	suppliedGenerics := w.GetGenerics(new.GenericArgs, val.SpawnGenerics, scope)
 
 	w.ValidateArguments(suppliedGenerics, args, val.SpawnParams, new)
 
@@ -676,7 +654,7 @@ func (w *Walker) GetNodeValueFromExternalEnv(expr ast.Node, env *Environment) Va
 	return val
 }
 
-func (w *Walker) TypeExpr(typee *ast.TypeExpr, scope *Scope, throw bool) Type {
+func (w *Walker) TypeExpr(typee *ast.TypeExpr, scope *Scope) Type {
 	if typee == nil {
 		return InvalidType
 	}
@@ -705,8 +683,8 @@ func (w *Walker) TypeExpr(typee *ast.TypeExpr, scope *Scope, throw bool) Type {
 				return InvalidType
 			}
 		} else if walker.environment.luaPath == "/dynamic/level.lua" {
-			if !walker.walked {
-				walker.Action(w.walkers)
+			if !walker.Walked {
+				walker.Pass2()
 			}
 			env = walker.environment
 		} else {
@@ -720,15 +698,14 @@ func (w *Walker) TypeExpr(typee *ast.TypeExpr, scope *Scope, throw bool) Type {
 
 			w.environment.AddRequirement(walker.environment.luaPath)
 
-			if !walker.walked {
-				walker.Action(w.walkers)
+			if !walker.Walked {
+				walker.Pass2()
 			}
-
 			env = walker.environment
 		}
 
 		ident := &ast.IdentifierExpr{Name: expr.Accessed.GetToken(), ValueType: ast.Invalid}
-		typ = w.TypeExpr(&ast.TypeExpr{Name: ident}, &env.Scope, throw)
+		typ = w.TypeExpr(&ast.TypeExpr{Name: ident}, &env.Scope)
 		if typee.IsVariadic {
 			return NewVariadicType(typ)
 		}
@@ -757,7 +734,7 @@ func (w *Walker) TypeExpr(typee *ast.TypeExpr, scope *Scope, throw bool) Type {
 		for _, v := range typee.Fields {
 			fields = append(fields, &VariableVal{
 				Name:  v.Name.Lexeme,
-				Value: w.TypeToValue(w.TypeExpr(v.Type, scope, throw)),
+				Value: w.TypeToValue(w.TypeExpr(v.Type, scope)),
 				Token: v.Name,
 			})
 		}
@@ -767,7 +744,7 @@ func (w *Walker) TypeExpr(typee *ast.TypeExpr, scope *Scope, throw bool) Type {
 		params := []Type{}
 
 		for _, v := range typee.Params {
-			params = append(params, w.TypeExpr(v, scope, throw))
+			params = append(params, w.TypeExpr(v, scope))
 		}
 
 		returns := w.GetReturns(typee.Returns, scope)
@@ -777,7 +754,7 @@ func (w *Walker) TypeExpr(typee *ast.TypeExpr, scope *Scope, throw bool) Type {
 			Returns: returns,
 		}
 	case ast.Map, ast.List:
-		wrapped := w.TypeExpr(typee.WrappedType, scope, throw)
+		wrapped := w.TypeExpr(typee.WrappedType, scope)
 		typ = NewWrapperType(NewBasicType(pvt), wrapped)
 	case ast.Entity:
 		typ = &RawEntityType{}
@@ -829,10 +806,10 @@ func (w *Walker) TypeExpr(typee *ast.TypeExpr, scope *Scope, throw bool) Type {
 
 		types := map[string]Type{}
 		for i := range scope.Environment.importedWalkers {
-			if !scope.Environment.importedWalkers[i].walked {
-				scope.Environment.importedWalkers[i].Action(w.walkers)
+			if !scope.Environment.importedWalkers[i].Walked {
+				scope.Environment.importedWalkers[i].Pass2()
 			}
-			typ := w.TypeExpr(typee, &scope.Environment.importedWalkers[i].environment.Scope, false)
+			typ := w.TypeExpr(typee, &scope.Environment.importedWalkers[i].environment.Scope)
 			if typ.PVT() != ast.Invalid {
 				types[scope.Environment.importedWalkers[i].environment.Name] = typ
 			}
@@ -843,7 +820,7 @@ func (w *Walker) TypeExpr(typee *ast.TypeExpr, scope *Scope, throw bool) Type {
 				continue
 			}
 
-			typ := w.TypeExpr(typee, &LibraryEnvs[k].Scope, false)
+			typ := w.TypeExpr(typee, &LibraryEnvs[k].Scope)
 			if typ.PVT() != ast.Invalid {
 				types[LibraryEnvs[k].Name] = typ
 			}
@@ -899,9 +876,6 @@ func (w *Walker) TypeExpr(typee *ast.TypeExpr, scope *Scope, throw bool) Type {
 
 	if typee.IsVariadic {
 		return NewVariadicType(typ)
-	}
-	if throw && typ.PVT() == ast.Invalid {
-		// w.Error(typee.GetToken(), "invalid type")
 	}
 	return typ
 }

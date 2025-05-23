@@ -57,6 +57,9 @@ func (p *Parser) variableDeclaration(matchedLetOrConst bool) ast.Node {
 		if !p.check(tokens.Identifier) {
 			p.disadvance(p.current - typeCheckStart)
 			variableDecl.Type = nil
+			if !matchedLetOrConst && !variableDecl.IsPub {
+				return ast.NewImproper(variableDecl.Token, ast.NA)
+			}
 		}
 	} else if !matchedLetOrConst {
 		return ast.NewImproper(variableDecl.Token, ast.NA)

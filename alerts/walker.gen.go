@@ -532,28 +532,29 @@ func (nvgfc *NoValueGivenForConstant) GetAlertType() Type {
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type TooFewValuesInDeclaration struct {
+type TooFewValuesGiven struct {
   Specifier Snippet
   RequiredAmount int
+  Context string
 }
 
-func (tfvid *TooFewValuesInDeclaration) GetMessage() string {
-  return fmt.Sprintf("%d more value(s) required in variable declaration", tfvid.RequiredAmount)
+func (tfvg *TooFewValuesGiven) GetMessage() string {
+  return fmt.Sprintf("%d more value(s) required %s", tfvg.RequiredAmount, tfvg.Context)
 }
 
-func (tfvid *TooFewValuesInDeclaration) GetSpecifier() Snippet {
-  return tfvid.Specifier
+func (tfvg *TooFewValuesGiven) GetSpecifier() Snippet {
+  return tfvg.Specifier
 }
 
-func (tfvid *TooFewValuesInDeclaration) GetNote() string {
+func (tfvg *TooFewValuesGiven) GetNote() string {
   return ""
 }
 
-func (tfvid *TooFewValuesInDeclaration) GetID() string {
+func (tfvg *TooFewValuesGiven) GetID() string {
   return "hyb021W"
 }
 
-func (tfvid *TooFewValuesInDeclaration) GetAlertType() Type {
+func (tfvg *TooFewValuesGiven) GetAlertType() Type {
   return Error
 }
 
@@ -636,28 +637,29 @@ func (etna *ExplicitTypeNotAllowed) GetAlertType() Type {
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type TooManyValuesInDeclaration struct {
+type TooManyValuesGiven struct {
   Specifier Snippet
   ExtraAmount int
+  Context string
 }
 
-func (tmvid *TooManyValuesInDeclaration) GetMessage() string {
-  return fmt.Sprintf("%d less value(s) required in variable declaration", tmvid.ExtraAmount)
+func (tmvg *TooManyValuesGiven) GetMessage() string {
+  return fmt.Sprintf("%d less value(s) required %s", tmvg.ExtraAmount, tmvg.Context)
 }
 
-func (tmvid *TooManyValuesInDeclaration) GetSpecifier() Snippet {
-  return tmvid.Specifier
+func (tmvg *TooManyValuesGiven) GetSpecifier() Snippet {
+  return tmvg.Specifier
 }
 
-func (tmvid *TooManyValuesInDeclaration) GetNote() string {
+func (tmvg *TooManyValuesGiven) GetNote() string {
   return ""
 }
 
-func (tmvid *TooManyValuesInDeclaration) GetID() string {
+func (tmvg *TooManyValuesGiven) GetID() string {
   return "hyb025W"
 }
 
-func (tmvid *TooManyValuesInDeclaration) GetAlertType() Type {
+func (tmvg *TooManyValuesGiven) GetAlertType() Type {
   return Error
 }
 
@@ -669,7 +671,7 @@ type ImportCycle struct {
 }
 
 func (ic *ImportCycle) GetMessage() string {
-  return fmt.Sprintf("", ic.HybPath1, ic.HybPath1)
+  return fmt.Sprintf("import cycle detected: cycling paths: '%s' and '%s'", ic.HybPath1, ic.HybPath2)
 }
 
 func (ic *ImportCycle) GetSpecifier() Snippet {
@@ -711,6 +713,448 @@ func (uva *UndeclaredVariableAccess) GetID() string {
 }
 
 func (uva *UndeclaredVariableAccess) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type ConstValueAssignment struct {
+  Specifier Snippet
+}
+
+func (cva *ConstValueAssignment) GetMessage() string {
+  return "cannot modify a constant value"
+}
+
+func (cva *ConstValueAssignment) GetSpecifier() Snippet {
+  return cva.Specifier
+}
+
+func (cva *ConstValueAssignment) GetNote() string {
+  return ""
+}
+
+func (cva *ConstValueAssignment) GetID() string {
+  return "hyb028W"
+}
+
+func (cva *ConstValueAssignment) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type AssignmentTypeMismatch struct {
+  Specifier Snippet
+  VarType string
+  ValType string
+}
+
+func (atm *AssignmentTypeMismatch) GetMessage() string {
+  return fmt.Sprintf("variable is of type '%s', but a value of '%s' was assigned to it", atm.VarType, atm.ValType)
+}
+
+func (atm *AssignmentTypeMismatch) GetSpecifier() Snippet {
+  return atm.Specifier
+}
+
+func (atm *AssignmentTypeMismatch) GetNote() string {
+  return ""
+}
+
+func (atm *AssignmentTypeMismatch) GetID() string {
+  return "hyb029W"
+}
+
+func (atm *AssignmentTypeMismatch) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidTypeInCompoundAssignment struct {
+  Specifier Snippet
+  ValType string
+}
+
+func (itica *InvalidTypeInCompoundAssignment) GetMessage() string {
+  return fmt.Sprintf("the type '%s' is not allowed in compound assignment", itica.ValType)
+}
+
+func (itica *InvalidTypeInCompoundAssignment) GetSpecifier() Snippet {
+  return itica.Specifier
+}
+
+func (itica *InvalidTypeInCompoundAssignment) GetNote() string {
+  return "only numerical types are allowed, like numbers, fixeds, fixedpoints, degrees and radians"
+}
+
+func (itica *InvalidTypeInCompoundAssignment) GetID() string {
+  return "hyb030W"
+}
+
+func (itica *InvalidTypeInCompoundAssignment) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidUseOfSelf struct {
+  Specifier Snippet
+}
+
+func (iuos *InvalidUseOfSelf) GetMessage() string {
+  return "cannot use self outside of class or entity"
+}
+
+func (iuos *InvalidUseOfSelf) GetSpecifier() Snippet {
+  return iuos.Specifier
+}
+
+func (iuos *InvalidUseOfSelf) GetNote() string {
+  return ""
+}
+
+func (iuos *InvalidUseOfSelf) GetID() string {
+  return "hyb031W"
+}
+
+func (iuos *InvalidUseOfSelf) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type DuplicateGenericParameter struct {
+  Specifier Snippet
+  Name string
+}
+
+func (dgp *DuplicateGenericParameter) GetMessage() string {
+  return "the generic parameter '%s' is given more than once"
+}
+
+func (dgp *DuplicateGenericParameter) GetSpecifier() Snippet {
+  return dgp.Specifier
+}
+
+func (dgp *DuplicateGenericParameter) GetNote() string {
+  return ""
+}
+
+func (dgp *DuplicateGenericParameter) GetID() string {
+  return "hyb032W"
+}
+
+func (dgp *DuplicateGenericParameter) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type UnreachableCode struct {
+  Specifier Snippet
+}
+
+func (uc *UnreachableCode) GetMessage() string {
+  return "unreachable code detected"
+}
+
+func (uc *UnreachableCode) GetSpecifier() Snippet {
+  return uc.Specifier
+}
+
+func (uc *UnreachableCode) GetNote() string {
+  return ""
+}
+
+func (uc *UnreachableCode) GetID() string {
+  return "hyb033W"
+}
+
+func (uc *UnreachableCode) GetAlertType() Type {
+  return Warning
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidUseOfExitStmt struct {
+  Specifier Snippet
+  ExitNode string
+  Context string
+}
+
+func (iuoes *InvalidUseOfExitStmt) GetMessage() string {
+  return fmt.Sprintf("cannot use '%s' outside of %s", iuoes.ExitNode, iuoes.Context)
+}
+
+func (iuoes *InvalidUseOfExitStmt) GetSpecifier() Snippet {
+  return iuoes.Specifier
+}
+
+func (iuoes *InvalidUseOfExitStmt) GetNote() string {
+  return ""
+}
+
+func (iuoes *InvalidUseOfExitStmt) GetID() string {
+  return "hyb034W"
+}
+
+func (iuoes *InvalidUseOfExitStmt) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type TypeMismatch struct {
+  Specifier Snippet
+  Type1 string
+  Type2 string
+  Context string
+}
+
+func (tm *TypeMismatch) GetMessage() string {
+  return fmt.Sprintf("expected '%s', got '%s' %s", tm.Type1, tm.Type2, tm.Context)
+}
+
+func (tm *TypeMismatch) GetSpecifier() Snippet {
+  return tm.Specifier
+}
+
+func (tm *TypeMismatch) GetNote() string {
+  return ""
+}
+
+func (tm *TypeMismatch) GetID() string {
+  return "hyb035W"
+}
+
+func (tm *TypeMismatch) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type UseStmtInLocalBlock struct {
+  Specifier Snippet
+}
+
+func (usilb *UseStmtInLocalBlock) GetMessage() string {
+  return "use statements must be in the global scope"
+}
+
+func (usilb *UseStmtInLocalBlock) GetSpecifier() Snippet {
+  return usilb.Specifier
+}
+
+func (usilb *UseStmtInLocalBlock) GetNote() string {
+  return ""
+}
+
+func (usilb *UseStmtInLocalBlock) GetID() string {
+  return "hyb036W"
+}
+
+func (usilb *UseStmtInLocalBlock) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type UsedPewpewInNonLevelEnvironment struct {
+  Specifier Snippet
+}
+
+func (upinle *UsedPewpewInNonLevelEnvironment) GetMessage() string {
+  return "cannot use the Pewpew environment in a Mesh or Sound environment"
+}
+
+func (upinle *UsedPewpewInNonLevelEnvironment) GetSpecifier() Snippet {
+  return upinle.Specifier
+}
+
+func (upinle *UsedPewpewInNonLevelEnvironment) GetNote() string {
+  return ""
+}
+
+func (upinle *UsedPewpewInNonLevelEnvironment) GetID() string {
+  return "hyb037W"
+}
+
+func (upinle *UsedPewpewInNonLevelEnvironment) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type UnallowedLibraryUse struct {
+  Specifier Snippet
+  Library string
+  UnallowedEnvs string
+}
+
+func (ulu *UnallowedLibraryUse) GetMessage() string {
+  return fmt.Sprintf("cannot use the %s library in a %s environment", ulu.Library, ulu.UnallowedEnvs)
+}
+
+func (ulu *UnallowedLibraryUse) GetSpecifier() Snippet {
+  return ulu.Specifier
+}
+
+func (ulu *UnallowedLibraryUse) GetNote() string {
+  return ""
+}
+
+func (ulu *UnallowedLibraryUse) GetID() string {
+  return "hyb038W"
+}
+
+func (ulu *UnallowedLibraryUse) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidEnvironmentAccess struct {
+  Specifier Snippet
+  EnvName string
+}
+
+func (iea *InvalidEnvironmentAccess) GetMessage() string {
+  return fmt.Sprintf("environment named '%s' does not exist", iea.EnvName)
+}
+
+func (iea *InvalidEnvironmentAccess) GetSpecifier() Snippet {
+  return iea.Specifier
+}
+
+func (iea *InvalidEnvironmentAccess) GetNote() string {
+  return ""
+}
+
+func (iea *InvalidEnvironmentAccess) GetID() string {
+  return "hyb039W"
+}
+
+func (iea *InvalidEnvironmentAccess) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type EnvironmentReuse struct {
+  Specifier Snippet
+  EnvName string
+}
+
+func (er *EnvironmentReuse) GetMessage() string {
+  return fmt.Sprintf("environment named '%s' is already imported through use statement", er.EnvName)
+}
+
+func (er *EnvironmentReuse) GetSpecifier() Snippet {
+  return er.Specifier
+}
+
+func (er *EnvironmentReuse) GetNote() string {
+  return ""
+}
+
+func (er *EnvironmentReuse) GetID() string {
+  return "hyb040W"
+}
+
+func (er *EnvironmentReuse) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidIteratorType struct {
+  Specifier Snippet
+  Type string
+}
+
+func (iit *InvalidIteratorType) GetMessage() string {
+  return fmt.Sprintf("a for loop iterator must be a map or a list (found: '%s')", iit.Type)
+}
+
+func (iit *InvalidIteratorType) GetSpecifier() Snippet {
+  return iit.Specifier
+}
+
+func (iit *InvalidIteratorType) GetNote() string {
+  return ""
+}
+
+func (iit *InvalidIteratorType) GetID() string {
+  return "hyb041W"
+}
+
+func (iit *InvalidIteratorType) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type UnnecessaryEmptyIdentifier struct {
+  Specifier Snippet
+  Context string
+}
+
+func (uei *UnnecessaryEmptyIdentifier) GetMessage() string {
+  return fmt.Sprintf("unnecessary use of empty identifier ('_') %s", uei.Context)
+}
+
+func (uei *UnnecessaryEmptyIdentifier) GetSpecifier() Snippet {
+  return uei.Specifier
+}
+
+func (uei *UnnecessaryEmptyIdentifier) GetNote() string {
+  return ""
+}
+
+func (uei *UnnecessaryEmptyIdentifier) GetID() string {
+  return "hyb042W"
+}
+
+func (uei *UnnecessaryEmptyIdentifier) GetAlertType() Type {
+  return Warning
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidUseOfEmptyIdentifier struct {
+  Specifier Snippet
+  Context string
+}
+
+func (iuoei *InvalidUseOfEmptyIdentifier) GetMessage() string {
+  return fmt.Sprintf("invalid use of empty identifier ('_') %s", iuoei.Context)
+}
+
+func (iuoei *InvalidUseOfEmptyIdentifier) GetSpecifier() Snippet {
+  return iuoei.Specifier
+}
+
+func (iuoei *InvalidUseOfEmptyIdentifier) GetNote() string {
+  return ""
+}
+
+func (iuoei *InvalidUseOfEmptyIdentifier) GetID() string {
+  return "hyb043W"
+}
+
+func (iuoei *InvalidUseOfEmptyIdentifier) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidTypeInDestroyStatement struct {
+  Specifier Snippet
+  Type string
+}
+
+func (itids *InvalidTypeInDestroyStatement) GetMessage() string {
+  return fmt.Sprintf("the type '%s' is not allowed in destroy statement", itids.Type)
+}
+
+func (itids *InvalidTypeInDestroyStatement) GetSpecifier() Snippet {
+  return itids.Specifier
+}
+
+func (itids *InvalidTypeInDestroyStatement) GetNote() string {
+  return "destroy statement only allows entities to be destroyed"
+}
+
+func (itids *InvalidTypeInDestroyStatement) GetID() string {
+  return "hyb044W"
+}
+
+func (itids *InvalidTypeInDestroyStatement) GetAlertType() Type {
   return Error
 }
 

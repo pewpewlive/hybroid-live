@@ -173,13 +173,14 @@
     "message": "constant must be declared with a value"
   },
   {
-    "name": "TooFewValuesInDeclaration",
+    "name": "TooFewValuesGiven",
     "type": "Error",
     "params": {
-      "RequiredAmount": "int"
+      "RequiredAmount": "int",
+      "Context": "string"
     },
-    "message": "%d more value(s) required in variable declaration",
-    "message_format": ["RequiredAmount"]
+    "message": "%d more value(s) required %s",
+    "message_format": ["RequiredAmount", "Context"]
   },
   {
     "name": "ExplicitTypeRequiredInDeclaration",
@@ -207,13 +208,14 @@
     "note": "some types don't have default values, like entities and classes"
   },
   {
-    "name": "TooManyValuesInDeclaration",
+    "name": "TooManyValuesGiven",
     "type": "Error",
     "params": {
-      "ExtraAmount": "int"
+      "ExtraAmount": "int",
+      "Context": "string"
     },
-    "message": "%d less value(s) required in variable declaration",
-    "message_format": ["ExtraAmount"]
+    "message": "%d less value(s) required %s",
+    "message_format": ["ExtraAmount", "Context"]
   },
   {
     "name": "ImportCycle",
@@ -222,8 +224,8 @@
       "HybPath1": "string",
       "HybPath2": "string"
     },
-    "message": "",
-    "message_format": ["HybPath1", "HybPath1"]
+    "message": "import cycle detected: cycling paths: '%s' and '%s'",
+    "message_format": ["HybPath1", "HybPath2"]
   },
   {
     "name": "UndeclaredVariableAccess",
@@ -233,5 +235,144 @@
     },
     "message": "'%s' is not a declared variable",
     "message_format": ["Var"]
+  },
+  {
+    "name": "ConstValueAssignment",
+    "type": "Error",
+    "message": "cannot modify a constant value"
+  },
+  {
+    "name": "AssignmentTypeMismatch",
+    "type": "Error",
+    "params":{
+      "VarType": "string",
+      "ValType": "string"
+    },
+    "message": "variable is of type '%s', but a value of '%s' was assigned to it",
+    "message_format": ["VarType", "ValType"]
+  },
+  {
+    "name": "InvalidTypeInCompoundAssignment",
+    "type": "Error",
+    "params":{
+      "ValType": "string"
+    },
+    "message": "the type '%s' is not allowed in compound assignment",
+    "message_format": ["ValType"],
+    "note": "only numerical types are allowed, like numbers, fixeds, fixedpoints, degrees and radians"
+  },
+  {
+    "name": "InvalidUseOfSelf",
+    "type": "Error",
+    "message": "cannot use self outside of class or entity"
+  },
+  {
+    "name": "DuplicateGenericParameter",
+    "type": "Error",
+    "params": {
+      "Name" : "string"
+    },
+    "message": "the generic parameter '%s' is given more than once"
+  },
+  {
+    "name": "UnreachableCode",
+    "type": "Warning",
+    "message": "unreachable code detected"
+  },
+  {
+    "name": "InvalidUseOfExitStmt",
+    "type": "Error",
+    "params": {
+      "ExitNode" : "string",
+      "Context": "string"
+    },
+    "message": "cannot use '%s' outside of %s",
+    "message_format": ["ExitNode", "Context"]
+  },
+  {
+    "name": "TypeMismatch",
+    "type": "Error",
+    "params": {
+      "Type1" : "string",
+      "Type2": "string",
+      "Context": "string"
+    },
+    "message": "expected '%s', got '%s' %s",
+    "message_format": ["Type1", "Type2", "Context"]
+  },
+  {
+    "name": "UseStmtInLocalBlock",
+    "type": "Error",
+    "message": "use statements must be in the global scope"
+  },
+  {
+    "name": "UsedPewpewInNonLevelEnvironment",
+    "type": "Error",
+    "message": "cannot use the Pewpew environment in a Mesh or Sound environment"
+  },
+  {
+    "name": "UnallowedLibraryUse",
+    "type": "Error",
+    "params": {
+      "Library": "string",
+      "UnallowedEnvs": "string"
+    },
+    "message": "cannot use the %s library in a %s environment",
+    "message_format": ["Library", "UnallowedEnvs"]
+  },
+  {
+    "name": "InvalidEnvironmentAccess",
+    "type": "Error",
+    "params": {
+      "EnvName": "string"
+    },
+    "message": "environment named '%s' does not exist",
+    "message_format": ["EnvName"]
+  },
+  {
+    "name": "EnvironmentReuse",
+    "type": "Error",
+    "params": {
+      "EnvName": "string"
+    },
+    "message": "environment named '%s' is already imported through use statement",
+    "message_format": ["EnvName"]
+  },
+  {
+    "name": "InvalidIteratorType",
+    "type": "Error",
+    "params": {
+      "Type": "string"
+    },
+    "message": "a for loop iterator must be a map or a list (found: '%s')",
+    "message_format": ["Type"]
+  },
+  {
+    "name": "UnnecessaryEmptyIdentifier",
+    "type": "Warning",
+    "params": {
+      "Context": "string"
+    },
+    "message": "unnecessary use of empty identifier ('_') %s",
+    "message_format": ["Context"]
+  },
+  {
+    "name": "InvalidUseOfEmptyIdentifier",
+    "type": "Error",
+    "params": {
+      "Context": "string"
+    },
+    "message": "invalid use of empty identifier ('_') %s",
+    "message_format": ["Context"]
+  },
+  {
+    "name": "InvalidTypeInDestroyStatement",
+    "type": "Error",
+    "params": {
+      "Type": "string"
+    },
+    "message": "the type '%s' is not allowed in destroy statement",
+    "message_format": ["Type"],
+    "note": "destroy statement only allows entities to be destroyed"
   }
 ]

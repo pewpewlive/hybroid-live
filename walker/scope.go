@@ -53,6 +53,27 @@ const (
 	All
 )
 
+/*
+
+match {
+	fn {
+		if {
+			if {
+				return
+			}
+		}
+
+		if {
+		}
+
+		return
+	}
+}
+
+
+
+*/
+
 type ExitableTag interface {
 	ScopeTag
 	SetExit(state bool, _type ExitType)

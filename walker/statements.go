@@ -1,9 +1,10 @@
 package walker
 
 import (
+	"hybroid/alerts"
 	"hybroid/ast"
 	"hybroid/helpers"
-	"strings"
+	"hybroid/tokens"
 )
 
 func (w *Walker) DeclareConversion(scope *Scope) {
@@ -49,6 +50,7 @@ func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 	}
 }
 
+// Rewrote
 func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scope) {
 	type Value2 struct {
 		Value
@@ -56,13 +58,8 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 	}
 
 	values := []Value2{}
-	index := 1
-	for i := range assignStmt.Values { // function()
-		index++
-		exprValue := w.GetNodeValue(&assignStmt.Values[i], scope)
-		// if assignStmt.Values[i].GetType() == ast.SelfExpression {
-		// 	// w.Error(assignStmt.Values[i].GetToken(), "cannot assign self to a variable")
-		// }
+	for i := range assignStmt.Values {
+		exprValue := w.GetNodeActualValue(&assignStmt.Values[i], scope)
 		if vals, ok := exprValue.(Values); ok {
 			for j := range vals {
 				values = append(values, Value2{vals[j], i})
@@ -72,51 +69,82 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 		}
 	}
 
-	variablesLength := len(assignStmt.Identifiers)
-	valuesLength := len(values)
-	if variablesLength < valuesLength {
-		// w.Error(assignStmt.Token, "too many values given in variable declaration")
-	} else if variablesLength > valuesLength {
-		// w.Error(assignStmt.Token, "too few values given in variable declaration")
-	}
+	idents := assignStmt.Identifiers
 
-	for i := index; i < variablesLength; i++ {
-		values = append(values, Value2{&Invalid{}, i})
-	}
+	identsLen := len(idents)
+	valuesLen := len(values)
 
+	exprs := assignStmt.Values
+	binExprs := make([]ast.Node, 0) // for compound assignment
+
+	assignOp := assignStmt.AssignOp
 	for i := range assignStmt.Identifiers {
-		value := w.GetNodeValue(&assignStmt.Identifiers[i], scope)
+		if i >= valuesLen {
+			requiredAmount := identsLen - valuesLen
+			w.AlertSingle(&alerts.TooFewValuesGiven{}, exprs[len(exprs)-1].GetToken(), requiredAmount, "assignment")
+			return
+		}
+		value := w.GetNodeValue(&idents[i], scope)
 		variable, ok := value.(*VariableVal)
 		if !ok {
-			variable = &VariableVal{
-				Name:   "",
-				Value:  value,
-				IsInit: true,
-			}
-		}
-		if variable.IsConst {
-			// variableToken := assignStmt.Identifiers[i].GetToken()
-			// w.Error(variableToken, "cannot modify '%s' because it is const", variableToken.Lexeme)
 			continue
 		}
-
-		variableType := variable.GetType()
+		if variable.IsConst {
+			w.AlertSingle(&alerts.ConstValueAssignment{}, idents[i].GetToken())
+			continue
+		}
 		if !variable.IsInit {
 			variable.IsInit = true
 		}
 
+		variableType := variable.GetType()
 		valType := values[i].GetType()
+		if valType == InvalidType {
+			continue
+		}
+
+		if assignOp.Type != tokens.Equal {
+			if !isNumerical(valType.PVT()) {
+				w.AlertSingle(&alerts.InvalidTypeInCompoundAssignment{}, exprs[values[i].Index].GetToken(),
+					valType.ToString(),
+				)
+				continue
+			}
+			if !isNumerical(variableType.PVT()) {
+				w.AlertSingle(&alerts.InvalidTypeInCompoundAssignment{}, idents[i].GetToken(),
+					variableType.ToString(),
+				)
+				continue
+			}
+
+			binExpr := &ast.BinaryExpr{
+				Left:     idents[i],
+				Right:    exprs[values[i].Index],
+				Operator: assignOp,
+			}
+			binExprs = append(binExprs, binExpr)
+		}
 
 		if !TypeEquals(variableType, valType) {
-			// variableName := assignStmt.Identifiers[i].GetToken().Lexeme
-			// w.Error(assignStmt.Values[values[i].Index].GetToken(), "mismatched types: '%s' is of type %s but a value of %s was given to it", variableName, variableType.ToString(), valType.ToString())
+			w.AlertSingle(&alerts.AssignmentTypeMismatch{}, exprs[values[i].Index].GetToken(),
+				variableType.ToString(),
+				valType.ToString(),
+			)
+			continue
 		}
-
-		if vr, ok := values[i].Value.(*VariableVal); ok {
-			values[i] = Value2{vr.Value, values[i].Index}
-		}
-
-		//variable.Value = values[i]
+	}
+	if valuesLen > identsLen {
+		extraAmount := valuesLen - identsLen
+		w.AlertMulti(&alerts.TooManyValuesGiven{},
+			exprs[values[valuesLen-1].Index].GetToken(),
+			exprs[values[valuesLen-extraAmount].Index].GetToken(),
+			extraAmount,
+			"in assignment",
+		)
+		return
+	}
+	if len(binExprs) != 0 {
+		assignStmt.Values = binExprs
 	}
 }
 
@@ -166,8 +194,7 @@ func (w *Walker) whileStatement(node *ast.WhileStmt, scope *Scope) {
 	whileScope := NewScope(scope, &MultiPathTag{}, BreakAllowing, ContinueAllowing)
 	lt := NewMultiPathTag(1, whileScope.Attributes...)
 	whileScope.Tag = lt
-
-	_ = w.GetNodeValue(&node.Condition, scope)
+	w.GetNodeValue(&node.Condition, scope)
 
 	w.WalkBody(&node.Body, lt, whileScope)
 }
@@ -177,15 +204,31 @@ func (w *Walker) forStatement(node *ast.ForStmt, scope *Scope) {
 	lt := NewMultiPathTag(1, forScope.Attributes...)
 	forScope.Tag = lt
 
-	w.DeclareVariable(forScope, NewVariable(node.First.Name, &NumberVal{}))
-
 	valType := w.GetNodeValue(&node.Iterator, scope).GetType()
 	wrapper, ok := valType.(*WrapperType)
 	if !ok {
-		// w.Error(node.Iterator.GetToken(), "iterator must be of type map or list")
-	} else if node.Second != nil {
-		node.OrderedIteration = wrapper.PVT() == ast.List
-		w.DeclareVariable(forScope, NewVariable(node.Second.Name, w.TypeToValue(wrapper)))
+		w.AlertSingle(&alerts.InvalidIteratorType{}, node.Iterator.GetToken(), valType.ToString())
+		return
+	}
+	node.OrderedIteration = wrapper.PVT() == ast.List
+
+	if node.First.Name.Lexeme != "_" {
+		var firstValue Value
+		if node.OrderedIteration {
+			firstValue = &NumberVal{}
+		} else {
+			firstValue = &StringVal{}
+		}
+		w.DeclareVariable(forScope, NewVariable(node.First.Name, firstValue))
+	}
+
+	if node.Second != nil && ok {
+		if node.Second.Name.Lexeme == "_" && node.First.Name.Lexeme != "_" {
+			w.AlertSingle(&alerts.UnnecessaryEmptyIdentifier{}, node.Second.Name, "in for loop statement")
+		}
+		if node.Second.Name.Lexeme != "_" {
+			w.DeclareVariable(forScope, NewVariable(node.Second.Name, w.TypeToValue(wrapper.WrappedType)))
+		}
 	}
 
 	w.WalkBody(&node.Body, lt, forScope)
@@ -239,7 +282,10 @@ func (w *Walker) matchStatement(node *ast.MatchStmt, isExpr bool, scope *Scope) 
 
 func (w *Walker) breakStatement(node *ast.BreakStmt, scope *Scope) {
 	if !scope.Is(BreakAllowing) {
-		// w.Error(node.GetToken(), "cannot use break outside of loops")
+		w.AlertSingle(&alerts.InvalidUseOfExitStmt{}, node.Token,
+			"break",
+			"for loops",
+		)
 	}
 
 	if returnable := scope.ResolveReturnable(); returnable != nil {
@@ -250,7 +296,10 @@ func (w *Walker) breakStatement(node *ast.BreakStmt, scope *Scope) {
 
 func (w *Walker) continueStatement(node *ast.ContinueStmt, scope *Scope) {
 	if !scope.Is(ContinueAllowing) {
-		// w.Error(node.GetToken(), "cannot use break outside of loops")
+		w.AlertSingle(&alerts.InvalidUseOfExitStmt{}, node.Token,
+			"continue",
+			"for loops",
+		)
 	}
 
 	if returnable := scope.ResolveReturnable(); returnable != nil {
@@ -261,7 +310,10 @@ func (w *Walker) continueStatement(node *ast.ContinueStmt, scope *Scope) {
 
 func (w *Walker) returnStatement(node *ast.ReturnStmt, scope *Scope) *[]Type {
 	if !scope.Is(ReturnAllowing) {
-		// w.Error(node.GetToken(), "can't have a return statement outside of a function or method")
+		w.AlertSingle(&alerts.InvalidUseOfExitStmt{}, node.Token,
+			"return",
+			"a function or method",
+		)
 	}
 
 	ret := EmptyReturn
@@ -281,10 +333,7 @@ func (w *Walker) returnStatement(node *ast.ReturnStmt, scope *Scope) *[]Type {
 		return &ret
 	}
 
-	errorMsg := w.ValidateReturnValues(ret, (*funcTag).ReturnTypes) // wait
-	if errorMsg != "" {
-		// w.Error(node.GetToken(), errorMsg)
-	}
+	w.ValidateReturnValues(node.Args, ret, (*funcTag).ReturnTypes, "in return arguments") // wait
 
 	if returnable := scope.ResolveReturnable(); returnable != nil {
 		(*returnable).SetExit(true, Return)
@@ -296,7 +345,10 @@ func (w *Walker) returnStatement(node *ast.ReturnStmt, scope *Scope) *[]Type {
 
 func (w *Walker) yieldStatement(node *ast.YieldStmt, scope *Scope) *[]Type {
 	if !scope.Is(YieldAllowing) {
-		// w.Error(node.GetToken(), "cannot use yield outside of statement expressions") // wut
+		w.AlertSingle(&alerts.InvalidUseOfExitStmt{}, node.Token,
+			"yield",
+			"a match expression",
+		)
 	}
 
 	ret := EmptyReturn
@@ -323,11 +375,7 @@ func (w *Walker) yieldStatement(node *ast.YieldStmt, scope *Scope) *[]Type {
 	if helpers.ListsAreSame(matchExprTag.YieldTypes, EmptyReturn) {
 		matchExprTag.YieldTypes = ret
 	} else {
-		errorMsg := w.ValidateReturnValues(ret, matchExprTag.YieldTypes)
-		if errorMsg != "" {
-			errorMsg = strings.Replace(errorMsg, "return", "yield", -1)
-			// w.Error(node.GetToken(), errorMsg)
-		}
+		w.ValidateReturnValues(node.Args, ret, matchExprTag.YieldTypes, "in yield arguments")
 	}
 
 	if returnable := scope.ResolveReturnable(); returnable != nil {
@@ -340,32 +388,35 @@ func (w *Walker) yieldStatement(node *ast.YieldStmt, scope *Scope) *[]Type {
 
 func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 	if scope.Parent != nil {
-		// w.Error(node.GetToken(), "cannot have a use statement inside a local block")
+		w.AlertSingle(&alerts.UseStmtInLocalBlock{}, node.Token)
 		return
 	}
 
-	path := node.Path.Path.Lexeme
+	envName := node.PathExpr.Path.Lexeme
 
-	switch path {
+	switch envName {
 	case "Pewpew":
 		w.environment.UsedLibraries[Pewpew] = true
 		return
 	}
 
-	switch path {
+	switch envName {
 	case "Pewpew":
 		if w.environment.Type != ast.LevelEnv {
-			// w.Error(node.GetToken(), "cannot use the pewpew library in a non-level environment")
+			w.AlertSingle(&alerts.UnallowedLibraryUse{}, node.PathExpr.Path, "Pewpew", "Mesh or Sound")
 		}
 		w.environment.UsedLibraries[Pewpew] = true
 		return
 	case "Fmath":
 		if w.environment.Type != ast.LevelEnv {
-			// w.Error(node.GetToken(), "cannot use the fmath library in a non-level environment")
+			w.AlertSingle(&alerts.UnallowedLibraryUse{}, node.PathExpr.Path, "Fmath", "Mesh or Sound")
 		}
 		w.environment.UsedLibraries[Fmath] = true
 		return
 	case "Math":
+		if w.environment.Type == ast.LevelEnv {
+			w.AlertSingle(&alerts.UnallowedLibraryUse{}, node.PathExpr.Path, "Math", "Level")
+		}
 		w.environment.UsedLibraries[Math] = true
 		return
 	case "String":
@@ -376,34 +427,37 @@ func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 		return
 	}
 
-	envName := node.Path.Path.Lexeme
 	walker, found := w.walkers[envName]
 
 	if !found {
-		// w.Error(node.GetToken(), fmt.Sprintf("Environment named '%s' doesn't exist", envName))
+		w.AlertSingle(&alerts.InvalidEnvironmentAccess{}, node.PathExpr.Path, envName)
 		return
+	}
+
+	for i := range walker.environment.importedWalkers {
+		if walker.environment.importedWalkers[i].environment.Name == w.environment.Name {
+			w.AlertSingle(&alerts.ImportCycle{}, node.PathExpr.Path, w.environment.hybroidPath, walker.environment.hybroidPath)
+			return
+		}
 	}
 
 	if walker.environment.luaPath == "/dynamic/level.lua" {
 		w.environment.importedWalkers = append(w.environment.importedWalkers, walker)
-		return
-	}
-
-	for _, v := range walker.environment.Requirements() {
-		if v == w.environment.luaPath {
-			// w.Error(node.GetToken(), fmt.Sprintf("import cycle detected: this environment and '%s' are using each other", walker.Environment.Name))
-			return
-		}
+		return // we don't put level.hyb in requirements as that would break things
 	}
 
 	success := w.environment.AddRequirement(walker.environment.luaPath)
 
 	if !success {
-		// w.Error(node.GetToken(), fmt.Sprintf("Environment '%s' is already used", envName))
+		w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
 		return
 	}
 
 	w.environment.importedWalkers = append(w.environment.importedWalkers, walker)
+
+	if !walker.Walked {
+		walker.Pass2()
+	}
 }
 
 func (w *Walker) destroyStatement(node *ast.DestroyStmt, scope *Scope) {
@@ -411,10 +465,10 @@ func (w *Walker) destroyStatement(node *ast.DestroyStmt, scope *Scope) {
 	valType := val.GetType()
 
 	if valType.PVT() == ast.Invalid {
-		// w.Error(node.Identifier.GetToken(), "invalid variable given in destroy expression")
 		return
-	} else if valType.PVT() != ast.Entity {
-		// w.Error(node.Identifier.GetToken(), "variable given in destroy statement is not an entity")
+	}
+	if valType.PVT() != ast.Entity {
+		w.AlertSingle(&alerts.InvalidTypeInDestroyStatement{}, node.Identifier.GetToken(), valType.ToString())
 		return
 	}
 
@@ -432,7 +486,6 @@ func (w *Walker) destroyStatement(node *ast.DestroyStmt, scope *Scope) {
 		args = append(args, w.GetNodeValue(&node.Args[i], scope).GetType())
 	}
 
-	suppliedGenerics := w.GetGenerics(node, node.GenericArgs, entityVal.DestroyGenerics, scope)
-
+	suppliedGenerics := w.GetGenerics(node.GenericArgs, entityVal.DestroyGenerics, scope)
 	w.ValidateArguments(suppliedGenerics, args, entityVal.DestroyParams, node)
 }

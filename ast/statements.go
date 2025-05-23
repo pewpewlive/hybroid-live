@@ -275,11 +275,12 @@ func (rs *RemoveStmt) GetValueType() PrimitiveValueType {
 }
 
 type UseStmt struct {
-	Path *EnvPathExpr
+	Token    tokens.Token
+	PathExpr *EnvPathExpr
 }
 
 func (us *UseStmt) GetToken() tokens.Token {
-	return us.Path.GetToken()
+	return us.Token
 }
 
 func (us *UseStmt) GetType() NodeType {

@@ -82,25 +82,31 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 
 		// ast.DrawNodes(prog)
 
-		// Continue to next file
-		if len(program) == 0 {
-			continue
-		}
+		color.Printf("[dark_gray]-->File: %s\n", sourcePath)
+
+		start = time.Now()
 
 		e.walkerList[i].SetProgram(program)
+		fmt.Println("[Pass 1] Walking environments...")
+		e.walkerList[i].Pass1(e.walkers)
+		fmt.Printf("Pass 1 time: %f seconds\n\n", time.Since(start).Seconds())
 	}
 
 	for i, walker := range e.walkerList {
 		sourcePath := e.files[i].Path()
+		if walker.Walked {
+			e.printer.StageAlerts(sourcePath, walker.GetAlerts())
+			continue
+		}
 		color.Printf("[dark_gray]-->File: %s\n", sourcePath)
 
 		start := time.Now()
 
 		fmt.Println("[Pass 2] Walking through the nodes...")
-		walker.Action(e.walkers)
+		walker.Pass2()
 		fmt.Printf("Pass 2 time: %f seconds\n\n", time.Since(start).Seconds())
 
-		e.printer.StageAlerts(e.files[i].Path(), walker.GetAlerts())
+		e.printer.StageAlerts(sourcePath, walker.GetAlerts())
 	}
 
 	// fmt.Printf("-Preparing values for generation...\n")

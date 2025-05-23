@@ -10,7 +10,7 @@ import (
 
 func (w *Walker) CheckAccessibility(s *Scope, isLocal bool, token tokens.Token) {
 	if s.Environment.Name != w.environment.Name && isLocal {
-		w.AlertSingle(&alerts.ForeignLocalVariableAccess{}, token, token)
+		w.AlertSingle(&alerts.ForeignLocalVariableAccess{}, token, token.Lexeme)
 	}
 }
 
@@ -288,30 +288,70 @@ func (w *Walker) ValidateArithmeticOperands(left Type, right Type, expr *ast.Bin
 	return true
 }
 
-func returnsAreValid(list1 []Type, list2 []Type) bool {
-	if len(list1) != len(list2) {
-		return false
+func (w *Walker) ValidateReturnValues(returnArgs []ast.Node, _return []Type, expectReturn []Type, context string) {
+	retLen := len(_return)
+	expRetLen := len(expectReturn)
+	if retLen < expRetLen {
+		requiredAmount := expRetLen - retLen
+		w.AlertSingle(&alerts.TooFewValuesGiven{}, returnArgs[len(returnArgs)-1].GetToken(), requiredAmount, context)
+	} else if retLen > expRetLen {
+		extraAmount := retLen - expRetLen
+		w.AlertMulti(&alerts.TooFewValuesGiven{},
+			returnArgs[len(returnArgs)-extraAmount].GetToken(),
+			returnArgs[len(returnArgs)-1].GetToken(),
+			extraAmount,
+			context,
+		)
 	}
-
-	for i, v := range list1 {
-		if !TypeEquals(v, list2[i]) {
-			return false
+	for i := range _return {
+		if i >= expRetLen {
+			break
+		}
+		if _return[i] == InvalidType {
+			continue
+		}
+		if expectReturn[i] == InvalidType {
+			continue
+		}
+		if !TypeEquals(_return[i], expectReturn[i]) {
+			w.AlertSingle(&alerts.TypeMismatch{}, returnArgs[i].GetToken(),
+				_return[i].GetType(),
+				expectReturn[i].GetType(),
+				context,
+			)
 		}
 	}
-	return true
 }
 
-func (w *Walker) ValidateReturnValues(_return []Type, expectReturn []Type) string {
-	returnValues, expectedReturnValues := _return, expectReturn
-	if len(returnValues) < len(expectedReturnValues) { // debug?
-		return "not enough return values given"
-	} else if len(returnValues) > len(expectedReturnValues) {
-		return "too many return values given"
+func (w *Walker) GetReturns(returns []*ast.TypeExpr, scope *Scope) []Type {
+	returnType := EmptyReturn
+	for i := range returns {
+		returnType = append(returnType, w.TypeExpr(returns[i], scope))
 	}
-	if !returnsAreValid(returnValues, expectedReturnValues) {
-		return "invalid return type(s)"
+
+	return returnType
+}
+
+func (w *Walker) GetGenerics(genericArgs []*ast.TypeExpr, expectedGenerics []*GenericType, scope *Scope) map[string]Type {
+	receivedGenericsLength := len(genericArgs)
+	expectedGenericsLength := len(expectedGenerics)
+
+	suppliedGenerics := map[string]Type{}
+	if receivedGenericsLength > expectedGenericsLength {
+		extraAmount := receivedGenericsLength - expectedGenericsLength
+		w.AlertMulti(&alerts.TooManyValuesGiven{},
+			genericArgs[expectedGenericsLength-extraAmount].GetToken(),
+			genericArgs[expectedGenericsLength-1].GetToken(),
+			extraAmount,
+			"in generic arguments",
+		)
+	} else {
+		for i := range genericArgs {
+			suppliedGenerics[expectedGenerics[i].Name] = w.TypeExpr(genericArgs[i], scope)
+		}
 	}
-	return ""
+
+	return suppliedGenerics
 }
 
 func (w *Walker) TypeToValue(_type Type) Value {
@@ -471,13 +511,16 @@ const (
 	Method
 )
 
-func IsOfPrimitiveType(value Value, types ...ast.PrimitiveValueType) bool {
+func isNumerical(pvt ast.PrimitiveValueType) bool {
+	return isOfPrimitiveType(pvt, ast.Number, ast.Fixed, ast.FixedPoint, ast.Degree, ast.Radian)
+}
+
+func isOfPrimitiveType(pvt ast.PrimitiveValueType, types ...ast.PrimitiveValueType) bool {
 	if types == nil {
 		return false
 	}
-	valType := value.GetType().PVT()
 	for _, prim := range types {
-		if valType == prim {
+		if pvt == prim {
 			return true
 		}
 	}

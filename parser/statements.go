@@ -148,11 +148,12 @@ func (p *Parser) assignmentStatement(expr ast.Node) ast.Node {
 		idents = append(idents, exp)
 	}
 	if p.match(tokens.Equal) {
+		equal := p.peek(-1)
 		exprs, ok := p.expressions("in assignment statement", false)
 		if !ok {
 			return ast.NewImproper(expr.GetToken(), ast.AssignmentStatement)
 		}
-		return &ast.AssignmentStmt{Identifiers: idents, Values: exprs, Token: p.peek(-1)}
+		return &ast.AssignmentStmt{Identifiers: idents, Values: exprs, AssignOp: equal, Token: idents[0].GetToken()}
 	}
 	if p.match(tokens.PlusEqual, tokens.MinusEqual, tokens.SlashEqual, tokens.StarEqual, tokens.CaretEqual, tokens.ModuloEqual, tokens.BackSlashEqual) {
 		assignOp := p.peek(-1)
@@ -372,16 +373,18 @@ func (p *Parser) tickStatement() ast.Node {
 }
 
 func (p *Parser) useStatement() ast.Node {
-	useStmt := ast.UseStmt{}
+	useStmt := &ast.UseStmt{
+		Token: p.peek(-1),
+	}
 
 	filepath := p.envPathExpr()
 	if filepath.GetType() != ast.EnvironmentPathExpression {
 		p.Alert(&alerts.ExpectedEnvironmentPathExpression{}, alerts.NewMulti(filepath.GetToken(), p.peek()))
 		return ast.NewImproper(p.peek(), ast.UseStatement)
 	}
-	useStmt.Path = filepath.(*ast.EnvPathExpr)
+	useStmt.PathExpr = filepath.(*ast.EnvPathExpr)
 
-	return &useStmt
+	return useStmt
 }
 
 func (p *Parser) matchStatement(isExpr bool) ast.Node {

@@ -10,3 +10,6 @@ pub name = "po"
 let a, b = thing()
 let bool c
 const o = 2
+
+a, b = thing()
+self.a = 1

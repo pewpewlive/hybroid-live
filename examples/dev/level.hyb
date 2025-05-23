@@ -1,28 +1,26 @@
-// pub class thing {
-//     fn() {
-//         if condition and * {}
-//     }
-//     3
-//     a = 1
-//     fixed a = 1
-// }
+pub class thing {
+    fn() {
+        if condition and * {}
+    }
+    3
+    a = 1
+    fixed a = 1
+}
 
-// pub entity e {
-//     1
-//     fixed a, b
-// }
+pub entity e {
+    1
+    fixed a, b
+}
 
-// match p {
-//     "a", 1 => 3,4
-//     "p" => {
+match p {
+    "a", 1 => 3,4
+    "p" => {
 
-//     }
-//     1
-// }
+    }
+    1
+}
 
-// fn name() {
-//     if {
+fn name() {
+    if {
 
-// }
-
-let a = p.method()
+}

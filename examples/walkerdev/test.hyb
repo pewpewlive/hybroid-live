@@ -1,7 +1,15 @@
 env Env1 as Level
 
-let field = struct{
-    member = [1, 2]
+use Level
+
+pub field = struct{
+    member = [2fx, 3fx]
+}
+
+for i, v in field.member {
+    i += v
 }
 
 field.member[0]()
+
+let o = name

@@ -277,9 +277,8 @@ accessCheck:
 				Member: expr2,
 			})
 		}
-
+		expr = p.call(access)
 		if p.check(tokens.Less) || p.check(tokens.LeftParen) {
-			expr = p.call(access)
 			goto accessCheck
 		}
 	}

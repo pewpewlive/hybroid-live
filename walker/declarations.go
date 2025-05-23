@@ -15,7 +15,7 @@ func (w *Walker) aliasDeclaration(node *ast.AliasDecl, scope *Scope) {
 		w.Alert(&alerts.Redeclaration{}, node.Token, node.Name, "alias")
 		return
 	}
-	scope.AliasTypes[node.Name.Lexeme] = NewAliasType(node.Name.Lexeme, w.TypeExpr(node.Type, scope, true), !node.IsPub)
+	scope.AliasTypes[node.Name.Lexeme] = NewAliasType(node.Name.Lexeme, w.TypeExpr(node.Type, scope), !node.IsPub)
 }
 
 func (w *Walker) classDeclaration(node *ast.ClassDecl, scope *Scope) {
@@ -50,7 +50,7 @@ func (w *Walker) classDeclaration(node *ast.ClassDecl, scope *Scope) {
 
 	params := make([]Type, 0)
 	for _, param := range node.Constructor.Params {
-		params = append(params, w.TypeExpr(param.Type, scope, true))
+		params = append(params, w.TypeExpr(param.Type, scope))
 	}
 	classVal.Params = params
 
@@ -297,21 +297,26 @@ func (w *Walker) methodDeclaration(node *ast.MethodDecl, container MethodContain
 func (w *Walker) functionDeclaration(node *ast.FunctionDecl, scope *Scope, procType ProcedureType) *VariableVal {
 	generics := make([]*GenericType, 0)
 
-	for _, param := range node.Generics {
-		generics = append(generics, NewGeneric(param.Name.Lexeme))
+	for _, generic := range node.Generics {
+		for i := range generics {
+			if generics[i].Name == generic.Name.Lexeme {
+				w.AlertSingle(&alerts.DuplicateGenericParameter{}, generic.GetToken(), generic.Name.Lexeme)
+				break
+			}
+		}
+		generics = append(generics, NewGeneric(generic.Name.Lexeme))
 	}
 
 	funcTag := &FuncTag{Generics: generics}
 	fnScope := NewScope(scope, funcTag, ReturnAllowing)
 
 	ret := w.GetReturns(node.Returns, fnScope)
-
 	funcTag.ReturnTypes = ret
 
 	params := make([]Type, 0)
 	for i, param := range node.Params {
-		params = append(params, w.TypeExpr(param.Type, fnScope, true))
-		w.DeclareVariable(fnScope, &VariableVal{Name: param.Name.Lexeme, Value: w.TypeToValue(params[i]), IsLocal: true, IsInit: true})
+		params = append(params, w.TypeExpr(param.Type, fnScope))
+		w.DeclareVariable(fnScope, NewVariable(param.Name, w.TypeToValue(params[i])))
 	}
 
 	variable := &VariableVal{
@@ -382,9 +387,10 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 			if len(exprs) != 0 {
 				lastToken = exprs[len(exprs)-1].GetToken()
 			}
-			w.AlertSingle(&alerts.TooFewValuesInDeclaration{},
+			w.AlertSingle(&alerts.TooFewValuesGiven{},
 				lastToken,
 				requiredAmount,
+				"variable declaration",
 			)
 			break
 		}
@@ -419,7 +425,7 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 
 		var explicitType Type = nil
 		if declaration.Type != nil {
-			explicitType = w.TypeExpr(declaration.Type, scope, false)
+			explicitType = w.TypeExpr(declaration.Type, scope)
 		}
 		if explicitType == nil && value == nil {
 			w.AlertSingle(&alerts.ExplicitTypeRequiredInDeclaration{},
@@ -451,15 +457,17 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 	if identsLen < valuesLen {
 		extraAmount := valuesLen - identsLen
 		if extraAmount == 1 {
-			w.AlertSingle(&alerts.TooManyValuesInDeclaration{},
+			w.AlertSingle(&alerts.TooManyValuesGiven{},
 				exprs[valuesLen-1].GetToken(),
 				extraAmount,
+				"in variable declaration",
 			)
 		} else {
-			w.AlertMulti(&alerts.TooManyValuesInDeclaration{},
+			w.AlertMulti(&alerts.TooManyValuesGiven{},
 				values[valuesLen-1-extraAmount].token,
 				values[valuesLen-1].token,
 				extraAmount,
+				"in variable declaration",
 			)
 		}
 	}

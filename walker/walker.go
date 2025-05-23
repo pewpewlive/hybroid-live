@@ -94,7 +94,7 @@ type Walker struct {
 	walkers map[string]*Walker
 	program []ast.Node
 	context Context
-	walked  bool
+	Walked  bool
 }
 
 func (w *Walker) Alert(alertType alerts.Alert, args ...any) {
@@ -130,7 +130,7 @@ func (w *Walker) SetProgram(program []ast.Node) {
 	w.program = program
 }
 
-func (w *Walker) Action(wlkrs map[string]*Walker) {
+func (w *Walker) Pass1(wlkrs map[string]*Walker) {
 	w.walkers = wlkrs
 	nodes := w.program
 
@@ -147,12 +147,21 @@ func (w *Walker) Action(wlkrs map[string]*Walker) {
 	for i := range nodes {
 		w.WalkNode(nodes[i], scope)
 	}
+}
 
+func (w *Walker) Pass2() {
+	nodes := w.program
+
+	if len(nodes) == 0 {
+		return
+	}
+
+	scope := &w.environment.Scope
 	for i := range nodes {
 		w.WalkNode2(&nodes[i], scope)
 	}
 
-	w.walked = true
+	w.Walked = true
 }
 
 func (w *Walker) WalkNode(node ast.Node, scope *Scope) {
@@ -326,11 +335,11 @@ func (w *Walker) WalkBody(body *[]ast.Node, tag ExitableTag, scope *Scope) {
 	endIndex := -1
 	for i := range *body {
 		if tag.GetIfExits(All) {
-			// w.Warn((*body)[i].GetToken(), "unreachable code detected")
+			w.AlertMulti(&alerts.UnreachableCode{}, (*body)[i].GetToken(), (*body)[len(*body)-1].GetToken())
 			endIndex = i
 			break
 		}
-		w.WalkNode((*body)[i], scope)
+		w.WalkNode2(&(*body)[i], scope)
 	}
 	if endIndex != -1 {
 		*body = (*body)[:endIndex]
@@ -354,7 +363,7 @@ func (w *Walker) WalkParams(parameters []ast.FunctionParam, scope *Scope, declar
 	variadicParams := make(map[tokens.Token]int)
 	params := make([]Type, 0)
 	for i, param := range parameters {
-		params = append(params, w.TypeExpr(param.Type, scope, false))
+		params = append(params, w.TypeExpr(param.Type, scope))
 		if params[i].GetType() == Variadic {
 			variadicParams[parameters[i].Name] = i
 		}
