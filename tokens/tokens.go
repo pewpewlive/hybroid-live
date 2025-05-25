@@ -1,6 +1,6 @@
 package tokens
 
-import "hybroid/helpers"
+import "hybroid/core"
 
 type TokenType string
 
@@ -153,13 +153,13 @@ func KeywordToToken(keyword string) (TokenType, bool) {
 
 type Location struct {
 	Line   int
-	Column helpers.Span[int]
+	Column core.Span[int]
 }
 
 func NewLocation(line, columnStart, columnEnd int) Location {
 	return Location{
 		Line:   line,
-		Column: helpers.NewSpan(columnStart, columnEnd),
+		Column: core.NewSpan(columnStart, columnEnd),
 	}
 }
 

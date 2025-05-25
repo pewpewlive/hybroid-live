@@ -372,7 +372,7 @@ func (w *Walker) yieldStatement(node *ast.YieldStmt, scope *Scope) *[]Type {
 
 	matchExprTag := *matchExprT
 
-	if helpers.ListsAreSame(matchExprTag.YieldTypes, EmptyReturn) {
+	if core.ListsAreSame(matchExprTag.YieldTypes, EmptyReturn) {
 		matchExprTag.YieldTypes = ret
 	} else {
 		w.ValidateReturnValues(node.Args, ret, matchExprTag.YieldTypes, "in yield arguments")

@@ -3,7 +3,7 @@ package parser_test
 import (
 	"fmt"
 	"hybroid/alerts"
-	"hybroid/helpers"
+	"hybroid/core"
 	"hybroid/lexer"
 	"hybroid/parser"
 	"os"
@@ -45,7 +45,7 @@ type parseResults struct {
 func performParsing(t *testing.T, path, subtest string) (parseResults, error) {
 	results := parseResults{}
 
-	files, err := helpers.CollectFiles(path)
+	files, err := core.CollectFiles(path)
 
 	if err != nil {
 		return results, err
@@ -53,7 +53,7 @@ func performParsing(t *testing.T, path, subtest string) (parseResults, error) {
 	if len(files) == 0 {
 		return results, fmt.Errorf("found no files in '%s'", path)
 	}
-	file := slices.IndexFunc(files, func(file helpers.FileInformation) bool {
+	file := slices.IndexFunc(files, func(file core.FileInformation) bool {
 		return file.FileName == subtest
 	})
 	if file == -1 {
@@ -140,7 +140,7 @@ func performTest(t *testing.T, testName string, expectedAlerts []reflect.Type) {
 		for _, alert := range results.alerts {
 			alertTypes = append(alertTypes, reflect.ValueOf(alert).Elem().Type())
 		}
-		if !helpers.ListsAreSame(alertTypes, expectedAlerts) {
+		if !core.ListsAreSame(alertTypes, expectedAlerts) {
 			t.Errorf("[Invalid] Mismatch in *expected* and *received* alerts")
 
 			printAlerts(t, "Expected", expectedAlerts...)

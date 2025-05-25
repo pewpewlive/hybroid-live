@@ -2,7 +2,7 @@ package commands
 
 import (
 	"fmt"
-	"hybroid/helpers"
+	"hybroid/core"
 	"os"
 
 	"github.com/pelletier/go-toml/v2"
@@ -25,7 +25,7 @@ func Initialize() *cli.Command {
 	return &cli.Command{
 		Name:    "initialize",
 		Aliases: []string{"init", "i"},
-		Usage:   "Initializes a new Hybroid project",
+		Usage:   "Initializes a new Hybroid Live project",
 		Flags: []cli.Flag{
 			&cli.StringFlag{Name: "package", Required: true, Usage: "The package name of the project"},
 			&cli.StringFlag{Name: "name", Required: true, Usage: "The level name of the project"},
@@ -48,15 +48,15 @@ func initialize(ctx *cli.Context) error {
 		return fmt.Errorf("invalid arguments, run `hybroid help init` for more information")
 	}
 
-	config := helpers.HybroidConfig{
-		Level: helpers.LevelManifest{
+	config := core.HybroidConfig{
+		Level: core.LevelManifest{
 			Name:         levelName,
 			Descriptions: []string{"Change me!"},
 			Information:  "Change me!",
 			EntryPoint:   "level.hyb",
 			IsCasual:     true,
 		},
-		Project: helpers.ProjectConfig{
+		Project: core.ProjectConfig{
 			Name:            pkgName,
 			OutputDirectory: output,
 		},
@@ -64,13 +64,13 @@ func initialize(ctx *cli.Context) error {
 
 	configFile, err := toml.Marshal(config)
 	if err != nil {
-		return fmt.Errorf("failed generating Hybroid config file: %v", err)
+		return fmt.Errorf("failed generating Hybroid Live config file: %v", err)
 	}
 
-	if err = os.WriteFile("hybconfig.toml", configFile, 0644); err != nil {
-		return fmt.Errorf("failed to write the Hybroid config file to disk: %v", err)
+	if err = os.WriteFile("hybconfig.toml", configFile, os.ModePerm); err != nil {
+		return fmt.Errorf("failed to write the Hybroid Live config file to disk: %v", err)
 	}
-	if err = os.WriteFile("level.hyb", []byte(fmt.Sprintf(levelTemplate, levelName)), 0644); err != nil {
+	if err = os.WriteFile("level.hyb", []byte(fmt.Sprintf(levelTemplate, levelName)), os.ModePerm); err != nil {
 		return fmt.Errorf("failed to write a level template to disk: %v", err)
 	}
 

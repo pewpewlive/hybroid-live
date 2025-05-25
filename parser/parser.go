@@ -3,7 +3,7 @@ package parser
 import (
 	"hybroid/alerts"
 	"hybroid/ast"
-	"hybroid/helpers"
+	"hybroid/core"
 	"hybroid/tokens"
 )
 
@@ -18,8 +18,8 @@ type Parser struct {
 
 type parserContext struct {
 	isPub        bool
-	ignoreAlerts helpers.Stack[bool]
-	braceCounter helpers.Counter
+	ignoreAlerts core.Stack[bool]
+	braceCounter core.Counter
 }
 
 func NewParser(tokens []tokens.Token) Parser {
@@ -28,8 +28,8 @@ func NewParser(tokens []tokens.Token) Parser {
 		current: 0,
 		tokens:  tokens,
 		context: parserContext{
-			ignoreAlerts: helpers.NewStack[bool]("IgnoreAlerts"),
-			braceCounter: helpers.NewCounter("BraceCounter"),
+			ignoreAlerts: core.NewStack[bool]("IgnoreAlerts"),
+			braceCounter: core.NewCounter("BraceCounter"),
 		},
 		Collector: alerts.NewCollector(),
 	}
@@ -38,8 +38,6 @@ func NewParser(tokens []tokens.Token) Parser {
 
 	return parser
 }
-
-type ParserError struct{}
 
 func (p *Parser) Alert(alertType alerts.Alert, args ...any) {
 	if p.context.ignoreAlerts.Top().Item {

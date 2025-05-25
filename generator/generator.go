@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"hybroid/alerts"
 	"hybroid/ast"
-	"hybroid/helpers"
+	"hybroid/core"
 	"math"
 	"strconv"
 )
@@ -50,7 +50,7 @@ const (
 
 type Replacement struct {
 	Tag  ReplaceType
-	Span helpers.Span[int]
+	Span core.Span[int]
 }
 
 type ReplaceSettings map[ReplaceType]string
@@ -63,7 +63,7 @@ type GenScope struct { // 0 3
 	ReplaceSettings ReplaceSettings
 }
 
-func (gs *GenScope) AddReplacement(tag ReplaceType, span helpers.Span[int]) {
+func (gs *GenScope) AddReplacement(tag ReplaceType, span core.Span[int]) {
 	gs.Replacements = append(gs.Replacements, Replacement{Tag: tag, Span: span})
 }
 

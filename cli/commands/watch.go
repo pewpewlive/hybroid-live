@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -14,7 +15,7 @@ func Watch() *cli.Command {
 		Name:        "watch",
 		Aliases:     []string{"w"},
 		Usage:       "Starts a watcher process",
-		Description: "The Hybroid watcher will keep track of the project files and will automatically build them when they are updated, to remove the need for running the transpiler every time",
+		Description: "The Hybroid Live watcher will keep track of the project files and will automatically build them when they are updated, to remove the need for running the transpiler every time",
 		Action: func(ctx *cli.Context) error {
 			return watch(ctx)
 		},
@@ -25,7 +26,7 @@ func watch(ctx *cli.Context) error {
 	cwd, _ := os.Getwd()
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("failed to start a watcher process: %s", err)
 	}
 	defer watcher.Close()
 
@@ -58,7 +59,7 @@ func watch(ctx *cli.Context) error {
 	// Add a path.
 	err = watcher.Add(cwd)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("failed to start a watcher process: %s", err)
 	}
 
 	// Block main goroutine forever.

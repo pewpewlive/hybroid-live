@@ -3,7 +3,7 @@ package evaluator
 import (
 	"fmt"
 	"hybroid/alerts"
-	"hybroid/helpers"
+	"hybroid/core"
 	"hybroid/lexer"
 	"hybroid/parser"
 	"hybroid/walker"
@@ -17,11 +17,11 @@ import (
 type Evaluator struct {
 	walkers    map[string]*walker.Walker
 	walkerList []*walker.Walker
-	files      []helpers.FileInformation
+	files      []core.FileInformation
 	printer    alerts.Printer
 }
 
-func NewEvaluator(files []helpers.FileInformation) Evaluator {
+func NewEvaluator(files []core.FileInformation) Evaluator {
 	evaluator := Evaluator{
 		walkers:    make(map[string]*walker.Walker),
 		walkerList: make([]*walker.Walker, 0),

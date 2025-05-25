@@ -3,7 +3,7 @@ package generator
 import (
 	"fmt"
 	"hybroid/ast"
-	"hybroid/helpers"
+	"hybroid/core"
 	"hybroid/tokens"
 	"strconv"
 	"strings"
@@ -135,8 +135,8 @@ func (gen *Generator) yieldStmt(node ast.YieldStmt, scope *GenScope) {
 
 	scope.Write(src.String())
 
-	scope.AddReplacement(YieldReplacement, helpers.NewSpan(startIndex+scopeLength, endIndex+scopeLength))
-	scope.AddReplacement(GotoReplacement, helpers.NewSpan(startIndex2+scopeLength, endIndex2+scopeLength))
+	scope.AddReplacement(YieldReplacement, core.NewSpan(startIndex+scopeLength, endIndex+scopeLength))
+	scope.AddReplacement(GotoReplacement, core.NewSpan(startIndex2+scopeLength, endIndex2+scopeLength))
 }
 
 func (gen *Generator) breakStmt(_ ast.BreakStmt, scope *GenScope) {
@@ -155,7 +155,7 @@ func (gen *Generator) continueStmt(_ ast.ContinueStmt, scope *GenScope) {
 
 	scope.Write(src.String())
 
-	scope.AddReplacement(ContinueReplacement, helpers.NewSpan(startIndex+scopeLength, endIndex+scopeLength))
+	scope.AddReplacement(ContinueReplacement, core.NewSpan(startIndex+scopeLength, endIndex+scopeLength))
 }
 
 func (gen *Generator) repeatStmt(node ast.RepeatStmt, scope *GenScope) {
