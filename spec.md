@@ -1,10 +1,10 @@
-# The Hybroid syntax
+# The Hybroid Live syntax
 
 ## Comments
 
 - [x] Completed
 
-Comments in Hybroid are like in any other C-style language.
+Comments in Hybroid Live are like in any other C-style language.
 
 `//` indicates a single-line comment.
 
@@ -33,7 +33,7 @@ Just like in Lua, semicolons are treated as a whitespace character.
 
 - [x] Completed
 
-Environments are an important aspect of PPL and Hybroid. Not specifying the environment will result in a transpile-time error.
+Environments are an important aspect of PPL and Hybroid Live. Not specifying the environment will result in a transpile-time error.
 
 The environment definition must be the first statement in the file.
 
@@ -71,7 +71,7 @@ name = "blade"
 
 - [x] Completed
 
-Types allow you to explicitly describe a variable's type. In Hybroid, types are not always necessary. Types might be necessary when you want to describe a complex type variable, or if the variable is left undefined. Types are what allows Hybroid to make sure you can write valid code without much headache and without the need to debug a lot.
+Types allow you to explicitly describe a variable's type. In Hybroid Live, types are not always necessary. Types might be necessary when you want to describe a complex type variable, or if the variable is left undefined. Types are what allows Hybroid Live to make sure you can write valid code without much headache and without the need to debug a lot.
 
 ```rs
 let number a  // variable uninitialized, type required
@@ -108,13 +108,13 @@ entity Quadro {
   }
 
   destroy() {
-    PewPew.ExplodeEntity(self, 30)
+    Pewpew:ExplodeEntity(self, 30)
   }
 
   Update() {
-    let x, y = PewPew.GetPosition(self)
+    let x, y = Pewpew:GetPosition(self)
     x = x + 10f * self.speed
-    PewPew.SetPosition(self, x, y)
+    Pewpew:SetPosition(self, x, y)
   }
 
   fn DamageOtherEntity(entity OtherEntity) {
@@ -128,14 +128,14 @@ entity Quadro {
 ```rs
 let quadro = spawn Quadro(100fx, 100fx, 10fx)
 
-destroy quadro
+destroy quadro()
 ```
 
 ## Number Literals
 
 - [x] Completed
 
-In PPL, you use number literals with `fx` at the end of the number. But thankfully, Hybroid makes working with numbers easier, by giving several options.
+In PPL, you use number literals with `fx` at the end of the number. But thankfully, Hybroid Live makes working with numbers easier, by giving several options.
 
 ### Fixedpoint Literal
 
@@ -147,7 +147,7 @@ let speed = 100.2048fx
 
 ### Decimal Literal
 
-If that's not what you want, Hybroid gives the option to use generic decimal literals by writing a float and adding `f` at the end
+If that's not what you want, Hybroid Live gives the option to use generic decimal literals by writing a float and adding `f` at the end
 
 ```rs
 let a = 100.5f
@@ -157,11 +157,11 @@ let b = 3.14f
 Behind the scenes, the transpiler will convert these numbers to their equivalent value based on the environment settings:
 
 - On `Level` and `Shared` it will convert these numbers to their fixedpoint counterparts (`100.5f` will become `100.2048fx`)
-- On `Mesh`, `Sound` and `Generic` it will stay as a decimal float, just without the 'f'
+- On `Mesh` and `Sound` it will stay as a decimal float, just without the 'f'
 
 ### Angle Literal
 
-Hybroid also adds special literal support for angles.
+Hybroid Live also adds special literal support for angles.
 
 ```rs
 let degrees = 180d
@@ -185,7 +185,7 @@ When using angle literals, the transpiler will automatically convert their value
 
 ### Tick loops
 
-In PPL, for updating every tick, `pewpew.add_update_callback` is used. Hybroid wraps it in a `tick` statement.
+In PPL, for updating every tick, `pewpew.add_update_callback` is used. Hybroid Live wraps it in a `tick` statement.
 
 ```rs
 tick {
@@ -203,7 +203,7 @@ tick with time {
 
 ### While loops
 
-In Hybroid and PPL while loops are discouraged. However, you can still use them if you want or need to.
+In Hybroid Live and PPL while loops are discouraged. However, you can still use them if you want or need to.
 
 ```rs
 while true {
@@ -217,7 +217,7 @@ Repeat loops are simple `for` loops.
 
 ```rs
 repeat 10 {
-  Pewpew:Print("Hybroid is awesome!")
+  Pewpew:Print("Hybroid Live is awesome!")
 }
 ```
 
@@ -226,6 +226,14 @@ It is possible to create a `repeat` loop with an iteration variable.
 ```rs
 repeat 10 with index {
   Pewpew:Print("This is " .. index .. "th iteration!") // -> This is 1th iteration!
+}
+```
+
+You can also specify the skip amount and the range, just like in lua.
+
+```rs
+repeat by 2 from 4 to 10 with index {
+  Pewpew:Print("This is " .. index .. "th iteration!") // -> This is 4th iteration!
 }
 ```
 
@@ -263,12 +271,12 @@ let fruits = ["banana", "kiwi", "apple", "pear", "cherry"]
 Pewpew:Print(fruits[2]) // -> kiwi
 ```
 
-To get the length of the list or , use `#` prefix.
+To get the length of the list, or use `#` prefix.
 
 ```rs
 let fruits = ["banana", "kiwi", "apple", "pear", "cherry"]
 
-repeat @Len(fruits) with i {
+repeat #fruits with i {
   Pewpew:Print(fruits[i])
 }
 ```
@@ -325,7 +333,7 @@ let inventory = {
   apples = 5,
   kiwis = 10,
   pears = 0,
-  cherries = 12
+  cherries = 12, // trailing comma is optional!
 }
 
 Pewpew:Print(fruits["apples"]) // -> 5
@@ -343,12 +351,12 @@ let inventory = {
   apples = 5,
   kiwis = 10,
   pears = 0,
-  cherries = 12
+  cherries = 12,
 }
 
 add 10 as "watermelon" to inventory
 
-Pewpew:Print(@MapToStr(fruits))
+Pewpew:Print(ToString(fruits))
 
 /*
 -> {
@@ -374,7 +382,7 @@ let inventory = {
   apples = 5,
   kiwis = 10,
   pears = 0,
-  cherries = 12
+  cherries = 12,
 }
 
 Pewpew:Print(find 10 in fruits) // -> "kiwis"
@@ -392,7 +400,7 @@ let inventory = {
   apples = 5,
   kiwis = 10,
   pears = 0,
-  cherries = 12
+  cherries = 12,
 }
 
 remove "cherries" from fruits
@@ -440,7 +448,7 @@ Greet("John") // -> Hello, John!
 Macros are special functions that are evaluated in the transpiler.
 
 ```rs
-macro Directiv1(params) => "hello" .. params 
+macro CoolMacro(params) => "Hello " .. params 
 
 macro HandleEntity($params) => {
   let id = new $params()
@@ -448,9 +456,15 @@ macro HandleEntity($params) => {
 } 
 ```
 
-The generated code looks something like this:
+When you use them:
 
-```lua
+```rs
+Pewpew:Print(CoolMacro("John" .. "!"))
+```
+
+The expanded code looks something like this:
+
+```rs
 Pewpew:Print("Hello " .. "John" .. "!")
 ```
 
@@ -525,7 +539,7 @@ enum SandwichType {
   Blt,
   Panini,
   GrilledCheese,
-  Ham
+  Ham,
 }
 ```
 
@@ -545,7 +559,7 @@ class Rectangle {
     self.height = height
   }
 
-  fn Area() {
+  fn Area() -> number {
     return width * height
   }
 }

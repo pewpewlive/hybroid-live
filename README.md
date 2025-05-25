@@ -33,7 +33,7 @@ However, Hybroid Live does come with certain limitations:
 
 ## Syntax
 
-The preliminary syntax for Hybroid Live can be found [here](spec/syntax.md).
+The preliminary syntax for Hybroid Live can be found [here](spec.md).
 
 ## Syntax highlighting
 
