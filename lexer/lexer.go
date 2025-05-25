@@ -195,14 +195,14 @@ func (l *Lexer) next() (*tokens.Token, error) {
 	case '"':
 		return l.handleString()
 	default:
-		token.Lexeme = string(token.Type)
+		token.Lexeme = token.Type.String()
 		token.Line = l.line
 		token.Column.End = l.column
 		l.Alert(&alerts.UnsupportedCharacter{}, alerts.NewSingle(token), string(c))
 		return nil, nil
 	}
 
-	token.Lexeme = string(token.Type)
+	token.Lexeme = token.Type.String()
 	token.Line = l.line
 	token.Column.End = l.column
 

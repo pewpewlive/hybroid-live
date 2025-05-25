@@ -35,7 +35,7 @@ func (l *Lexer) consumeWhile(predicate func(rune) bool) error {
 
 func (l *Lexer) bufferString() string {
 	str := string(l.buffer)
-	l.buffer = make([]rune, 0)
+	l.buffer = nil
 	return str
 }
 

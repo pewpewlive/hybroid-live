@@ -2,105 +2,109 @@ package tokens
 
 import "hybroid/core"
 
-type TokenType string
+// Make sure to run `go install golang.org/x/tools/cmd/stringer@latest` before trying to generate
+
+//go:generate stringer -type=TokenType -linecomment
+
+type TokenType int
 
 const (
 	// Tokens
 
-	Hash           TokenType = "#"   // #
-	LeftParen      TokenType = "("   // (
-	RightParen     TokenType = ")"   // )
-	LeftBrace      TokenType = "{"   // {
-	RightBrace     TokenType = "}"   // }
-	LeftBracket    TokenType = "["   // [
-	RightBracket   TokenType = "]"   // ]
-	Comma          TokenType = ","   // ,
-	At             TokenType = "@"   // @
-	Pipe           TokenType = "|"   // |
-	Colon          TokenType = ":"   // :
-	SemiColon      TokenType = ";"   // ;
-	Dot            TokenType = "."   // .
-	Concat         TokenType = ".."  // ..
-	Ellipsis       TokenType = "..." // ...
-	Minus          TokenType = "-"   // -
-	MinusEqual     TokenType = "-="  // -=
-	Plus           TokenType = "+"   // +
-	PlusEqual      TokenType = "+="  // +=
-	Slash          TokenType = "/"   // /
-	SlashEqual     TokenType = "/="  // /=
-	BackSlash      TokenType = "\\"  // \
-	BackSlashEqual TokenType = "\\=" // \=
-	Star           TokenType = "*"   // *
-	StarEqual      TokenType = "*="  // *=
-	Caret          TokenType = "^"   // ^
-	CaretEqual     TokenType = "^="  // ^=
-	Bang           TokenType = "!"   // !
-	BangEqual      TokenType = "!="  // !=
-	Equal          TokenType = "="   // =
-	EqualEqual     TokenType = "=="  // ==
-	FatArrow       TokenType = "=>"  // =>
-	ThinArrow      TokenType = "->"  // ->
-	Greater        TokenType = ">"   // >
-	GreaterEqual   TokenType = ">="  // >=
-	Less           TokenType = "<"   // <
-	LessEqual      TokenType = "<="  // <=
-	Modulo         TokenType = "%"   // %
-	ModuloEqual    TokenType = "%="  // %=
+	Hash           TokenType = iota // #
+	LeftParen                       // (
+	RightParen                      // )
+	LeftBrace                       // {
+	RightBrace                      // }
+	LeftBracket                     // [
+	RightBracket                    // ]
+	Comma                           // ,
+	At                              // @
+	Pipe                            // |
+	Colon                           // :
+	SemiColon                       // ;
+	Dot                             // .
+	Concat                          // ..
+	Ellipsis                        // ...
+	Minus                           // -
+	MinusEqual                      // -=
+	Plus                            // +
+	PlusEqual                       // +=
+	Slash                           // /
+	SlashEqual                      // /=
+	BackSlash                       // \
+	BackSlashEqual                  // \=
+	Star                            // *
+	StarEqual                       // *=
+	Caret                           // ^
+	CaretEqual                      // ^=
+	Bang                            // !
+	BangEqual                       // !=
+	Equal                           // =
+	EqualEqual                      // ==
+	FatArrow                        // =>
+	ThinArrow                       // ->
+	Greater                         // >
+	GreaterEqual                    // >=
+	Less                            // <
+	LessEqual                       // <=
+	Modulo                          // %
+	ModuloEqual                     // %=
 
 	// Literals
 
-	Degree     TokenType = "degree"
-	Fixed      TokenType = "fixed"
-	FixedPoint TokenType = "fixedPoint"
-	Identifier TokenType = "identifier"
-	Number     TokenType = "number"
-	Radian     TokenType = "radian"
-	String     TokenType = "string"
+	Degree     // degree
+	Fixed      // fixed
+	FixedPoint // fixedPoint
+	Identifier // identifier
+	Number     // number
+	Radian     // radian
+	String     // string
 
 	// Keywords
 
-	Is       TokenType = "is"
-	Isnt     TokenType = "isnt"
-	Alias    TokenType = "alias"
-	And      TokenType = "and"
-	As       TokenType = "as"
-	Break    TokenType = "break"
-	By       TokenType = "by"
-	Const    TokenType = "const"
-	Continue TokenType = "continue"
-	Else     TokenType = "else"
-	Entity   TokenType = "entity"
-	Enum     TokenType = "enum"
-	Env      TokenType = "env"
-	False    TokenType = "false"
-	Find     TokenType = "find"
-	Fn       TokenType = "fn"
-	For      TokenType = "for"
-	If       TokenType = "if"
-	In       TokenType = "in"
-	From     TokenType = "from"
-	To       TokenType = "to"
-	Let      TokenType = "let"
-	Macro    TokenType = "macro"
-	Match    TokenType = "match"
-	New      TokenType = "new"
-	Or       TokenType = "or"
-	Pub      TokenType = "pub"
-	Repeat   TokenType = "repeat"
-	Return   TokenType = "return"
-	Self     TokenType = "self"
-	Spawn    TokenType = "spawn"
-	Struct   TokenType = "struct"
-	Class    TokenType = "class"
-	Tick     TokenType = "tick"
-	True     TokenType = "true"
-	Use      TokenType = "use"
-	While    TokenType = "while"
-	With     TokenType = "with"
-	Yield    TokenType = "yield"
-	Destroy  TokenType = "destroy"
+	Is       // is
+	Isnt     // isnt
+	Alias    // alias
+	And      // and
+	As       // as
+	Break    // break
+	By       // by
+	Const    // const
+	Continue // continue
+	Else     // else
+	Entity   // entity
+	Enum     // enum
+	Env      // env
+	False    // false
+	Find     // find
+	Fn       // fn
+	For      // for
+	If       // if
+	In       // in
+	From     // from
+	To       // to
+	Let      // let
+	Macro    // macro
+	Match    // match
+	New      // new
+	Or       // or
+	Pub      // pub
+	Repeat   // repeat
+	Return   // return
+	Self     // self
+	Spawn    // spawn
+	Struct   // struct
+	Class    // class
+	Tick     // tick
+	True     // true
+	Use      // use
+	While    // while
+	With     // with
+	Yield    // yield
+	Destroy  // destroy
 
-	Eof TokenType = "eof" // EOF (End of File)
+	Eof // EOF (End of File)
 )
 
 var keywords = map[string]TokenType{

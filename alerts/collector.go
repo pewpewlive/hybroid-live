@@ -2,8 +2,6 @@ package alerts
 
 import (
 	"fmt"
-	"hybroid/ast"
-	"hybroid/tokens"
 	"reflect"
 )
 
@@ -59,10 +57,9 @@ func (c *Collector) NewAlert(alert Alert, args ...any) Alert {
 			}
 			field.Set(argValue)
 		} else {
-			switch argType {
-			case reflect.TypeFor[tokens.TokenType](), reflect.TypeFor[ast.PrimitiveValueType]():
+			if method, ok := argType.MethodByName("String"); ok {
 				argType = reflect.TypeFor[string]()
-				argValue = argValue.Convert(argType)
+				argValue = method.Func.Call([]reflect.Value{argValue})[0]
 			}
 
 			if argType != fieldType {
