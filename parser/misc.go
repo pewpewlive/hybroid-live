@@ -65,7 +65,7 @@ func (p *Parser) functionParams(opening tokens.TokenType, closing tokens.TokenTy
 
 		args = append(args, param)
 	}
-	_, ok = p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), closing), closing)
+	_, ok = p.alertSingleConsume(&alerts.ExpectedSymbol{}, closing)
 	success = success && ok
 
 	return args, success
@@ -91,7 +91,7 @@ func (p *Parser) genericParams() ([]*ast.IdentifierExpr, bool) {
 		}
 	}
 
-	_, ok = p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Greater, "in generic parameters"), tokens.Greater)
+	_, ok = p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.Greater, "in generic parameters")
 	success = success && ok
 
 	return params, success
@@ -145,7 +145,7 @@ func (p *Parser) genericArgs() ([]*ast.TypeExpr, bool) {
 }
 
 func (p *Parser) functionArgs() ([]ast.Node, bool) {
-	if _, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftParen), tokens.LeftParen); !ok {
+	if _, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.LeftParen); !ok {
 		return nil, false
 	}
 
@@ -157,22 +157,22 @@ func (p *Parser) functionArgs() ([]ast.Node, bool) {
 	if !ok {
 		return args, false
 	}
-	p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.RightParen), tokens.RightParen)
+	p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.RightParen)
 
 	return args, true
 }
 
 func (p *Parser) functionReturns() ([]*ast.TypeExpr, bool) {
-	typs := []*ast.TypeExpr{}
+	var returns []*ast.TypeExpr
 	if !p.match(tokens.ThinArrow) {
-		return typs, true
+		return returns, true
 	}
 
 	if p.match(tokens.LeftParen) {
 		success := true
 		typ := p.typeExpr("in function returns")
 		if typ.GetType() != ast.NA {
-			typs = append(typs, typ)
+			returns = append(returns, typ)
 		} else {
 			success = false
 		}
@@ -180,18 +180,18 @@ func (p *Parser) functionReturns() ([]*ast.TypeExpr, bool) {
 		for p.match(tokens.Comma) {
 			typ := p.typeExpr("in function returns")
 			if typ.GetType() != ast.NA {
-				typs = append(typs, typ)
+				returns = append(returns, typ)
 			} else {
 				success = false
 			}
 		}
 
-		p.consumeSingle(&alerts.ExpectedSymbol{}, "in function return types", tokens.RightParen)
-		return typs, success
+		p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.RightParen, "in function return types")
+		return returns, success
 	}
 
-	typs = append(typs, p.typeExpr("in function return types"))
-	return typs, typs[0].GetType() != ast.NA
+	returns = append(returns, p.typeExpr("in function return types"))
+	return returns, returns[0].GetType() != ast.NA
 }
 
 func (p *Parser) identifier(typeContext string) *ast.IdentifierExpr {
@@ -292,7 +292,7 @@ func (p *Parser) keyValuePair(context string) (ast.Node, ast.Node, bool) {
 		p.advance()
 		return nil, nil, false
 	}
-	_, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Equal, "after "+context), tokens.Equal)
+	_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.Equal, "after "+context)
 	if !ok {
 		return nil, nil, false
 	}
@@ -383,7 +383,7 @@ func (p *Parser) body(allowSingleSatement, allowArrow bool) ([]ast.Node, bool) {
 		body = []ast.Node{stmt}
 		return body, true
 	}
-	if _, success := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace); !success {
+	if _, success := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.LeftBrace); !success {
 		return body, false
 	}
 	start := p.peek(-1)
@@ -548,7 +548,7 @@ func (p *Parser) coherencyCheck(tokenStart, tokenEnd tokens.Token, allowNewLine 
 		diffTolerance = 1
 	}
 	if tokenEnd.Line-tokenStart.Line > diffTolerance {
-		p.Alert(&alerts.SyntaxIncoherency{}, alerts.NewMulti(tokenStart, tokenEnd), tokenEnd.Lexeme, tokenStart.Lexeme, diffTolerance == 1)
+		p.AlertMulti(&alerts.SyntaxIncoherency{}, tokenStart, tokenEnd, tokenEnd.Lexeme, tokenStart.Lexeme, diffTolerance == 1)
 		return false
 	}
 

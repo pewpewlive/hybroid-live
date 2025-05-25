@@ -12,7 +12,7 @@ func (w *Walker) aliasDeclaration(node *ast.AliasDecl, scope *Scope) {
 		w.AlertSingle(&alerts.PublicDeclarationInLocalScope{}, node.Token)
 	}
 	if _, ok := scope.AliasTypes[node.Name.Lexeme]; ok {
-		w.Alert(&alerts.Redeclaration{}, node.Token, node.Name, "alias")
+		w.AlertSingle(&alerts.Redeclaration{}, node.Token, node.Name, "alias")
 		return
 	}
 	scope.AliasTypes[node.Name.Lexeme] = NewAliasType(node.Name.Lexeme, w.TypeExpr(node.Type, scope), !node.IsPub)

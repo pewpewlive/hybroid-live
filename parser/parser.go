@@ -55,9 +55,14 @@ func (p *Parser) AlertI(alert alerts.Alert) {
 	p.AlertI_(alert)
 }
 
-func (p *Parser) SingleAlert(alertType alerts.Alert, args ...any) alerts.Alert {
-	args = append([]any{alerts.NewSingle(p.peek())}, args...)
-	return p.NewAlert(alertType, args...)
+func (p *Parser) AlertSingle(alert alerts.Alert, token tokens.Token, args ...any) {
+	args = append([]any{alerts.NewSingle(token)}, args...)
+	p.Alert(alert, args...)
+}
+
+func (p *Parser) AlertMulti(alert alerts.Alert, tokenStart, tokenEnd tokens.Token, args ...any) {
+	args = append([]any{alerts.NewMulti(tokenStart, tokenEnd)}, args...)
+	p.Alert(alert, args...)
 }
 
 func (p *Parser) Parse() []ast.Node {

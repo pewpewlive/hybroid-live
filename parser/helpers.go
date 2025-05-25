@@ -75,17 +75,17 @@ func (p *Parser) peek(offset ...int) tokens.Token {
 }
 
 // Checks if the current type is the specified token type. Returns false if it's the End Of File
-func (p *Parser) check(tokenType tokens.TokenType) bool {
+func (p *Parser) check(tokens ...tokens.TokenType) bool {
 	if p.isAtEnd() {
 		return false
 	}
 
-	return p.peek().Type == tokenType
+	return slices.Contains(tokens, p.peek().Type)
 }
 
 // Matches the given list of tokens and advances if they match.
-func (p *Parser) match(types ...tokens.TokenType) bool {
-	if slices.ContainsFunc(types, p.check) {
+func (p *Parser) match(tokens ...tokens.TokenType) bool {
+	if p.check(tokens...) {
 		p.advance()
 		return true
 	}
@@ -95,7 +95,7 @@ func (p *Parser) match(types ...tokens.TokenType) bool {
 
 func (p *Parser) consumeTill(context string, start tokens.Token, types ...tokens.TokenType) bool {
 	if p.isAtEnd() {
-		p.Alert(&alerts.ExpectedSymbol{}, alerts.NewMulti(start, p.peek(-1)), types[0], context)
+		p.AlertMulti(&alerts.ExpectedSymbol{}, start, p.peek(-1), types[0], context)
 		return false
 	}
 
@@ -115,15 +115,14 @@ func (p *Parser) consume(alert alerts.Alert, typ tokens.TokenType) (tokens.Token
 	return p.peek(), false // error
 }
 
-// Consumes one of the tokens in the given list and advances if it matches.
-func (p *Parser) consumeSingle(alert alerts.Alert, context string, typ tokens.TokenType) (tokens.Token, bool) {
-	if p.isAtEnd() {
-		p.Alert(alert, alerts.NewSingle(p.peek()), typ, context)
-		return p.peek(), false // error
-	}
-	if p.check(typ) {
-		return p.advance(), true
-	}
-	p.Alert(alert, alerts.NewSingle(p.peek()), typ, context)
-	return p.peek(), false // error
+// Helper function to run p.consume, with simpler alert creation
+func (p *Parser) alertSingleConsume(alert alerts.Alert, token tokens.TokenType, args ...any) (tokens.Token, bool) {
+	args = append([]any{alerts.NewSingle(p.peek()), token}, args...)
+	return p.consume(p.NewAlert(alert, args...), token)
+}
+
+// Helper function to run p.consume, with simpler alert creation
+func (p *Parser) alertMultiConsume(alert alerts.Alert, start, end tokens.Token, token tokens.TokenType, args ...any) (tokens.Token, bool) {
+	args = append([]any{alerts.NewMulti(start, end), token}, args...)
+	return p.consume(p.NewAlert(alert, args...), token)
 }

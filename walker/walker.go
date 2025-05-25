@@ -105,14 +105,14 @@ func (w *Walker) AlertI(alert alerts.Alert) {
 	w.AlertI_(alert)
 }
 
-func (w *Walker) AlertSingle(alertType alerts.Alert, token tokens.Token, args ...any) {
+func (w *Walker) AlertSingle(alert alerts.Alert, token tokens.Token, args ...any) {
 	args = append([]any{alerts.NewSingle(token)}, args...)
-	w.Alert(alertType, args...)
+	w.Alert(alert, args...)
 }
 
-func (w *Walker) AlertMulti(alertType alerts.Alert, tokenStart, tokenEnd tokens.Token, args ...any) {
-	args = append([]any{alerts.NewMulti(tokenStart, tokenEnd)}, args...)
-	w.Alert(alertType, args...)
+func (w *Walker) AlertMulti(alert alerts.Alert, start, end tokens.Token, args ...any) {
+	args = append([]any{alerts.NewMulti(start, end)}, args...)
+	w.Alert(alert, args...)
 }
 
 func NewWalker(hybroidPath, luaPath string) *Walker {

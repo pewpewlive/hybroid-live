@@ -379,7 +379,7 @@ func (p *Parser) useStatement() ast.Node {
 
 	filepath := p.envPathExpr()
 	if filepath.GetType() != ast.EnvironmentPathExpression {
-		p.Alert(&alerts.ExpectedEnvironmentPathExpression{}, alerts.NewMulti(filepath.GetToken(), p.peek()))
+		p.AlertMulti(&alerts.ExpectedEnvironmentPathExpression{}, filepath.GetToken(), p.peek())
 		return ast.NewImproper(p.peek(), ast.UseStatement)
 	}
 	useStmt.PathExpr = filepath.(*ast.EnvPathExpr)
@@ -400,7 +400,7 @@ func (p *Parser) matchStatement(isExpr bool) ast.Node {
 
 	matchStmt.ExprToMatch = p.expression()
 
-	start, ok := p.consume(p.NewAlert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.LeftBrace), tokens.LeftBrace)
+	start, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.LeftBrace)
 	if !ok {
 		return ast.NewImproper(matchStmt.Token, matchType)
 	}
@@ -427,10 +427,10 @@ func (p *Parser) matchStatement(isExpr bool) ast.Node {
 	}
 
 	if len(matchStmt.Cases) < 1 {
-		p.Alert(&alerts.InsufficientCases{}, alerts.NewMulti(matchStmt.Token, p.peek(-1)))
+		p.AlertMulti(&alerts.InsufficientCases{}, matchStmt.Token, p.peek(-1))
 	}
 	if !matchStmt.HasDefault && isExpr {
-		p.Alert(&alerts.DefaultCaseMissing{}, alerts.NewMulti(matchStmt.Token, p.peek(-1)))
+		p.AlertMulti(&alerts.DefaultCaseMissing{}, matchStmt.Token, p.peek(-1))
 	}
 
 	return &matchStmt
@@ -450,7 +450,7 @@ func (p *Parser) caseStatement(isExpr bool) ([]ast.CaseStmt, bool) {
 		exprs = exprs2
 	}
 
-	_, ok := p.consume(p.SingleAlert(&alerts.ExpectedSymbol{}, tokens.FatArrow, "in match case"), tokens.FatArrow)
+	_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.FatArrow, "in match case")
 	if !ok {
 		return caseStmts, false
 	}
