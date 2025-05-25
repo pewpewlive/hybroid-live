@@ -68,10 +68,10 @@ func (gen *Generator) literalExpr(node ast.LiteralExpr) string {
 }
 
 func (gen *Generator) identifierExpr(node ast.IdentifierExpr, _ *GenScope) string {
-	if gen.envType == ast.MeshEnv && node.Name.Lexeme == "meshes" {
+	if gen.env == ast.MeshEnv && node.Name.Lexeme == "meshes" {
 		return "meshes"
 	}
-	if gen.envType == ast.SoundEnv && node.Name.Lexeme == "sounds" {
+	if gen.env == ast.SoundEnv && node.Name.Lexeme == "sounds" {
 		return "sounds"
 	}
 	return gen.WriteVar(node.Name.Lexeme)
@@ -240,7 +240,7 @@ func (gen *Generator) structExpr(node ast.StructExpr, scope *GenScope) string {
 }
 
 func (gen *Generator) selfExpr(self ast.SelfExpr, _ *GenScope) string {
-	if self.Type == ast.SelfStruct {
+	if self.Type == ast.SelfClass {
 		return "Self"
 	} else if self.Type == ast.SelfEntity {
 		return "id"

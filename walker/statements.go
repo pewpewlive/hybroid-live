@@ -3,7 +3,7 @@ package walker
 import (
 	"hybroid/alerts"
 	"hybroid/ast"
-	"hybroid/helpers"
+	"hybroid/core"
 	"hybroid/tokens"
 )
 
@@ -25,7 +25,7 @@ func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 	multiPathScope := NewScope(scope, mpt)
 	ifScope := NewScope(multiPathScope, &UntaggedTag{})
 
-	w.context.Conversions = make([]EntityConversion, 0)
+	w.context.Conversions = nil
 
 	boolExpr := w.GetNodeValue(&node.BoolExpr, scope)
 	if boolExpr.GetType().PVT() != ast.Bool {

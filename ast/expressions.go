@@ -6,41 +6,25 @@ import (
 )
 
 type EnvTypeExpr struct {
-	Type  EnvType
+	Type  Env
 	Token tokens.Token
 }
 
-func (ete *EnvTypeExpr) GetType() NodeType {
-	return EnvironmentTypeExpression
-}
-
-func (ete *EnvTypeExpr) GetToken() tokens.Token {
-	return ete.Token
-}
-
-func (ete *EnvTypeExpr) GetValueType() PrimitiveValueType {
-	return Invalid
-}
+func (ete *EnvTypeExpr) GetType() NodeType                { return EnvironmentTypeExpression }
+func (ete *EnvTypeExpr) GetToken() tokens.Token           { return ete.Token }
+func (ete *EnvTypeExpr) GetValueType() PrimitiveValueType { return Invalid }
 
 type EnvPathExpr struct {
 	Path tokens.Token
 }
 
-func (epe *EnvPathExpr) GetType() NodeType {
-	return EnvironmentPathExpression
-}
-
-func (epe *EnvPathExpr) GetToken() tokens.Token {
-	return epe.Path
-}
-
-func (epe *EnvPathExpr) GetValueType() PrimitiveValueType {
-	return Invalid
-}
+func (epe *EnvPathExpr) GetType() NodeType                { return EnvironmentPathExpression }
+func (epe *EnvPathExpr) GetToken() tokens.Token           { return epe.Path }
+func (epe *EnvPathExpr) GetValueType() PrimitiveValueType { return Invalid }
 
 func (epe *EnvPathExpr) Combine(token tokens.Token) {
 	epe.Path.Lexeme += ":" + token.Lexeme
-	epe.Path.Column.End = token.Column.End
+	epe.Path.Column.SetEnd(token.Column.End)
 }
 
 type EnvAccessExpr struct {
@@ -48,33 +32,17 @@ type EnvAccessExpr struct {
 	Accessed Node
 }
 
-func (eae *EnvAccessExpr) GetType() NodeType {
-	return EnvironmentAccessExpression
-}
+func (eae *EnvAccessExpr) GetType() NodeType                { return EnvironmentAccessExpression }
+func (eae *EnvAccessExpr) GetToken() tokens.Token           { return eae.Accessed.GetToken() }
+func (eae *EnvAccessExpr) GetValueType() PrimitiveValueType { return Invalid }
 
-func (eae *EnvAccessExpr) GetToken() tokens.Token {
-	return eae.Accessed.GetToken()
-}
+// type MacroCallExpr struct {
+// 	Caller *CallExpr
+// }
 
-func (eae *EnvAccessExpr) GetValueType() PrimitiveValueType {
-	return Invalid
-}
-
-type MacroCallExpr struct {
-	Caller *CallExpr
-}
-
-func (mce *MacroCallExpr) GetType() NodeType {
-	return MacroCallExpression
-}
-
-func (mce *MacroCallExpr) GetToken() tokens.Token {
-	return mce.Caller.GetToken()
-}
-
-func (mce *MacroCallExpr) GetValueType() PrimitiveValueType {
-	return Invalid
-}
+// func (mce *MacroCallExpr) GetType() NodeType                { return MacroCallExpression }
+// func (mce *MacroCallExpr) GetToken() tokens.Token           { return mce.Caller.GetToken() }
+// func (mce *MacroCallExpr) GetValueType() PrimitiveValueType { return Invalid }
 
 type LiteralExpr struct {
 	Value     string
@@ -82,17 +50,9 @@ type LiteralExpr struct {
 	Token     tokens.Token
 }
 
-func (le *LiteralExpr) GetType() NodeType {
-	return LiteralExpression
-}
-
-func (le *LiteralExpr) GetToken() tokens.Token {
-	return le.Token
-}
-
-func (le *LiteralExpr) GetValueType() PrimitiveValueType {
-	return le.ValueType
-}
+func (le *LiteralExpr) GetType() NodeType                { return LiteralExpression }
+func (le *LiteralExpr) GetToken() tokens.Token           { return le.Token }
+func (le *LiteralExpr) GetValueType() PrimitiveValueType { return le.ValueType }
 
 type UnaryExpr struct {
 	Value     Node
@@ -100,17 +60,9 @@ type UnaryExpr struct {
 	ValueType PrimitiveValueType
 }
 
-func (ue *UnaryExpr) GetType() NodeType {
-	return UnaryExpression
-}
-
-func (ue *UnaryExpr) GetToken() tokens.Token {
-	return ue.Value.GetToken()
-}
-
-func (ue *UnaryExpr) GetValueType() PrimitiveValueType {
-	return ue.ValueType
-}
+func (ue *UnaryExpr) GetType() NodeType                { return UnaryExpression }
+func (ue *UnaryExpr) GetToken() tokens.Token           { return ue.Value.GetToken() }
+func (ue *UnaryExpr) GetValueType() PrimitiveValueType { return ue.ValueType }
 
 type TypeExpr struct {
 	WrappedType *TypeExpr
@@ -121,17 +73,9 @@ type TypeExpr struct {
 	IsVariadic  bool
 }
 
-func (te *TypeExpr) GetType() NodeType {
-	return TypeExpression
-}
-
-func (te *TypeExpr) GetToken() tokens.Token {
-	return te.Name.GetToken()
-}
-
-func (te *TypeExpr) GetValueType() PrimitiveValueType {
-	return Invalid
-}
+func (te *TypeExpr) GetType() NodeType                { return TypeExpression }
+func (te *TypeExpr) GetToken() tokens.Token           { return te.Name.GetToken() }
+func (te *TypeExpr) GetValueType() PrimitiveValueType { return Invalid }
 
 type EntityExpr struct {
 	Expr               Node
@@ -144,17 +88,9 @@ type EntityExpr struct {
 	Token              tokens.Token
 }
 
-func (ge *EntityExpr) GetType() NodeType {
-	return GroupExpression
-}
-
-func (ge *EntityExpr) GetToken() tokens.Token {
-	return ge.Token
-}
-
-func (ge *EntityExpr) GetValueType() PrimitiveValueType {
-	return Invalid
-}
+func (ge *EntityExpr) GetType() NodeType                { return GroupExpression }
+func (ge *EntityExpr) GetToken() tokens.Token           { return ge.Token }
+func (ge *EntityExpr) GetValueType() PrimitiveValueType { return Invalid }
 
 type GroupExpr struct {
 	Expr      Node
@@ -162,17 +98,9 @@ type GroupExpr struct {
 	Token     tokens.Token
 }
 
-func (ge *GroupExpr) GetType() NodeType {
-	return GroupExpression
-}
-
-func (ge *GroupExpr) GetToken() tokens.Token {
-	return ge.Token
-}
-
-func (ge *GroupExpr) GetValueType() PrimitiveValueType {
-	return ge.ValueType
-}
+func (ge *GroupExpr) GetType() NodeType                { return GroupExpression }
+func (ge *GroupExpr) GetToken() tokens.Token           { return ge.Token }
+func (ge *GroupExpr) GetValueType() PrimitiveValueType { return ge.ValueType }
 
 type BinaryExpr struct {
 	Left, Right Node
@@ -180,17 +108,9 @@ type BinaryExpr struct {
 	ValueType   PrimitiveValueType
 }
 
-func (be *BinaryExpr) GetType() NodeType {
-	return BinaryExpression
-}
-
-func (be *BinaryExpr) GetToken() tokens.Token {
-	return be.Operator
-}
-
-func (be *BinaryExpr) GetValueType() PrimitiveValueType {
-	return be.ValueType
-}
+func (be *BinaryExpr) GetType() NodeType                { return BinaryExpression }
+func (be *BinaryExpr) GetToken() tokens.Token           { return be.Operator }
+func (be *BinaryExpr) GetValueType() PrimitiveValueType { return be.ValueType }
 
 type CallExpr struct {
 	Caller       Node
@@ -199,17 +119,9 @@ type CallExpr struct {
 	ReturnAmount int
 }
 
-func (ce *CallExpr) GetType() NodeType {
-	return CallExpression
-}
-
-func (ce *CallExpr) GetToken() tokens.Token {
-	return ce.Caller.GetToken()
-}
-
-func (ce *CallExpr) GetValueType() PrimitiveValueType {
-	return Invalid
-}
+func (ce *CallExpr) GetType() NodeType                { return CallExpression }
+func (ce *CallExpr) GetToken() tokens.Token           { return ce.Caller.GetToken() }
+func (ce *CallExpr) GetValueType() PrimitiveValueType { return Invalid }
 
 func (ce *CallExpr) GetGenerics() []*TypeExpr {
 	return ce.GenericArgs
@@ -229,17 +141,9 @@ type MethodCallExpr struct {
 	MethodName  string
 }
 
-func (mce *MethodCallExpr) GetType() NodeType {
-	return MethodCallExpression
-}
-
-func (mce *MethodCallExpr) GetToken() tokens.Token {
-	return mce.Caller.GetToken()
-}
-
-func (mce *MethodCallExpr) GetValueType() PrimitiveValueType {
-	return Invalid
-}
+func (mce *MethodCallExpr) GetType() NodeType                { return MethodCallExpression }
+func (mce *MethodCallExpr) GetToken() tokens.Token           { return mce.Caller.GetToken() }
+func (mce *MethodCallExpr) GetValueType() PrimitiveValueType { return Invalid }
 
 func (mce *MethodCallExpr) GetGenerics() []*TypeExpr {
 	return mce.GenericArgs
@@ -253,17 +157,9 @@ type BuiltinExpr struct {
 	Name tokens.Token
 }
 
-func (ce *BuiltinExpr) GetType() NodeType {
-	return BuiltinExpression
-}
-
-func (ce *BuiltinExpr) GetToken() tokens.Token {
-	return ce.Name
-}
-
-func (ce *BuiltinExpr) GetValueType() PrimitiveValueType {
-	return Invalid
-}
+func (ce *BuiltinExpr) GetType() NodeType                { return BuiltinExpression }
+func (ce *BuiltinExpr) GetToken() tokens.Token           { return ce.Name }
+func (ce *BuiltinExpr) GetValueType() PrimitiveValueType { return Invalid }
 
 type FunctionExpr struct {
 	Token   tokens.Token
@@ -272,51 +168,27 @@ type FunctionExpr struct {
 	Body    []Node
 }
 
-func (fe *FunctionExpr) GetType() NodeType {
-	return FunctionExpression
-}
-
-func (fe *FunctionExpr) GetToken() tokens.Token {
-	return fe.Token
-}
-
-func (fe *FunctionExpr) GetValueType() PrimitiveValueType {
-	return Invalid
-}
+func (fe *FunctionExpr) GetType() NodeType                { return FunctionExpression }
+func (fe *FunctionExpr) GetToken() tokens.Token           { return fe.Token }
+func (fe *FunctionExpr) GetValueType() PrimitiveValueType { return Invalid }
 
 type StructExpr struct {
 	Token  tokens.Token
 	Fields []*FieldDecl
 }
 
-func (ase *StructExpr) GetType() NodeType {
-	return StructExpression
-}
-
-func (ase *StructExpr) GetToken() tokens.Token {
-	return ase.Token
-}
-
-func (ase *StructExpr) GetValueType() PrimitiveValueType {
-	return Struct
-}
+func (ase *StructExpr) GetType() NodeType                { return StructExpression }
+func (ase *StructExpr) GetToken() tokens.Token           { return ase.Token }
+func (ase *StructExpr) GetValueType() PrimitiveValueType { return Struct }
 
 type MatchExpr struct {
 	MatchStmt    MatchStmt
 	ReturnAmount int
 }
 
-func (me *MatchExpr) GetType() NodeType {
-	return MatchExpression
-}
-
-func (me *MatchExpr) GetToken() tokens.Token {
-	return me.MatchStmt.GetToken()
-}
-
-func (me *MatchExpr) GetValueType() PrimitiveValueType {
-	return Invalid
-}
+func (me *MatchExpr) GetType() NodeType                { return MatchExpression }
+func (me *MatchExpr) GetToken() tokens.Token           { return me.MatchStmt.GetToken() }
+func (me *MatchExpr) GetValueType() PrimitiveValueType { return Invalid }
 
 type SelfExpr struct {
 	Token      tokens.Token
@@ -324,17 +196,9 @@ type SelfExpr struct {
 	Type       SelfExprType
 }
 
-func (se *SelfExpr) GetType() NodeType {
-	return SelfExpression
-}
-
-func (se *SelfExpr) GetToken() tokens.Token {
-	return se.Token
-}
-
-func (se *SelfExpr) GetValueType() PrimitiveValueType {
-	return Invalid
-}
+func (se *SelfExpr) GetType() NodeType                { return SelfExpression }
+func (se *SelfExpr) GetToken() tokens.Token           { return se.Token }
+func (se *SelfExpr) GetValueType() PrimitiveValueType { return Invalid }
 
 type NewExpr struct {
 	Type        *TypeExpr
@@ -343,17 +207,9 @@ type NewExpr struct {
 	Token       tokens.Token
 }
 
-func (ne *NewExpr) GetType() NodeType {
-	return NewExpession
-}
-
-func (ne *NewExpr) GetToken() tokens.Token {
-	return ne.Token
-}
-
-func (ne *NewExpr) GetValueType() PrimitiveValueType {
-	return Invalid
-}
+func (ne *NewExpr) GetType() NodeType                { return NewExpession }
+func (ne *NewExpr) GetToken() tokens.Token           { return ne.Token }
+func (ne *NewExpr) GetValueType() PrimitiveValueType { return Invalid }
 
 func (ne *NewExpr) GetGenerics() []*TypeExpr {
 	return ne.GenericArgs
@@ -370,17 +226,9 @@ type SpawnExpr struct {
 	Token       tokens.Token
 }
 
-func (ne *SpawnExpr) GetType() NodeType {
-	return SpawnExpression
-}
-
-func (ne *SpawnExpr) GetToken() tokens.Token {
-	return ne.Token
-}
-
-func (ne *SpawnExpr) GetValueType() PrimitiveValueType {
-	return Invalid
-}
+func (ne *SpawnExpr) GetType() NodeType                { return SpawnExpression }
+func (ne *SpawnExpr) GetToken() tokens.Token           { return ne.Token }
+func (ne *SpawnExpr) GetValueType() PrimitiveValueType { return Invalid }
 
 func (ne *SpawnExpr) GetGenerics() []*TypeExpr {
 	return ne.GenericArgs
@@ -395,17 +243,9 @@ type AccessExpr struct {
 	Accessed []Node
 }
 
-func (ae *AccessExpr) GetType() NodeType {
-	return ae.Accessed[len(ae.Accessed)-1].GetType()
-}
-
-func (ae *AccessExpr) GetToken() tokens.Token {
-	return ae.Start.GetToken()
-}
-
-func (ae *AccessExpr) GetValueType() PrimitiveValueType {
-	return Invalid
-}
+func (ae *AccessExpr) GetType() NodeType                { return ae.Accessed[len(ae.Accessed)-1].GetType() }
+func (ae *AccessExpr) GetToken() tokens.Token           { return ae.Start.GetToken() }
+func (ae *AccessExpr) GetValueType() PrimitiveValueType { return Invalid }
 
 type FieldExpr struct {
 	Field      Node
@@ -415,34 +255,18 @@ type FieldExpr struct {
 	Index      int
 }
 
-func (fe *FieldExpr) GetType() NodeType {
-	return FieldExpression
-}
-
-func (fe *FieldExpr) GetToken() tokens.Token {
-	return fe.Field.GetToken()
-}
-
-func (fe *FieldExpr) GetValueType() PrimitiveValueType {
-	return Invalid
-}
+func (fe *FieldExpr) GetType() NodeType                { return FieldExpression }
+func (fe *FieldExpr) GetToken() tokens.Token           { return fe.Field.GetToken() }
+func (fe *FieldExpr) GetValueType() PrimitiveValueType { return Invalid }
 
 type MemberExpr struct {
 	Member Node
 	IsList bool
 }
 
-func (me *MemberExpr) GetType() NodeType {
-	return MemberExpression
-}
-
-func (me *MemberExpr) GetToken() tokens.Token {
-	return me.Member.GetToken()
-}
-
-func (me *MemberExpr) GetValueType() PrimitiveValueType {
-	return me.Member.GetValueType()
-}
+func (me *MemberExpr) GetType() NodeType                { return MemberExpression }
+func (me *MemberExpr) GetToken() tokens.Token           { return me.Member.GetToken() }
+func (me *MemberExpr) GetValueType() PrimitiveValueType { return me.Member.GetValueType() }
 
 func (me *MemberExpr) GetIdentifier() Node {
 	return me.Member
@@ -460,17 +284,9 @@ type MapExpr struct {
 	KeyValueList []Property
 }
 
-func (me *MapExpr) GetType() NodeType {
-	return MapExpression
-}
-
-func (me *MapExpr) GetToken() tokens.Token {
-	return me.Token
-}
-
-func (me *MapExpr) GetValueType() PrimitiveValueType {
-	return Invalid
-}
+func (me *MapExpr) GetType() NodeType                { return MapExpression }
+func (me *MapExpr) GetToken() tokens.Token           { return me.Token }
+func (me *MapExpr) GetValueType() PrimitiveValueType { return Invalid }
 
 type ListExpr struct {
 	List      []Node
@@ -478,34 +294,18 @@ type ListExpr struct {
 	Token     tokens.Token
 }
 
-func (le *ListExpr) GetType() NodeType {
-	return ListExpression
-}
-
-func (le *ListExpr) GetToken() tokens.Token {
-	return le.Token
-}
-
-func (le *ListExpr) GetValueType() PrimitiveValueType {
-	return le.ValueType
-}
+func (le *ListExpr) GetType() NodeType                { return ListExpression }
+func (le *ListExpr) GetToken() tokens.Token           { return le.Token }
+func (le *ListExpr) GetValueType() PrimitiveValueType { return le.ValueType }
 
 type IdentifierExpr struct {
 	Name      tokens.Token
 	ValueType PrimitiveValueType
 }
 
-func (ie *IdentifierExpr) GetType() NodeType {
-	return Identifier
-}
-
-func (ie *IdentifierExpr) GetToken() tokens.Token {
-	return ie.Name
-}
-
-func (ie *IdentifierExpr) GetValueType() PrimitiveValueType {
-	return ie.ValueType
-}
+func (ie *IdentifierExpr) GetType() NodeType                { return Identifier }
+func (ie *IdentifierExpr) GetToken() tokens.Token           { return ie.Name }
+func (ie *IdentifierExpr) GetValueType() PrimitiveValueType { return ie.ValueType }
 
 type Improper struct {
 	Token tokens.Token
@@ -518,6 +318,10 @@ func NewImproper(token tokens.Token, nodeType NodeType) *Improper {
 		Type:  nodeType,
 	}
 }
+
+func (i *Improper) GetType() NodeType                { return NA }
+func (i *Improper) GetToken() tokens.Token           { return i.Token }
+func (i *Improper) GetValueType() PrimitiveValueType { return Invalid }
 
 func IsImproper(improper Node, nodeType NodeType) bool {
 	return improper.GetType() == NA && improper.(*Improper).Type == nodeType
@@ -534,16 +338,4 @@ func IsImproperNotStatement(improper Node) bool {
 		!strings.Contains(str, "call") &&
 		improperType != NewExpession &&
 		improperType != SpawnExpression
-}
-
-func (i *Improper) GetType() NodeType {
-	return NA
-}
-
-func (i *Improper) GetToken() tokens.Token {
-	return i.Token
-}
-
-func (i *Improper) GetValueType() PrimitiveValueType {
-	return Invalid
 }

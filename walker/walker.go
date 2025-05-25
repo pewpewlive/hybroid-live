@@ -19,7 +19,7 @@ type Environment struct {
 	Name        string
 	luaPath     string // dynamic lua path
 	hybroidPath string
-	Type        ast.EnvType
+	Type        ast.Env
 
 	Scope Scope
 

@@ -60,12 +60,12 @@ func (vt *VariadicType) ToString() string {
 }
 
 type PathType struct {
-	EnvType ast.EnvType
+	Env ast.Env
 }
 
-func NewPathType(envType ast.EnvType) *PathType {
+func NewPathType(envType ast.Env) *PathType {
 	return &PathType{
-		EnvType: envType,
+		Env: envType,
 	}
 }
 
@@ -79,11 +79,11 @@ func (pt *PathType) GetType() ValueType {
 
 func (pt *PathType) _eq(other Type) bool {
 	path := other.(*PathType)
-	return pt.EnvType == path.EnvType
+	return pt.Env == path.Env
 }
 
 func (pt *PathType) ToString() string {
-	return string(pt.EnvType)
+	return string(pt.Env)
 }
 
 type AliasType struct {

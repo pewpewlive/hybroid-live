@@ -116,7 +116,7 @@ type Generator struct {
 	alerts.Collector
 
 	envName string
-	envType ast.EnvType
+	env     ast.Env
 	Scope   GenScope
 	Future  string
 }
@@ -137,9 +137,9 @@ func (gen *Generator) SetUniqueEnvName(name string) {
 	envMap[name] = uniqueName.String()
 }
 
-func (gen *Generator) SetEnv(name string, typ ast.EnvType) {
+func (gen *Generator) SetEnv(name string, env ast.Env) {
 	gen.envName = envMap[name]
-	gen.envType = typ
+	gen.env = env
 }
 
 func (gen *Generator) WriteVar(name string) string {

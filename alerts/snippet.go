@@ -20,7 +20,6 @@ func writeTruncatedLine(snippet *strings.Builder, loc tokens.Location, line []by
 	const endLimit = 50
 	const segmentSize = 15
 	const truncStr = "[dark_gray]...[default]"
-	var formatStr string
 
 	start, end := loc.Column.Start, loc.Column.End
 	lineSize := len(line)
@@ -30,40 +29,36 @@ func writeTruncatedLine(snippet *strings.Builder, loc tokens.Location, line []by
 
 	lineStart, lineMiddle, lineEnd := line[:start-1], line[start-1:end-1], line[end-1:]
 
-	segments := make([]any, 0, 7)
-
 	// Truncate the start:  ... + "Hello, Hybroid!"
 	if start > startLimit {
 		leadingSpace = 4 + segmentSize // `4` for "... " and `segmentSize` for the additional portion
 
-		formatStr += "%s %s"
-		segments = append(segments, truncStr, lineStart[len(lineStart)-segmentSize:])
+		snippet.WriteString(truncStr + " ")
+		snippet.Write(lineStart[len(lineStart)-segmentSize:])
 	} else {
-		formatStr += "%s"
-		segments = append(segments, lineStart)
+		snippet.Write(lineStart)
 	}
 
 	// Truncate the middle:  "Hello ... Hybroid!"
 	if end-start > midLimit {
 		markerSize = 5 + 2*segmentSize // `5` for " ... " and `2*segmentSize` for the additional portions
 
-		formatStr += "%s %s %s"
-		segments = append(segments, lineMiddle[:segmentSize], truncStr, lineMiddle[len(lineMiddle)-segmentSize:])
+		snippet.Write(lineMiddle[:segmentSize])
+		snippet.WriteString(" " + truncStr + " ")
+		snippet.Write(lineMiddle[len(lineMiddle)-segmentSize:])
 	} else {
-		formatStr += "%s"
-		segments = append(segments, lineMiddle)
+		snippet.Write(lineMiddle)
 	}
 
 	// Truncate the end:  "Hello" + ...
 	if lineSize-end > endLimit {
-		formatStr += "%s %s"
-		segments = append(segments, lineEnd[:segmentSize], truncStr)
+		snippet.Write(lineEnd[:segmentSize])
+		snippet.WriteString(" " + truncStr)
 	} else {
-		formatStr += "%s"
-		segments = append(segments, lineEnd)
+		snippet.Write(lineEnd)
 	}
 
-	snippet.WriteString(fmt.Sprintf(formatStr+"\n", segments...))
+	snippet.WriteByte('\n')
 
 	return leadingSpace, markerSize
 }
@@ -136,6 +131,10 @@ func (ml MultiLine) GetSnippet(lines map[int][]byte) string {
 	snippet.WriteString(fmt.Sprintf("[cyan]%*d |[light_red] | [default]", largestLineNumber, endLoc.Line))
 	spaceSize, markerSize = writeTruncatedLine(&snippet, endLoc, endLine)
 	endHorizLine, marker := strings.Repeat("_", spaceSize+1), strings.Repeat("^", markerSize)
+	if ml.EndToken.Type == tokens.Eof {
+		endHorizLine = strings.Repeat("_", len(endLine))
+		marker = "_> End Of File"
+	}
 	snippet.WriteString(fmt.Sprintf("[cyan]%s |[light_red] |%s%s\n", lineNumberSpaces, endHorizLine, marker))
 
 	return snippet.String()

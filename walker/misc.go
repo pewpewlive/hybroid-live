@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"hybroid/alerts"
 	"hybroid/ast"
-	"hybroid/helpers"
 	"hybroid/tokens"
 )
 
@@ -163,11 +162,9 @@ func (sc *Scope) ResolveReturnable() *ExitableTag {
 		return nil
 	}
 
-	if returnable := helpers.GetValOfInterface[ExitableTag](sc.Tag); returnable != nil {
-		return returnable
-	}
-
-	if helpers.IsZero(sc.Tag) {
+	if returnable, ok := sc.Tag.(ExitableTag); ok {
+		return &returnable
+	} else if sc.Tag == nil {
 		return nil
 	}
 
@@ -387,7 +384,7 @@ func (w *Walker) TypeToValue(_type Type) Value {
 			MemberType: _type.(*WrapperType).WrappedType,
 		}
 	case ast.Struct:
-		val, _ := w.walkers[_type.(*NamedType).EnvName].environment.Classes[_type.ToString()]
+		val := w.walkers[_type.(*NamedType).EnvName].environment.Classes[_type.ToString()]
 		return val
 	case ast.AnonStruct:
 		return &AnonStructVal{
@@ -401,14 +398,14 @@ func (w *Walker) TypeToValue(_type Type) Value {
 		case "Pewpew":
 			variable = PewpewEnv.Scope.Variables[enum.Name]
 		default:
-			variable, _ = walker.environment.Scope.Variables[enum.Name]
+			variable = walker.environment.Scope.Variables[enum.Name]
 		}
 		if variable == nil {
 			panic(fmt.Sprintf("Enum variable could not be found when converting enum type to value (envName:%v, name:%v, walkerFound:%v)", enum.EnvName, enum.Name, found))
 		}
 		return variable
 	case ast.Entity:
-		val, _ := w.walkers[_type.(*NamedType).EnvName].environment.Entities[_type.ToString()]
+		val := w.walkers[_type.(*NamedType).EnvName].environment.Entities[_type.ToString()]
 		return val
 	case ast.Object:
 		return &Unknown{}

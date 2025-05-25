@@ -35,7 +35,7 @@ type ConstVal struct {
 }
 
 func (c *ConstVal) GetType() Type {
-	return c.GetType()
+	return c.Val.GetType()
 }
 
 func (c *ConstVal) GetDefault() *ast.LiteralExpr {
@@ -99,19 +99,19 @@ func FindFromList(list []*VariableVal, name string) (*VariableVal, int, bool) {
 }
 
 type PathVal struct {
-	Path    string
-	EnvType ast.EnvType
+	Path string
+	Env  ast.Env
 }
 
-func NewPathVal(path string, envType ast.EnvType) *PathVal {
+func NewPathVal(path string, envType ast.Env) *PathVal {
 	return &PathVal{
-		Path:    path,
-		EnvType: envType,
+		Path: path,
+		Env:  envType,
 	}
 }
 
 func (pv *PathVal) GetType() Type {
-	return NewPathType(pv.EnvType)
+	return NewPathType(pv.Env)
 }
 
 func (pv *PathVal) GetDefault() *ast.LiteralExpr {

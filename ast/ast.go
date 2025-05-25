@@ -95,19 +95,19 @@ const (
 	Uninitialized PrimitiveValueType = "uninitialized"
 )
 
-type EnvType string
+type Env string
 
 const (
-	MeshEnv    EnvType = "MeshEnv"
-	LevelEnv   EnvType = "LevelEnv"
-	SoundEnv   EnvType = "SoundEnv"
-	InvalidEnv EnvType = "InvalidEnv"
+	MeshEnv    Env = "MeshEnv"
+	LevelEnv   Env = "LevelEnv"
+	SoundEnv   Env = "SoundEnv"
+	InvalidEnv Env = "InvalidEnv"
 )
 
 type SelfExprType int
 
 const (
-	SelfStruct SelfExprType = iota
+	SelfClass SelfExprType = iota
 	SelfEntity
 )
 
@@ -128,8 +128,6 @@ const (
 	Destroy         EntityFunctionType = "destroy"
 	Spawn           EntityFunctionType = "spawn"
 )
-
-type Paths []string
 
 type Node interface {
 	GetType() NodeType
