@@ -9,6 +9,18 @@ import "hybroid/core"
 type TokenType int
 
 const (
+	// Unused tokens
+	// At @
+	// SemiColon ;
+	// Pipe |
+	// Ampersand &
+	// LeftShift <<
+	// LeftShiftEqual <<=
+	// RightShift >>
+	// RightShiftEqual >>=
+	// Find
+	// Macro
+
 	// Tokens
 
 	Hash           TokenType = iota // #
@@ -19,10 +31,7 @@ const (
 	LeftBracket                     // [
 	RightBracket                    // ]
 	Comma                           // ,
-	At                              // @
-	Pipe                            // |
 	Colon                           // :
-	SemiColon                       // ;
 	Dot                             // .
 	Concat                          // ..
 	Ellipsis                        // ...
@@ -77,7 +86,6 @@ const (
 	Enum     // enum
 	Env      // env
 	False    // false
-	Find     // find
 	Fn       // fn
 	For      // for
 	If       // if
@@ -85,7 +93,6 @@ const (
 	From     // from
 	To       // to
 	Let      // let
-	Macro    // macro
 	Match    // match
 	New      // new
 	Or       // or
@@ -122,14 +129,12 @@ var keywords = map[string]TokenType{
 	"enum":     Enum,
 	"env":      Env,
 	"false":    False,
-	"find":     Find,
 	"fn":       Fn,
 	"to":       To,
 	"for":      For,
 	"if":       If,
 	"in":       In,
 	"let":      Let,
-	"macro":    Macro,
 	"match":    Match,
 	"new":      New,
 	"or":       Or,

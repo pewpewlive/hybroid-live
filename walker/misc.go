@@ -7,7 +7,7 @@ import (
 	"hybroid/tokens"
 )
 
-func (w *Walker) CheckAccessibility(s *Scope, isLocal bool, token tokens.Token) {
+func (w *Walker) checkAccessibility(s *Scope, isLocal bool, token tokens.Token) {
 	if s.Environment.Name != w.environment.Name && isLocal {
 		w.AlertSingle(&alerts.ForeignLocalVariableAccess{}, token, token.Lexeme)
 	}
@@ -16,18 +16,18 @@ func (w *Walker) CheckAccessibility(s *Scope, isLocal bool, token tokens.Token) 
 // ONLY CALL THIS IF YOU ALREADY CALLED ResolveVariable
 //
 // Returns the variable of name token.Lexeme
-func (w *Walker) GetVariable(s *Scope, token tokens.Token) *VariableVal {
+func (w *Walker) getVariable(s *Scope, token tokens.Token) *VariableVal {
 	variable, ok := s.Variables[token.Lexeme]
 
 	if !ok {
 		return nil
 	}
-	w.CheckAccessibility(s, variable.IsLocal, token)
+	w.checkAccessibility(s, variable.IsLocal, token)
 
 	return variable
 }
 
-func (w *Walker) TypeExists(name string) bool {
+func (w *Walker) typeExists(name string) bool {
 	if _, found := w.environment.Entities[name]; found {
 		return true
 	}
@@ -41,7 +41,7 @@ func (w *Walker) TypeExists(name string) bool {
 	return false
 }
 
-func (w *Walker) GetAliasType(s *Scope, token tokens.Token) *AliasType {
+func (w *Walker) getAliasType(s *Scope, token tokens.Token) *AliasType {
 	alias, found := s.AliasTypes[token.Lexeme]
 	if !found {
 		// w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s exists", name))
@@ -49,12 +49,12 @@ func (w *Walker) GetAliasType(s *Scope, token tokens.Token) *AliasType {
 	}
 
 	alias.IsUsed = true
-	w.CheckAccessibility(s, alias.IsLocal, token)
+	w.checkAccessibility(s, alias.IsLocal, token)
 
 	return alias
 }
 
-func (w *Walker) GetClass(s *Scope, token tokens.Token) *ClassVal {
+func (w *Walker) getClass(s *Scope, token tokens.Token) *ClassVal {
 	class, found := w.environment.Classes[token.Lexeme]
 	if !found {
 		// w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s exists", name))
@@ -62,12 +62,12 @@ func (w *Walker) GetClass(s *Scope, token tokens.Token) *ClassVal {
 	}
 
 	class.Type.IsUsed = true
-	w.CheckAccessibility(s, class.IsLocal, token)
+	w.checkAccessibility(s, class.IsLocal, token)
 
 	return class
 }
 
-func (w *Walker) GetEntity(name string) *EntityVal {
+func (w *Walker) getEntity(name string) *EntityVal {
 	entityType, found := w.environment.Entities[name]
 	if !found {
 		// w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s exists", name))
@@ -79,13 +79,13 @@ func (w *Walker) GetEntity(name string) *EntityVal {
 	return entityType
 }
 
-func (s *Scope) AssignVariable(variable *VariableVal, value Value) Value {
+func (s *Scope) assignVariable(variable *VariableVal, value Value) Value {
 	variable.Value = value
 
 	return variable
 }
 
-func (w *Walker) DeclareVariable(s *Scope, value *VariableVal) (*VariableVal, bool) {
+func (w *Walker) declareVariable(s *Scope, value *VariableVal) (*VariableVal, bool) {
 	if varFound, found := s.Variables[value.Name]; found {
 		return varFound, false
 	}
@@ -94,7 +94,7 @@ func (w *Walker) DeclareVariable(s *Scope, value *VariableVal) (*VariableVal, bo
 	return value, true
 }
 
-func (w *Walker) DeclareClass(structVal *ClassVal) bool {
+func (w *Walker) declareClass(structVal *ClassVal) bool {
 	if _, found := w.environment.Classes[structVal.Type.Name]; found {
 		return false
 	}
@@ -103,7 +103,7 @@ func (w *Walker) DeclareClass(structVal *ClassVal) bool {
 	return true
 }
 
-func (w *Walker) DeclareEntity(entityVal *EntityVal) bool {
+func (w *Walker) declareEntity(entityVal *EntityVal) bool {
 	if _, found := w.environment.Entities[entityVal.Type.Name]; found {
 		return false
 	}
@@ -112,7 +112,7 @@ func (w *Walker) DeclareEntity(entityVal *EntityVal) bool {
 	return true
 }
 
-func (w *Walker) ResolveVariable(s *Scope, token tokens.Token) *Scope {
+func (w *Walker) resolveVariable(s *Scope, token tokens.Token) *Scope {
 	name := token.Lexeme
 	if _, found := s.Variables[name]; found {
 		return s
@@ -142,10 +142,10 @@ func (w *Walker) ResolveVariable(s *Scope, token tokens.Token) *Scope {
 		return nil
 	}
 
-	return w.ResolveVariable(s.Parent, token)
+	return w.resolveVariable(s.Parent, token)
 }
 
-func ResolveTagScope[T ScopeTag](sc *Scope) (*Scope, *ScopeTag, *T) {
+func resolveTagScope[T ScopeTag](sc *Scope) (*Scope, *ScopeTag, *T) {
 	if tag, ok := sc.Tag.(T); ok {
 		return sc, &sc.Tag, &tag
 	}
@@ -154,10 +154,10 @@ func ResolveTagScope[T ScopeTag](sc *Scope) (*Scope, *ScopeTag, *T) {
 		return nil, nil, nil
 	}
 
-	return ResolveTagScope[T](sc.Parent)
+	return resolveTagScope[T](sc.Parent)
 }
 
-func (sc *Scope) ResolveReturnable() *ExitableTag {
+func (sc *Scope) resolveReturnable() *ExitableTag {
 	if sc.Parent == nil {
 		return nil
 	}
@@ -168,10 +168,43 @@ func (sc *Scope) ResolveReturnable() *ExitableTag {
 		return nil
 	}
 
-	return sc.Parent.ResolveReturnable()
+	return sc.Parent.resolveReturnable()
 }
 
-func (w *Walker) ValidateArguments(generics map[string]Type, args []Type, params []Type, call ast.NodeCall) (int, bool) {
+func convertNodeToAccessFieldExpr(ident ast.Node, index int, exprType ast.SelfExprType, envName string, entityName string) *ast.AccessExpr {
+	fieldExpr := &ast.FieldExpr{
+		Index:      index,
+		Field:      ident,
+		ExprType:   exprType,
+		EnvName:    envName,
+		EntityName: entityName,
+	}
+
+	return &ast.AccessExpr{
+		Start: &ast.SelfExpr{
+			Token: ident.GetToken(),
+			Type:  exprType,
+		},
+		Accessed: []ast.Node{
+			fieldExpr,
+		},
+	}
+}
+
+func convertCallToMethodCall(call *ast.CallExpr, exprType ast.SelfExprType, envName string, name string) *ast.MethodCallExpr {
+	copy := *call
+	return &ast.MethodCallExpr{
+		EnvName:     envName,
+		TypeName:    name,
+		ExprType:    exprType,
+		Caller:      copy.Caller,
+		GenericArgs: copy.GenericArgs,
+		Args:        copy.Args,
+		MethodName:  call.Caller.GetToken().Lexeme,
+	}
+}
+
+func (w *Walker) validateArguments(generics map[string]Type, args []Type, params []Type, call ast.NodeCall) (int, bool) {
 
 	paramCount := len(params)
 	if paramCount > len(args) {
@@ -193,12 +226,12 @@ func (w *Walker) ValidateArguments(generics map[string]Type, args []Type, params
 			param = params[i]
 		}
 
-		if typFound, found := ResolveGenericType(&param); found {
+		if typFound, found := resolveGenericType(&param); found {
 			generic := (*typFound).(*GenericType)
 			if typ, found := generics[generic.Name]; found {
 				*typFound = typ
 			} else {
-				generics[generic.Name] = ResolveMatchingType(param, typeVal)
+				generics[generic.Name] = resolveMatchingType(param, typeVal)
 				param = typeVal
 			}
 		}
@@ -211,25 +244,25 @@ func (w *Walker) ValidateArguments(generics map[string]Type, args []Type, params
 	return -1, true
 }
 
-func ResolveGenericType(typ *Type) (*Type, bool) {
+func resolveGenericType(typ *Type) (*Type, bool) {
 	if (*typ).GetType() == Generic {
 		return typ, true
 	}
 
 	if (*typ).GetType() == Wrapper {
-		return ResolveGenericType(&(*typ).(*WrapperType).WrappedType)
+		return resolveGenericType(&(*typ).(*WrapperType).WrappedType)
 	}
 
 	return nil, false
 }
 
-func ResolveMatchingType(predefinedType Type, receivedType Type) Type {
+func resolveMatchingType(predefinedType Type, receivedType Type) Type {
 	if predefinedType.GetType() == Wrapper && receivedType.GetType() == Wrapper {
 		wrapper1 := predefinedType.(*WrapperType)
 		wrapper2 := receivedType.(*WrapperType)
 
 		if TypeEquals(wrapper1.Type, wrapper2.Type) {
-			return ResolveMatchingType(wrapper1.WrappedType, wrapper2.WrappedType)
+			return resolveMatchingType(wrapper1.WrappedType, wrapper2.WrappedType)
 		}
 
 		return wrapper2.Type
@@ -238,7 +271,7 @@ func ResolveMatchingType(predefinedType Type, receivedType Type) Type {
 	return receivedType
 }
 
-func (w *Walker) DetermineValueType(left Type, right Type) Type {
+func (w *Walker) determineValueType(left Type, right Type) Type {
 	if TypeEquals(left, right) {
 		if left.GetType() == Fixed {
 			return left
@@ -259,7 +292,7 @@ func (w *Walker) DetermineValueType(left Type, right Type) Type {
 	return InvalidType
 }
 
-func (w *Walker) ValidateArithmeticOperands(left Type, right Type, expr *ast.BinaryExpr) bool {
+func (w *Walker) validateArithmeticOperands(left Type, right Type, expr *ast.BinaryExpr) bool {
 	if left.PVT() == ast.Invalid {
 		// w.Error(expr.Left.GetToken(), "cannot perform arithmetic on Invalid value")
 		return false
@@ -271,13 +304,13 @@ func (w *Walker) ValidateArithmeticOperands(left Type, right Type, expr *ast.Bin
 	}
 
 	switch left.PVT() {
-	case ast.List, ast.Map, ast.String, ast.Bool, ast.Entity, ast.Struct:
+	case ast.List, ast.Map, ast.String, ast.Bool, ast.Entity, ast.Class:
 		// w.Error(expr.Left.GetToken(), "cannot perform arithmetic on a non-number value")
 		return false
 	}
 
 	switch right.PVT() {
-	case ast.List, ast.Map, ast.String, ast.Bool, ast.Entity, ast.Struct:
+	case ast.List, ast.Map, ast.String, ast.Bool, ast.Entity, ast.Class:
 		// w.Error(expr.Right.GetToken(), "cannot perform arithmetic on a non-number value")
 		return false
 	}
@@ -285,7 +318,7 @@ func (w *Walker) ValidateArithmeticOperands(left Type, right Type, expr *ast.Bin
 	return true
 }
 
-func (w *Walker) ValidateReturnValues(returnArgs []ast.Node, _return []Type, expectReturn []Type, context string) {
+func (w *Walker) validateReturnValues(returnArgs []ast.Node, _return []Type, expectReturn []Type, context string) {
 	retLen := len(_return)
 	expRetLen := len(expectReturn)
 	if retLen < expRetLen {
@@ -320,16 +353,32 @@ func (w *Walker) ValidateReturnValues(returnArgs []ast.Node, _return []Type, exp
 	}
 }
 
-func (w *Walker) GetReturns(returns []*ast.TypeExpr, scope *Scope) []Type {
+func (w *Walker) getReturns(returns []*ast.TypeExpr, scope *Scope) []Type {
 	returnType := EmptyReturn
 	for i := range returns {
-		returnType = append(returnType, w.TypeExpr(returns[i], scope))
+		returnType = append(returnType, w.typeExpression(returns[i], scope))
 	}
 
 	return returnType
 }
 
-func (w *Walker) GetGenerics(genericArgs []*ast.TypeExpr, expectedGenerics []*GenericType, scope *Scope) map[string]Type {
+func (w *Walker) getGenericParams(genericParams []*ast.IdentifierExpr) []*GenericType {
+	generics := make([]*GenericType, 0)
+
+	for _, generic := range genericParams {
+		for i := range generics {
+			if generics[i].Name == generic.Name.Lexeme {
+				w.AlertSingle(&alerts.DuplicateGenericParameter{}, generic.GetToken(), generic.Name.Lexeme)
+				break
+			}
+		}
+		generics = append(generics, NewGeneric(generic.Name.Lexeme))
+	}
+
+	return generics
+}
+
+func (w *Walker) getGenerics(genericArgs []*ast.TypeExpr, expectedGenerics []*GenericType, scope *Scope) map[string]Type {
 	receivedGenericsLength := len(genericArgs)
 	expectedGenericsLength := len(expectedGenerics)
 
@@ -344,14 +393,14 @@ func (w *Walker) GetGenerics(genericArgs []*ast.TypeExpr, expectedGenerics []*Ge
 		)
 	} else {
 		for i := range genericArgs {
-			suppliedGenerics[expectedGenerics[i].Name] = w.TypeExpr(genericArgs[i], scope)
+			suppliedGenerics[expectedGenerics[i].Name] = w.typeExpression(genericArgs[i], scope)
 		}
 	}
 
 	return suppliedGenerics
 }
 
-func (w *Walker) TypeToValue(_type Type) Value {
+func (w *Walker) typeToValue(_type Type) Value {
 	if _type.GetType() == RawEntity {
 		return &RawEntityVal{}
 	}
@@ -383,10 +432,10 @@ func (w *Walker) TypeToValue(_type Type) Value {
 		return &MapVal{
 			MemberType: _type.(*WrapperType).WrappedType,
 		}
-	case ast.Struct:
+	case ast.Class:
 		val := w.walkers[_type.(*NamedType).EnvName].environment.Classes[_type.ToString()]
 		return val
-	case ast.AnonStruct:
+	case ast.Struct:
 		return &AnonStructVal{
 			Fields: _type.(*StructType).Fields,
 		}
@@ -418,18 +467,18 @@ func (w *Walker) TypeToValue(_type Type) Value {
 	}
 }
 
-func (w *Walker) GetContentsValueType(elems []ast.Node, scope *Scope) Type {
+func (w *Walker) getContentsValueType(elems []ast.Node, scope *Scope) Type {
 	valTypes := []Type{}
 	if len(elems) == 0 {
 		return ObjectTyp
 	}
-	val := w.GetNodeActualValue(&elems[0], scope)
+	val := w.GetActualNodeValue(&elems[0], scope)
 	valTypes = append(valTypes, val.GetType())
 	for i := range elems {
 		if i == 0 {
 			continue
 		}
-		val = w.GetNodeActualValue(&elems[i], scope)
+		val = w.GetActualNodeValue(&elems[i], scope)
 		valTypes = append(valTypes, val.GetType())
 		if !TypeEquals(valTypes[i-1], valTypes[i]) {
 			w.AlertSingle(&alerts.MixedMapOrListContents{}, elems[i].GetToken(),
@@ -444,7 +493,7 @@ func (w *Walker) GetContentsValueType(elems []ast.Node, scope *Scope) Type {
 	return valTypes[0]
 }
 
-func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
+func (w *Walker) getTypeFromString(str string) ast.PrimitiveValueType {
 	switch str {
 	case "number":
 		return ast.Number
@@ -461,13 +510,13 @@ func (w *Walker) GetTypeFromString(str string) ast.PrimitiveValueType {
 	case "bool":
 		return ast.Bool
 	case "struct":
-		return ast.AnonStruct
+		return ast.Struct
 	default:
 		return ast.Invalid
 	}
 }
 
-func (w *Walker) DetermineCallTypeString(callType ProcedureType) string {
+func (w *Walker) determineCallTypeString(callType ProcedureType) string {
 	if callType == Function {
 		return "function"
 	}
@@ -475,18 +524,18 @@ func (w *Walker) DetermineCallTypeString(callType ProcedureType) string {
 	return "method"
 }
 
-func (w *Walker) TypesToValues(types []Type) Values {
+func (w *Walker) typesToValues(types []Type) Values {
 	vals := Values{}
 
 	for _, v := range types {
-		vals = append(vals, w.TypeToValue(v))
+		vals = append(vals, w.typeToValue(v))
 	}
 
 	return vals
 }
 
-func (w *Walker) ReportExits(sender ExitableTag, scope *Scope) {
-	receiver_ := scope.ResolveReturnable()
+func (w *Walker) reportExits(sender ExitableTag, scope *Scope) {
+	receiver_ := scope.resolveReturnable()
 
 	if receiver_ == nil {
 		return
@@ -525,7 +574,7 @@ func isOfPrimitiveType(pvt ast.PrimitiveValueType, types ...ast.PrimitiveValueTy
 	return false
 }
 
-func DetermineCallTypeString(callType ProcedureType) string {
+func determineCallTypeString(callType ProcedureType) string {
 	if callType == Function {
 		return "function"
 	}

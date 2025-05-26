@@ -2,41 +2,40 @@ package walker
 
 import (
 	"hybroid/ast"
-	"hybroid/helpers"
+	"hybroid/core"
 	"hybroid/tokens"
+	"slices"
 )
 
-type EntityConversion struct {
+type EntityCast struct {
 	Name   tokens.Token
 	Entity *EntityVal
 }
 
-func NewEntityConversion(name tokens.Token, val *EntityVal) EntityConversion {
-	return EntityConversion{
+func NewEntityCast(name tokens.Token, val *EntityVal) EntityCast {
+	return EntityCast{
 		Name:   name,
 		Entity: val,
 	}
 }
 
 type Context struct {
-	Node           ast.Node
-	Value          Value
-	PewpewVarFound bool
-	PewpewVarName  string
-	Conversions    []EntityConversion
+	Node        ast.Node
+	Value       Value
+	EntityCasts core.Queue[EntityCast]
 }
 
 func (c *Context) Clear() {
 	c.Node = &ast.Improper{}
 	c.Value = &Unknown{}
-	c.PewpewVarFound = false
+	c.EntityCasts.Clear()
 }
 
 type ScopeTagType int
 
 const (
 	Untagged ScopeTagType = iota
-	Struct
+	Class
 	Entity
 	Func
 	MultiPath
@@ -95,7 +94,7 @@ type ClassTag struct {
 }
 
 func (st *ClassTag) GetType() ScopeTagType {
-	return Struct
+	return Class
 }
 
 type EntityTag struct {
@@ -256,7 +255,7 @@ func (sc *Scope) Is(types ...ScopeAttribute) bool {
 	}
 
 	for _, v := range types {
-		if !helpers.Contains(sc.Attributes, v) {
+		if !slices.Contains(sc.Attributes, v) {
 			return false
 		}
 	}

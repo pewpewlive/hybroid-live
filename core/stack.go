@@ -54,7 +54,7 @@ func (s *Stack[T]) Count() int {
 
 func (s *Stack[T]) printStack() {
 	fmt.Printf("Stack(%q):\n", s.Name)
-	for i := len(s.items) - 1; i >= 0; i-- {
+	for i := s.Count() - 1; i >= 0; i-- {
 		item := s.items[i]
 		fmt.Printf("%d: | %s (%v) |\n", i, item.Name, item.Item)
 	}

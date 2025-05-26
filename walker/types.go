@@ -322,7 +322,7 @@ func NewStructTypeWithFields(fields map[string]Field, lenient bool) *StructType 
 }
 
 func (st *StructType) PVT() ast.PrimitiveValueType {
-	return ast.AnonStruct
+	return ast.Struct
 }
 
 func (st *StructType) GetType() ValueType {

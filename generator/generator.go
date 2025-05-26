@@ -156,7 +156,7 @@ func (gen *Generator) Clear() {
 
 func getTabs() string {
 	tabs := StringBuilder{}
-	for i := 0; i < TabsCount; i++ {
+	for range TabsCount {
 		tabs.Write("\t")
 	}
 
@@ -186,13 +186,13 @@ func (gen *Generator) GenerateWithBuiltins(program []ast.Node) {
 	}
 }
 
-func (gen *Generator) GenerateBody(program []ast.Node, scope *GenScope) {
+func (gen *Generator) GenerateBody(body ast.Body, scope *GenScope) {
 	TabsCount += 1
 	if gen.Future != "" {
 		scope.WriteTabbed(gen.Future)
 		gen.Future = ""
 	}
-	for _, node := range program {
+	for _, node := range body {
 		gen.GenerateStmt(node, scope)
 		scope.Write("\n")
 	}
@@ -202,10 +202,7 @@ func (gen *Generator) GenerateBody(program []ast.Node, scope *GenScope) {
 func fixedToFx(floatstr string) string {
 	float, _ := strconv.ParseFloat(floatstr, 64)
 	abs_float := math.Abs(float)
-	integer := math.Floor(abs_float)
-	if integer > (2 << 51) {
-		integer = (2 << 51)
-	}
+	integer := min(math.Floor(abs_float), (2 << 51))
 	var sign string
 	if float < 0 {
 		sign = "-"
@@ -289,7 +286,7 @@ func (gen *Generator) GenerateExpr(node ast.Node, scope *GenScope) string {
 	switch newNode := node.(type) {
 	case *ast.LiteralExpr:
 		return gen.literalExpr(*newNode)
-	case *ast.EntityExpr:
+	case *ast.EntityEvaluationExpr:
 		return gen.entityExpr(*newNode, scope)
 	case *ast.BinaryExpr:
 		return gen.binaryExpr(*newNode, scope)

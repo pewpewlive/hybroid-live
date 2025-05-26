@@ -29,6 +29,11 @@ type MethodContainer interface {
 	ContainsMethod(name string) (*VariableVal, bool)
 }
 
+type FullContainer interface {
+	FieldContainer
+	MethodContainer
+}
+
 type ConstVal struct {
 	Node ast.Node
 	Val  Value

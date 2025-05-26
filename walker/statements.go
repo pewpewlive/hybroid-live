@@ -7,46 +7,49 @@ import (
 	"hybroid/tokens"
 )
 
-func (w *Walker) DeclareConversion(scope *Scope) {
-	if len(w.context.Conversions) == 1 {
-		conv := w.context.Conversions[0]
-		w.DeclareVariable(scope, &VariableVal{
-			Name:   conv.Name.Lexeme,
-			Value:  conv.Entity,
-			IsInit: true,
-		})
-	}
-	w.context.Conversions = make([]EntityConversion, 0)
-}
-
 func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 	length := len(node.Elseifs) + 2
 	mpt := NewMultiPathTag(length, scope.Attributes...)
 	multiPathScope := NewScope(scope, mpt)
 	ifScope := NewScope(multiPathScope, &UntaggedTag{})
 
-	w.context.Conversions = nil
+	w.context.EntityCasts.Clear()
 
 	boolExpr := w.GetNodeValue(&node.BoolExpr, scope)
 	if boolExpr.GetType().PVT() != ast.Bool {
-		// w.Error(node.BoolExpr.GetToken(), "if condition is not a comparison")
+		w.AlertSingle(&alerts.InvalidCondition{}, node.BoolExpr.GetToken(), "in if statement")
 	}
-	w.DeclareConversion(ifScope)
-	w.WalkBody(&node.Body, mpt, ifScope)
+
+	for w.context.EntityCasts.Count() != 0 {
+		cast := w.context.EntityCasts.Pop()
+		w.declareVariable(scope, &VariableVal{
+			Name:   cast.Name.Lexeme,
+			Value:  cast.Entity,
+			IsInit: true,
+		})
+	}
+	w.walkBody(&node.Body, mpt, ifScope)
 
 	for i := range node.Elseifs {
 		boolExpr := w.GetNodeValue(&node.Elseifs[i].BoolExpr, scope)
 		if boolExpr.GetType().PVT() != ast.Bool {
-			// w.Error(node.Elseifs[i].BoolExpr.GetToken(), "if condition is not a comparison")
+			w.AlertSingle(&alerts.InvalidCondition{}, node.Elseifs[i].BoolExpr.GetToken(), "in if statement")
 		}
 		ifScope := NewScope(multiPathScope, &UntaggedTag{})
-		w.DeclareConversion(ifScope)
-		w.WalkBody(&node.Elseifs[i].Body, mpt, ifScope)
+		for w.context.EntityCasts.Count() != 0 {
+			cast := w.context.EntityCasts.Pop()
+			w.declareVariable(scope, &VariableVal{
+				Name:   cast.Name.Lexeme,
+				Value:  cast.Entity,
+				IsInit: true,
+			})
+		}
+		w.walkBody(&node.Elseifs[i].Body, mpt, ifScope)
 	}
 
 	if node.Else != nil {
 		elseScope := NewScope(multiPathScope, &UntaggedTag{})
-		w.WalkBody(&node.Else.Body, mpt, elseScope)
+		w.walkBody(&node.Else.Body, mpt, elseScope)
 	}
 }
 
@@ -59,7 +62,7 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 
 	values := []Value2{}
 	for i := range assignStmt.Values {
-		exprValue := w.GetNodeActualValue(&assignStmt.Values[i], scope)
+		exprValue := w.GetActualNodeValue(&assignStmt.Values[i], scope)
 		if vals, ok := exprValue.(Values); ok {
 			for j := range vals {
 				values = append(values, Value2{vals[j], i})
@@ -153,41 +156,36 @@ func (w *Walker) repeatStatement(node *ast.RepeatStmt, scope *Scope) {
 	lt := NewMultiPathTag(1, repeatScope.Attributes...)
 	repeatScope.Tag = lt
 
-	end := w.GetNodeValue(&node.Iterator, scope)
+	end := w.GetActualNodeValue(&node.Iterator, scope)
 	endType := end.GetType()
-	//if !parser.IsFx(endType.PVT()) && endType.PVT() != ast.Number {
-	// w.Error(node.Iterator.GetToken(), "invalid value type of iterator")
-	//} else if variable, ok := end.(*VariableVal); ok {
-	//if fixedpoint, ok := variable.Value.(*FixedVal); ok {
-	//	endType = NewBasicType(fixedpoint.SpecificType)
-	//}
-	//} else {
-	if fixedpoint, ok := end.(*FixedVal); ok {
-		endType = NewBasicType(fixedpoint.SpecificType)
+	if !isNumerical(endType.PVT()) {
+		w.AlertSingle(&alerts.InvalidRepeatIterator{}, node.Iterator.GetToken())
 	}
-	//}
-	if node.Start.GetType() == ast.NA {
-		node.Start = &ast.LiteralExpr{Token: node.Start.GetToken(), ValueType: endType.PVT(), Value: "1"}
+	if node.Start == nil {
+		node.Start = &ast.LiteralExpr{ValueType: endType.PVT(), Value: "1"}
 	}
 	start := w.GetNodeValue(&node.Start, scope)
-	if node.Skip.GetType() == ast.NA {
-		node.Skip = &ast.LiteralExpr{Token: node.Skip.GetToken(), ValueType: endType.PVT(), Value: "1"}
+	if node.Skip == nil {
+		node.Skip = &ast.LiteralExpr{ValueType: endType.PVT(), Value: "1"}
 	}
 	skip := w.GetNodeValue(&node.Skip, scope)
 
-	repeatType := end.GetType()
 	startType := start.GetType()
 	skipType := skip.GetType()
 
-	if !(TypeEquals(repeatType, startType) && TypeEquals(startType, skipType)) {
-		// w.Error(node.Start.GetToken(), fmt.Sprintf("all value types must be the same (iter:%s, start:%s, by:%s)", repeatType.ToString(), startType.ToString(), skipType.ToString()))
+	if !(TypeEquals(endType, startType) && TypeEquals(startType, skipType)) {
+		w.AlertSingle(&alerts.InconsistentRepeatTypes{}, node.Token,
+			startType.ToString(),
+			skipType.ToString(),
+			endType.ToString(),
+		)
 	}
 
 	if node.Variable != nil {
-		w.DeclareVariable(repeatScope, NewVariable(node.Variable.Name, w.TypeToValue(repeatType)))
+		w.declareVariable(repeatScope, NewVariable(node.Variable.Name, end))
 	}
 
-	w.WalkBody(&node.Body, lt, repeatScope)
+	w.walkBody(&node.Body, lt, repeatScope)
 }
 
 func (w *Walker) whileStatement(node *ast.WhileStmt, scope *Scope) {
@@ -196,7 +194,7 @@ func (w *Walker) whileStatement(node *ast.WhileStmt, scope *Scope) {
 	whileScope.Tag = lt
 	w.GetNodeValue(&node.Condition, scope)
 
-	w.WalkBody(&node.Body, lt, whileScope)
+	w.walkBody(&node.Body, lt, whileScope)
 }
 
 func (w *Walker) forStatement(node *ast.ForStmt, scope *Scope) {
@@ -219,7 +217,7 @@ func (w *Walker) forStatement(node *ast.ForStmt, scope *Scope) {
 		} else {
 			firstValue = &StringVal{}
 		}
-		w.DeclareVariable(forScope, NewVariable(node.First.Name, firstValue))
+		w.declareVariable(forScope, NewVariable(node.First.Name, firstValue))
 	}
 
 	if node.Second != nil && ok {
@@ -227,11 +225,11 @@ func (w *Walker) forStatement(node *ast.ForStmt, scope *Scope) {
 			w.AlertSingle(&alerts.UnnecessaryEmptyIdentifier{}, node.Second.Name, "in for loop statement")
 		}
 		if node.Second.Name.Lexeme != "_" {
-			w.DeclareVariable(forScope, NewVariable(node.Second.Name, w.TypeToValue(wrapper.WrappedType)))
+			w.declareVariable(forScope, NewVariable(node.Second.Name, w.typeToValue(wrapper.WrappedType)))
 		}
 	}
 
-	w.WalkBody(&node.Body, lt, forScope)
+	w.walkBody(&node.Body, lt, forScope)
 }
 
 func (w *Walker) tickStatement(node *ast.TickStmt, scope *Scope) {
@@ -239,10 +237,10 @@ func (w *Walker) tickStatement(node *ast.TickStmt, scope *Scope) {
 	tickScope := NewScope(scope, funcTag, ReturnAllowing)
 
 	if node.Variable != nil {
-		w.DeclareVariable(tickScope, NewVariable(node.Variable.Name, &NumberVal{}))
+		w.declareVariable(tickScope, NewVariable(node.Variable.Name, &NumberVal{}))
 	}
 
-	w.WalkBody(&node.Body, funcTag, tickScope)
+	w.walkBody(&node.Body, funcTag, tickScope)
 }
 
 func (w *Walker) matchStatement(node *ast.MatchStmt, isExpr bool, scope *Scope) {
@@ -262,7 +260,7 @@ func (w *Walker) matchStatement(node *ast.MatchStmt, isExpr bool, scope *Scope) 
 		caseScope := NewScope(multiPathScope, &UntaggedTag{})
 
 		if !isExpr {
-			w.WalkBody(&node.Cases[i].Body, mpt, caseScope)
+			w.walkBody(&node.Cases[i].Body, mpt, caseScope)
 		}
 
 		if node.Cases[i].Expression.GetToken().Lexeme == "else" {
@@ -288,7 +286,7 @@ func (w *Walker) breakStatement(node *ast.BreakStmt, scope *Scope) {
 		)
 	}
 
-	if returnable := scope.ResolveReturnable(); returnable != nil {
+	if returnable := scope.resolveReturnable(); returnable != nil {
 		(*returnable).SetExit(true, Break)
 		(*returnable).SetExit(true, All)
 	}
@@ -302,7 +300,7 @@ func (w *Walker) continueStatement(node *ast.ContinueStmt, scope *Scope) {
 		)
 	}
 
-	if returnable := scope.ResolveReturnable(); returnable != nil {
+	if returnable := scope.resolveReturnable(); returnable != nil {
 		(*returnable).SetExit(true, Continue)
 		(*returnable).SetExit(true, All)
 	}
@@ -328,14 +326,14 @@ func (w *Walker) returnStatement(node *ast.ReturnStmt, scope *Scope) *[]Type {
 			ret = append(ret, valType)
 		}
 	}
-	sc, _, funcTag := ResolveTagScope[*FuncTag](scope)
+	sc, _, funcTag := resolveTagScope[*FuncTag](scope)
 	if sc == nil {
 		return &ret
 	}
 
-	w.ValidateReturnValues(node.Args, ret, (*funcTag).ReturnTypes, "in return arguments") // wait
+	w.validateReturnValues(node.Args, ret, (*funcTag).ReturnTypes, "in return arguments") // wait
 
-	if returnable := scope.ResolveReturnable(); returnable != nil {
+	if returnable := scope.resolveReturnable(); returnable != nil {
 		(*returnable).SetExit(true, Return)
 		(*returnable).SetExit(true, All)
 	}
@@ -364,7 +362,7 @@ func (w *Walker) yieldStatement(node *ast.YieldStmt, scope *Scope) *[]Type {
 		}
 	}
 
-	sc, _, matchExprT := ResolveTagScope[*MatchExprTag](scope)
+	sc, _, matchExprT := resolveTagScope[*MatchExprTag](scope)
 
 	if sc == nil {
 		return &ret
@@ -375,10 +373,10 @@ func (w *Walker) yieldStatement(node *ast.YieldStmt, scope *Scope) *[]Type {
 	if core.ListsAreSame(matchExprTag.YieldTypes, EmptyReturn) {
 		matchExprTag.YieldTypes = ret
 	} else {
-		w.ValidateReturnValues(node.Args, ret, matchExprTag.YieldTypes, "in yield arguments")
+		w.validateReturnValues(node.Args, ret, matchExprTag.YieldTypes, "in yield arguments")
 	}
 
-	if returnable := scope.ResolveReturnable(); returnable != nil {
+	if returnable := scope.resolveReturnable(); returnable != nil {
 		(*returnable).SetExit(true, Yield)
 		(*returnable).SetExit(true, All)
 	}
@@ -456,7 +454,7 @@ func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 	w.environment.importedWalkers = append(w.environment.importedWalkers, walker)
 
 	if !walker.Walked {
-		walker.Pass2()
+		walker.Walk()
 	}
 }
 
@@ -468,7 +466,7 @@ func (w *Walker) destroyStatement(node *ast.DestroyStmt, scope *Scope) {
 		return
 	}
 	if valType.PVT() != ast.Entity {
-		w.AlertSingle(&alerts.InvalidTypeInDestroyStatement{}, node.Identifier.GetToken(), valType.ToString())
+		w.AlertSingle(&alerts.InvalidType{}, node.Identifier.GetToken(), "entity", valType.ToString(), "in destroy statement")
 		return
 	}
 
@@ -486,6 +484,6 @@ func (w *Walker) destroyStatement(node *ast.DestroyStmt, scope *Scope) {
 		args = append(args, w.GetNodeValue(&node.Args[i], scope).GetType())
 	}
 
-	suppliedGenerics := w.GetGenerics(node.GenericArgs, entityVal.DestroyGenerics, scope)
-	w.ValidateArguments(suppliedGenerics, args, entityVal.DestroyParams, node)
+	suppliedGenerics := w.getGenerics(node.GenericArgs, entityVal.DestroyGenerics, scope)
+	w.validateArguments(suppliedGenerics, args, entityVal.DestroyParams, node)
 }

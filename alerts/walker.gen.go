@@ -37,11 +37,11 @@ func (ftie *ForbiddenTypeInEnvironment) GetAlertType() Type {
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidEnvironmentType struct {
   Specifier Snippet
-  GivenType string
+  Type string
 }
 
 func (iet *InvalidEnvironmentType) GetMessage() string {
-  return fmt.Sprintf("'%s' is not a valid environment type", iet.GivenType)
+  return fmt.Sprintf("'%s' is not a valid environment type", iet.Type)
 }
 
 func (iet *InvalidEnvironmentType) GetSpecifier() Snippet {
@@ -140,11 +140,11 @@ func (den *DuplicateEnvironmentNames) GetAlertType() Type {
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidAccessValue struct {
   Specifier Snippet
-  ValueType string
+  Type string
 }
 
 func (iav *InvalidAccessValue) GetMessage() string {
-  return fmt.Sprintf("value is of type '%s', so it cannot be accessed from", iav.ValueType)
+  return fmt.Sprintf("value is of type '%s', so it cannot be accessed from", iav.Type)
 }
 
 func (iav *InvalidAccessValue) GetSpecifier() Snippet {
@@ -331,7 +331,7 @@ type InvalidCallerType struct {
 }
 
 func (ict *InvalidCallerType) GetMessage() string {
-  return fmt.Sprintf("caller is not a function (type found: '%s')", ict.Type)
+  return fmt.Sprintf("cannot call value of of type '%s' as a function", ict.Type)
 }
 
 func (ict *InvalidCallerType) GetSpecifier() Snippet {
@@ -771,11 +771,11 @@ func (atm *AssignmentTypeMismatch) GetAlertType() Type {
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidTypeInCompoundAssignment struct {
   Specifier Snippet
-  ValType string
+  Type string
 }
 
 func (itica *InvalidTypeInCompoundAssignment) GetMessage() string {
-  return fmt.Sprintf("the type '%s' is not allowed in compound assignment", itica.ValType)
+  return fmt.Sprintf("the type '%s' is not allowed in compound assignment", itica.Type)
 }
 
 func (itica *InvalidTypeInCompoundAssignment) GetSpecifier() Snippet {
@@ -956,7 +956,7 @@ type UsedPewpewInNonLevelEnvironment struct {
 }
 
 func (upinle *UsedPewpewInNonLevelEnvironment) GetMessage() string {
-  return "cannot use the Pewpew environment in a Mesh or Sound environment"
+  return "cannot use the Pewpew environment in a Mesh or Sound type environment"
 }
 
 func (upinle *UsedPewpewInNonLevelEnvironment) GetSpecifier() Snippet {
@@ -1107,54 +1107,185 @@ func (uei *UnnecessaryEmptyIdentifier) GetAlertType() Type {
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type InvalidUseOfEmptyIdentifier struct {
+type EnvironmentAccessToItself struct {
   Specifier Snippet
-  Context string
 }
 
-func (iuoei *InvalidUseOfEmptyIdentifier) GetMessage() string {
-  return fmt.Sprintf("invalid use of empty identifier ('_') %s", iuoei.Context)
+func (eati *EnvironmentAccessToItself) GetMessage() string {
+  return "an environment cannot access itself"
 }
 
-func (iuoei *InvalidUseOfEmptyIdentifier) GetSpecifier() Snippet {
-  return iuoei.Specifier
+func (eati *EnvironmentAccessToItself) GetSpecifier() Snippet {
+  return eati.Specifier
 }
 
-func (iuoei *InvalidUseOfEmptyIdentifier) GetNote() string {
+func (eati *EnvironmentAccessToItself) GetNote() string {
   return ""
 }
 
-func (iuoei *InvalidUseOfEmptyIdentifier) GetID() string {
+func (eati *EnvironmentAccessToItself) GetID() string {
   return "hyb043W"
 }
 
-func (iuoei *InvalidUseOfEmptyIdentifier) GetAlertType() Type {
+func (eati *EnvironmentAccessToItself) GetAlertType() Type {
   return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type InvalidTypeInDestroyStatement struct {
+type EntityConversionWithOrCondition struct {
+  Specifier Snippet
+}
+
+func (ecwoc *EntityConversionWithOrCondition) GetMessage() string {
+  return "cannot convert an entity with an 'or' condition"
+}
+
+func (ecwoc *EntityConversionWithOrCondition) GetSpecifier() Snippet {
+  return ecwoc.Specifier
+}
+
+func (ecwoc *EntityConversionWithOrCondition) GetNote() string {
+  return ""
+}
+
+func (ecwoc *EntityConversionWithOrCondition) GetID() string {
+  return "hyb044W"
+}
+
+func (ecwoc *EntityConversionWithOrCondition) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidCondition struct {
+  Specifier Snippet
+  Context string
+}
+
+func (ic *InvalidCondition) GetMessage() string {
+  return fmt.Sprintf("invalid condition %s", ic.Context)
+}
+
+func (ic *InvalidCondition) GetSpecifier() Snippet {
+  return ic.Specifier
+}
+
+func (ic *InvalidCondition) GetNote() string {
+  return "conditions always have to evaluate to either true or false"
+}
+
+func (ic *InvalidCondition) GetID() string {
+  return "hyb045W"
+}
+
+func (ic *InvalidCondition) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidRepeatIterator struct {
   Specifier Snippet
   Type string
 }
 
-func (itids *InvalidTypeInDestroyStatement) GetMessage() string {
-  return fmt.Sprintf("the type '%s' is not allowed in destroy statement", itids.Type)
+func (iri *InvalidRepeatIterator) GetMessage() string {
+  return fmt.Sprintf("invalid repeat iterator of type '%s'", iri.Type)
 }
 
-func (itids *InvalidTypeInDestroyStatement) GetSpecifier() Snippet {
-  return itids.Specifier
+func (iri *InvalidRepeatIterator) GetSpecifier() Snippet {
+  return iri.Specifier
 }
 
-func (itids *InvalidTypeInDestroyStatement) GetNote() string {
-  return "destroy statement only allows entities to be destroyed"
+func (iri *InvalidRepeatIterator) GetNote() string {
+  return "repeat iterator must be a numerical type"
 }
 
-func (itids *InvalidTypeInDestroyStatement) GetID() string {
-  return "hyb044W"
+func (iri *InvalidRepeatIterator) GetID() string {
+  return "hyb046W"
 }
 
-func (itids *InvalidTypeInDestroyStatement) GetAlertType() Type {
+func (iri *InvalidRepeatIterator) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InconsistentRepeatTypes struct {
+  Specifier Snippet
+  From string
+  Skip string
+  Iterator string
+}
+
+func (irt *InconsistentRepeatTypes) GetMessage() string {
+  return fmt.Sprintf("repeat types are inconsistent (from:'%s', by:'%s', to:'%s')", irt.From, irt.Skip, irt.Iterator)
+}
+
+func (irt *InconsistentRepeatTypes) GetSpecifier() Snippet {
+  return irt.Specifier
+}
+
+func (irt *InconsistentRepeatTypes) GetNote() string {
+  return ""
+}
+
+func (irt *InconsistentRepeatTypes) GetID() string {
+  return "hyb047W"
+}
+
+func (irt *InconsistentRepeatTypes) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type OfficialEntityConversion struct {
+  Specifier Snippet
+}
+
+func (oec *OfficialEntityConversion) GetMessage() string {
+  return "conversion of an official entity to a hybroid entity is not possible"
+}
+
+func (oec *OfficialEntityConversion) GetSpecifier() Snippet {
+  return oec.Specifier
+}
+
+func (oec *OfficialEntityConversion) GetNote() string {
+  return ""
+}
+
+func (oec *OfficialEntityConversion) GetID() string {
+  return "hyb048W"
+}
+
+func (oec *OfficialEntityConversion) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidType struct {
+  Specifier Snippet
+  Expected string
+  Got string
+  Context string
+}
+
+func (it *InvalidType) GetMessage() string {
+  return fmt.Sprintf("expected %s, got '%s' %s", it.Expected, it.Got, it.Context)
+}
+
+func (it *InvalidType) GetSpecifier() Snippet {
+  return it.Specifier
+}
+
+func (it *InvalidType) GetNote() string {
+  return ""
+}
+
+func (it *InvalidType) GetID() string {
+  return "hyb049W"
+}
+
+func (it *InvalidType) GetAlertType() Type {
   return Error
 }
 

@@ -455,7 +455,7 @@ func (p *Parser) caseStatement(isExpr bool) ([]ast.CaseStmt, bool) {
 		return caseStmts, false
 	}
 
-	var body = []ast.Node{}
+	body := ast.Body{}
 	if !p.check(tokens.LeftBrace) {
 		args, ok := p.expressions("after '=>' in match case", false)
 		if !ok {
@@ -473,7 +473,7 @@ func (p *Parser) caseStatement(isExpr bool) ([]ast.CaseStmt, bool) {
 				Token: args[0].GetToken(),
 			}
 		}
-		body = append(body, argsStmt)
+		body.Append(argsStmt)
 	} else {
 		body2, ok2 := p.body(false, false)
 		if !ok2 {

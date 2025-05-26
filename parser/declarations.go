@@ -93,7 +93,7 @@ func (p *Parser) functionDeclaration() ast.Node {
 	}
 
 	name, nameOk := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name of the function"), tokens.Identifier)
-	if !nameOk && !p.check(tokens.Less) && !p.check(tokens.LeftParen) {
+	if !nameOk && !p.check(tokens.Less, tokens.LeftParen) {
 		p.advance()
 	}
 

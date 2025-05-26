@@ -35,8 +35,9 @@ func (ne *DestroyStmt) GetArgs() []Node {
 }
 
 type IfStmt struct {
+	Body
+
 	BoolExpr Node
-	Body     []Node
 	Elseifs  []*IfStmt
 	Else     *IfStmt
 	Token    tokens.Token
@@ -47,8 +48,9 @@ func (is *IfStmt) GetToken() tokens.Token           { return is.Token }
 func (is *IfStmt) GetValueType() PrimitiveValueType { return Invalid }
 
 type CaseStmt struct {
+	Body
+
 	Expression Node
-	Body       []Node
 }
 
 type MatchStmt struct {
@@ -63,11 +65,12 @@ func (ms *MatchStmt) GetValueType() PrimitiveValueType { return Invalid }
 func (ms *MatchStmt) GetToken() tokens.Token           { return ms.Token }
 
 type RepeatStmt struct {
+	Body
+
 	Iterator Node
 	Skip     Node
 	Start    Node
 	Variable *IdentifierExpr
-	Body     []Node
 	Token    tokens.Token
 }
 
@@ -76,8 +79,9 @@ func (rs *RepeatStmt) GetToken() tokens.Token           { return rs.Token }
 func (rs *RepeatStmt) GetValueType() PrimitiveValueType { return Invalid }
 
 type WhileStmt struct {
+	Body
+
 	Condition Node
-	Body      []Node
 	Token     tokens.Token
 }
 
@@ -86,11 +90,12 @@ func (fs *WhileStmt) GetToken() tokens.Token           { return fs.Token }
 func (fs *WhileStmt) GetValueType() PrimitiveValueType { return Invalid }
 
 type ForStmt struct {
+	Body
+
 	Iterator         Node
 	First            *IdentifierExpr
 	Second           *IdentifierExpr
 	OrderedIteration bool
-	Body             []Node
 	Token            tokens.Token
 }
 
@@ -99,8 +104,9 @@ func (fs *ForStmt) GetToken() tokens.Token           { return fs.Token }
 func (fs *ForStmt) GetValueType() PrimitiveValueType { return Invalid }
 
 type TickStmt struct {
+	Body
+
 	Variable *IdentifierExpr
-	Body     []Node
 	Token    tokens.Token
 }
 

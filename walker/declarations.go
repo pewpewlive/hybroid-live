@@ -7,6 +7,33 @@ import (
 )
 
 // Rewrote
+func (w *Walker) environmentDeclaration(node *ast.EnvironmentDecl) {
+	if w.environment.Name != "" {
+		w.AlertSingle(&alerts.EnvironmentRedaclaration{}, node.GetToken())
+		return
+	}
+	switch node.EnvType.Token.Lexeme {
+	case "Level":
+		node.EnvType.Type = ast.LevelEnv
+	case "Mesh":
+		node.EnvType.Type = ast.MeshEnv
+	case "Sound":
+		node.EnvType.Type = ast.SoundEnv
+	default:
+		w.AlertSingle(&alerts.InvalidEnvironmentType{}, node.EnvType.Token, node.EnvType.Token.Lexeme)
+	}
+	w.environment.Type = node.EnvType.Type
+	w.environment.Name = node.Env.Path.Lexeme
+	w.environment._envStmt = node
+	if w2, ok := w.walkers[w.environment.Name]; ok {
+		w.AlertSingle(&alerts.DuplicateEnvironmentNames{}, node.GetToken(), w.environment.hybroidPath, w2.environment.hybroidPath)
+		return
+	}
+
+	w.walkers[w.environment.Name] = w
+}
+
+// Rewrote
 func (w *Walker) aliasDeclaration(node *ast.AliasDecl, scope *Scope) {
 	if scope.Parent != nil && node.IsPub {
 		w.AlertSingle(&alerts.PublicDeclarationInLocalScope{}, node.Token)
@@ -15,7 +42,7 @@ func (w *Walker) aliasDeclaration(node *ast.AliasDecl, scope *Scope) {
 		w.AlertSingle(&alerts.Redeclaration{}, node.Token, node.Name, "alias")
 		return
 	}
-	scope.AliasTypes[node.Name.Lexeme] = NewAliasType(node.Name.Lexeme, w.TypeExpr(node.Type, scope), !node.IsPub)
+	scope.AliasTypes[node.Name.Lexeme] = NewAliasType(node.Name.Lexeme, w.typeExpression(node.Type, scope), !node.IsPub)
 }
 
 func (w *Walker) classDeclaration(node *ast.ClassDecl, scope *Scope) {
@@ -24,7 +51,7 @@ func (w *Walker) classDeclaration(node *ast.ClassDecl, scope *Scope) {
 		return
 	}
 
-	if w.TypeExists(node.Name.Lexeme) {
+	if w.typeExists(node.Name.Lexeme) {
 		// w.Error(node.Name, "a type with this name already exists")
 	}
 
@@ -35,7 +62,7 @@ func (w *Walker) classDeclaration(node *ast.ClassDecl, scope *Scope) {
 	}
 
 	classVal := &ClassVal{
-		Type:     *NewNamedType(w.environment.Name, node.Name.Lexeme, ast.Struct),
+		Type:     *NewNamedType(w.environment.Name, node.Name.Lexeme, ast.Class),
 		IsLocal:  node.IsPub,
 		Fields:   make(map[string]Field),
 		Methods:  map[string]*VariableVal{},
@@ -44,13 +71,13 @@ func (w *Walker) classDeclaration(node *ast.ClassDecl, scope *Scope) {
 	}
 
 	// DECLARATIONS
-	w.DeclareClass(classVal)
+	w.declareClass(classVal)
 
 	classScope := NewScope(scope, &ClassTag{Val: classVal}, SelfAllowing)
 
 	params := make([]Type, 0)
 	for _, param := range node.Constructor.Params {
-		params = append(params, w.TypeExpr(param.Type, scope))
+		params = append(params, w.typeExpression(param.Type, scope))
 	}
 	classVal.Params = params
 
@@ -95,7 +122,7 @@ func (w *Walker) entityDeclaration(node *ast.EntityDecl, scope *Scope) {
 		// w.Error(node.Token, "can't declare an entity inside a local block")
 	}
 
-	if w.TypeExists(node.Name.Lexeme) {
+	if w.typeExists(node.Name.Lexeme) {
 		// w.Error(node.Name, "a type with this name already exists")
 	}
 
@@ -108,7 +135,7 @@ func (w *Walker) entityDeclaration(node *ast.EntityDecl, scope *Scope) {
 
 	et.EntityType = entityVal
 
-	w.DeclareEntity(entityVal)
+	w.declareEntity(entityVal)
 
 	for i := range node.Methods {
 		w.methodDeclaration(&node.Methods[i], entityVal, entityScope)
@@ -159,7 +186,7 @@ func (w *Walker) entityFunctionDeclaration(node *ast.EntityFunctionDecl, entityV
 		generics = append(generics, NewGeneric(param.Name.Lexeme))
 	}
 
-	ret := w.GetReturns(node.Returns, scope)
+	ret := w.getReturns(node.Returns, scope)
 
 	ft := &FuncTag{
 		Generics:    generics,
@@ -167,9 +194,9 @@ func (w *Walker) entityFunctionDeclaration(node *ast.EntityFunctionDecl, entityV
 		Returns:     make([]bool, 0),
 	}
 	fnScope := NewScope(scope, ft, ReturnAllowing)
-	params := w.WalkParams(node.Params, scope, func(name tokens.Token, value Value) {
+	params := w.walkParams(node.Params, scope, func(name tokens.Token, value Value) {
 		variable := NewVariable(name, value)
-		w.DeclareVariable(fnScope, variable)
+		w.declareVariable(fnScope, variable)
 	})
 
 	funcSign := NewFuncSignature().
@@ -179,7 +206,7 @@ func (w *Walker) entityFunctionDeclaration(node *ast.EntityFunctionDecl, entityV
 	w.context.Clear()
 
 	if node.Type != ast.Destroy || entityVal.DestroyParams != nil {
-		w.WalkBody(&node.Body, ft, fnScope)
+		w.walkBody(&node.Body, ft, fnScope)
 
 		if !ft.GetIfExits(Return) && len(ft.ReturnTypes) != 0 {
 			// w.Error(node.GetToken(), "not all code paths return")
@@ -235,11 +262,11 @@ func (w *Walker) enumDeclaration(node *ast.EnumDecl, scope *Scope) {
 
 	enumVar := NewVariable(node.Name, enumVal, !node.IsPub).Const()
 
-	if w.TypeExists(enumVar.Name) {
+	if w.typeExists(enumVar.Name) {
 		// w.Error(node.Name, "a type with this name already exists")
 	}
 
-	w.DeclareVariable(scope, enumVar)
+	w.declareVariable(scope, enumVar)
 }
 
 func (w *Walker) fieldDeclaration(node *ast.FieldDecl, container FieldContainer, scope *Scope) {
@@ -274,11 +301,11 @@ func (w *Walker) methodDeclaration(node *ast.MethodDecl, container MethodContain
 
 		for i := range node.Params {
 			param := &node.Params[i]
-			variable := NewVariable(param.Name, w.TypeToValue(fn.Params[i]))
-			w.DeclareVariable(scope, variable)
+			variable := NewVariable(param.Name, w.typeToValue(fn.Params[i]))
+			w.declareVariable(scope, variable)
 		}
 
-		w.WalkBody(&node.Body, fnTag, fnScope)
+		w.walkBody(&node.Body, fnTag, fnScope)
 	} else {
 		funcExpr := ast.FunctionDecl{
 			Name:     node.Name,
@@ -295,28 +322,18 @@ func (w *Walker) methodDeclaration(node *ast.MethodDecl, container MethodContain
 }
 
 func (w *Walker) functionDeclaration(node *ast.FunctionDecl, scope *Scope, procType ProcedureType) *VariableVal {
-	generics := make([]*GenericType, 0)
-
-	for _, generic := range node.Generics {
-		for i := range generics {
-			if generics[i].Name == generic.Name.Lexeme {
-				w.AlertSingle(&alerts.DuplicateGenericParameter{}, generic.GetToken(), generic.Name.Lexeme)
-				break
-			}
-		}
-		generics = append(generics, NewGeneric(generic.Name.Lexeme))
-	}
+	generics := w.getGenericParams(node.Generics)
 
 	funcTag := &FuncTag{Generics: generics}
 	fnScope := NewScope(scope, funcTag, ReturnAllowing)
 
-	ret := w.GetReturns(node.Returns, fnScope)
+	ret := w.getReturns(node.Returns, fnScope)
 	funcTag.ReturnTypes = ret
 
 	params := make([]Type, 0)
 	for i, param := range node.Params {
-		params = append(params, w.TypeExpr(param.Type, fnScope))
-		w.DeclareVariable(fnScope, NewVariable(param.Name, w.TypeToValue(params[i])))
+		params = append(params, w.typeExpression(param.Type, fnScope))
+		w.declareVariable(fnScope, NewVariable(param.Name, w.typeToValue(params[i])))
 	}
 
 	variable := &VariableVal{
@@ -327,10 +344,10 @@ func (w *Walker) functionDeclaration(node *ast.FunctionDecl, scope *Scope, procT
 		Token:   node.GetToken(),
 		IsLocal: node.IsPub,
 	}
-	w.DeclareVariable(scope, variable)
+	w.declareVariable(scope, variable)
 
 	if procType == Function {
-		w.WalkBody(&node.Body, funcTag, fnScope)
+		w.walkBody(&node.Body, funcTag, fnScope)
 
 		if !funcTag.GetIfExits(Return) && len(ret) != 0 {
 			// w.Error(node.GetToken(), "not all code paths return")
@@ -350,7 +367,7 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 	// }
 	type Value2 struct {
 		value Value
-		token tokens.Token
+		Index int
 	}
 	//check if it's a public declaration in a local scope
 	if declaration.IsPub && scope.Parent != nil {
@@ -366,11 +383,11 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 		exprValue := w.GetNodeValue(&declaration.Expressions[i], scope)
 		if vls, ok := exprValue.(Values); ok {
 			for _, v := range vls {
-				values = append(values, Value2{v, declaration.Expressions[i].GetToken()})
+				values = append(values, Value2{v, i})
 			}
 			continue
 		}
-		values = append(values, Value2{exprValue, declaration.Expressions[i].GetToken()})
+		values = append(values, Value2{exprValue, i})
 	}
 
 	//compare values with the identifiers on the left side
@@ -393,6 +410,10 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 				"variable declaration",
 			)
 			break
+		}
+
+		if ident.Name.Lexeme == "_" {
+			continue
 		}
 
 		var value Value = nil
@@ -419,20 +440,20 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 				Val:  value,
 			}
 			variable.IsConst = true
-			w.DeclareVariable(scope, variable)
+			w.declareVariable(scope, variable)
 			continue
 		}
 
 		var explicitType Type = nil
 		if declaration.Type != nil {
-			explicitType = w.TypeExpr(declaration.Type, scope)
+			explicitType = w.typeExpression(declaration.Type, scope)
 		}
 		if explicitType == nil && value == nil {
 			w.AlertSingle(&alerts.ExplicitTypeRequiredInDeclaration{},
 				ident.Name)
 			value = &Unknown{}
 		} else if explicitType != nil && value == nil {
-			value = w.TypeToValue(explicitType)
+			value = w.typeToValue(explicitType)
 			defaultVal := value.GetDefault()
 			if defaultVal.Value == "nil" {
 				w.AlertSingle(&alerts.ExplicitTypeNotAllowed{}, declaration.Type.GetToken(), explicitType.ToString())
@@ -451,7 +472,7 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 		}
 
 		variable.Value = value
-		w.DeclareVariable(scope, variable)
+		w.declareVariable(scope, variable)
 	}
 	identsLen := len(declaration.Identifiers)
 	if identsLen < valuesLen {
@@ -464,8 +485,8 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 			)
 		} else {
 			w.AlertMulti(&alerts.TooManyValuesGiven{},
-				values[valuesLen-1-extraAmount].token,
-				values[valuesLen-1].token,
+				exprs[values[valuesLen-extraAmount].Index].GetToken(),
+				exprs[values[valuesLen-1].Index].GetToken(),
 				extraAmount,
 				"in variable declaration",
 			)

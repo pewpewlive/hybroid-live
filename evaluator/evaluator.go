@@ -87,9 +87,9 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		start = time.Now()
 
 		e.walkerList[i].SetProgram(program)
-		fmt.Println("[Pass 1] Walking environments...")
-		e.walkerList[i].Pass1(e.walkers)
-		fmt.Printf("Pass 1 time: %f seconds\n\n", time.Since(start).Seconds())
+		fmt.Println("Prewalking environments...")
+		e.walkerList[i].PreWalk(e.walkers)
+		fmt.Printf("Prewalking time: %f seconds\n\n", time.Since(start).Seconds())
 	}
 
 	for i, walker := range e.walkerList {
@@ -102,9 +102,9 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 
 		start := time.Now()
 
-		fmt.Println("[Pass 2] Walking through the nodes...")
-		walker.Pass2()
-		fmt.Printf("Pass 2 time: %f seconds\n\n", time.Since(start).Seconds())
+		fmt.Println("Walking through the nodes...")
+		walker.Walk()
+		fmt.Printf("Walking time: %f seconds\n\n", time.Since(start).Seconds())
 
 		e.printer.StageAlerts(sourcePath, walker.GetAlerts())
 	}

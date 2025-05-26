@@ -6,7 +6,7 @@ import (
 	"hybroid/tokens"
 )
 
-func (gen *Generator) entityExpr(node ast.EntityExpr, scope *GenScope) string {
+func (gen *Generator) entityExpr(node ast.EntityEvaluationExpr, scope *GenScope) string {
 	src := StringBuilder{}
 	var op string
 	switch node.Operator.Type {

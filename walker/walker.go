@@ -3,6 +3,7 @@ package walker // THE ACTUAL WALKING
 import (
 	"hybroid/alerts"
 	"hybroid/ast"
+	"hybroid/core"
 	"hybroid/tokens"
 	"slices"
 )
@@ -120,7 +121,8 @@ func NewWalker(hybroidPath, luaPath string) *Walker {
 		environment: NewEnvironment(hybroidPath, luaPath),
 		program:     []ast.Node{},
 		context: Context{
-			Value: &Unknown{},
+			Value:       &Unknown{},
+			EntityCasts: core.NewQueue[EntityCast]("EntityCasts"),
 		},
 		Collector: alerts.NewCollector(),
 	}
@@ -130,71 +132,41 @@ func (w *Walker) SetProgram(program []ast.Node) {
 	w.program = program
 }
 
-func (w *Walker) Pass1(wlkrs map[string]*Walker) {
-	w.walkers = wlkrs
-	nodes := w.program
+func (w *Walker) PreWalk(walkers map[string]*Walker) {
+	if w.walkers == nil && walkers != nil {
+		w.walkers = walkers
+	}
 
-	if len(nodes) == 0 {
+	if len(w.program) == 0 {
 		return
 	}
 
-	if nodes[0].GetType() != ast.EnvironmentDeclaration {
-		w.AlertSingle(&alerts.ExpectedEnvironment{}, nodes[0].GetToken())
+	if w.program[0].GetType() != ast.EnvironmentDeclaration {
+		w.AlertSingle(&alerts.ExpectedEnvironment{}, w.program[0].GetToken())
 		return
 	}
 
-	scope := &w.environment.Scope
-	for i := range nodes {
-		w.WalkNode(nodes[i], scope)
+	for _, node := range w.program {
+		if environmentDecl, ok := node.(*ast.EnvironmentDecl); ok {
+			w.environmentDeclaration(environmentDecl)
+		}
 	}
 }
 
-func (w *Walker) Pass2() {
-	nodes := w.program
-
-	if len(nodes) == 0 {
+func (w *Walker) Walk() {
+	if len(w.program) == 0 {
 		return
 	}
 
 	scope := &w.environment.Scope
-	for i := range nodes {
-		w.WalkNode2(&nodes[i], scope)
+	for i := range w.program {
+		w.walkNode(&w.program[i], scope)
 	}
 
 	w.Walked = true
 }
 
-func (w *Walker) WalkNode(node ast.Node, scope *Scope) {
-	switch node := node.(type) {
-	case *ast.EnvironmentDecl:
-		if w.environment.Name != "" {
-			w.AlertSingle(&alerts.EnvironmentRedaclaration{}, node.GetToken())
-			return
-		}
-		switch node.EnvType.Token.Lexeme {
-		case "Level":
-			node.EnvType.Type = ast.LevelEnv
-		case "Mesh":
-			node.EnvType.Type = ast.MeshEnv
-		case "Sound":
-			node.EnvType.Type = ast.SoundEnv
-		default:
-			w.AlertSingle(&alerts.InvalidEnvironmentType{}, node.EnvType.Token, node.EnvType.Token.Lexeme)
-		}
-		w.environment.Type = node.EnvType.Type
-		w.environment.Name = node.Env.Path.Lexeme
-		w.environment._envStmt = node
-		if w2, ok := w.walkers[w.environment.Name]; ok {
-			w.AlertSingle(&alerts.DuplicateEnvironmentNames{}, node.GetToken(), w.environment.hybroidPath, w2.environment.hybroidPath)
-			return
-		}
-
-		w.walkers[w.environment.Name] = w
-	default:
-	}
-}
-
-func (w *Walker) WalkNode2(node *ast.Node, scope *Scope) {
+func (w *Walker) walkNode(node *ast.Node, scope *Scope) {
 	switch newNode := (*node).(type) {
 	case *ast.EnvironmentDecl:
 	case *ast.VariableDecl:
@@ -221,9 +193,9 @@ func (w *Walker) WalkNode2(node *ast.Node, scope *Scope) {
 		w.tickStatement(newNode, scope)
 	case *ast.CallExpr:
 		val := w.GetNodeValue(&newNode.Caller, scope)
-		w.CallExpr(val, node, scope)
+		w.callExpression(val, node, scope)
 	case *ast.EnvAccessExpr:
-		_, newVersion := w.EnvAccessExpr(newNode)
+		_, newVersion := w.environmentAccessExpression(newNode)
 		if newVersion != nil {
 			*node = newVersion
 		}
@@ -240,13 +212,11 @@ func (w *Walker) WalkNode2(node *ast.Node, scope *Scope) {
 	case *ast.DestroyStmt:
 		w.destroyStatement(newNode, scope)
 	case *ast.SpawnExpr:
-		w.SpawnExpr(newNode, scope)
+		w.spawnExpression(newNode, scope)
 	case *ast.NewExpr:
-		w.NewExpr(newNode, scope)
+		w.newExpression(newNode, scope)
 	case *ast.AliasDecl:
 		w.aliasDeclaration(newNode, scope)
-	// case *ast.TypeDeclarationStmt:
-	// 	TypeDeclarationStmt(newNode, scope)
 	case *ast.Improper:
 		// w.Error(newNode.GetToken(), "Improper statement: parser fault")
 	case *ast.EntityDecl:
@@ -256,7 +226,7 @@ func (w *Walker) WalkNode2(node *ast.Node, scope *Scope) {
 	}
 }
 
-func (w *Walker) GetNodeActualValue(node *ast.Node, scope *Scope) Value {
+func (w *Walker) GetActualNodeValue(node *ast.Node, scope *Scope) Value {
 	val := w.GetNodeValue(node, scope)
 	if val, ok := val.(*VariableVal); ok {
 		return val.Value
@@ -270,79 +240,66 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 
 	switch newNode := (*node).(type) {
 	case *ast.LiteralExpr:
-		val = w.LiteralExpr(newNode)
+		val = w.literalExpression(newNode)
 	case *ast.BinaryExpr:
-		val = w.BinaryExpr(newNode, scope)
+		val = w.binaryExpression(newNode, scope)
 	case *ast.IdentifierExpr:
-		val = w.IdentifierExpr(node, scope)
+		val = w.identifierExpression(node, scope)
 	case *ast.GroupExpr:
-		val = w.GroupingExpr(newNode, scope)
+		val = w.groupExpression(newNode, scope)
 	case *ast.ListExpr:
-		val = w.ListExpr(newNode, scope)
+		val = w.listExpression(newNode, scope)
 	case *ast.UnaryExpr:
-		val = w.UnaryExpr(newNode, scope)
+		val = w.unaryExpression(newNode, scope)
 	case *ast.CallExpr:
 		callVal := w.GetNodeValue(&newNode.Caller, scope)
-		localVal := w.CallExpr(callVal, node, scope)
+		localVal := w.callExpression(callVal, node, scope)
 		val = localVal
 	case *ast.MapExpr:
-		val = w.MapExpr(newNode, scope)
+		val = w.mapExpression(newNode, scope)
 	case *ast.FunctionExpr:
-		val = w.FunctionExpr(newNode, scope)
+		val = w.functionExpression(newNode, scope)
 	case *ast.StructExpr:
-		val = w.StructExpr(newNode, scope)
+		val = w.structExpression(newNode, scope)
 	case *ast.AccessExpr:
-		val = w.AccessExpr(newNode, scope)
+		val = w.accessExpression(newNode, scope)
 	case *ast.NewExpr:
-		val = w.NewExpr(newNode, scope)
+		val = w.newExpression(newNode, scope)
 	case *ast.SelfExpr:
-		val = w.SelfExpr(newNode, scope)
+		val = w.selfExpression(newNode, scope)
 	case *ast.MatchExpr:
-		val = w.MatchExpr(newNode, scope)
-	case *ast.EntityExpr:
-		val = w.EntityExpr(newNode, scope)
+		val = w.matchExpression(newNode, scope)
+	case *ast.EntityEvaluationExpr:
+		val = w.entityEvaluationExpression(newNode, scope)
 	case *ast.EnvAccessExpr:
 		var newVersion ast.Node
-		val, newVersion = w.EnvAccessExpr(newNode)
+		val, newVersion = w.environmentAccessExpression(newNode)
 		if newVersion != nil {
 			*node = newVersion
 		}
 	case *ast.SpawnExpr:
-		val = w.SpawnExpr(newNode, scope)
+		val = w.spawnExpression(newNode, scope)
 	default:
 		// w.Error(newNode.GetToken(), "Expected expression")
 		return &Invalid{}
 	}
 
-	if field, ok := w.context.Node.(*ast.FieldExpr); ok {
-		if w.context.Value.GetType().GetType() == Strct {
-			field.Index = -1
-			return val
-		}
-		if w.context.PewpewVarFound {
-			field.Index = -1
-			w.context.PewpewVarFound = false
-			return val
-		}
-		if container, ok := w.context.Value.(FieldContainer); ok {
-			_, field.Index, _ = container.ContainsField((*node).GetToken().Lexeme)
-		}
-	}
 	return val
 }
 
-func (w *Walker) WalkBody(body *[]ast.Node, tag ExitableTag, scope *Scope) {
+func (w *Walker) walkBody(body *ast.Body, tag ExitableTag, scope *Scope) {
 	endIndex := -1
-	for i := range *body {
+	bodySlice := *body
+	for i := range bodySlice {
 		if tag.GetIfExits(All) {
-			w.AlertMulti(&alerts.UnreachableCode{}, (*body)[i].GetToken(), (*body)[len(*body)-1].GetToken())
+			w.AlertMulti(&alerts.UnreachableCode{}, bodySlice[i].GetToken(), bodySlice[body.Size()-1].GetToken())
 			endIndex = i
 			break
 		}
-		w.WalkNode2(&(*body)[i], scope)
+		w.walkNode(body.Node(i), scope)
 	}
 	if endIndex != -1 {
-		*body = (*body)[:endIndex]
+		*body = bodySlice[:endIndex]
 	}
 }
 
@@ -359,15 +316,15 @@ func (w *Walker) TypeifyNodeList(nodes *[]ast.Node, scope *Scope) []Type {
 	return arguments
 }
 
-func (w *Walker) WalkParams(parameters []ast.FunctionParam, scope *Scope, declare func(name tokens.Token, value Value)) []Type {
+func (w *Walker) walkParams(parameters []ast.FunctionParam, scope *Scope, declare func(name tokens.Token, value Value)) []Type {
 	variadicParams := make(map[tokens.Token]int)
 	params := make([]Type, 0)
 	for i, param := range parameters {
-		params = append(params, w.TypeExpr(param.Type, scope))
+		params = append(params, w.typeExpression(param.Type, scope))
 		if params[i].GetType() == Variadic {
 			variadicParams[parameters[i].Name] = i
 		}
-		value := w.TypeToValue(params[i])
+		value := w.typeToValue(params[i])
 		declare(param.Name, value)
 	}
 

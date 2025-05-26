@@ -61,11 +61,12 @@ func (ed *EntityDecl) GetToken() tokens.Token           { return ed.Token }
 func (ed *EntityDecl) GetValueType() PrimitiveValueType { return Invalid }
 
 type EntityFunctionDecl struct {
+	Body
+
 	Type     EntityFunctionType
 	Generics []*IdentifierExpr
 	Params   []FunctionParam
 	Returns  []*TypeExpr
-	Body     []Node
 	Token    tokens.Token
 }
 
@@ -85,8 +86,9 @@ func (ed *EnumDecl) GetToken() tokens.Token           { return ed.Name }
 func (ed *EnumDecl) GetValueType() PrimitiveValueType { return Invalid }
 
 type ConstructorDecl struct {
+	Body
+
 	Token    tokens.Token
-	Body     []Node
 	Params   []FunctionParam
 	Generics []*IdentifierExpr
 }
@@ -112,13 +114,14 @@ type FunctionParam struct {
 }
 
 type FunctionDecl struct {
+	Body
+
 	Token    tokens.Token
 	Name     tokens.Token
 	IsPub    bool
 	Generics []*IdentifierExpr
 	Params   []FunctionParam
 	Returns  []*TypeExpr
-	Body     []Node
 }
 
 func (fd *FunctionDecl) GetType() NodeType                { return FunctionDeclaration }
@@ -126,13 +129,14 @@ func (fd *FunctionDecl) GetToken() tokens.Token           { return fd.Token }
 func (fd *FunctionDecl) GetValueType() PrimitiveValueType { return Invalid }
 
 type MethodDecl struct {
+	Body
+
 	Owner    tokens.Token
 	Name     tokens.Token
 	Returns  []*TypeExpr
 	Params   []FunctionParam
 	Generics []*IdentifierExpr
 	IsPub    bool
-	Body     []Node
 }
 
 func (md *MethodDecl) GetType() NodeType                { return MethodDeclaration }

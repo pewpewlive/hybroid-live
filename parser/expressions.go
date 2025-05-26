@@ -37,12 +37,16 @@ func (p *Parser) fn() ast.Node {
 		fn := &ast.FunctionExpr{
 			Token: p.peek(-1),
 		}
-		if p.check(tokens.LeftParen) {
-			fn.Params, _ = p.functionParams(tokens.LeftParen, tokens.RightParen)
-		} else {
-			fn.Params = nil
-			p.AlertSingle(&alerts.ExpectedSymbol{}, p.peek(), tokens.LeftParen, "in function parameters")
+		gens, ok := p.genericParams()
+		if !ok {
+			return ast.NewImproper(fn.Token, ast.FunctionExpression)
 		}
+		fn.Generics = gens
+		params, ok := p.functionParams(tokens.LeftParen, tokens.RightParen)
+		if !ok {
+			return ast.NewImproper(fn.Token, ast.FunctionExpression)
+		}
+		fn.Params = params
 		returns, ok := p.functionReturns()
 		if !ok {
 			return ast.NewImproper(fn.Token, ast.FunctionExpression)
@@ -195,7 +199,7 @@ func (p *Parser) entity() ast.Node {
 		op := p.peek(-1)
 		typ := p.typeExpr("in entity expression")
 
-		return &ast.EntityExpr{
+		return &ast.EntityEvaluationExpr{
 			Expr:             expr,
 			Type:             typ,
 			ConvertedVarName: conv,
@@ -217,7 +221,7 @@ func (p *Parser) AccessorExpr() ast.Node {
 
 accessCheck:
 	var access *ast.AccessExpr
-	if p.check(tokens.Dot) || p.check(tokens.LeftBracket) {
+	if p.check(tokens.Dot, tokens.LeftBracket) {
 		access = &ast.AccessExpr{
 			Start:    expr,
 			Accessed: []ast.Node{},
@@ -239,7 +243,7 @@ accessCheck:
 			})
 		}
 		expr = p.call(access)
-		if p.check(tokens.Less) || p.check(tokens.LeftParen) {
+		if p.check(tokens.Less, tokens.LeftParen) {
 			goto accessCheck
 		}
 	}
@@ -525,7 +529,7 @@ func (p *Parser) structExpr() ast.Node {
 		Token:       field.GetToken(),
 	})
 
-	for p.match(tokens.SemiColon) {
+	for p.match(tokens.Comma) {
 		if p.check(tokens.RightBrace) {
 			break
 		}

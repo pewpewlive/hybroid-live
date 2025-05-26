@@ -77,7 +77,7 @@ func (te *TypeExpr) GetType() NodeType                { return TypeExpression }
 func (te *TypeExpr) GetToken() tokens.Token           { return te.Name.GetToken() }
 func (te *TypeExpr) GetValueType() PrimitiveValueType { return Invalid }
 
-type EntityExpr struct {
+type EntityEvaluationExpr struct {
 	Expr               Node
 	Type               *TypeExpr
 	ConvertedVarName   *tokens.Token
@@ -88,9 +88,9 @@ type EntityExpr struct {
 	Token              tokens.Token
 }
 
-func (ge *EntityExpr) GetType() NodeType                { return GroupExpression }
-func (ge *EntityExpr) GetToken() tokens.Token           { return ge.Token }
-func (ge *EntityExpr) GetValueType() PrimitiveValueType { return Invalid }
+func (eee *EntityEvaluationExpr) GetType() NodeType                { return GroupExpression }
+func (eee *EntityEvaluationExpr) GetToken() tokens.Token           { return eee.Token }
+func (eee *EntityEvaluationExpr) GetValueType() PrimitiveValueType { return Invalid }
 
 type GroupExpr struct {
 	Expr      Node
@@ -157,15 +157,17 @@ type BuiltinExpr struct {
 	Name tokens.Token
 }
 
-func (ce *BuiltinExpr) GetType() NodeType                { return BuiltinExpression }
-func (ce *BuiltinExpr) GetToken() tokens.Token           { return ce.Name }
-func (ce *BuiltinExpr) GetValueType() PrimitiveValueType { return Invalid }
+func (be *BuiltinExpr) GetType() NodeType                { return BuiltinExpression }
+func (be *BuiltinExpr) GetToken() tokens.Token           { return be.Name }
+func (be *BuiltinExpr) GetValueType() PrimitiveValueType { return Invalid }
 
 type FunctionExpr struct {
-	Token   tokens.Token
-	Returns []*TypeExpr
-	Params  []FunctionParam
-	Body    []Node
+	Body
+
+	Token    tokens.Token
+	Returns  []*TypeExpr
+	Params   []FunctionParam
+	Generics []*IdentifierExpr
 }
 
 func (fe *FunctionExpr) GetType() NodeType                { return FunctionExpression }
@@ -179,7 +181,7 @@ type StructExpr struct {
 
 func (ase *StructExpr) GetType() NodeType                { return StructExpression }
 func (ase *StructExpr) GetToken() tokens.Token           { return ase.Token }
-func (ase *StructExpr) GetValueType() PrimitiveValueType { return Struct }
+func (ase *StructExpr) GetValueType() PrimitiveValueType { return Class }
 
 type MatchExpr struct {
 	MatchStmt    MatchStmt
@@ -270,13 +272,6 @@ func (me *MemberExpr) GetValueType() PrimitiveValueType { return me.Member.GetVa
 
 func (me *MemberExpr) GetIdentifier() Node {
 	return me.Member
-}
-
-// used only for map expression
-type Property struct {
-	Key  Node
-	Expr Node
-	Type PrimitiveValueType
 }
 
 type MapExpr struct {

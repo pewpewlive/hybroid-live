@@ -356,23 +356,21 @@ func (p *Parser) checkType(context string) (*ast.TypeExpr, bool) {
 }
 
 // Bool indicates whether it got a valid body or not; the success of the function
-func (p *Parser) body(allowSingleSatement, allowArrow bool) ([]ast.Node, bool) {
+func (p *Parser) body(allowSingleSatement, allowArrow bool) (ast.Body, bool) {
 	if !p.check(tokens.LeftBrace) && p.peek(1).Type == tokens.LeftBrace {
 		p.advance()
 	}
-	body := make([]ast.Node, 0)
+	body := ast.NewBody()
 	if p.match(tokens.FatArrow) && allowArrow {
 		args, ok := p.expressions("in fat arrow return arguments", false)
 		if !ok {
 			p.Alert(&alerts.ExpectedReturnArgs{}, alerts.NewSingle(p.peek()))
-			return []ast.Node{}, false
+			return ast.Body{}, false
 		}
-		body = []ast.Node{
-			&ast.ReturnStmt{
-				Token: args[0].GetToken(),
-				Args:  args,
-			},
-		}
+		body.Append(&ast.ReturnStmt{
+			Token: args[0].GetToken(),
+			Args:  args,
+		})
 		return body, true
 	} else if !p.check(tokens.LeftBrace) && allowSingleSatement {
 		stmt := p.parseNode(p.synchronizeBody)
@@ -380,7 +378,7 @@ func (p *Parser) body(allowSingleSatement, allowArrow bool) ([]ast.Node, bool) {
 			p.Alert(&alerts.UnknownStatement{}, alerts.NewSingle(stmt.GetToken()))
 			return body, false
 		}
-		body = []ast.Node{stmt}
+		body.Append(stmt)
 		return body, true
 	}
 	if _, success := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.LeftBrace); !success {
@@ -397,7 +395,7 @@ func (p *Parser) body(allowSingleSatement, allowArrow bool) ([]ast.Node, bool) {
 			p.Alert(&alerts.UnknownStatement{}, alerts.NewSingle(declaration.GetToken()))
 			continue
 		}
-		body = append(body, declaration)
+		body.Append(declaration)
 	}
 
 	return body, true

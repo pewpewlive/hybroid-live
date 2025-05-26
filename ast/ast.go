@@ -84,13 +84,12 @@ const (
 	Map           PrimitiveValueType = "map"
 	Func          PrimitiveValueType = "func"
 	Entity        PrimitiveValueType = "entity"
+	Class         PrimitiveValueType = "class"
 	Struct        PrimitiveValueType = "struct"
-	AnonStruct    PrimitiveValueType = "anonStruct"
 	Ident         PrimitiveValueType = "ident"
 	Enum          PrimitiveValueType = "enum"
 	Path          PrimitiveValueType = "path"
 	Generic       PrimitiveValueType = "generic"
-	Tuple         PrimitiveValueType = "tuple"
 	Invalid       PrimitiveValueType = "invalid"
 	Uninitialized PrimitiveValueType = "uninitialized"
 )
@@ -129,6 +128,13 @@ const (
 	Spawn           EntityFunctionType = "spawn"
 )
 
+// used only for map expression
+type Property struct {
+	Key  Node
+	Expr Node
+	Type PrimitiveValueType
+}
+
 type Node interface {
 	GetType() NodeType
 	GetToken() tokens.Token
@@ -139,3 +145,23 @@ type NodeCall interface {
 	GetGenerics() []*TypeExpr
 	GetArgs() []Node
 }
+
+type Body []Node
+
+func NewBody() Body {
+	return make(Body, 0)
+}
+
+func (b Body) Size() int {
+	return len(b)
+}
+
+func (b Body) Node(i int) *Node {
+	return &b[i]
+}
+
+func (b *Body) Append(node Node) {
+	*b = append(*b, node)
+}
+
+//type Token tokens.Token

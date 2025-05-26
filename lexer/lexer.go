@@ -96,12 +96,12 @@ func (l *Lexer) next() (*tokens.Token, error) {
 		token.Type = tokens.Comma
 	case ':':
 		token.Type = tokens.Colon
-	case '@':
-		token.Type = tokens.At
+	// case '@':
+	// 	token.Type = tokens.At
 	case '#':
 		token.Type = tokens.Hash
-	case '|':
-		token.Type = tokens.Pipe
+	// case '|':
+	// 	token.Type = tokens.Pipe
 	case '.':
 		if l.match('.') {
 			if l.match('.') {
@@ -190,8 +190,8 @@ func (l *Lexer) next() (*tokens.Token, error) {
 		} else {
 			token.Type = tokens.BackSlash
 		}
-	case ';':
-		token.Type = tokens.SemiColon
+	// case ';':
+	// 	token.Type = tokens.SemiColon
 	case '"':
 		return l.handleString()
 	default:

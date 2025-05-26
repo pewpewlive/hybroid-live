@@ -13,10 +13,10 @@
     "name": "InvalidEnvironmentType",
     "type": "Error",
     "params": {
-      "GivenType": "string"
+      "Type": "string"
     },
     "message": "'%s' is not a valid environment type",
-    "message_format": ["GivenType"],
+    "message_format": ["Type"],
     "note": "environment type can be 'Level', 'Mesh' or 'Sound'"
   },
   {
@@ -44,10 +44,10 @@
     "name": "InvalidAccessValue",
     "type": "Error",
     "params": {
-      "ValueType": "string"
+      "Type": "string"
     },
     "message": "value is of type '%s', so it cannot be accessed from",
-    "message_format": ["ValueType"],
+    "message_format": ["Type"],
     "note": "only lists, maps, classes, entities, structs and enums can be used to access values from"
   },
   {
@@ -116,7 +116,7 @@
     "params": {
       "Type": "string"
     },
-    "message": "caller is not a function (type found: '%s')",
+    "message": "cannot call value of of type '%s' as a function",
     "message_format": ["Type"]
   },
   {
@@ -190,7 +190,7 @@
   {
     "name": "ExplicitTypeMismatch",
     "type": "Error",
-    "params":{
+    "params": {
       "ExplicitType": "string",
       "ValueType": "string"
     },
@@ -200,7 +200,7 @@
   {
     "name": "ExplicitTypeNotAllowed",
     "type": "Error",
-    "params":{
+    "params": {
       "ExplicitType": "string"
     },
     "message": "cannot create a default value from the explicit type '%s'",
@@ -244,7 +244,7 @@
   {
     "name": "AssignmentTypeMismatch",
     "type": "Error",
-    "params":{
+    "params": {
       "VarType": "string",
       "ValType": "string"
     },
@@ -254,11 +254,11 @@
   {
     "name": "InvalidTypeInCompoundAssignment",
     "type": "Error",
-    "params":{
-      "ValType": "string"
+    "params": {
+      "Type": "string"
     },
     "message": "the type '%s' is not allowed in compound assignment",
-    "message_format": ["ValType"],
+    "message_format": ["Type"],
     "note": "only numerical types are allowed, like numbers, fixeds, fixedpoints, degrees and radians"
   },
   {
@@ -270,7 +270,7 @@
     "name": "DuplicateGenericParameter",
     "type": "Error",
     "params": {
-      "Name" : "string"
+      "Name": "string"
     },
     "message": "the generic parameter '%s' is given more than once"
   },
@@ -283,7 +283,7 @@
     "name": "InvalidUseOfExitStmt",
     "type": "Error",
     "params": {
-      "ExitNode" : "string",
+      "ExitNode": "string",
       "Context": "string"
     },
     "message": "cannot use '%s' outside of %s",
@@ -293,7 +293,7 @@
     "name": "TypeMismatch",
     "type": "Error",
     "params": {
-      "Type1" : "string",
+      "Type1": "string",
       "Type2": "string",
       "Context": "string"
     },
@@ -308,7 +308,7 @@
   {
     "name": "UsedPewpewInNonLevelEnvironment",
     "type": "Error",
-    "message": "cannot use the Pewpew environment in a Mesh or Sound environment"
+    "message": "cannot use the Pewpew environment in a Mesh or Sound type environment"
   },
   {
     "name": "UnallowedLibraryUse",
@@ -357,22 +357,65 @@
     "message_format": ["Context"]
   },
   {
-    "name": "InvalidUseOfEmptyIdentifier",
+    "name": "EnvironmentAccessToItself",
+    "type": "Error",
+    "message": "an environment cannot access itself"
+  },
+  {
+    "name": "EntityConversionWithOrCondition",
+    "type": "Error",
+    "message": "cannot convert an entity with an 'or' condition"
+  },
+  {
+    "name": "InvalidCondition",
     "type": "Error",
     "params": {
       "Context": "string"
     },
-    "message": "invalid use of empty identifier ('_') %s",
-    "message_format": ["Context"]
+    "message": "invalid condition %s",
+    "message_format": ["Context"],
+    "note": "conditions always have to evaluate to either true or false"
   },
   {
-    "name": "InvalidTypeInDestroyStatement",
+    "name": "InvalidRepeatIterator",
     "type": "Error",
     "params": {
       "Type": "string"
     },
-    "message": "the type '%s' is not allowed in destroy statement",
+    "message": "invalid repeat iterator of type '%s'",
     "message_format": ["Type"],
-    "note": "destroy statement only allows entities to be destroyed"
+    "note": "repeat iterator must be a numerical type"
+  },
+  {
+    "name": "InconsistentRepeatTypes",
+    "type": "Error",
+    "params": {
+      "From": "string",
+      "Skip": "string",
+      "Iterator": "string"
+    },
+    "message": "repeat types are inconsistent (from:'%s', by:'%s', to:'%s')",
+    "message_format": ["From", "Skip", "Iterator"]
+  },
+  {
+    "name": "OfficialEntityConversion",
+    "type": "Error",
+    "message": "conversion of an official entity to a hybroid entity is not possible"
+  },
+  {
+    "name": "InvalidType",
+    "type": "Error",
+    "params": {
+      "Expected": "string",
+      "Got": "string",
+      "Context": "string"
+    },
+    "message": "expected %s, got '%s' %s",
+    "message_format": ["Expected", "Got", "Context"]
+  },
+  {
+    "name": "InvalidEnvironment",
+    "type": "Error",
+    "message": ""
   }
 ]

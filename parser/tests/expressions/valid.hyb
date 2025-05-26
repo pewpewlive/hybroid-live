@@ -73,7 +73,7 @@ entity EntityTest {
     text a = ""
     Test b = new Test()
 
-    fn test((bool, bool) thing) -> Env:Type {
+    fn test(bool thing) -> Env:Type {
         thing, a = b == 4, a == ""
     }
 
@@ -95,7 +95,7 @@ let za = v[1]["a"].call()[0].field["a"]()
 
 alias zb = number
 alias zc = list<number>
-alias p = (number, list<number>, zb)
+alias p = list<list<list<zb>>>
 alias e = struct{WeaponType a, bool b, p i}
 alias Alias = fn(number, Thing:Type) -> entity
 enum O {
