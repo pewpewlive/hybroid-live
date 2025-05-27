@@ -1262,30 +1262,210 @@ func (oec *OfficialEntityConversion) GetAlertType() Type {
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type InvalidType struct {
+type InvalidEnvironment struct {
   Specifier Snippet
-  Expected string
-  Got string
-  Context string
 }
 
-func (it *InvalidType) GetMessage() string {
-  return fmt.Sprintf("expected %s, got '%s' %s", it.Expected, it.Got, it.Context)
+func (ie *InvalidEnvironment) GetMessage() string {
+  return "there is no environment with that path"
 }
 
-func (it *InvalidType) GetSpecifier() Snippet {
-  return it.Specifier
+func (ie *InvalidEnvironment) GetSpecifier() Snippet {
+  return ie.Specifier
 }
 
-func (it *InvalidType) GetNote() string {
+func (ie *InvalidEnvironment) GetNote() string {
   return ""
 }
 
-func (it *InvalidType) GetID() string {
+func (ie *InvalidEnvironment) GetID() string {
   return "hyb049W"
 }
 
-func (it *InvalidType) GetAlertType() Type {
+func (ie *InvalidEnvironment) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type EnvironmentAccessAmbiguity struct {
+  Specifier Snippet
+  Envs []string
+  Context string
+}
+
+func (eaa *EnvironmentAccessAmbiguity) GetMessage() string {
+  return fmt.Sprintf("the type '%s' can be found on multiple environments: %s", eaa.Context, strings.Join(eaa.Envs, ", "))
+}
+
+func (eaa *EnvironmentAccessAmbiguity) GetSpecifier() Snippet {
+  return eaa.Specifier
+}
+
+func (eaa *EnvironmentAccessAmbiguity) GetNote() string {
+  return ""
+}
+
+func (eaa *EnvironmentAccessAmbiguity) GetID() string {
+  return "hyb050W"
+}
+
+func (eaa *EnvironmentAccessAmbiguity) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type NotAllCodePathsExit struct {
+  Specifier Snippet
+  ExitType string
+}
+
+func (nacpe *NotAllCodePathsExit) GetMessage() string {
+  return fmt.Sprintf("not all code paths %s", nacpe.ExitType)
+}
+
+func (nacpe *NotAllCodePathsExit) GetSpecifier() Snippet {
+  return nacpe.Specifier
+}
+
+func (nacpe *NotAllCodePathsExit) GetNote() string {
+  return ""
+}
+
+func (nacpe *NotAllCodePathsExit) GetID() string {
+  return "hyb051W"
+}
+
+func (nacpe *NotAllCodePathsExit) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InsufficientCases struct {
+  Specifier Snippet
+}
+
+func (ic *InsufficientCases) GetMessage() string {
+  return "match statement must have at least 1 non-default case"
+}
+
+func (ic *InsufficientCases) GetSpecifier() Snippet {
+  return ic.Specifier
+}
+
+func (ic *InsufficientCases) GetNote() string {
+  return ""
+}
+
+func (ic *InsufficientCases) GetID() string {
+  return "hyb052W"
+}
+
+func (ic *InsufficientCases) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type DefaultCaseMissing struct {
+  Specifier Snippet
+}
+
+func (dcm *DefaultCaseMissing) GetMessage() string {
+  return "match expression must have a default case"
+}
+
+func (dcm *DefaultCaseMissing) GetSpecifier() Snippet {
+  return dcm.Specifier
+}
+
+func (dcm *DefaultCaseMissing) GetNote() string {
+  return "default cases start with 'else'"
+}
+
+func (dcm *DefaultCaseMissing) GetID() string {
+  return "hyb053W"
+}
+
+func (dcm *DefaultCaseMissing) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidCaseType struct {
+  Specifier Snippet
+  MatchValueType string
+  CaseValueType string
+}
+
+func (ict *InvalidCaseType) GetMessage() string {
+  return fmt.Sprintf("match value is of type '%s', but case value is of type '%s'", ict.MatchValueType, ict.CaseValueType)
+}
+
+func (ict *InvalidCaseType) GetSpecifier() Snippet {
+  return ict.Specifier
+}
+
+func (ict *InvalidCaseType) GetNote() string {
+  return ""
+}
+
+func (ict *InvalidCaseType) GetID() string {
+  return "hyb054W"
+}
+
+func (ict *InvalidCaseType) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type LiteralCondition struct {
+  Specifier Snippet
+  ConditionValue string
+}
+
+func (lc *LiteralCondition) GetMessage() string {
+  return fmt.Sprintf("condition is always %s", lc.ConditionValue)
+}
+
+func (lc *LiteralCondition) GetSpecifier() Snippet {
+  return lc.Specifier
+}
+
+func (lc *LiteralCondition) GetNote() string {
+  return ""
+}
+
+func (lc *LiteralCondition) GetID() string {
+  return "hyb055W"
+}
+
+func (lc *LiteralCondition) GetAlertType() Type {
+  return Warning
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type ArithmeticTypesMismatch struct {
+  Specifier Snippet
+  Type1 string
+  Type2 string
+}
+
+func (atm *ArithmeticTypesMismatch) GetMessage() string {
+  return fmt.Sprintf("left value is of type '%s', but right value is of type '%s'", atm.Type1, atm.Type2)
+}
+
+func (atm *ArithmeticTypesMismatch) GetSpecifier() Snippet {
+  return atm.Specifier
+}
+
+func (atm *ArithmeticTypesMismatch) GetNote() string {
+  return ""
+}
+
+func (atm *ArithmeticTypesMismatch) GetID() string {
+  return "hyb056W"
+}
+
+func (atm *ArithmeticTypesMismatch) GetAlertType() Type {
   return Error
 }
 

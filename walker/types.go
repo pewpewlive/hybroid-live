@@ -10,7 +10,7 @@ type Type interface {
 	GetType() ValueType
 	//DO NOT USE ON ITS OWN, USE TypeEquals() INSTEAD
 	_eq(other Type) bool
-	ToString() string
+	String() string
 }
 
 type ValueType int
@@ -55,8 +55,8 @@ func (vt *VariadicType) _eq(other Type) bool {
 	return vt.Type == path.Type
 }
 
-func (vt *VariadicType) ToString() string {
-	return "..." + vt.Type.ToString()
+func (vt *VariadicType) String() string {
+	return "..." + vt.Type.String()
 }
 
 type PathType struct {
@@ -82,7 +82,7 @@ func (pt *PathType) _eq(other Type) bool {
 	return pt.Env == path.Env
 }
 
-func (pt *PathType) ToString() string {
+func (pt *PathType) String() string {
 	return string(pt.Env)
 }
 
@@ -114,7 +114,7 @@ func (at *AliasType) _eq(other Type) bool {
 }
 
 func (at *AliasType) ToString() string {
-	return at.Name + "(alias for " + at.UnderlyingType.ToString() + ")"
+	return at.Name + "(alias for " + at.UnderlyingType.String() + ")"
 }
 
 type FunctionType struct {
@@ -165,7 +165,7 @@ func (ft *FunctionType) _eq(other Type) bool {
 	return true
 }
 
-func (ft *FunctionType) ToString() string {
+func (ft *FunctionType) String() string {
 	src := generator.StringBuilder{}
 
 	src.Write("fn(")
@@ -173,9 +173,9 @@ func (ft *FunctionType) ToString() string {
 	length := len(ft.Params)
 	for i := range ft.Params {
 		if i == length-1 {
-			src.Write(ft.Params[i].ToString())
+			src.Write(ft.Params[i].String())
 		} else {
-			src.Write(ft.Params[i].ToString(), ", ")
+			src.Write(ft.Params[i].String(), ", ")
 		}
 	}
 	src.Write(")")
@@ -188,9 +188,9 @@ func (ft *FunctionType) ToString() string {
 	length = len(ft.Returns)
 	for i := range ft.Returns {
 		if i == length-1 {
-			src.Write(ft.Returns[i].ToString())
+			src.Write(ft.Returns[i].String())
 		} else {
-			src.Write(ft.Returns[i].ToString(), ", ")
+			src.Write(ft.Returns[i].String(), ", ")
 		}
 	}
 
@@ -214,7 +214,7 @@ func (gt *GenericType) _eq(other Type) bool {
 	return g.Name == gt.Name
 }
 
-func (gt *GenericType) ToString() string {
+func (gt *GenericType) String() string {
 	return gt.Name
 }
 
@@ -239,7 +239,7 @@ func (ret *RawEntityType) _eq(other Type) bool {
 	return otherRET.GetType() == RawEntity
 }
 
-func (ret *RawEntityType) ToString() string {
+func (ret *RawEntityType) String() string {
 	return string(ast.Entity)
 }
 
@@ -267,7 +267,7 @@ func (bt *BasicType) _eq(other Type) bool {
 	return bt.PrimitiveType == basic.PrimitiveType
 }
 
-func (bt *BasicType) ToString() string {
+func (bt *BasicType) String() string {
 	return string(bt.PrimitiveType)
 }
 
@@ -294,7 +294,7 @@ func (fp *FixedPoint) _eq(other Type) bool {
 	return true
 }
 
-func (fp *FixedPoint) ToString() string {
+func (fp *FixedPoint) String() string {
 	return string(fp.Specific)
 }
 
@@ -351,7 +351,7 @@ func (st *StructType) _eq(other Type) bool {
 	return true
 }
 
-func (st *StructType) ToString() string {
+func (st *StructType) String() string {
 	src := generator.StringBuilder{}
 
 	src.Write("struct{")
@@ -360,10 +360,10 @@ func (st *StructType) ToString() string {
 	for k, v := range st.Fields {
 		if index == length {
 			_type := v.Var.Value.GetType()
-			src.Write(_type.ToString(), " ", k)
+			src.Write(_type.String(), " ", k)
 		} else {
 			_type := v.Var.Value.GetType()
-			src.Write(_type.ToString(), " ", k, ", ")
+			src.Write(_type.String(), " ", k, ", ")
 		}
 		index++
 	}
@@ -401,7 +401,7 @@ func (nt *NamedType) _eq(othr Type) bool {
 	return nt.Name == other.Name
 }
 
-func (nt *NamedType) ToString() string {
+func (nt *NamedType) String() string {
 	return nt.Name
 }
 
@@ -430,7 +430,7 @@ func (et *EnumType) _eq(other Type) bool {
 	return et.Name == other.(*EnumType).Name
 }
 
-func (et *EnumType) ToString() string {
+func (et *EnumType) String() string {
 	return et.Name
 }
 
@@ -468,8 +468,8 @@ func (wt *WrapperType) _eq(othr Type) bool {
 	return true
 }
 
-func (wt *WrapperType) ToString() string {
-	return wt.Type.ToString() + "<" + wt.WrappedType.ToString() + ">"
+func (wt *WrapperType) String() string {
+	return wt.Type.String() + "<" + wt.WrappedType.String() + ">"
 }
 
 type ObjectType struct{}
@@ -489,7 +489,7 @@ func (ot *ObjectType) _eq(_ Type) bool {
 	return false
 }
 
-func (ot *ObjectType) ToString() string {
+func (ot *ObjectType) String() string {
 	return "NotAnyType"
 }
 
@@ -525,14 +525,14 @@ func (fs *FuncSignature) ToString() string {
 	if len(fs.Generics) != 0 {
 		src.Write("<")
 		for i := range fs.Generics {
-			src.Write(fs.Generics[i].ToString())
+			src.Write(fs.Generics[i].String())
 		}
 		src.Write(">")
 	}
 	if len(fs.Params) != 0 {
 		src.Write("(")
 		for i := range fs.Params {
-			src.Write(fs.Params[i].ToString())
+			src.Write(fs.Params[i].String())
 			if i != len(fs.Params)-1 {
 				src.Write(", ")
 			}
@@ -546,7 +546,7 @@ func (fs *FuncSignature) ToString() string {
 			src.Write("(")
 		}
 		for i := range fs.Returns {
-			src.Write(fs.Returns[i].ToString())
+			src.Write(fs.Returns[i].String())
 		}
 		if retLength != 1 {
 			src.Write(")")
@@ -752,11 +752,11 @@ var SoundValueType = NewStructType([]*VariableVal{
 	},
 	{
 		Name:  "normalization",
-		Value: &BoolVal{},
+		Value: NewBoolVal(),
 	},
 	{
 		Name:  "interpolateNoise",
-		Value: &BoolVal{},
+		Value: NewBoolVal(),
 	},
 	{
 		Name:  "compression",

@@ -41,19 +41,40 @@ func (w *Walker) matchExpression(node *ast.MatchExpr, scope *Scope) Value {
 	mtt := &MatchExprTag{}
 
 	matchScope := NewScope(scope, mtt, YieldAllowing)
-	casesLength := len(node.MatchStmt.Cases) + 1
-	if node.MatchStmt.HasDefault {
-		casesLength--
+	cases := node.MatchStmt.Cases
+	casesLength := len(cases)
+	if !node.MatchStmt.HasDefault {
+		w.AlertSingle(&alerts.DefaultCaseMissing{}, node.MatchStmt.Token)
+		casesLength++
+		if casesLength < 1 {
+			w.AlertSingle(&alerts.InsufficientCases{}, node.MatchStmt.Token)
+		}
+	} else if casesLength < 2 {
+		w.AlertSingle(&alerts.InsufficientCases{}, node.MatchStmt.Token)
 	}
 	matchScope.Tag = &MatchExprTag{YieldTypes: make([]Type, 0)}
-	mpt := NewMultiPathTag(casesLength)
+	mpt := NewMultiPathTag(casesLength, YieldAllowing)
 
-	w.GetNodeValue(&node.MatchStmt.ExprToMatch, scope)
+	valToMatch := w.GetActualNodeValue(&node.MatchStmt.ExprToMatch, scope)
 
-	for i := range node.MatchStmt.Cases {
+	for i := range cases {
 		caseScope := NewScope(matchScope, mpt)
-		w.GetNodeValue(&node.MatchStmt.Cases[i].Expression, matchScope)
-		w.walkBody(&node.MatchStmt.Cases[i].Body, mpt, caseScope)
+		caseExpr := cases[i].Expression
+		if caseExpr.GetToken().Lexeme != "else" {
+			val := w.GetNodeValue(&caseExpr, matchScope)
+			if !TypeEquals(valToMatch.GetType(), val.GetType()) {
+				w.AlertSingle(&alerts.InvalidCaseType{}, caseExpr.GetToken(), valToMatch.GetType(), val.GetType())
+			}
+		}
+		w.walkBody(&cases[i].Body, mpt, caseScope)
+	}
+
+	if node.MatchStmt.HasDefault && !mpt.GetIfExits(Yield) {
+		w.AlertMulti(&alerts.NotAllCodePathsExit{},
+			cases[0].Expression.GetToken(),
+			cases[len(cases)-1].Expression.GetToken(),
+			"yield",
+		)
 	}
 
 	yieldTypes := matchScope.Tag.(*MatchExprTag).YieldTypes
@@ -87,12 +108,12 @@ func (w *Walker) entityEvaluationExpression(node *ast.EntityEvaluationExpr, scop
 	}
 
 	if valType.PVT() != ast.Entity {
-		w.AlertSingle(&alerts.InvalidType{}, node.Expr.GetToken(), "entity", valType.ToString(), "in entity evaluation expression")
+		w.AlertSingle(&alerts.TypeMismatch{}, node.Expr.GetToken(), "entity", valType.String(), "in entity evaluation expression")
 	}
 	if !node.OfficialEntityType {
-		if typ.GetType() != Named && typ.PVT() != ast.Entity {
-			w.AlertSingle(&alerts.InvalidType{}, node.Type.GetToken(), "entity", typ.ToString(), "in entity evaluation expression")
-			return &BoolVal{}
+		if !(typ.GetType() == Named && typ.PVT() == ast.Entity) {
+			w.AlertSingle(&alerts.TypeMismatch{}, node.Type.GetToken(), "entity", typ.String(), "in entity evaluation expression")
+			return NewBoolVal("false")
 		}
 		entityVal := w.typeToValue(typ).(*EntityVal)
 		if node.ConvertedVarName != nil {
@@ -104,25 +125,23 @@ func (w *Walker) entityEvaluationExpression(node *ast.EntityEvaluationExpr, scop
 		w.AlertSingle(&alerts.OfficialEntityConversion{}, *node.ConvertedVarName)
 	}
 
-	return &BoolVal{}
+	return NewBoolVal()
 }
 
 func (w *Walker) binaryExpression(node *ast.BinaryExpr, scope *Scope) Value {
-	left, right := w.GetNodeValue(&node.Left, scope), w.GetNodeValue(&node.Right, scope)
+	left, right := w.GetActualNodeValue(&node.Left, scope), w.GetNodeValue(&node.Right, scope)
 	leftType, rightType := left.GetType(), right.GetType()
 	op := node.Operator
 	switch op.Type {
 	case tokens.Plus, tokens.Minus, tokens.Caret, tokens.Star, tokens.Slash, tokens.Modulo, tokens.BackSlash:
-		w.validateArithmeticOperands(leftType, rightType, node)
-		typ := w.determineValueType(leftType, rightType)
-
-		if typ.PVT() == ast.Invalid {
-			return &Invalid{}
-		}
+		typ := w.validateArithmeticOperands(leftType, rightType, node)
 		return w.typeToValue(typ)
 	case tokens.Concat:
-		if !TypeEquals(leftType, NewBasicType(ast.String)) && !TypeEquals(rightType, NewBasicType(ast.String)) {
-			return &Invalid{}
+		if leftType.PVT() != ast.String {
+			w.AlertSingle(&alerts.TypeMismatch{}, node.Left.GetToken(), "string", leftType, "in concatenation")
+		}
+		if rightType.PVT() != ast.String {
+			w.AlertSingle(&alerts.TypeMismatch{}, node.Right.GetToken(), "string", rightType, "in concatenation")
 		}
 		return &StringVal{}
 	default: // comparison
@@ -135,19 +154,11 @@ func (w *Walker) binaryExpression(node *ast.BinaryExpr, scope *Scope) Value {
 			}
 			if operand != nil && operand.(*ast.EntityEvaluationExpr).ConvertedVarName != nil {
 				w.AlertSingle(&alerts.EntityConversionWithOrCondition{}, operand.GetToken())
-				return &Invalid{}
+				return NewBoolVal()
 			}
 		}
 
-		if !TypeEquals(leftType, rightType) {
-			w.AlertSingle(&alerts.TypeMismatch{}, node.Left.GetToken(),
-				leftType.ToString(),
-				rightType.ToString(),
-				"in binary expression",
-			)
-			return &Invalid{}
-		}
-		return &BoolVal{}
+		return w.validateConditionalOperands(left, right, node)
 	}
 }
 
@@ -158,7 +169,9 @@ func (w *Walker) literalExpression(node *ast.LiteralExpr) Value {
 	case ast.Fixed, ast.Radian, ast.FixedPoint, ast.Degree:
 		return &FixedVal{SpecificType: node.ValueType}
 	case ast.Bool:
-		return &BoolVal{}
+		return &BoolVal{
+			Value: node.Value,
+		}
 	case ast.Number:
 		return &NumberVal{}
 	default:
@@ -315,11 +328,11 @@ func (w *Walker) listExpression(node *ast.ListExpr, scope *Scope) Value {
 func (w *Walker) callExpression(val Value, node *ast.Node, scope *Scope) Value {
 	call := (*node).(*ast.CallExpr)
 
-	valType := val.GetType().PVT()
-	if valType == ast.Invalid {
+	valType := val.GetType()
+	if valType == InvalidType {
 		return &Invalid{}
 	}
-	if valType != ast.Func {
+	if valType.PVT() != ast.Func {
 		w.AlertSingle(&alerts.InvalidCallerType{}, call.GetToken(), valType)
 		return &Invalid{}
 	}
@@ -472,8 +485,8 @@ func (w *Walker) mapExpression(node *ast.MapExpr, scope *Scope) Value {
 
 		if i != 0 && !TypeEquals(currentType, memberType) {
 			w.AlertSingle(&alerts.MixedMapOrListContents{}, prop.Expr.GetToken(),
-				currentType.ToString(),
-				memberType.ToString(),
+				currentType.String(),
+				memberType.String(),
 			)
 			currentType = InvalidType
 			break
@@ -491,28 +504,25 @@ func (w *Walker) unaryExpression(node *ast.UnaryExpr, scope *Scope) Value {
 	valType := val.GetType()
 	valPVT := valType.PVT()
 
-	// token := node.GetToken()
-
 	if valPVT == ast.Invalid {
-		// w.Error(token, "value is invalid")
 		return val
 	}
+
+	token := node.Value.GetToken()
 
 	switch node.Operator.Type {
 	case tokens.Bang:
 		if valPVT != ast.Bool {
-			// w.Error(token, "value must be a bool to be negated")
+			w.AlertSingle(&alerts.TypeMismatch{}, token, "bool", valType.String(), "after '!' in unary expression")
 		}
 	case tokens.Hash:
-		if valType.GetType() == Wrapper && valType.(*WrapperType).Type.PVT() != ast.List {
-			// w.Error(token, "value must be a list")
-		} else if valType.GetType() != Wrapper {
-			// w.Error(token, "value must be a list")
+		if !(valType.GetType() == Wrapper && valType.(*WrapperType).Type.PVT() == ast.List) {
+			w.AlertSingle(&alerts.TypeMismatch{}, token, "list", valType.String(), "after '#' in unary expression")
 		}
 		return &NumberVal{}
 	case tokens.Minus:
-		if valPVT != ast.Number && valType.GetType() != Fixed {
-			// w.Error(token, "value must be a number or fixed")
+		if !isNumerical(valPVT) {
+			w.AlertSingle(&alerts.TypeMismatch{}, token, "a numerical type", valType.String(), "after '-' in unary expression")
 		}
 	}
 
@@ -545,7 +555,7 @@ func (w *Walker) newExpression(new *ast.NewExpr, scope *Scope) Value {
 		return &Invalid{}
 	}
 	if _type.PVT() != ast.Class {
-		w.AlertSingle(&alerts.InvalidType{}, new.Type.GetToken(), "class", _type.ToString(), "in new expression")
+		w.AlertSingle(&alerts.TypeMismatch{}, new.Type.GetToken(), "class", _type.String(), "in new expression")
 		return &Invalid{}
 	}
 
@@ -568,7 +578,7 @@ func (w *Walker) spawnExpression(new *ast.SpawnExpr, scope *Scope) Value {
 		return &Invalid{}
 	}
 	if _type.PVT() != ast.Entity {
-		w.AlertSingle(&alerts.InvalidType{}, new.Type.GetToken(), "entity", _type.ToString(), "in spawn expression")
+		w.AlertSingle(&alerts.TypeMismatch{}, new.Type.GetToken(), "entity", _type.String(), "in spawn expression")
 		return &Invalid{}
 	}
 
@@ -592,12 +602,12 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 	var typ Type
 	if typee.Name.GetType() == ast.EnvironmentAccessExpression {
 		expr, _ := typee.Name.(*ast.EnvAccessExpr)
-		path := expr.PathExpr.Path.Lexeme
+		path := expr.PathExpr.Path
 
-		walker, found := w.walkers[path]
+		walker, found := w.walkers[path.Lexeme]
 		var env *Environment
 		if !found {
-			switch path {
+			switch path.Lexeme {
 			case "Pewpew":
 				env = PewpewEnv
 			case "Fmath":
@@ -609,7 +619,7 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 			case "Table":
 				env = TableEnv
 			default:
-				// w.Error(expr.GetToken(), "Environment name so doesn't exist")
+				w.AlertSingle(&alerts.InvalidEnvironment{}, path)
 				return InvalidType
 			}
 		} else if walker.environment.luaPath == "/dynamic/level.lua" {
@@ -690,6 +700,8 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 		typ = &RawEntityType{}
 	default:
 		typeName := typee.Name.GetToken().Lexeme
+
+		// check for types of the environment
 		if entityVal, found := scope.Environment.Entities[typeName]; found {
 			typ = entityVal.GetType()
 			break
@@ -700,19 +712,21 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 		}
 		if aliasType, found := scope.AliasTypes[typeName]; found {
 			typ = aliasType.UnderlyingType
-
 			break
 		}
-		if val, ok := scope.Environment.Scope.Variables[typeName]; ok {
-			if val.GetType().PVT() == ast.Enum {
-				typ = val.GetType()
-				w.checkAccessibility(scope, val.IsLocal, typee.Name.GetToken())
-				break
-			}
+		if val, ok := scope.Environment.Scope.Variables[typeName]; ok && val.GetType().PVT() == ast.Enum {
+			typ = val.GetType()
+			w.checkAccessibility(scope, val.IsLocal, typee.Name.GetToken())
+			break
 		}
 
-		sc, _, fnTag := resolveTagScope[*FuncTag](scope)
+		if scope.Environment.Name != w.environment.Name {
+			typ = InvalidType
+			break
+		}
 
+		// Check for function generics
+		sc, _, fnTag := resolveTagScope[*FuncTag](scope)
 		if sc != nil {
 			fnTag := *fnTag
 			for _, v := range fnTag.Generics {
@@ -722,86 +736,49 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 			}
 		}
 
-		if len(scope.Environment.UsedLibraries) != 0 {
-			if alias, found := BuiltinEnv.Scope.AliasTypes[typeName]; found {
-				typ = alias.UnderlyingType
-				break
+		types := []Type{}
+		envs := []string{}
+		for _, v := range scope.Environment.UsedLibraries {
+			typ := w.typeExpression(typee, &LibraryEnvs[v].Scope)
+			if typ != InvalidType {
+				types = append(types, typ)
+				envs = append(envs, LibraryEnvs[v].Name)
 			}
 		}
 
-		if scope.Environment.Name != w.environment.Name {
-			typ = InvalidType
-			break
-		}
-
-		types := map[string]Type{}
 		for i := range scope.Environment.importedWalkers {
 			if !scope.Environment.importedWalkers[i].Walked {
 				scope.Environment.importedWalkers[i].Walk()
 			}
 			typ := w.typeExpression(typee, &scope.Environment.importedWalkers[i].environment.Scope)
-			if typ.PVT() != ast.Invalid {
-				types[scope.Environment.importedWalkers[i].environment.Name] = typ
+			if typ != InvalidType {
+				types = append(types, typ)
+				envs = append(envs, scope.Environment.importedWalkers[i].environment.Name)
 			}
 		}
 
-		for k, v := range scope.Environment.UsedLibraries {
-			if !v {
-				continue
-			}
-
-			typ := w.typeExpression(typee, &LibraryEnvs[k].Scope)
-			if typ.PVT() != ast.Invalid {
-				types[LibraryEnvs[k].Name] = typ
-			}
+		if len(types) > 1 {
+			w.AlertSingle(&alerts.EnvironmentAccessAmbiguity{}, typee.GetToken(), typeName, envs)
+			typ = InvalidType
+			break
+		}
+		if len(types) == 0 {
+			typ = InvalidType
+			break
 		}
 
-		// if len(types) > 1 {
-		// 	errorMsg := "conflicting types between: "
-		// 	for k, v := range types {
-		// 		errorMsg += k + ":" + v.ToString() + ", "
-		// 	}
-		// 	errorMsg = errorMsg[:len(errorMsg)-1]
-		// 	// w.Error(typee.GetToken(), errorMsg)
-		// } else if len(types) == 1 {
-		// 	for k, v := range types {
-		// 		typee.Name = &ast.EnvAccessExpr{
-		// 			PathExpr: &ast.EnvPathExpr{
-		// 				Path: lexer.Token{
-		// 					Lexeme:   k,
-		// 					Location: typee.Name.GetToken().Location,
-		// 				},
-		// 			},
-		// 			Accessed: &ast.IdentifierExpr{
-		// 				Name: typee.Name.GetToken(),
-		// 			},
-		// 		}
-		// 		return v
-		// 	}
-		// }
-		for k, v := range types {
-			typee.Name = &ast.EnvAccessExpr{
-				PathExpr: &ast.EnvPathExpr{
-					Path: tokens.Token{
-						Lexeme:   k,
-						Location: typee.Name.GetToken().Location,
-					},
+		typee.Name = &ast.EnvAccessExpr{
+			PathExpr: &ast.EnvPathExpr{
+				Path: tokens.Token{
+					Lexeme:   envs[0],
+					Location: typee.Name.GetToken().Location,
 				},
-				Accessed: &ast.IdentifierExpr{
-					Name: typee.Name.GetToken(),
-				},
-			}
-			return v
+			},
+			Accessed: &ast.IdentifierExpr{
+				Name: typee.Name.GetToken(),
+			},
 		}
-
-		if len(scope.Environment.UsedLibraries) != 0 {
-			if alias, found := BuiltinEnv.Scope.AliasTypes[typeName]; found {
-				typ = alias.UnderlyingType
-				break
-			}
-		}
-
-		typ = InvalidType
+		typ = types[0]
 	}
 
 	if typee.IsVariadic {

@@ -12,7 +12,7 @@ var PewpewEnv = &Environment{
 		AliasTypes: make(map[string]*AliasType),
 	},
 	importedWalkers: make([]*Walker, 0),
-	UsedLibraries:   make(map[Library]bool),
+	UsedLibraries:   make([]Library, 0),
 	Classes:         make(map[string]*ClassVal),
 	Entities:        make(map[string]*EntityVal),
 }
@@ -118,7 +118,7 @@ var PewpewVariables = map[string]*VariableVal{
 		Value: NewFunction(NewBasicType(ast.Number), NewStructType([]*VariableVal{
 			{
 				Name:  "has_lost",
-				Value: &BoolVal{},
+				Value: NewBoolVal(),
 			},
 			{
 				Name:  "shield",
@@ -168,7 +168,7 @@ var PewpewVariables = map[string]*VariableVal{
 			},
 			{
 				Name:  "has_lost",
-				Value: &BoolVal{},
+				Value: NewBoolVal(),
 			},
 		}, false)),
 	},
@@ -325,7 +325,7 @@ var PewpewVariables = map[string]*VariableVal{
 			},
 			{
 				Name:  "is_optional",
-				Value: &BoolVal{},
+				Value: NewBoolVal(),
 			},
 		}, true)).WithReturns(&RawEntityType{}),
 	},

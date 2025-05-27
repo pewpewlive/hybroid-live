@@ -25,7 +25,7 @@ type Environment struct {
 	Scope Scope
 
 	importedWalkers []*Walker // the walkers imported through UseStmt
-	UsedLibraries   map[Library]bool
+	UsedLibraries   []Library
 	UsedBuiltinVars []string
 
 	Classes  map[string]*ClassVal
@@ -57,19 +57,13 @@ func NewEnvironment(hybroidPath, luaPath string) *Environment {
 		AliasTypes: make(map[string]*AliasType),
 	}
 	global := &Environment{
-		hybroidPath: hybroidPath,
-		luaPath:     luaPath,
-		Type:        ast.InvalidEnv,
-		Scope:       scope,
-		UsedLibraries: map[Library]bool{
-			Pewpew: false,
-			Table:  false,
-			String: false,
-			Math:   false,
-			Fmath:  false,
-		},
-		Classes:  map[string]*ClassVal{},
-		Entities: map[string]*EntityVal{},
+		hybroidPath:   hybroidPath,
+		luaPath:       luaPath,
+		Type:          ast.InvalidEnv,
+		Scope:         scope,
+		UsedLibraries: make([]Library, 0),
+		Classes:       map[string]*ClassVal{},
+		Entities:      map[string]*EntityVal{},
 	}
 
 	global.Scope.Environment = global

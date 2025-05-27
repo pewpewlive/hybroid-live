@@ -403,19 +403,67 @@
     "message": "conversion of an official entity to a hybroid entity is not possible"
   },
   {
-    "name": "InvalidType",
-    "type": "Error",
-    "params": {
-      "Expected": "string",
-      "Got": "string",
-      "Context": "string"
-    },
-    "message": "expected %s, got '%s' %s",
-    "message_format": ["Expected", "Got", "Context"]
-  },
-  {
     "name": "InvalidEnvironment",
     "type": "Error",
-    "message": ""
+    "message": "there is no environment with that path"
+  },
+  {
+    "name": "EnvironmentAccessAmbiguity",
+    "type": "Error",
+    "params": {
+      "Envs": "[]string",
+      "Context": "string"
+    },
+    "message": "the type '%s' can be found on multiple environments: %s",
+    "message_format": ["Context", { "Envs": "strings.Join({}, \", \")" }]
+  },
+  {
+    "name": "NotAllCodePathsExit",
+    "type": "Error",
+     "params": {
+      "ExitType": "string"
+    },
+    "message": "not all code paths %s",
+    "message_format": ["ExitType"]
+  },  
+  {
+    "name": "InsufficientCases",
+    "type": "Error",
+    "message": "match statement must have at least 1 non-default case"
+  },
+  {
+    "name": "DefaultCaseMissing",
+    "type": "Error",
+    "message": "match expression must have a default case",
+    "note": "default cases start with 'else'"
+  },
+  {
+    "name": "InvalidCaseType",
+    "type": "Error",
+    "params": {
+      "MatchValueType": "string",
+      "CaseValueType": "string"
+    },
+    "message": "match value is of type '%s', but case value is of type '%s'",
+    "message_format": ["MatchValueType", "CaseValueType"]
+  },
+  {
+    "name": "LiteralCondition",
+    "type": "Warning",
+    "params": {
+      "ConditionValue": "string"
+    },
+    "message": "condition is always %s",
+    "message_format": ["ConditionValue"]
+  },
+  {
+    "name": "ArithmeticTypesMismatch",
+    "type": "Error",
+    "params": {
+      "Type1": "string",
+      "Type2": "string"
+    },
+    "message": "left value is of type '%s', but right value is of type '%s'",
+    "message_format": ["Type1", "Type2"]
   }
 ]

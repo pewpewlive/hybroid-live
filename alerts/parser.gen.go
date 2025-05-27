@@ -722,56 +722,6 @@ func (mtodc *MoreThanOneDefaultCase) GetAlertType() Type {
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type InsufficientCases struct {
-  Specifier Snippet
-}
-
-func (ic *InsufficientCases) GetMessage() string {
-  return "match statement must have at least 1 case"
-}
-
-func (ic *InsufficientCases) GetSpecifier() Snippet {
-  return ic.Specifier
-}
-
-func (ic *InsufficientCases) GetNote() string {
-  return ""
-}
-
-func (ic *InsufficientCases) GetID() string {
-  return "hyb029P"
-}
-
-func (ic *InsufficientCases) GetAlertType() Type {
-  return Error
-}
-
-// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type DefaultCaseMissing struct {
-  Specifier Snippet
-}
-
-func (dcm *DefaultCaseMissing) GetMessage() string {
-  return "match statement must have 1 default case"
-}
-
-func (dcm *DefaultCaseMissing) GetSpecifier() Snippet {
-  return dcm.Specifier
-}
-
-func (dcm *DefaultCaseMissing) GetNote() string {
-  return "default cases start with 'else'"
-}
-
-func (dcm *DefaultCaseMissing) GetID() string {
-  return "hyb030P"
-}
-
-func (dcm *DefaultCaseMissing) GetAlertType() Type {
-  return Error
-}
-
-// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidEnumVariantName struct {
   Specifier Snippet
 }
@@ -789,7 +739,7 @@ func (ievn *InvalidEnumVariantName) GetNote() string {
 }
 
 func (ievn *InvalidEnumVariantName) GetID() string {
-  return "hyb031P"
+  return "hyb029P"
 }
 
 func (ievn *InvalidEnumVariantName) GetAlertType() Type {
@@ -816,7 +766,7 @@ func (ie *InvalidExpression) GetNote() string {
 }
 
 func (ie *InvalidExpression) GetID() string {
-  return "hyb032P"
+  return "hyb030P"
 }
 
 func (ie *InvalidExpression) GetAlertType() Type {
@@ -844,7 +794,7 @@ func (si *SyntaxIncoherency) GetNote() string {
 }
 
 func (si *SyntaxIncoherency) GetID() string {
-  return "hyb033P"
+  return "hyb031P"
 }
 
 func (si *SyntaxIncoherency) GetAlertType() Type {

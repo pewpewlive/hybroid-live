@@ -190,17 +190,6 @@
     "message": "cannot have more than one default case in match statement"
   },
   {
-    "name": "InsufficientCases",
-    "type": "Error",
-    "message": "match statement must have at least 1 case"
-  },
-  {
-    "name": "DefaultCaseMissing",
-    "type": "Error",
-    "message": "match statement must have 1 default case",
-    "note": "default cases start with 'else'"
-  },
-  {
     "name": "InvalidEnumVariantName",
     "type": "Error",
     "message": "enum variant name must be an identifier"

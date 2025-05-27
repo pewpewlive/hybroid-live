@@ -481,7 +481,7 @@ func TypesToString(types []Type) string {
 	src := generator.StringBuilder{}
 
 	for i := range types {
-		src.Write(types[i].ToString())
+		src.Write(types[i].String())
 		if i != len(types)-1 {
 			src.WriteRune('\n')
 		}
@@ -546,7 +546,9 @@ func (f *FunctionVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: src.String()}
 }
 
-type BoolVal struct{}
+type BoolVal struct {
+	Value string
+}
 
 func (b *BoolVal) GetType() Type {
 	return NewBasicType(ast.Bool)
@@ -554,6 +556,16 @@ func (b *BoolVal) GetType() Type {
 
 func (b *BoolVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "false"}
+}
+
+func NewBoolVal(value ...string) *BoolVal {
+	val := "unknown"
+	if value != nil {
+		val = value[0]
+	}
+	return &BoolVal{
+		Value: val,
+	}
 }
 
 type StringVal struct{}

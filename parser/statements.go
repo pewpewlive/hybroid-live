@@ -426,13 +426,6 @@ func (p *Parser) matchStatement(isExpr bool) ast.Node {
 		}
 	}
 
-	if len(matchStmt.Cases) < 1 {
-		p.AlertMulti(&alerts.InsufficientCases{}, matchStmt.Token, p.peek(-1))
-	}
-	if !matchStmt.HasDefault && isExpr {
-		p.AlertMulti(&alerts.DefaultCaseMissing{}, matchStmt.Token, p.peek(-1))
-	}
-
 	return &matchStmt
 }
 

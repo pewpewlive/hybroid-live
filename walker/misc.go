@@ -5,6 +5,7 @@ import (
 	"hybroid/alerts"
 	"hybroid/ast"
 	"hybroid/tokens"
+	"strconv"
 )
 
 func (w *Walker) checkAccessibility(s *Scope, isLocal bool, token tokens.Token) {
@@ -129,14 +130,10 @@ func (w *Walker) resolveVariable(s *Scope, token tokens.Token) *Scope {
 				return &s.Environment.importedWalkers[i].environment.Scope
 			}
 		}
-		for k, v := range s.Environment.UsedLibraries {
-			if !v {
-				continue
-			}
-
-			_, ok := LibraryEnvs[k].Scope.Variables[name]
+		for _, v := range s.Environment.UsedLibraries {
+			_, ok := LibraryEnvs[v].Scope.Variables[name]
 			if ok {
-				return &LibraryEnvs[k].Scope
+				return &LibraryEnvs[v].Scope
 			}
 		}
 		return nil
@@ -237,7 +234,7 @@ func (w *Walker) validateArguments(generics map[string]Type, args []Type, params
 		}
 
 		if !TypeEquals(param, typeVal) {
-			w.AlertSingle(&alerts.InvalidArgumentType{}, call.GetArgs()[i].GetToken(), typeVal.ToString(), param.ToString())
+			w.AlertSingle(&alerts.InvalidArgumentType{}, call.GetArgs()[i].GetToken(), typeVal.String(), param.String())
 			return i, false
 		}
 	}
@@ -271,54 +268,54 @@ func resolveMatchingType(predefinedType Type, receivedType Type) Type {
 	return receivedType
 }
 
-func (w *Walker) determineValueType(left Type, right Type) Type {
-	if TypeEquals(left, right) {
-		if left.GetType() == Fixed {
-			return left
-		}
-		return right
+func (w *Walker) validateArithmeticOperands(left Type, right Type, node *ast.BinaryExpr) Type {
+	if !isNumerical(left.PVT()) {
+		w.AlertSingle(&alerts.TypeMismatch{}, node.Left.GetToken(), "a numerical type", left, "in arithmetic expression")
+		return InvalidType
 	}
-	if left.GetType() == Fixed {
-		if right.GetType() == Fixed || right.PVT() == ast.Number {
-			return left
-		}
+	if !isNumerical(right.PVT()) {
+		w.AlertSingle(&alerts.TypeMismatch{}, node.Right.GetToken(), "a numerical type", right, "in arithmetic expression")
+		return InvalidType
 	}
-	if right.GetType() == Fixed {
-		if left.GetType() == Fixed || left.PVT() == ast.Number {
-			return right
-		}
+	if !TypeEquals(left, right) {
+		w.AlertSingle(&alerts.ArithmeticTypesMismatch{}, node.Left.GetToken(), left, right)
+		return InvalidType
 	}
 
-	return InvalidType
+	return left
 }
 
-func (w *Walker) validateArithmeticOperands(left Type, right Type, expr *ast.BinaryExpr) bool {
-	if left.PVT() == ast.Invalid {
-		// w.Error(expr.Left.GetToken(), "cannot perform arithmetic on Invalid value")
-		return false
+func (w *Walker) validateConditionalOperands(leftVal Value, rightVal Value, node *ast.BinaryExpr) Value {
+	left, right := leftVal.GetType(), rightVal.GetType()
+	if left.PVT() != ast.Bool {
+		w.AlertSingle(&alerts.TypeMismatch{}, node.Left.GetToken(), "a numerical type", left, "in arithmetic expression")
+		return NewBoolVal()
 	}
-
-	if right.PVT() == ast.Invalid {
-		// w.Error(expr.Right.GetToken(), "cannot perform arithmetic on Invalid value")
-		return false
+	if right.PVT() != ast.Bool {
+		w.AlertSingle(&alerts.TypeMismatch{}, node.Right.GetToken(), "a numerical type", right, "in arithmetic expression")
+		return NewBoolVal()
 	}
+	leftBool, rightBool := leftVal.(*BoolVal), rightVal.(*BoolVal)
 
-	switch left.PVT() {
-	case ast.List, ast.Map, ast.String, ast.Bool, ast.Entity, ast.Class:
-		// w.Error(expr.Left.GetToken(), "cannot perform arithmetic on a non-number value")
-		return false
+	leftCondition, ok := strconv.ParseBool(leftBool.Value)
+	rightCondition, ok2 := strconv.ParseBool(rightBool.Value)
+	if node.Operator.Type == tokens.And {
+		if (ok == nil && !leftCondition) || (ok2 == nil && !rightCondition) {
+			return NewBoolVal("false")
+		} else if ok == nil && ok2 == nil {
+			return NewBoolVal(strconv.FormatBool(leftCondition && rightCondition))
+		}
+	} else {
+		if (ok == nil && leftCondition) || (ok2 == nil && !rightCondition) {
+			return NewBoolVal("true")
+		} else if ok == nil && ok2 == nil {
+			return NewBoolVal(strconv.FormatBool(leftCondition || rightCondition))
+		}
 	}
-
-	switch right.PVT() {
-	case ast.List, ast.Map, ast.String, ast.Bool, ast.Entity, ast.Class:
-		// w.Error(expr.Right.GetToken(), "cannot perform arithmetic on a non-number value")
-		return false
-	}
-
-	return true
+	return NewBoolVal()
 }
 
-func (w *Walker) validateReturnValues(returnArgs []ast.Node, _return []Type, expectReturn []Type, context string) {
+func (w *Walker) validateReturnValues(returnArgs []ast.Node, _return []Value2, expectReturn []Type, context string) {
 	retLen := len(_return)
 	expRetLen := len(expectReturn)
 	if retLen < expRetLen {
@@ -337,17 +334,14 @@ func (w *Walker) validateReturnValues(returnArgs []ast.Node, _return []Type, exp
 		if i >= expRetLen {
 			break
 		}
-		if _return[i] == InvalidType {
+		if _return[i].GetType() == InvalidType || expectReturn[i] == InvalidType {
 			continue
 		}
-		if expectReturn[i] == InvalidType {
-			continue
-		}
-		if !TypeEquals(_return[i], expectReturn[i]) {
-			w.AlertSingle(&alerts.TypeMismatch{}, returnArgs[i].GetToken(),
+		if !TypeEquals(_return[i].GetType(), expectReturn[i]) {
+			w.AlertSingle(&alerts.TypeMismatch{}, returnArgs[_return[i].Index].GetToken(),
 				_return[i].GetType(),
-				expectReturn[i].GetType(),
-				context,
+				expectReturn[i],
+				fmt.Sprintf(context+" (arg %d)", i+1),
 			)
 		}
 	}
@@ -413,7 +407,7 @@ func (w *Walker) typeToValue(_type Type) Value {
 	case ast.Radian, ast.Fixed, ast.FixedPoint, ast.Degree:
 		return &FixedVal{SpecificType: _type.PVT()}
 	case ast.Bool:
-		return &BoolVal{} // there is no func here
+		return NewBoolVal()
 	case ast.Func:
 		ft := _type.(*FunctionType)
 		return &FunctionVal{
@@ -433,7 +427,7 @@ func (w *Walker) typeToValue(_type Type) Value {
 			MemberType: _type.(*WrapperType).WrappedType,
 		}
 	case ast.Class:
-		val := w.walkers[_type.(*NamedType).EnvName].environment.Classes[_type.ToString()]
+		val := w.walkers[_type.(*NamedType).EnvName].environment.Classes[_type.String()]
 		return val
 	case ast.Struct:
 		return &AnonStructVal{
@@ -454,7 +448,7 @@ func (w *Walker) typeToValue(_type Type) Value {
 		}
 		return variable
 	case ast.Entity:
-		val := w.walkers[_type.(*NamedType).EnvName].environment.Entities[_type.ToString()]
+		val := w.walkers[_type.(*NamedType).EnvName].environment.Entities[_type.String()]
 		return val
 	case ast.Object:
 		return &Unknown{}
@@ -483,8 +477,8 @@ func (w *Walker) getContentsValueType(elems []ast.Node, scope *Scope) Type {
 		if !TypeEquals(valTypes[i-1], valTypes[i]) {
 			w.AlertSingle(&alerts.MixedMapOrListContents{}, elems[i].GetToken(),
 				"list",
-				valTypes[i-1].ToString(),
-				valTypes[i].ToString(),
+				valTypes[i-1].String(),
+				valTypes[i].String(),
 			)
 			return InvalidType
 		}
@@ -589,4 +583,20 @@ func SetupLibraryEnvironments() {
 	StringEnv.Scope.Environment = StringEnv
 	TableEnv.Scope.Environment = TableEnv
 	BuiltinEnv.Scope.Environment = BuiltinEnv
+}
+
+// used in return, yield, assignment statement and variable declaration
+type Value2 struct {
+	Value
+	Index int
+}
+
+type Values2 []Value2
+
+func (v2 Values2) Types() *[]Type {
+	vals := make([]Type, 0)
+	for _, v := range v2 {
+		vals = append(vals, v.Value.GetType())
+	}
+	return &vals
 }

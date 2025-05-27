@@ -350,7 +350,7 @@ func (w *Walker) functionDeclaration(node *ast.FunctionDecl, scope *Scope, procT
 		w.walkBody(&node.Body, funcTag, fnScope)
 
 		if !funcTag.GetIfExits(Return) && len(ret) != 0 {
-			// w.Error(node.GetToken(), "not all code paths return")
+			w.AlertSingle(&alerts.NotAllCodePathsExit{}, node.Token, "return")
 		}
 	}
 
@@ -359,16 +359,6 @@ func (w *Walker) functionDeclaration(node *ast.FunctionDecl, scope *Scope, procT
 
 // Rewrote
 func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope) {
-	// e.g. let a, b, c = call(), "text"
-	// []Value2{
-	// 		Value2(value:CallArg1, token:call),
-	// 		Value2(value:CallArg2, token:call),
-	// 		Value2(value:"text", token:"text"),
-	// }
-	type Value2 struct {
-		value Value
-		Index int
-	}
 	//check if it's a public declaration in a local scope
 	if declaration.IsPub && scope.Parent != nil {
 		w.AlertSingle(&alerts.PublicDeclarationInLocalScope{}, declaration.Token)
@@ -418,7 +408,7 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 
 		var value Value = nil
 		if i < valuesLen {
-			value = values[i].value
+			value = values[i].Value
 		}
 		variable := NewVariable(ident.Name, nil, !declaration.IsPub)
 		variable.IsInit = true
@@ -456,7 +446,7 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 			value = w.typeToValue(explicitType)
 			defaultVal := value.GetDefault()
 			if defaultVal.Value == "nil" {
-				w.AlertSingle(&alerts.ExplicitTypeNotAllowed{}, declaration.Type.GetToken(), explicitType.ToString())
+				w.AlertSingle(&alerts.ExplicitTypeNotAllowed{}, declaration.Type.GetToken(), explicitType.String())
 			}
 			declaration.Expressions = append(declaration.Expressions, defaultVal)
 		} else if explicitType != nil && value != nil {
@@ -465,8 +455,8 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 			} else if !TypeEquals(explicitType, value.GetType()) {
 				w.AlertSingle(&alerts.ExplicitTypeMismatch{},
 					variable.Token,
-					explicitType.ToString(),
-					value.GetType().ToString(),
+					explicitType.String(),
+					value.GetType().String(),
 				)
 			}
 		}

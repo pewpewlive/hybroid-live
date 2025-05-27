@@ -1,15 +1,15 @@
 env Env1 as Level
 
-use Level
+// use Level
 
-pub field = struct{
-    member = [2fx, 3fx]
-}
+// pub field = struct{
+//     member = [2fx, 3fx]
+// }
 
-for i, v in field.member {
-    i += v
-}
+// for i, v in field.member {
+//     i += v
+// }
 
-field.member[0]()
+// field.member[0]()
 
-let o = name
+// let o = name

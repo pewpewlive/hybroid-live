@@ -8,17 +8,20 @@ import (
 )
 
 func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
-	length := len(node.Elseifs) + 2
-	mpt := NewMultiPathTag(length, scope.Attributes...)
-	multiPathScope := NewScope(scope, mpt)
-	ifScope := NewScope(multiPathScope, &UntaggedTag{})
-
 	w.context.EntityCasts.Clear()
 
-	boolExpr := w.GetNodeValue(&node.BoolExpr, scope)
-	if boolExpr.GetType().PVT() != ast.Bool {
+	length := len(node.Elseifs) + 2
+	mpt := NewMultiPathTag(length, scope.Attributes...)
+
+	condition := w.GetActualNodeValue(&node.BoolExpr, scope)
+	if condition.GetType().PVT() != ast.Bool {
 		w.AlertSingle(&alerts.InvalidCondition{}, node.BoolExpr.GetToken(), "in if statement")
+	} else if condition.(*BoolVal).Value != "unknown" {
+		w.AlertSingle(&alerts.LiteralCondition{}, node.BoolExpr.GetToken(), condition.(*BoolVal).Value)
 	}
+
+	multiPathScope := NewScope(scope, mpt)
+	ifScope := NewScope(multiPathScope, &UntaggedTag{})
 
 	for w.context.EntityCasts.Count() != 0 {
 		cast := w.context.EntityCasts.Pop()
@@ -31,9 +34,12 @@ func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 	w.walkBody(&node.Body, mpt, ifScope)
 
 	for i := range node.Elseifs {
-		boolExpr := w.GetNodeValue(&node.Elseifs[i].BoolExpr, scope)
-		if boolExpr.GetType().PVT() != ast.Bool {
-			w.AlertSingle(&alerts.InvalidCondition{}, node.Elseifs[i].BoolExpr.GetToken(), "in if statement")
+		boolExpr := node.Elseifs[i].BoolExpr
+		condition := w.GetActualNodeValue(&node.Elseifs[i].BoolExpr, scope)
+		if condition.GetType().PVT() != ast.Bool {
+			w.AlertSingle(&alerts.InvalidCondition{}, boolExpr.GetToken(), "in if statement")
+		} else if condition.(*BoolVal).Value != "unknown" {
+			w.AlertSingle(&alerts.LiteralCondition{}, boolExpr.GetToken(), condition.(*BoolVal).Value)
 		}
 		ifScope := NewScope(multiPathScope, &UntaggedTag{})
 		for w.context.EntityCasts.Count() != 0 {
@@ -51,15 +57,12 @@ func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 		elseScope := NewScope(multiPathScope, &UntaggedTag{})
 		w.walkBody(&node.Else.Body, mpt, elseScope)
 	}
+
+	w.reportExits(mpt, scope)
 }
 
 // Rewrote
 func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scope) {
-	type Value2 struct {
-		Value
-		Index int
-	}
-
 	values := []Value2{}
 	for i := range assignStmt.Values {
 		exprValue := w.GetActualNodeValue(&assignStmt.Values[i], scope)
@@ -109,13 +112,13 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 		if assignOp.Type != tokens.Equal {
 			if !isNumerical(valType.PVT()) {
 				w.AlertSingle(&alerts.InvalidTypeInCompoundAssignment{}, exprs[values[i].Index].GetToken(),
-					valType.ToString(),
+					valType.String(),
 				)
 				continue
 			}
 			if !isNumerical(variableType.PVT()) {
 				w.AlertSingle(&alerts.InvalidTypeInCompoundAssignment{}, idents[i].GetToken(),
-					variableType.ToString(),
+					variableType.String(),
 				)
 				continue
 			}
@@ -130,8 +133,8 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 
 		if !TypeEquals(variableType, valType) {
 			w.AlertSingle(&alerts.AssignmentTypeMismatch{}, exprs[values[i].Index].GetToken(),
-				variableType.ToString(),
-				valType.ToString(),
+				variableType.String(),
+				valType.String(),
 			)
 			continue
 		}
@@ -175,9 +178,9 @@ func (w *Walker) repeatStatement(node *ast.RepeatStmt, scope *Scope) {
 
 	if !(TypeEquals(endType, startType) && TypeEquals(startType, skipType)) {
 		w.AlertSingle(&alerts.InconsistentRepeatTypes{}, node.Token,
-			startType.ToString(),
-			skipType.ToString(),
-			endType.ToString(),
+			startType.String(),
+			skipType.String(),
+			endType.String(),
 		)
 	}
 
@@ -186,6 +189,7 @@ func (w *Walker) repeatStatement(node *ast.RepeatStmt, scope *Scope) {
 	}
 
 	w.walkBody(&node.Body, lt, repeatScope)
+	w.reportExits(lt, scope)
 }
 
 func (w *Walker) whileStatement(node *ast.WhileStmt, scope *Scope) {
@@ -195,6 +199,7 @@ func (w *Walker) whileStatement(node *ast.WhileStmt, scope *Scope) {
 	w.GetNodeValue(&node.Condition, scope)
 
 	w.walkBody(&node.Body, lt, whileScope)
+	w.reportExits(lt, scope)
 }
 
 func (w *Walker) forStatement(node *ast.ForStmt, scope *Scope) {
@@ -205,7 +210,7 @@ func (w *Walker) forStatement(node *ast.ForStmt, scope *Scope) {
 	valType := w.GetNodeValue(&node.Iterator, scope).GetType()
 	wrapper, ok := valType.(*WrapperType)
 	if !ok {
-		w.AlertSingle(&alerts.InvalidIteratorType{}, node.Iterator.GetToken(), valType.ToString())
+		w.AlertSingle(&alerts.InvalidIteratorType{}, node.Iterator.GetToken(), valType.String())
 		return
 	}
 	node.OrderedIteration = wrapper.PVT() == ast.List
@@ -230,6 +235,7 @@ func (w *Walker) forStatement(node *ast.ForStmt, scope *Scope) {
 	}
 
 	w.walkBody(&node.Body, lt, forScope)
+	w.reportExits(lt, scope)
 }
 
 func (w *Walker) tickStatement(node *ast.TickStmt, scope *Scope) {
@@ -241,17 +247,19 @@ func (w *Walker) tickStatement(node *ast.TickStmt, scope *Scope) {
 	}
 
 	w.walkBody(&node.Body, funcTag, tickScope)
+	w.reportExits(funcTag, scope)
 }
 
 func (w *Walker) matchStatement(node *ast.MatchStmt, isExpr bool, scope *Scope) {
 	val := w.GetNodeValue(&node.ExprToMatch, scope)
-	if val.GetType().PVT() == ast.Invalid {
-		// w.Error(node.ExprToMatch.GetToken(), "variable is of type invalid")
-	}
-	valType := val.GetType()
-	casesLength := len(node.Cases) + 1
-	if node.HasDefault {
-		casesLength--
+	casesLength := len(node.Cases)
+	if !node.HasDefault {
+		casesLength++
+		if casesLength < 1 {
+			w.AlertSingle(&alerts.InsufficientCases{}, node.Token)
+		}
+	} else if casesLength < 2 {
+		w.AlertSingle(&alerts.InsufficientCases{}, node.Token)
 	}
 	mpt := NewMultiPathTag(casesLength, scope.Attributes...)
 	multiPathScope := NewScope(scope, mpt)
@@ -268,14 +276,11 @@ func (w *Walker) matchStatement(node *ast.MatchStmt, isExpr bool, scope *Scope) 
 		}
 
 		caseValType := w.GetNodeValue(&node.Cases[i].Expression, scope).GetType()
-		if !TypeEquals(valType, caseValType) {
-			// w.Error(
-			// node.Cases[i].Expression.GetToken(),
-			// fmt.Sprintf("mismatched types: arm expression (%s) and match expression (%s)",
-			// 	caseValType.ToString(),
-			// 	valType.ToString()))
+		if !TypeEquals(val.GetType(), caseValType) {
+			w.AlertSingle(&alerts.InvalidCaseType{}, node.Cases[i].Expression.GetToken(), val.GetType(), caseValType)
 		}
 	}
+	w.reportExits(mpt, scope)
 }
 
 func (w *Walker) breakStatement(node *ast.BreakStmt, scope *Scope) {
@@ -314,21 +319,20 @@ func (w *Walker) returnStatement(node *ast.ReturnStmt, scope *Scope) *[]Type {
 		)
 	}
 
-	ret := EmptyReturn
+	ret := make(Values2, 0)
 	for i := range node.Args {
-		val := w.GetNodeValue(&node.Args[i], scope) // we need to check waht happens here
-		valType := val.GetType()
+		val := w.GetActualNodeValue(&node.Args[i], scope)
 		if vls, ok := val.(Values); ok {
-			for i := range vls {
-				ret = append(ret, vls[i].GetType())
+			for j := range vls {
+				ret = append(ret, Value2{vls[j], i})
 			}
 		} else {
-			ret = append(ret, valType)
+			ret = append(ret, Value2{val, i})
 		}
 	}
 	sc, _, funcTag := resolveTagScope[*FuncTag](scope)
 	if sc == nil {
-		return &ret
+		return ret.Types()
 	}
 
 	w.validateReturnValues(node.Args, ret, (*funcTag).ReturnTypes, "in return arguments") // wait
@@ -338,7 +342,7 @@ func (w *Walker) returnStatement(node *ast.ReturnStmt, scope *Scope) *[]Type {
 		(*returnable).SetExit(true, All)
 	}
 
-	return &ret
+	return ret.Types()
 }
 
 func (w *Walker) yieldStatement(node *ast.YieldStmt, scope *Scope) *[]Type {
@@ -349,29 +353,27 @@ func (w *Walker) yieldStatement(node *ast.YieldStmt, scope *Scope) *[]Type {
 		)
 	}
 
-	ret := EmptyReturn
+	ret := make(Values2, 0)
 	for i := range node.Args {
-		val := w.GetNodeValue(&node.Args[i], scope)
-		valType := val.GetType()
+		val := w.GetActualNodeValue(&node.Args[i], scope)
 		if vls, ok := val.(Values); ok {
 			for i := range vls {
-				ret = append(ret, vls[i].GetType())
+				ret = append(ret, Value2{vls[i], i})
 			}
 		} else {
-			ret = append(ret, valType)
+			ret = append(ret, Value2{val, i})
 		}
 	}
-
 	sc, _, matchExprT := resolveTagScope[*MatchExprTag](scope)
 
 	if sc == nil {
-		return &ret
+		return ret.Types()
 	}
 
 	matchExprTag := *matchExprT
 
 	if core.ListsAreSame(matchExprTag.YieldTypes, EmptyReturn) {
-		matchExprTag.YieldTypes = ret
+		matchExprTag.YieldTypes = *ret.Types()
 	} else {
 		w.validateReturnValues(node.Args, ret, matchExprTag.YieldTypes, "in yield arguments")
 	}
@@ -381,7 +383,7 @@ func (w *Walker) yieldStatement(node *ast.YieldStmt, scope *Scope) *[]Type {
 		(*returnable).SetExit(true, All)
 	}
 
-	return &ret
+	return ret.Types()
 }
 
 func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
@@ -394,34 +396,28 @@ func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 
 	switch envName {
 	case "Pewpew":
-		w.environment.UsedLibraries[Pewpew] = true
-		return
-	}
-
-	switch envName {
-	case "Pewpew":
 		if w.environment.Type != ast.LevelEnv {
 			w.AlertSingle(&alerts.UnallowedLibraryUse{}, node.PathExpr.Path, "Pewpew", "Mesh or Sound")
 		}
-		w.environment.UsedLibraries[Pewpew] = true
+		w.environment.UsedLibraries = append(w.environment.UsedLibraries, Pewpew)
 		return
 	case "Fmath":
 		if w.environment.Type != ast.LevelEnv {
 			w.AlertSingle(&alerts.UnallowedLibraryUse{}, node.PathExpr.Path, "Fmath", "Mesh or Sound")
 		}
-		w.environment.UsedLibraries[Fmath] = true
+		w.environment.UsedLibraries = append(w.environment.UsedLibraries, Fmath)
 		return
 	case "Math":
 		if w.environment.Type == ast.LevelEnv {
 			w.AlertSingle(&alerts.UnallowedLibraryUse{}, node.PathExpr.Path, "Math", "Level")
 		}
-		w.environment.UsedLibraries[Math] = true
+		w.environment.UsedLibraries = append(w.environment.UsedLibraries, Math)
 		return
 	case "String":
-		w.environment.UsedLibraries[String] = true
+		w.environment.UsedLibraries = append(w.environment.UsedLibraries, String)
 		return
 	case "Table":
-		w.environment.UsedLibraries[Table] = true
+		w.environment.UsedLibraries = append(w.environment.UsedLibraries, Table)
 		return
 	}
 
@@ -466,7 +462,7 @@ func (w *Walker) destroyStatement(node *ast.DestroyStmt, scope *Scope) {
 		return
 	}
 	if valType.PVT() != ast.Entity {
-		w.AlertSingle(&alerts.InvalidType{}, node.Identifier.GetToken(), "entity", valType.ToString(), "in destroy statement")
+		w.AlertSingle(&alerts.TypeMismatch{}, node.Identifier.GetToken(), "entity", valType.String(), "in destroy statement")
 		return
 	}
 

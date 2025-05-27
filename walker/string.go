@@ -10,7 +10,7 @@ var StringEnv = &Environment{
 		AliasTypes: make(map[string]*AliasType),
 	},
 	importedWalkers: make([]*Walker, 0),
-	UsedLibraries:   make(map[Library]bool),
+	UsedLibraries:   make([]Library, 0),
 	Classes:         make(map[string]*ClassVal),
 	Entities:        make(map[string]*EntityVal),
 }
