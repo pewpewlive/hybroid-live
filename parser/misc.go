@@ -321,22 +321,6 @@ func (p *Parser) tryIdentifiers() bool {
 	return true
 }
 
-func (p *Parser) peekTypeVariableDecl() bool {
-	currentStart := p.current
-	p.context.ignoreAlerts.Push("PeekTypeVariableDecl", true)
-
-	valid := false
-
-	typeExpr := p.typeExpr("")
-	ok := p.tryIdentifiers()
-	valid = typeExpr.Name.GetType() != ast.NA && ok
-
-	p.context.ignoreAlerts.Pop("PeekTypeVariableDecl")
-	p.disadvance(p.current - currentStart)
-
-	return valid
-}
-
 // Tells you whether the attempted parsed type is an actual TypeExpression (or Improper{Type:ast.TypeExpression}), in which case returning true, or Improper{Type:ast.NA}, in which case returning false
 func (p *Parser) checkType(context string) (*ast.TypeExpr, bool) {
 	currentStart := p.current

@@ -142,6 +142,7 @@ type Node interface {
 }
 
 type NodeCall interface {
+	Node
 	GetGenerics() []*TypeExpr
 	GetArgs() []Node
 }

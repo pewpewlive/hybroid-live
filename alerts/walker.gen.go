@@ -300,31 +300,6 @@ func (mmolc *MixedMapOrListContents) GetAlertType() Type {
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type DuplicateKeyInMap struct {
-  Specifier Snippet
-}
-
-func (dkim *DuplicateKeyInMap) GetMessage() string {
-  return "found duplicate key in map"
-}
-
-func (dkim *DuplicateKeyInMap) GetSpecifier() Snippet {
-  return dkim.Specifier
-}
-
-func (dkim *DuplicateKeyInMap) GetNote() string {
-  return ""
-}
-
-func (dkim *DuplicateKeyInMap) GetID() string {
-  return "hyb012W"
-}
-
-func (dkim *DuplicateKeyInMap) GetAlertType() Type {
-  return Error
-}
-
-// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidCallerType struct {
   Specifier Snippet
   Type string
@@ -343,7 +318,7 @@ func (ict *InvalidCallerType) GetNote() string {
 }
 
 func (ict *InvalidCallerType) GetID() string {
-  return "hyb013W"
+  return "hyb012W"
 }
 
 func (ict *InvalidCallerType) GetAlertType() Type {
@@ -369,7 +344,7 @@ func (mofnf *MethodOrFieldNotFound) GetNote() string {
 }
 
 func (mofnf *MethodOrFieldNotFound) GetID() string {
-  return "hyb014W"
+  return "hyb013W"
 }
 
 func (mofnf *MethodOrFieldNotFound) GetAlertType() Type {
@@ -395,7 +370,7 @@ func (flva *ForeignLocalVariableAccess) GetNote() string {
 }
 
 func (flva *ForeignLocalVariableAccess) GetID() string {
-  return "hyb015W"
+  return "hyb014W"
 }
 
 func (flva *ForeignLocalVariableAccess) GetAlertType() Type {
@@ -422,7 +397,7 @@ func (iat *InvalidArgumentType) GetNote() string {
 }
 
 func (iat *InvalidArgumentType) GetID() string {
-  return "hyb016W"
+  return "hyb015W"
 }
 
 func (iat *InvalidArgumentType) GetAlertType() Type {
@@ -447,7 +422,7 @@ func (pdils *PublicDeclarationInLocalScope) GetNote() string {
 }
 
 func (pdils *PublicDeclarationInLocalScope) GetID() string {
-  return "hyb017W"
+  return "hyb016W"
 }
 
 func (pdils *PublicDeclarationInLocalScope) GetAlertType() Type {
@@ -474,7 +449,7 @@ func (r *Redeclaration) GetNote() string {
 }
 
 func (r *Redeclaration) GetID() string {
-  return "hyb018W"
+  return "hyb017W"
 }
 
 func (r *Redeclaration) GetAlertType() Type {
@@ -499,7 +474,7 @@ func (uticd *UnnecessaryTypeInConstDeclaration) GetNote() string {
 }
 
 func (uticd *UnnecessaryTypeInConstDeclaration) GetID() string {
-  return "hyb019W"
+  return "hyb018W"
 }
 
 func (uticd *UnnecessaryTypeInConstDeclaration) GetAlertType() Type {
@@ -524,7 +499,7 @@ func (nvgfc *NoValueGivenForConstant) GetNote() string {
 }
 
 func (nvgfc *NoValueGivenForConstant) GetID() string {
-  return "hyb020W"
+  return "hyb019W"
 }
 
 func (nvgfc *NoValueGivenForConstant) GetAlertType() Type {
@@ -551,7 +526,7 @@ func (tfvg *TooFewValuesGiven) GetNote() string {
 }
 
 func (tfvg *TooFewValuesGiven) GetID() string {
-  return "hyb021W"
+  return "hyb020W"
 }
 
 func (tfvg *TooFewValuesGiven) GetAlertType() Type {
@@ -576,7 +551,7 @@ func (etrid *ExplicitTypeRequiredInDeclaration) GetNote() string {
 }
 
 func (etrid *ExplicitTypeRequiredInDeclaration) GetID() string {
-  return "hyb022W"
+  return "hyb021W"
 }
 
 func (etrid *ExplicitTypeRequiredInDeclaration) GetAlertType() Type {
@@ -603,7 +578,7 @@ func (etm *ExplicitTypeMismatch) GetNote() string {
 }
 
 func (etm *ExplicitTypeMismatch) GetID() string {
-  return "hyb023W"
+  return "hyb022W"
 }
 
 func (etm *ExplicitTypeMismatch) GetAlertType() Type {
@@ -629,7 +604,7 @@ func (etna *ExplicitTypeNotAllowed) GetNote() string {
 }
 
 func (etna *ExplicitTypeNotAllowed) GetID() string {
-  return "hyb024W"
+  return "hyb023W"
 }
 
 func (etna *ExplicitTypeNotAllowed) GetAlertType() Type {
@@ -656,7 +631,7 @@ func (tmvg *TooManyValuesGiven) GetNote() string {
 }
 
 func (tmvg *TooManyValuesGiven) GetID() string {
-  return "hyb025W"
+  return "hyb024W"
 }
 
 func (tmvg *TooManyValuesGiven) GetAlertType() Type {
@@ -683,7 +658,7 @@ func (ic *ImportCycle) GetNote() string {
 }
 
 func (ic *ImportCycle) GetID() string {
-  return "hyb026W"
+  return "hyb025W"
 }
 
 func (ic *ImportCycle) GetAlertType() Type {
@@ -709,7 +684,7 @@ func (uva *UndeclaredVariableAccess) GetNote() string {
 }
 
 func (uva *UndeclaredVariableAccess) GetID() string {
-  return "hyb027W"
+  return "hyb026W"
 }
 
 func (uva *UndeclaredVariableAccess) GetAlertType() Type {
@@ -734,7 +709,7 @@ func (cva *ConstValueAssignment) GetNote() string {
 }
 
 func (cva *ConstValueAssignment) GetID() string {
-  return "hyb028W"
+  return "hyb027W"
 }
 
 func (cva *ConstValueAssignment) GetAlertType() Type {
@@ -761,7 +736,7 @@ func (atm *AssignmentTypeMismatch) GetNote() string {
 }
 
 func (atm *AssignmentTypeMismatch) GetID() string {
-  return "hyb029W"
+  return "hyb028W"
 }
 
 func (atm *AssignmentTypeMismatch) GetAlertType() Type {
@@ -787,7 +762,7 @@ func (itica *InvalidTypeInCompoundAssignment) GetNote() string {
 }
 
 func (itica *InvalidTypeInCompoundAssignment) GetID() string {
-  return "hyb030W"
+  return "hyb029W"
 }
 
 func (itica *InvalidTypeInCompoundAssignment) GetAlertType() Type {
@@ -808,40 +783,14 @@ func (iuos *InvalidUseOfSelf) GetSpecifier() Snippet {
 }
 
 func (iuos *InvalidUseOfSelf) GetNote() string {
-  return ""
+  return "you're also not allowed to use self inside anonymous functions of class/entity fields"
 }
 
 func (iuos *InvalidUseOfSelf) GetID() string {
-  return "hyb031W"
+  return "hyb030W"
 }
 
 func (iuos *InvalidUseOfSelf) GetAlertType() Type {
-  return Error
-}
-
-// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type DuplicateGenericParameter struct {
-  Specifier Snippet
-  Name string
-}
-
-func (dgp *DuplicateGenericParameter) GetMessage() string {
-  return "the generic parameter '%s' is given more than once"
-}
-
-func (dgp *DuplicateGenericParameter) GetSpecifier() Snippet {
-  return dgp.Specifier
-}
-
-func (dgp *DuplicateGenericParameter) GetNote() string {
-  return ""
-}
-
-func (dgp *DuplicateGenericParameter) GetID() string {
-  return "hyb032W"
-}
-
-func (dgp *DuplicateGenericParameter) GetAlertType() Type {
   return Error
 }
 
@@ -863,7 +812,7 @@ func (uc *UnreachableCode) GetNote() string {
 }
 
 func (uc *UnreachableCode) GetID() string {
-  return "hyb033W"
+  return "hyb031W"
 }
 
 func (uc *UnreachableCode) GetAlertType() Type {
@@ -890,7 +839,7 @@ func (iuoes *InvalidUseOfExitStmt) GetNote() string {
 }
 
 func (iuoes *InvalidUseOfExitStmt) GetID() string {
-  return "hyb034W"
+  return "hyb032W"
 }
 
 func (iuoes *InvalidUseOfExitStmt) GetAlertType() Type {
@@ -918,7 +867,7 @@ func (tm *TypeMismatch) GetNote() string {
 }
 
 func (tm *TypeMismatch) GetID() string {
-  return "hyb035W"
+  return "hyb033W"
 }
 
 func (tm *TypeMismatch) GetAlertType() Type {
@@ -926,52 +875,28 @@ func (tm *TypeMismatch) GetAlertType() Type {
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type UseStmtInLocalBlock struct {
+type InvalidStmtInLocalBlock struct {
   Specifier Snippet
+  StmtType string
 }
 
-func (usilb *UseStmtInLocalBlock) GetMessage() string {
-  return "use statements must be in the global scope"
+func (isilb *InvalidStmtInLocalBlock) GetMessage() string {
+  return "%ss must be in the global scope"
 }
 
-func (usilb *UseStmtInLocalBlock) GetSpecifier() Snippet {
-  return usilb.Specifier
+func (isilb *InvalidStmtInLocalBlock) GetSpecifier() Snippet {
+  return isilb.Specifier
 }
 
-func (usilb *UseStmtInLocalBlock) GetNote() string {
+func (isilb *InvalidStmtInLocalBlock) GetNote() string {
   return ""
 }
 
-func (usilb *UseStmtInLocalBlock) GetID() string {
-  return "hyb036W"
+func (isilb *InvalidStmtInLocalBlock) GetID() string {
+  return "hyb034W"
 }
 
-func (usilb *UseStmtInLocalBlock) GetAlertType() Type {
-  return Error
-}
-
-// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type UsedPewpewInNonLevelEnvironment struct {
-  Specifier Snippet
-}
-
-func (upinle *UsedPewpewInNonLevelEnvironment) GetMessage() string {
-  return "cannot use the Pewpew environment in a Mesh or Sound type environment"
-}
-
-func (upinle *UsedPewpewInNonLevelEnvironment) GetSpecifier() Snippet {
-  return upinle.Specifier
-}
-
-func (upinle *UsedPewpewInNonLevelEnvironment) GetNote() string {
-  return ""
-}
-
-func (upinle *UsedPewpewInNonLevelEnvironment) GetID() string {
-  return "hyb037W"
-}
-
-func (upinle *UsedPewpewInNonLevelEnvironment) GetAlertType() Type {
+func (isilb *InvalidStmtInLocalBlock) GetAlertType() Type {
   return Error
 }
 
@@ -995,7 +920,7 @@ func (ulu *UnallowedLibraryUse) GetNote() string {
 }
 
 func (ulu *UnallowedLibraryUse) GetID() string {
-  return "hyb038W"
+  return "hyb035W"
 }
 
 func (ulu *UnallowedLibraryUse) GetAlertType() Type {
@@ -1021,7 +946,7 @@ func (iea *InvalidEnvironmentAccess) GetNote() string {
 }
 
 func (iea *InvalidEnvironmentAccess) GetID() string {
-  return "hyb039W"
+  return "hyb036W"
 }
 
 func (iea *InvalidEnvironmentAccess) GetAlertType() Type {
@@ -1047,7 +972,7 @@ func (er *EnvironmentReuse) GetNote() string {
 }
 
 func (er *EnvironmentReuse) GetID() string {
-  return "hyb040W"
+  return "hyb037W"
 }
 
 func (er *EnvironmentReuse) GetAlertType() Type {
@@ -1073,7 +998,7 @@ func (iit *InvalidIteratorType) GetNote() string {
 }
 
 func (iit *InvalidIteratorType) GetID() string {
-  return "hyb041W"
+  return "hyb038W"
 }
 
 func (iit *InvalidIteratorType) GetAlertType() Type {
@@ -1099,7 +1024,7 @@ func (uei *UnnecessaryEmptyIdentifier) GetNote() string {
 }
 
 func (uei *UnnecessaryEmptyIdentifier) GetID() string {
-  return "hyb042W"
+  return "hyb039W"
 }
 
 func (uei *UnnecessaryEmptyIdentifier) GetAlertType() Type {
@@ -1124,7 +1049,7 @@ func (eati *EnvironmentAccessToItself) GetNote() string {
 }
 
 func (eati *EnvironmentAccessToItself) GetID() string {
-  return "hyb043W"
+  return "hyb040W"
 }
 
 func (eati *EnvironmentAccessToItself) GetAlertType() Type {
@@ -1149,7 +1074,7 @@ func (ecwoc *EntityConversionWithOrCondition) GetNote() string {
 }
 
 func (ecwoc *EntityConversionWithOrCondition) GetID() string {
-  return "hyb044W"
+  return "hyb041W"
 }
 
 func (ecwoc *EntityConversionWithOrCondition) GetAlertType() Type {
@@ -1175,7 +1100,7 @@ func (ic *InvalidCondition) GetNote() string {
 }
 
 func (ic *InvalidCondition) GetID() string {
-  return "hyb045W"
+  return "hyb042W"
 }
 
 func (ic *InvalidCondition) GetAlertType() Type {
@@ -1201,7 +1126,7 @@ func (iri *InvalidRepeatIterator) GetNote() string {
 }
 
 func (iri *InvalidRepeatIterator) GetID() string {
-  return "hyb046W"
+  return "hyb043W"
 }
 
 func (iri *InvalidRepeatIterator) GetAlertType() Type {
@@ -1229,7 +1154,7 @@ func (irt *InconsistentRepeatTypes) GetNote() string {
 }
 
 func (irt *InconsistentRepeatTypes) GetID() string {
-  return "hyb047W"
+  return "hyb044W"
 }
 
 func (irt *InconsistentRepeatTypes) GetAlertType() Type {
@@ -1254,7 +1179,7 @@ func (oec *OfficialEntityConversion) GetNote() string {
 }
 
 func (oec *OfficialEntityConversion) GetID() string {
-  return "hyb048W"
+  return "hyb045W"
 }
 
 func (oec *OfficialEntityConversion) GetAlertType() Type {
@@ -1279,7 +1204,7 @@ func (ie *InvalidEnvironment) GetNote() string {
 }
 
 func (ie *InvalidEnvironment) GetID() string {
-  return "hyb049W"
+  return "hyb046W"
 }
 
 func (ie *InvalidEnvironment) GetAlertType() Type {
@@ -1306,7 +1231,7 @@ func (eaa *EnvironmentAccessAmbiguity) GetNote() string {
 }
 
 func (eaa *EnvironmentAccessAmbiguity) GetID() string {
-  return "hyb050W"
+  return "hyb047W"
 }
 
 func (eaa *EnvironmentAccessAmbiguity) GetAlertType() Type {
@@ -1332,7 +1257,7 @@ func (nacpe *NotAllCodePathsExit) GetNote() string {
 }
 
 func (nacpe *NotAllCodePathsExit) GetID() string {
-  return "hyb051W"
+  return "hyb048W"
 }
 
 func (nacpe *NotAllCodePathsExit) GetAlertType() Type {
@@ -1357,7 +1282,7 @@ func (ic *InsufficientCases) GetNote() string {
 }
 
 func (ic *InsufficientCases) GetID() string {
-  return "hyb052W"
+  return "hyb049W"
 }
 
 func (ic *InsufficientCases) GetAlertType() Type {
@@ -1382,7 +1307,7 @@ func (dcm *DefaultCaseMissing) GetNote() string {
 }
 
 func (dcm *DefaultCaseMissing) GetID() string {
-  return "hyb053W"
+  return "hyb050W"
 }
 
 func (dcm *DefaultCaseMissing) GetAlertType() Type {
@@ -1409,7 +1334,7 @@ func (ict *InvalidCaseType) GetNote() string {
 }
 
 func (ict *InvalidCaseType) GetID() string {
-  return "hyb054W"
+  return "hyb051W"
 }
 
 func (ict *InvalidCaseType) GetAlertType() Type {
@@ -1435,7 +1360,7 @@ func (lc *LiteralCondition) GetNote() string {
 }
 
 func (lc *LiteralCondition) GetID() string {
-  return "hyb055W"
+  return "hyb052W"
 }
 
 func (lc *LiteralCondition) GetAlertType() Type {
@@ -1462,10 +1387,270 @@ func (atm *ArithmeticTypesMismatch) GetNote() string {
 }
 
 func (atm *ArithmeticTypesMismatch) GetID() string {
-  return "hyb056W"
+  return "hyb053W"
 }
 
 func (atm *ArithmeticTypesMismatch) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type MissingConstructor struct {
+  Specifier Snippet
+  ConstructorType string
+  Context string
+}
+
+func (mc *MissingConstructor) GetMessage() string {
+  return fmt.Sprintf("missing '%s' constructor %s", mc.ConstructorType, mc.Context)
+}
+
+func (mc *MissingConstructor) GetSpecifier() Snippet {
+  return mc.Specifier
+}
+
+func (mc *MissingConstructor) GetNote() string {
+  return ""
+}
+
+func (mc *MissingConstructor) GetID() string {
+  return "hyb054W"
+}
+
+func (mc *MissingConstructor) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type MissingDestroy struct {
+  Specifier Snippet
+}
+
+func (md *MissingDestroy) GetMessage() string {
+  return "missing 'destroy' destructor in entity declaration"
+}
+
+func (md *MissingDestroy) GetSpecifier() Snippet {
+  return md.Specifier
+}
+
+func (md *MissingDestroy) GetNote() string {
+  return ""
+}
+
+func (md *MissingDestroy) GetID() string {
+  return "hyb055W"
+}
+
+func (md *MissingDestroy) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type UninitializedFieldInConstructor struct {
+  Specifier Snippet
+  VarName string
+  Context string
+}
+
+func (ufic *UninitializedFieldInConstructor) GetMessage() string {
+  return fmt.Sprintf("variable '%s' was not initialized in the constructor %s", ufic.VarName, ufic.Context)
+}
+
+func (ufic *UninitializedFieldInConstructor) GetSpecifier() Snippet {
+  return ufic.Specifier
+}
+
+func (ufic *UninitializedFieldInConstructor) GetNote() string {
+  return ""
+}
+
+func (ufic *UninitializedFieldInConstructor) GetID() string {
+  return "hyb056W"
+}
+
+func (ufic *UninitializedFieldInConstructor) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type TypeRedeclaration struct {
+  Specifier Snippet
+  TypeName string
+}
+
+func (tr *TypeRedeclaration) GetMessage() string {
+  return fmt.Sprintf("type '%s' already exists", tr.TypeName)
+}
+
+func (tr *TypeRedeclaration) GetSpecifier() Snippet {
+  return tr.Specifier
+}
+
+func (tr *TypeRedeclaration) GetNote() string {
+  return ""
+}
+
+func (tr *TypeRedeclaration) GetID() string {
+  return "hyb057W"
+}
+
+func (tr *TypeRedeclaration) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidCallAsArgument struct {
+  Specifier Snippet
+}
+
+func (icaa *InvalidCallAsArgument) GetMessage() string {
+  return "cannot have a call that returns more than 1 value as an argument"
+}
+
+func (icaa *InvalidCallAsArgument) GetSpecifier() Snippet {
+  return icaa.Specifier
+}
+
+func (icaa *InvalidCallAsArgument) GetNote() string {
+  return ""
+}
+
+func (icaa *InvalidCallAsArgument) GetID() string {
+  return "hyb058W"
+}
+
+func (icaa *InvalidCallAsArgument) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type MoreThanOneVariadicParameter struct {
+  Specifier Snippet
+}
+
+func (mtovp *MoreThanOneVariadicParameter) GetMessage() string {
+  return "cannot have more than one variadic function parameter"
+}
+
+func (mtovp *MoreThanOneVariadicParameter) GetSpecifier() Snippet {
+  return mtovp.Specifier
+}
+
+func (mtovp *MoreThanOneVariadicParameter) GetNote() string {
+  return ""
+}
+
+func (mtovp *MoreThanOneVariadicParameter) GetID() string {
+  return "hyb059W"
+}
+
+func (mtovp *MoreThanOneVariadicParameter) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type VariadicParameterNotAtEnd struct {
+  Specifier Snippet
+}
+
+func (vpnae *VariadicParameterNotAtEnd) GetMessage() string {
+  return "variadic parameters must be at the end of the function parameters"
+}
+
+func (vpnae *VariadicParameterNotAtEnd) GetSpecifier() Snippet {
+  return vpnae.Specifier
+}
+
+func (vpnae *VariadicParameterNotAtEnd) GetNote() string {
+  return ""
+}
+
+func (vpnae *VariadicParameterNotAtEnd) GetID() string {
+  return "hyb060W"
+}
+
+func (vpnae *VariadicParameterNotAtEnd) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type DuplicateElement struct {
+  Specifier Snippet
+  Element string
+  ElemName string
+}
+
+func (de *DuplicateElement) GetMessage() string {
+  return fmt.Sprintf("the %s '%s' already exists", de.Element, de.ElemName)
+}
+
+func (de *DuplicateElement) GetSpecifier() Snippet {
+  return de.Specifier
+}
+
+func (de *DuplicateElement) GetNote() string {
+  return ""
+}
+
+func (de *DuplicateElement) GetID() string {
+  return "hyb061W"
+}
+
+func (de *DuplicateElement) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidEntityFunctionSignature struct {
+  Specifier Snippet
+  Got string
+  Expected string
+  EntityFuncType string
+}
+
+func (iefs *InvalidEntityFunctionSignature) GetMessage() string {
+  return fmt.Sprintf("expected '%s' for %s, got '%s'", iefs.Expected, iefs.EntityFuncType, iefs.Got)
+}
+
+func (iefs *InvalidEntityFunctionSignature) GetSpecifier() Snippet {
+  return iefs.Specifier
+}
+
+func (iefs *InvalidEntityFunctionSignature) GetNote() string {
+  return ""
+}
+
+func (iefs *InvalidEntityFunctionSignature) GetID() string {
+  return "hyb062W"
+}
+
+func (iefs *InvalidEntityFunctionSignature) GetAlertType() Type {
+  return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidSpawnerParameters struct {
+  Specifier Snippet
+}
+
+func (isp *InvalidSpawnerParameters) GetMessage() string {
+  return "the first two parameters of the spawner must be fixedpoints"
+}
+
+func (isp *InvalidSpawnerParameters) GetSpecifier() Snippet {
+  return isp.Specifier
+}
+
+func (isp *InvalidSpawnerParameters) GetNote() string {
+  return ""
+}
+
+func (isp *InvalidSpawnerParameters) GetID() string {
+  return "hyb063W"
+}
+
+func (isp *InvalidSpawnerParameters) GetAlertType() Type {
   return Error
 }
 

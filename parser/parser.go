@@ -157,6 +157,15 @@ func (p *Parser) parseNode(syncFunc func()) (returnNode ast.Node) {
 }
 
 func (p *Parser) auxiliaryNode() ast.Node {
+	current := p.current
+	p.context.ignoreAlerts.Push("FieldDeclaration", true)
+	node := p.fieldDeclaration(false)
+	p.context.ignoreAlerts.Pop("FieldDeclaration")
+	p.disadvance(p.current - current)
+	if !ast.IsImproper(node, ast.NA) {
+		return p.fieldDeclaration(false)
+	}
+
 	if p.match(tokens.Fn) {
 		fnDec := p.functionDeclaration()
 
@@ -183,8 +192,12 @@ func (p *Parser) auxiliaryNode() ast.Node {
 		if constructor.GetType() == ast.ConstructorDeclaration {
 			return constructor
 		}
-	} else if p.match(tokens.Let) || p.peekTypeVariableDecl() {
-		field := p.fieldDeclaration()
+	} else if p.match(tokens.Let) {
+		field := p.fieldDeclaration(true)
+		if ast.IsImproper(field, ast.FieldDeclaration) {
+			p.synchronizeDeclBody()
+			return ast.NewImproper(field.GetToken(), ast.FieldDeclaration)
+		}
 		if field.GetType() == ast.FieldDeclaration {
 			return field
 		}

@@ -8,8 +8,8 @@ import (
 	"strconv"
 )
 
-func (w *Walker) checkAccessibility(s *Scope, isLocal bool, token tokens.Token) {
-	if s.Environment.Name != w.environment.Name && isLocal {
+func (w *Walker) checkAccessibility(s *Scope, isPub bool, token tokens.Token) {
+	if s.Environment.Name != w.environment.Name && !isPub {
 		w.AlertSingle(&alerts.ForeignLocalVariableAccess{}, token, token.Lexeme)
 	}
 }
@@ -23,7 +23,7 @@ func (w *Walker) getVariable(s *Scope, token tokens.Token) *VariableVal {
 	if !ok {
 		return nil
 	}
-	w.checkAccessibility(s, variable.IsLocal, token)
+	w.checkAccessibility(s, variable.IsPub, token)
 
 	return variable
 }
@@ -40,44 +40,6 @@ func (w *Walker) typeExists(name string) bool {
 	}
 
 	return false
-}
-
-func (w *Walker) getAliasType(s *Scope, token tokens.Token) *AliasType {
-	alias, found := s.AliasTypes[token.Lexeme]
-	if !found {
-		// w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s exists", name))
-		return nil
-	}
-
-	alias.IsUsed = true
-	w.checkAccessibility(s, alias.IsLocal, token)
-
-	return alias
-}
-
-func (w *Walker) getClass(s *Scope, token tokens.Token) *ClassVal {
-	class, found := w.environment.Classes[token.Lexeme]
-	if !found {
-		// w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s exists", name))
-		return nil
-	}
-
-	class.Type.IsUsed = true
-	w.checkAccessibility(s, class.IsLocal, token)
-
-	return class
-}
-
-func (w *Walker) getEntity(name string) *EntityVal {
-	entityType, found := w.environment.Entities[name]
-	if !found {
-		// w.Error(w.Context.Node.GetToken(), fmt.Sprintf("no struct named %s exists", name))
-		return nil
-	}
-
-	entityType.Type.IsUsed = true
-
-	return entityType
 }
 
 func (s *Scope) assignVariable(variable *VariableVal, value Value) Value {
@@ -201,21 +163,19 @@ func convertCallToMethodCall(call *ast.CallExpr, exprType ast.SelfExprType, envN
 	}
 }
 
-func (w *Walker) validateArguments(generics map[string]Type, args []Type, params []Type, call ast.NodeCall) (int, bool) {
-
+func (w *Walker) validateArguments(generics map[string]Type, args []Value, params []Type, call ast.NodeCall) {
+	nodeArgs := call.GetArgs()
 	paramCount := len(params)
-	if paramCount > len(args) {
-		// w.Error(callToken, "too few arguments given in call")
-		return -1, true
-	}
+
 	var param Type
-	for i, typeVal := range args {
+	for i, arg := range args {
+		if i > paramCount-1 {
+			w.AlertSingle(&alerts.TooManyValuesGiven{}, nodeArgs[len(nodeArgs)-1].GetToken(), len(args)-paramCount, "in call arguments")
+			return
+		}
 		if i >= paramCount-1 {
 			if params[paramCount-1].GetType() == Variadic {
 				param = params[paramCount-1].(*VariadicType).Type
-			} else if i > paramCount-1 {
-				// w.Error(callToken, "too many arguments given in call")
-				return -1, true
 			} else {
 				param = params[i]
 			}
@@ -223,22 +183,35 @@ func (w *Walker) validateArguments(generics map[string]Type, args []Type, params
 			param = params[i]
 		}
 
+		if _, ok := arg.(Values); ok {
+			w.AlertSingle(&alerts.InvalidCallAsArgument{}, nodeArgs[i].GetToken())
+			continue
+		}
+
+		argType := arg.GetType()
+
 		if typFound, found := resolveGenericType(&param); found {
 			generic := (*typFound).(*GenericType)
 			if typ, found := generics[generic.Name]; found {
 				*typFound = typ
 			} else {
-				generics[generic.Name] = resolveMatchingType(param, typeVal)
-				param = typeVal
+				generics[generic.Name] = resolveMatchingType(param, argType)
+				param = argType
 			}
 		}
 
-		if !TypeEquals(param, typeVal) {
-			w.AlertSingle(&alerts.InvalidArgumentType{}, call.GetArgs()[i].GetToken(), typeVal.String(), param.String())
-			return i, false
+		if !TypeEquals(param, argType) {
+			w.AlertSingle(&alerts.InvalidArgumentType{}, nodeArgs[i].GetToken(), argType.String(), param.String())
+			return
 		}
 	}
-	return -1, true
+	if paramCount > len(args) {
+		if len(nodeArgs) == 0 {
+			w.AlertSingle(&alerts.TooFewValuesGiven{}, call.GetToken(), paramCount-len(args), "in call arguments")
+		} else {
+			w.AlertSingle(&alerts.TooFewValuesGiven{}, nodeArgs[len(nodeArgs)-1].GetToken(), paramCount-len(args), "in call arguments")
+		}
+	}
 }
 
 func resolveGenericType(typ *Type) (*Type, bool) {
@@ -347,6 +320,35 @@ func (w *Walker) validateReturnValues(returnArgs []ast.Node, _return []Value2, e
 	}
 }
 
+func (w *Walker) getParameters(parameters []ast.FunctionParam, scope *Scope) []Type {
+	variadicParams := make(map[tokens.Token]int)
+	params := make([]Type, 0)
+	for i, param := range parameters {
+		params = append(params, w.typeExpression(param.Type, scope))
+		if params[i].GetType() == Variadic {
+			variadicParams[parameters[i].Name] = i
+		}
+		value := w.typeToValue(params[i])
+		variable := NewVariable(param.Name, value)
+		w.declareVariable(scope, variable)
+	}
+
+	if len(variadicParams) > 1 {
+		for k := range variadicParams {
+			w.AlertSingle(&alerts.MoreThanOneVariadicParameter{}, k)
+			break
+		}
+	} else if len(variadicParams) == 1 {
+		for k, v := range variadicParams {
+			if v != len(parameters)-1 {
+				w.AlertSingle(&alerts.VariadicParameterNotAtEnd{}, k)
+			}
+		}
+	}
+
+	return params
+}
+
 func (w *Walker) getReturns(returns []*ast.TypeExpr, scope *Scope) []Type {
 	returnType := EmptyReturn
 	for i := range returns {
@@ -362,7 +364,7 @@ func (w *Walker) getGenericParams(genericParams []*ast.IdentifierExpr) []*Generi
 	for _, generic := range genericParams {
 		for i := range generics {
 			if generics[i].Name == generic.Name.Lexeme {
-				w.AlertSingle(&alerts.DuplicateGenericParameter{}, generic.GetToken(), generic.Name.Lexeme)
+				w.AlertSingle(&alerts.DuplicateElement{}, generic.GetToken(), "generic parameter", generic.Name.Lexeme)
 				break
 			}
 		}

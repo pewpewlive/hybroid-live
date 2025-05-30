@@ -113,7 +113,7 @@ func (at *AliasType) _eq(other Type) bool {
 	return TypeEquals(other, at.UnderlyingType)
 }
 
-func (at *AliasType) ToString() string {
+func (at *AliasType) String() string {
 	return at.Name + "(alias for " + at.UnderlyingType.String() + ")"
 }
 
@@ -517,7 +517,7 @@ func (fs *FuncSignature) WithReturns(returns ...Type) *FuncSignature {
 	return fs
 }
 
-func (fs *FuncSignature) ToString() string {
+func (fs *FuncSignature) String() string {
 	src := generator.StringBuilder{}
 
 	src.Write("fn")

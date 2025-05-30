@@ -22,15 +22,10 @@ func (w *Walker) functionExpression(fn *ast.FunctionExpr, scope *Scope) Value {
 	returnTypes := w.getReturns(fn.Returns, scope)
 	funcTag := &FuncTag{Generics: generics, ReturnTypes: returnTypes}
 	fnScope := NewScope(scope, funcTag, ReturnAllowing)
+	params := w.getParameters(fn.Params, fnScope)
 
-	w.walkBody(&fn.Body, funcTag, fnScope)
+	w.walkFuncBody(fn, &fn.Body, funcTag, fnScope)
 
-	params := make([]Type, 0)
-	for i, param := range fn.Params {
-		params = append(params, w.typeExpression(param.Type, scope))
-		variable := NewVariable(param.Name, w.typeToValue(params[i]))
-		w.declareVariable(fnScope, variable)
-	}
 	return &FunctionVal{
 		Params:  params,
 		Returns: returnTypes,
@@ -184,6 +179,7 @@ func (w *Walker) identifierExpression(node *ast.Node, scope *Scope) Value {
 	ident := valueNode.(*ast.IdentifierExpr)
 	identToken := ident.GetToken()
 
+find_scope:
 	sc := w.resolveVariable(scope, ident.Name)
 	if sc == nil {
 		walker, found := w.walkers[ident.Name.Lexeme]
@@ -196,6 +192,11 @@ func (w *Walker) identifierExpression(node *ast.Node, scope *Scope) Value {
 
 		w.AlertSingle(&alerts.UndeclaredVariableAccess{}, identToken, identToken.Lexeme)
 		return &Invalid{}
+	}
+
+	if (sc.Tag.GetType() == Class || sc.Tag.GetType() == Entity) && !scope.Is(SelfAllowing) {
+		scope = sc.Parent
+		goto find_scope
 	}
 
 	variable := w.getVariable(sc, ident.Name)
@@ -213,7 +214,7 @@ func (w *Walker) identifierExpression(node *ast.Node, scope *Scope) Value {
 			return method
 		}
 		w.AlertSingle(&alerts.MethodOrFieldNotFound{}, identToken, ident.Name.Lexeme)
-	} else if sc.Tag.GetType() == Entity {
+	} else if sc.Tag.GetType() == Entity && scope.Is(SelfAllowing) {
 		entity := sc.Tag.(*EntityTag).EntityType
 		field, index, found := entity.ContainsField(variable.Name)
 
@@ -365,9 +366,9 @@ func (w *Walker) callExpression(val Value, node *ast.Node, scope *Scope) Value {
 			actualParams = append(actualParams, fn.Params[i])
 		}
 	}
-	args := []Type{}
+	args := []Value{}
 	for i := range call.Args {
-		args = append(args, w.GetNodeValue(&nodeArgs[i], scope).GetType())
+		args = append(args, w.GetActualNodeValue(&nodeArgs[i], scope))
 	}
 	w.validateArguments(genericArgs, args, actualParams, call)
 	actualReturns := make([]Type, 0)
@@ -475,7 +476,7 @@ func (w *Walker) mapExpression(node *ast.MapExpr, scope *Scope) Value {
 		key := prop.Key.GetToken()
 
 		if _, alreadyExists := keymap[key.Lexeme]; alreadyExists {
-			w.AlertSingle(&alerts.DuplicateKeyInMap{}, key)
+			w.AlertSingle(&alerts.DuplicateElement{}, key, "map key", key.Lexeme)
 		} else {
 			keymap[key.Lexeme] = true
 		}
@@ -531,6 +532,10 @@ func (w *Walker) unaryExpression(node *ast.UnaryExpr, scope *Scope) Value {
 
 // Rewrote
 func (w *Walker) selfExpression(self *ast.SelfExpr, scope *Scope) Value {
+	if !scope.Is(SelfAllowing) {
+		w.AlertSingle(&alerts.InvalidUseOfSelf{}, self.Token)
+		return &Invalid{}
+	}
 	sc, _, classTag := resolveTagScope[*ClassTag](scope)
 
 	if sc == nil {
@@ -561,9 +566,9 @@ func (w *Walker) newExpression(new *ast.NewExpr, scope *Scope) Value {
 
 	val := w.typeToValue(_type).(*ClassVal)
 
-	args := make([]Type, 0)
+	args := make([]Value, 0)
 	for i := range new.Args {
-		args = append(args, w.GetNodeValue(&new.Args[i], scope).GetType())
+		args = append(args, w.GetActualNodeValue(&new.Args[i], scope))
 	}
 	suppliedGenerics := w.getGenerics(new.GenericArgs, val.Generics, scope)
 	w.validateArguments(suppliedGenerics, args, val.Params, new)
@@ -584,9 +589,9 @@ func (w *Walker) spawnExpression(new *ast.SpawnExpr, scope *Scope) Value {
 
 	val := w.typeToValue(_type).(*EntityVal)
 
-	args := make([]Type, 0)
+	args := make([]Value, 0)
 	for i := range new.Args {
-		args = append(args, w.GetNodeValue(&new.Args[i], scope).GetType())
+		args = append(args, w.GetActualNodeValue(&new.Args[i], scope))
 	}
 	suppliedGenerics := w.getGenerics(new.GenericArgs, val.SpawnGenerics, scope)
 	w.validateArguments(suppliedGenerics, args, val.SpawnParams, new)
@@ -716,7 +721,7 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 		}
 		if val, ok := scope.Environment.Scope.Variables[typeName]; ok && val.GetType().PVT() == ast.Enum {
 			typ = val.GetType()
-			w.checkAccessibility(scope, val.IsLocal, typee.Name.GetToken())
+			w.checkAccessibility(scope, val.IsPub, typee.Name.GetToken())
 			break
 		}
 

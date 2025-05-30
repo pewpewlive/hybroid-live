@@ -388,7 +388,7 @@ func (w *Walker) yieldStatement(node *ast.YieldStmt, scope *Scope) *[]Type {
 
 func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 	if scope.Parent != nil {
-		w.AlertSingle(&alerts.UseStmtInLocalBlock{}, node.Token)
+		w.AlertSingle(&alerts.InvalidStmtInLocalBlock{}, node.Token, "use statement")
 		return
 	}
 
@@ -475,9 +475,9 @@ func (w *Walker) destroyStatement(node *ast.DestroyStmt, scope *Scope) {
 	node.EnvName = entityVal.Type.EnvName
 	node.EntityName = entityVal.Type.Name
 
-	args := make([]Type, 0)
+	args := make([]Value, 0)
 	for i := range node.Args {
-		args = append(args, w.GetNodeValue(&node.Args[i], scope).GetType())
+		args = append(args, w.GetActualNodeValue(&node.Args[i], scope))
 	}
 
 	suppliedGenerics := w.getGenerics(node.GenericArgs, entityVal.DestroyGenerics, scope)

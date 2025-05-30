@@ -20,44 +20,44 @@ var PewpewEnv = &Environment{
 var PewpewVariables = map[string]*VariableVal{
 	//enums
 	"EntityType": {
-		Name:    "EntityType",
-		Value:   PewpewEntityType,
-		IsLocal: false,
+		Name:  "EntityType",
+		Value: PewpewEntityType,
+		IsPub: true,
 	},
 	"MothershipType": {
-		Name:    "MothershipType",
-		Value:   MothershipType,
-		IsLocal: false,
+		Name:  "MothershipType",
+		Value: MothershipType,
+		IsPub: true,
 	},
 	"CannonType": {
-		Name:    "CannonType",
-		Value:   CannonType,
-		IsLocal: false,
+		Name:  "CannonType",
+		Value: CannonType,
+		IsPub: true,
 	},
 	"CannonFreq": {
-		Name:    "CannonFreq",
-		Value:   CannonFrequency,
-		IsLocal: false,
+		Name:  "CannonFreq",
+		Value: CannonFrequency,
+		IsPub: true,
 	},
 	"BombType": {
-		Name:    "BombType",
-		Value:   BombType,
-		IsLocal: false,
+		Name:  "BombType",
+		Value: BombType,
+		IsPub: true,
 	},
 	"BonusType": {
-		Name:    "BonusType",
-		Value:   BonusType,
-		IsLocal: false,
+		Name:  "BonusType",
+		Value: BonusType,
+		IsPub: true,
 	},
 	"WeaponType": {
-		Name:    "WeaponType",
-		Value:   WeaponType,
-		IsLocal: false,
+		Name:  "WeaponType",
+		Value: WeaponType,
+		IsPub: true,
 	},
 	"AsteroidSize": {
-		Name:    "AsteroidSize",
-		Value:   AsteroidSize,
-		IsLocal: false,
+		Name:  "AsteroidSize",
+		Value: AsteroidSize,
+		IsPub: true,
 	},
 
 	//functions
@@ -265,7 +265,7 @@ var PewpewVariables = map[string]*VariableVal{
 		Name:  "NewBomb",
 		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewEnumType("Pewpew", "BonusType")).WithReturns(&RawEntityType{}),
 	},
-	"NewBonus": { // let's intergrate this with the walker now
+	"NewBonus": {
 		Name: "NewBonus",
 		Value: NewFunction(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed), NewEnumType("Pewpew", "BonusType"), NewStructType([]*VariableVal{
 			{
@@ -595,7 +595,7 @@ var CannonFrequency = NewEnumVal("Pewpew", "CannonFreq", false,
 	"Freq1",
 )
 
-var BombType = NewEnumVal("Pewpew", "BombType", false,
+var BombType = NewEnumVal("Pewpew", "BombType", true,
 	"Freeze",
 	"Repulsive",
 	"Atomize",
@@ -603,21 +603,21 @@ var BombType = NewEnumVal("Pewpew", "BombType", false,
 	"SmallFreeze",
 )
 
-var BonusType = NewEnumVal("Pewpew", "BonusType", false,
+var BonusType = NewEnumVal("Pewpew", "BonusType", true,
 	"Reinstantiation",
 	"Shield",
 	"Speed",
 	"Weapon",
 )
 
-var WeaponType = NewEnumVal("Pewpew", "WeaponType", false,
+var WeaponType = NewEnumVal("Pewpew", "WeaponType", true,
 	"Bullet",
 	"FreezeExplosion",
 	"RepulsiveExplosion",
 	"AtomizeExplosion",
 )
 
-var AsteroidSize = NewEnumVal("Pewpew", "AsteroidSize", false,
+var AsteroidSize = NewEnumVal("Pewpew", "AsteroidSize", true,
 	"Small",
 	"Medium",
 	"Large",

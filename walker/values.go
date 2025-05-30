@@ -51,7 +51,7 @@ type VariableVal struct {
 	Name    string
 	Value   Value
 	IsUsed  bool
-	IsLocal bool
+	IsPub   bool
 	IsInit  bool
 	IsConst bool
 	Token   tokens.Token
@@ -72,11 +72,11 @@ func NewVariable(token tokens.Token, args ...any) *VariableVal {
 	}
 
 	return &VariableVal{
-		Name:    token.Lexeme,
-		Token:   token,
-		Value:   value,
-		IsLocal: isLocal,
-		IsInit:  value != nil,
+		Name:   token.Lexeme,
+		Token:  token,
+		Value:  value,
+		IsPub:  isLocal,
+		IsInit: value != nil,
 	}
 }
 
@@ -184,7 +184,7 @@ type EnumVal struct {
 	Fields map[string]*VariableVal
 }
 
-func NewEnumVal(envName string, name string, isLocal bool, fields ...string) *EnumVal {
+func NewEnumVal(envName string, name string, isPub bool, fields ...string) *EnumVal {
 	val := &EnumVal{
 		Type:   NewEnumType(envName, name),
 		Fields: map[string]*VariableVal{},
@@ -206,13 +206,16 @@ func (ev *EnumVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "nil"}
 }
 
-func (ev *EnumVal) AddField(variable *VariableVal) {
-	if ev == nil {
-		return
+func (ev *EnumVal) AddField(variable *VariableVal) bool {
+	if _, ok := ev.Fields[variable.Name]; ok {
+		return false
 	}
+
 	enumFieldVal := variable.Value.(*EnumFieldVal)
 	enumFieldVal.Index = len(ev.Fields)
 	ev.Fields[variable.Name] = variable
+
+	return true
 }
 
 func (ev *EnumVal) ContainsField(name string) (*VariableVal, int, bool) {
@@ -250,7 +253,6 @@ func NewEnumFieldVar(name string, enumType EnumType, index int) *VariableVal {
 		Value: &EnumFieldVal{
 			Type: &enumType,
 		},
-		IsLocal: true,
 	}
 }
 
@@ -453,7 +455,7 @@ type Values []Value
 
 func (ts Values) GetType() Type {
 	if len(ts) == 0 || len(ts) > 1 {
-		return (&Invalid{}).GetType()
+		return (&Unknown{}).GetType()
 	}
 	return (ts)[0].GetType()
 }

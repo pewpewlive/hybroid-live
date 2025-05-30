@@ -164,7 +164,7 @@ func (w *Walker) walkNode(node *ast.Node, scope *Scope) {
 	switch newNode := (*node).(type) {
 	case *ast.EnvironmentDecl:
 	case *ast.VariableDecl:
-		w.variableDeclaration(newNode, scope)
+		w.variableDeclaration(newNode, scope, false)
 	case *ast.IfStmt:
 		w.ifStatement(newNode, scope)
 	case *ast.FunctionDecl:
@@ -297,6 +297,14 @@ func (w *Walker) walkBody(body *ast.Body, tag ExitableTag, scope *Scope) {
 	}
 }
 
+func (w *Walker) walkFuncBody(node ast.Node, body *ast.Body, tag *FuncTag, scope *Scope) {
+	w.walkBody(body, tag, scope)
+
+	if !tag.GetIfExits(Return) && len(tag.ReturnTypes) != 0 {
+		w.AlertSingle(&alerts.NotAllCodePathsExit{}, node.GetToken(), "return")
+	}
+}
+
 func (w *Walker) TypeifyNodeList(nodes *[]ast.Node, scope *Scope) []Type {
 	arguments := make([]Type, 0)
 	for i := range *nodes {
@@ -308,29 +316,4 @@ func (w *Walker) TypeifyNodeList(nodes *[]ast.Node, scope *Scope) []Type {
 		}
 	}
 	return arguments
-}
-
-func (w *Walker) walkParams(parameters []ast.FunctionParam, scope *Scope, declare func(name tokens.Token, value Value)) []Type {
-	variadicParams := make(map[tokens.Token]int)
-	params := make([]Type, 0)
-	for i, param := range parameters {
-		params = append(params, w.typeExpression(param.Type, scope))
-		if params[i].GetType() == Variadic {
-			variadicParams[parameters[i].Name] = i
-		}
-		value := w.typeToValue(params[i])
-		declare(param.Name, value)
-	}
-
-	if len(variadicParams) > 1 {
-		// w.Error(parameters[0].Name, "can only have one vartiadic parameter")
-	} else if len(variadicParams) != 0 {
-		// for k, v := range variadicParams {
-		// 	if v != len(parameters)-1 {
-		// 		w.Error(k, "variadic parameter should be last")
-		// 	}
-		// }
-	}
-
-	return params
 }

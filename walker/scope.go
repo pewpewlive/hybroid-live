@@ -234,6 +234,15 @@ func (sa *ScopeAttributes) Add(attribute ScopeAttribute) {
 	*sa = append(*sa, attribute)
 }
 
+func (sa *ScopeAttributes) Remove(attribute ScopeAttribute) {
+	for i := range *sa {
+		if (*sa)[i] == attribute {
+			*sa = append((*sa)[:i], (*sa)[i+1:]...)
+			return
+		}
+	}
+}
+
 var EmptyAttributes = ScopeAttributes{}
 
 type Scope struct {
@@ -268,7 +277,7 @@ func NewScope(parent *Scope, tag ScopeTag, extraAttrs ...ScopeAttribute) *Scope 
 	if parent == nil {
 		attrs = EmptyAttributes
 	} else {
-		attrs = parent.Attributes
+		attrs = append(attrs, parent.Attributes...)
 	}
 	for _, v := range extraAttrs {
 		attrs.Add(v)

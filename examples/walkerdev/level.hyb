@@ -24,11 +24,11 @@ fn thing(text message) -> (number, bool) {
 }
 
 pub name = "po"
-let a, b = thing()
+let a, b = thing("OK")
 let bool c
 const o = 2
 
-a, b = thing()
+a, b = thing("TEST")
 self.a = 1
 
 let zzz = match b {
@@ -37,3 +37,27 @@ let zzz = match b {
 }
 
 zzz += 1f
+
+class Example {
+    Example a
+    let b = fn() {
+        a = new Example()
+    }
+
+    new() {
+        self.a = new Example()
+    }
+
+    fn thing() -> Example => a
+}
+
+let something = new Example(1)
+
+enum ExampleEnum {
+    One,
+    Two,
+    Three
+}
+
+let u = ExampleEnum.One
+let Vertex o 

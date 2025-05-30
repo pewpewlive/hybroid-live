@@ -364,23 +364,30 @@ func (p *Parser) constructorDeclaration() ast.Node {
 	return stmt
 }
 
-func (p *Parser) fieldDeclaration() ast.Node {
+func (p *Parser) fieldDeclaration(matchedLet bool) ast.Node {
 	fieldDecl := ast.FieldDecl{
 		Token: p.peek(),
 	}
 
 	typeCheckStart := p.current
-	if typeExpr, ok := p.checkType("in field declaration"); ok {
+	typeExpr, typeOk := p.checkType("in field declaration")
+	if typeOk {
 		fieldDecl.Type = typeExpr
 		if !p.check(tokens.Identifier) {
 			p.disadvance(p.current - typeCheckStart)
 			fieldDecl.Type = nil
 		}
+	} else if !matchedLet {
+		return ast.NewImproper(fieldDecl.Token, ast.NA)
 	}
 
 	idents, values, ok := p.identExprPairs("in field declaration", fieldDecl.Type != nil)
 	if !ok {
-		return ast.NewImproper(fieldDecl.Token, ast.FieldDeclaration)
+		if matchedLet {
+			return ast.NewImproper(fieldDecl.Token, ast.FieldDeclaration)
+		} else {
+			return ast.NewImproper(fieldDecl.Token, ast.NA)
+		}
 	}
 
 	fieldDecl.Identifiers = idents

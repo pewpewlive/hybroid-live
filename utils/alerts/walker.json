@@ -106,11 +106,6 @@
     "message_format": ["ContainerType", "Type1", "Type2"]
   },
   {
-    "name": "DuplicateKeyInMap",
-    "type": "Error",
-    "message": "found duplicate key in map"
-  },
-  {
     "name": "InvalidCallerType",
     "type": "Error",
     "params": {
@@ -264,15 +259,8 @@
   {
     "name": "InvalidUseOfSelf",
     "type": "Error",
-    "message": "cannot use self outside of class or entity"
-  },
-  {
-    "name": "DuplicateGenericParameter",
-    "type": "Error",
-    "params": {
-      "Name": "string"
-    },
-    "message": "the generic parameter '%s' is given more than once"
+    "message": "cannot use self outside of class or entity",
+    "note": "you're also not allowed to use self inside anonymous functions of class/entity fields"
   },
   {
     "name": "UnreachableCode",
@@ -301,14 +289,12 @@
     "message_format": ["Type1", "Type2", "Context"]
   },
   {
-    "name": "UseStmtInLocalBlock",
+    "name": "InvalidStmtInLocalBlock",
     "type": "Error",
-    "message": "use statements must be in the global scope"
-  },
-  {
-    "name": "UsedPewpewInNonLevelEnvironment",
-    "type": "Error",
-    "message": "cannot use the Pewpew environment in a Mesh or Sound type environment"
+    "params": {
+      "StmtType": "string"
+    },
+    "message": "%ss must be in the global scope"
   },
   {
     "name": "UnallowedLibraryUse",
@@ -465,5 +451,80 @@
     },
     "message": "left value is of type '%s', but right value is of type '%s'",
     "message_format": ["Type1", "Type2"]
+  },
+  {
+    "name": "MissingConstructor",
+    "type": "Error",
+    "params": {
+      "ConstructorType": "string",
+      "Context": "string"
+    },
+    "message": "missing '%s' constructor %s",
+    "message_format": ["ConstructorType", "Context"]
+  },
+  {
+    "name": "MissingDestroy",
+    "type": "Error",
+    "message": "missing 'destroy' destructor in entity declaration"
+  },
+  {
+    "name": "UninitializedFieldInConstructor",
+    "type": "Error",
+    "params": {
+      "VarName": "string",
+      "Context": "string"
+    },
+    "message": "variable '%s' was not initialized in the constructor %s",
+    "message_format": ["VarName", "Context"]
+  },
+  {
+    "name": "TypeRedeclaration",
+    "type": "Error",
+    "params": {
+      "TypeName": "string"
+    },
+    "message": "type '%s' already exists",
+    "message_format": ["TypeName"]
+  },
+  {
+    "name": "InvalidCallAsArgument",
+    "type": "Error",
+    "message": "cannot have a call that returns more than 1 value as an argument"
+  },
+  {
+    "name": "MoreThanOneVariadicParameter",
+    "type": "Error",
+    "message": "cannot have more than one variadic function parameter"
+  },
+  {
+    "name": "VariadicParameterNotAtEnd",
+    "type": "Error",
+    "message": "variadic parameters must be at the end of the function parameters"
+  },
+  {
+    "name": "DuplicateElement",
+    "type": "Error",
+    "params": {
+      "Element": "string",
+      "ElemName": "string"
+    },
+    "message": "the %s '%s' already exists",
+    "message_format": [ "Element", "ElemName"]
+  },
+  {
+    "name": "InvalidEntityFunctionSignature",
+    "type": "Error",
+    "params": {
+      "Got": "string",
+      "Expected": "string",
+      "EntityFuncType": "string"
+    },
+    "message": "expected '%s' for %s, got '%s'",
+    "message_format": ["Expected", "EntityFuncType", "Got"]
+  },
+  {
+    "name": "InvalidSpawnerParameters",
+    "type": "Error",
+    "message": "the first two parameters of the spawner must be fixedpoints"
   }
 ]
