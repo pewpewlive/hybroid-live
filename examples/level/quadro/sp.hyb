@@ -64,9 +64,9 @@ pub entity SuperInertiac {
       SetEntityMesh(ring, SPAnim, 0)
       SetEntityInterpolation(ring, true)
       //SetEntityColor(ring, ColorHelpers:MakeColor(Fmath:ToNum(100 * t), Fmath:ToNum(255 * t), 255, 200))
-      Table:Insert(axises, struct{
-        x = Fmath:RandomFixed(-1f, 1f);
-        y = Fmath:RandomFixed(-1f, 1f);
+      Table:Insert(axes, struct{
+        x = Fmath:RandomFixed(-1f, 1f),
+        y = Fmath:RandomFixed(-1f, 1f),
         z = Fmath:RandomFixed(-0.3f, 0.3f)
       })
       Table:Insert(frames, Fmath:RandomNum(0, 59))
@@ -177,9 +177,9 @@ pub entity SuperInertiac {
           continue
         }
         EntityReactToWeapon(v, struct{ // if quadro is Quadro
-          type = WeaponType.Bullet; // if Pewpew:GetCustomizableEntityType(quadro) == Quadro { } 
-          x = velX;
-          y = velY;
+          type = WeaponType.Bullet, // if Pewpew:GetCustomizableEntityType(quadro) == Quadro { } 
+          x = velX,
+          y = velY,
           player_index = -1
         })
       }
@@ -291,7 +291,7 @@ pub entity SuperInertiac {
     SetEntityFlippingMeshes(self, SPAnim, frames[1] % maxFrames + frameOffset, MathHelper:Wrap(frames[1] % maxFrames + 1 + frameOffset, frameOffset, 59+frameOffset))
     for i in rings {
       SetEntityFlippingMeshes(rings[i], SPAnim, frames[i+1] % maxFrames + frameOffset, MathHelper:Wrap(frames[i+1] % maxFrames + 1 + frameOffset, frameOffset, 59+frameOffset))
-      RotateEntityMesh(rings[i], magnitude*magnitude + 0.1f, axises[i].x, axises[i].y, 0f)
+      RotateEntityMesh(rings[i], magnitude*magnitude + 0.1f, axes[i].x, axes[i].y, 0f)
       if !isDead {
         frames[i+1] += 1
         frames[1] = MathHelper:Wrap(frames[1], 0, 59)
@@ -299,7 +299,7 @@ pub entity SuperInertiac {
     }
   }
 
-  fn UpdatePredicitonLine() {
+  UpdatePredicitonLine() {
     //fixed pDY, pDX = GetPlayerMovementPrediction()
     if isDead or !IsEntityAlive(SHIP.id) 
       return 

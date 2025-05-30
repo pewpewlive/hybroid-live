@@ -11,7 +11,7 @@ func (w *Walker) structExpression(node *ast.StructExpr, scope *Scope) *AnonStruc
 	structTypeVal := NewAnonStructVal(make(map[string]Field), false)
 
 	for i := range node.Fields {
-		w.fieldDeclaration(node.Fields[i], structTypeVal, anonStructScope)
+		w.fieldDeclaration(node.Fields[i], structTypeVal, anonStructScope, true)
 	}
 
 	return structTypeVal
@@ -124,12 +124,12 @@ func (w *Walker) entityEvaluationExpression(node *ast.EntityEvaluationExpr, scop
 }
 
 func (w *Walker) binaryExpression(node *ast.BinaryExpr, scope *Scope) Value {
-	left, right := w.GetActualNodeValue(&node.Left, scope), w.GetNodeValue(&node.Right, scope)
+	left, right := w.GetActualNodeValue(&node.Left, scope), w.GetActualNodeValue(&node.Right, scope)
 	leftType, rightType := left.GetType(), right.GetType()
 	op := node.Operator
 	switch op.Type {
 	case tokens.Plus, tokens.Minus, tokens.Caret, tokens.Star, tokens.Slash, tokens.Modulo, tokens.BackSlash:
-		typ := w.validateArithmeticOperands(leftType, rightType, node)
+		typ := w.validateArithmeticOperands(leftType, rightType, node, "in arithmetic expression")
 		return w.typeToValue(typ)
 	case tokens.Concat:
 		if leftType.PVT() != ast.String {
@@ -139,7 +139,15 @@ func (w *Walker) binaryExpression(node *ast.BinaryExpr, scope *Scope) Value {
 			w.AlertSingle(&alerts.TypeMismatch{}, node.Right.GetToken(), "string", rightType, "in concatenation")
 		}
 		return &StringVal{}
-	default: // comparison
+	case tokens.Greater, tokens.GreaterEqual, tokens.Less, tokens.LessEqual, tokens.BangEqual, tokens.EqualEqual:
+		if leftType == InvalidType || rightType == InvalidType {
+			return NewBoolVal()
+		}
+		if !TypeEquals(leftType, rightType) {
+			w.AlertSingle(&alerts.TypesMismatch{}, node.Left.GetToken(), leftType, rightType)
+		}
+		return NewBoolVal()
+	default: // logical comparison
 		if op.Type == tokens.Or {
 			var operand ast.Node
 			if node.Left.GetType() == ast.EntityExpression {
@@ -158,16 +166,16 @@ func (w *Walker) binaryExpression(node *ast.BinaryExpr, scope *Scope) Value {
 }
 
 func (w *Walker) literalExpression(node *ast.LiteralExpr) Value {
-	switch node.ValueType {
-	case ast.String:
+	switch node.Token.Type {
+	case tokens.String:
 		return &StringVal{}
-	case ast.Fixed, ast.Radian, ast.FixedPoint, ast.Degree:
-		return &FixedVal{SpecificType: node.ValueType}
-	case ast.Bool:
+	case tokens.Fixed, tokens.Radian, tokens.FixedPoint, tokens.Degree:
+		return &FixedVal{}
+	case tokens.True, tokens.False:
 		return &BoolVal{
 			Value: node.Value,
 		}
-	case ast.Number:
+	case tokens.Number:
 		return &NumberVal{}
 	default:
 		return &Invalid{}
@@ -179,8 +187,8 @@ func (w *Walker) identifierExpression(node *ast.Node, scope *Scope) Value {
 	ident := valueNode.(*ast.IdentifierExpr)
 	identToken := ident.GetToken()
 
-find_scope:
 	sc := w.resolveVariable(scope, ident.Name)
+check:
 	if sc == nil {
 		walker, found := w.walkers[ident.Name.Lexeme]
 		if found {
@@ -195,8 +203,8 @@ find_scope:
 	}
 
 	if (sc.Tag.GetType() == Class || sc.Tag.GetType() == Entity) && !scope.Is(SelfAllowing) {
-		scope = sc.Parent
-		goto find_scope
+		sc = w.resolveVariable(scope.Parent, ident.Name)
+		goto check
 	}
 
 	variable := w.getVariable(sc, ident.Name)
@@ -348,7 +356,7 @@ func (w *Walker) callExpression(val Value, node *ast.Node, scope *Scope) Value {
 	nodeArgs := call.Args
 	if fn.ProcType == Method {
 		caller := call.Caller.(*ast.AccessExpr)
-		field := caller.Accessed[len(caller.Accessed)].(*ast.FieldExpr)
+		field := caller.Accessed[len(caller.Accessed)-1].(*ast.FieldExpr)
 
 		*node = convertCallToMethodCall(call, field.ExprType, field.EnvName, field.EntityName)
 		mcall := (*node).(*ast.MethodCallExpr)
@@ -649,7 +657,7 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 			env = walker.environment
 		}
 
-		ident := &ast.IdentifierExpr{Name: expr.Accessed.GetToken(), ValueType: ast.Invalid}
+		ident := &ast.IdentifierExpr{Name: expr.Accessed.GetToken()}
 		typ = w.typeExpression(&ast.TypeExpr{Name: ident}, &env.Scope)
 		if typee.IsVariadic {
 			return NewVariadicType(typ)
@@ -670,7 +678,7 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 	case ast.Bool, ast.String, ast.Number:
 		typ = NewBasicType(pvt)
 	case ast.Fixed, ast.FixedPoint, ast.Radian, ast.Degree:
-		typ = NewFixedPointType(pvt)
+		typ = NewFixedPointType()
 	case ast.Enum:
 		typ = NewBasicType(ast.Enum)
 	case ast.Struct:
@@ -715,7 +723,11 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 			typ = structVal.GetType()
 			break
 		}
-		if aliasType, found := scope.AliasTypes[typeName]; found {
+		if aliasType, found := scope.resolveAlias(typeName); found {
+			typ = aliasType.UnderlyingType
+			break
+		}
+		if aliasType, found := BuiltinEnv.Scope.AliasTypes[typeName]; found {
 			typ = aliasType.UnderlyingType
 			break
 		}

@@ -14,23 +14,23 @@ type ForbiddenTypeInEnvironment struct {
   Envs []string
 }
 
-func (ftie *ForbiddenTypeInEnvironment) GetMessage() string {
+func (ftie *ForbiddenTypeInEnvironment) Message() string {
   return fmt.Sprintf("cannot have a %s in the following environments: %s", ftie.Type, strings.Join(ftie.Envs, ", "))
 }
 
-func (ftie *ForbiddenTypeInEnvironment) GetSpecifier() Snippet {
+func (ftie *ForbiddenTypeInEnvironment) SnippetSpecifier() Snippet {
   return ftie.Specifier
 }
 
-func (ftie *ForbiddenTypeInEnvironment) GetNote() string {
+func (ftie *ForbiddenTypeInEnvironment) Note() string {
   return ""
 }
 
-func (ftie *ForbiddenTypeInEnvironment) GetID() string {
+func (ftie *ForbiddenTypeInEnvironment) ID() string {
   return "hyb001W"
 }
 
-func (ftie *ForbiddenTypeInEnvironment) GetAlertType() Type {
+func (ftie *ForbiddenTypeInEnvironment) AlertType() Type {
   return Error
 }
 
@@ -40,23 +40,23 @@ type InvalidEnvironmentType struct {
   Type string
 }
 
-func (iet *InvalidEnvironmentType) GetMessage() string {
+func (iet *InvalidEnvironmentType) Message() string {
   return fmt.Sprintf("'%s' is not a valid environment type", iet.Type)
 }
 
-func (iet *InvalidEnvironmentType) GetSpecifier() Snippet {
+func (iet *InvalidEnvironmentType) SnippetSpecifier() Snippet {
   return iet.Specifier
 }
 
-func (iet *InvalidEnvironmentType) GetNote() string {
+func (iet *InvalidEnvironmentType) Note() string {
   return "environment type can be 'Level', 'Mesh' or 'Sound'"
 }
 
-func (iet *InvalidEnvironmentType) GetID() string {
+func (iet *InvalidEnvironmentType) ID() string {
   return "hyb002W"
 }
 
-func (iet *InvalidEnvironmentType) GetAlertType() Type {
+func (iet *InvalidEnvironmentType) AlertType() Type {
   return Error
 }
 
@@ -65,23 +65,23 @@ type EnvironmentRedaclaration struct {
   Specifier Snippet
 }
 
-func (er *EnvironmentRedaclaration) GetMessage() string {
+func (er *EnvironmentRedaclaration) Message() string {
   return "cannot redeclare an environment"
 }
 
-func (er *EnvironmentRedaclaration) GetSpecifier() Snippet {
+func (er *EnvironmentRedaclaration) SnippetSpecifier() Snippet {
   return er.Specifier
 }
 
-func (er *EnvironmentRedaclaration) GetNote() string {
+func (er *EnvironmentRedaclaration) Note() string {
   return ""
 }
 
-func (er *EnvironmentRedaclaration) GetID() string {
+func (er *EnvironmentRedaclaration) ID() string {
   return "hyb003W"
 }
 
-func (er *EnvironmentRedaclaration) GetAlertType() Type {
+func (er *EnvironmentRedaclaration) AlertType() Type {
   return Error
 }
 
@@ -90,23 +90,23 @@ type ExpectedEnvironment struct {
   Specifier Snippet
 }
 
-func (ee *ExpectedEnvironment) GetMessage() string {
+func (ee *ExpectedEnvironment) Message() string {
   return "expected environment declaration"
 }
 
-func (ee *ExpectedEnvironment) GetSpecifier() Snippet {
+func (ee *ExpectedEnvironment) SnippetSpecifier() Snippet {
   return ee.Specifier
 }
 
-func (ee *ExpectedEnvironment) GetNote() string {
+func (ee *ExpectedEnvironment) Note() string {
   return "the first declaration in any Hybroid file has to be an environment declaration"
 }
 
-func (ee *ExpectedEnvironment) GetID() string {
+func (ee *ExpectedEnvironment) ID() string {
   return "hyb004W"
 }
 
-func (ee *ExpectedEnvironment) GetAlertType() Type {
+func (ee *ExpectedEnvironment) AlertType() Type {
   return Error
 }
 
@@ -117,23 +117,23 @@ type DuplicateEnvironmentNames struct {
   Path2 string
 }
 
-func (den *DuplicateEnvironmentNames) GetMessage() string {
+func (den *DuplicateEnvironmentNames) Message() string {
   return fmt.Sprintf("duplicate environment names found between '%s' and '%s'", den.Path1, den.Path2)
 }
 
-func (den *DuplicateEnvironmentNames) GetSpecifier() Snippet {
+func (den *DuplicateEnvironmentNames) SnippetSpecifier() Snippet {
   return den.Specifier
 }
 
-func (den *DuplicateEnvironmentNames) GetNote() string {
+func (den *DuplicateEnvironmentNames) Note() string {
   return ""
 }
 
-func (den *DuplicateEnvironmentNames) GetID() string {
+func (den *DuplicateEnvironmentNames) ID() string {
   return "hyb005W"
 }
 
-func (den *DuplicateEnvironmentNames) GetAlertType() Type {
+func (den *DuplicateEnvironmentNames) AlertType() Type {
   return Error
 }
 
@@ -143,23 +143,23 @@ type InvalidAccessValue struct {
   Type string
 }
 
-func (iav *InvalidAccessValue) GetMessage() string {
+func (iav *InvalidAccessValue) Message() string {
   return fmt.Sprintf("value is of type '%s', so it cannot be accessed from", iav.Type)
 }
 
-func (iav *InvalidAccessValue) GetSpecifier() Snippet {
+func (iav *InvalidAccessValue) SnippetSpecifier() Snippet {
   return iav.Specifier
 }
 
-func (iav *InvalidAccessValue) GetNote() string {
+func (iav *InvalidAccessValue) Note() string {
   return "only lists, maps, classes, entities, structs and enums can be used to access values from"
 }
 
-func (iav *InvalidAccessValue) GetID() string {
+func (iav *InvalidAccessValue) ID() string {
   return "hyb006W"
 }
 
-func (iav *InvalidAccessValue) GetAlertType() Type {
+func (iav *InvalidAccessValue) AlertType() Type {
   return Error
 }
 
@@ -170,23 +170,23 @@ type FieldAccessOnListOrMap struct {
   AccessType string
 }
 
-func (faolom *FieldAccessOnListOrMap) GetMessage() string {
+func (faolom *FieldAccessOnListOrMap) Message() string {
   return fmt.Sprintf("cannot access field '%s' from the %s", faolom.Field, faolom.AccessType)
 }
 
-func (faolom *FieldAccessOnListOrMap) GetSpecifier() Snippet {
+func (faolom *FieldAccessOnListOrMap) SnippetSpecifier() Snippet {
   return faolom.Specifier
 }
 
-func (faolom *FieldAccessOnListOrMap) GetNote() string {
+func (faolom *FieldAccessOnListOrMap) Note() string {
   return fmt.Sprintf("to access a value from a %s you use brackets, e.g. example[%s]", faolom.AccessType, faolom.Field)
 }
 
-func (faolom *FieldAccessOnListOrMap) GetID() string {
+func (faolom *FieldAccessOnListOrMap) ID() string {
   return "hyb007W"
 }
 
-func (faolom *FieldAccessOnListOrMap) GetAlertType() Type {
+func (faolom *FieldAccessOnListOrMap) AlertType() Type {
   return Error
 }
 
@@ -197,23 +197,23 @@ type MemberAccessOnNonListOrMap struct {
   AccessType string
 }
 
-func (maonlom *MemberAccessOnNonListOrMap) GetMessage() string {
+func (maonlom *MemberAccessOnNonListOrMap) Message() string {
   return fmt.Sprintf("cannot access member '[%s]' from the %s", maonlom.Member, maonlom.AccessType)
 }
 
-func (maonlom *MemberAccessOnNonListOrMap) GetSpecifier() Snippet {
+func (maonlom *MemberAccessOnNonListOrMap) SnippetSpecifier() Snippet {
   return maonlom.Specifier
 }
 
-func (maonlom *MemberAccessOnNonListOrMap) GetNote() string {
+func (maonlom *MemberAccessOnNonListOrMap) Note() string {
   return "to access a value you use a dot and then an identifier, e.g. example.identifier"
 }
 
-func (maonlom *MemberAccessOnNonListOrMap) GetID() string {
+func (maonlom *MemberAccessOnNonListOrMap) ID() string {
   return "hyb008W"
 }
 
-func (maonlom *MemberAccessOnNonListOrMap) GetAlertType() Type {
+func (maonlom *MemberAccessOnNonListOrMap) AlertType() Type {
   return Error
 }
 
@@ -224,23 +224,23 @@ type InvalidMemberIndex struct {
   Index string
 }
 
-func (imi *InvalidMemberIndex) GetMessage() string {
+func (imi *InvalidMemberIndex) Message() string {
   return fmt.Sprintf("'%s' is not of type number to be an index for the %s", imi.Index, imi.AccessType)
 }
 
-func (imi *InvalidMemberIndex) GetSpecifier() Snippet {
+func (imi *InvalidMemberIndex) SnippetSpecifier() Snippet {
   return imi.Specifier
 }
 
-func (imi *InvalidMemberIndex) GetNote() string {
+func (imi *InvalidMemberIndex) Note() string {
   return "for lists, an index (number) is used to access values, for maps, a key (text) is used"
 }
 
-func (imi *InvalidMemberIndex) GetID() string {
+func (imi *InvalidMemberIndex) ID() string {
   return "hyb009W"
 }
 
-func (imi *InvalidMemberIndex) GetAlertType() Type {
+func (imi *InvalidMemberIndex) AlertType() Type {
   return Error
 }
 
@@ -251,23 +251,23 @@ type InvalidField struct {
   FieldName string
 }
 
-func (_if *InvalidField) GetMessage() string {
+func (_if *InvalidField) Message() string {
   return fmt.Sprintf("field '%s' does not belong to the '%s'", _if.FieldName, _if.AccessType)
 }
 
-func (_if *InvalidField) GetSpecifier() Snippet {
+func (_if *InvalidField) SnippetSpecifier() Snippet {
   return _if.Specifier
 }
 
-func (_if *InvalidField) GetNote() string {
+func (_if *InvalidField) Note() string {
   return ""
 }
 
-func (_if *InvalidField) GetID() string {
+func (_if *InvalidField) ID() string {
   return "hyb010W"
 }
 
-func (_if *InvalidField) GetAlertType() Type {
+func (_if *InvalidField) AlertType() Type {
   return Error
 }
 
@@ -279,23 +279,23 @@ type MixedMapOrListContents struct {
   Type2 string
 }
 
-func (mmolc *MixedMapOrListContents) GetMessage() string {
+func (mmolc *MixedMapOrListContents) Message() string {
   return fmt.Sprintf("a %s's members must be the same type (found types: '%s' and '%s')", mmolc.ContainerType, mmolc.Type1, mmolc.Type2)
 }
 
-func (mmolc *MixedMapOrListContents) GetSpecifier() Snippet {
+func (mmolc *MixedMapOrListContents) SnippetSpecifier() Snippet {
   return mmolc.Specifier
 }
 
-func (mmolc *MixedMapOrListContents) GetNote() string {
+func (mmolc *MixedMapOrListContents) Note() string {
   return ""
 }
 
-func (mmolc *MixedMapOrListContents) GetID() string {
+func (mmolc *MixedMapOrListContents) ID() string {
   return "hyb011W"
 }
 
-func (mmolc *MixedMapOrListContents) GetAlertType() Type {
+func (mmolc *MixedMapOrListContents) AlertType() Type {
   return Error
 }
 
@@ -305,23 +305,23 @@ type InvalidCallerType struct {
   Type string
 }
 
-func (ict *InvalidCallerType) GetMessage() string {
+func (ict *InvalidCallerType) Message() string {
   return fmt.Sprintf("cannot call value of of type '%s' as a function", ict.Type)
 }
 
-func (ict *InvalidCallerType) GetSpecifier() Snippet {
+func (ict *InvalidCallerType) SnippetSpecifier() Snippet {
   return ict.Specifier
 }
 
-func (ict *InvalidCallerType) GetNote() string {
+func (ict *InvalidCallerType) Note() string {
   return ""
 }
 
-func (ict *InvalidCallerType) GetID() string {
+func (ict *InvalidCallerType) ID() string {
   return "hyb012W"
 }
 
-func (ict *InvalidCallerType) GetAlertType() Type {
+func (ict *InvalidCallerType) AlertType() Type {
   return Error
 }
 
@@ -331,23 +331,23 @@ type MethodOrFieldNotFound struct {
   Name string
 }
 
-func (mofnf *MethodOrFieldNotFound) GetMessage() string {
+func (mofnf *MethodOrFieldNotFound) Message() string {
   return fmt.Sprintf("no method or field named '%s'", mofnf.Name)
 }
 
-func (mofnf *MethodOrFieldNotFound) GetSpecifier() Snippet {
+func (mofnf *MethodOrFieldNotFound) SnippetSpecifier() Snippet {
   return mofnf.Specifier
 }
 
-func (mofnf *MethodOrFieldNotFound) GetNote() string {
+func (mofnf *MethodOrFieldNotFound) Note() string {
   return ""
 }
 
-func (mofnf *MethodOrFieldNotFound) GetID() string {
+func (mofnf *MethodOrFieldNotFound) ID() string {
   return "hyb013W"
 }
 
-func (mofnf *MethodOrFieldNotFound) GetAlertType() Type {
+func (mofnf *MethodOrFieldNotFound) AlertType() Type {
   return Error
 }
 
@@ -357,23 +357,23 @@ type ForeignLocalVariableAccess struct {
   Name string
 }
 
-func (flva *ForeignLocalVariableAccess) GetMessage() string {
+func (flva *ForeignLocalVariableAccess) Message() string {
   return fmt.Sprintf("cannot access local variable '%s' belonging to a different environment", flva.Name)
 }
 
-func (flva *ForeignLocalVariableAccess) GetSpecifier() Snippet {
+func (flva *ForeignLocalVariableAccess) SnippetSpecifier() Snippet {
   return flva.Specifier
 }
 
-func (flva *ForeignLocalVariableAccess) GetNote() string {
+func (flva *ForeignLocalVariableAccess) Note() string {
   return ""
 }
 
-func (flva *ForeignLocalVariableAccess) GetID() string {
+func (flva *ForeignLocalVariableAccess) ID() string {
   return "hyb014W"
 }
 
-func (flva *ForeignLocalVariableAccess) GetAlertType() Type {
+func (flva *ForeignLocalVariableAccess) AlertType() Type {
   return Error
 }
 
@@ -384,23 +384,23 @@ type InvalidArgumentType struct {
   ExpectedType string
 }
 
-func (iat *InvalidArgumentType) GetMessage() string {
+func (iat *InvalidArgumentType) Message() string {
   return fmt.Sprintf("argument was of type %s, but should be %s", iat.GivenType, iat.ExpectedType)
 }
 
-func (iat *InvalidArgumentType) GetSpecifier() Snippet {
+func (iat *InvalidArgumentType) SnippetSpecifier() Snippet {
   return iat.Specifier
 }
 
-func (iat *InvalidArgumentType) GetNote() string {
+func (iat *InvalidArgumentType) Note() string {
   return ""
 }
 
-func (iat *InvalidArgumentType) GetID() string {
+func (iat *InvalidArgumentType) ID() string {
   return "hyb015W"
 }
 
-func (iat *InvalidArgumentType) GetAlertType() Type {
+func (iat *InvalidArgumentType) AlertType() Type {
   return Error
 }
 
@@ -409,23 +409,23 @@ type PublicDeclarationInLocalScope struct {
   Specifier Snippet
 }
 
-func (pdils *PublicDeclarationInLocalScope) GetMessage() string {
+func (pdils *PublicDeclarationInLocalScope) Message() string {
   return "cannot have a public declaration that is in a local scope"
 }
 
-func (pdils *PublicDeclarationInLocalScope) GetSpecifier() Snippet {
+func (pdils *PublicDeclarationInLocalScope) SnippetSpecifier() Snippet {
   return pdils.Specifier
 }
 
-func (pdils *PublicDeclarationInLocalScope) GetNote() string {
+func (pdils *PublicDeclarationInLocalScope) Note() string {
   return ""
 }
 
-func (pdils *PublicDeclarationInLocalScope) GetID() string {
+func (pdils *PublicDeclarationInLocalScope) ID() string {
   return "hyb016W"
 }
 
-func (pdils *PublicDeclarationInLocalScope) GetAlertType() Type {
+func (pdils *PublicDeclarationInLocalScope) AlertType() Type {
   return Error
 }
 
@@ -436,23 +436,23 @@ type Redeclaration struct {
   DeclType string
 }
 
-func (r *Redeclaration) GetMessage() string {
+func (r *Redeclaration) Message() string {
   return fmt.Sprintf("a %s named '%s' already exists", r.DeclType, r.VarName)
 }
 
-func (r *Redeclaration) GetSpecifier() Snippet {
+func (r *Redeclaration) SnippetSpecifier() Snippet {
   return r.Specifier
 }
 
-func (r *Redeclaration) GetNote() string {
+func (r *Redeclaration) Note() string {
   return ""
 }
 
-func (r *Redeclaration) GetID() string {
+func (r *Redeclaration) ID() string {
   return "hyb017W"
 }
 
-func (r *Redeclaration) GetAlertType() Type {
+func (r *Redeclaration) AlertType() Type {
   return Error
 }
 
@@ -461,23 +461,23 @@ type UnnecessaryTypeInConstDeclaration struct {
   Specifier Snippet
 }
 
-func (uticd *UnnecessaryTypeInConstDeclaration) GetMessage() string {
+func (uticd *UnnecessaryTypeInConstDeclaration) Message() string {
   return "an explicit type is not necessary for a const declaration"
 }
 
-func (uticd *UnnecessaryTypeInConstDeclaration) GetSpecifier() Snippet {
+func (uticd *UnnecessaryTypeInConstDeclaration) SnippetSpecifier() Snippet {
   return uticd.Specifier
 }
 
-func (uticd *UnnecessaryTypeInConstDeclaration) GetNote() string {
+func (uticd *UnnecessaryTypeInConstDeclaration) Note() string {
   return ""
 }
 
-func (uticd *UnnecessaryTypeInConstDeclaration) GetID() string {
+func (uticd *UnnecessaryTypeInConstDeclaration) ID() string {
   return "hyb018W"
 }
 
-func (uticd *UnnecessaryTypeInConstDeclaration) GetAlertType() Type {
+func (uticd *UnnecessaryTypeInConstDeclaration) AlertType() Type {
   return Error
 }
 
@@ -486,23 +486,23 @@ type NoValueGivenForConstant struct {
   Specifier Snippet
 }
 
-func (nvgfc *NoValueGivenForConstant) GetMessage() string {
+func (nvgfc *NoValueGivenForConstant) Message() string {
   return "constant must be declared with a value"
 }
 
-func (nvgfc *NoValueGivenForConstant) GetSpecifier() Snippet {
+func (nvgfc *NoValueGivenForConstant) SnippetSpecifier() Snippet {
   return nvgfc.Specifier
 }
 
-func (nvgfc *NoValueGivenForConstant) GetNote() string {
+func (nvgfc *NoValueGivenForConstant) Note() string {
   return ""
 }
 
-func (nvgfc *NoValueGivenForConstant) GetID() string {
+func (nvgfc *NoValueGivenForConstant) ID() string {
   return "hyb019W"
 }
 
-func (nvgfc *NoValueGivenForConstant) GetAlertType() Type {
+func (nvgfc *NoValueGivenForConstant) AlertType() Type {
   return Error
 }
 
@@ -513,23 +513,23 @@ type TooFewValuesGiven struct {
   Context string
 }
 
-func (tfvg *TooFewValuesGiven) GetMessage() string {
+func (tfvg *TooFewValuesGiven) Message() string {
   return fmt.Sprintf("%d more value(s) required %s", tfvg.RequiredAmount, tfvg.Context)
 }
 
-func (tfvg *TooFewValuesGiven) GetSpecifier() Snippet {
+func (tfvg *TooFewValuesGiven) SnippetSpecifier() Snippet {
   return tfvg.Specifier
 }
 
-func (tfvg *TooFewValuesGiven) GetNote() string {
+func (tfvg *TooFewValuesGiven) Note() string {
   return ""
 }
 
-func (tfvg *TooFewValuesGiven) GetID() string {
+func (tfvg *TooFewValuesGiven) ID() string {
   return "hyb020W"
 }
 
-func (tfvg *TooFewValuesGiven) GetAlertType() Type {
+func (tfvg *TooFewValuesGiven) AlertType() Type {
   return Error
 }
 
@@ -538,23 +538,23 @@ type ExplicitTypeRequiredInDeclaration struct {
   Specifier Snippet
 }
 
-func (etrid *ExplicitTypeRequiredInDeclaration) GetMessage() string {
+func (etrid *ExplicitTypeRequiredInDeclaration) Message() string {
   return "a variable declared without a value requires an explicit type"
 }
 
-func (etrid *ExplicitTypeRequiredInDeclaration) GetSpecifier() Snippet {
+func (etrid *ExplicitTypeRequiredInDeclaration) SnippetSpecifier() Snippet {
   return etrid.Specifier
 }
 
-func (etrid *ExplicitTypeRequiredInDeclaration) GetNote() string {
+func (etrid *ExplicitTypeRequiredInDeclaration) Note() string {
   return ""
 }
 
-func (etrid *ExplicitTypeRequiredInDeclaration) GetID() string {
+func (etrid *ExplicitTypeRequiredInDeclaration) ID() string {
   return "hyb021W"
 }
 
-func (etrid *ExplicitTypeRequiredInDeclaration) GetAlertType() Type {
+func (etrid *ExplicitTypeRequiredInDeclaration) AlertType() Type {
   return Error
 }
 
@@ -565,23 +565,23 @@ type ExplicitTypeMismatch struct {
   ValueType string
 }
 
-func (etm *ExplicitTypeMismatch) GetMessage() string {
+func (etm *ExplicitTypeMismatch) Message() string {
   return fmt.Sprintf("variable was given explicit type '%s', but its value is a '%s'", etm.ExplicitType, etm.ValueType)
 }
 
-func (etm *ExplicitTypeMismatch) GetSpecifier() Snippet {
+func (etm *ExplicitTypeMismatch) SnippetSpecifier() Snippet {
   return etm.Specifier
 }
 
-func (etm *ExplicitTypeMismatch) GetNote() string {
+func (etm *ExplicitTypeMismatch) Note() string {
   return ""
 }
 
-func (etm *ExplicitTypeMismatch) GetID() string {
+func (etm *ExplicitTypeMismatch) ID() string {
   return "hyb022W"
 }
 
-func (etm *ExplicitTypeMismatch) GetAlertType() Type {
+func (etm *ExplicitTypeMismatch) AlertType() Type {
   return Error
 }
 
@@ -591,23 +591,23 @@ type ExplicitTypeNotAllowed struct {
   ExplicitType string
 }
 
-func (etna *ExplicitTypeNotAllowed) GetMessage() string {
+func (etna *ExplicitTypeNotAllowed) Message() string {
   return fmt.Sprintf("cannot create a default value from the explicit type '%s'", etna.ExplicitType)
 }
 
-func (etna *ExplicitTypeNotAllowed) GetSpecifier() Snippet {
+func (etna *ExplicitTypeNotAllowed) SnippetSpecifier() Snippet {
   return etna.Specifier
 }
 
-func (etna *ExplicitTypeNotAllowed) GetNote() string {
+func (etna *ExplicitTypeNotAllowed) Note() string {
   return "some types don't have default values, like entities and classes"
 }
 
-func (etna *ExplicitTypeNotAllowed) GetID() string {
+func (etna *ExplicitTypeNotAllowed) ID() string {
   return "hyb023W"
 }
 
-func (etna *ExplicitTypeNotAllowed) GetAlertType() Type {
+func (etna *ExplicitTypeNotAllowed) AlertType() Type {
   return Error
 }
 
@@ -618,23 +618,23 @@ type TooManyValuesGiven struct {
   Context string
 }
 
-func (tmvg *TooManyValuesGiven) GetMessage() string {
+func (tmvg *TooManyValuesGiven) Message() string {
   return fmt.Sprintf("%d less value(s) required %s", tmvg.ExtraAmount, tmvg.Context)
 }
 
-func (tmvg *TooManyValuesGiven) GetSpecifier() Snippet {
+func (tmvg *TooManyValuesGiven) SnippetSpecifier() Snippet {
   return tmvg.Specifier
 }
 
-func (tmvg *TooManyValuesGiven) GetNote() string {
+func (tmvg *TooManyValuesGiven) Note() string {
   return ""
 }
 
-func (tmvg *TooManyValuesGiven) GetID() string {
+func (tmvg *TooManyValuesGiven) ID() string {
   return "hyb024W"
 }
 
-func (tmvg *TooManyValuesGiven) GetAlertType() Type {
+func (tmvg *TooManyValuesGiven) AlertType() Type {
   return Error
 }
 
@@ -645,23 +645,23 @@ type ImportCycle struct {
   HybPath2 string
 }
 
-func (ic *ImportCycle) GetMessage() string {
+func (ic *ImportCycle) Message() string {
   return fmt.Sprintf("import cycle detected: cycling paths: '%s' and '%s'", ic.HybPath1, ic.HybPath2)
 }
 
-func (ic *ImportCycle) GetSpecifier() Snippet {
+func (ic *ImportCycle) SnippetSpecifier() Snippet {
   return ic.Specifier
 }
 
-func (ic *ImportCycle) GetNote() string {
+func (ic *ImportCycle) Note() string {
   return ""
 }
 
-func (ic *ImportCycle) GetID() string {
+func (ic *ImportCycle) ID() string {
   return "hyb025W"
 }
 
-func (ic *ImportCycle) GetAlertType() Type {
+func (ic *ImportCycle) AlertType() Type {
   return Error
 }
 
@@ -671,23 +671,23 @@ type UndeclaredVariableAccess struct {
   Var string
 }
 
-func (uva *UndeclaredVariableAccess) GetMessage() string {
+func (uva *UndeclaredVariableAccess) Message() string {
   return fmt.Sprintf("'%s' is not a declared variable", uva.Var)
 }
 
-func (uva *UndeclaredVariableAccess) GetSpecifier() Snippet {
+func (uva *UndeclaredVariableAccess) SnippetSpecifier() Snippet {
   return uva.Specifier
 }
 
-func (uva *UndeclaredVariableAccess) GetNote() string {
+func (uva *UndeclaredVariableAccess) Note() string {
   return ""
 }
 
-func (uva *UndeclaredVariableAccess) GetID() string {
+func (uva *UndeclaredVariableAccess) ID() string {
   return "hyb026W"
 }
 
-func (uva *UndeclaredVariableAccess) GetAlertType() Type {
+func (uva *UndeclaredVariableAccess) AlertType() Type {
   return Error
 }
 
@@ -696,23 +696,23 @@ type ConstValueAssignment struct {
   Specifier Snippet
 }
 
-func (cva *ConstValueAssignment) GetMessage() string {
+func (cva *ConstValueAssignment) Message() string {
   return "cannot modify a constant value"
 }
 
-func (cva *ConstValueAssignment) GetSpecifier() Snippet {
+func (cva *ConstValueAssignment) SnippetSpecifier() Snippet {
   return cva.Specifier
 }
 
-func (cva *ConstValueAssignment) GetNote() string {
+func (cva *ConstValueAssignment) Note() string {
   return ""
 }
 
-func (cva *ConstValueAssignment) GetID() string {
+func (cva *ConstValueAssignment) ID() string {
   return "hyb027W"
 }
 
-func (cva *ConstValueAssignment) GetAlertType() Type {
+func (cva *ConstValueAssignment) AlertType() Type {
   return Error
 }
 
@@ -723,23 +723,23 @@ type AssignmentTypeMismatch struct {
   ValType string
 }
 
-func (atm *AssignmentTypeMismatch) GetMessage() string {
+func (atm *AssignmentTypeMismatch) Message() string {
   return fmt.Sprintf("variable is of type '%s', but a value of '%s' was assigned to it", atm.VarType, atm.ValType)
 }
 
-func (atm *AssignmentTypeMismatch) GetSpecifier() Snippet {
+func (atm *AssignmentTypeMismatch) SnippetSpecifier() Snippet {
   return atm.Specifier
 }
 
-func (atm *AssignmentTypeMismatch) GetNote() string {
+func (atm *AssignmentTypeMismatch) Note() string {
   return ""
 }
 
-func (atm *AssignmentTypeMismatch) GetID() string {
+func (atm *AssignmentTypeMismatch) ID() string {
   return "hyb028W"
 }
 
-func (atm *AssignmentTypeMismatch) GetAlertType() Type {
+func (atm *AssignmentTypeMismatch) AlertType() Type {
   return Error
 }
 
@@ -749,23 +749,23 @@ type InvalidTypeInCompoundAssignment struct {
   Type string
 }
 
-func (itica *InvalidTypeInCompoundAssignment) GetMessage() string {
+func (itica *InvalidTypeInCompoundAssignment) Message() string {
   return fmt.Sprintf("the type '%s' is not allowed in compound assignment", itica.Type)
 }
 
-func (itica *InvalidTypeInCompoundAssignment) GetSpecifier() Snippet {
+func (itica *InvalidTypeInCompoundAssignment) SnippetSpecifier() Snippet {
   return itica.Specifier
 }
 
-func (itica *InvalidTypeInCompoundAssignment) GetNote() string {
+func (itica *InvalidTypeInCompoundAssignment) Note() string {
   return "only numerical types are allowed, like numbers, fixeds, fixedpoints, degrees and radians"
 }
 
-func (itica *InvalidTypeInCompoundAssignment) GetID() string {
+func (itica *InvalidTypeInCompoundAssignment) ID() string {
   return "hyb029W"
 }
 
-func (itica *InvalidTypeInCompoundAssignment) GetAlertType() Type {
+func (itica *InvalidTypeInCompoundAssignment) AlertType() Type {
   return Error
 }
 
@@ -774,23 +774,23 @@ type InvalidUseOfSelf struct {
   Specifier Snippet
 }
 
-func (iuos *InvalidUseOfSelf) GetMessage() string {
+func (iuos *InvalidUseOfSelf) Message() string {
   return "cannot use self outside of class or entity"
 }
 
-func (iuos *InvalidUseOfSelf) GetSpecifier() Snippet {
+func (iuos *InvalidUseOfSelf) SnippetSpecifier() Snippet {
   return iuos.Specifier
 }
 
-func (iuos *InvalidUseOfSelf) GetNote() string {
+func (iuos *InvalidUseOfSelf) Note() string {
   return "you're also not allowed to use self inside anonymous functions of class/entity fields"
 }
 
-func (iuos *InvalidUseOfSelf) GetID() string {
+func (iuos *InvalidUseOfSelf) ID() string {
   return "hyb030W"
 }
 
-func (iuos *InvalidUseOfSelf) GetAlertType() Type {
+func (iuos *InvalidUseOfSelf) AlertType() Type {
   return Error
 }
 
@@ -799,23 +799,23 @@ type UnreachableCode struct {
   Specifier Snippet
 }
 
-func (uc *UnreachableCode) GetMessage() string {
+func (uc *UnreachableCode) Message() string {
   return "unreachable code detected"
 }
 
-func (uc *UnreachableCode) GetSpecifier() Snippet {
+func (uc *UnreachableCode) SnippetSpecifier() Snippet {
   return uc.Specifier
 }
 
-func (uc *UnreachableCode) GetNote() string {
+func (uc *UnreachableCode) Note() string {
   return ""
 }
 
-func (uc *UnreachableCode) GetID() string {
+func (uc *UnreachableCode) ID() string {
   return "hyb031W"
 }
 
-func (uc *UnreachableCode) GetAlertType() Type {
+func (uc *UnreachableCode) AlertType() Type {
   return Warning
 }
 
@@ -826,23 +826,23 @@ type InvalidUseOfExitStmt struct {
   Context string
 }
 
-func (iuoes *InvalidUseOfExitStmt) GetMessage() string {
+func (iuoes *InvalidUseOfExitStmt) Message() string {
   return fmt.Sprintf("cannot use '%s' outside of %s", iuoes.ExitNode, iuoes.Context)
 }
 
-func (iuoes *InvalidUseOfExitStmt) GetSpecifier() Snippet {
+func (iuoes *InvalidUseOfExitStmt) SnippetSpecifier() Snippet {
   return iuoes.Specifier
 }
 
-func (iuoes *InvalidUseOfExitStmt) GetNote() string {
+func (iuoes *InvalidUseOfExitStmt) Note() string {
   return ""
 }
 
-func (iuoes *InvalidUseOfExitStmt) GetID() string {
+func (iuoes *InvalidUseOfExitStmt) ID() string {
   return "hyb032W"
 }
 
-func (iuoes *InvalidUseOfExitStmt) GetAlertType() Type {
+func (iuoes *InvalidUseOfExitStmt) AlertType() Type {
   return Error
 }
 
@@ -854,23 +854,23 @@ type TypeMismatch struct {
   Context string
 }
 
-func (tm *TypeMismatch) GetMessage() string {
-  return fmt.Sprintf("expected '%s', got '%s' %s", tm.Type1, tm.Type2, tm.Context)
+func (tm *TypeMismatch) Message() string {
+  return fmt.Sprintf("expected %s, got '%s' %s", tm.Type1, tm.Type2, tm.Context)
 }
 
-func (tm *TypeMismatch) GetSpecifier() Snippet {
+func (tm *TypeMismatch) SnippetSpecifier() Snippet {
   return tm.Specifier
 }
 
-func (tm *TypeMismatch) GetNote() string {
+func (tm *TypeMismatch) Note() string {
   return ""
 }
 
-func (tm *TypeMismatch) GetID() string {
+func (tm *TypeMismatch) ID() string {
   return "hyb033W"
 }
 
-func (tm *TypeMismatch) GetAlertType() Type {
+func (tm *TypeMismatch) AlertType() Type {
   return Error
 }
 
@@ -880,23 +880,23 @@ type InvalidStmtInLocalBlock struct {
   StmtType string
 }
 
-func (isilb *InvalidStmtInLocalBlock) GetMessage() string {
+func (isilb *InvalidStmtInLocalBlock) Message() string {
   return "%ss must be in the global scope"
 }
 
-func (isilb *InvalidStmtInLocalBlock) GetSpecifier() Snippet {
+func (isilb *InvalidStmtInLocalBlock) SnippetSpecifier() Snippet {
   return isilb.Specifier
 }
 
-func (isilb *InvalidStmtInLocalBlock) GetNote() string {
+func (isilb *InvalidStmtInLocalBlock) Note() string {
   return ""
 }
 
-func (isilb *InvalidStmtInLocalBlock) GetID() string {
+func (isilb *InvalidStmtInLocalBlock) ID() string {
   return "hyb034W"
 }
 
-func (isilb *InvalidStmtInLocalBlock) GetAlertType() Type {
+func (isilb *InvalidStmtInLocalBlock) AlertType() Type {
   return Error
 }
 
@@ -907,23 +907,23 @@ type UnallowedLibraryUse struct {
   UnallowedEnvs string
 }
 
-func (ulu *UnallowedLibraryUse) GetMessage() string {
+func (ulu *UnallowedLibraryUse) Message() string {
   return fmt.Sprintf("cannot use the %s library in a %s environment", ulu.Library, ulu.UnallowedEnvs)
 }
 
-func (ulu *UnallowedLibraryUse) GetSpecifier() Snippet {
+func (ulu *UnallowedLibraryUse) SnippetSpecifier() Snippet {
   return ulu.Specifier
 }
 
-func (ulu *UnallowedLibraryUse) GetNote() string {
+func (ulu *UnallowedLibraryUse) Note() string {
   return ""
 }
 
-func (ulu *UnallowedLibraryUse) GetID() string {
+func (ulu *UnallowedLibraryUse) ID() string {
   return "hyb035W"
 }
 
-func (ulu *UnallowedLibraryUse) GetAlertType() Type {
+func (ulu *UnallowedLibraryUse) AlertType() Type {
   return Error
 }
 
@@ -933,23 +933,23 @@ type InvalidEnvironmentAccess struct {
   EnvName string
 }
 
-func (iea *InvalidEnvironmentAccess) GetMessage() string {
+func (iea *InvalidEnvironmentAccess) Message() string {
   return fmt.Sprintf("environment named '%s' does not exist", iea.EnvName)
 }
 
-func (iea *InvalidEnvironmentAccess) GetSpecifier() Snippet {
+func (iea *InvalidEnvironmentAccess) SnippetSpecifier() Snippet {
   return iea.Specifier
 }
 
-func (iea *InvalidEnvironmentAccess) GetNote() string {
+func (iea *InvalidEnvironmentAccess) Note() string {
   return ""
 }
 
-func (iea *InvalidEnvironmentAccess) GetID() string {
+func (iea *InvalidEnvironmentAccess) ID() string {
   return "hyb036W"
 }
 
-func (iea *InvalidEnvironmentAccess) GetAlertType() Type {
+func (iea *InvalidEnvironmentAccess) AlertType() Type {
   return Error
 }
 
@@ -959,23 +959,23 @@ type EnvironmentReuse struct {
   EnvName string
 }
 
-func (er *EnvironmentReuse) GetMessage() string {
+func (er *EnvironmentReuse) Message() string {
   return fmt.Sprintf("environment named '%s' is already imported through use statement", er.EnvName)
 }
 
-func (er *EnvironmentReuse) GetSpecifier() Snippet {
+func (er *EnvironmentReuse) SnippetSpecifier() Snippet {
   return er.Specifier
 }
 
-func (er *EnvironmentReuse) GetNote() string {
+func (er *EnvironmentReuse) Note() string {
   return ""
 }
 
-func (er *EnvironmentReuse) GetID() string {
+func (er *EnvironmentReuse) ID() string {
   return "hyb037W"
 }
 
-func (er *EnvironmentReuse) GetAlertType() Type {
+func (er *EnvironmentReuse) AlertType() Type {
   return Error
 }
 
@@ -985,23 +985,23 @@ type InvalidIteratorType struct {
   Type string
 }
 
-func (iit *InvalidIteratorType) GetMessage() string {
+func (iit *InvalidIteratorType) Message() string {
   return fmt.Sprintf("a for loop iterator must be a map or a list (found: '%s')", iit.Type)
 }
 
-func (iit *InvalidIteratorType) GetSpecifier() Snippet {
+func (iit *InvalidIteratorType) SnippetSpecifier() Snippet {
   return iit.Specifier
 }
 
-func (iit *InvalidIteratorType) GetNote() string {
+func (iit *InvalidIteratorType) Note() string {
   return ""
 }
 
-func (iit *InvalidIteratorType) GetID() string {
+func (iit *InvalidIteratorType) ID() string {
   return "hyb038W"
 }
 
-func (iit *InvalidIteratorType) GetAlertType() Type {
+func (iit *InvalidIteratorType) AlertType() Type {
   return Error
 }
 
@@ -1011,23 +1011,23 @@ type UnnecessaryEmptyIdentifier struct {
   Context string
 }
 
-func (uei *UnnecessaryEmptyIdentifier) GetMessage() string {
+func (uei *UnnecessaryEmptyIdentifier) Message() string {
   return fmt.Sprintf("unnecessary use of empty identifier ('_') %s", uei.Context)
 }
 
-func (uei *UnnecessaryEmptyIdentifier) GetSpecifier() Snippet {
+func (uei *UnnecessaryEmptyIdentifier) SnippetSpecifier() Snippet {
   return uei.Specifier
 }
 
-func (uei *UnnecessaryEmptyIdentifier) GetNote() string {
+func (uei *UnnecessaryEmptyIdentifier) Note() string {
   return ""
 }
 
-func (uei *UnnecessaryEmptyIdentifier) GetID() string {
+func (uei *UnnecessaryEmptyIdentifier) ID() string {
   return "hyb039W"
 }
 
-func (uei *UnnecessaryEmptyIdentifier) GetAlertType() Type {
+func (uei *UnnecessaryEmptyIdentifier) AlertType() Type {
   return Warning
 }
 
@@ -1036,23 +1036,23 @@ type EnvironmentAccessToItself struct {
   Specifier Snippet
 }
 
-func (eati *EnvironmentAccessToItself) GetMessage() string {
+func (eati *EnvironmentAccessToItself) Message() string {
   return "an environment cannot access itself"
 }
 
-func (eati *EnvironmentAccessToItself) GetSpecifier() Snippet {
+func (eati *EnvironmentAccessToItself) SnippetSpecifier() Snippet {
   return eati.Specifier
 }
 
-func (eati *EnvironmentAccessToItself) GetNote() string {
+func (eati *EnvironmentAccessToItself) Note() string {
   return ""
 }
 
-func (eati *EnvironmentAccessToItself) GetID() string {
+func (eati *EnvironmentAccessToItself) ID() string {
   return "hyb040W"
 }
 
-func (eati *EnvironmentAccessToItself) GetAlertType() Type {
+func (eati *EnvironmentAccessToItself) AlertType() Type {
   return Error
 }
 
@@ -1061,23 +1061,23 @@ type EntityConversionWithOrCondition struct {
   Specifier Snippet
 }
 
-func (ecwoc *EntityConversionWithOrCondition) GetMessage() string {
+func (ecwoc *EntityConversionWithOrCondition) Message() string {
   return "cannot convert an entity with an 'or' condition"
 }
 
-func (ecwoc *EntityConversionWithOrCondition) GetSpecifier() Snippet {
+func (ecwoc *EntityConversionWithOrCondition) SnippetSpecifier() Snippet {
   return ecwoc.Specifier
 }
 
-func (ecwoc *EntityConversionWithOrCondition) GetNote() string {
+func (ecwoc *EntityConversionWithOrCondition) Note() string {
   return ""
 }
 
-func (ecwoc *EntityConversionWithOrCondition) GetID() string {
+func (ecwoc *EntityConversionWithOrCondition) ID() string {
   return "hyb041W"
 }
 
-func (ecwoc *EntityConversionWithOrCondition) GetAlertType() Type {
+func (ecwoc *EntityConversionWithOrCondition) AlertType() Type {
   return Error
 }
 
@@ -1087,23 +1087,23 @@ type InvalidCondition struct {
   Context string
 }
 
-func (ic *InvalidCondition) GetMessage() string {
+func (ic *InvalidCondition) Message() string {
   return fmt.Sprintf("invalid condition %s", ic.Context)
 }
 
-func (ic *InvalidCondition) GetSpecifier() Snippet {
+func (ic *InvalidCondition) SnippetSpecifier() Snippet {
   return ic.Specifier
 }
 
-func (ic *InvalidCondition) GetNote() string {
+func (ic *InvalidCondition) Note() string {
   return "conditions always have to evaluate to either true or false"
 }
 
-func (ic *InvalidCondition) GetID() string {
+func (ic *InvalidCondition) ID() string {
   return "hyb042W"
 }
 
-func (ic *InvalidCondition) GetAlertType() Type {
+func (ic *InvalidCondition) AlertType() Type {
   return Error
 }
 
@@ -1113,23 +1113,23 @@ type InvalidRepeatIterator struct {
   Type string
 }
 
-func (iri *InvalidRepeatIterator) GetMessage() string {
+func (iri *InvalidRepeatIterator) Message() string {
   return fmt.Sprintf("invalid repeat iterator of type '%s'", iri.Type)
 }
 
-func (iri *InvalidRepeatIterator) GetSpecifier() Snippet {
+func (iri *InvalidRepeatIterator) SnippetSpecifier() Snippet {
   return iri.Specifier
 }
 
-func (iri *InvalidRepeatIterator) GetNote() string {
+func (iri *InvalidRepeatIterator) Note() string {
   return "repeat iterator must be a numerical type"
 }
 
-func (iri *InvalidRepeatIterator) GetID() string {
+func (iri *InvalidRepeatIterator) ID() string {
   return "hyb043W"
 }
 
-func (iri *InvalidRepeatIterator) GetAlertType() Type {
+func (iri *InvalidRepeatIterator) AlertType() Type {
   return Error
 }
 
@@ -1141,23 +1141,23 @@ type InconsistentRepeatTypes struct {
   Iterator string
 }
 
-func (irt *InconsistentRepeatTypes) GetMessage() string {
+func (irt *InconsistentRepeatTypes) Message() string {
   return fmt.Sprintf("repeat types are inconsistent (from:'%s', by:'%s', to:'%s')", irt.From, irt.Skip, irt.Iterator)
 }
 
-func (irt *InconsistentRepeatTypes) GetSpecifier() Snippet {
+func (irt *InconsistentRepeatTypes) SnippetSpecifier() Snippet {
   return irt.Specifier
 }
 
-func (irt *InconsistentRepeatTypes) GetNote() string {
+func (irt *InconsistentRepeatTypes) Note() string {
   return ""
 }
 
-func (irt *InconsistentRepeatTypes) GetID() string {
+func (irt *InconsistentRepeatTypes) ID() string {
   return "hyb044W"
 }
 
-func (irt *InconsistentRepeatTypes) GetAlertType() Type {
+func (irt *InconsistentRepeatTypes) AlertType() Type {
   return Error
 }
 
@@ -1166,23 +1166,23 @@ type OfficialEntityConversion struct {
   Specifier Snippet
 }
 
-func (oec *OfficialEntityConversion) GetMessage() string {
+func (oec *OfficialEntityConversion) Message() string {
   return "conversion of an official entity to a hybroid entity is not possible"
 }
 
-func (oec *OfficialEntityConversion) GetSpecifier() Snippet {
+func (oec *OfficialEntityConversion) SnippetSpecifier() Snippet {
   return oec.Specifier
 }
 
-func (oec *OfficialEntityConversion) GetNote() string {
+func (oec *OfficialEntityConversion) Note() string {
   return ""
 }
 
-func (oec *OfficialEntityConversion) GetID() string {
+func (oec *OfficialEntityConversion) ID() string {
   return "hyb045W"
 }
 
-func (oec *OfficialEntityConversion) GetAlertType() Type {
+func (oec *OfficialEntityConversion) AlertType() Type {
   return Error
 }
 
@@ -1191,23 +1191,23 @@ type InvalidEnvironment struct {
   Specifier Snippet
 }
 
-func (ie *InvalidEnvironment) GetMessage() string {
+func (ie *InvalidEnvironment) Message() string {
   return "there is no environment with that path"
 }
 
-func (ie *InvalidEnvironment) GetSpecifier() Snippet {
+func (ie *InvalidEnvironment) SnippetSpecifier() Snippet {
   return ie.Specifier
 }
 
-func (ie *InvalidEnvironment) GetNote() string {
+func (ie *InvalidEnvironment) Note() string {
   return ""
 }
 
-func (ie *InvalidEnvironment) GetID() string {
+func (ie *InvalidEnvironment) ID() string {
   return "hyb046W"
 }
 
-func (ie *InvalidEnvironment) GetAlertType() Type {
+func (ie *InvalidEnvironment) AlertType() Type {
   return Error
 }
 
@@ -1218,23 +1218,23 @@ type EnvironmentAccessAmbiguity struct {
   Context string
 }
 
-func (eaa *EnvironmentAccessAmbiguity) GetMessage() string {
+func (eaa *EnvironmentAccessAmbiguity) Message() string {
   return fmt.Sprintf("the type '%s' can be found on multiple environments: %s", eaa.Context, strings.Join(eaa.Envs, ", "))
 }
 
-func (eaa *EnvironmentAccessAmbiguity) GetSpecifier() Snippet {
+func (eaa *EnvironmentAccessAmbiguity) SnippetSpecifier() Snippet {
   return eaa.Specifier
 }
 
-func (eaa *EnvironmentAccessAmbiguity) GetNote() string {
+func (eaa *EnvironmentAccessAmbiguity) Note() string {
   return ""
 }
 
-func (eaa *EnvironmentAccessAmbiguity) GetID() string {
+func (eaa *EnvironmentAccessAmbiguity) ID() string {
   return "hyb047W"
 }
 
-func (eaa *EnvironmentAccessAmbiguity) GetAlertType() Type {
+func (eaa *EnvironmentAccessAmbiguity) AlertType() Type {
   return Error
 }
 
@@ -1244,23 +1244,23 @@ type NotAllCodePathsExit struct {
   ExitType string
 }
 
-func (nacpe *NotAllCodePathsExit) GetMessage() string {
+func (nacpe *NotAllCodePathsExit) Message() string {
   return fmt.Sprintf("not all code paths %s", nacpe.ExitType)
 }
 
-func (nacpe *NotAllCodePathsExit) GetSpecifier() Snippet {
+func (nacpe *NotAllCodePathsExit) SnippetSpecifier() Snippet {
   return nacpe.Specifier
 }
 
-func (nacpe *NotAllCodePathsExit) GetNote() string {
+func (nacpe *NotAllCodePathsExit) Note() string {
   return ""
 }
 
-func (nacpe *NotAllCodePathsExit) GetID() string {
+func (nacpe *NotAllCodePathsExit) ID() string {
   return "hyb048W"
 }
 
-func (nacpe *NotAllCodePathsExit) GetAlertType() Type {
+func (nacpe *NotAllCodePathsExit) AlertType() Type {
   return Error
 }
 
@@ -1269,23 +1269,23 @@ type InsufficientCases struct {
   Specifier Snippet
 }
 
-func (ic *InsufficientCases) GetMessage() string {
+func (ic *InsufficientCases) Message() string {
   return "match statement must have at least 1 non-default case"
 }
 
-func (ic *InsufficientCases) GetSpecifier() Snippet {
+func (ic *InsufficientCases) SnippetSpecifier() Snippet {
   return ic.Specifier
 }
 
-func (ic *InsufficientCases) GetNote() string {
+func (ic *InsufficientCases) Note() string {
   return ""
 }
 
-func (ic *InsufficientCases) GetID() string {
+func (ic *InsufficientCases) ID() string {
   return "hyb049W"
 }
 
-func (ic *InsufficientCases) GetAlertType() Type {
+func (ic *InsufficientCases) AlertType() Type {
   return Error
 }
 
@@ -1294,23 +1294,23 @@ type DefaultCaseMissing struct {
   Specifier Snippet
 }
 
-func (dcm *DefaultCaseMissing) GetMessage() string {
+func (dcm *DefaultCaseMissing) Message() string {
   return "match expression must have a default case"
 }
 
-func (dcm *DefaultCaseMissing) GetSpecifier() Snippet {
+func (dcm *DefaultCaseMissing) SnippetSpecifier() Snippet {
   return dcm.Specifier
 }
 
-func (dcm *DefaultCaseMissing) GetNote() string {
+func (dcm *DefaultCaseMissing) Note() string {
   return "default cases start with 'else'"
 }
 
-func (dcm *DefaultCaseMissing) GetID() string {
+func (dcm *DefaultCaseMissing) ID() string {
   return "hyb050W"
 }
 
-func (dcm *DefaultCaseMissing) GetAlertType() Type {
+func (dcm *DefaultCaseMissing) AlertType() Type {
   return Error
 }
 
@@ -1321,23 +1321,23 @@ type InvalidCaseType struct {
   CaseValueType string
 }
 
-func (ict *InvalidCaseType) GetMessage() string {
+func (ict *InvalidCaseType) Message() string {
   return fmt.Sprintf("match value is of type '%s', but case value is of type '%s'", ict.MatchValueType, ict.CaseValueType)
 }
 
-func (ict *InvalidCaseType) GetSpecifier() Snippet {
+func (ict *InvalidCaseType) SnippetSpecifier() Snippet {
   return ict.Specifier
 }
 
-func (ict *InvalidCaseType) GetNote() string {
+func (ict *InvalidCaseType) Note() string {
   return ""
 }
 
-func (ict *InvalidCaseType) GetID() string {
+func (ict *InvalidCaseType) ID() string {
   return "hyb051W"
 }
 
-func (ict *InvalidCaseType) GetAlertType() Type {
+func (ict *InvalidCaseType) AlertType() Type {
   return Error
 }
 
@@ -1347,50 +1347,50 @@ type LiteralCondition struct {
   ConditionValue string
 }
 
-func (lc *LiteralCondition) GetMessage() string {
+func (lc *LiteralCondition) Message() string {
   return fmt.Sprintf("condition is always %s", lc.ConditionValue)
 }
 
-func (lc *LiteralCondition) GetSpecifier() Snippet {
+func (lc *LiteralCondition) SnippetSpecifier() Snippet {
   return lc.Specifier
 }
 
-func (lc *LiteralCondition) GetNote() string {
+func (lc *LiteralCondition) Note() string {
   return ""
 }
 
-func (lc *LiteralCondition) GetID() string {
+func (lc *LiteralCondition) ID() string {
   return "hyb052W"
 }
 
-func (lc *LiteralCondition) GetAlertType() Type {
+func (lc *LiteralCondition) AlertType() Type {
   return Warning
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type ArithmeticTypesMismatch struct {
+type TypesMismatch struct {
   Specifier Snippet
   Type1 string
   Type2 string
 }
 
-func (atm *ArithmeticTypesMismatch) GetMessage() string {
-  return fmt.Sprintf("left value is of type '%s', but right value is of type '%s'", atm.Type1, atm.Type2)
+func (tm *TypesMismatch) Message() string {
+  return fmt.Sprintf("left value is of type '%s', but right value is of type '%s'", tm.Type1, tm.Type2)
 }
 
-func (atm *ArithmeticTypesMismatch) GetSpecifier() Snippet {
-  return atm.Specifier
+func (tm *TypesMismatch) SnippetSpecifier() Snippet {
+  return tm.Specifier
 }
 
-func (atm *ArithmeticTypesMismatch) GetNote() string {
+func (tm *TypesMismatch) Note() string {
   return ""
 }
 
-func (atm *ArithmeticTypesMismatch) GetID() string {
+func (tm *TypesMismatch) ID() string {
   return "hyb053W"
 }
 
-func (atm *ArithmeticTypesMismatch) GetAlertType() Type {
+func (tm *TypesMismatch) AlertType() Type {
   return Error
 }
 
@@ -1401,23 +1401,23 @@ type MissingConstructor struct {
   Context string
 }
 
-func (mc *MissingConstructor) GetMessage() string {
+func (mc *MissingConstructor) Message() string {
   return fmt.Sprintf("missing '%s' constructor %s", mc.ConstructorType, mc.Context)
 }
 
-func (mc *MissingConstructor) GetSpecifier() Snippet {
+func (mc *MissingConstructor) SnippetSpecifier() Snippet {
   return mc.Specifier
 }
 
-func (mc *MissingConstructor) GetNote() string {
+func (mc *MissingConstructor) Note() string {
   return ""
 }
 
-func (mc *MissingConstructor) GetID() string {
+func (mc *MissingConstructor) ID() string {
   return "hyb054W"
 }
 
-func (mc *MissingConstructor) GetAlertType() Type {
+func (mc *MissingConstructor) AlertType() Type {
   return Error
 }
 
@@ -1426,23 +1426,23 @@ type MissingDestroy struct {
   Specifier Snippet
 }
 
-func (md *MissingDestroy) GetMessage() string {
+func (md *MissingDestroy) Message() string {
   return "missing 'destroy' destructor in entity declaration"
 }
 
-func (md *MissingDestroy) GetSpecifier() Snippet {
+func (md *MissingDestroy) SnippetSpecifier() Snippet {
   return md.Specifier
 }
 
-func (md *MissingDestroy) GetNote() string {
+func (md *MissingDestroy) Note() string {
   return ""
 }
 
-func (md *MissingDestroy) GetID() string {
+func (md *MissingDestroy) ID() string {
   return "hyb055W"
 }
 
-func (md *MissingDestroy) GetAlertType() Type {
+func (md *MissingDestroy) AlertType() Type {
   return Error
 }
 
@@ -1453,23 +1453,23 @@ type UninitializedFieldInConstructor struct {
   Context string
 }
 
-func (ufic *UninitializedFieldInConstructor) GetMessage() string {
+func (ufic *UninitializedFieldInConstructor) Message() string {
   return fmt.Sprintf("variable '%s' was not initialized in the constructor %s", ufic.VarName, ufic.Context)
 }
 
-func (ufic *UninitializedFieldInConstructor) GetSpecifier() Snippet {
+func (ufic *UninitializedFieldInConstructor) SnippetSpecifier() Snippet {
   return ufic.Specifier
 }
 
-func (ufic *UninitializedFieldInConstructor) GetNote() string {
+func (ufic *UninitializedFieldInConstructor) Note() string {
   return ""
 }
 
-func (ufic *UninitializedFieldInConstructor) GetID() string {
+func (ufic *UninitializedFieldInConstructor) ID() string {
   return "hyb056W"
 }
 
-func (ufic *UninitializedFieldInConstructor) GetAlertType() Type {
+func (ufic *UninitializedFieldInConstructor) AlertType() Type {
   return Error
 }
 
@@ -1479,23 +1479,23 @@ type TypeRedeclaration struct {
   TypeName string
 }
 
-func (tr *TypeRedeclaration) GetMessage() string {
+func (tr *TypeRedeclaration) Message() string {
   return fmt.Sprintf("type '%s' already exists", tr.TypeName)
 }
 
-func (tr *TypeRedeclaration) GetSpecifier() Snippet {
+func (tr *TypeRedeclaration) SnippetSpecifier() Snippet {
   return tr.Specifier
 }
 
-func (tr *TypeRedeclaration) GetNote() string {
+func (tr *TypeRedeclaration) Note() string {
   return ""
 }
 
-func (tr *TypeRedeclaration) GetID() string {
+func (tr *TypeRedeclaration) ID() string {
   return "hyb057W"
 }
 
-func (tr *TypeRedeclaration) GetAlertType() Type {
+func (tr *TypeRedeclaration) AlertType() Type {
   return Error
 }
 
@@ -1504,23 +1504,23 @@ type InvalidCallAsArgument struct {
   Specifier Snippet
 }
 
-func (icaa *InvalidCallAsArgument) GetMessage() string {
+func (icaa *InvalidCallAsArgument) Message() string {
   return "cannot have a call that returns more than 1 value as an argument"
 }
 
-func (icaa *InvalidCallAsArgument) GetSpecifier() Snippet {
+func (icaa *InvalidCallAsArgument) SnippetSpecifier() Snippet {
   return icaa.Specifier
 }
 
-func (icaa *InvalidCallAsArgument) GetNote() string {
+func (icaa *InvalidCallAsArgument) Note() string {
   return ""
 }
 
-func (icaa *InvalidCallAsArgument) GetID() string {
+func (icaa *InvalidCallAsArgument) ID() string {
   return "hyb058W"
 }
 
-func (icaa *InvalidCallAsArgument) GetAlertType() Type {
+func (icaa *InvalidCallAsArgument) AlertType() Type {
   return Error
 }
 
@@ -1529,23 +1529,23 @@ type MoreThanOneVariadicParameter struct {
   Specifier Snippet
 }
 
-func (mtovp *MoreThanOneVariadicParameter) GetMessage() string {
+func (mtovp *MoreThanOneVariadicParameter) Message() string {
   return "cannot have more than one variadic function parameter"
 }
 
-func (mtovp *MoreThanOneVariadicParameter) GetSpecifier() Snippet {
+func (mtovp *MoreThanOneVariadicParameter) SnippetSpecifier() Snippet {
   return mtovp.Specifier
 }
 
-func (mtovp *MoreThanOneVariadicParameter) GetNote() string {
+func (mtovp *MoreThanOneVariadicParameter) Note() string {
   return ""
 }
 
-func (mtovp *MoreThanOneVariadicParameter) GetID() string {
+func (mtovp *MoreThanOneVariadicParameter) ID() string {
   return "hyb059W"
 }
 
-func (mtovp *MoreThanOneVariadicParameter) GetAlertType() Type {
+func (mtovp *MoreThanOneVariadicParameter) AlertType() Type {
   return Error
 }
 
@@ -1554,23 +1554,23 @@ type VariadicParameterNotAtEnd struct {
   Specifier Snippet
 }
 
-func (vpnae *VariadicParameterNotAtEnd) GetMessage() string {
+func (vpnae *VariadicParameterNotAtEnd) Message() string {
   return "variadic parameters must be at the end of the function parameters"
 }
 
-func (vpnae *VariadicParameterNotAtEnd) GetSpecifier() Snippet {
+func (vpnae *VariadicParameterNotAtEnd) SnippetSpecifier() Snippet {
   return vpnae.Specifier
 }
 
-func (vpnae *VariadicParameterNotAtEnd) GetNote() string {
+func (vpnae *VariadicParameterNotAtEnd) Note() string {
   return ""
 }
 
-func (vpnae *VariadicParameterNotAtEnd) GetID() string {
+func (vpnae *VariadicParameterNotAtEnd) ID() string {
   return "hyb060W"
 }
 
-func (vpnae *VariadicParameterNotAtEnd) GetAlertType() Type {
+func (vpnae *VariadicParameterNotAtEnd) AlertType() Type {
   return Error
 }
 
@@ -1581,23 +1581,23 @@ type DuplicateElement struct {
   ElemName string
 }
 
-func (de *DuplicateElement) GetMessage() string {
+func (de *DuplicateElement) Message() string {
   return fmt.Sprintf("the %s '%s' already exists", de.Element, de.ElemName)
 }
 
-func (de *DuplicateElement) GetSpecifier() Snippet {
+func (de *DuplicateElement) SnippetSpecifier() Snippet {
   return de.Specifier
 }
 
-func (de *DuplicateElement) GetNote() string {
+func (de *DuplicateElement) Note() string {
   return ""
 }
 
-func (de *DuplicateElement) GetID() string {
+func (de *DuplicateElement) ID() string {
   return "hyb061W"
 }
 
-func (de *DuplicateElement) GetAlertType() Type {
+func (de *DuplicateElement) AlertType() Type {
   return Error
 }
 
@@ -1609,23 +1609,23 @@ type InvalidEntityFunctionSignature struct {
   EntityFuncType string
 }
 
-func (iefs *InvalidEntityFunctionSignature) GetMessage() string {
+func (iefs *InvalidEntityFunctionSignature) Message() string {
   return fmt.Sprintf("expected '%s' for %s, got '%s'", iefs.Expected, iefs.EntityFuncType, iefs.Got)
 }
 
-func (iefs *InvalidEntityFunctionSignature) GetSpecifier() Snippet {
+func (iefs *InvalidEntityFunctionSignature) SnippetSpecifier() Snippet {
   return iefs.Specifier
 }
 
-func (iefs *InvalidEntityFunctionSignature) GetNote() string {
+func (iefs *InvalidEntityFunctionSignature) Note() string {
   return ""
 }
 
-func (iefs *InvalidEntityFunctionSignature) GetID() string {
+func (iefs *InvalidEntityFunctionSignature) ID() string {
   return "hyb062W"
 }
 
-func (iefs *InvalidEntityFunctionSignature) GetAlertType() Type {
+func (iefs *InvalidEntityFunctionSignature) AlertType() Type {
   return Error
 }
 
@@ -1634,23 +1634,23 @@ type InvalidSpawnerParameters struct {
   Specifier Snippet
 }
 
-func (isp *InvalidSpawnerParameters) GetMessage() string {
+func (isp *InvalidSpawnerParameters) Message() string {
   return "the first two parameters of the spawner must be fixedpoints"
 }
 
-func (isp *InvalidSpawnerParameters) GetSpecifier() Snippet {
+func (isp *InvalidSpawnerParameters) SnippetSpecifier() Snippet {
   return isp.Specifier
 }
 
-func (isp *InvalidSpawnerParameters) GetNote() string {
+func (isp *InvalidSpawnerParameters) Note() string {
   return ""
 }
 
-func (isp *InvalidSpawnerParameters) GetID() string {
+func (isp *InvalidSpawnerParameters) ID() string {
   return "hyb063W"
 }
 
-func (isp *InvalidSpawnerParameters) GetAlertType() Type {
+func (isp *InvalidSpawnerParameters) AlertType() Type {
   return Error
 }
 

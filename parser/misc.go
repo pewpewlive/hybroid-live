@@ -80,14 +80,14 @@ func (p *Parser) genericParams() ([]*ast.IdentifierExpr, bool) {
 	token, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in generic parameters"), tokens.Identifier)
 	success := ok
 	if ok {
-		params = append(params, &ast.IdentifierExpr{Name: token, ValueType: ast.Invalid})
+		params = append(params, &ast.IdentifierExpr{Name: token})
 	}
 
 	for p.match(tokens.Comma) {
 		token, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in generic parameters"), tokens.Identifier)
 		success = success && ok
 		if ok {
-			params = append(params, &ast.IdentifierExpr{Name: token, ValueType: ast.Invalid})
+			params = append(params, &ast.IdentifierExpr{Name: token})
 		}
 	}
 

@@ -44,11 +44,13 @@ var BuiltinVariables = map[string]*VariableVal{
 		Value:   NewFunction(NewBasicType(ast.Object)),
 		IsUsed:  false,
 		IsConst: true,
+		IsPub:   true,
 	},
 	"ParseSound": {
 		Name: "ParseSound",
 		Value: NewFunction(NewBasicType(ast.String)).
 			WithReturns(SoundValueType),
 		IsConst: true,
+		IsPub:   true,
 	},
 }

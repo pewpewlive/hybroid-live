@@ -81,7 +81,7 @@ func (w *Walker) classDeclaration(node *ast.ClassDecl, scope *Scope) {
 	classScope := NewScope(scope, &ClassTag{Val: classVal}, SelfAllowing)
 
 	for i := range node.Fields {
-		w.fieldDeclaration(&node.Fields[i], classVal, classScope)
+		w.fieldDeclaration(&node.Fields[i], classVal, classScope, false)
 	}
 
 	for i := range node.Methods {
@@ -137,7 +137,7 @@ func (w *Walker) entityDeclaration(node *ast.EntityDecl, scope *Scope) {
 
 	// DECLARATIONS
 	for i := range node.Fields {
-		w.fieldDeclaration(&node.Fields[i], entityVal, entityScope)
+		w.fieldDeclaration(&node.Fields[i], entityVal, entityScope, false)
 	}
 
 	et.EntityType = entityVal
@@ -165,12 +165,16 @@ func (w *Walker) entityDeclaration(node *ast.EntityDecl, scope *Scope) {
 	if node.Destroyer == nil {
 		w.AlertSingle(&alerts.MissingDestroy{}, node.Token)
 	} else {
-		w.entityFunctionDeclaration(node.Destroyer, entityScope)
+		fn := w.entityFunctionDeclaration(node.Destroyer, entityScope)
+		entityVal.DestroyGenerics = fn.Generics
+		entityVal.DestroyParams = fn.Params
 	}
 	if node.Spawner == nil {
 		w.AlertSingle(&alerts.MissingConstructor{}, node.Token, "spawn", "in entity declaration")
 	} else {
-		w.entityFunctionDeclaration(node.Spawner, entityScope)
+		fn := w.entityFunctionDeclaration(node.Spawner, entityScope)
+		entityVal.SpawnGenerics = fn.Generics
+		entityVal.SpawnParams = fn.Params
 	}
 	for _, v := range entityVal.Fields {
 		if !v.Var.IsInit {
@@ -247,7 +251,7 @@ func (w *Walker) enumDeclaration(node *ast.EnumDecl, scope *Scope) {
 	w.declareVariable(scope, enumVar)
 }
 
-func (w *Walker) fieldDeclaration(node *ast.FieldDecl, container FieldContainer, scope *Scope) {
+func (w *Walker) fieldDeclaration(node *ast.FieldDecl, container FieldContainer, scope *Scope, allowSelf bool) {
 	varDecl := ast.VariableDecl{
 		Identifiers: node.Identifiers,
 		Type:        node.Type,
@@ -256,7 +260,9 @@ func (w *Walker) fieldDeclaration(node *ast.FieldDecl, container FieldContainer,
 		Token:       node.Token,
 	}
 
-	scope.Attributes.Remove(SelfAllowing)
+	if !allowSelf {
+		scope.Attributes.Remove(SelfAllowing)
+	}
 
 	w.variableDeclaration(&varDecl, scope, true)
 	node.Values = varDecl.Expressions
@@ -267,7 +273,9 @@ func (w *Walker) fieldDeclaration(node *ast.FieldDecl, container FieldContainer,
 			container.AddField(variable)
 		}
 	}
-	scope.Attributes.Add(SelfAllowing)
+	if !allowSelf {
+		scope.Attributes.Add(SelfAllowing)
+	}
 }
 
 func (w *Walker) methodDeclaration(node *ast.MethodDecl, container MethodContainer, scope *Scope, declare bool) {
@@ -288,7 +296,7 @@ func (w *Walker) methodDeclaration(node *ast.MethodDecl, container MethodContain
 		for i := range node.Params {
 			param := &node.Params[i]
 			variable := NewVariable(param.Name, w.typeToValue(fn.Params[i]))
-			w.declareVariable(scope, variable)
+			w.declareVariable(fnScope, variable)
 		}
 
 		w.walkFuncBody(node, &node.Body, fnTag, fnScope)
@@ -431,16 +439,18 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 			value = w.typeToValue(explicitType)
 			defaultVal := value.GetDefault()
 
-			if defaultVal.Value == "nil" && !allowUnitialized {
-				w.AlertSingle(&alerts.ExplicitTypeNotAllowed{}, declaration.Type.GetToken(), explicitType.String())
+			if defaultVal.Value == "nil" {
+				variable.IsInit = false
+				if !allowUnitialized {
+					w.AlertSingle(&alerts.ExplicitTypeNotAllowed{}, declaration.Type.GetToken(), explicitType.String())
+				}
 			}
 
-			variable.IsInit = false
 			declaration.Expressions = append(declaration.Expressions, defaultVal)
 		} else if explicitType != nil && value != nil {
 			if explicitType.GetType() == RawEntity && value.GetType().PVT() == ast.Number {
 				value = &RawEntityVal{}
-			} else if !TypeEquals(explicitType, value.GetType()) {
+			} else if !TypeEquals(explicitType, value.GetType()) && explicitType != InvalidType && value.GetType() != InvalidType {
 				w.AlertSingle(&alerts.ExplicitTypeMismatch{},
 					variable.Token,
 					explicitType.String(),

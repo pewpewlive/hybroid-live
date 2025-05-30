@@ -303,7 +303,7 @@ func (ev *EntityVal) GetType() Type {
 }
 
 func (ev *EntityVal) GetDefault() *ast.LiteralExpr {
-	return &ast.LiteralExpr{Value: "nil"}
+	return &ast.LiteralExpr{Value: "{}"}
 }
 
 // Container
@@ -436,19 +436,14 @@ func (n *NumberVal) GetDefault() *ast.LiteralExpr {
 }
 
 type FixedVal struct {
-	SpecificType ast.PrimitiveValueType
 }
 
 func (f *FixedVal) GetType() Type {
-	return NewFixedPointType(f.SpecificType)
+	return NewFixedPointType()
 }
 
 func (f *FixedVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "0fx"}
-}
-
-func (f *FixedVal) GetSpecificType() ast.PrimitiveValueType {
-	return f.SpecificType
 }
 
 type Values []Value

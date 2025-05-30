@@ -87,7 +87,7 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 	for i := range assignStmt.Identifiers {
 		if i >= valuesLen {
 			requiredAmount := identsLen - valuesLen
-			w.AlertSingle(&alerts.TooFewValuesGiven{}, exprs[len(exprs)-1].GetToken(), requiredAmount, "assignment")
+			w.AlertSingle(&alerts.TooFewValuesGiven{}, exprs[len(exprs)-1].GetToken(), requiredAmount, "in assignment")
 			return
 		}
 		value := w.GetNodeValue(&idents[i], scope)
@@ -131,6 +131,10 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 			binExprs = append(binExprs, binExpr)
 		}
 
+		if valType == InvalidType {
+			continue
+		}
+
 		if !TypeEquals(variableType, valType) {
 			w.AlertSingle(&alerts.AssignmentTypeMismatch{}, exprs[values[i].Index].GetToken(),
 				variableType.String(),
@@ -162,14 +166,14 @@ func (w *Walker) repeatStatement(node *ast.RepeatStmt, scope *Scope) {
 	end := w.GetActualNodeValue(&node.Iterator, scope)
 	endType := end.GetType()
 	if !isNumerical(endType.PVT()) {
-		w.AlertSingle(&alerts.InvalidRepeatIterator{}, node.Iterator.GetToken())
+		w.AlertSingle(&alerts.InvalidRepeatIterator{}, node.Iterator.GetToken(), endType)
 	}
 	if node.Start == nil {
-		node.Start = &ast.LiteralExpr{ValueType: endType.PVT(), Value: "1"}
+		node.Start = &ast.LiteralExpr{Value: "1", Token: tokens.NewToken(tokens.Number, "1", "1", tokens.Location{})}
 	}
 	start := w.GetNodeValue(&node.Start, scope)
 	if node.Skip == nil {
-		node.Skip = &ast.LiteralExpr{ValueType: endType.PVT(), Value: "1"}
+		node.Skip = &ast.LiteralExpr{Value: "1", Token: tokens.NewToken(tokens.Number, "1", "1", tokens.Location{})}
 	}
 	skip := w.GetNodeValue(&node.Skip, scope)
 

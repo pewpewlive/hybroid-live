@@ -170,7 +170,13 @@ func (w *Walker) validateArguments(generics map[string]Type, args []Value, param
 	var param Type
 	for i, arg := range args {
 		if i > paramCount-1 {
-			w.AlertSingle(&alerts.TooManyValuesGiven{}, nodeArgs[len(nodeArgs)-1].GetToken(), len(args)-paramCount, "in call arguments")
+			extraAmount := len(args) - paramCount
+			w.AlertMulti(&alerts.TooManyValuesGiven{},
+				nodeArgs[len(nodeArgs)-extraAmount].GetToken(),
+				nodeArgs[len(nodeArgs)-1].GetToken(),
+				extraAmount,
+				"in call arguments",
+			)
 			return
 		}
 		if i >= paramCount-1 {
@@ -198,6 +204,10 @@ func (w *Walker) validateArguments(generics map[string]Type, args []Value, param
 				generics[generic.Name] = resolveMatchingType(param, argType)
 				param = argType
 			}
+		}
+
+		if param == InvalidType || argType == InvalidType {
+			continue
 		}
 
 		if !TypeEquals(param, argType) {
@@ -241,17 +251,20 @@ func resolveMatchingType(predefinedType Type, receivedType Type) Type {
 	return receivedType
 }
 
-func (w *Walker) validateArithmeticOperands(left Type, right Type, node *ast.BinaryExpr) Type {
+func (w *Walker) validateArithmeticOperands(left Type, right Type, node *ast.BinaryExpr, context string) Type {
+	if left == InvalidType || right == InvalidType {
+		return InvalidType
+	}
 	if !isNumerical(left.PVT()) {
-		w.AlertSingle(&alerts.TypeMismatch{}, node.Left.GetToken(), "a numerical type", left, "in arithmetic expression")
+		w.AlertSingle(&alerts.TypeMismatch{}, node.Left.GetToken(), "a numerical type", left, context)
 		return InvalidType
 	}
 	if !isNumerical(right.PVT()) {
-		w.AlertSingle(&alerts.TypeMismatch{}, node.Right.GetToken(), "a numerical type", right, "in arithmetic expression")
+		w.AlertSingle(&alerts.TypeMismatch{}, node.Right.GetToken(), "a numerical type", right, context)
 		return InvalidType
 	}
 	if !TypeEquals(left, right) {
-		w.AlertSingle(&alerts.ArithmeticTypesMismatch{}, node.Left.GetToken(), left, right)
+		w.AlertSingle(&alerts.TypesMismatch{}, node.Left.GetToken(), left, right)
 		return InvalidType
 	}
 
@@ -260,12 +273,16 @@ func (w *Walker) validateArithmeticOperands(left Type, right Type, node *ast.Bin
 
 func (w *Walker) validateConditionalOperands(leftVal Value, rightVal Value, node *ast.BinaryExpr) Value {
 	left, right := leftVal.GetType(), rightVal.GetType()
+
+	if left == InvalidType || right == InvalidType {
+		return &Invalid{}
+	}
 	if left.PVT() != ast.Bool {
-		w.AlertSingle(&alerts.TypeMismatch{}, node.Left.GetToken(), "a numerical type", left, "in arithmetic expression")
+		w.AlertSingle(&alerts.TypeMismatch{}, node.Left.GetToken(), "a boolean", left, "in logical comparison expression")
 		return NewBoolVal()
 	}
 	if right.PVT() != ast.Bool {
-		w.AlertSingle(&alerts.TypeMismatch{}, node.Right.GetToken(), "a numerical type", right, "in arithmetic expression")
+		w.AlertSingle(&alerts.TypeMismatch{}, node.Right.GetToken(), "a boolean", right, "in logical comparison expression")
 		return NewBoolVal()
 	}
 	leftBool, rightBool := leftVal.(*BoolVal), rightVal.(*BoolVal)
@@ -388,8 +405,12 @@ func (w *Walker) getGenerics(genericArgs []*ast.TypeExpr, expectedGenerics []*Ge
 			"in generic arguments",
 		)
 	} else {
-		for i := range genericArgs {
-			suppliedGenerics[expectedGenerics[i].Name] = w.typeExpression(genericArgs[i], scope)
+		for i := range expectedGenerics {
+			if i+1 > len(genericArgs) {
+				suppliedGenerics[expectedGenerics[i].Name] = (&Unknown{}).GetType()
+			} else {
+				suppliedGenerics[expectedGenerics[i].Name] = w.typeExpression(genericArgs[i], scope)
+			}
 		}
 	}
 
@@ -407,7 +428,7 @@ func (w *Walker) typeToValue(_type Type) Value {
 	}
 	switch _type.PVT() {
 	case ast.Radian, ast.Fixed, ast.FixedPoint, ast.Degree:
-		return &FixedVal{SpecificType: _type.PVT()}
+		return &FixedVal{}
 	case ast.Bool:
 		return NewBoolVal()
 	case ast.Func:

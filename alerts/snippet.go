@@ -8,7 +8,7 @@ import (
 )
 
 type Snippet interface {
-	GetSnippet(lines map[int][]byte) string
+	GetSnippet(lines map[int][]byte, alert Alert) string
 	GetTokens() []tokens.Token
 }
 
@@ -73,10 +73,11 @@ func NewSingle(token tokens.Token) SingleLine {
 	}
 }
 
-func (ss SingleLine) GetSnippet(lines map[int][]byte) string {
+func (ss SingleLine) GetSnippet(lines map[int][]byte, alert Alert) string {
 	snippet := strings.Builder{}
 	loc := ss.Token.Location
 	line := lines[loc.Line]
+	color := alert.AlertType().GetColor()
 
 	lineNumberSpaces := strings.Repeat(" ", len(strconv.Itoa(loc.Line)))
 
@@ -88,7 +89,7 @@ func (ss SingleLine) GetSnippet(lines map[int][]byte) string {
 		leadingSpace = strings.Repeat(" ", len(line))
 		marker = "^- End Of File"
 	}
-	snippet.WriteString(fmt.Sprintf("[cyan]%s |[light_red]   %s%s\n", lineNumberSpaces, leadingSpace, marker))
+	snippet.WriteString(fmt.Sprintf("[cyan]%s |[%s]   %s%s\n", lineNumberSpaces, color, leadingSpace, marker))
 
 	return snippet.String()
 }
@@ -109,10 +110,11 @@ func NewMulti(startToken, endToken tokens.Token) MultiLine {
 	}
 }
 
-func (ml MultiLine) GetSnippet(lines map[int][]byte) string {
+func (ml MultiLine) GetSnippet(lines map[int][]byte, alert Alert) string {
 	snippet := strings.Builder{}
 	startLoc, endLoc := ml.StartToken.Location, ml.EndToken.Location
 	startLine, endLine := lines[startLoc.Line], lines[endLoc.Line]
+	color := alert.AlertType().GetColor()
 
 	largestLineNumber := max(len(strconv.Itoa(startLoc.Line)), len(strconv.Itoa(endLoc.Line)))
 	lineNumberSpaces := strings.Repeat(" ", largestLineNumber)
@@ -121,21 +123,21 @@ func (ml MultiLine) GetSnippet(lines map[int][]byte) string {
 	snippet.WriteString(fmt.Sprintf("[cyan]%*d |[default]   ", largestLineNumber, startLoc.Line))
 	spaceSize, markerSize := writeTruncatedLine(&snippet, startLoc, startLine)
 	startHorizLine, marker := strings.Repeat("_", spaceSize+1), strings.Repeat("^", markerSize)
-	snippet.WriteString(fmt.Sprintf("[cyan]%s |[light_red]  %s%s\n", lineNumberSpaces, startHorizLine, marker))
+	snippet.WriteString(fmt.Sprintf("[cyan]%s |[%s]  %s%s\n", lineNumberSpaces, color, startHorizLine, marker))
 
 	if endLoc.Line-startLoc.Line != 1 {
 		ellipsisAlignment := strings.Repeat(" ", largestLineNumber-1)
-		snippet.WriteString(fmt.Sprintf("[dark_gray]%s...[light_red] |\n", ellipsisAlignment))
+		snippet.WriteString(fmt.Sprintf("[dark_gray]%s...[%s] |\n", ellipsisAlignment, color))
 	}
 
-	snippet.WriteString(fmt.Sprintf("[cyan]%*d |[light_red] | [default]", largestLineNumber, endLoc.Line))
+	snippet.WriteString(fmt.Sprintf("[cyan]%*d |[%s] | [default]", largestLineNumber, endLoc.Line, color))
 	spaceSize, markerSize = writeTruncatedLine(&snippet, endLoc, endLine)
 	endHorizLine, marker := strings.Repeat("_", spaceSize+1), strings.Repeat("^", markerSize)
 	if ml.EndToken.Type == tokens.Eof {
 		endHorizLine = strings.Repeat("_", len(endLine))
 		marker = "_> End Of File"
 	}
-	snippet.WriteString(fmt.Sprintf("[cyan]%s |[light_red] |%s%s\n", lineNumberSpaces, endHorizLine, marker))
+	snippet.WriteString(fmt.Sprintf("[cyan]%s |[%s] |%s%s\n", lineNumberSpaces, color, endHorizLine, marker))
 
 	return snippet.String()
 }

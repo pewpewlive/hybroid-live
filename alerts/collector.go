@@ -5,29 +5,6 @@ import (
 	"reflect"
 )
 
-type Type int
-
-const (
-	Error Type = iota
-	Warning
-)
-
-/*
-TODO: add fix snippet
-"fix": {
-      "insert": "number",
-      "where": "before"
-    }
-*/
-
-type Alert interface {
-	GetMessage() string
-	GetSpecifier() Snippet
-	GetNote() string
-	GetID() string
-	GetAlertType() Type
-}
-
 type Collector struct {
 	alerts []Alert
 }

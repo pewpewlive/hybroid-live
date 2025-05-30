@@ -12,23 +12,23 @@ type ExpectedStatement struct {
   Specifier Snippet
 }
 
-func (es *ExpectedStatement) GetMessage() string {
+func (es *ExpectedStatement) Message() string {
   return "expected statement"
 }
 
-func (es *ExpectedStatement) GetSpecifier() Snippet {
+func (es *ExpectedStatement) SnippetSpecifier() Snippet {
   return es.Specifier
 }
 
-func (es *ExpectedStatement) GetNote() string {
+func (es *ExpectedStatement) Note() string {
   return ""
 }
 
-func (es *ExpectedStatement) GetID() string {
+func (es *ExpectedStatement) ID() string {
   return "hyb001P"
 }
 
-func (es *ExpectedStatement) GetAlertType() Type {
+func (es *ExpectedStatement) AlertType() Type {
   return Error
 }
 
@@ -38,23 +38,23 @@ type ExpectedExpression struct {
   Context string `default:""`
 }
 
-func (ee *ExpectedExpression) GetMessage() string {
+func (ee *ExpectedExpression) Message() string {
   return fmt.Sprintf("expected expression %s", ee.Context)
 }
 
-func (ee *ExpectedExpression) GetSpecifier() Snippet {
+func (ee *ExpectedExpression) SnippetSpecifier() Snippet {
   return ee.Specifier
 }
 
-func (ee *ExpectedExpression) GetNote() string {
+func (ee *ExpectedExpression) Note() string {
   return ""
 }
 
-func (ee *ExpectedExpression) GetID() string {
+func (ee *ExpectedExpression) ID() string {
   return "hyb002P"
 }
 
-func (ee *ExpectedExpression) GetAlertType() Type {
+func (ee *ExpectedExpression) AlertType() Type {
   return Error
 }
 
@@ -64,23 +64,23 @@ type UnknownStatement struct {
   Context string `default:""`
 }
 
-func (us *UnknownStatement) GetMessage() string {
+func (us *UnknownStatement) Message() string {
   return fmt.Sprintf("unknown statement %s", us.Context)
 }
 
-func (us *UnknownStatement) GetSpecifier() Snippet {
+func (us *UnknownStatement) SnippetSpecifier() Snippet {
   return us.Specifier
 }
 
-func (us *UnknownStatement) GetNote() string {
+func (us *UnknownStatement) Note() string {
   return ""
 }
 
-func (us *UnknownStatement) GetID() string {
+func (us *UnknownStatement) ID() string {
   return "hyb003P"
 }
 
-func (us *UnknownStatement) GetAlertType() Type {
+func (us *UnknownStatement) AlertType() Type {
   return Error
 }
 
@@ -91,23 +91,23 @@ type ExpectedKeyword struct {
   Context string `default:""`
 }
 
-func (ek *ExpectedKeyword) GetMessage() string {
+func (ek *ExpectedKeyword) Message() string {
   return fmt.Sprintf("expected keyword '%s' %s", ek.Keyword, ek.Context)
 }
 
-func (ek *ExpectedKeyword) GetSpecifier() Snippet {
+func (ek *ExpectedKeyword) SnippetSpecifier() Snippet {
   return ek.Specifier
 }
 
-func (ek *ExpectedKeyword) GetNote() string {
+func (ek *ExpectedKeyword) Note() string {
   return ""
 }
 
-func (ek *ExpectedKeyword) GetID() string {
+func (ek *ExpectedKeyword) ID() string {
   return "hyb004P"
 }
 
-func (ek *ExpectedKeyword) GetAlertType() Type {
+func (ek *ExpectedKeyword) AlertType() Type {
   return Error
 }
 
@@ -117,23 +117,23 @@ type ExpectedIdentifier struct {
   Context string `default:""`
 }
 
-func (ei *ExpectedIdentifier) GetMessage() string {
+func (ei *ExpectedIdentifier) Message() string {
   return fmt.Sprintf("expected identifier %s", ei.Context)
 }
 
-func (ei *ExpectedIdentifier) GetSpecifier() Snippet {
+func (ei *ExpectedIdentifier) SnippetSpecifier() Snippet {
   return ei.Specifier
 }
 
-func (ei *ExpectedIdentifier) GetNote() string {
+func (ei *ExpectedIdentifier) Note() string {
   return ""
 }
 
-func (ei *ExpectedIdentifier) GetID() string {
+func (ei *ExpectedIdentifier) ID() string {
   return "hyb005P"
 }
 
-func (ei *ExpectedIdentifier) GetAlertType() Type {
+func (ei *ExpectedIdentifier) AlertType() Type {
   return Error
 }
 
@@ -144,23 +144,23 @@ type ExpectedSymbol struct {
   Context string `default:""`
 }
 
-func (es *ExpectedSymbol) GetMessage() string {
+func (es *ExpectedSymbol) Message() string {
   return fmt.Sprintf("expected '%s' %s", es.Symbol, es.Context)
 }
 
-func (es *ExpectedSymbol) GetSpecifier() Snippet {
+func (es *ExpectedSymbol) SnippetSpecifier() Snippet {
   return es.Specifier
 }
 
-func (es *ExpectedSymbol) GetNote() string {
+func (es *ExpectedSymbol) Note() string {
   return ""
 }
 
-func (es *ExpectedSymbol) GetID() string {
+func (es *ExpectedSymbol) ID() string {
   return "hyb006P"
 }
 
-func (es *ExpectedSymbol) GetAlertType() Type {
+func (es *ExpectedSymbol) AlertType() Type {
   return Error
 }
 
@@ -169,23 +169,23 @@ type MoreThanOneElseBlock struct {
   Specifier Snippet
 }
 
-func (mtoeb *MoreThanOneElseBlock) GetMessage() string {
+func (mtoeb *MoreThanOneElseBlock) Message() string {
   return "cannot have more than one else block in an if statement"
 }
 
-func (mtoeb *MoreThanOneElseBlock) GetSpecifier() Snippet {
+func (mtoeb *MoreThanOneElseBlock) SnippetSpecifier() Snippet {
   return mtoeb.Specifier
 }
 
-func (mtoeb *MoreThanOneElseBlock) GetNote() string {
+func (mtoeb *MoreThanOneElseBlock) Note() string {
   return ""
 }
 
-func (mtoeb *MoreThanOneElseBlock) GetID() string {
+func (mtoeb *MoreThanOneElseBlock) ID() string {
   return "hyb007P"
 }
 
-func (mtoeb *MoreThanOneElseBlock) GetAlertType() Type {
+func (mtoeb *MoreThanOneElseBlock) AlertType() Type {
   return Error
 }
 
@@ -194,23 +194,23 @@ type MoreThanOneConstructor struct {
   Specifier Snippet
 }
 
-func (mtoc *MoreThanOneConstructor) GetMessage() string {
+func (mtoc *MoreThanOneConstructor) Message() string {
   return "cannot have more than one constructor in class declaration"
 }
 
-func (mtoc *MoreThanOneConstructor) GetSpecifier() Snippet {
+func (mtoc *MoreThanOneConstructor) SnippetSpecifier() Snippet {
   return mtoc.Specifier
 }
 
-func (mtoc *MoreThanOneConstructor) GetNote() string {
+func (mtoc *MoreThanOneConstructor) Note() string {
   return ""
 }
 
-func (mtoc *MoreThanOneConstructor) GetID() string {
+func (mtoc *MoreThanOneConstructor) ID() string {
   return "hyb008P"
 }
 
-func (mtoc *MoreThanOneConstructor) GetAlertType() Type {
+func (mtoc *MoreThanOneConstructor) AlertType() Type {
   return Error
 }
 
@@ -220,23 +220,23 @@ type MoreThanOneEntityFunction struct {
   FunctionType string
 }
 
-func (mtoef *MoreThanOneEntityFunction) GetMessage() string {
+func (mtoef *MoreThanOneEntityFunction) Message() string {
   return fmt.Sprintf("cannot have more than one %s in entity declaration", mtoef.FunctionType)
 }
 
-func (mtoef *MoreThanOneEntityFunction) GetSpecifier() Snippet {
+func (mtoef *MoreThanOneEntityFunction) SnippetSpecifier() Snippet {
   return mtoef.Specifier
 }
 
-func (mtoef *MoreThanOneEntityFunction) GetNote() string {
+func (mtoef *MoreThanOneEntityFunction) Note() string {
   return ""
 }
 
-func (mtoef *MoreThanOneEntityFunction) GetID() string {
+func (mtoef *MoreThanOneEntityFunction) ID() string {
   return "hyb009P"
 }
 
-func (mtoef *MoreThanOneEntityFunction) GetAlertType() Type {
+func (mtoef *MoreThanOneEntityFunction) AlertType() Type {
   return Error
 }
 
@@ -245,23 +245,23 @@ type MultipleIdentifiersInCompoundAssignment struct {
   Specifier Snippet
 }
 
-func (miica *MultipleIdentifiersInCompoundAssignment) GetMessage() string {
+func (miica *MultipleIdentifiersInCompoundAssignment) Message() string {
   return "cannot have more than one left-hand identifier in a compound assignment"
 }
 
-func (miica *MultipleIdentifiersInCompoundAssignment) GetSpecifier() Snippet {
+func (miica *MultipleIdentifiersInCompoundAssignment) SnippetSpecifier() Snippet {
   return miica.Specifier
 }
 
-func (miica *MultipleIdentifiersInCompoundAssignment) GetNote() string {
+func (miica *MultipleIdentifiersInCompoundAssignment) Note() string {
   return "compound assignments include +=, -=, *=, /=, etc."
 }
 
-func (miica *MultipleIdentifiersInCompoundAssignment) GetID() string {
+func (miica *MultipleIdentifiersInCompoundAssignment) ID() string {
   return "hyb010P"
 }
 
-func (miica *MultipleIdentifiersInCompoundAssignment) GetAlertType() Type {
+func (miica *MultipleIdentifiersInCompoundAssignment) AlertType() Type {
   return Error
 }
 
@@ -270,23 +270,23 @@ type ReturnsInConstructor struct {
   Specifier Snippet
 }
 
-func (ric *ReturnsInConstructor) GetMessage() string {
+func (ric *ReturnsInConstructor) Message() string {
   return "cannot have return types in constructor"
 }
 
-func (ric *ReturnsInConstructor) GetSpecifier() Snippet {
+func (ric *ReturnsInConstructor) SnippetSpecifier() Snippet {
   return ric.Specifier
 }
 
-func (ric *ReturnsInConstructor) GetNote() string {
+func (ric *ReturnsInConstructor) Note() string {
   return ""
 }
 
-func (ric *ReturnsInConstructor) GetID() string {
+func (ric *ReturnsInConstructor) ID() string {
   return "hyb011P"
 }
 
-func (ric *ReturnsInConstructor) GetAlertType() Type {
+func (ric *ReturnsInConstructor) AlertType() Type {
   return Error
 }
 
@@ -295,23 +295,23 @@ type ExpectedEnvironmentPathExpression struct {
   Specifier Snippet
 }
 
-func (eepe *ExpectedEnvironmentPathExpression) GetMessage() string {
+func (eepe *ExpectedEnvironmentPathExpression) Message() string {
   return "expected environment path expression"
 }
 
-func (eepe *ExpectedEnvironmentPathExpression) GetSpecifier() Snippet {
+func (eepe *ExpectedEnvironmentPathExpression) SnippetSpecifier() Snippet {
   return eepe.Specifier
 }
 
-func (eepe *ExpectedEnvironmentPathExpression) GetNote() string {
+func (eepe *ExpectedEnvironmentPathExpression) Note() string {
   return ""
 }
 
-func (eepe *ExpectedEnvironmentPathExpression) GetID() string {
+func (eepe *ExpectedEnvironmentPathExpression) ID() string {
   return "hyb012P"
 }
 
-func (eepe *ExpectedEnvironmentPathExpression) GetAlertType() Type {
+func (eepe *ExpectedEnvironmentPathExpression) AlertType() Type {
   return Error
 }
 
@@ -321,23 +321,23 @@ type ExpectedType struct {
   Context string `default:""`
 }
 
-func (et *ExpectedType) GetMessage() string {
+func (et *ExpectedType) Message() string {
   return fmt.Sprintf("expected type %s", et.Context)
 }
 
-func (et *ExpectedType) GetSpecifier() Snippet {
+func (et *ExpectedType) SnippetSpecifier() Snippet {
   return et.Specifier
 }
 
-func (et *ExpectedType) GetNote() string {
+func (et *ExpectedType) Note() string {
   return ""
 }
 
-func (et *ExpectedType) GetID() string {
+func (et *ExpectedType) ID() string {
   return "hyb013P"
 }
 
-func (et *ExpectedType) GetAlertType() Type {
+func (et *ExpectedType) AlertType() Type {
   return Error
 }
 
@@ -346,23 +346,23 @@ type ExpectedAssignmentSymbol struct {
   Specifier Snippet
 }
 
-func (eas *ExpectedAssignmentSymbol) GetMessage() string {
+func (eas *ExpectedAssignmentSymbol) Message() string {
   return "expected assignment symbol"
 }
 
-func (eas *ExpectedAssignmentSymbol) GetSpecifier() Snippet {
+func (eas *ExpectedAssignmentSymbol) SnippetSpecifier() Snippet {
   return eas.Specifier
 }
 
-func (eas *ExpectedAssignmentSymbol) GetNote() string {
+func (eas *ExpectedAssignmentSymbol) Note() string {
   return "assignment symbols are: '=', '+=', '-=', '*=', '%%=', '/=', '\\='"
 }
 
-func (eas *ExpectedAssignmentSymbol) GetID() string {
+func (eas *ExpectedAssignmentSymbol) ID() string {
   return "hyb014P"
 }
 
-func (eas *ExpectedAssignmentSymbol) GetAlertType() Type {
+func (eas *ExpectedAssignmentSymbol) AlertType() Type {
   return Error
 }
 
@@ -371,23 +371,23 @@ type ExpectedExpressionOrBody struct {
   Specifier Snippet
 }
 
-func (eeob *ExpectedExpressionOrBody) GetMessage() string {
+func (eeob *ExpectedExpressionOrBody) Message() string {
   return "expected expression or body"
 }
 
-func (eeob *ExpectedExpressionOrBody) GetSpecifier() Snippet {
+func (eeob *ExpectedExpressionOrBody) SnippetSpecifier() Snippet {
   return eeob.Specifier
 }
 
-func (eeob *ExpectedExpressionOrBody) GetNote() string {
+func (eeob *ExpectedExpressionOrBody) Note() string {
   return ""
 }
 
-func (eeob *ExpectedExpressionOrBody) GetID() string {
+func (eeob *ExpectedExpressionOrBody) ID() string {
   return "hyb015P"
 }
 
-func (eeob *ExpectedExpressionOrBody) GetAlertType() Type {
+func (eeob *ExpectedExpressionOrBody) AlertType() Type {
   return Error
 }
 
@@ -396,23 +396,23 @@ type ExpectedCallArgs struct {
   Specifier Snippet
 }
 
-func (eca *ExpectedCallArgs) GetMessage() string {
+func (eca *ExpectedCallArgs) Message() string {
   return "expected call arguments"
 }
 
-func (eca *ExpectedCallArgs) GetSpecifier() Snippet {
+func (eca *ExpectedCallArgs) SnippetSpecifier() Snippet {
   return eca.Specifier
 }
 
-func (eca *ExpectedCallArgs) GetNote() string {
+func (eca *ExpectedCallArgs) Note() string {
   return ""
 }
 
-func (eca *ExpectedCallArgs) GetID() string {
+func (eca *ExpectedCallArgs) ID() string {
   return "hyb016P"
 }
 
-func (eca *ExpectedCallArgs) GetAlertType() Type {
+func (eca *ExpectedCallArgs) AlertType() Type {
   return Error
 }
 
@@ -421,23 +421,23 @@ type InvalidCall struct {
   Specifier Snippet
 }
 
-func (ic *InvalidCall) GetMessage() string {
+func (ic *InvalidCall) Message() string {
   return "invalid expression to call"
 }
 
-func (ic *InvalidCall) GetSpecifier() Snippet {
+func (ic *InvalidCall) SnippetSpecifier() Snippet {
   return ic.Specifier
 }
 
-func (ic *InvalidCall) GetNote() string {
+func (ic *InvalidCall) Note() string {
   return ""
 }
 
-func (ic *InvalidCall) GetID() string {
+func (ic *InvalidCall) ID() string {
   return "hyb017P"
 }
 
-func (ic *InvalidCall) GetAlertType() Type {
+func (ic *InvalidCall) AlertType() Type {
   return Error
 }
 
@@ -446,23 +446,23 @@ type ExpectedCallAfterMacroSymbol struct {
   Specifier Snippet
 }
 
-func (ecams *ExpectedCallAfterMacroSymbol) GetMessage() string {
+func (ecams *ExpectedCallAfterMacroSymbol) Message() string {
   return "expected a macro call after '@'"
 }
 
-func (ecams *ExpectedCallAfterMacroSymbol) GetSpecifier() Snippet {
+func (ecams *ExpectedCallAfterMacroSymbol) SnippetSpecifier() Snippet {
   return ecams.Specifier
 }
 
-func (ecams *ExpectedCallAfterMacroSymbol) GetNote() string {
+func (ecams *ExpectedCallAfterMacroSymbol) Note() string {
   return ""
 }
 
-func (ecams *ExpectedCallAfterMacroSymbol) GetID() string {
+func (ecams *ExpectedCallAfterMacroSymbol) ID() string {
   return "hyb018P"
 }
 
-func (ecams *ExpectedCallAfterMacroSymbol) GetAlertType() Type {
+func (ecams *ExpectedCallAfterMacroSymbol) AlertType() Type {
   return Error
 }
 
@@ -471,23 +471,23 @@ type ExpectedFieldDeclaration struct {
   Specifier Snippet
 }
 
-func (efd *ExpectedFieldDeclaration) GetMessage() string {
+func (efd *ExpectedFieldDeclaration) Message() string {
   return "expected field declaration inside struct"
 }
 
-func (efd *ExpectedFieldDeclaration) GetSpecifier() Snippet {
+func (efd *ExpectedFieldDeclaration) SnippetSpecifier() Snippet {
   return efd.Specifier
 }
 
-func (efd *ExpectedFieldDeclaration) GetNote() string {
+func (efd *ExpectedFieldDeclaration) Note() string {
   return ""
 }
 
-func (efd *ExpectedFieldDeclaration) GetID() string {
+func (efd *ExpectedFieldDeclaration) ID() string {
   return "hyb019P"
 }
 
-func (efd *ExpectedFieldDeclaration) GetAlertType() Type {
+func (efd *ExpectedFieldDeclaration) AlertType() Type {
   return Error
 }
 
@@ -496,23 +496,23 @@ type EmptyWrappedType struct {
   Specifier Snippet
 }
 
-func (ewt *EmptyWrappedType) GetMessage() string {
+func (ewt *EmptyWrappedType) Message() string {
   return "wrapped types must not be empty"
 }
 
-func (ewt *EmptyWrappedType) GetSpecifier() Snippet {
+func (ewt *EmptyWrappedType) SnippetSpecifier() Snippet {
   return ewt.Specifier
 }
 
-func (ewt *EmptyWrappedType) GetNote() string {
+func (ewt *EmptyWrappedType) Note() string {
   return ""
 }
 
-func (ewt *EmptyWrappedType) GetID() string {
+func (ewt *EmptyWrappedType) ID() string {
   return "hyb020P"
 }
 
-func (ewt *EmptyWrappedType) GetAlertType() Type {
+func (ewt *EmptyWrappedType) AlertType() Type {
   return Error
 }
 
@@ -521,23 +521,23 @@ type ExpectedReturnArgs struct {
   Specifier Snippet
 }
 
-func (era *ExpectedReturnArgs) GetMessage() string {
+func (era *ExpectedReturnArgs) Message() string {
   return "expected return arguments after fat arrow (=>)"
 }
 
-func (era *ExpectedReturnArgs) GetSpecifier() Snippet {
+func (era *ExpectedReturnArgs) SnippetSpecifier() Snippet {
   return era.Specifier
 }
 
-func (era *ExpectedReturnArgs) GetNote() string {
+func (era *ExpectedReturnArgs) Note() string {
   return ""
 }
 
-func (era *ExpectedReturnArgs) GetID() string {
+func (era *ExpectedReturnArgs) ID() string {
   return "hyb021P"
 }
 
-func (era *ExpectedReturnArgs) GetAlertType() Type {
+func (era *ExpectedReturnArgs) AlertType() Type {
   return Error
 }
 
@@ -546,23 +546,23 @@ type ExpectedAccessExpression struct {
   Specifier Snippet
 }
 
-func (eae *ExpectedAccessExpression) GetMessage() string {
+func (eae *ExpectedAccessExpression) Message() string {
   return "expected an access expression"
 }
 
-func (eae *ExpectedAccessExpression) GetSpecifier() Snippet {
+func (eae *ExpectedAccessExpression) SnippetSpecifier() Snippet {
   return eae.Specifier
 }
 
-func (eae *ExpectedAccessExpression) GetNote() string {
+func (eae *ExpectedAccessExpression) Note() string {
   return "access expression are: identifier, environment access, self, member and field expressions"
 }
 
-func (eae *ExpectedAccessExpression) GetID() string {
+func (eae *ExpectedAccessExpression) ID() string {
   return "hyb022P"
 }
 
-func (eae *ExpectedAccessExpression) GetAlertType() Type {
+func (eae *ExpectedAccessExpression) AlertType() Type {
   return Error
 }
 
@@ -572,23 +572,23 @@ type MissingIterator struct {
   Context string `default:""`
 }
 
-func (mi *MissingIterator) GetMessage() string {
+func (mi *MissingIterator) Message() string {
   return fmt.Sprintf("missing iterator %s", mi.Context)
 }
 
-func (mi *MissingIterator) GetSpecifier() Snippet {
+func (mi *MissingIterator) SnippetSpecifier() Snippet {
   return mi.Specifier
 }
 
-func (mi *MissingIterator) GetNote() string {
+func (mi *MissingIterator) Note() string {
   return ""
 }
 
-func (mi *MissingIterator) GetID() string {
+func (mi *MissingIterator) ID() string {
   return "hyb023P"
 }
 
-func (mi *MissingIterator) GetAlertType() Type {
+func (mi *MissingIterator) AlertType() Type {
   return Error
 }
 
@@ -598,23 +598,23 @@ type DuplicateKeyword struct {
   Keyword string
 }
 
-func (dk *DuplicateKeyword) GetMessage() string {
+func (dk *DuplicateKeyword) Message() string {
   return fmt.Sprintf("cannot have multiple '%s' keywords", dk.Keyword)
 }
 
-func (dk *DuplicateKeyword) GetSpecifier() Snippet {
+func (dk *DuplicateKeyword) SnippetSpecifier() Snippet {
   return dk.Specifier
 }
 
-func (dk *DuplicateKeyword) GetNote() string {
+func (dk *DuplicateKeyword) Note() string {
   return ""
 }
 
-func (dk *DuplicateKeyword) GetID() string {
+func (dk *DuplicateKeyword) ID() string {
   return "hyb024P"
 }
 
-func (dk *DuplicateKeyword) GetAlertType() Type {
+func (dk *DuplicateKeyword) AlertType() Type {
   return Error
 }
 
@@ -625,23 +625,23 @@ type UnexpectedKeyword struct {
   Context string `default:""`
 }
 
-func (uk *UnexpectedKeyword) GetMessage() string {
+func (uk *UnexpectedKeyword) Message() string {
   return fmt.Sprintf("unexpected keyword '%s' %s", uk.Keyword, uk.Context)
 }
 
-func (uk *UnexpectedKeyword) GetSpecifier() Snippet {
+func (uk *UnexpectedKeyword) SnippetSpecifier() Snippet {
   return uk.Specifier
 }
 
-func (uk *UnexpectedKeyword) GetNote() string {
+func (uk *UnexpectedKeyword) Note() string {
   return ""
 }
 
-func (uk *UnexpectedKeyword) GetID() string {
+func (uk *UnexpectedKeyword) ID() string {
   return "hyb025P"
 }
 
-func (uk *UnexpectedKeyword) GetAlertType() Type {
+func (uk *UnexpectedKeyword) AlertType() Type {
   return Error
 }
 
@@ -651,23 +651,23 @@ type IteratorRedefinition struct {
   Context string `default:""`
 }
 
-func (ir *IteratorRedefinition) GetMessage() string {
+func (ir *IteratorRedefinition) Message() string {
   return fmt.Sprintf("redefinition of iterator %s", ir.Context)
 }
 
-func (ir *IteratorRedefinition) GetSpecifier() Snippet {
+func (ir *IteratorRedefinition) SnippetSpecifier() Snippet {
   return ir.Specifier
 }
 
-func (ir *IteratorRedefinition) GetNote() string {
+func (ir *IteratorRedefinition) Note() string {
   return ""
 }
 
-func (ir *IteratorRedefinition) GetID() string {
+func (ir *IteratorRedefinition) ID() string {
   return "hyb026P"
 }
 
-func (ir *IteratorRedefinition) GetAlertType() Type {
+func (ir *IteratorRedefinition) AlertType() Type {
   return Error
 }
 
@@ -676,23 +676,23 @@ type ElseIfBlockAfterElseBlock struct {
   Specifier Snippet
 }
 
-func (eibaeb *ElseIfBlockAfterElseBlock) GetMessage() string {
+func (eibaeb *ElseIfBlockAfterElseBlock) Message() string {
   return "cannot have an else if block after an else block"
 }
 
-func (eibaeb *ElseIfBlockAfterElseBlock) GetSpecifier() Snippet {
+func (eibaeb *ElseIfBlockAfterElseBlock) SnippetSpecifier() Snippet {
   return eibaeb.Specifier
 }
 
-func (eibaeb *ElseIfBlockAfterElseBlock) GetNote() string {
+func (eibaeb *ElseIfBlockAfterElseBlock) Note() string {
   return ""
 }
 
-func (eibaeb *ElseIfBlockAfterElseBlock) GetID() string {
+func (eibaeb *ElseIfBlockAfterElseBlock) ID() string {
   return "hyb027P"
 }
 
-func (eibaeb *ElseIfBlockAfterElseBlock) GetAlertType() Type {
+func (eibaeb *ElseIfBlockAfterElseBlock) AlertType() Type {
   return Error
 }
 
@@ -701,23 +701,23 @@ type MoreThanOneDefaultCase struct {
   Specifier Snippet
 }
 
-func (mtodc *MoreThanOneDefaultCase) GetMessage() string {
+func (mtodc *MoreThanOneDefaultCase) Message() string {
   return "cannot have more than one default case in match statement"
 }
 
-func (mtodc *MoreThanOneDefaultCase) GetSpecifier() Snippet {
+func (mtodc *MoreThanOneDefaultCase) SnippetSpecifier() Snippet {
   return mtodc.Specifier
 }
 
-func (mtodc *MoreThanOneDefaultCase) GetNote() string {
+func (mtodc *MoreThanOneDefaultCase) Note() string {
   return ""
 }
 
-func (mtodc *MoreThanOneDefaultCase) GetID() string {
+func (mtodc *MoreThanOneDefaultCase) ID() string {
   return "hyb028P"
 }
 
-func (mtodc *MoreThanOneDefaultCase) GetAlertType() Type {
+func (mtodc *MoreThanOneDefaultCase) AlertType() Type {
   return Error
 }
 
@@ -726,23 +726,23 @@ type InvalidEnumVariantName struct {
   Specifier Snippet
 }
 
-func (ievn *InvalidEnumVariantName) GetMessage() string {
+func (ievn *InvalidEnumVariantName) Message() string {
   return "enum variant name must be an identifier"
 }
 
-func (ievn *InvalidEnumVariantName) GetSpecifier() Snippet {
+func (ievn *InvalidEnumVariantName) SnippetSpecifier() Snippet {
   return ievn.Specifier
 }
 
-func (ievn *InvalidEnumVariantName) GetNote() string {
+func (ievn *InvalidEnumVariantName) Note() string {
   return ""
 }
 
-func (ievn *InvalidEnumVariantName) GetID() string {
+func (ievn *InvalidEnumVariantName) ID() string {
   return "hyb029P"
 }
 
-func (ievn *InvalidEnumVariantName) GetAlertType() Type {
+func (ievn *InvalidEnumVariantName) AlertType() Type {
   return Error
 }
 
@@ -753,23 +753,23 @@ type InvalidExpression struct {
   Context string `default:""`
 }
 
-func (ie *InvalidExpression) GetMessage() string {
+func (ie *InvalidExpression) Message() string {
   return fmt.Sprintf("'%s' not allowed %s", ie.Type, ie.Context)
 }
 
-func (ie *InvalidExpression) GetSpecifier() Snippet {
+func (ie *InvalidExpression) SnippetSpecifier() Snippet {
   return ie.Specifier
 }
 
-func (ie *InvalidExpression) GetNote() string {
+func (ie *InvalidExpression) Note() string {
   return ""
 }
 
-func (ie *InvalidExpression) GetID() string {
+func (ie *InvalidExpression) ID() string {
   return "hyb030P"
 }
 
-func (ie *InvalidExpression) GetAlertType() Type {
+func (ie *InvalidExpression) AlertType() Type {
   return Error
 }
 
@@ -781,23 +781,23 @@ type SyntaxIncoherency struct {
   AllowsNextLine bool
 }
 
-func (si *SyntaxIncoherency) GetMessage() string {
+func (si *SyntaxIncoherency) Message() string {
   return fmt.Sprintf("'%s' needs to start in the same%s line as '%s'", si.ParsedSection, func(cond bool, str string) string { if !cond { return "" }; return str }(si.AllowsNextLine, " or next"), si.PreviousSection)
 }
 
-func (si *SyntaxIncoherency) GetSpecifier() Snippet {
+func (si *SyntaxIncoherency) SnippetSpecifier() Snippet {
   return si.Specifier
 }
 
-func (si *SyntaxIncoherency) GetNote() string {
+func (si *SyntaxIncoherency) Note() string {
   return ""
 }
 
-func (si *SyntaxIncoherency) GetID() string {
+func (si *SyntaxIncoherency) ID() string {
   return "hyb031P"
 }
 
-func (si *SyntaxIncoherency) GetAlertType() Type {
+func (si *SyntaxIncoherency) AlertType() Type {
   return Error
 }
 

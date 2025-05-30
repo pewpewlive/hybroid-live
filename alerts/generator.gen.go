@@ -13,23 +13,23 @@ type ExpectedPaarenthesissss struct {
   Symbol string
 }
 
-func (ep *ExpectedPaarenthesissss) GetMessage() string {
+func (ep *ExpectedPaarenthesissss) Message() string {
   return fmt.Sprintf("Expected '%s'", ep.Symbol)
 }
 
-func (ep *ExpectedPaarenthesissss) GetSpecifier() Snippet {
+func (ep *ExpectedPaarenthesissss) SnippetSpecifier() Snippet {
   return ep.Specifier
 }
 
-func (ep *ExpectedPaarenthesissss) GetNote() string {
+func (ep *ExpectedPaarenthesissss) Note() string {
   return ""
 }
 
-func (ep *ExpectedPaarenthesissss) GetID() string {
+func (ep *ExpectedPaarenthesissss) ID() string {
   return "hyb001G"
 }
 
-func (ep *ExpectedPaarenthesissss) GetAlertType() Type {
+func (ep *ExpectedPaarenthesissss) AlertType() Type {
   return Error
 }
 

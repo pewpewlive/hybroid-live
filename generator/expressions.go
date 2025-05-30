@@ -53,14 +53,14 @@ func (gen *Generator) binaryExpr(node ast.BinaryExpr, scope *GenScope) string {
 }
 
 func (gen *Generator) literalExpr(node ast.LiteralExpr) string {
-	switch node.ValueType {
-	case ast.String:
+	switch node.GetToken().Type {
+	case tokens.String:
 		return fmt.Sprintf("\"%v\"", node.Value)
-	case ast.Fixed, ast.Radian:
+	case tokens.Fixed, tokens.Radian:
 		return fmt.Sprintf("%vfx", fixedToFx(node.Value))
-	case ast.FixedPoint:
+	case tokens.FixedPoint:
 		return fmt.Sprintf("%vfx", node.Value)
-	case ast.Degree:
+	case tokens.Degree:
 		return fmt.Sprintf("%vfx", degToRad(node.Value))
 	default:
 		return fmt.Sprintf("%v", node.Value)

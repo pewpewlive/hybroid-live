@@ -123,30 +123,30 @@ class Alert:
 
         alert_functions = [
             [
-                "GetMessage",
+                "Message",
                 "",
                 "string",
                 f"return {_format_string(self.message, self.message_format, self.receiver)}",
             ],
             [
-                "GetSpecifier",
+                "SnippetSpecifier",
                 "",
                 "Snippet",
                 f"return {self.receiver}.Specifier",
             ],
             [
-                "GetNote",
+                "Note",
                 "",
                 "string",
                 f"return {_format_string(self.note, self.note_format, self.receiver)}",
             ],
             [
-                "GetID",
+                "ID",
                 "",
                 "string",
                 'return "hyb{:03d}{}"'.format(self.id, self.stage[0]),
             ],
-            ["GetAlertType", "", "Type", f"return {self.type}"],
+            ["AlertType", "", "Type", f"return {self.type}"],
         ]
 
         for function in alert_functions:

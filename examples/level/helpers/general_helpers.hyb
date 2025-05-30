@@ -11,7 +11,7 @@ pub fn AddPolyWall(struct{fixed x, y} center, fixed radius, number sides) {
     let angle = Tau()/ToFixed(sides)
     let sin, cos = Sincos(angle)
     repeat sides {
-        Insert(vertices, struct{x = x + radius * cos; y = y + radius * sin})
+        Insert(vertices, struct{x = x + radius * cos, y = y + radius * sin})
         angle = angle + Tau()/ToFixed(sides)
         sin, cos = Sincos(angle)
     }

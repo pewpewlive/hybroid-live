@@ -4,9 +4,9 @@ use Table
 
 pub fn NewMesh() -> Mesh {
   return struct{
-    vertexes = [];
-    segments = [];
-    colors = [];
+    vertexes = [],
+    segments = [],
+    colors = [],
   }
 }
 

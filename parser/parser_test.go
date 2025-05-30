@@ -29,10 +29,10 @@ func printAlerts[A any](t *testing.T, kind string, alertsToPrint ...A) {
 		}
 
 		actualAlert := any(alert).(alerts.Alert)
-		token := actualAlert.GetSpecifier().GetTokens()[0]
+		token := actualAlert.SnippetSpecifier().GetTokens()[0]
 		loc := token.Location
 		name := reflect.ValueOf(alert).Elem().Type().Name()
-		msg := strings.TrimSpace(actualAlert.GetMessage())
+		msg := strings.TrimSpace(actualAlert.Message())
 		t.Logf("%d. %s (%s) at line %d, column %d on token '%s'", i+1, name, msg, loc.Line, loc.Column.Start, token.Lexeme)
 	}
 }

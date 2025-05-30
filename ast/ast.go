@@ -132,13 +132,11 @@ const (
 type Property struct {
 	Key  Node
 	Expr Node
-	Type PrimitiveValueType
 }
 
 type Node interface {
 	GetType() NodeType
 	GetToken() tokens.Token
-	GetValueType() PrimitiveValueType
 }
 
 type NodeCall interface {

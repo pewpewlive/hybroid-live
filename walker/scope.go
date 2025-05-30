@@ -258,6 +258,18 @@ type Scope struct {
 	Body *[]*ast.Node
 }
 
+func (sc *Scope) resolveAlias(typeName string) (*AliasType, bool) {
+	if alias, found := sc.AliasTypes[typeName]; found {
+		return alias, true
+	}
+
+	if sc.Parent == nil {
+		return nil, false
+	}
+
+	return sc.Parent.resolveAlias(typeName)
+}
+
 func (sc *Scope) Is(types ...ScopeAttribute) bool {
 	if len(types) == 0 {
 		return false

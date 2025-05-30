@@ -11,15 +11,15 @@ pub entity Ship {
     id = NewShip(x, y, 0)
 
     let playerConfig = struct{
-      shield = 5;
+      shield = 5,
       camera_distance = -50f
     }
 
     ConfigurePlayer(0, playerConfig)
 
     ConfigureShipWeapon(id, struct{
-      cannon = CannonType.Double;
-      frequency = CannonFreq.Freq10;
+      cannon = CannonType.Double,
+      frequency = CannonFreq.Freq10,
     })
   }
 

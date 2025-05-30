@@ -72,7 +72,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		parser := parser.NewParser(tokens)
 		program := parser.Parse()
 		for _, v := range parser.GetAlerts() {
-			if v.GetAlertType() == alerts.Error {
+			if v.AlertType() == alerts.Error {
 				evalFailed[i] = true
 				break
 			}

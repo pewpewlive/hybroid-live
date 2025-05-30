@@ -102,7 +102,7 @@ func (p *Printer) StageAlerts(sourcePath string, alerts []Alert) {
 
 	// Sort alerts by line
 	sort.Slice(fileAlerts, func(i, j int) bool {
-		return fileAlerts[i].GetSpecifier().GetTokens()[0].Line < fileAlerts[j].GetSpecifier().GetTokens()[0].Line
+		return fileAlerts[i].SnippetSpecifier().GetTokens()[0].Line < fileAlerts[j].SnippetSpecifier().GetTokens()[0].Line
 	})
 
 	p.alertsByFile[sourcePath] = fileAlerts
@@ -129,20 +129,20 @@ func (p *Printer) PrintAlerts() error {
 		alertMsg := strings.Builder{}
 		for _, alert := range alerts {
 			var msg string
-			switch alert.GetAlertType() {
+			switch alert.AlertType() {
 			case Error:
 				msg = "[light_red][bold]error[%s]: [reset]"
 			case Warning:
 				msg = "[light_yellow][bold]warning[%s]: [default]"
 			}
 
-			alertMsg.WriteString(fmt.Sprintf(msg, alert.GetID()))
+			alertMsg.WriteString(fmt.Sprintf(msg, alert.ID()))
 			p.writeMessage(&alertMsg, alert)
 			p.writeLocation(&alertMsg, sourcePath, alert)
 			err := p.writeCodeSnippet(&alertMsg, alert)
 			p.writeNote(&alertMsg, alert)
 			if err == nil {
-				color.Printf(alertMsg.String() + "\n")
+				color.Print(alertMsg.String() + "\n")
 			} else {
 				fmt.Printf("Fatal error: %s", err)
 				break
@@ -157,7 +157,7 @@ func (p *Printer) PrintAlerts() error {
 
 func (p *Printer) writeLocation(alertMsg *strings.Builder, sourcePath string, alert Alert) {
 	var largestLineNumber int
-	tokens := alert.GetSpecifier().GetTokens()
+	tokens := alert.SnippetSpecifier().GetTokens()
 	for _, token := range tokens {
 		largestLineNumber = max(largestLineNumber, token.Line)
 	}
@@ -167,22 +167,22 @@ func (p *Printer) writeLocation(alertMsg *strings.Builder, sourcePath string, al
 }
 
 func (p *Printer) writeMessage(alertMsg *strings.Builder, alert Alert) {
-	messageStr := fmt.Sprintf("[bold]%s[reset]\n", alert.GetMessage())
+	messageStr := fmt.Sprintf("[bold]%s[reset]\n", alert.Message())
 	alertMsg.WriteString(messageStr)
 }
 
 func (p *Printer) writeNote(alertMsg *strings.Builder, alert Alert) {
-	if alert.GetNote() != "" {
-		location := alert.GetSpecifier().GetTokens()[0].Location
+	if alert.Note() != "" {
+		location := alert.SnippetSpecifier().GetTokens()[0].Location
 		lineNumberSpaces := strings.Repeat(" ", len(strconv.Itoa(location.Line)))
-		noteStr := fmt.Sprintf("[cyan]%s = note:[default] %s\n", lineNumberSpaces, alert.GetNote())
+		noteStr := fmt.Sprintf("[cyan]%s = note:[default] %s\n", lineNumberSpaces, alert.Note())
 		alertMsg.WriteString(noteStr)
 		return
 	}
 }
 
 func (p *Printer) writeCodeSnippet(alertMsg *strings.Builder, alert Alert) error {
-	specifier := alert.GetSpecifier()
+	specifier := alert.SnippetSpecifier()
 	location := mergeLocations(specifier.GetTokens())
 
 	// The current line does not match the closest alert line
@@ -216,7 +216,7 @@ func (p *Printer) writeCodeSnippet(alertMsg *strings.Builder, alert Alert) error
 	case SingleLine:
 		p.freeStart = p.line
 		lines := p.buffer.retrieveLines(location.Line)
-		alertMsg.WriteString(specifier.GetSnippet(lines))
+		alertMsg.WriteString(specifier.GetSnippet(lines, alert))
 	case MultiLine:
 		tokens := specifier.GetTokens()
 		startLocation, endLocation := tokens[0].Location, tokens[1].Location
@@ -226,14 +226,14 @@ func (p *Printer) writeCodeSnippet(alertMsg *strings.Builder, alert Alert) error
 			newToken := tokens[0]
 			newToken.Location = location
 			lines := p.buffer.retrieveLines(location.Line)
-			alertMsg.WriteString(NewSingle(newToken).GetSnippet(lines))
+			alertMsg.WriteString(NewSingle(newToken).GetSnippet(lines, alert))
 			break
 		}
 
 		// The current range of lines is already in the buffer, use it
 		if p.buffer.isAvailable(startLocation.Line, endLocation.Line) {
 			lines := p.buffer.retrieveLines(startLocation.Line, endLocation.Line)
-			alertMsg.WriteString(specifier.GetSnippet(lines))
+			alertMsg.WriteString(specifier.GetSnippet(lines, alert))
 			break
 		}
 
@@ -252,7 +252,7 @@ func (p *Printer) writeCodeSnippet(alertMsg *strings.Builder, alert Alert) error
 		}
 
 		lines := p.buffer.retrieveLines(startLocation.Line, endLocation.Line)
-		alertMsg.WriteString(specifier.GetSnippet(lines))
+		alertMsg.WriteString(specifier.GetSnippet(lines, alert))
 	}
 
 	return nil

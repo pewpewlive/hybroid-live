@@ -285,7 +285,7 @@
       "Type2": "string",
       "Context": "string"
     },
-    "message": "expected '%s', got '%s' %s",
+    "message": "expected %s, got '%s' %s",
     "message_format": ["Type1", "Type2", "Context"]
   },
   {
@@ -443,7 +443,7 @@
     "message_format": ["ConditionValue"]
   },
   {
-    "name": "ArithmeticTypesMismatch",
+    "name": "TypesMismatch",
     "type": "Error",
     "params": {
       "Type1": "string",

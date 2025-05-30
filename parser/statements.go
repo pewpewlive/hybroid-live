@@ -271,7 +271,7 @@ outer:
 
 	if repeatStmt.Iterator == nil {
 		p.Alert(&alerts.MissingIterator{}, alerts.NewSingle(repeatStmt.Token), "in repeat statement")
-		repeatStmt.Iterator = &ast.LiteralExpr{Token: repeatStmt.Token, Value: "1", ValueType: ast.Number}
+		repeatStmt.Iterator = &ast.LiteralExpr{Token: repeatStmt.Token, Value: "1"}
 	}
 
 	var success bool
@@ -434,7 +434,7 @@ func (p *Parser) caseStatement(isExpr bool) ([]ast.CaseStmt, bool) {
 
 	exprs := []ast.Node{}
 	if p.match(tokens.Else) {
-		exprs = append(exprs, &ast.IdentifierExpr{Name: p.peek(-1), ValueType: ast.Invalid})
+		exprs = append(exprs, &ast.IdentifierExpr{Name: p.peek(-1)})
 	} else {
 		exprs2, ok := p.expressions("in match case", false)
 		if !ok {

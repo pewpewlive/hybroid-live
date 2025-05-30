@@ -9,10 +9,10 @@ SetLevelSize(WIDTH, 1000f)
 pub Ship = Pewpew:NewShip(WIDTH / 2f, HEIGHT / 2f, 0)
 
 ConfigureShipWeapon(Ship, struct{
-  frequency = CannonFreq.Freq10; cannon = Pewpew:CannonType.Double
+  frequency = CannonFreq.Freq10, cannon = Pewpew:CannonType.Double
 })
 let playerConfig = struct{
-  shield = 5; camera_distance = -50f
+  shield = 5, camera_distance = -50f
 }
 ConfigurePlayer(0, playerConfig)
 
@@ -21,7 +21,7 @@ ConfigurePlayer(0, playerConfig)
 let bg = NewEntity(0f, 0f)
 SetEntityMesh(bg, MapMesh, 0)
 
-spawn SuperInertiac(0f, 0f, Ship)
+spawn SuperInertiac(0f, 0f)
 
 AddWall(750f, 250f, 500f, 500f)
 

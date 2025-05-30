@@ -271,19 +271,15 @@ func (bt *BasicType) String() string {
 	return string(bt.PrimitiveType)
 }
 
-type FixedPoint struct {
-	Specific ast.PrimitiveValueType
-}
+type FixedPoint struct{}
 
-func NewFixedPointType(specific ast.PrimitiveValueType) *FixedPoint {
-	return &FixedPoint{
-		Specific: specific,
-	}
+func NewFixedPointType() *FixedPoint {
+	return &FixedPoint{}
 }
 
 // Type
 func (fp *FixedPoint) PVT() ast.PrimitiveValueType {
-	return fp.Specific
+	return ast.FixedPoint
 }
 
 func (fp *FixedPoint) GetType() ValueType {
@@ -295,7 +291,7 @@ func (fp *FixedPoint) _eq(other Type) bool {
 }
 
 func (fp *FixedPoint) String() string {
-	return string(fp.Specific)
+	return string(ast.FixedPoint)
 }
 
 type StructType struct {
@@ -793,4 +789,4 @@ var PlayerCollisionSign = NewFuncSignature().
 	WithParams(NewBasicType(ast.Number), &RawEntityType{})
 
 var WallCollisionSign = NewFuncSignature().
-	WithParams(NewFixedPointType(ast.Fixed), NewFixedPointType(ast.Fixed))
+	WithParams(NewFixedPointType(), NewFixedPointType())

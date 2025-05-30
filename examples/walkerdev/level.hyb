@@ -1,63 +1,63 @@
 env Level as Level // Environment{Name:Level, Type:Level, Requirements:None}
 
-use Env1 // add the walker of Env1 to importedWalkers
+// use Env1 // add the walker of Env1 to importedWalkers
 
-fn thing(text message) -> (number, bool) {
-    match message {
-        "OK" => {
-            return 10, true
-        }
-        "TEST" => {
-            return 6, false
-        }
-        // else => {
-        //     return 2, true
-        // }
-    }
+// fn thing(text message) -> (number, bool) {
+//     match message {
+//         "OK" => {
+//             return 10, true
+//         }
+//         "TEST" => {
+//             return 6, false
+//         }
+//         // else => {
+//         //     return 2, true
+//         // }
+//     }
 
-    let a = true
-    if a {
-        return 4, true
-    }
+//     let a = true
+//     if a {
+//         return 4, true
+//     }
 
-    return 1, false
-}
+//     return 1, false
+// }
 
-pub name = "po"
-let a, b = thing("OK")
-let bool c
-const o = 2
+// pub name = "po"
+// let a, b = thing("OK")
+// let bool c
+// const o = 2
 
-a, b = thing("TEST")
-self.a = 1
+// a, b = thing("TEST")
+// self.a = 1
 
-let zzz = match b {
-    true => 5fx
-    else => 4r
-}
+// let zzz = match b {
+//     true => 5fx
+//     else => 4r
+// }
 
-zzz += 1f
+// zzz += 1f
 
-class Example {
-    Example a
-    let b = fn() {
-        a = new Example()
-    }
+// class Example {
+//     Example a
+//     let b = fn() {
+//         a = new Example()
+//     }
 
-    new() {
-        self.a = new Example()
-    }
+//     new() {
+//         self.a = new Example()
+//     }
 
-    fn thing() -> Example => a
-}
+//     fn thing() -> Example => a
+// }
 
-let something = new Example(1)
+// let something = new Example(1)
 
-enum ExampleEnum {
-    One,
-    Two,
-    Three
-}
+// enum ExampleEnum {
+//     One,
+//     Two,
+//     Three
+// }
 
-let u = ExampleEnum.One
-let Vertex o 
+// let u = ExampleEnum.One
+// let Vertex o 

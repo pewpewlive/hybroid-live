@@ -77,7 +77,7 @@ func (p *Parser) multiComparison() ast.Node {
 		if ast.IsImproper(right, ast.NA) {
 			p.AlertSingle(&alerts.ExpectedExpression{}, right.GetToken(), "as right value in binary expression")
 		}
-		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: ast.Bool}
+		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right}
 	}
 
 	return expr
@@ -95,7 +95,7 @@ func (p *Parser) comparison() ast.Node {
 		if ast.IsImproper(right, ast.NA) {
 			p.AlertSingle(&alerts.ExpectedExpression{}, right.GetToken(), "as right value in binary expression")
 		}
-		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: ast.Bool}
+		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right}
 	}
 
 	return expr
@@ -112,7 +112,7 @@ func (p *Parser) term() ast.Node {
 		if ast.IsImproper(right, ast.NA) {
 			p.AlertSingle(&alerts.ExpectedExpression{}, right.GetToken(), "as right value in binary expression")
 		}
-		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: ast.Uninitialized}
+		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right}
 	}
 
 	return expr
@@ -130,7 +130,7 @@ func (p *Parser) factor() ast.Node {
 		if ast.IsImproper(right, ast.NA) {
 			p.AlertSingle(&alerts.ExpectedExpression{}, right.GetToken(), "as right value in binary expression")
 		}
-		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: ast.Uninitialized}
+		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right}
 	}
 
 	return expr
@@ -148,7 +148,7 @@ func (p *Parser) concat() ast.Node {
 		if ast.IsImproper(right, ast.NA) {
 			p.AlertSingle(&alerts.ExpectedExpression{}, right.GetToken(), "as right value in concat expression")
 		}
-		return &ast.BinaryExpr{Left: expr, Operator: operator, Right: right, ValueType: ast.Uninitialized}
+		return &ast.BinaryExpr{Left: expr, Operator: operator, Right: right}
 	}
 
 	return expr
@@ -236,7 +236,7 @@ accessCheck:
 				Field: expr2,
 			})
 		} else {
-			expr2 := p.matchExpr()
+			expr2 := p.expression()
 			p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.RightBracket, "in member expression")
 			access.Accessed = append(access.Accessed, &ast.MemberExpr{
 				Member: expr2,
@@ -372,38 +372,21 @@ func (p *Parser) self() ast.Node {
 
 func (p *Parser) primary() ast.Node {
 	if p.match(tokens.False) {
-		return &ast.LiteralExpr{Value: "false", ValueType: ast.Bool, Token: p.peek(-1)}
+		return &ast.LiteralExpr{Value: "false", Token: p.peek(-1)}
 	}
 	if p.match(tokens.True) {
-		return &ast.LiteralExpr{Value: "true", ValueType: ast.Bool, Token: p.peek(-1)}
+		return &ast.LiteralExpr{Value: "true", Token: p.peek(-1)}
 	}
 
 	if p.match(tokens.Number, tokens.Fixed, tokens.FixedPoint, tokens.Degree, tokens.Radian, tokens.String) {
 		literal := p.peek(-1)
-		var valueType ast.PrimitiveValueType
-
-		switch literal.Type {
-		case tokens.Number:
-			valueType = ast.Number
-		case tokens.Fixed:
-			valueType = ast.Fixed
-		case tokens.FixedPoint:
-			valueType = ast.FixedPoint
-		case tokens.Degree:
-			valueType = ast.Degree
-		case tokens.Radian:
-			valueType = ast.Radian
-		case tokens.String:
-			valueType = ast.String
-		}
-
-		return &ast.LiteralExpr{Value: literal.Literal, ValueType: valueType, Token: literal}
+		return &ast.LiteralExpr{Value: literal.Literal, Token: literal}
 	}
 
 	if p.match(tokens.Identifier) {
 		token := p.peek(-1)
 		if !p.match(tokens.Colon) {
-			return &ast.IdentifierExpr{Name: token, ValueType: ast.Ident}
+			return &ast.IdentifierExpr{Name: token}
 		}
 
 		envPath := &ast.EnvPathExpr{
@@ -423,8 +406,7 @@ func (p *Parser) primary() ast.Node {
 			PathExpr: envPath,
 		}
 		envExpr.Accessed = &ast.IdentifierExpr{
-			Name:      next,
-			ValueType: ast.Invalid,
+			Name: next,
 		}
 
 		return envExpr
@@ -441,7 +423,7 @@ func (p *Parser) primary() ast.Node {
 		if !ok {
 			return ast.NewImproper(token, ast.GroupExpression)
 		}
-		return &ast.GroupExpr{Expr: expr, Token: token, ValueType: expr.GetValueType()}
+		return &ast.GroupExpr{Expr: expr, Token: token}
 	}
 
 	if p.match(tokens.Self) {
@@ -453,8 +435,7 @@ func (p *Parser) primary() ast.Node {
 
 func (p *Parser) parseList() ast.Node {
 	listExpr := &ast.ListExpr{
-		ValueType: ast.List,
-		Token:     p.peek(-1),
+		Token: p.peek(-1),
 	}
 
 	if p.match(tokens.RightBracket) {
@@ -489,14 +470,14 @@ func (p *Parser) parseMap() ast.Node {
 	if !ok {
 		return ast.NewImproper(mapExpr.Token, ast.MapExpression)
 	}
-	mapExpr.KeyValueList = append(mapExpr.KeyValueList, ast.Property{Key: key, Expr: value, Type: value.GetValueType()})
+	mapExpr.KeyValueList = append(mapExpr.KeyValueList, ast.Property{Key: key, Expr: value})
 
 	for p.match(tokens.Comma) {
 		key, value, ok = p.keyValuePair("map key")
 		if !ok {
 			return ast.NewImproper(mapExpr.Token, ast.MapExpression)
 		}
-		mapExpr.KeyValueList = append(mapExpr.KeyValueList, ast.Property{Key: key, Expr: value, Type: value.GetValueType()})
+		mapExpr.KeyValueList = append(mapExpr.KeyValueList, ast.Property{Key: key, Expr: value})
 	}
 	p.alertMultiConsume(&alerts.ExpectedSymbol{}, mapExpr.Token, p.peek(), tokens.RightBrace, "in map expression")
 
@@ -589,8 +570,7 @@ func (p *Parser) typeExpr(typeContext string) *ast.TypeExpr {
 		expr = envAccess
 	} else {
 		expr = &ast.IdentifierExpr{
-			Name:      token,
-			ValueType: ast.Invalid,
+			Name: token,
 		}
 	}
 
