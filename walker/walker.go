@@ -122,8 +122,16 @@ func NewWalker(hybroidPath, luaPath string) *Walker {
 	}
 }
 
+func (w *Walker) Env() Environment {
+	return *w.environment
+}
+
 func (w *Walker) SetProgram(program []ast.Node) {
 	w.program = program
+}
+
+func (w *Walker) Program() []ast.Node {
+	return w.program
 }
 
 func (w *Walker) PreWalk(walkers map[string]*Walker) {

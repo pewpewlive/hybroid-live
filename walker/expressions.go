@@ -434,7 +434,7 @@ func (w *Walker) accessExpression(node *ast.AccessExpr, scope *Scope) Value {
 				(memberVal.GetType().PVT() != ast.String && valPVT == ast.Map) {
 
 				w.AlertSingle(&alerts.InvalidMemberIndex{}, token,
-					valPVT,
+					string(valPVT),
 					member.GetToken().Lexeme,
 				)
 			}

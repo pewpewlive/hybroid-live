@@ -15,7 +15,7 @@ pub fn AddPolyWall(struct{fixed x, y} center, fixed radius, number sides) {
         angle = angle + Tau()/ToFixed(sides)
         sin, cos = Sincos(angle)
     }
-    for i, _ in vertices {
+    for i in vertices {
         if i == #vertices {
             AddWall(vertices[i].x, vertices[i].y, vertices[1].x, vertices[1].y)
         } else {

@@ -38,92 +38,32 @@ func GenerateVar(prefix string) string {
 	return varName.String()
 }
 
-type ReplaceType int
-
-const (
-	YieldReplacement ReplaceType = iota
-	GotoReplacement
-	ContinueReplacement
-	VariadicParamReplacement
-	VariableReplacement
-)
-
-type Replacement struct {
-	Tag  ReplaceType
-	Span core.Span[int]
-}
-
-type ReplaceSettings map[ReplaceType]string
-
-type GenScope struct { // 0 3
-	StringBuilder
-
-	Parent          *GenScope
-	Replacements    []Replacement
-	ReplaceSettings ReplaceSettings
-}
-
-func (gs *GenScope) AddReplacement(tag ReplaceType, span core.Span[int]) {
-	gs.Replacements = append(gs.Replacements, Replacement{Tag: tag, Span: span})
-}
-
 func RemoveIndex[T any](s []T, index int) []T {
 	return append(s[:index], s[index+1:]...)
 }
 
-func ResolveReplacement(rType ReplaceType, scope *GenScope) string {
-	if r, ok := scope.ReplaceSettings[rType]; ok {
-		return r
-	}
-
-	if scope.Parent == nil {
-		return "SKILL ISSUE"
-	}
-
-	return ResolveReplacement(rType, scope.Parent)
+type YieldContext struct {
+	label string
+	vars  []string
 }
 
-func (gs *GenScope) ReplaceAll() {
-	lengthBefore := gs.Len()
-
-	for i := len(gs.Replacements) - 1; i >= 0; i-- {
-		replace := ResolveReplacement(gs.Replacements[i].Tag, gs)
-
-		gs.ReplaceSpan(replace, gs.Replacements[i].Span)
-		length := gs.Len() - lengthBefore
-
-		for j := i + 1; j < len(gs.Replacements); j++ {
-			gs.Replacements[j].Span.Start += length
-			gs.Replacements[j].Span.End += length
-		}
-
-		lengthBefore = gs.Len()
-
-		RemoveIndex(gs.Replacements, i)
-	}
-}
-
-func NewGenScope(scope *GenScope) GenScope {
-	return GenScope{
-		Parent:          scope,
-		StringBuilder:   StringBuilder{},
-		Replacements:    []Replacement{},
-		ReplaceSettings: map[ReplaceType]string{},
-	}
+func NewYieldContext(vars []string, label string) YieldContext {
+	return YieldContext{vars: vars, label: label}
 }
 
 type Generator struct {
 	alerts.Collector
+	StringBuilder
 
-	envName string
-	env     ast.Env
-	Scope   GenScope
-	Future  string
+	envName        string
+	env            ast.Env
+	ContinueLabels core.Stack[string]
+	YieldContexts  core.Stack[YieldContext]
+	Future         string
 }
 
 func NewGenerator() Generator {
 	return Generator{
-		Scope:     NewGenScope(nil),
 		Collector: alerts.NewCollector(),
 	}
 }
@@ -150,10 +90,6 @@ func (gen *Generator) WriteVarExtra(name, middle string) string {
 	return gen.envName + middle + name
 }
 
-func (gen *Generator) Clear() {
-	gen.Scope = NewGenScope(nil)
-}
-
 func getTabs() string {
 	tabs := StringBuilder{}
 	for range TabsCount {
@@ -164,37 +100,37 @@ func getTabs() string {
 }
 
 func (gen *Generator) GetSrc() string {
-	return gen.Scope.String()
+	return gen.String()
 }
 
 func (gen *Generator) Generate(program []ast.Node, builtins []string) {
 	for i := range builtins {
-		gen.Scope.WriteString(functions[builtins[i]])
+		gen.WriteString(functions[builtins[i]])
 	}
 	for _, node := range program {
-		gen.GenerateStmt(node, &gen.Scope)
-		gen.Scope.WriteString("\n")
+		gen.GenerateStmt(node)
+		gen.WriteString("\n")
 	}
 }
 
 func (gen *Generator) GenerateWithBuiltins(program []ast.Node) {
-	gen.Scope.WriteString(ParseSoundFunction)
-	gen.Scope.WriteString(ToStringFunction)
+	gen.WriteString(ParseSoundFunction)
+	gen.WriteString(ToStringFunction)
 	for _, node := range program {
-		gen.GenerateStmt(node, &gen.Scope)
-		gen.Scope.WriteString("\n")
+		gen.GenerateStmt(node)
+		gen.WriteString("\n")
 	}
 }
 
-func (gen *Generator) GenerateBody(body ast.Body, scope *GenScope) {
+func (gen *Generator) GenerateBody(body ast.Body) {
 	TabsCount += 1
 	if gen.Future != "" {
-		scope.WriteTabbed(gen.Future)
+		gen.WriteTabbed(gen.Future)
 		gen.Future = ""
 	}
 	for _, node := range body {
-		gen.GenerateStmt(node, scope)
-		scope.Write("\n")
+		gen.GenerateStmt(node)
+		gen.Write("\n")
 	}
 	TabsCount -= 1
 }
@@ -226,104 +162,104 @@ func degToRad(floatstr string) string {
 	return fixedToFx(fmt.Sprintf("%v", radians))
 }
 
-func (gen *Generator) GenerateStmt(node ast.Node, scope *GenScope) {
+func (gen *Generator) GenerateStmt(node ast.Node) {
 	switch newNode := node.(type) {
 	case *ast.EnvironmentDecl:
-		gen.envStmt(*newNode, scope)
+		gen.envStmt(*newNode)
 	case *ast.AssignmentStmt:
-		gen.assignmentStmt(*newNode, scope)
+		gen.assignmentStmt(*newNode)
 	case *ast.BreakStmt:
-		gen.breakStmt(*newNode, scope)
+		gen.breakStmt(*newNode)
 	case *ast.ReturnStmt:
-		gen.returnStmt(*newNode, scope)
+		gen.returnStmt(*newNode)
 	case *ast.YieldStmt:
-		gen.yieldStmt(*newNode, scope)
+		gen.yieldStmt(*newNode)
 	case *ast.ContinueStmt:
-		gen.continueStmt(*newNode, scope)
+		gen.continueStmt(*newNode)
 	case *ast.MatchStmt:
-		gen.matchStmt(*newNode, scope)
+		gen.matchStmt(*newNode)
 	case *ast.IfStmt:
-		gen.ifStmt(*newNode, scope)
+		gen.ifStmt(*newNode)
 	case *ast.RepeatStmt:
-		gen.repeatStmt(*newNode, scope)
+		gen.repeatStmt(*newNode)
 	case *ast.WhileStmt:
-		gen.whileStmt(*newNode, scope)
+		gen.whileStmt(*newNode)
 	case *ast.ForStmt:
-		gen.forStmt(*newNode, scope)
+		gen.forStmt(*newNode)
 	case *ast.TickStmt:
-		gen.tickStmt(*newNode, scope)
+		gen.tickStmt(*newNode)
 	case *ast.VariableDecl:
-		gen.variableDeclarationStmt(*newNode, scope)
+		gen.variableDeclaration(*newNode)
 	case *ast.CallExpr:
-		val := gen.callExpr(*newNode, true, scope)
-		scope.WriteString(val)
+		val := gen.callExpr(*newNode, true)
+		gen.WriteString(val)
 	case *ast.MethodCallExpr:
-		val := gen.methodCallExpr(*newNode, true, scope)
-		scope.WriteString(val)
+		val := gen.methodCallExpr(*newNode, true)
+		gen.WriteString(val)
 	case *ast.SpawnExpr:
-		val := gen.spawnExpr(*newNode, true, scope)
-		scope.WriteString(val)
+		val := gen.spawnExpr(*newNode, true)
+		gen.WriteString(val)
 	case *ast.NewExpr:
-		val := gen.newExpr(*newNode, true, scope)
-		scope.WriteString(val)
+		val := gen.newExpr(*newNode, true)
+		gen.WriteString(val)
 	case *ast.FunctionDecl:
-		gen.functionDeclarationStmt(*newNode, scope)
+		gen.functionDeclarationStmt(*newNode)
 	case *ast.EnumDecl:
-		gen.enumDeclarationStmt(*newNode, scope)
+		gen.enumDeclaration(*newNode)
 	case *ast.ClassDecl:
-		gen.classDeclarationStmt(*newNode, scope)
+		gen.classDeclaration(*newNode)
 	case *ast.EnvAccessExpr:
-		val := gen.envAccessExpr(*newNode, scope)
-		scope.WriteString(val)
+		val := gen.envAccessExpr(*newNode)
+		gen.WriteString(val)
 	case *ast.EntityDecl:
-		gen.entityDeclarationStmt(*newNode, scope)
+		gen.entityDeclaration(*newNode)
 	case *ast.DestroyStmt:
-		gen.destroyStmt(*newNode, scope)
+		gen.destroyStmt(*newNode)
 	}
 }
 
-func (gen *Generator) GenerateExpr(node ast.Node, scope *GenScope) string {
+func (gen *Generator) GenerateExpr(node ast.Node) string {
 	switch newNode := node.(type) {
 	case *ast.LiteralExpr:
 		return gen.literalExpr(*newNode)
 	case *ast.EntityEvaluationExpr:
-		return gen.entityExpr(*newNode, scope)
+		return gen.entityExpr(*newNode)
 	case *ast.BinaryExpr:
-		return gen.binaryExpr(*newNode, scope)
+		return gen.binaryExpr(*newNode)
 	case *ast.IdentifierExpr:
-		return gen.identifierExpr(*newNode, scope)
+		return gen.identifierExpr(*newNode)
 	case *ast.GroupExpr:
-		return gen.groupingExpr(*newNode, scope)
+		return gen.groupingExpr(*newNode)
 	case *ast.ListExpr:
-		return gen.listExpr(*newNode, scope)
+		return gen.listExpr(*newNode)
 	case *ast.UnaryExpr:
-		return gen.unaryExpr(*newNode, scope)
+		return gen.unaryExpr(*newNode)
 	case *ast.CallExpr:
-		return gen.callExpr(*newNode, false, scope)
+		return gen.callExpr(*newNode, false)
 	case *ast.MapExpr:
-		return gen.mapExpr(*newNode, scope)
+		return gen.mapExpr(*newNode)
 	case *ast.FieldExpr:
-		return gen.fieldExpr(*newNode, scope)
+		return gen.fieldExpr(*newNode)
 	case *ast.MemberExpr:
-		return gen.memberExpr(*newNode, scope)
+		return gen.memberExpr(*newNode)
 	case *ast.FunctionExpr:
-		return gen.functionExpr(*newNode, scope)
+		return gen.functionExpr(*newNode)
 	case *ast.StructExpr:
-		return gen.structExpr(*newNode, scope)
+		return gen.structExpr(*newNode)
 	case *ast.SelfExpr:
-		return gen.selfExpr(*newNode, scope)
+		return gen.selfExpr(*newNode)
 	case *ast.NewExpr:
-		return gen.newExpr(*newNode, false, scope)
+		return gen.newExpr(*newNode, false)
 	case *ast.MatchExpr:
-		return gen.matchExpr(*newNode, scope)
+		return gen.matchExpr(*newNode)
 	case *ast.EnvAccessExpr:
-		return gen.envAccessExpr(*newNode, scope)
+		return gen.envAccessExpr(*newNode)
 	case *ast.SpawnExpr:
-		return gen.spawnExpr(*newNode, false, scope)
+		return gen.spawnExpr(*newNode, false)
 	case *ast.MethodCallExpr:
-		return gen.methodCallExpr(*newNode, false, scope)
+		return gen.methodCallExpr(*newNode, false)
 		// case *ast.CastExpr:
-		// 	return gen.castExpr(*newNode, scope)
+		// 	return gen.castExpr(*newNode)
 	}
 
 	return ""

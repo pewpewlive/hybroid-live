@@ -1,0 +1,10 @@
+[level]
+name = "#131b29ffT#2e3745ffH#485260ffE #d1d70bffH#48a23bffy#3773d6ffb#15c4bdffr#c14f3fffo#cb5b32ffi#ca0e65ffd"
+descriptions = ["This is an example level created using Hybroid"]
+information = "https://github.com/pewpewlive/hybroid"
+entry_point = "level.hyb"
+casual = true
+
+[project]
+name = "the-hybroid"
+output_directory = "out"

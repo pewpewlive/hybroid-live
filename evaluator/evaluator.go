@@ -3,7 +3,9 @@ package evaluator
 import (
 	"fmt"
 	"hybroid/alerts"
+	"hybroid/ast"
 	"hybroid/core"
+	"hybroid/generator"
 	"hybroid/lexer"
 	"hybroid/parser"
 	"hybroid/walker"
@@ -37,13 +39,11 @@ func NewEvaluator(files []core.FileInformation) Evaluator {
 }
 
 func (e *Evaluator) Action(cwd, outputDir string) error {
-	evalFailed := make([]bool, 0)
+	generate := true
 
 	walker.SetupLibraryEnvironments()
 
 	for i := range e.walkerList {
-		evalFailed = append(evalFailed, false)
-
 		sourcePath := e.files[i].Path()
 		sourceFile, err := os.OpenFile(filepath.Join(cwd, sourcePath), os.O_RDONLY, os.ModePerm)
 		if err != nil {
@@ -63,7 +63,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		start = time.Now()
 
 		if tokenizeErr != nil {
-			evalFailed[i] = true
+			generate = false
 			continue
 		}
 
@@ -71,14 +71,15 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 
 		parser := parser.NewParser(tokens)
 		program := parser.Parse()
+		fmt.Printf("Parsing time: %f seconds\n\n", time.Since(start).Seconds())
+		e.printer.StageAlerts(sourcePath, parser.GetAlerts())
+
 		for _, v := range parser.GetAlerts() {
 			if v.AlertType() == alerts.Error {
-				evalFailed[i] = true
+				generate = false
 				break
 			}
 		}
-		fmt.Printf("Parsing time: %f seconds\n\n", time.Since(start).Seconds())
-		e.printer.StageAlerts(sourcePath, parser.GetAlerts())
 
 		// ast.DrawNodes(prog)
 
@@ -107,55 +108,55 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		fmt.Printf("Walking time: %f seconds\n\n", time.Since(start).Seconds())
 
 		e.printer.StageAlerts(sourcePath, walker.GetAlerts())
+		for _, v := range walker.GetAlerts() {
+			if v.AlertType() == alerts.Error {
+				generate = false
+				break
+			}
+		}
 	}
 
-	// fmt.Printf("-Preparing values for generation...\n")
-	// generator := generator.NewGenerator()
-	// for _, walker := range e.walkerList {
-	// 	generator.SetUniqueEnvName(walker.Environment.Name)
-	// }
+	if !generate {
+		return nil
+	}
 
-	// for i, walker := range e.walkerList {
-	// 	cont := false
-	// 	for _, v := range walker.GetAlerts() {
-	// 		if v.GetAlertType() == alerts.Error {
-	// 			cont = true
-	// 			break
-	// 		}
-	// 	}
-	// 	if evalFailed[i] || cont {
-	// 		continue
-	// 	}
-	// 	sourcePath := e.files[i].Path()
-	// 	color.Printf("[dark_gray]-->File: %s\n", sourcePath)
+	fmt.Printf("-Preparing values for generation...\n")
+	gen := generator.NewGenerator()
+	for _, walker := range e.walkerList {
+		gen.SetUniqueEnvName(walker.Env().Name)
+	}
 
-	// 	start := time.Now()
-	// 	fmt.Println("Generating the lua code...")
+	for i, walker := range e.walkerList {
+		sourcePath := e.files[i].Path()
+		color.Printf("[dark_gray]-->File: %s\n", sourcePath)
 
-	// 	generator.SetEnv(walker.Environment.Name, walker.Environment.Type)
-	// 	if e.files[i].FileName == "level" {
-	// 		//generator.GenerateWithBuiltins(walker.Nodes)
-	// 	} else if e.walkerList[i].Environment.Type != ast.LevelEnv {
-	// 		//generator.Generate(walker.Nodes, e.walkerList[i].Environment.UsedBuiltinVars)
-	// 	} else {
-	// 		//generator.Generate(walker.Nodes, []string{})
-	// 	}
+		start := time.Now()
+		fmt.Println("Generating the lua code...")
 
-	// 	e.printer.StageAlerts(e.files[i].Path(), generator.GetAlerts())
+		gen.SetEnv(walker.Env().Name, walker.Env().Type)
+		if e.files[i].FileName == "level" {
+			gen.GenerateWithBuiltins(walker.Program())
+		} else if e.walkerList[i].Env().Type != ast.LevelEnv {
+			gen.Generate(walker.Program(), e.walkerList[i].Env().UsedBuiltinVars)
+		} else {
+			gen.Generate(walker.Program(), []string{})
+		}
 
-	// 	fmt.Printf("Generating time: %f seconds\n\n", time.Since(start).Seconds())
+		e.printer.StageAlerts(e.files[i].Path(), gen.GetAlerts())
 
-	// 	err := os.MkdirAll(filepath.Join(cwd, outputDir, e.files[i].DirectoryPath), os.ModePerm)
-	// 	if err != nil {
-	// 		return fmt.Errorf("failed to write transpiled file to destination: %v", err)
-	// 	}
-	// 	err = os.WriteFile(e.files[i].NewPath(filepath.Join(cwd, outputDir), ".lua"), []byte(generator.GetSrc()), os.ModePerm)
-	// 	if err != nil {
-	// 		return fmt.Errorf("failed to write transpiled file to destination: %v", err)
-	// 	}
+		fmt.Printf("Generating time: %f seconds\n\n", time.Since(start).Seconds())
 
-	// 	generator.Clear()
-	// }
+		err := os.MkdirAll(filepath.Join(cwd, outputDir, e.files[i].DirectoryPath), os.ModePerm)
+		if err != nil {
+			return fmt.Errorf("failed to write transpiled file to destination: %v", err)
+		}
+		err = os.WriteFile(e.files[i].NewPath(filepath.Join(cwd, outputDir), ".lua"), []byte(gen.GetSrc()), os.ModePerm)
+		if err != nil {
+			return fmt.Errorf("failed to write transpiled file to destination: %v", err)
+		}
+
+		gen = generator.NewGenerator()
+	}
 
 	e.printer.PrintAlerts()
 

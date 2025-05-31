@@ -12,7 +12,7 @@ pub fn NewMesh() -> Mesh {
 
 pub fn Scale(Mesh mesh, number modifier) {
   for _, v in mesh.vertexes {
-    for i, _ in v {
+    for i in v {
       v[i] *= modifier
     }
   }
@@ -20,7 +20,7 @@ pub fn Scale(Mesh mesh, number modifier) {
 
 pub fn ScaleAxis(Mesh mesh, Vertex mods) {
   for _, v in mesh.vertexes {
-    for i, _ in v {
+    for i in v {
       if #mods < i {
         continue
       }

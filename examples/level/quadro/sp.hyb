@@ -210,7 +210,7 @@ pub entity SuperInertiac {
 
     x, y += velX, velY
     SetEntityPosition(self, x, y)
-    for i, _ in rings {
+    for i in rings {
         fixed r1x, r1y = GetEntityPosition(rings[i])
         fixed fixedI = Fmath:ToFixed(i)
         //Print(fixedI)
@@ -299,7 +299,7 @@ pub entity SuperInertiac {
     }
   }
 
-  UpdatePredicitonLine() {
+  fn UpdatePredicitonLine() {
     //fixed pDY, pDX = GetPlayerMovementPrediction()
     if isDead or !IsEntityAlive(SHIP.id) 
       return 
