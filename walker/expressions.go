@@ -389,6 +389,7 @@ func (w *Walker) callExpression(val Value, node *ast.Node, scope *Scope) Value {
 	}
 
 	returnLen := len(actualReturns)
+	call.ReturnAmount = returnLen
 	if returnLen == 0 {
 		return &Invalid{}
 	} else if returnLen == 1 {

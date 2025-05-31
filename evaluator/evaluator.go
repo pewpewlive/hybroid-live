@@ -117,6 +117,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 	}
 
 	if !generate {
+		e.printer.PrintAlerts()
 		return nil
 	}
 

@@ -329,8 +329,8 @@ func (w *Walker) validateReturnValues(returnArgs []ast.Node, _return []Value2, e
 		}
 		if !TypeEquals(_return[i].GetType(), expectReturn[i]) {
 			w.AlertSingle(&alerts.TypeMismatch{}, returnArgs[_return[i].Index].GetToken(),
-				_return[i].GetType(),
 				expectReturn[i],
+				_return[i].GetType(),
 				fmt.Sprintf(context+" (arg %d)", i+1),
 			)
 		}

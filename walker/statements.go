@@ -81,7 +81,6 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 	valuesLen := len(values)
 
 	exprs := assignStmt.Values
-	binExprs := make([]ast.Node, 0) // for compound assignment
 
 	assignOp := assignStmt.AssignOp
 	for i := range assignStmt.Identifiers {
@@ -122,13 +121,6 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 				)
 				continue
 			}
-
-			binExpr := &ast.BinaryExpr{
-				Left:     idents[i],
-				Right:    exprs[values[i].Index],
-				Operator: assignOp,
-			}
-			binExprs = append(binExprs, binExpr)
 		}
 
 		if valType == InvalidType {
@@ -152,9 +144,6 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 			"in assignment",
 		)
 		return
-	}
-	if len(binExprs) != 0 {
-		assignStmt.Values = binExprs
 	}
 }
 

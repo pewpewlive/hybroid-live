@@ -10,7 +10,7 @@ import (
 )
 
 const charset = "_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-const hyGTL = "GL"
+const hyGotoLabel = "GL"
 const hyVar = "H"
 const hyClass = "HC"
 const hyEntity = "HE"
@@ -189,7 +189,10 @@ func (gen *Generator) GenerateStmt(node ast.Node) {
 	case *ast.TickStmt:
 		gen.tickStmt(*newNode)
 	case *ast.VariableDecl:
-		gen.variableDeclaration(*newNode)
+		varDecls := gen.breakDownVariableDeclaration(*newNode)
+		for _, varDecl := range varDecls {
+			gen.variableDeclaration(varDecl)
+		}
 	case *ast.CallExpr:
 		val := gen.callExpr(*newNode, true)
 		gen.WriteString(val)
@@ -203,7 +206,7 @@ func (gen *Generator) GenerateStmt(node ast.Node) {
 		val := gen.newExpr(*newNode, true)
 		gen.WriteString(val)
 	case *ast.FunctionDecl:
-		gen.functionDeclarationStmt(*newNode)
+		gen.functionDeclaration(*newNode)
 	case *ast.EnumDecl:
 		gen.enumDeclaration(*newNode)
 	case *ast.ClassDecl:
@@ -238,10 +241,6 @@ func (gen *Generator) GenerateExpr(node ast.Node) string {
 		return gen.callExpr(*newNode, false)
 	case *ast.MapExpr:
 		return gen.mapExpr(*newNode)
-	case *ast.FieldExpr:
-		return gen.fieldExpr(*newNode)
-	case *ast.MemberExpr:
-		return gen.memberExpr(*newNode)
 	case *ast.FunctionExpr:
 		return gen.functionExpr(*newNode)
 	case *ast.StructExpr:

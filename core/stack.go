@@ -23,7 +23,7 @@ func (s *Stack[T]) Push(name string, item T) {
 	s.items = append(s.items, stackEntry[T]{Name: name, Item: item})
 }
 
-func (s *Stack[T]) Top() stackEntry[T] {
+func (s Stack[T]) Top() stackEntry[T] {
 	count := s.Count()
 	if count == 0 {
 		panic(fmt.Sprintf("Attempt to get the top of the Stack (%q) of size: %d", s.Name, count))
@@ -48,11 +48,11 @@ func (s *Stack[T]) Pop(name string) stackEntry[T] {
 	return item
 }
 
-func (s *Stack[T]) Count() int {
+func (s Stack[T]) Count() int {
 	return len(s.items)
 }
 
-func (s *Stack[T]) printStack() {
+func (s Stack[T]) printStack() {
 	fmt.Printf("Stack(%q):\n", s.Name)
 	for i := s.Count() - 1; i >= 0; i-- {
 		item := s.items[i]

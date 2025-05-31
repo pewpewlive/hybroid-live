@@ -462,6 +462,7 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 		variable.Value = value
 		w.declareVariable(scope, variable)
 	}
+
 	identsLen := len(declaration.Identifiers)
 	if identsLen < valuesLen {
 		extraAmount := valuesLen - identsLen

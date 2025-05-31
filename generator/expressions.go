@@ -130,23 +130,20 @@ func (gen *Generator) mapExpr(node ast.MapExpr) string {
 
 	src.Write("{\n")
 	TabsCount += 1
-	//index := 0
-	// for k, v := range node.Map {
-	// 	val := gen.GenerateExpr(v.Expr)
+	index := 0
+	for _, v := range node.KeyValueList {
+		val := gen.GenerateExpr(v.Expr)
 
-	// 	ident := k.Lexeme
+		token := v.Key.GetToken()
+		ident := token.Literal
 
-	// 	if k.Type == tokens.String {
-	// 		ident = k.Literal
-	// 	}
-
-	// 	if index != len(node.Map)-1 {
-	// 		src.WriteTabbed(fmt.Sprintf("%s = %v,\n", ident, val))
-	// 	} else {
-	// 		src.WriteTabbed(fmt.Sprintf("%s = %v\n", ident, val))
-	// 	}
-	// 	index++
-	// }
+		if index != len(node.KeyValueList)-1 {
+			src.WriteTabbed(fmt.Sprintf("%s = %v,\n", ident, val))
+		} else {
+			src.WriteTabbed(fmt.Sprintf("%s = %v\n", ident, val))
+		}
+		index++
+	}
 	TabsCount -= 1
 	src.WriteTabbed("}")
 
@@ -164,40 +161,21 @@ func (gen *Generator) unaryExpr(node ast.UnaryExpr) string {
 	return fmt.Sprintf("%s%s", op, gen.GenerateExpr(node.Value))
 }
 
-func (gen *Generator) fieldExpr(node ast.FieldExpr) string {
+func (gen *Generator) accessExpr(node ast.AccessExpr) string {
 	src := StringBuilder{}
-
-	// if node.ExprType == ast.SelfEntity {
-	// 	src.Write(envMap[node.EnvName], hyEntity, node.EntityName, "[", gen.GenerateExpr(node.Identifier), "]")
-	// } else {
-	// 	src.Write(gen.GenerateExpr(node.Identifier))
-	// }
-
-	// val := gen.GenerateExpr(node.Property)
-	// cut := ""
-	// for i := range val {
-	// 	if val[i] == '[' {
-	// 		cut = val[i:]
-	// 		break
-	// 	}
-	// }
-	// if node.Index >= 0 {
-	// 	val = fmt.Sprintf("[%v]%s", node.Index, cut)
-	// } else {
-	// 	val = "." + val[len(gen.envName):]
-	// }
-	// src.Write(val)
-	return src.String()
-}
-
-func (gen *Generator) memberExpr(node ast.MemberExpr) string {
-	src := StringBuilder{}
-
-	// src.Write(gen.GenerateExpr(node.Identifier))
-	// val := gen.GenerateExpr(node.Property)
-	// name := gen.GenerateExpr(node.PropertyIdentifier)
-	// val = fmt.Sprintf("[%s]%s", name, val[len(name):])
-	// src.Write(val)
+	start := gen.GenerateExpr(node.Start)
+	if field, ok := node.Accessed[0].(*ast.FieldExpr); ok && field.ExprType == ast.SelfEntity {
+		src.Write(envMap[field.EnvName], hyEntity, field.EntityName)
+	}
+	src.Write(start)
+	for _, accessed := range node.Accessed {
+		switch expr := accessed.(type) {
+		case *ast.FieldExpr:
+			src.Write(fmt.Sprintf("[%v]", expr.Index))
+		case *ast.MemberExpr:
+			src.Write(fmt.Sprintf("[%s]", expr.GetToken().Literal))
+		}
+	}
 
 	return src.String()
 }
@@ -272,7 +250,7 @@ func (gen *Generator) newExpr(new ast.NewExpr, stmt bool) string {
 func (gen *Generator) matchExpr(match ast.MatchExpr) string {
 	varsSrc := StringBuilder{}
 	vars := []string{}
-	gotoLabel := GenerateVar(hyGTL)
+	gotoLabel := GenerateVar(hyGotoLabel)
 
 	for i := 0; i < match.ReturnAmount; i++ {
 		helperVarName := GenerateVar(hyVar)

@@ -1,3 +1,12 @@
 env Main as Level
 
-let a = 1
+fn funny2() -> fixed {
+    return 1f
+}
+
+fn funny() -> (fixed, fixed) {
+    return 1f, 2f
+}
+
+let a, n, b, c, d = funny2(), 1, funny(), funny2()
+a, b = b, a

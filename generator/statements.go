@@ -31,9 +31,7 @@ func (gen *Generator) ifStmt(node ast.IfStmt) {
 
 func (gen *Generator) assignmentStmt(assignStmt ast.AssignmentStmt) {
 	src := StringBuilder{}
-
 	preSrc := StringBuilder{}
-
 	vars := []string{}
 
 	index := 0
@@ -67,19 +65,6 @@ func (gen *Generator) assignmentStmt(assignStmt ast.AssignmentStmt) {
 
 	gen.Write(preSrc.String())
 	gen.Write(src.String())
-}
-
-func (gen *Generator) functionDeclarationStmt(node ast.FunctionDecl) {
-	if !node.IsPub {
-		gen.WriteTabbed("local ")
-	}
-
-	gen.Write("function ", gen.WriteVar(node.Name.Lexeme), "(")
-	gen.GenerateParams(node.Params)
-
-	gen.GenerateBody(node.Body)
-
-	gen.WriteTabbed("end")
 }
 
 func (gen *Generator) returnStmt(node ast.ReturnStmt) {
@@ -146,7 +131,7 @@ func (gen *Generator) repeatStmt(node ast.RepeatStmt) {
 		gen.WriteTabbed("for _ = ", start, ", ", end, ", ", skip, " do\n")
 	}
 
-	gotoLabel := GenerateVar(hyGTL)
+	gotoLabel := GenerateVar(hyGotoLabel)
 	gen.ContinueLabels.Push("RepeatStmt", gotoLabel)
 
 	gen.GenerateBody(node.Body)
@@ -160,7 +145,7 @@ func (gen *Generator) repeatStmt(node ast.RepeatStmt) {
 func (gen *Generator) whileStmt(node ast.WhileStmt) {
 	gen.WriteTabbed("while ", gen.GenerateExpr(node.Condition), " do\n")
 
-	gotoLabel := GenerateVar(hyGTL)
+	gotoLabel := GenerateVar(hyGotoLabel)
 	gen.ContinueLabels.Push("WhileStmt", gotoLabel)
 
 	gen.GenerateBody(node.Body)
@@ -187,7 +172,7 @@ func (gen *Generator) forStmt(node ast.ForStmt) {
 		value := gen.GenerateExpr(node.Second)
 		gen.Write(key, ", ", value, " in ", pairs, "(", iterator, ") do\n")
 	}
-	gotoLabel := GenerateVar(hyGTL)
+	gotoLabel := GenerateVar(hyGotoLabel)
 	gen.ContinueLabels.Push("ForStmt", gotoLabel)
 
 	gen.GenerateBody(node.Body)
@@ -214,67 +199,6 @@ func (gen *Generator) tickStmt(node ast.TickStmt) {
 	gen.GenerateBody(node.Body)
 
 	gen.Write(tickTabs, "end)")
-	gen.Write(gen.String())
-}
-
-func (gen *Generator) spawnDeclarationStmt(node ast.EntityFunctionDecl, entity ast.EntityDecl) {
-	entityName := gen.WriteVarExtra(entity.Name.Lexeme, hyEntity)
-
-	gen.Write(entityName, " = {}\n")
-	gen.Write("function ", entityName, "_Spawn(")
-
-	gen.GenerateParams(node.Params)
-
-	TabsCount++
-
-	gen.WriteTabbed("local id = pewpew.new_customizable_entity(", gen.WriteVar(node.Params[0].Name.Lexeme), ", ", gen.WriteVar(node.Params[1].Name.Lexeme), ")\n")
-	gen.WriteTabbed(entityName, "[id] = {")
-	for i, field := range entity.Fields {
-		for j, value := range field.Values {
-			if j == len(field.Values)-1 && i == len(entity.Fields)-1 {
-				gen.WriteString(gen.GenerateExpr(value))
-			} else {
-				gen.Write(gen.GenerateExpr(value), ",")
-			}
-		}
-	}
-	gen.Write("}\n")
-
-	TabsCount--
-	gen.GenerateBody(node.Body)
-	TabsCount++
-
-	for i, v := range entity.Callbacks {
-		switch v.Type {
-		case ast.WallCollision:
-			gen.WriteTabbed(fmt.Sprintf("pewpew.customizable_entity_configure_wall_collision(id, true, %sHCb%d)\n", entityName, i))
-		case ast.WeaponCollision:
-			gen.WriteTabbed(fmt.Sprintf("pewpew.customizable_entity_set_weapon_collision_callback(id, %sHCb%d)\n", entityName, i))
-		case ast.PlayerCollision:
-			gen.WriteTabbed(fmt.Sprintf("pewpew.customizable_entity_set_player_collision_callback(id, %sHCb%d)\n", entityName, i))
-		case ast.Update:
-			gen.WriteTabbed(fmt.Sprintf("pewpew.entity_set_update_callback(id, %sHCb%d)\n", entityName, i))
-		}
-	}
-	gen.WriteTabbed("return id\n")
-	TabsCount--
-
-	gen.WriteTabbed("end\n")
-
-	gen.Write(gen.String())
-}
-
-func (gen *Generator) destroyDeclarationStmt(node ast.EntityFunctionDecl, entity ast.EntityDecl) {
-	gen.Write("function ", gen.WriteVarExtra(entity.Name.Lexeme, hyEntity), "_Destroy(id")
-	if len(node.Params) != 0 {
-		gen.Write(", ")
-	}
-
-	gen.GenerateParams(node.Params)
-
-	gen.GenerateBody(node.Body)
-
-	gen.WriteString("end\n")
 	gen.Write(gen.String())
 }
 
