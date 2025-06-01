@@ -1,7 +1,6 @@
 package generator
 
 import (
-	"hybroid/core"
 	"strings"
 )
 
@@ -21,10 +20,4 @@ func (sb *StringBuilder) WriteTabbed(chunks ...string) {
 	for _, chunk := range chunks {
 		sb.WriteString(chunk)
 	}
-}
-
-func (sb *StringBuilder) ReplaceSpan(str string, span core.Span[int]) {
-	buffer := sb.String()
-	sb.Reset()
-	sb.Write(buffer[:span.Start], str, buffer[span.End:])
 }

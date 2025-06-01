@@ -26,8 +26,7 @@ var ToStringFunction = `function ToString(value)
 		str = value
 	end
 	return str
-end
-`
+end`
 
 var ParseSoundFunction = `function split(str, pat)
    local t = {}  -- NOTE: use {n = 0} in Lua-5.0
@@ -69,5 +68,4 @@ function ParseSound(link)
     sound[parts[i]] = value
   end
   return sound
-end
-`
+end`

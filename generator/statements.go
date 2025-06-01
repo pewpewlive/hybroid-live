@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"hybroid/ast"
 	"hybroid/tokens"
-	"strings"
 )
 
 func (gen *Generator) envStmt(node ast.EnvironmentDecl) {
@@ -14,7 +13,8 @@ func (gen *Generator) envStmt(node ast.EnvironmentDecl) {
 }
 
 func (gen *Generator) ifStmt(node ast.IfStmt) {
-	gen.WriteTabbed("if ", gen.GenerateExpr(node.BoolExpr), " then\n")
+	expr := gen.GenerateExpr(node.BoolExpr) // very important that this is called before gen.WriteTabbed (entityExpr might write on gen)
+	gen.WriteTabbed("if ", expr, " then\n")
 
 	gen.GenerateBody(node.Body)
 	for _, elseif := range node.Elseifs {
@@ -32,39 +32,45 @@ func (gen *Generator) ifStmt(node ast.IfStmt) {
 func (gen *Generator) assignmentStmt(assignStmt ast.AssignmentStmt) {
 	src := StringBuilder{}
 	preSrc := StringBuilder{}
-	vars := []string{}
+	values := []string{}
 
-	index := 0
-	for i := range assignStmt.Values {
-		src.WriteTabbed()
-		if assignStmt.Values[i].GetType() == ast.CallExpression {
-			call := assignStmt.Values[i].(*ast.CallExpr)
-			preSrc.WriteTabbed()
-			for j := range call.ReturnAmount {
-				src.Write(gen.GenerateExpr(assignStmt.Identifiers[index+j]))
-				vars = append(vars, GenerateVar(hyVar))
-				preSrc.Write(vars[j])
-				if j != call.ReturnAmount-1 {
-					preSrc.Write(", ")
-					src.Write(", ")
-				} else {
-					preSrc.Write(" = ", gen.callExpr(*call, false), "\n")
-					src.Write(" = ", strings.Join(vars, ", "), "\n")
-				}
-			}
-			vars = []string{}
-			index += call.ReturnAmount
-		} else {
-			src.Write(gen.GenerateExpr(assignStmt.Identifiers[index]), " = ", gen.GenerateExpr(assignStmt.Values[i]), "\n")
-			index++
+	src.WriteTabbed()
+	for i, v := range assignStmt.Identifiers {
+		src.Write(gen.GenerateExpr(v))
+		if i != len(assignStmt.Identifiers)-1 {
+			src.Write(", ")
 		}
-		if index >= len(assignStmt.Identifiers) {
-			break
+	}
+	src.Write(" = ")
+	if call, ok := assignStmt.Values[0].(ast.CallNode); ok && call.GetReturnAmount() > 1 && assignStmt.AssignOp.Type != tokens.Equal {
+		preSrc.WriteTabbed("local ")
+		for i := range call.GetReturnAmount() {
+			values = append(values, GenerateVar(hyVar))
+			preSrc.Write(values[i])
+			if i != call.GetReturnAmount()-1 {
+				preSrc.Write(", ")
+			}
+		}
+		preSrc.Write(" = ", gen.GenerateExpr(assignStmt.Values[0]), "\n")
+	} else {
+		for _, v := range assignStmt.Values {
+			values = append(values, gen.GenerateExpr(v))
+		}
+	}
+	for i := range values {
+		if assignStmt.AssignOp.Type != tokens.Equal {
+			op := tokens.TokenType(int(assignStmt.AssignOp.Type))
+			src.Write(fmt.Sprintf("%s %s (%s)", gen.GenerateExpr(assignStmt.Identifiers[i]), op, values[i]))
+		} else {
+			src.Write(values[i])
+		}
+		if i != len(values)-1 {
+			src.Write(", ")
 		}
 	}
 
 	gen.Write(preSrc.String())
-	gen.Write(src.String())
+	gen.Write(src.String(), "\n")
 }
 
 func (gen *Generator) returnStmt(node ast.ReturnStmt) {
@@ -152,7 +158,6 @@ func (gen *Generator) whileStmt(node ast.WhileStmt) {
 
 	gen.ContinueLabels.Pop("WhileStmt")
 
-	gen.Write(gen.String())
 	gen.WriteTabbed("::" + gotoLabel + "::\n")
 	gen.WriteTabbed("end")
 }
@@ -181,7 +186,6 @@ func (gen *Generator) forStmt(node ast.ForStmt) {
 
 	gen.WriteTabbed("::" + gotoLabel + "::\n")
 	gen.WriteTabbed("end")
-	gen.Write(gen.String())
 }
 
 func (gen *Generator) tickStmt(node ast.TickStmt) {
@@ -199,7 +203,6 @@ func (gen *Generator) tickStmt(node ast.TickStmt) {
 	gen.GenerateBody(node.Body)
 
 	gen.Write(tickTabs, "end)")
-	gen.Write(gen.String())
 }
 
 func (gen *Generator) GenerateParams(params []ast.FunctionParam) {

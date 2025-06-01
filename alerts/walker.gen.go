@@ -881,7 +881,7 @@ type InvalidStmtInLocalBlock struct {
 }
 
 func (isilb *InvalidStmtInLocalBlock) Message() string {
-	return "%ss must be in the global scope"
+	return fmt.Sprintf("%s must be in the global scope", isilb.StmtType)
 }
 
 func (isilb *InvalidStmtInLocalBlock) SnippetSpecifier() Snippet {

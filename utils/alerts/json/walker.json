@@ -294,7 +294,8 @@
     "fields": {
       "StmtType": "string"
     },
-    "message": "%ss must be in the global scope"
+    "message": "%s must be in the global scope",
+    "message_format": ["StmtType"]
   },
   {
     "name": "UnallowedLibraryUse",

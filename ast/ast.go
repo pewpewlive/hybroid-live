@@ -162,4 +162,18 @@ func (b *Body) Append(node Node) {
 	*b = append(*b, node)
 }
 
-//type Token tokens.Token
+type MethodInfo struct {
+	MethodType MethodCallType
+	MethodName string
+	TypeName   string
+	EnvName    string
+}
+
+func NewMethodInfo(methodType MethodCallType, methodName string, typeName string, envName string) MethodInfo {
+	return MethodInfo{
+		MethodType: methodType,
+		MethodName: methodName,
+		TypeName:   typeName,
+		EnvName:    envName,
+	}
+}

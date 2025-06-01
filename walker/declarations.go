@@ -46,13 +46,13 @@ func (w *Walker) aliasDeclaration(node *ast.AliasDecl, scope *Scope) {
 }
 
 func (w *Walker) classDeclaration(node *ast.ClassDecl, scope *Scope) {
-	if node.Constructor == nil {
-		w.AlertSingle(&alerts.MissingConstructor{}, node.Token, "new", "in class declaration")
-	}
-
 	if scope.Parent != nil {
 		w.AlertSingle(&alerts.InvalidStmtInLocalBlock{}, node.Token, "class declaration")
 		return
+	}
+
+	if node.Constructor == nil {
+		w.AlertSingle(&alerts.MissingConstructor{}, node.Token, "new", "in class declaration")
 	}
 
 	if w.typeExists(node.Name.Lexeme) {
@@ -310,7 +310,7 @@ func (w *Walker) methodDeclaration(node *ast.MethodDecl, container MethodContain
 			methodType = ast.ClassMethod
 		}
 		namedType := container.GetType().(*NamedType)
-		fn.MethodInfo = NewMethodInfo(methodType, funcExpr.Name.Lexeme, namedType.Name, namedType.EnvName)
+		fn.MethodInfo = ast.NewMethodInfo(methodType, funcExpr.Name.Lexeme, namedType.Name, namedType.EnvName)
 		container.AddMethod(variable)
 	}
 }

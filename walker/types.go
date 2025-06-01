@@ -253,7 +253,6 @@ func NewBasicType(pvt ast.PrimitiveValueType) *BasicType {
 	}
 }
 
-// Type
 func (bt *BasicType) PVT() ast.PrimitiveValueType {
 	return bt.PrimitiveType
 }
@@ -277,7 +276,6 @@ func NewFixedPointType() *FixedPoint {
 	return &FixedPoint{}
 }
 
-// Type
 func (fp *FixedPoint) PVT() ast.PrimitiveValueType {
 	return ast.FixedPoint
 }
@@ -383,7 +381,6 @@ func NewNamedType(envName string, name string, primitive ast.PrimitiveValueType)
 	}
 }
 
-// Type
 func (nt *NamedType) PVT() ast.PrimitiveValueType {
 	return nt.Pvt
 }
@@ -442,7 +439,6 @@ func NewWrapperType(_type Type, wrapped Type) *WrapperType {
 	}
 }
 
-// Type
 func (wt *WrapperType) PVT() ast.PrimitiveValueType {
 	return wt.Type.PVT()
 }
@@ -468,25 +464,24 @@ func (wt *WrapperType) String() string {
 	return wt.Type.String() + "<" + wt.WrappedType.String() + ">"
 }
 
-type ObjectType struct{}
+type UnknownType struct{}
 
-var ObjectTyp = &ObjectType{}
+var ObjectTyp = &UnknownType{}
 
-// Type
-func (ot *ObjectType) PVT() ast.PrimitiveValueType {
+func (ot *UnknownType) PVT() ast.PrimitiveValueType {
 	return ast.Object
 }
 
-func (ot *ObjectType) GetType() ValueType {
+func (ot *UnknownType) GetType() ValueType {
 	return NA
 }
 
-func (ot *ObjectType) _eq(_ Type) bool {
+func (ot *UnknownType) _eq(_ Type) bool {
 	return false
 }
 
-func (ot *ObjectType) String() string {
-	return "NotAnyType"
+func (ot *UnknownType) String() string {
+	return "unknown"
 }
 
 type FuncSignature struct {

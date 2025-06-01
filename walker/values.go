@@ -483,28 +483,12 @@ func TypesToString(types []Type) string {
 
 var EmptyReturn = []Type{}
 
-type MethodInfo struct {
-	MethodType ast.MethodCallType
-	MethodName string
-	TypeName   string
-	EnvName    string
-}
-
-func NewMethodInfo(methodType ast.MethodCallType, methodName string, typeName string, envName string) MethodInfo {
-	return MethodInfo{
-		MethodType: methodType,
-		MethodName: methodName,
-		TypeName:   typeName,
-		EnvName:    envName,
-	}
-}
-
 type FunctionVal struct {
-	Generics   []*GenericType
-	Params     []Type
-	Returns    []Type
-	ProcType   ProcedureType
-	MethodInfo // check if ProcType == Method before accessing this
+	Generics       []*GenericType
+	Params         []Type
+	Returns        []Type
+	ProcType       ProcedureType
+	ast.MethodInfo // check if ProcType == Method before accessing this
 }
 
 func NewFunction(params ...Type) *FunctionVal {
@@ -515,7 +499,7 @@ func NewFunction(params ...Type) *FunctionVal {
 	}
 }
 
-func NewMethod(mi MethodInfo, params ...Type) *FunctionVal {
+func NewMethod(mi ast.MethodInfo, params ...Type) *FunctionVal {
 	return &FunctionVal{
 		ProcType:   Method,
 		Params:     params,

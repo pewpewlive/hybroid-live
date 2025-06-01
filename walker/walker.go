@@ -86,10 +86,11 @@ type Walker struct {
 	// ENVIRONMENT SHOULD NEVER CHANGE ONCE INITIALIZED
 	environment *Environment
 
-	walkers map[string]*Walker
-	program []ast.Node
-	context Context
-	Walked  bool
+	walkers      map[string]*Walker
+	program      []ast.Node
+	context      Context
+	Walked       bool
+	ignoreAlerts bool
 }
 
 func (w *Walker) Alert(alertType alerts.Alert, args ...any) {
@@ -101,11 +102,17 @@ func (w *Walker) AlertI(alert alerts.Alert) {
 }
 
 func (w *Walker) AlertSingle(alert alerts.Alert, token tokens.Token, args ...any) {
+	if w.ignoreAlerts {
+		return
+	}
 	args = append([]any{alerts.NewSingle(token)}, args...)
 	w.Alert(alert, args...)
 }
 
 func (w *Walker) AlertMulti(alert alerts.Alert, start, end tokens.Token, args ...any) {
+	if w.ignoreAlerts {
+		return
+	}
 	args = append([]any{alerts.NewMulti(start, end)}, args...)
 	w.Alert(alert, args...)
 }

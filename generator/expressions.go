@@ -33,7 +33,7 @@ func (gen *Generator) entityExpr(node ast.EntityEvaluationExpr) string {
 		preSrc := StringBuilder{}
 
 		preSrc.Write("local ", gen.WriteVar(node.ConvertedVarName.Lexeme), " = ", expr, "\n")
-		gen.Future = preSrc.String()
+		gen.WriteTabbed(preSrc.String())
 	}
 	return src.String()
 }
@@ -167,6 +167,11 @@ func (gen *Generator) accessExpr(node ast.AccessExpr) string {
 	for _, accessed := range node.Accessed {
 		switch expr := accessed.(type) {
 		case *ast.FieldExpr:
+			if gen.pewpewEnum != nil {
+				src.Write(".", (*gen.pewpewEnum)[expr.Field.GetToken().Lexeme])
+				gen.pewpewEnum = nil
+				continue
+			}
 			src.Write(fmt.Sprintf("[%v]", expr.Index))
 		case *ast.MemberExpr:
 			src.Write(fmt.Sprintf("[%s]", expr.GetToken().Lexeme))
@@ -185,10 +190,14 @@ func (gen *Generator) functionExpr(fn ast.FunctionExpr) string {
 			gen.Write(", ")
 		}
 	}
-	src.Write(")\n")
-
+	src.Write(")")
+	if len(fn.Body) == 0 {
+		src.Write(" end")
+		return src.String()
+	} else {
+		src.Write("\n")
+	}
 	src.Write(gen.GenerateBodyValue(fn.Body))
-
 	src.WriteTabbed("end")
 
 	return src.String()
@@ -299,6 +308,9 @@ func (gen *Generator) envAccessExpr(node ast.EnvAccessExpr) string {
 	switch envName {
 	case "Pewpew":
 		prefix = "pewpew."
+		accessed = PewpewVariables[accessed]
+		temp := PewpewEnums[accessed]
+		gen.pewpewEnum = &temp
 	case "Fmath":
 		prefix = "fmath."
 	case "Math":
@@ -342,7 +354,7 @@ func (gen *Generator) methodCallExpr(methodCall ast.MethodCallExpr, stmt bool) s
 		src.WriteTabbed()
 	}
 	var extra string
-	if methodCall.Type == ast.ClassMethod {
+	if methodCall.MethodType == ast.ClassMethod {
 		extra = hyClass
 	} else {
 		extra = hyEntity

@@ -460,11 +460,13 @@ func (w *Walker) accessExpression(node *ast.AccessExpr, scope *Scope) Value {
 			}
 
 			field := node.Accessed[i].(*ast.FieldExpr)
+			w.ignoreAlerts = true
 			fieldVal := w.GetNodeValue(&field.Field, scopedVal.Scopify(scope))
+			w.ignoreAlerts = false
 
 			if fieldVal.GetType() == InvalidType {
 				w.AlertSingle(&alerts.InvalidField{}, token,
-					fieldVal.GetType(),
+					prevNode.GetToken().Lexeme,
 					token.Lexeme,
 				)
 			}

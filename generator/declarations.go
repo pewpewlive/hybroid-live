@@ -6,41 +6,6 @@ import (
 	"strconv"
 )
 
-func (gen *Generator) breakDownVariableDeclaration(declaration ast.VariableDecl) []ast.VariableDecl {
-	emptyVarDecl := func() ast.VariableDecl {
-		return ast.VariableDecl{
-			Identifiers: []*ast.IdentifierExpr{},
-			Expressions: []ast.Node{},
-			IsPub:       declaration.IsPub,
-			IsConst:     declaration.IsConst,
-		}
-	}
-	decls := []ast.VariableDecl{}
-	currentDeclIndex := -1
-	for _, expr := range declaration.Expressions {
-		if call, ok := expr.(*ast.CallExpr); ok && call.ReturnAmount > 1 {
-			decls = append(decls, emptyVarDecl())
-			currentDeclIndex = len(decls) - 1
-			for range call.ReturnAmount {
-				decls[currentDeclIndex].Identifiers = append(decls[currentDeclIndex].Identifiers, declaration.Identifiers[0])
-				declaration.Identifiers = declaration.Identifiers[1:]
-			}
-			decls[currentDeclIndex].Expressions = append(decls[currentDeclIndex].Expressions, expr)
-			currentDeclIndex = -1
-			continue
-		}
-		if currentDeclIndex == -1 {
-			decls = append(decls, emptyVarDecl())
-			currentDeclIndex = len(decls) - 1
-		}
-		decls[currentDeclIndex].Expressions = append(decls[currentDeclIndex].Expressions, expr)
-		decls[currentDeclIndex].Identifiers = append(decls[currentDeclIndex].Identifiers, declaration.Identifiers[0])
-		declaration.Identifiers = declaration.Identifiers[1:]
-	}
-
-	return decls
-}
-
 func (gen *Generator) variableDeclaration(declaration ast.VariableDecl) {
 	if declaration.IsConst {
 		return
@@ -76,7 +41,6 @@ func (gen *Generator) variableDeclaration(declaration ast.VariableDecl) {
 	}
 
 	src.Write(src2.String(), "\n")
-
 	gen.Write(src.String())
 }
 
@@ -89,6 +53,7 @@ func (gen *Generator) enumDeclaration(node ast.EnumDecl) {
 
 	gen.Write(gen.WriteVar(node.Name.Lexeme), " = {\n")
 
+	TabsCount++
 	length := len(node.Fields)
 	for i := range node.Fields {
 		if i == length-1 {
@@ -97,12 +62,16 @@ func (gen *Generator) enumDeclaration(node ast.EnumDecl) {
 			gen.WriteTabbed(strconv.Itoa(i), ", \n")
 		}
 	}
+	TabsCount--
 	gen.WriteTabbed("}")
 }
 
 func (gen *Generator) classDeclaration(node ast.ClassDecl) {
-	for _, nodebody := range node.Methods {
+	for i, nodebody := range node.Methods {
 		gen.methodDeclaration(nodebody, node)
+		if i != len(node.Methods)-1 {
+			gen.Write("\n")
+		}
 	}
 
 	totalFieldDecls := make([]ast.VariableDecl, 0)
@@ -119,13 +88,16 @@ func (gen *Generator) entityDeclaration(node ast.EntityDecl) {
 	entityName := gen.WriteVarExtra(node.Name.Lexeme, hyEntity)
 
 	for i, v := range node.Callbacks {
+		if i != 0 {
+			gen.Write("\n")
+		}
 		gen.WriteTabbed(fmt.Sprintf("local function %sHCb%d", entityName, i), "(id")
 		if len(v.Params) != 0 {
 			gen.Write(", ")
 		}
 		gen.GenerateParams(v.Params)
 		gen.GenerateBody(v.Body)
-		gen.WriteTabbed("end\n")
+		gen.WriteTabbed("end")
 	}
 
 	totalFieldDecls := make([]ast.VariableDecl, 0)
@@ -138,32 +110,32 @@ func (gen *Generator) entityDeclaration(node ast.EntityDecl) {
 	gen.spawnDeclaration(*node.Spawner, node)
 	gen.destroyDeclaration(*node.Destroyer, node)
 
-	for _, v := range node.Methods {
+	for i, v := range node.Methods {
 		gen.entityFunctionDeclaration(v, node)
+		if i != len(node.Methods)-1 {
+			gen.Write("\n")
+		}
 	}
 }
 
 func (gen *Generator) constructorDeclaration(node ast.ConstructorDecl, class ast.ClassDecl) {
-	src := StringBuilder{}
-
-	gen.Write("function ", gen.WriteVarExtra(class.Name.Lexeme, hyClass), "_New(")
+	gen.Write("\nfunction ", gen.WriteVarExtra(class.Name.Lexeme, hyClass), "_New(")
 
 	gen.GenerateParams(node.Params)
 
 	TabsCount++
-	src.WriteTabbed("local Self = {}\n")
+	gen.WriteTabbed("local Self = {}\n")
 	counter := 1
 	for _, fieldDecl := range class.Fields {
 		gen.fieldDeclaration(fieldDecl, "Self", counter)
 		counter += len(fieldDecl.Identifiers)
 	}
-	gen.Write(src.String())
 	TabsCount--
 	gen.GenerateBody(node.Body)
 	TabsCount++
 	gen.WriteTabbed("return Self\n")
 	TabsCount--
-	gen.WriteTabbed("end\n")
+	gen.WriteTabbed("end")
 }
 
 func (gen *Generator) fieldDeclaration(node ast.VariableDecl, tableAcess string, index int) {
@@ -224,9 +196,10 @@ func (gen *Generator) spawnDeclaration(node ast.EntityFunctionDecl, entity ast.E
 
 	gen.WriteTabbed("local id = pewpew.new_customizable_entity(", gen.WriteVar(node.Params[0].Name.Lexeme), ", ", gen.WriteVar(node.Params[1].Name.Lexeme), ")\n")
 	tableAccess := entityName + "[id]"
-	gen.WriteTabbed(tableAccess, " = {}\n")
+	gen.WriteTabbed(tableAccess, " = {}")
 	counter := 1
 	for _, field := range entity.Fields {
+		gen.Write("\n")
 		gen.fieldDeclaration(field, tableAccess, counter)
 		counter += len(field.Identifiers)
 	}
@@ -238,23 +211,23 @@ func (gen *Generator) spawnDeclaration(node ast.EntityFunctionDecl, entity ast.E
 	for i, v := range entity.Callbacks {
 		switch v.Type {
 		case ast.WallCollision:
-			gen.WriteTabbed(fmt.Sprintf("pewpew.customizable_entity_configure_wall_collision(id, true, %sHCb%d)\n", entityName, i))
+			gen.WriteTabbed(fmt.Sprintf("\npewpew.customizable_entity_configure_wall_collision(id, true, %sHCb%d)\n", entityName, i))
 		case ast.WeaponCollision:
-			gen.WriteTabbed(fmt.Sprintf("pewpew.customizable_entity_set_weapon_collision_callback(id, %sHCb%d)\n", entityName, i))
+			gen.WriteTabbed(fmt.Sprintf("\npewpew.customizable_entity_set_weapon_collision_callback(id, %sHCb%d)\n", entityName, i))
 		case ast.PlayerCollision:
-			gen.WriteTabbed(fmt.Sprintf("pewpew.customizable_entity_set_player_collision_callback(id, %sHCb%d)\n", entityName, i))
+			gen.WriteTabbed(fmt.Sprintf("\npewpew.customizable_entity_set_player_collision_callback(id, %sHCb%d)\n", entityName, i))
 		case ast.Update:
-			gen.WriteTabbed(fmt.Sprintf("pewpew.entity_set_update_callback(id, %sHCb%d)\n", entityName, i))
+			gen.WriteTabbed(fmt.Sprintf("\npewpew.entity_set_update_callback(id, %sHCb%d)\n", entityName, i))
 		}
 	}
 	gen.WriteTabbed("return id\n")
 	TabsCount--
 
-	gen.WriteTabbed("end\n")
+	gen.WriteTabbed("end")
 }
 
 func (gen *Generator) destroyDeclaration(node ast.EntityFunctionDecl, entity ast.EntityDecl) {
-	gen.Write("function ", gen.WriteVarExtra(entity.Name.Lexeme, hyEntity), "_Destroy(id")
+	gen.Write("\n\nfunction ", gen.WriteVarExtra(entity.Name.Lexeme, hyEntity), "_Destroy(id")
 	if len(node.Params) != 0 {
 		gen.Write(", ")
 	}
@@ -263,7 +236,7 @@ func (gen *Generator) destroyDeclaration(node ast.EntityFunctionDecl, entity ast
 
 	gen.GenerateBody(node.Body)
 
-	gen.WriteString("end\n")
+	gen.WriteString("end")
 }
 
 func (gen *Generator) functionDeclaration(node ast.FunctionDecl) {

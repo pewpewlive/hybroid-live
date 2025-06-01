@@ -146,16 +146,13 @@ func convertNodeToAccessFieldExpr(ident ast.Node, index int) *ast.AccessExpr {
 	}
 }
 
-func convertCallToMethodCall(call *ast.CallExpr, mi MethodInfo) *ast.MethodCallExpr {
+func convertCallToMethodCall(call *ast.CallExpr, mi ast.MethodInfo) *ast.MethodCallExpr {
 	copy := *call
 	return &ast.MethodCallExpr{
-		EnvName:     mi.EnvName,
-		TypeName:    mi.TypeName,
-		Type:        mi.MethodType,
+		MethodInfo:  mi,
 		Caller:      copy.Caller,
 		GenericArgs: copy.GenericArgs,
 		Args:        copy.Args,
-		MethodName:  mi.MethodName,
 	}
 }
 

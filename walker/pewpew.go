@@ -641,6 +641,13 @@ var PewpewEntityType = NewEnumVal("Pewpew", "EntityType", false,
 	"FloatingMessage",
 	"Pointonium",
 	"BonusImplosion",
+	"Mace",
+	"PlasmaField",
+)
+
+var MaceType = NewEnumVal("Pewpew", "MaceType", false,
+	"DamagePlayers",
+	"DamageEntities",
 )
 
 var MothershipType = NewEnumVal("Pewpew", "MothershipType", false,
@@ -659,6 +666,8 @@ var CannonType = NewEnumVal("Pewpew", "CannonType", false,
 	"FourDirections",
 	"DoubleSwipe",
 	"Hemisphere",
+	"Shotgun",
+	"Laser",
 )
 
 var CannonFrequency = NewEnumVal("Pewpew", "CannonFreq", false,
@@ -686,6 +695,7 @@ var BonusType = NewEnumVal("Pewpew", "BonusType", true,
 	"Shield",
 	"Speed",
 	"Weapon",
+	"Mace",
 )
 
 var WeaponType = NewEnumVal("Pewpew", "WeaponType", true,
@@ -693,6 +703,9 @@ var WeaponType = NewEnumVal("Pewpew", "WeaponType", true,
 	"FreezeExplosion",
 	"RepulsiveExplosion",
 	"AtomizeExplosion",
+	"PlasmaField",
+	"WallTrailLasso",
+	"Mace",
 )
 
 var AsteroidSize = NewEnumVal("Pewpew", "AsteroidSize", true,

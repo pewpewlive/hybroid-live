@@ -53,13 +53,39 @@ func NewYieldContext(vars []string, label string) YieldContext {
 
 type Generator struct {
 	alerts.Collector
-	StringBuilder
+	src StringBuilder
 
 	envName        string
 	env            ast.Env
 	ContinueLabels core.Stack[string]
 	YieldContexts  core.Stack[YieldContext]
-	Future         string
+	buffer         StringBuilder
+	writeToBuffer  bool
+	pewpewEnum     *map[string]string
+}
+
+func (gen *Generator) Write(chunks ...string) {
+	if gen.writeToBuffer {
+		gen.buffer.Write(chunks...)
+	} else {
+		gen.src.Write(chunks...)
+	}
+}
+
+func (gen *Generator) WriteString(str string) {
+	if gen.writeToBuffer {
+		gen.buffer.WriteString(str)
+	} else {
+		gen.src.Write(str)
+	}
+}
+
+func (gen *Generator) WriteTabbed(chunks ...string) {
+	if gen.writeToBuffer {
+		gen.buffer.WriteTabbed(chunks...)
+	} else {
+		gen.src.WriteTabbed(chunks...)
+	}
 }
 
 func NewGenerator() Generator {
@@ -100,57 +126,57 @@ func getTabs() string {
 }
 
 func (gen *Generator) GetSrc() string {
-	return gen.String()
+	return gen.src.String()
 }
 
 func (gen *Generator) Generate(program []ast.Node, builtins []string) {
 	for i := range builtins {
 		gen.WriteString(functions[builtins[i]])
+		gen.Write("\n")
 	}
-	for _, node := range program {
-		gen.GenerateStmt(node)
+	gen.envStmt(*program[0].(*ast.EnvironmentDecl))
+	for i, node := range program {
+		if i == 0 {
+			continue
+		}
 		gen.WriteString("\n")
+		gen.GenerateStmt(node)
 	}
 }
 
 func (gen *Generator) GenerateWithBuiltins(program []ast.Node) {
-	gen.WriteString(ParseSoundFunction)
-	gen.WriteString(ToStringFunction)
-	for _, node := range program {
-		gen.GenerateStmt(node)
+	gen.Write(ParseSoundFunction, "\n\n")
+	gen.Write(ToStringFunction, "\n")
+	gen.envStmt(*program[0].(*ast.EnvironmentDecl))
+	for i, node := range program {
+		if i == 0 {
+			continue
+		}
 		gen.WriteString("\n")
+		gen.GenerateStmt(node)
 	}
 }
 
 func (gen *Generator) GenerateBody(body ast.Body) {
 	TabsCount += 1
-	if gen.Future != "" {
-		gen.WriteTabbed(gen.Future)
-		gen.Future = ""
-	}
 	for _, node := range body {
+		gen.WriteString("\n")
 		gen.GenerateStmt(node)
-		gen.Write("\n")
 	}
 	TabsCount -= 1
 }
 
 func (gen *Generator) GenerateBodyValue(body ast.Body) string {
+	gen.writeToBuffer = true
 	TabsCount += 1
-	start := gen.Len() - 1
-	if gen.Future != "" {
-		gen.WriteTabbed(gen.Future)
-		gen.Future = ""
-	}
 	for _, node := range body {
+		gen.WriteString("\n")
 		gen.GenerateStmt(node)
-		gen.Write("\n")
 	}
-	end := gen.Len() - 1
-	TabsCount -= 1
-	value := gen.String()[start:end]
-	gen.ReplaceSpan("", core.NewSpan(start, end))
-	return value
+	TabsCount--
+	gen.writeToBuffer = false
+	defer gen.buffer.Reset()
+	return gen.buffer.String()
 }
 
 func fixedToFx(floatstr string) string {
@@ -182,10 +208,12 @@ func degToRad(floatstr string) string {
 
 func (gen *Generator) GenerateStmt(node ast.Node) {
 	switch newNode := node.(type) {
-	case *ast.EnvironmentDecl:
-		gen.envStmt(*newNode)
 	case *ast.AssignmentStmt:
-		gen.assignmentStmt(*newNode)
+		assignStmts := gen.breakDownAssignStmt(*newNode)
+		for _, assignStmt := range assignStmts {
+			gen.assignmentStmt(assignStmt)
+		}
+		return
 	case *ast.BreakStmt:
 		gen.breakStmt(*newNode)
 	case *ast.ReturnStmt:
@@ -211,6 +239,7 @@ func (gen *Generator) GenerateStmt(node ast.Node) {
 		for _, varDecl := range varDecls {
 			gen.variableDeclaration(varDecl)
 		}
+		return
 	case *ast.CallExpr:
 		val := gen.callExpr(*newNode, true)
 		gen.WriteString(val)
@@ -236,7 +265,10 @@ func (gen *Generator) GenerateStmt(node ast.Node) {
 		gen.entityDeclaration(*newNode)
 	case *ast.DestroyStmt:
 		gen.destroyStmt(*newNode)
+	default:
+		return
 	}
+	gen.Write("\n")
 }
 
 func (gen *Generator) GenerateExpr(node ast.Node) string {
@@ -282,4 +314,73 @@ func (gen *Generator) GenerateExpr(node ast.Node) string {
 	}
 
 	return ""
+}
+
+func (gen *Generator) breakDownAssignStmt(stmt ast.AssignmentStmt) []ast.AssignmentStmt {
+	emptyVarDecl := func() ast.AssignmentStmt {
+		return ast.AssignmentStmt{
+			Identifiers: []ast.Node{},
+			Values:      []ast.Node{},
+			AssignOp:    stmt.AssignOp,
+		}
+	}
+	stmts := []ast.AssignmentStmt{}
+	currentDeclIndex := -1
+	for _, expr := range stmt.Values {
+		if call, ok := expr.(ast.CallNode); ok && call.GetReturnAmount() > 1 {
+			stmts = append(stmts, emptyVarDecl())
+			currentDeclIndex = len(stmts) - 1
+			for range call.GetReturnAmount() {
+				stmts[currentDeclIndex].Identifiers = append(stmts[currentDeclIndex].Identifiers, stmt.Identifiers[0])
+				stmt.Identifiers = stmt.Identifiers[1:]
+			}
+			stmts[currentDeclIndex].Values = append(stmts[currentDeclIndex].Values, expr)
+			currentDeclIndex = -1
+			continue
+		}
+		if currentDeclIndex == -1 {
+			stmts = append(stmts, emptyVarDecl())
+			currentDeclIndex = len(stmts) - 1
+		}
+		stmts[currentDeclIndex].Values = append(stmts[currentDeclIndex].Values, expr)
+		stmts[currentDeclIndex].Identifiers = append(stmts[currentDeclIndex].Identifiers, stmt.Identifiers[0])
+		stmt.Identifiers = stmt.Identifiers[1:]
+	}
+
+	return stmts
+}
+
+func (gen *Generator) breakDownVariableDeclaration(declaration ast.VariableDecl) []ast.VariableDecl {
+	emptyVarDecl := func() ast.VariableDecl {
+		return ast.VariableDecl{
+			Identifiers: []*ast.IdentifierExpr{},
+			Expressions: []ast.Node{},
+			IsPub:       declaration.IsPub,
+			IsConst:     declaration.IsConst,
+		}
+	}
+	decls := []ast.VariableDecl{}
+	currentDeclIndex := -1
+	for _, expr := range declaration.Expressions {
+		if call, ok := expr.(ast.CallNode); ok && call.GetReturnAmount() > 1 {
+			decls = append(decls, emptyVarDecl())
+			currentDeclIndex = len(decls) - 1
+			for range call.GetReturnAmount() {
+				decls[currentDeclIndex].Identifiers = append(decls[currentDeclIndex].Identifiers, declaration.Identifiers[0])
+				declaration.Identifiers = declaration.Identifiers[1:]
+			}
+			decls[currentDeclIndex].Expressions = append(decls[currentDeclIndex].Expressions, expr)
+			currentDeclIndex = -1
+			continue
+		}
+		if currentDeclIndex == -1 {
+			decls = append(decls, emptyVarDecl())
+			currentDeclIndex = len(decls) - 1
+		}
+		decls[currentDeclIndex].Expressions = append(decls[currentDeclIndex].Expressions, expr)
+		decls[currentDeclIndex].Identifiers = append(decls[currentDeclIndex].Identifiers, declaration.Identifiers[0])
+		declaration.Identifiers = declaration.Identifiers[1:]
+	}
+
+	return decls
 }

@@ -99,6 +99,10 @@ type BinaryExpr struct {
 func (be *BinaryExpr) GetType() NodeType      { return BinaryExpression }
 func (be *BinaryExpr) GetToken() tokens.Token { return be.Operator }
 
+type CallNode interface {
+	GetReturnAmount() int
+}
+
 type CallExpr struct {
 	Caller       Node
 	GenericArgs  []*TypeExpr
@@ -117,14 +121,16 @@ func (ce *CallExpr) GetArgs() []Node {
 	return ce.Args
 }
 
+func (ce *CallExpr) GetReturnAmount() int {
+	return ce.ReturnAmount
+}
+
 type MethodCallExpr struct {
-	EnvName     string
-	TypeName    string
-	Type        MethodCallType
-	Caller      Node
-	GenericArgs []*TypeExpr
-	Args        []Node
-	MethodName  string
+	MethodInfo
+	Caller       Node
+	GenericArgs  []*TypeExpr
+	Args         []Node
+	ReturnAmount int
 }
 
 func (mce *MethodCallExpr) GetType() NodeType      { return MethodCallExpression }
@@ -136,6 +142,10 @@ func (mce *MethodCallExpr) GetGenerics() []*TypeExpr {
 
 func (mce *MethodCallExpr) GetArgs() []Node {
 	return mce.Args
+}
+
+func (ce *MethodCallExpr) GetReturnAmount() int {
+	return ce.ReturnAmount
 }
 
 type FunctionExpr struct {
