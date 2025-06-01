@@ -444,11 +444,14 @@ func (p *Parser) parseList() ast.Node {
 
 	list, ok := p.expressions("in list expression", true)
 	if !ok {
-		return ast.NewImproper(listExpr.Token, ast.ListExpression)
+		p.syncExpr(tokens.RightBracket)
 	}
 	listExpr.List = list
 
-	p.alertMultiConsume(&alerts.ExpectedSymbol{}, listExpr.Token, p.peek(), tokens.RightBracket, "in list expression")
+	_, ok = p.alertMultiConsume(&alerts.ExpectedSymbol{}, listExpr.Token, p.peek(), tokens.RightBracket, "in list expression")
+	if !ok && p.syncExpr(tokens.RightBracket) {
+		p.advance()
+	}
 
 	return listExpr
 }
@@ -463,23 +466,26 @@ func (p *Parser) parseMap() ast.Node {
 		return mapExpr
 	}
 
-	p.context.braceCounter.Increment()
-	defer p.context.braceCounter.Decrement()
-
 	key, value, ok := p.keyValuePair(true, "map key")
 	if !ok {
-		return ast.NewImproper(mapExpr.Token, ast.MapExpression)
+		p.syncExpr(tokens.Comma, tokens.RightBrace)
+	} else {
+		mapExpr.KeyValueList = append(mapExpr.KeyValueList, ast.Property{Key: key, Expr: value})
 	}
-	mapExpr.KeyValueList = append(mapExpr.KeyValueList, ast.Property{Key: key, Expr: value})
 
 	for p.match(tokens.Comma) {
 		key, value, ok = p.keyValuePair(true, "map key")
 		if !ok {
-			return ast.NewImproper(mapExpr.Token, ast.MapExpression)
+			p.syncExpr(tokens.Comma, tokens.RightBrace)
+		} else {
+			mapExpr.KeyValueList = append(mapExpr.KeyValueList, ast.Property{Key: key, Expr: value})
 		}
-		mapExpr.KeyValueList = append(mapExpr.KeyValueList, ast.Property{Key: key, Expr: value})
 	}
-	p.alertMultiConsume(&alerts.ExpectedSymbol{}, mapExpr.Token, p.peek(), tokens.RightBrace, "in map expression")
+
+	_, ok = p.alertMultiConsume(&alerts.ExpectedSymbol{}, mapExpr.Token, p.peek(), tokens.RightBrace, "in map expression")
+	if !ok && p.syncExpr(tokens.RightBrace) {
+		p.advance()
+	}
 
 	return mapExpr
 }
@@ -498,15 +504,14 @@ func (p *Parser) structExpr() ast.Node {
 	if p.match(tokens.RightBrace) {
 		return &structExpr
 	}
-	p.context.braceCounter.Increment()
-	defer p.context.braceCounter.Decrement()
 
 	field, value, ok := p.keyValuePair(false, "struct field")
 	if !ok {
-		return ast.NewImproper(structExpr.Token, ast.StructExpression)
+		p.syncExpr(tokens.Comma, tokens.RightBrace)
+	} else {
+		structExpr.Fields = append(structExpr.Fields, field.(*ast.IdentifierExpr))
+		structExpr.Expressions = append(structExpr.Expressions, value)
 	}
-	structExpr.Fields = append(structExpr.Fields, field.(*ast.IdentifierExpr))
-	structExpr.Expressions = append(structExpr.Expressions, value)
 
 	for p.match(tokens.Comma) {
 		if p.check(tokens.RightBrace) {
@@ -514,13 +519,17 @@ func (p *Parser) structExpr() ast.Node {
 		}
 		field, value, ok := p.keyValuePair(false, "struct field")
 		if !ok {
-			return ast.NewImproper(structExpr.Token, ast.StructExpression)
+			p.syncExpr(tokens.Comma, tokens.RightBrace)
+		} else {
+			structExpr.Fields = append(structExpr.Fields, field.(*ast.IdentifierExpr))
+			structExpr.Expressions = append(structExpr.Expressions, value)
 		}
-		structExpr.Fields = append(structExpr.Fields, field.(*ast.IdentifierExpr))
-		structExpr.Expressions = append(structExpr.Expressions, value)
 	}
 
 	p.alertMultiConsume(&alerts.ExpectedSymbol{}, start, p.peek(), tokens.RightBrace)
+	if !ok && p.syncExpr(tokens.RightBrace) {
+		p.advance()
+	}
 
 	return &structExpr
 }

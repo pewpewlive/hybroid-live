@@ -405,9 +405,6 @@ func (p *Parser) matchStatement(isExpr bool) ast.Node {
 		return ast.NewImproper(matchStmt.Token, matchType)
 	}
 
-	p.context.braceCounter.Increment()
-	defer p.context.braceCounter.Decrement()
-
 	for p.consumeTill("in match statement", start, tokens.RightBrace) {
 		stmts, ok := p.caseStatement(isExpr)
 		if !ok {

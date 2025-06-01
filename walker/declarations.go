@@ -234,11 +234,12 @@ func (w *Walker) enumDeclaration(node *ast.EnumDecl, scope *Scope) {
 	}
 
 	for _, v := range node.Fields {
-		variable := NewVariable(v.Name, &EnumFieldVal{Type: enumVal.Type}, node.IsPub).Const()
-		success := enumVal.AddField(variable)
-		if !success {
+		if _, _, found := enumVal.ContainsField(v.Name.Lexeme); found {
 			w.AlertSingle(&alerts.DuplicateElement{}, v.GetToken(), "enum field", v.Name.Lexeme)
+			continue
 		}
+		variable := NewVariable(v.Name, &EnumFieldVal{Type: enumVal.Type}, node.IsPub).Const()
+		enumVal.AddField(variable)
 	}
 
 	enumVar := NewVariable(node.Name, enumVal, node.IsPub).Const()
@@ -467,7 +468,7 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 		extraAmount := valuesLen - identsLen
 		if extraAmount == 1 {
 			w.AlertSingle(&alerts.TooManyValuesGiven{},
-				exprs[valuesLen-1].GetToken(),
+				exprs[len(exprs)-1].GetToken(),
 				extraAmount,
 				"in variable declaration",
 			)

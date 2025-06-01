@@ -19,7 +19,6 @@ type Parser struct {
 type parserContext struct {
 	isPub        bool
 	ignoreAlerts core.Stack[bool]
-	braceCounter core.Counter
 }
 
 func NewParser(tokens []tokens.Token) Parser {
@@ -29,7 +28,6 @@ func NewParser(tokens []tokens.Token) Parser {
 		tokens:  tokens,
 		context: parserContext{
 			ignoreAlerts: core.NewStack[bool]("IgnoreAlerts"),
-			braceCounter: core.NewCounter("BraceCounter"),
 		},
 		Collector: alerts.NewCollector(),
 	}

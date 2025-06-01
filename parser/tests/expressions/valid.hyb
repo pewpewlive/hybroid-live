@@ -1,7 +1,7 @@
 let number a = 1
 list<number> b = [1,2,3]
-const c = {a = {b = fn() -> number => 2}}
-pub d = struct{a = 1; b = 2; c = 3}
+const c = {"a" = {"a" = fn() -> number => 2}}
+pub d = struct{a = 1, b = 2, c = 3}
 let e = true
 const bool f = false
 bool g = !true
@@ -61,11 +61,11 @@ class Test {
 let p = new Test()
 let q = p.a
 let r = p.b
-let s = p.method(struct{field1 = 1; field2 = true; field3 = EnumTest.One})
+let s = p.method(struct{field1 = 1, field2 = true, field3 = EnumTest.One})
 let t = b[1]
 let u = c["a"]["b"]()
 let v = {
-    a = [struct{field = [new Test(), new Test()]; field2 = 2d}]
+    "a" = [struct{field = [new Test(), new Test()], field2 = 2d}]
 }
 let x = v["a"].field[2].c
 

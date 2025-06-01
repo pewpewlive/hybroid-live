@@ -140,9 +140,6 @@ func (p *Parser) enumDeclaration() ast.Node {
 		return ast.NewImproper(enumStmt.Token, ast.EnumDeclaration)
 	}
 
-	p.context.braceCounter.Increment()
-	defer p.context.braceCounter.Decrement()
-
 	fields, _ := p.expressions("in enum declaration", true)
 	for _, v := range fields {
 		if v.GetType() == ast.Identifier {
@@ -209,9 +206,6 @@ func (p *Parser) classDeclaration() ast.Node {
 	if !ok {
 		return ast.NewImproper(stmt.Token, ast.ClassDeclaration)
 	}
-	p.context.braceCounter.Increment()
-	defer p.context.braceCounter.Decrement()
-
 	start := p.peek(-1)
 	stmt.Methods = []ast.MethodDecl{}
 	for p.consumeTill("in class declaration", start, tokens.RightBrace) {
@@ -254,9 +248,6 @@ func (p *Parser) entityDeclaration() ast.Node {
 	if name.Type != tokens.Identifier {
 		p.AlertSingle(&alerts.ExpectedIdentifier{}, p.peek(), "as the name of the entity")
 	}
-	p.context.braceCounter.Increment()
-	defer p.context.braceCounter.Decrement()
-
 	start := p.peek(-1)
 	for p.consumeTill("in entity declaration", start, tokens.RightBrace) {
 		auxiliaryDeclaration := p.auxiliaryNode()

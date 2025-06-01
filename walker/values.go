@@ -206,16 +206,10 @@ func (ev *EnumVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "nil"}
 }
 
-func (ev *EnumVal) AddField(variable *VariableVal) bool {
-	if _, ok := ev.Fields[variable.Name]; ok {
-		return false
-	}
-
+func (ev *EnumVal) AddField(variable *VariableVal) {
 	enumFieldVal := variable.Value.(*EnumFieldVal)
 	enumFieldVal.Index = len(ev.Fields)
 	ev.Fields[variable.Name] = variable
-
-	return true
 }
 
 func (ev *EnumVal) ContainsField(name string) (*VariableVal, int, bool) {

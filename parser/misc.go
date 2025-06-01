@@ -398,9 +398,6 @@ func (p *Parser) body(allowSingleSatement, allowArrow bool) (ast.Body, bool) {
 	}
 	start := p.peek(-1)
 
-	p.context.braceCounter.Increment()
-	defer p.context.braceCounter.Decrement()
-
 	for p.consumeTill("in body", start, tokens.RightBrace) {
 		declaration := p.parseNode(p.synchronizeBody)
 		if ast.IsImproperNotStatement(declaration) {
@@ -440,8 +437,32 @@ func (p *Parser) isCall(nodeType ast.NodeType) bool {
 		nodeType == ast.SpawnExpression
 }
 
+// this is used only for maps, lists and structs
+func (p *Parser) syncExpr(syncPoints ...tokens.TokenType) bool {
+	expectedBlockCount := 0
+	for !p.isAtEnd() {
+		peekType := p.peek().Type
+		if syncPoints != nil && expectedBlockCount == 0 {
+			for _, v := range syncPoints {
+				if peekType == v {
+					return true
+				}
+			}
+		}
+
+		switch p.peek().Type {
+		case tokens.LeftBrace:
+			expectedBlockCount++
+		case tokens.RightBrace:
+			expectedBlockCount--
+		}
+
+		p.advance()
+	}
+	return false
+}
+
 func (p *Parser) synchronizeBody() {
-	braceCount := p.context.braceCounter.Value()
 	expectedBlockCount := 0
 	for !p.isAtEnd() {
 		switch p.peek().Type {
@@ -455,10 +476,6 @@ func (p *Parser) synchronizeBody() {
 			expectedBlockCount++
 		case tokens.RightBrace:
 			if expectedBlockCount == 0 {
-				if braceCount == 0 {
-					p.advance()
-					continue
-				}
 				return
 			}
 
