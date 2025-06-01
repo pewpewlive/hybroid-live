@@ -3,1654 +3,1653 @@
 package alerts
 
 import (
-  "fmt"
-  "strings"
+	"fmt"
+	"strings"
 )
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ForbiddenTypeInEnvironment struct {
-  Specifier Snippet
-  Type string
-  Envs []string
+	Specifier Snippet
+	Type      string
+	Envs      []string
 }
 
 func (ftie *ForbiddenTypeInEnvironment) Message() string {
-  return fmt.Sprintf("cannot have a %s in the following environments: %s", ftie.Type, strings.Join(ftie.Envs, ", "))
+	return fmt.Sprintf("cannot have a %s in the following environments: %s", ftie.Type, strings.Join(ftie.Envs, ", "))
 }
 
 func (ftie *ForbiddenTypeInEnvironment) SnippetSpecifier() Snippet {
-  return ftie.Specifier
+	return ftie.Specifier
 }
 
 func (ftie *ForbiddenTypeInEnvironment) Note() string {
-  return ""
+	return ""
 }
 
 func (ftie *ForbiddenTypeInEnvironment) ID() string {
-  return "hyb001W"
+	return "hyb001W"
 }
 
 func (ftie *ForbiddenTypeInEnvironment) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidEnvironmentType struct {
-  Specifier Snippet
-  Type string
+	Specifier Snippet
+	Type      string
 }
 
 func (iet *InvalidEnvironmentType) Message() string {
-  return fmt.Sprintf("'%s' is not a valid environment type", iet.Type)
+	return fmt.Sprintf("'%s' is not a valid environment type", iet.Type)
 }
 
 func (iet *InvalidEnvironmentType) SnippetSpecifier() Snippet {
-  return iet.Specifier
+	return iet.Specifier
 }
 
 func (iet *InvalidEnvironmentType) Note() string {
-  return "environment type can be 'Level', 'Mesh' or 'Sound'"
+	return "environment type can be 'Level', 'Mesh' or 'Sound'"
 }
 
 func (iet *InvalidEnvironmentType) ID() string {
-  return "hyb002W"
+	return "hyb002W"
 }
 
 func (iet *InvalidEnvironmentType) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type EnvironmentRedaclaration struct {
-  Specifier Snippet
+	Specifier Snippet
 }
 
 func (er *EnvironmentRedaclaration) Message() string {
-  return "cannot redeclare an environment"
+	return "cannot redeclare an environment"
 }
 
 func (er *EnvironmentRedaclaration) SnippetSpecifier() Snippet {
-  return er.Specifier
+	return er.Specifier
 }
 
 func (er *EnvironmentRedaclaration) Note() string {
-  return ""
+	return ""
 }
 
 func (er *EnvironmentRedaclaration) ID() string {
-  return "hyb003W"
+	return "hyb003W"
 }
 
 func (er *EnvironmentRedaclaration) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ExpectedEnvironment struct {
-  Specifier Snippet
+	Specifier Snippet
 }
 
 func (ee *ExpectedEnvironment) Message() string {
-  return "expected environment declaration"
+	return "expected environment declaration"
 }
 
 func (ee *ExpectedEnvironment) SnippetSpecifier() Snippet {
-  return ee.Specifier
+	return ee.Specifier
 }
 
 func (ee *ExpectedEnvironment) Note() string {
-  return "the first declaration in any Hybroid file has to be an environment declaration"
+	return "the first declaration in any Hybroid file has to be an environment declaration"
 }
 
 func (ee *ExpectedEnvironment) ID() string {
-  return "hyb004W"
+	return "hyb004W"
 }
 
 func (ee *ExpectedEnvironment) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type DuplicateEnvironmentNames struct {
-  Specifier Snippet
-  Path1 string
-  Path2 string
+	Specifier Snippet
+	Path1     string
+	Path2     string
 }
 
 func (den *DuplicateEnvironmentNames) Message() string {
-  return fmt.Sprintf("duplicate environment names found between '%s' and '%s'", den.Path1, den.Path2)
+	return fmt.Sprintf("duplicate environment names found between '%s' and '%s'", den.Path1, den.Path2)
 }
 
 func (den *DuplicateEnvironmentNames) SnippetSpecifier() Snippet {
-  return den.Specifier
+	return den.Specifier
 }
 
 func (den *DuplicateEnvironmentNames) Note() string {
-  return ""
+	return ""
 }
 
 func (den *DuplicateEnvironmentNames) ID() string {
-  return "hyb005W"
+	return "hyb005W"
 }
 
 func (den *DuplicateEnvironmentNames) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidAccessValue struct {
-  Specifier Snippet
-  Type string
+	Specifier Snippet
+	Type      string
 }
 
 func (iav *InvalidAccessValue) Message() string {
-  return fmt.Sprintf("value is of type '%s', so it cannot be accessed from", iav.Type)
+	return fmt.Sprintf("value is of type '%s', so it cannot be accessed from", iav.Type)
 }
 
 func (iav *InvalidAccessValue) SnippetSpecifier() Snippet {
-  return iav.Specifier
+	return iav.Specifier
 }
 
 func (iav *InvalidAccessValue) Note() string {
-  return "only lists, maps, classes, entities, structs and enums can be used to access values from"
+	return "only lists, maps, classes, entities, structs and enums can be used to access values from"
 }
 
 func (iav *InvalidAccessValue) ID() string {
-  return "hyb006W"
+	return "hyb006W"
 }
 
 func (iav *InvalidAccessValue) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type FieldAccessOnListOrMap struct {
-  Specifier Snippet
-  Field string
-  AccessType string
+	Specifier  Snippet
+	Field      string
+	AccessType string
 }
 
 func (faolom *FieldAccessOnListOrMap) Message() string {
-  return fmt.Sprintf("cannot access field '%s' from the %s", faolom.Field, faolom.AccessType)
+	return fmt.Sprintf("cannot access field '%s' from the %s", faolom.Field, faolom.AccessType)
 }
 
 func (faolom *FieldAccessOnListOrMap) SnippetSpecifier() Snippet {
-  return faolom.Specifier
+	return faolom.Specifier
 }
 
 func (faolom *FieldAccessOnListOrMap) Note() string {
-  return fmt.Sprintf("to access a value from a %s you use brackets, e.g. example[\"%s\"]", faolom.AccessType, faolom.Field)
+	return fmt.Sprintf("to access a value from a %s you use brackets, e.g. example[\"%s\"]", faolom.AccessType, faolom.Field)
 }
 
 func (faolom *FieldAccessOnListOrMap) ID() string {
-  return "hyb007W"
+	return "hyb007W"
 }
 
 func (faolom *FieldAccessOnListOrMap) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type MemberAccessOnNonListOrMap struct {
-  Specifier Snippet
-  Member string
-  AccessType string
+	Specifier  Snippet
+	Member     string
+	AccessType string
 }
 
 func (maonlom *MemberAccessOnNonListOrMap) Message() string {
-  return fmt.Sprintf("cannot access member '[%s]' from the %s", maonlom.Member, maonlom.AccessType)
+	return fmt.Sprintf("cannot access member '[%s]' from the %s", maonlom.Member, maonlom.AccessType)
 }
 
 func (maonlom *MemberAccessOnNonListOrMap) SnippetSpecifier() Snippet {
-  return maonlom.Specifier
+	return maonlom.Specifier
 }
 
 func (maonlom *MemberAccessOnNonListOrMap) Note() string {
-  return "to access a value you use a dot and then an identifier, e.g. example.identifier"
+	return "to access a value you use a dot and then an identifier, e.g. example.identifier"
 }
 
 func (maonlom *MemberAccessOnNonListOrMap) ID() string {
-  return "hyb008W"
+	return "hyb008W"
 }
 
 func (maonlom *MemberAccessOnNonListOrMap) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidMemberIndex struct {
-  Specifier Snippet
-  AccessType string
-  Index string
+	Specifier  Snippet
+	AccessType string
+	Index      string
 }
 
 func (imi *InvalidMemberIndex) Message() string {
-  return fmt.Sprintf("'%s' is not of type number to be an index for the %s", imi.Index, imi.AccessType)
+	return fmt.Sprintf("'%s' is not of type number to be an index for the %s", imi.Index, imi.AccessType)
 }
 
 func (imi *InvalidMemberIndex) SnippetSpecifier() Snippet {
-  return imi.Specifier
+	return imi.Specifier
 }
 
 func (imi *InvalidMemberIndex) Note() string {
-  return "for lists, an index (number) is used to access values, for maps, a key (text) is used"
+	return "for lists, an index (number) is used to access values, for maps, a key (text) is used"
 }
 
 func (imi *InvalidMemberIndex) ID() string {
-  return "hyb009W"
+	return "hyb009W"
 }
 
 func (imi *InvalidMemberIndex) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidField struct {
-  Specifier Snippet
-  AccessType string
-  FieldName string
+	Specifier  Snippet
+	AccessType string
+	FieldName  string
 }
 
 func (_if *InvalidField) Message() string {
-  return fmt.Sprintf("field '%s' does not belong to the '%s'", _if.FieldName, _if.AccessType)
+	return fmt.Sprintf("field '%s' does not belong to the '%s'", _if.FieldName, _if.AccessType)
 }
 
 func (_if *InvalidField) SnippetSpecifier() Snippet {
-  return _if.Specifier
+	return _if.Specifier
 }
 
 func (_if *InvalidField) Note() string {
-  return ""
+	return ""
 }
 
 func (_if *InvalidField) ID() string {
-  return "hyb010W"
+	return "hyb010W"
 }
 
 func (_if *InvalidField) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type MixedMapOrListContents struct {
-  Specifier Snippet
-  ContainerType string
-  Type1 string
-  Type2 string
+	Specifier     Snippet
+	ContainerType string
+	Type1         string
+	Type2         string
 }
 
 func (mmolc *MixedMapOrListContents) Message() string {
-  return fmt.Sprintf("a %s's members must be the same type (found types: '%s' and '%s')", mmolc.ContainerType, mmolc.Type1, mmolc.Type2)
+	return fmt.Sprintf("a %s's members must be the same type (found types: '%s' and '%s')", mmolc.ContainerType, mmolc.Type1, mmolc.Type2)
 }
 
 func (mmolc *MixedMapOrListContents) SnippetSpecifier() Snippet {
-  return mmolc.Specifier
+	return mmolc.Specifier
 }
 
 func (mmolc *MixedMapOrListContents) Note() string {
-  return ""
+	return ""
 }
 
 func (mmolc *MixedMapOrListContents) ID() string {
-  return "hyb011W"
+	return "hyb011W"
 }
 
 func (mmolc *MixedMapOrListContents) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidCallerType struct {
-  Specifier Snippet
-  Type string
+	Specifier Snippet
+	Type      string
 }
 
 func (ict *InvalidCallerType) Message() string {
-  return fmt.Sprintf("cannot call value of of type '%s' as a function", ict.Type)
+	return fmt.Sprintf("cannot call value of of type '%s' as a function", ict.Type)
 }
 
 func (ict *InvalidCallerType) SnippetSpecifier() Snippet {
-  return ict.Specifier
+	return ict.Specifier
 }
 
 func (ict *InvalidCallerType) Note() string {
-  return ""
+	return ""
 }
 
 func (ict *InvalidCallerType) ID() string {
-  return "hyb012W"
+	return "hyb012W"
 }
 
 func (ict *InvalidCallerType) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type MethodOrFieldNotFound struct {
-  Specifier Snippet
-  Name string
+	Specifier Snippet
+	Name      string
 }
 
 func (mofnf *MethodOrFieldNotFound) Message() string {
-  return fmt.Sprintf("no method or field named '%s'", mofnf.Name)
+	return fmt.Sprintf("no method or field named '%s'", mofnf.Name)
 }
 
 func (mofnf *MethodOrFieldNotFound) SnippetSpecifier() Snippet {
-  return mofnf.Specifier
+	return mofnf.Specifier
 }
 
 func (mofnf *MethodOrFieldNotFound) Note() string {
-  return ""
+	return ""
 }
 
 func (mofnf *MethodOrFieldNotFound) ID() string {
-  return "hyb013W"
+	return "hyb013W"
 }
 
 func (mofnf *MethodOrFieldNotFound) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ForeignLocalVariableAccess struct {
-  Specifier Snippet
-  Name string
+	Specifier Snippet
+	Name      string
 }
 
 func (flva *ForeignLocalVariableAccess) Message() string {
-  return fmt.Sprintf("cannot access local variable '%s' belonging to a different environment", flva.Name)
+	return fmt.Sprintf("cannot access local variable '%s' belonging to a different environment", flva.Name)
 }
 
 func (flva *ForeignLocalVariableAccess) SnippetSpecifier() Snippet {
-  return flva.Specifier
+	return flva.Specifier
 }
 
 func (flva *ForeignLocalVariableAccess) Note() string {
-  return ""
+	return ""
 }
 
 func (flva *ForeignLocalVariableAccess) ID() string {
-  return "hyb014W"
+	return "hyb014W"
 }
 
 func (flva *ForeignLocalVariableAccess) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidArgumentType struct {
-  Specifier Snippet
-  GivenType string
-  ExpectedType string
+	Specifier    Snippet
+	GivenType    string
+	ExpectedType string
 }
 
 func (iat *InvalidArgumentType) Message() string {
-  return fmt.Sprintf("argument was of type %s, but should be %s", iat.GivenType, iat.ExpectedType)
+	return fmt.Sprintf("argument was of type %s, but should be %s", iat.GivenType, iat.ExpectedType)
 }
 
 func (iat *InvalidArgumentType) SnippetSpecifier() Snippet {
-  return iat.Specifier
+	return iat.Specifier
 }
 
 func (iat *InvalidArgumentType) Note() string {
-  return ""
+	return ""
 }
 
 func (iat *InvalidArgumentType) ID() string {
-  return "hyb015W"
+	return "hyb015W"
 }
 
 func (iat *InvalidArgumentType) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type PublicDeclarationInLocalScope struct {
-  Specifier Snippet
+	Specifier Snippet
 }
 
 func (pdils *PublicDeclarationInLocalScope) Message() string {
-  return "cannot have a public declaration that is in a local scope"
+	return "cannot have a public declaration that is in a local scope"
 }
 
 func (pdils *PublicDeclarationInLocalScope) SnippetSpecifier() Snippet {
-  return pdils.Specifier
+	return pdils.Specifier
 }
 
 func (pdils *PublicDeclarationInLocalScope) Note() string {
-  return ""
+	return ""
 }
 
 func (pdils *PublicDeclarationInLocalScope) ID() string {
-  return "hyb016W"
+	return "hyb016W"
 }
 
 func (pdils *PublicDeclarationInLocalScope) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type Redeclaration struct {
-  Specifier Snippet
-  VarName string
-  DeclType string
+	Specifier Snippet
+	VarName   string
+	DeclType  string
 }
 
 func (r *Redeclaration) Message() string {
-  return fmt.Sprintf("a %s named '%s' already exists", r.DeclType, r.VarName)
+	return fmt.Sprintf("a %s named '%s' already exists", r.DeclType, r.VarName)
 }
 
 func (r *Redeclaration) SnippetSpecifier() Snippet {
-  return r.Specifier
+	return r.Specifier
 }
 
 func (r *Redeclaration) Note() string {
-  return ""
+	return ""
 }
 
 func (r *Redeclaration) ID() string {
-  return "hyb017W"
+	return "hyb017W"
 }
 
 func (r *Redeclaration) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type UnnecessaryTypeInConstDeclaration struct {
-  Specifier Snippet
+	Specifier Snippet
 }
 
 func (uticd *UnnecessaryTypeInConstDeclaration) Message() string {
-  return "an explicit type is not necessary for a const declaration"
+	return "an explicit type is not necessary for a const declaration"
 }
 
 func (uticd *UnnecessaryTypeInConstDeclaration) SnippetSpecifier() Snippet {
-  return uticd.Specifier
+	return uticd.Specifier
 }
 
 func (uticd *UnnecessaryTypeInConstDeclaration) Note() string {
-  return ""
+	return ""
 }
 
 func (uticd *UnnecessaryTypeInConstDeclaration) ID() string {
-  return "hyb018W"
+	return "hyb018W"
 }
 
 func (uticd *UnnecessaryTypeInConstDeclaration) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type NoValueGivenForConstant struct {
-  Specifier Snippet
+	Specifier Snippet
 }
 
 func (nvgfc *NoValueGivenForConstant) Message() string {
-  return "constant must be declared with a value"
+	return "constant must be declared with a value"
 }
 
 func (nvgfc *NoValueGivenForConstant) SnippetSpecifier() Snippet {
-  return nvgfc.Specifier
+	return nvgfc.Specifier
 }
 
 func (nvgfc *NoValueGivenForConstant) Note() string {
-  return ""
+	return ""
 }
 
 func (nvgfc *NoValueGivenForConstant) ID() string {
-  return "hyb019W"
+	return "hyb019W"
 }
 
 func (nvgfc *NoValueGivenForConstant) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type TooFewValuesGiven struct {
-  Specifier Snippet
-  RequiredAmount int
-  Context string
+	Specifier      Snippet
+	RequiredAmount int
+	Context        string
 }
 
 func (tfvg *TooFewValuesGiven) Message() string {
-  return fmt.Sprintf("%d more value(s) required %s", tfvg.RequiredAmount, tfvg.Context)
+	return fmt.Sprintf("%d more value(s) required %s", tfvg.RequiredAmount, tfvg.Context)
 }
 
 func (tfvg *TooFewValuesGiven) SnippetSpecifier() Snippet {
-  return tfvg.Specifier
+	return tfvg.Specifier
 }
 
 func (tfvg *TooFewValuesGiven) Note() string {
-  return ""
+	return ""
 }
 
 func (tfvg *TooFewValuesGiven) ID() string {
-  return "hyb020W"
+	return "hyb020W"
 }
 
 func (tfvg *TooFewValuesGiven) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ExplicitTypeRequiredInDeclaration struct {
-  Specifier Snippet
+	Specifier Snippet
 }
 
 func (etrid *ExplicitTypeRequiredInDeclaration) Message() string {
-  return "a variable declared without a value requires an explicit type"
+	return "a variable declared without a value requires an explicit type"
 }
 
 func (etrid *ExplicitTypeRequiredInDeclaration) SnippetSpecifier() Snippet {
-  return etrid.Specifier
+	return etrid.Specifier
 }
 
 func (etrid *ExplicitTypeRequiredInDeclaration) Note() string {
-  return ""
+	return ""
 }
 
 func (etrid *ExplicitTypeRequiredInDeclaration) ID() string {
-  return "hyb021W"
+	return "hyb021W"
 }
 
 func (etrid *ExplicitTypeRequiredInDeclaration) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ExplicitTypeMismatch struct {
-  Specifier Snippet
-  ExplicitType string
-  ValueType string
+	Specifier    Snippet
+	ExplicitType string
+	ValueType    string
 }
 
 func (etm *ExplicitTypeMismatch) Message() string {
-  return fmt.Sprintf("variable was given explicit type '%s', but its value is a '%s'", etm.ExplicitType, etm.ValueType)
+	return fmt.Sprintf("variable was given explicit type '%s', but its value is a '%s'", etm.ExplicitType, etm.ValueType)
 }
 
 func (etm *ExplicitTypeMismatch) SnippetSpecifier() Snippet {
-  return etm.Specifier
+	return etm.Specifier
 }
 
 func (etm *ExplicitTypeMismatch) Note() string {
-  return ""
+	return ""
 }
 
 func (etm *ExplicitTypeMismatch) ID() string {
-  return "hyb022W"
+	return "hyb022W"
 }
 
 func (etm *ExplicitTypeMismatch) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ExplicitTypeNotAllowed struct {
-  Specifier Snippet
-  ExplicitType string
+	Specifier    Snippet
+	ExplicitType string
 }
 
 func (etna *ExplicitTypeNotAllowed) Message() string {
-  return fmt.Sprintf("cannot create a default value from the explicit type '%s'", etna.ExplicitType)
+	return fmt.Sprintf("cannot create a default value from the explicit type '%s'", etna.ExplicitType)
 }
 
 func (etna *ExplicitTypeNotAllowed) SnippetSpecifier() Snippet {
-  return etna.Specifier
+	return etna.Specifier
 }
 
 func (etna *ExplicitTypeNotAllowed) Note() string {
-  return "some types don't have default values, like entities and classes"
+	return "some types don't have default values, like entities and classes"
 }
 
 func (etna *ExplicitTypeNotAllowed) ID() string {
-  return "hyb023W"
+	return "hyb023W"
 }
 
 func (etna *ExplicitTypeNotAllowed) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type TooManyValuesGiven struct {
-  Specifier Snippet
-  ExtraAmount int
-  Context string
+	Specifier   Snippet
+	ExtraAmount int
+	Context     string
 }
 
 func (tmvg *TooManyValuesGiven) Message() string {
-  return fmt.Sprintf("%d less value(s) required %s", tmvg.ExtraAmount, tmvg.Context)
+	return fmt.Sprintf("%d less value(s) required %s", tmvg.ExtraAmount, tmvg.Context)
 }
 
 func (tmvg *TooManyValuesGiven) SnippetSpecifier() Snippet {
-  return tmvg.Specifier
+	return tmvg.Specifier
 }
 
 func (tmvg *TooManyValuesGiven) Note() string {
-  return ""
+	return ""
 }
 
 func (tmvg *TooManyValuesGiven) ID() string {
-  return "hyb024W"
+	return "hyb024W"
 }
 
 func (tmvg *TooManyValuesGiven) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ImportCycle struct {
-  Specifier Snippet
-  HybPath1 string
-  HybPath2 string
+	Specifier Snippet
+	HybPath1  string
+	HybPath2  string
 }
 
 func (ic *ImportCycle) Message() string {
-  return fmt.Sprintf("import cycle detected: cycling paths: '%s' and '%s'", ic.HybPath1, ic.HybPath2)
+	return fmt.Sprintf("import cycle detected: cycling paths: '%s' and '%s'", ic.HybPath1, ic.HybPath2)
 }
 
 func (ic *ImportCycle) SnippetSpecifier() Snippet {
-  return ic.Specifier
+	return ic.Specifier
 }
 
 func (ic *ImportCycle) Note() string {
-  return ""
+	return ""
 }
 
 func (ic *ImportCycle) ID() string {
-  return "hyb025W"
+	return "hyb025W"
 }
 
 func (ic *ImportCycle) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type UndeclaredVariableAccess struct {
-  Specifier Snippet
-  Var string
+	Specifier Snippet
+	Var       string
 }
 
 func (uva *UndeclaredVariableAccess) Message() string {
-  return fmt.Sprintf("'%s' is not a declared variable", uva.Var)
+	return fmt.Sprintf("'%s' is not a declared variable", uva.Var)
 }
 
 func (uva *UndeclaredVariableAccess) SnippetSpecifier() Snippet {
-  return uva.Specifier
+	return uva.Specifier
 }
 
 func (uva *UndeclaredVariableAccess) Note() string {
-  return ""
+	return ""
 }
 
 func (uva *UndeclaredVariableAccess) ID() string {
-  return "hyb026W"
+	return "hyb026W"
 }
 
 func (uva *UndeclaredVariableAccess) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ConstValueAssignment struct {
-  Specifier Snippet
+	Specifier Snippet
 }
 
 func (cva *ConstValueAssignment) Message() string {
-  return "cannot modify a constant value"
+	return "cannot modify a constant value"
 }
 
 func (cva *ConstValueAssignment) SnippetSpecifier() Snippet {
-  return cva.Specifier
+	return cva.Specifier
 }
 
 func (cva *ConstValueAssignment) Note() string {
-  return ""
+	return ""
 }
 
 func (cva *ConstValueAssignment) ID() string {
-  return "hyb027W"
+	return "hyb027W"
 }
 
 func (cva *ConstValueAssignment) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type AssignmentTypeMismatch struct {
-  Specifier Snippet
-  VarType string
-  ValType string
+	Specifier Snippet
+	VarType   string
+	ValType   string
 }
 
 func (atm *AssignmentTypeMismatch) Message() string {
-  return fmt.Sprintf("variable is of type '%s', but a value of '%s' was assigned to it", atm.VarType, atm.ValType)
+	return fmt.Sprintf("variable is of type '%s', but a value of '%s' was assigned to it", atm.VarType, atm.ValType)
 }
 
 func (atm *AssignmentTypeMismatch) SnippetSpecifier() Snippet {
-  return atm.Specifier
+	return atm.Specifier
 }
 
 func (atm *AssignmentTypeMismatch) Note() string {
-  return ""
+	return ""
 }
 
 func (atm *AssignmentTypeMismatch) ID() string {
-  return "hyb028W"
+	return "hyb028W"
 }
 
 func (atm *AssignmentTypeMismatch) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidTypeInCompoundAssignment struct {
-  Specifier Snippet
-  Type string
+	Specifier Snippet
+	Type      string
 }
 
 func (itica *InvalidTypeInCompoundAssignment) Message() string {
-  return fmt.Sprintf("the type '%s' is not allowed in compound assignment", itica.Type)
+	return fmt.Sprintf("the type '%s' is not allowed in compound assignment", itica.Type)
 }
 
 func (itica *InvalidTypeInCompoundAssignment) SnippetSpecifier() Snippet {
-  return itica.Specifier
+	return itica.Specifier
 }
 
 func (itica *InvalidTypeInCompoundAssignment) Note() string {
-  return "only numerical types are allowed, like numbers, fixeds, fixedpoints, degrees and radians"
+	return "only numerical types are allowed, like numbers, fixeds, fixedpoints, degrees and radians"
 }
 
 func (itica *InvalidTypeInCompoundAssignment) ID() string {
-  return "hyb029W"
+	return "hyb029W"
 }
 
 func (itica *InvalidTypeInCompoundAssignment) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidUseOfSelf struct {
-  Specifier Snippet
+	Specifier Snippet
 }
 
 func (iuos *InvalidUseOfSelf) Message() string {
-  return "cannot use self outside of class or entity"
+	return "cannot use self outside of class or entity"
 }
 
 func (iuos *InvalidUseOfSelf) SnippetSpecifier() Snippet {
-  return iuos.Specifier
+	return iuos.Specifier
 }
 
 func (iuos *InvalidUseOfSelf) Note() string {
-  return "you're also not allowed to use self inside anonymous functions of class/entity fields"
+	return "you're also not allowed to use self inside anonymous functions of class/entity fields"
 }
 
 func (iuos *InvalidUseOfSelf) ID() string {
-  return "hyb030W"
+	return "hyb030W"
 }
 
 func (iuos *InvalidUseOfSelf) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type UnreachableCode struct {
-  Specifier Snippet
+	Specifier Snippet
 }
 
 func (uc *UnreachableCode) Message() string {
-  return "unreachable code detected"
+	return "unreachable code detected"
 }
 
 func (uc *UnreachableCode) SnippetSpecifier() Snippet {
-  return uc.Specifier
+	return uc.Specifier
 }
 
 func (uc *UnreachableCode) Note() string {
-  return ""
+	return ""
 }
 
 func (uc *UnreachableCode) ID() string {
-  return "hyb031W"
+	return "hyb031W"
 }
 
 func (uc *UnreachableCode) AlertType() Type {
-  return Warning
+	return Warning
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidUseOfExitStmt struct {
-  Specifier Snippet
-  ExitNode string
-  Context string
+	Specifier Snippet
+	ExitNode  string
+	Context   string
 }
 
 func (iuoes *InvalidUseOfExitStmt) Message() string {
-  return fmt.Sprintf("cannot use '%s' outside of %s", iuoes.ExitNode, iuoes.Context)
+	return fmt.Sprintf("cannot use '%s' outside of %s", iuoes.ExitNode, iuoes.Context)
 }
 
 func (iuoes *InvalidUseOfExitStmt) SnippetSpecifier() Snippet {
-  return iuoes.Specifier
+	return iuoes.Specifier
 }
 
 func (iuoes *InvalidUseOfExitStmt) Note() string {
-  return ""
+	return ""
 }
 
 func (iuoes *InvalidUseOfExitStmt) ID() string {
-  return "hyb032W"
+	return "hyb032W"
 }
 
 func (iuoes *InvalidUseOfExitStmt) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type TypeMismatch struct {
-  Specifier Snippet
-  Type1 string
-  Type2 string
-  Context string
+	Specifier Snippet
+	Type1     string
+	Type2     string
+	Context   string
 }
 
 func (tm *TypeMismatch) Message() string {
-  return fmt.Sprintf("expected %s, got '%s' %s", tm.Type1, tm.Type2, tm.Context)
+	return fmt.Sprintf("expected %s, got '%s' %s", tm.Type1, tm.Type2, tm.Context)
 }
 
 func (tm *TypeMismatch) SnippetSpecifier() Snippet {
-  return tm.Specifier
+	return tm.Specifier
 }
 
 func (tm *TypeMismatch) Note() string {
-  return ""
+	return ""
 }
 
 func (tm *TypeMismatch) ID() string {
-  return "hyb033W"
+	return "hyb033W"
 }
 
 func (tm *TypeMismatch) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidStmtInLocalBlock struct {
-  Specifier Snippet
-  StmtType string
+	Specifier Snippet
+	StmtType  string
 }
 
 func (isilb *InvalidStmtInLocalBlock) Message() string {
-  return "%ss must be in the global scope"
+	return "%ss must be in the global scope"
 }
 
 func (isilb *InvalidStmtInLocalBlock) SnippetSpecifier() Snippet {
-  return isilb.Specifier
+	return isilb.Specifier
 }
 
 func (isilb *InvalidStmtInLocalBlock) Note() string {
-  return ""
+	return ""
 }
 
 func (isilb *InvalidStmtInLocalBlock) ID() string {
-  return "hyb034W"
+	return "hyb034W"
 }
 
 func (isilb *InvalidStmtInLocalBlock) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type UnallowedLibraryUse struct {
-  Specifier Snippet
-  Library string
-  UnallowedEnvs string
+	Specifier     Snippet
+	Library       string
+	UnallowedEnvs string
 }
 
 func (ulu *UnallowedLibraryUse) Message() string {
-  return fmt.Sprintf("cannot use the %s library in a %s environment", ulu.Library, ulu.UnallowedEnvs)
+	return fmt.Sprintf("cannot use the %s library in a %s environment", ulu.Library, ulu.UnallowedEnvs)
 }
 
 func (ulu *UnallowedLibraryUse) SnippetSpecifier() Snippet {
-  return ulu.Specifier
+	return ulu.Specifier
 }
 
 func (ulu *UnallowedLibraryUse) Note() string {
-  return ""
+	return ""
 }
 
 func (ulu *UnallowedLibraryUse) ID() string {
-  return "hyb035W"
+	return "hyb035W"
 }
 
 func (ulu *UnallowedLibraryUse) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidEnvironmentAccess struct {
-  Specifier Snippet
-  EnvName string
+	Specifier Snippet
+	EnvName   string
 }
 
 func (iea *InvalidEnvironmentAccess) Message() string {
-  return fmt.Sprintf("environment named '%s' does not exist", iea.EnvName)
+	return fmt.Sprintf("environment named '%s' does not exist", iea.EnvName)
 }
 
 func (iea *InvalidEnvironmentAccess) SnippetSpecifier() Snippet {
-  return iea.Specifier
+	return iea.Specifier
 }
 
 func (iea *InvalidEnvironmentAccess) Note() string {
-  return ""
+	return ""
 }
 
 func (iea *InvalidEnvironmentAccess) ID() string {
-  return "hyb036W"
+	return "hyb036W"
 }
 
 func (iea *InvalidEnvironmentAccess) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type EnvironmentReuse struct {
-  Specifier Snippet
-  EnvName string
+	Specifier Snippet
+	EnvName   string
 }
 
 func (er *EnvironmentReuse) Message() string {
-  return fmt.Sprintf("environment named '%s' is already imported through use statement", er.EnvName)
+	return fmt.Sprintf("environment named '%s' is already imported through use statement", er.EnvName)
 }
 
 func (er *EnvironmentReuse) SnippetSpecifier() Snippet {
-  return er.Specifier
+	return er.Specifier
 }
 
 func (er *EnvironmentReuse) Note() string {
-  return ""
+	return ""
 }
 
 func (er *EnvironmentReuse) ID() string {
-  return "hyb037W"
+	return "hyb037W"
 }
 
 func (er *EnvironmentReuse) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidIteratorType struct {
-  Specifier Snippet
-  Type string
+	Specifier Snippet
+	Type      string
 }
 
 func (iit *InvalidIteratorType) Message() string {
-  return fmt.Sprintf("a for loop iterator must be a map or a list (found: '%s')", iit.Type)
+	return fmt.Sprintf("a for loop iterator must be a map or a list (found: '%s')", iit.Type)
 }
 
 func (iit *InvalidIteratorType) SnippetSpecifier() Snippet {
-  return iit.Specifier
+	return iit.Specifier
 }
 
 func (iit *InvalidIteratorType) Note() string {
-  return ""
+	return ""
 }
 
 func (iit *InvalidIteratorType) ID() string {
-  return "hyb038W"
+	return "hyb038W"
 }
 
 func (iit *InvalidIteratorType) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type UnnecessaryEmptyIdentifier struct {
-  Specifier Snippet
-  Context string
+	Specifier Snippet
+	Context   string
 }
 
 func (uei *UnnecessaryEmptyIdentifier) Message() string {
-  return fmt.Sprintf("unnecessary use of empty identifier ('_') %s", uei.Context)
+	return fmt.Sprintf("unnecessary use of empty identifier ('_') %s", uei.Context)
 }
 
 func (uei *UnnecessaryEmptyIdentifier) SnippetSpecifier() Snippet {
-  return uei.Specifier
+	return uei.Specifier
 }
 
 func (uei *UnnecessaryEmptyIdentifier) Note() string {
-  return ""
+	return ""
 }
 
 func (uei *UnnecessaryEmptyIdentifier) ID() string {
-  return "hyb039W"
+	return "hyb039W"
 }
 
 func (uei *UnnecessaryEmptyIdentifier) AlertType() Type {
-  return Warning
+	return Warning
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type EnvironmentAccessToItself struct {
-  Specifier Snippet
+	Specifier Snippet
 }
 
 func (eati *EnvironmentAccessToItself) Message() string {
-  return "an environment cannot access itself"
+	return "an environment cannot access itself"
 }
 
 func (eati *EnvironmentAccessToItself) SnippetSpecifier() Snippet {
-  return eati.Specifier
+	return eati.Specifier
 }
 
 func (eati *EnvironmentAccessToItself) Note() string {
-  return ""
+	return ""
 }
 
 func (eati *EnvironmentAccessToItself) ID() string {
-  return "hyb040W"
+	return "hyb040W"
 }
 
 func (eati *EnvironmentAccessToItself) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type EntityConversionWithOrCondition struct {
-  Specifier Snippet
+	Specifier Snippet
 }
 
 func (ecwoc *EntityConversionWithOrCondition) Message() string {
-  return "cannot convert an entity with an 'or' condition"
+	return "cannot convert an entity with an 'or' condition"
 }
 
 func (ecwoc *EntityConversionWithOrCondition) SnippetSpecifier() Snippet {
-  return ecwoc.Specifier
+	return ecwoc.Specifier
 }
 
 func (ecwoc *EntityConversionWithOrCondition) Note() string {
-  return ""
+	return ""
 }
 
 func (ecwoc *EntityConversionWithOrCondition) ID() string {
-  return "hyb041W"
+	return "hyb041W"
 }
 
 func (ecwoc *EntityConversionWithOrCondition) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidCondition struct {
-  Specifier Snippet
-  Context string
+	Specifier Snippet
+	Context   string
 }
 
 func (ic *InvalidCondition) Message() string {
-  return fmt.Sprintf("invalid condition %s", ic.Context)
+	return fmt.Sprintf("invalid condition %s", ic.Context)
 }
 
 func (ic *InvalidCondition) SnippetSpecifier() Snippet {
-  return ic.Specifier
+	return ic.Specifier
 }
 
 func (ic *InvalidCondition) Note() string {
-  return "conditions always have to evaluate to either true or false"
+	return "conditions always have to evaluate to either true or false"
 }
 
 func (ic *InvalidCondition) ID() string {
-  return "hyb042W"
+	return "hyb042W"
 }
 
 func (ic *InvalidCondition) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidRepeatIterator struct {
-  Specifier Snippet
-  Type string
+	Specifier Snippet
+	Type      string
 }
 
 func (iri *InvalidRepeatIterator) Message() string {
-  return fmt.Sprintf("invalid repeat iterator of type '%s'", iri.Type)
+	return fmt.Sprintf("invalid repeat iterator of type '%s'", iri.Type)
 }
 
 func (iri *InvalidRepeatIterator) SnippetSpecifier() Snippet {
-  return iri.Specifier
+	return iri.Specifier
 }
 
 func (iri *InvalidRepeatIterator) Note() string {
-  return "repeat iterator must be a numerical type"
+	return "repeat iterator must be a numerical type"
 }
 
 func (iri *InvalidRepeatIterator) ID() string {
-  return "hyb043W"
+	return "hyb043W"
 }
 
 func (iri *InvalidRepeatIterator) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InconsistentRepeatTypes struct {
-  Specifier Snippet
-  From string
-  Skip string
-  Iterator string
+	Specifier Snippet
+	From      string
+	Skip      string
+	Iterator  string
 }
 
 func (irt *InconsistentRepeatTypes) Message() string {
-  return fmt.Sprintf("repeat types are inconsistent (from:'%s', by:'%s', to:'%s')", irt.From, irt.Skip, irt.Iterator)
+	return fmt.Sprintf("repeat types are inconsistent (from:'%s', by:'%s', to:'%s')", irt.From, irt.Skip, irt.Iterator)
 }
 
 func (irt *InconsistentRepeatTypes) SnippetSpecifier() Snippet {
-  return irt.Specifier
+	return irt.Specifier
 }
 
 func (irt *InconsistentRepeatTypes) Note() string {
-  return ""
+	return ""
 }
 
 func (irt *InconsistentRepeatTypes) ID() string {
-  return "hyb044W"
+	return "hyb044W"
 }
 
 func (irt *InconsistentRepeatTypes) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type OfficialEntityConversion struct {
-  Specifier Snippet
+	Specifier Snippet
 }
 
 func (oec *OfficialEntityConversion) Message() string {
-  return "conversion of an official entity to a hybroid entity is not possible"
+	return "conversion of an official entity to a hybroid entity is not possible"
 }
 
 func (oec *OfficialEntityConversion) SnippetSpecifier() Snippet {
-  return oec.Specifier
+	return oec.Specifier
 }
 
 func (oec *OfficialEntityConversion) Note() string {
-  return ""
+	return ""
 }
 
 func (oec *OfficialEntityConversion) ID() string {
-  return "hyb045W"
+	return "hyb045W"
 }
 
 func (oec *OfficialEntityConversion) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidEnvironment struct {
-  Specifier Snippet
+	Specifier Snippet
 }
 
 func (ie *InvalidEnvironment) Message() string {
-  return "there is no environment with that path"
+	return "there is no environment with that path"
 }
 
 func (ie *InvalidEnvironment) SnippetSpecifier() Snippet {
-  return ie.Specifier
+	return ie.Specifier
 }
 
 func (ie *InvalidEnvironment) Note() string {
-  return ""
+	return ""
 }
 
 func (ie *InvalidEnvironment) ID() string {
-  return "hyb046W"
+	return "hyb046W"
 }
 
 func (ie *InvalidEnvironment) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type EnvironmentAccessAmbiguity struct {
-  Specifier Snippet
-  Envs []string
-  Context string
+	Specifier Snippet
+	Envs      []string
+	Context   string
 }
 
 func (eaa *EnvironmentAccessAmbiguity) Message() string {
-  return fmt.Sprintf("the type '%s' can be found on multiple environments: %s", eaa.Context, strings.Join(eaa.Envs, ", "))
+	return fmt.Sprintf("the type '%s' can be found on multiple environments: %s", eaa.Context, strings.Join(eaa.Envs, ", "))
 }
 
 func (eaa *EnvironmentAccessAmbiguity) SnippetSpecifier() Snippet {
-  return eaa.Specifier
+	return eaa.Specifier
 }
 
 func (eaa *EnvironmentAccessAmbiguity) Note() string {
-  return ""
+	return ""
 }
 
 func (eaa *EnvironmentAccessAmbiguity) ID() string {
-  return "hyb047W"
+	return "hyb047W"
 }
 
 func (eaa *EnvironmentAccessAmbiguity) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type NotAllCodePathsExit struct {
-  Specifier Snippet
-  ExitType string
+	Specifier Snippet
+	ExitType  string
 }
 
 func (nacpe *NotAllCodePathsExit) Message() string {
-  return fmt.Sprintf("not all code paths %s", nacpe.ExitType)
+	return fmt.Sprintf("not all code paths %s", nacpe.ExitType)
 }
 
 func (nacpe *NotAllCodePathsExit) SnippetSpecifier() Snippet {
-  return nacpe.Specifier
+	return nacpe.Specifier
 }
 
 func (nacpe *NotAllCodePathsExit) Note() string {
-  return ""
+	return ""
 }
 
 func (nacpe *NotAllCodePathsExit) ID() string {
-  return "hyb048W"
+	return "hyb048W"
 }
 
 func (nacpe *NotAllCodePathsExit) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InsufficientCases struct {
-  Specifier Snippet
+	Specifier Snippet
 }
 
 func (ic *InsufficientCases) Message() string {
-  return "match statement must have at least 1 non-default case"
+	return "match statement must have at least 1 non-default case"
 }
 
 func (ic *InsufficientCases) SnippetSpecifier() Snippet {
-  return ic.Specifier
+	return ic.Specifier
 }
 
 func (ic *InsufficientCases) Note() string {
-  return ""
+	return ""
 }
 
 func (ic *InsufficientCases) ID() string {
-  return "hyb049W"
+	return "hyb049W"
 }
 
 func (ic *InsufficientCases) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type DefaultCaseMissing struct {
-  Specifier Snippet
+	Specifier Snippet
 }
 
 func (dcm *DefaultCaseMissing) Message() string {
-  return "match expression must have a default case"
+	return "match expression must have a default case"
 }
 
 func (dcm *DefaultCaseMissing) SnippetSpecifier() Snippet {
-  return dcm.Specifier
+	return dcm.Specifier
 }
 
 func (dcm *DefaultCaseMissing) Note() string {
-  return "default cases start with 'else'"
+	return "default cases start with 'else'"
 }
 
 func (dcm *DefaultCaseMissing) ID() string {
-  return "hyb050W"
+	return "hyb050W"
 }
 
 func (dcm *DefaultCaseMissing) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidCaseType struct {
-  Specifier Snippet
-  MatchValueType string
-  CaseValueType string
+	Specifier      Snippet
+	MatchValueType string
+	CaseValueType  string
 }
 
 func (ict *InvalidCaseType) Message() string {
-  return fmt.Sprintf("match value is of type '%s', but case value is of type '%s'", ict.MatchValueType, ict.CaseValueType)
+	return fmt.Sprintf("match value is of type '%s', but case value is of type '%s'", ict.MatchValueType, ict.CaseValueType)
 }
 
 func (ict *InvalidCaseType) SnippetSpecifier() Snippet {
-  return ict.Specifier
+	return ict.Specifier
 }
 
 func (ict *InvalidCaseType) Note() string {
-  return ""
+	return ""
 }
 
 func (ict *InvalidCaseType) ID() string {
-  return "hyb051W"
+	return "hyb051W"
 }
 
 func (ict *InvalidCaseType) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type LiteralCondition struct {
-  Specifier Snippet
-  ConditionValue string
+	Specifier      Snippet
+	ConditionValue string
 }
 
 func (lc *LiteralCondition) Message() string {
-  return fmt.Sprintf("condition is always %s", lc.ConditionValue)
+	return fmt.Sprintf("condition is always %s", lc.ConditionValue)
 }
 
 func (lc *LiteralCondition) SnippetSpecifier() Snippet {
-  return lc.Specifier
+	return lc.Specifier
 }
 
 func (lc *LiteralCondition) Note() string {
-  return ""
+	return ""
 }
 
 func (lc *LiteralCondition) ID() string {
-  return "hyb052W"
+	return "hyb052W"
 }
 
 func (lc *LiteralCondition) AlertType() Type {
-  return Warning
+	return Warning
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type TypesMismatch struct {
-  Specifier Snippet
-  Type1 string
-  Type2 string
+	Specifier Snippet
+	Type1     string
+	Type2     string
 }
 
 func (tm *TypesMismatch) Message() string {
-  return fmt.Sprintf("left value is of type '%s', but right value is of type '%s'", tm.Type1, tm.Type2)
+	return fmt.Sprintf("left value is of type '%s', but right value is of type '%s'", tm.Type1, tm.Type2)
 }
 
 func (tm *TypesMismatch) SnippetSpecifier() Snippet {
-  return tm.Specifier
+	return tm.Specifier
 }
 
 func (tm *TypesMismatch) Note() string {
-  return ""
+	return ""
 }
 
 func (tm *TypesMismatch) ID() string {
-  return "hyb053W"
+	return "hyb053W"
 }
 
 func (tm *TypesMismatch) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type MissingConstructor struct {
-  Specifier Snippet
-  ConstructorType string
-  Context string
+	Specifier       Snippet
+	ConstructorType string
+	Context         string
 }
 
 func (mc *MissingConstructor) Message() string {
-  return fmt.Sprintf("missing '%s' constructor %s", mc.ConstructorType, mc.Context)
+	return fmt.Sprintf("missing '%s' constructor %s", mc.ConstructorType, mc.Context)
 }
 
 func (mc *MissingConstructor) SnippetSpecifier() Snippet {
-  return mc.Specifier
+	return mc.Specifier
 }
 
 func (mc *MissingConstructor) Note() string {
-  return ""
+	return ""
 }
 
 func (mc *MissingConstructor) ID() string {
-  return "hyb054W"
+	return "hyb054W"
 }
 
 func (mc *MissingConstructor) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type MissingDestroy struct {
-  Specifier Snippet
+	Specifier Snippet
 }
 
 func (md *MissingDestroy) Message() string {
-  return "missing 'destroy' destructor in entity declaration"
+	return "missing 'destroy' destructor in entity declaration"
 }
 
 func (md *MissingDestroy) SnippetSpecifier() Snippet {
-  return md.Specifier
+	return md.Specifier
 }
 
 func (md *MissingDestroy) Note() string {
-  return ""
+	return ""
 }
 
 func (md *MissingDestroy) ID() string {
-  return "hyb055W"
+	return "hyb055W"
 }
 
 func (md *MissingDestroy) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type UninitializedFieldInConstructor struct {
-  Specifier Snippet
-  VarName string
-  Context string
+	Specifier Snippet
+	VarName   string
+	Context   string
 }
 
 func (ufic *UninitializedFieldInConstructor) Message() string {
-  return fmt.Sprintf("variable '%s' was not initialized in the constructor %s", ufic.VarName, ufic.Context)
+	return fmt.Sprintf("variable '%s' was not initialized in the constructor %s", ufic.VarName, ufic.Context)
 }
 
 func (ufic *UninitializedFieldInConstructor) SnippetSpecifier() Snippet {
-  return ufic.Specifier
+	return ufic.Specifier
 }
 
 func (ufic *UninitializedFieldInConstructor) Note() string {
-  return ""
+	return ""
 }
 
 func (ufic *UninitializedFieldInConstructor) ID() string {
-  return "hyb056W"
+	return "hyb056W"
 }
 
 func (ufic *UninitializedFieldInConstructor) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type TypeRedeclaration struct {
-  Specifier Snippet
-  TypeName string
+	Specifier Snippet
+	TypeName  string
 }
 
 func (tr *TypeRedeclaration) Message() string {
-  return fmt.Sprintf("type '%s' already exists", tr.TypeName)
+	return fmt.Sprintf("type '%s' already exists", tr.TypeName)
 }
 
 func (tr *TypeRedeclaration) SnippetSpecifier() Snippet {
-  return tr.Specifier
+	return tr.Specifier
 }
 
 func (tr *TypeRedeclaration) Note() string {
-  return ""
+	return ""
 }
 
 func (tr *TypeRedeclaration) ID() string {
-  return "hyb057W"
+	return "hyb057W"
 }
 
 func (tr *TypeRedeclaration) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidCallAsArgument struct {
-  Specifier Snippet
+	Specifier Snippet
 }
 
 func (icaa *InvalidCallAsArgument) Message() string {
-  return "cannot have a call that returns more than 1 value as an argument"
+	return "cannot have a call that returns more than 1 value as an argument"
 }
 
 func (icaa *InvalidCallAsArgument) SnippetSpecifier() Snippet {
-  return icaa.Specifier
+	return icaa.Specifier
 }
 
 func (icaa *InvalidCallAsArgument) Note() string {
-  return ""
+	return ""
 }
 
 func (icaa *InvalidCallAsArgument) ID() string {
-  return "hyb058W"
+	return "hyb058W"
 }
 
 func (icaa *InvalidCallAsArgument) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type MoreThanOneVariadicParameter struct {
-  Specifier Snippet
+	Specifier Snippet
 }
 
 func (mtovp *MoreThanOneVariadicParameter) Message() string {
-  return "cannot have more than one variadic function parameter"
+	return "cannot have more than one variadic function parameter"
 }
 
 func (mtovp *MoreThanOneVariadicParameter) SnippetSpecifier() Snippet {
-  return mtovp.Specifier
+	return mtovp.Specifier
 }
 
 func (mtovp *MoreThanOneVariadicParameter) Note() string {
-  return ""
+	return ""
 }
 
 func (mtovp *MoreThanOneVariadicParameter) ID() string {
-  return "hyb059W"
+	return "hyb059W"
 }
 
 func (mtovp *MoreThanOneVariadicParameter) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type VariadicParameterNotAtEnd struct {
-  Specifier Snippet
+	Specifier Snippet
 }
 
 func (vpnae *VariadicParameterNotAtEnd) Message() string {
-  return "variadic parameters must be at the end of the function parameters"
+	return "variadic parameters must be at the end of the function parameters"
 }
 
 func (vpnae *VariadicParameterNotAtEnd) SnippetSpecifier() Snippet {
-  return vpnae.Specifier
+	return vpnae.Specifier
 }
 
 func (vpnae *VariadicParameterNotAtEnd) Note() string {
-  return ""
+	return ""
 }
 
 func (vpnae *VariadicParameterNotAtEnd) ID() string {
-  return "hyb060W"
+	return "hyb060W"
 }
 
 func (vpnae *VariadicParameterNotAtEnd) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type DuplicateElement struct {
-  Specifier Snippet
-  Element string
-  ElemName string
+	Specifier Snippet
+	Element   string
+	ElemName  string
 }
 
 func (de *DuplicateElement) Message() string {
-  return fmt.Sprintf("the %s '%s' already exists", de.Element, de.ElemName)
+	return fmt.Sprintf("the %s '%s' already exists", de.Element, de.ElemName)
 }
 
 func (de *DuplicateElement) SnippetSpecifier() Snippet {
-  return de.Specifier
+	return de.Specifier
 }
 
 func (de *DuplicateElement) Note() string {
-  return ""
+	return ""
 }
 
 func (de *DuplicateElement) ID() string {
-  return "hyb061W"
+	return "hyb061W"
 }
 
 func (de *DuplicateElement) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidEntityFunctionSignature struct {
-  Specifier Snippet
-  Got string
-  Expected string
-  EntityFuncType string
+	Specifier      Snippet
+	Got            string
+	Expected       string
+	EntityFuncType string
 }
 
 func (iefs *InvalidEntityFunctionSignature) Message() string {
-  return fmt.Sprintf("expected '%s' for %s, got '%s'", iefs.Expected, iefs.EntityFuncType, iefs.Got)
+	return fmt.Sprintf("expected '%s' for %s, got '%s'", iefs.Expected, iefs.EntityFuncType, iefs.Got)
 }
 
 func (iefs *InvalidEntityFunctionSignature) SnippetSpecifier() Snippet {
-  return iefs.Specifier
+	return iefs.Specifier
 }
 
 func (iefs *InvalidEntityFunctionSignature) Note() string {
-  return ""
+	return ""
 }
 
 func (iefs *InvalidEntityFunctionSignature) ID() string {
-  return "hyb062W"
+	return "hyb062W"
 }
 
 func (iefs *InvalidEntityFunctionSignature) AlertType() Type {
-  return Error
+	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidSpawnerParameters struct {
-  Specifier Snippet
+	Specifier Snippet
 }
 
 func (isp *InvalidSpawnerParameters) Message() string {
-  return "the first two parameters of the spawner must be fixedpoints"
+	return "the first two parameters of the spawner must be fixedpoints"
 }
 
 func (isp *InvalidSpawnerParameters) SnippetSpecifier() Snippet {
-  return isp.Specifier
+	return isp.Specifier
 }
 
 func (isp *InvalidSpawnerParameters) Note() string {
-  return ""
+	return ""
 }
 
 func (isp *InvalidSpawnerParameters) ID() string {
-  return "hyb063W"
+	return "hyb063W"
 }
 
 func (isp *InvalidSpawnerParameters) AlertType() Type {
-  return Error
+	return Error
 }
-

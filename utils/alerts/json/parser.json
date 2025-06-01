@@ -7,7 +7,7 @@
   {
     "name": "ExpectedExpression",
     "type": "Error",
-    "params": {
+    "fields": {
       "Context": "string `default:\"\"`"
     },
     "message": "expected expression %s",
@@ -16,7 +16,7 @@
   {
     "name": "UnknownStatement",
     "type": "Error",
-    "params": {
+    "fields": {
       "Context": "string `default:\"\"`"
     },
     "message": "unknown statement %s",
@@ -25,7 +25,7 @@
   {
     "name": "ExpectedKeyword",
     "type": "Error",
-    "params": {
+    "fields": {
       "Keyword": "string",
       "Context": "string `default:\"\"`"
     },
@@ -35,7 +35,7 @@
   {
     "name": "ExpectedIdentifier",
     "type": "Error",
-    "params": {
+    "fields": {
       "Context": "string `default:\"\"`"
     },
     "message": "expected identifier %s",
@@ -44,7 +44,7 @@
   {
     "name": "ExpectedSymbol",
     "type": "Error",
-    "params": {
+    "fields": {
       "Symbol": "string",
       "Context": "string `default:\"\"`"
     },
@@ -64,7 +64,7 @@
   {
     "name": "MoreThanOneEntityFunction",
     "type": "Error",
-    "params": {
+    "fields": {
       "FunctionType": "string"
     },
     "message": "cannot have more than one %s in entity declaration",
@@ -89,7 +89,7 @@
   {
     "name": "ExpectedType",
     "type": "Error",
-    "params": {
+    "fields": {
       "Context": "string `default:\"\"`"
     },
     "message": "expected type %s",
@@ -145,7 +145,7 @@
   {
     "name": "MissingIterator",
     "type": "Error",
-    "params": {
+    "fields": {
       "Context": "string `default:\"\"`"
     },
     "message": "missing iterator %s",
@@ -154,7 +154,7 @@
   {
     "name": "DuplicateKeyword",
     "type": "Error",
-    "params": {
+    "fields": {
       "Keyword": "string"
     },
     "message": "cannot have multiple '%s' keywords",
@@ -163,7 +163,7 @@
   {
     "name": "UnexpectedKeyword",
     "type": "Error",
-    "params": {
+    "fields": {
       "Keyword": "string",
       "Context": "string `default:\"\"`"
     },
@@ -173,7 +173,7 @@
   {
     "name": "IteratorRedefinition",
     "type": "Error",
-    "params": {
+    "fields": {
       "Context": "string `default:\"\"`"
     },
     "message": "redefinition of iterator %s",
@@ -197,7 +197,7 @@
   {
     "name": "InvalidExpression",
     "type": "Error",
-    "params": {
+    "fields": {
       "Type": "string",
       "Context": "string `default:\"\"`"
     },
@@ -207,7 +207,7 @@
   {
     "name": "SyntaxIncoherency",
     "type": "Error",
-    "params": {
+    "fields": {
       "ParsedSection": "string",
       "PreviousSection": "string",
       "AllowsNextLine": "bool"

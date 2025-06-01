@@ -37,10 +37,10 @@ sidebar:
 
 def _generate_function_docs(function: types.APIFunction) -> str:
     processed_name = _API_MAPPING.get(
-        function.name, helpers.convert_to_pascal_case(function.name)
+        function.name, helpers.to_pascal_case(function.name)
     )
     function_template = f"### `{processed_name}`\n"
-    function_template += f"```rs\n{processed_name}({', '.join([_TYPE_MAPPING.get(param.type, 'unknown') + ' ' + _PARAM_MAPPING.get(param.name, helpers.convert_to_camel_case(param.name)) for param in function.parameters])}) { ('-> ' + ', '.join([_TYPE_MAPPING.get(return_type.type, 'unknown') for return_type in function.return_types])) if len(function.return_types) > 0 else ''}\n```\n"
+    function_template += f"```rs\n{processed_name}({', '.join([_TYPE_MAPPING.get(param.type, 'unknown') + ' ' + _PARAM_MAPPING.get(param.name, helpers.to_camel_case(param.name)) for param in function.parameters])}) { ('-> ' + ', '.join([_TYPE_MAPPING.get(return_type.type, 'unknown') for return_type in function.return_types])) if len(function.return_types) > 0 else ''}\n```\n"
     function_template += f"{function.description}"
 
     return function_template

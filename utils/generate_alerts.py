@@ -1,187 +1,41 @@
 import json
 import os
+from pathlib import Path
 import re
+import subprocess
 
-_FILE_TEMPLATE = """// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+from alerts.alert import Alert
+import alerts.imports as imports
 
+
+def _generate(raw: dict, stage: str) -> str:
+    FILE_TEMPLATE = """// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+    
 package alerts
 
 import (
   "fmt"
-  {}
+  {imports}
 )
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+{alerts}
 """
 
-_POSSIBLE_PACKAGES = ["strings", "hybroid/ast"]
-_imports = set()
-
-
-def _to_receiver(original: str) -> str:
-    # Takes each capital letter in a name and
-    # connects them into a single lowercase name.
-
-    # For example: HelloThisISAnExample -> htisae
-
-    receiver = "".join(re.findall(r"[A-Z]", original)).lower()
-
-    if receiver == "if":
-        receiver = "_if"
-
-    return receiver
-
-
-def _extract_imports(string: str):
-    for package in _POSSIBLE_PACKAGES:
-        modified = ""
-        if "hybroid/" in package: 
-            modified = package[8:]
-        else:
-            modified = package
-        if modified in string:
-            _imports.add(f'"{package}"')
-
-type Format = dict[str, str] | str
-
-
-def _format_string(string: str, string_format: list[Format], receiver: str) -> str:
-    if len(string_format) == 0:
-        return f'"{string}"'
-
-    specifiers = []
-    for specifier in string_format:
-        if type(specifier) is str:
-            specifiers.append(f"{receiver}.{specifier}")
-        elif type(specifier) is dict:
-            specifier, format = dict(specifier).popitem()
-            _extract_imports(format)
-            specifiers.append(format.format(f"{receiver}.{specifier}"))
-
-    return f'fmt.Sprintf("{string}", {", ".join(specifiers)})'
-
-
-class Alert:
-    name: str
-    receiver: str
-    type: str
-    stage: str
-    params: dict[str, str]
-    message: str
-    message_format: list[Format]
-    note: str
-    note_format: list[Format]
-    id: int
-
-    def __init__(self, raw: dict, stage: str, id: int):
-        name = raw.get("name")
-        if name is None:
-            raise ValueError(f"Name must not be None, Raw info: {raw}")
-        self.name = name
-
-        self.receiver = _to_receiver(self.name)
-
-        type = raw.get("type")
-        if type is None:
-            raise ValueError(f"Type must not be None, Raw info: {raw}")
-        self.type = type
-
-        self.stage = stage
-
-        self.params = {"Specifier": "Snippet"}
-        self.params = self.params | raw.get("params", {})
-
-        message = raw.get("message")
-        if message is None:
-            raise ValueError(f"Message must not be None, Raw info: {raw}")
-        self.message = message
-
-        self.message_format = raw.get("message_format", [])
-
-        self.note = raw.get(
-            "note", ""
-        )  # Empty means that the alert will not print out a note
-
-        self.note_format = raw.get("note_format", [])
-
-        self.id = id
-
-    def generate_str(self) -> str:
-        type_template = "type {} struct {{\n  {}\n}}"
-        function_template = "func ({} *{}) {}({}) {} {{\n  {}\n}}"
-
-        for _, type in self.params.items():
-            _extract_imports(type)
-
-        alert = (
-            type_template.format(
-                self.name,
-                "\n  ".join(f"{field} {type}" for field, type in self.params.items()),
-            )
-            + "\n\n"
-        )
-
-        alert_functions = [
-            [
-                "Message",
-                "",
-                "string",
-                f"return {_format_string(self.message, self.message_format, self.receiver)}",
-            ],
-            [
-                "SnippetSpecifier",
-                "",
-                "Snippet",
-                f"return {self.receiver}.Specifier",
-            ],
-            [
-                "Note",
-                "",
-                "string",
-                f"return {_format_string(self.note, self.note_format, self.receiver)}",
-            ],
-            [
-                "ID",
-                "",
-                "string",
-                'return "hyb{:03d}{}"'.format(self.id, self.stage[0]),
-            ],
-            ["AlertType", "", "Type", f"return {self.type}"],
-        ]
-
-        for function in alert_functions:
-            alert += (
-                function_template.format(self.receiver, self.name, *function) + "\n\n"
-            )
-
-        return alert
-
-
-def _generate_alerts(raw: dict, stage: str) -> str:
-    alerts = []
+    alerts: list[Alert] = []
     id = 1
     for alert in raw:
-        alerts.append(Alert(alert, stage, id).generate_str())
+        alerts.append(Alert(alert, stage, id))
         id += 1
 
-    return _FILE_TEMPLATE.format(
-        "\n  ".join(_imports)
-    ) + "// AUTO-GENERATED, DO NOT MANUALLY MODIFY!\n".join(alerts)
-
-
-def _generate_file(filename: str):
-    # Read the .json file
-    with open(filename, "r", encoding="utf-8") as f:
-        alerts = json.load(f)
-
-    new_filename = filename.replace(".json", ".gen.go")
-
-    # Clear extracted imports
-    _imports.clear()
-
-    # Generate the .gen.go file
-    with open(f"../../alerts/{new_filename}", "x", encoding="utf-8") as f:
-        f.write(_generate_alerts(alerts, filename.split(".")[0].title()))
+    return FILE_TEMPLATE.format_map(
+        {
+            "alerts": "\n\n// AUTO-GENERATED, DO NOT MANUALLY MODIFY!\n".join(
+                alert.generate() for alert in alerts
+            ),
+            "imports": imports.get_imports(),
+        }
+    )
 
 
 if __name__ == "__main__":
@@ -193,13 +47,30 @@ if __name__ == "__main__":
         if file.endswith(".gen.go"):
             os.remove(file)
 
-    # Change the directory to the hybroid/utils/alerts folder
-    os.chdir(os.path.dirname(__file__) + "/alerts")
+    # Change the directory to the hybroid/utils/alerts/json folder
+    os.chdir(os.path.dirname(__file__) + "/alerts/json")
 
     # Generate the alerts!
     for file in os.listdir(os.getcwd()):
         if file.endswith(".json"):
             print(f"[-] Generating alerts for {file}")
-            _generate_file(file)
 
+            # Read the .json file
+            with open(file, "r", encoding="utf-8") as f:
+                alerts = json.load(f)
+
+            new_filename = file.replace(".json", ".gen.go")
+
+            # Clear extracted imports
+            imports.clear()
+
+            # Generate the .gen.go file
+            with open(f"../../../alerts/{new_filename}", "x", encoding="utf-8") as f:
+                f.write(_generate(alerts, file.split(".")[0].title()))
+
+    # Format generated go file
+    subprocess.run(
+        ["gofmt", "-s", "-w", f"alerts/"],
+        cwd=Path(os.path.dirname(__file__)).parent.as_posix(),
+    )
     print("[+] Alerts generated!")

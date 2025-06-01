@@ -2,7 +2,7 @@
   {
     "name": "ForbiddenTypeInEnvironment",
     "type": "Error",
-    "params": {
+    "fields": {
       "Type": "string",
       "Envs": "[]string"
     },
@@ -12,7 +12,7 @@
   {
     "name": "InvalidEnvironmentType",
     "type": "Error",
-    "params": {
+    "fields": {
       "Type": "string"
     },
     "message": "'%s' is not a valid environment type",
@@ -33,7 +33,7 @@
   {
     "name": "DuplicateEnvironmentNames",
     "type": "Error",
-    "params": {
+    "fields": {
       "Path1": "string",
       "Path2": "string"
     },
@@ -43,7 +43,7 @@
   {
     "name": "InvalidAccessValue",
     "type": "Error",
-    "params": {
+    "fields": {
       "Type": "string"
     },
     "message": "value is of type '%s', so it cannot be accessed from",
@@ -53,7 +53,7 @@
   {
     "name": "FieldAccessOnListOrMap",
     "type": "Error",
-    "params": {
+    "fields": {
       "Field": "string",
       "AccessType": "string"
     },
@@ -65,7 +65,7 @@
   {
     "name": "MemberAccessOnNonListOrMap",
     "type": "Error",
-    "params": {
+    "fields": {
       "Member": "string",
       "AccessType": "string"
     },
@@ -76,7 +76,7 @@
   {
     "name": "InvalidMemberIndex",
     "type": "Error",
-    "params": {
+    "fields": {
       "AccessType": "string",
       "Index": "string"
     },
@@ -87,7 +87,7 @@
   {
     "name": "InvalidField",
     "type": "Error",
-    "params": {
+    "fields": {
       "AccessType": "string",
       "FieldName": "string"
     },
@@ -97,7 +97,7 @@
   {
     "name": "MixedMapOrListContents",
     "type": "Error",
-    "params": {
+    "fields": {
       "ContainerType": "string",
       "Type1": "string",
       "Type2": "string"
@@ -108,7 +108,7 @@
   {
     "name": "InvalidCallerType",
     "type": "Error",
-    "params": {
+    "fields": {
       "Type": "string"
     },
     "message": "cannot call value of of type '%s' as a function",
@@ -117,7 +117,7 @@
   {
     "name": "MethodOrFieldNotFound",
     "type": "Error",
-    "params": {
+    "fields": {
       "Name": "string"
     },
     "message": "no method or field named '%s'",
@@ -126,7 +126,7 @@
   {
     "name": "ForeignLocalVariableAccess",
     "type": "Error",
-    "params": {
+    "fields": {
       "Name": "string"
     },
     "message": "cannot access local variable '%s' belonging to a different environment",
@@ -135,7 +135,7 @@
   {
     "name": "InvalidArgumentType",
     "type": "Error",
-    "params": {
+    "fields": {
       "GivenType": "string",
       "ExpectedType": "string"
     },
@@ -150,7 +150,7 @@
   {
     "name": "Redeclaration",
     "type": "Error",
-    "params": {
+    "fields": {
       "VarName": "string",
       "DeclType": "string"
     },
@@ -170,7 +170,7 @@
   {
     "name": "TooFewValuesGiven",
     "type": "Error",
-    "params": {
+    "fields": {
       "RequiredAmount": "int",
       "Context": "string"
     },
@@ -185,7 +185,7 @@
   {
     "name": "ExplicitTypeMismatch",
     "type": "Error",
-    "params": {
+    "fields": {
       "ExplicitType": "string",
       "ValueType": "string"
     },
@@ -195,7 +195,7 @@
   {
     "name": "ExplicitTypeNotAllowed",
     "type": "Error",
-    "params": {
+    "fields": {
       "ExplicitType": "string"
     },
     "message": "cannot create a default value from the explicit type '%s'",
@@ -205,7 +205,7 @@
   {
     "name": "TooManyValuesGiven",
     "type": "Error",
-    "params": {
+    "fields": {
       "ExtraAmount": "int",
       "Context": "string"
     },
@@ -215,7 +215,7 @@
   {
     "name": "ImportCycle",
     "type": "Error",
-    "params": {
+    "fields": {
       "HybPath1": "string",
       "HybPath2": "string"
     },
@@ -225,7 +225,7 @@
   {
     "name": "UndeclaredVariableAccess",
     "type": "Error",
-    "params": {
+    "fields": {
       "Var": "string"
     },
     "message": "'%s' is not a declared variable",
@@ -239,7 +239,7 @@
   {
     "name": "AssignmentTypeMismatch",
     "type": "Error",
-    "params": {
+    "fields": {
       "VarType": "string",
       "ValType": "string"
     },
@@ -249,7 +249,7 @@
   {
     "name": "InvalidTypeInCompoundAssignment",
     "type": "Error",
-    "params": {
+    "fields": {
       "Type": "string"
     },
     "message": "the type '%s' is not allowed in compound assignment",
@@ -270,7 +270,7 @@
   {
     "name": "InvalidUseOfExitStmt",
     "type": "Error",
-    "params": {
+    "fields": {
       "ExitNode": "string",
       "Context": "string"
     },
@@ -280,7 +280,7 @@
   {
     "name": "TypeMismatch",
     "type": "Error",
-    "params": {
+    "fields": {
       "Type1": "string",
       "Type2": "string",
       "Context": "string"
@@ -291,7 +291,7 @@
   {
     "name": "InvalidStmtInLocalBlock",
     "type": "Error",
-    "params": {
+    "fields": {
       "StmtType": "string"
     },
     "message": "%ss must be in the global scope"
@@ -299,7 +299,7 @@
   {
     "name": "UnallowedLibraryUse",
     "type": "Error",
-    "params": {
+    "fields": {
       "Library": "string",
       "UnallowedEnvs": "string"
     },
@@ -309,7 +309,7 @@
   {
     "name": "InvalidEnvironmentAccess",
     "type": "Error",
-    "params": {
+    "fields": {
       "EnvName": "string"
     },
     "message": "environment named '%s' does not exist",
@@ -318,7 +318,7 @@
   {
     "name": "EnvironmentReuse",
     "type": "Error",
-    "params": {
+    "fields": {
       "EnvName": "string"
     },
     "message": "environment named '%s' is already imported through use statement",
@@ -327,7 +327,7 @@
   {
     "name": "InvalidIteratorType",
     "type": "Error",
-    "params": {
+    "fields": {
       "Type": "string"
     },
     "message": "a for loop iterator must be a map or a list (found: '%s')",
@@ -336,7 +336,7 @@
   {
     "name": "UnnecessaryEmptyIdentifier",
     "type": "Warning",
-    "params": {
+    "fields": {
       "Context": "string"
     },
     "message": "unnecessary use of empty identifier ('_') %s",
@@ -355,7 +355,7 @@
   {
     "name": "InvalidCondition",
     "type": "Error",
-    "params": {
+    "fields": {
       "Context": "string"
     },
     "message": "invalid condition %s",
@@ -365,7 +365,7 @@
   {
     "name": "InvalidRepeatIterator",
     "type": "Error",
-    "params": {
+    "fields": {
       "Type": "string"
     },
     "message": "invalid repeat iterator of type '%s'",
@@ -375,7 +375,7 @@
   {
     "name": "InconsistentRepeatTypes",
     "type": "Error",
-    "params": {
+    "fields": {
       "From": "string",
       "Skip": "string",
       "Iterator": "string"
@@ -396,7 +396,7 @@
   {
     "name": "EnvironmentAccessAmbiguity",
     "type": "Error",
-    "params": {
+    "fields": {
       "Envs": "[]string",
       "Context": "string"
     },
@@ -406,12 +406,12 @@
   {
     "name": "NotAllCodePathsExit",
     "type": "Error",
-     "params": {
+    "fields": {
       "ExitType": "string"
     },
     "message": "not all code paths %s",
     "message_format": ["ExitType"]
-  },  
+  },
   {
     "name": "InsufficientCases",
     "type": "Error",
@@ -426,7 +426,7 @@
   {
     "name": "InvalidCaseType",
     "type": "Error",
-    "params": {
+    "fields": {
       "MatchValueType": "string",
       "CaseValueType": "string"
     },
@@ -436,7 +436,7 @@
   {
     "name": "LiteralCondition",
     "type": "Warning",
-    "params": {
+    "fields": {
       "ConditionValue": "string"
     },
     "message": "condition is always %s",
@@ -445,7 +445,7 @@
   {
     "name": "TypesMismatch",
     "type": "Error",
-    "params": {
+    "fields": {
       "Type1": "string",
       "Type2": "string"
     },
@@ -455,7 +455,7 @@
   {
     "name": "MissingConstructor",
     "type": "Error",
-    "params": {
+    "fields": {
       "ConstructorType": "string",
       "Context": "string"
     },
@@ -470,7 +470,7 @@
   {
     "name": "UninitializedFieldInConstructor",
     "type": "Error",
-    "params": {
+    "fields": {
       "VarName": "string",
       "Context": "string"
     },
@@ -480,7 +480,7 @@
   {
     "name": "TypeRedeclaration",
     "type": "Error",
-    "params": {
+    "fields": {
       "TypeName": "string"
     },
     "message": "type '%s' already exists",
@@ -504,17 +504,17 @@
   {
     "name": "DuplicateElement",
     "type": "Error",
-    "params": {
+    "fields": {
       "Element": "string",
       "ElemName": "string"
     },
     "message": "the %s '%s' already exists",
-    "message_format": [ "Element", "ElemName"]
+    "message_format": ["Element", "ElemName"]
   },
   {
     "name": "InvalidEntityFunctionSignature",
     "type": "Error",
-    "params": {
+    "fields": {
       "Got": "string",
       "Expected": "string",
       "EntityFuncType": "string"

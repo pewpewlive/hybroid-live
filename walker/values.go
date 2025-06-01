@@ -303,7 +303,7 @@ func (ev *EntityVal) GetType() Type {
 }
 
 func (ev *EntityVal) GetDefault() *ast.LiteralExpr {
-	return &ast.LiteralExpr{Value: "{}"}
+	return &ast.LiteralExpr{Value: "nil"}
 }
 
 // Container

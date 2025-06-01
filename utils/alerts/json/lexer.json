@@ -12,7 +12,7 @@
   {
     "name": "MalformedNumber",
     "type": "Error",
-    "params": {
+    "fields": {
       "Number": "string"
     },
     "message": "malformed number: '%s'",
@@ -21,7 +21,7 @@
   {
     "name": "InvalidDigitInLiteral",
     "type": "Error",
-    "params": {
+    "fields": {
       "Digit": "string",
       "Literal": "string"
     },
@@ -31,7 +31,7 @@
   {
     "name": "InvalidNumberPostfix",
     "type": "Error",
-    "params": {
+    "fields": {
       "Postfix": "string"
     },
     "message": "invalid number postfix: '%s'",
@@ -41,7 +41,7 @@
   {
     "name": "UnsupportedCharacter",
     "type": "Error",
-    "params": {
+    "fields": {
       "Character": "string"
     },
     "message": "unsupported character: '%s'",

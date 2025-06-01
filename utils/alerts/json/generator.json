@@ -2,7 +2,7 @@
   {
     "name": "ExpectedPaarenthesissss",
     "type": "Error",
-    "params": {
+    "fields": {
       "Symbol": "string"
     },
     "message": "Expected '%s'",

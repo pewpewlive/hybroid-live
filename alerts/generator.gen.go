@@ -3,33 +3,31 @@
 package alerts
 
 import (
-  "fmt"
-  
+	"fmt"
 )
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ExpectedPaarenthesissss struct {
-  Specifier Snippet
-  Symbol string
+	Specifier Snippet
+	Symbol    string
 }
 
 func (ep *ExpectedPaarenthesissss) Message() string {
-  return fmt.Sprintf("Expected '%s'", ep.Symbol)
+	return fmt.Sprintf("Expected '%s'", ep.Symbol)
 }
 
 func (ep *ExpectedPaarenthesissss) SnippetSpecifier() Snippet {
-  return ep.Specifier
+	return ep.Specifier
 }
 
 func (ep *ExpectedPaarenthesissss) Note() string {
-  return ""
+	return ""
 }
 
 func (ep *ExpectedPaarenthesissss) ID() string {
-  return "hyb001G"
+	return "hyb001G"
 }
 
 func (ep *ExpectedPaarenthesissss) AlertType() Type {
-  return Error
+	return Error
 }
-

@@ -1,7 +1,12 @@
 import os
 import requests
 
-from generator.api_generator import *
+from api import pewpew, fmath
+
+
+def _generate(lib, extension, output):
+    with open(f"{lib}.gen.{extension}", mode="x", encoding="utf-8") as f:
+        f.write(output)
 
 
 if __name__ == "__main__":
@@ -23,7 +28,8 @@ if __name__ == "__main__":
             os.remove(file)
 
     # Generate API!
-    generate_api_for_libs(pewpew_lib, fmath_lib)
+    _generate("pewpew", "go", pewpew.generate_api(pewpew_lib))
+    _generate("fmath", "go", fmath.generate_api(fmath_lib))
     print("[+] API generated!")
 
     # Generation for docs
@@ -36,5 +42,6 @@ if __name__ == "__main__":
             os.remove(file)
 
     # Generate docs!
-    generate_docs_for_libs(pewpew_lib, fmath_lib)
+    _generate("pewpew", "md", pewpew.generate_docs(pewpew_lib))
+    _generate("fmath", "md", fmath.generate_docs(fmath_lib))
     print("[+] Docs generated!")

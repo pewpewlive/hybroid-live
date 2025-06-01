@@ -6,11 +6,6 @@ use SuperInertiacEntity
 const WIDTH, HEIGHT = 1000f, 1000f
 SetLevelSize(WIDTH, 1000f)
 
-pub Ship = Pewpew:NewShip(WIDTH / 2f, HEIGHT / 2f, 0)
-
-ConfigureShipWeapon(Ship, struct{
-  frequency = CannonFreq.Freq10, cannon = Pewpew:CannonType.Double
-})
 let playerConfig = struct{
   shield = 5, camera_distance = -50f
 }
