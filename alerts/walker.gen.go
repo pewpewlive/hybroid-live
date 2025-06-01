@@ -179,7 +179,7 @@ func (faolom *FieldAccessOnListOrMap) SnippetSpecifier() Snippet {
 }
 
 func (faolom *FieldAccessOnListOrMap) Note() string {
-  return fmt.Sprintf("to access a value from a %s you use brackets, e.g. example[%s]", faolom.AccessType, faolom.Field)
+  return fmt.Sprintf("to access a value from a %s you use brackets, e.g. example[\"%s\"]", faolom.AccessType, faolom.Field)
 }
 
 func (faolom *FieldAccessOnListOrMap) ID() string {

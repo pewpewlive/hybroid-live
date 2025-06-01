@@ -285,10 +285,38 @@ func (p *Parser) identExprPairs(typeContext string, optional bool) ([]*ast.Ident
 	return idents, exprs, true
 }
 
-func (p *Parser) keyValuePair(context string) (ast.Node, ast.Node, bool) {
+func (p *Parser) mapKeyValuePair() (ast.Node, ast.Node, bool) {
 	key := p.expression()
-	if key.GetType() != ast.Identifier {
-		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(key.GetToken()), "as "+context)
+	if key.GetType() != ast.LiteralExpression || key.GetToken().Type != tokens.String {
+		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(key.GetToken()), "as map key")
+		p.advance()
+		return nil, nil, false
+	}
+	_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.Equal, "after as map key")
+	if !ok {
+		return nil, nil, false
+	}
+
+	expr := p.expression()
+	if ast.IsImproper(expr, ast.NA) {
+		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()), "as as map key value")
+	}
+
+	return key, expr, expr.GetType() != ast.NA
+}
+
+func (p *Parser) keyValuePair(isMap bool, context string) (ast.Node, ast.Node, bool) {
+	key := p.expression()
+	condition := key.GetType() != ast.Identifier
+	if isMap {
+		condition = key.GetType() != ast.LiteralExpression || key.GetToken().Type != tokens.String
+	}
+	if condition {
+		if isMap {
+			p.Alert(&alerts.InvalidMapKey{}, alerts.NewSingle(key.GetToken()))
+		} else {
+			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(key.GetToken()), "as "+context)
+		}
 		p.advance()
 		return nil, nil, false
 	}

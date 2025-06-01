@@ -10,7 +10,6 @@ const (
 	FunctionDeclaration       NodeType = "functionDeclaration"
 	ClassDeclaration          NodeType = "classDeclaration"
 	ConstructorDeclaration    NodeType = "constructorDeclaration"
-	FieldDeclaration          NodeType = "fieldDeclaration"
 	MethodDeclaration         NodeType = "methodDeclaration"
 	EnumDeclaration           NodeType = "enumDeclaration"
 	MacroDeclaration          NodeType = "macroDeclaration"
@@ -103,11 +102,11 @@ const (
 	InvalidEnv Env = "InvalidEnv"
 )
 
-type SelfExprType int
+type MethodCallType int
 
 const (
-	SelfClass SelfExprType = iota
-	SelfEntity
+	ClassMethod MethodCallType = iota
+	EntityMethod
 )
 
 type MacroType int

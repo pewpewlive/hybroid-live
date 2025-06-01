@@ -223,7 +223,7 @@ func (p *Parser) classDeclaration() ast.Node {
 			} else {
 				stmt.Constructor = declaration
 			}
-		case *ast.FieldDecl:
+		case *ast.VariableDecl:
 			stmt.Fields = append(stmt.Fields, *declaration)
 		case *ast.MethodDecl:
 			stmt.Methods = append(stmt.Methods, *declaration)
@@ -260,8 +260,8 @@ func (p *Parser) entityDeclaration() ast.Node {
 	start := p.peek(-1)
 	for p.consumeTill("in entity declaration", start, tokens.RightBrace) {
 		auxiliaryDeclaration := p.auxiliaryNode()
-		if auxiliaryDeclaration.GetType() == ast.FieldDeclaration {
-			stmt.Fields = append(stmt.Fields, *auxiliaryDeclaration.(*ast.FieldDecl))
+		if auxiliaryDeclaration.GetType() == ast.VariableDeclaration {
+			stmt.Fields = append(stmt.Fields, *auxiliaryDeclaration.(*ast.VariableDecl))
 			continue
 		}
 		if auxiliaryDeclaration.GetType() == ast.MethodDeclaration {
@@ -365,7 +365,7 @@ func (p *Parser) constructorDeclaration() ast.Node {
 }
 
 func (p *Parser) fieldDeclaration(matchedLet bool) ast.Node {
-	fieldDecl := ast.FieldDecl{
+	fieldDecl := ast.VariableDecl{
 		Token: p.peek(),
 	}
 
@@ -384,14 +384,14 @@ func (p *Parser) fieldDeclaration(matchedLet bool) ast.Node {
 	idents, values, ok := p.identExprPairs("in field declaration", fieldDecl.Type != nil)
 	if !ok {
 		if matchedLet {
-			return ast.NewImproper(fieldDecl.Token, ast.FieldDeclaration)
+			return ast.NewImproper(fieldDecl.Token, ast.VariableDeclaration)
 		} else {
 			return ast.NewImproper(fieldDecl.Token, ast.NA)
 		}
 	}
 
 	fieldDecl.Identifiers = idents
-	fieldDecl.Values = values
+	fieldDecl.Expressions = values
 
 	return &fieldDecl
 }

@@ -220,5 +220,10 @@
       },
       "PreviousSection"
     ]
+  },
+  {
+    "name": "InvalidMapKey",
+    "type": "Error",
+    "message": "expected a string as a map key"
   }
 ]

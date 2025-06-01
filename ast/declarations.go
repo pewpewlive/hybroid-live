@@ -48,7 +48,7 @@ func (ad *AliasDecl) GetValueType() PrimitiveValueType { return Invalid }
 type EntityDecl struct {
 	Token     tokens.Token
 	Name      tokens.Token
-	Fields    []FieldDecl
+	Fields    []VariableDecl
 	Spawner   *EntityFunctionDecl
 	Destroyer *EntityFunctionDecl
 	Callbacks []*EntityFunctionDecl
@@ -96,17 +96,6 @@ type ConstructorDecl struct {
 func (cd *ConstructorDecl) GetType() NodeType                { return ConstructorDeclaration }
 func (cd *ConstructorDecl) GetToken() tokens.Token           { return cd.Token }
 func (cd *ConstructorDecl) GetValueType() PrimitiveValueType { return Invalid }
-
-type FieldDecl struct {
-	Identifiers []*IdentifierExpr
-	Type        *TypeExpr
-	Values      []Node
-	Token       tokens.Token
-}
-
-func (fd *FieldDecl) GetType() NodeType                { return FieldDeclaration }
-func (fd *FieldDecl) GetToken() tokens.Token           { return fd.Token }
-func (fd *FieldDecl) GetValueType() PrimitiveValueType { return Invalid }
 
 type FunctionParam struct {
 	Type *TypeExpr
@@ -160,7 +149,7 @@ type ClassDecl struct {
 	Token       tokens.Token
 	Name        tokens.Token
 	Constructor *ConstructorDecl
-	Fields      []FieldDecl
+	Fields      []VariableDecl
 	Methods     []MethodDecl
 	IsPub       bool
 }

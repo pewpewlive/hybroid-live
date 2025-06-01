@@ -120,7 +120,7 @@ func (ce *CallExpr) GetArgs() []Node {
 type MethodCallExpr struct {
 	EnvName     string
 	TypeName    string
-	ExprType    SelfExprType
+	Type        MethodCallType
 	Caller      Node
 	GenericArgs []*TypeExpr
 	Args        []Node
@@ -138,13 +138,6 @@ func (mce *MethodCallExpr) GetArgs() []Node {
 	return mce.Args
 }
 
-type BuiltinExpr struct {
-	Name tokens.Token
-}
-
-func (be *BuiltinExpr) GetType() NodeType      { return BuiltinExpression }
-func (be *BuiltinExpr) GetToken() tokens.Token { return be.Name }
-
 type FunctionExpr struct {
 	Body
 
@@ -158,8 +151,9 @@ func (fe *FunctionExpr) GetType() NodeType      { return FunctionExpression }
 func (fe *FunctionExpr) GetToken() tokens.Token { return fe.Token }
 
 type StructExpr struct {
-	Token  tokens.Token
-	Fields []*FieldDecl
+	Token       tokens.Token
+	Fields      []*IdentifierExpr
+	Expressions []Node
 }
 
 func (ase *StructExpr) GetType() NodeType      { return StructExpression }
@@ -176,7 +170,7 @@ func (me *MatchExpr) GetToken() tokens.Token { return me.MatchStmt.GetToken() }
 type SelfExpr struct {
 	Token      tokens.Token
 	EntityName string
-	Type       SelfExprType
+	Type       MethodCallType
 }
 
 func (se *SelfExpr) GetType() NodeType      { return SelfExpression }
@@ -227,11 +221,8 @@ func (ae *AccessExpr) GetType() NodeType      { return ae.Accessed[len(ae.Access
 func (ae *AccessExpr) GetToken() tokens.Token { return ae.Start.GetToken() }
 
 type FieldExpr struct {
-	Field      Node
-	ExprType   SelfExprType
-	EnvName    string
-	EntityName string
-	Index      int
+	Field Node
+	Index int
 }
 
 func (fe *FieldExpr) GetType() NodeType      { return FieldExpression }

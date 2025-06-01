@@ -59,7 +59,7 @@
     },
     "message": "cannot access field '%s' from the %s",
     "message_format": ["Field", "AccessType"],
-    "note": "to access a value from a %s you use brackets, e.g. example[%s]",
+    "note": "to access a value from a %s you use brackets, e.g. example[\\\"%s\\\"]",
     "note_format": ["AccessType", "Field"]
   },
   {

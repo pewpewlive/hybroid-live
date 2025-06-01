@@ -10,3 +10,40 @@ fn funny() -> (fixed, fixed) {
 
 let a, n, b, c, d = funny2(), 1, funny(), funny2()
 a, b = b, a
+
+class thing {
+    let o = fn(){}
+    let i = [fn() {}]
+    let foo, bar, e = funny(), a
+    fixed a
+    
+    new(){
+        funny()
+    }
+
+    fn method() -> thing {
+        return self
+    }
+}
+
+let thingthing = new thing()
+
+// thingthing.a = 9fx
+// thingthing.o()
+// thingthing.i[1] = fn(){}
+// thingthing.method()
+
+let map = {"o" = thingthing}
+
+//map["o"].method()
+
+map["0"].method().i[1]()
+
+entity example {
+    let o = 2
+
+    spawn(fixed x, y) {
+        funny()
+    }
+    destroy() {}
+}

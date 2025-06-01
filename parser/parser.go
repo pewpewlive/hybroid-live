@@ -194,11 +194,11 @@ func (p *Parser) auxiliaryNode() ast.Node {
 		}
 	} else if p.match(tokens.Let) {
 		field := p.fieldDeclaration(true)
-		if ast.IsImproper(field, ast.FieldDeclaration) {
+		if ast.IsImproper(field, ast.VariableDeclaration) {
 			p.synchronizeDeclBody()
-			return ast.NewImproper(field.GetToken(), ast.FieldDeclaration)
+			return ast.NewImproper(field.GetToken(), ast.VariableDeclaration)
 		}
-		if field.GetType() == ast.FieldDeclaration {
+		if field.GetType() == ast.VariableDeclaration {
 			return field
 		}
 	}

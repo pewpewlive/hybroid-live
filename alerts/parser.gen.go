@@ -801,3 +801,28 @@ func (si *SyntaxIncoherency) AlertType() Type {
   return Error
 }
 
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidMapKey struct {
+  Specifier Snippet
+}
+
+func (imk *InvalidMapKey) Message() string {
+  return "expected a string as a map key"
+}
+
+func (imk *InvalidMapKey) SnippetSpecifier() Snippet {
+  return imk.Specifier
+}
+
+func (imk *InvalidMapKey) Note() string {
+  return ""
+}
+
+func (imk *InvalidMapKey) ID() string {
+  return "hyb032P"
+}
+
+func (imk *InvalidMapKey) AlertType() Type {
+  return Error
+}
+

@@ -1,12 +1,11 @@
 package generator
 
 var functions = map[string]string{
-	"ToString": ToStringFunction,
+	"ToString":   ToStringFunction,
 	"ParseSound": ParseSoundFunction,
 }
 
-var ToStringFunction = 
-`function ToString(value)
+var ToStringFunction = `function ToString(value)
 	local str
 	if type(value) == "table" then
 		str = "{"
@@ -30,8 +29,7 @@ var ToStringFunction =
 end
 `
 
-var ParseSoundFunction = 
-`function split(str, pat)
+var ParseSoundFunction = `function split(str, pat)
    local t = {}  -- NOTE: use {n = 0} in Lua-5.0
    local fpat = "(.-)" .. pat
    local last_end = 1

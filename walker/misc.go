@@ -130,19 +130,15 @@ func (sc *Scope) resolveReturnable() *ExitableTag {
 	return sc.Parent.resolveReturnable()
 }
 
-func convertNodeToAccessFieldExpr(ident ast.Node, index int, exprType ast.SelfExprType, envName string, entityName string) *ast.AccessExpr {
+func convertNodeToAccessFieldExpr(ident ast.Node, index int) *ast.AccessExpr {
 	fieldExpr := &ast.FieldExpr{
-		Index:      index,
-		Field:      ident,
-		ExprType:   exprType,
-		EnvName:    envName,
-		EntityName: entityName,
+		Index: index,
+		Field: ident,
 	}
 
 	return &ast.AccessExpr{
 		Start: &ast.SelfExpr{
 			Token: ident.GetToken(),
-			Type:  exprType,
 		},
 		Accessed: []ast.Node{
 			fieldExpr,
@@ -150,16 +146,16 @@ func convertNodeToAccessFieldExpr(ident ast.Node, index int, exprType ast.SelfEx
 	}
 }
 
-func convertCallToMethodCall(call *ast.CallExpr, exprType ast.SelfExprType, envName string, name string) *ast.MethodCallExpr {
+func convertCallToMethodCall(call *ast.CallExpr, mi MethodInfo) *ast.MethodCallExpr {
 	copy := *call
 	return &ast.MethodCallExpr{
-		EnvName:     envName,
-		TypeName:    name,
-		ExprType:    exprType,
+		EnvName:     mi.EnvName,
+		TypeName:    mi.TypeName,
+		Type:        mi.MethodType,
 		Caller:      copy.Caller,
 		GenericArgs: copy.GenericArgs,
 		Args:        copy.Args,
-		MethodName:  call.Caller.GetToken().Lexeme,
+		MethodName:  mi.MethodName,
 	}
 }
 

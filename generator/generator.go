@@ -135,6 +135,24 @@ func (gen *Generator) GenerateBody(body ast.Body) {
 	TabsCount -= 1
 }
 
+func (gen *Generator) GenerateBodyValue(body ast.Body) string {
+	TabsCount += 1
+	start := gen.Len() - 1
+	if gen.Future != "" {
+		gen.WriteTabbed(gen.Future)
+		gen.Future = ""
+	}
+	for _, node := range body {
+		gen.GenerateStmt(node)
+		gen.Write("\n")
+	}
+	end := gen.Len() - 1
+	TabsCount -= 1
+	value := gen.String()[start:end]
+	gen.ReplaceSpan("", core.NewSpan(start, end))
+	return value
+}
+
 func fixedToFx(floatstr string) string {
 	float, _ := strconv.ParseFloat(floatstr, 64)
 	abs_float := math.Abs(float)
@@ -241,6 +259,8 @@ func (gen *Generator) GenerateExpr(node ast.Node) string {
 		return gen.callExpr(*newNode, false)
 	case *ast.MapExpr:
 		return gen.mapExpr(*newNode)
+	case *ast.AccessExpr:
+		return gen.accessExpr(*newNode)
 	case *ast.FunctionExpr:
 		return gen.functionExpr(*newNode)
 	case *ast.StructExpr:

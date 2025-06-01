@@ -251,21 +251,12 @@ func (w *Walker) enumDeclaration(node *ast.EnumDecl, scope *Scope) {
 	w.declareVariable(scope, enumVar)
 }
 
-func (w *Walker) fieldDeclaration(node *ast.FieldDecl, container FieldContainer, scope *Scope, allowSelf bool) {
-	varDecl := ast.VariableDecl{
-		Identifiers: node.Identifiers,
-		Type:        node.Type,
-		Expressions: node.Values,
-		IsPub:       false,
-		Token:       node.Token,
-	}
-
+func (w *Walker) fieldDeclaration(node *ast.VariableDecl, container FieldContainer, scope *Scope, allowSelf bool) {
 	if !allowSelf {
 		scope.Attributes.Remove(SelfAllowing)
 	}
 
-	w.variableDeclaration(&varDecl, scope, true)
-	node.Values = varDecl.Expressions
+	w.variableDeclaration(node, scope, true)
 	for _, v := range node.Identifiers {
 		variable, ok := scope.Variables[v.Name.Lexeme]
 		if ok {
@@ -311,6 +302,14 @@ func (w *Walker) methodDeclaration(node *ast.MethodDecl, container MethodContain
 		}
 
 		variable := w.functionDeclaration(&funcExpr, scope, Method)
+		fn := variable.Value.(*FunctionVal)
+		fn.ProcType = Method
+		var methodType ast.MethodCallType = ast.EntityMethod
+		if scope.Tag.GetType() == Class {
+			methodType = ast.ClassMethod
+		}
+		namedType := container.GetType().(*NamedType)
+		fn.MethodInfo = NewMethodInfo(methodType, funcExpr.Name.Lexeme, namedType.Name, namedType.EnvName)
 		container.AddMethod(variable)
 	}
 }
@@ -328,7 +327,7 @@ func (w *Walker) functionDeclaration(node *ast.FunctionDecl, scope *Scope, procT
 
 	variable := &VariableVal{
 		Name: node.Name.Lexeme,
-		Value: NewFunction2(procType, params...).
+		Value: NewFunction(params...).
 			WithGenerics(generics...).
 			WithReturns(ret...),
 		Token: node.GetToken(),

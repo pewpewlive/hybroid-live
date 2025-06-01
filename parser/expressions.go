@@ -243,7 +243,7 @@ accessCheck:
 			})
 		}
 		expr = p.call(access)
-		if p.check(tokens.Less, tokens.LeftParen) {
+		if expr.GetType() == ast.CallExpression {
 			goto accessCheck
 		}
 	}
@@ -466,14 +466,14 @@ func (p *Parser) parseMap() ast.Node {
 	p.context.braceCounter.Increment()
 	defer p.context.braceCounter.Decrement()
 
-	key, value, ok := p.keyValuePair("map key")
+	key, value, ok := p.keyValuePair(true, "map key")
 	if !ok {
 		return ast.NewImproper(mapExpr.Token, ast.MapExpression)
 	}
 	mapExpr.KeyValueList = append(mapExpr.KeyValueList, ast.Property{Key: key, Expr: value})
 
 	for p.match(tokens.Comma) {
-		key, value, ok = p.keyValuePair("map key")
+		key, value, ok = p.keyValuePair(true, "map key")
 		if !ok {
 			return ast.NewImproper(mapExpr.Token, ast.MapExpression)
 		}
@@ -486,8 +486,9 @@ func (p *Parser) parseMap() ast.Node {
 
 func (p *Parser) structExpr() ast.Node {
 	structExpr := ast.StructExpr{
-		Token:  p.peek(-1),
-		Fields: make([]*ast.FieldDecl, 0),
+		Token:       p.peek(-1),
+		Fields:      make([]*ast.IdentifierExpr, 0),
+		Expressions: make([]ast.Node, 0),
 	}
 
 	start, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.LeftBrace)
@@ -500,29 +501,23 @@ func (p *Parser) structExpr() ast.Node {
 	p.context.braceCounter.Increment()
 	defer p.context.braceCounter.Decrement()
 
-	field, value, ok := p.keyValuePair("struct field")
+	field, value, ok := p.keyValuePair(false, "struct field")
 	if !ok {
 		return ast.NewImproper(structExpr.Token, ast.StructExpression)
 	}
-	structExpr.Fields = append(structExpr.Fields, &ast.FieldDecl{
-		Identifiers: []*ast.IdentifierExpr{field.(*ast.IdentifierExpr)},
-		Values:      []ast.Node{value},
-		Token:       field.GetToken(),
-	})
+	structExpr.Fields = append(structExpr.Fields, field.(*ast.IdentifierExpr))
+	structExpr.Expressions = append(structExpr.Expressions, value)
 
 	for p.match(tokens.Comma) {
 		if p.check(tokens.RightBrace) {
 			break
 		}
-		field, value, ok := p.keyValuePair("struct field")
+		field, value, ok := p.keyValuePair(false, "struct field")
 		if !ok {
 			return ast.NewImproper(structExpr.Token, ast.StructExpression)
 		}
-		structExpr.Fields = append(structExpr.Fields, &ast.FieldDecl{
-			Identifiers: []*ast.IdentifierExpr{field.(*ast.IdentifierExpr)},
-			Values:      []ast.Node{value},
-			Token:       field.GetToken(),
-		})
+		structExpr.Fields = append(structExpr.Fields, field.(*ast.IdentifierExpr))
+		structExpr.Expressions = append(structExpr.Expressions, value)
 	}
 
 	p.alertMultiConsume(&alerts.ExpectedSymbol{}, start, p.peek(), tokens.RightBrace)

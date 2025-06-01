@@ -135,12 +135,12 @@ func (gen *Generator) mapExpr(node ast.MapExpr) string {
 		val := gen.GenerateExpr(v.Expr)
 
 		token := v.Key.GetToken()
-		ident := token.Literal
+		ident := token.Lexeme
 
 		if index != len(node.KeyValueList)-1 {
-			src.WriteTabbed(fmt.Sprintf("%s = %v,\n", ident, val))
+			src.WriteTabbed(fmt.Sprintf("[%s] = %v,\n", ident, val))
 		} else {
-			src.WriteTabbed(fmt.Sprintf("%s = %v\n", ident, val))
+			src.WriteTabbed(fmt.Sprintf("[%s] = %v\n", ident, val))
 		}
 		index++
 	}
@@ -163,17 +163,13 @@ func (gen *Generator) unaryExpr(node ast.UnaryExpr) string {
 
 func (gen *Generator) accessExpr(node ast.AccessExpr) string {
 	src := StringBuilder{}
-	start := gen.GenerateExpr(node.Start)
-	if field, ok := node.Accessed[0].(*ast.FieldExpr); ok && field.ExprType == ast.SelfEntity {
-		src.Write(envMap[field.EnvName], hyEntity, field.EntityName)
-	}
-	src.Write(start)
+	src.Write(gen.GenerateExpr(node.Start))
 	for _, accessed := range node.Accessed {
 		switch expr := accessed.(type) {
 		case *ast.FieldExpr:
 			src.Write(fmt.Sprintf("[%v]", expr.Index))
 		case *ast.MemberExpr:
-			src.Write(fmt.Sprintf("[%s]", expr.GetToken().Literal))
+			src.Write(fmt.Sprintf("[%s]", expr.GetToken().Lexeme))
 		}
 	}
 
@@ -181,20 +177,21 @@ func (gen *Generator) accessExpr(node ast.AccessExpr) string {
 }
 
 func (gen *Generator) functionExpr(fn ast.FunctionExpr) string {
-	gen.WriteString("function (")
+	src := StringBuilder{}
+	src.WriteString("function (")
 	for i, param := range fn.Params {
 		gen.Write(param.Name.Lexeme)
 		if i != len(fn.Params)-1 {
 			gen.Write(", ")
 		}
 	}
-	gen.Write(")\n")
+	src.Write(")\n")
 
-	gen.GenerateBody(fn.Body)
+	src.Write(gen.GenerateBodyValue(fn.Body))
 
-	gen.WriteTabbed("end")
+	src.WriteTabbed("end")
 
-	return gen.String()
+	return src.String()
 }
 
 func (gen *Generator) structExpr(node ast.StructExpr) string {
@@ -203,7 +200,7 @@ func (gen *Generator) structExpr(node ast.StructExpr) string {
 	src.Write("{\n")
 	TabsCount += 1
 	for i, v := range node.Fields {
-		src.WriteTabbed(gen.fieldDeclaration(*v))
+		src.WriteTabbed(gen.GenerateExpr(v), " = ", gen.GenerateExpr(node.Expressions[i]))
 		if i != len(node.Fields)-1 {
 			src.Write(", ")
 		}
@@ -216,9 +213,9 @@ func (gen *Generator) structExpr(node ast.StructExpr) string {
 }
 
 func (gen *Generator) selfExpr(self ast.SelfExpr) string {
-	if self.Type == ast.SelfClass {
+	if self.Type == ast.ClassMethod {
 		return "Self"
-	} else if self.Type == ast.SelfEntity {
+	} else if self.Type == ast.EntityMethod {
 		return "id"
 	}
 	return ""
@@ -341,32 +338,24 @@ func (gen *Generator) spawnExpr(spawn ast.SpawnExpr, stmt bool) string {
 func (gen *Generator) methodCallExpr(methodCall ast.MethodCallExpr, stmt bool) string {
 	src := StringBuilder{}
 
-	// if stmt {
-	// 	src.WriteTabbed()
-	// }
-	// var extra string
-	// if methodCall.ExprType == ast.SelfStruct {
-	// 	extra = hyClass
-	// } else {
-	// 	extra = hyEntity
-	// }
-	// src.Write(envMap[methodCall.EnvName], extra, methodCall.TypeName, "_", methodCall.MethodName, "(", gen.GenerateExpr(methodCall.Identifier))
-	// for i := range methodCall.Call.Args {
-	// 	src.Write(", ", gen.GenerateExpr(methodCall.Call.Args[i]))
-	// }
-	// if stmt {
-	// 	src.Write(")\n")
-	// } else {
-	// 	src.Write(")")
-	// }
+	if stmt {
+		src.WriteTabbed()
+	}
+	var extra string
+	if methodCall.Type == ast.ClassMethod {
+		extra = hyClass
+	} else {
+		extra = hyEntity
+	}
+	src.Write(envMap[methodCall.EnvName], extra, methodCall.TypeName, "_", methodCall.MethodName, "(", gen.GenerateExpr(methodCall.Caller))
+	for i := range methodCall.Args {
+		src.Write(", ", gen.GenerateExpr(methodCall.Args[i]))
+	}
+	if stmt {
+		src.Write(")\n")
+	} else {
+		src.Write(")")
+	}
 
 	return src.String()
 }
-
-// func (gen *Generator) builtinExpr(builtin ast.BuiltinExpr) string {
-// 	return builtin.Name.Lexeme
-// }
-
-// func (gen *Generator) castExpr(cast ast.CastExpr) string {
-// 	return gen.GenerateExpr(cast.Value)
-// }

@@ -11,7 +11,11 @@ func (w *Walker) structExpression(node *ast.StructExpr, scope *Scope) *AnonStruc
 	structTypeVal := NewAnonStructVal(make(map[string]Field), false)
 
 	for i := range node.Fields {
-		w.fieldDeclaration(node.Fields[i], structTypeVal, anonStructScope, true)
+		w.fieldDeclaration(&ast.VariableDecl{
+			Identifiers: []*ast.IdentifierExpr{node.Fields[i]},
+			Expressions: []ast.Node{node.Expressions[i]},
+			Token:       node.Fields[i].GetToken(),
+		}, structTypeVal, anonStructScope, true)
 	}
 
 	return structTypeVal
@@ -212,7 +216,7 @@ check:
 		class := sc.Tag.(*ClassTag).Val
 		field, index, found := class.ContainsField(variable.Name)
 
-		*node = convertNodeToAccessFieldExpr(ident, index, ast.SelfClass, class.Type.EnvName, "")
+		*node = convertNodeToAccessFieldExpr(ident, index)
 
 		if found {
 			return field
@@ -226,7 +230,7 @@ check:
 		entity := sc.Tag.(*EntityTag).EntityType
 		field, index, found := entity.ContainsField(variable.Name)
 
-		*node = convertNodeToAccessFieldExpr(ident, index, ast.SelfEntity, entity.Type.EnvName, entity.Type.Name)
+		*node = convertNodeToAccessFieldExpr(ident, index)
 
 		if found {
 			return field
@@ -238,9 +242,6 @@ check:
 		w.AlertSingle(&alerts.MethodOrFieldNotFound{}, identToken, variable.Name)
 	} else if sc.Environment.Name == "Builtin" {
 		scope.Environment.AddBuiltinVar(ident.Name.Lexeme)
-		*node = &ast.BuiltinExpr{
-			Name: ident.Name,
-		}
 	} else if sc.Environment.Name != w.environment.Name && scope != sc {
 		*node = &ast.EnvAccessExpr{
 			PathExpr: &ast.EnvPathExpr{
@@ -356,9 +357,12 @@ func (w *Walker) callExpression(val Value, node *ast.Node, scope *Scope) Value {
 	nodeArgs := call.Args
 	if fn.ProcType == Method {
 		caller := call.Caller.(*ast.AccessExpr)
-		field := caller.Accessed[len(caller.Accessed)-1].(*ast.FieldExpr)
+		caller.Accessed = caller.Accessed[:len(caller.Accessed)-1]
+		if len(caller.Accessed) == 0 {
+			call.Caller = caller.Start
+		}
 
-		*node = convertCallToMethodCall(call, field.ExprType, field.EnvName, field.EntityName)
+		*node = convertCallToMethodCall(call, fn.MethodInfo)
 		mcall := (*node).(*ast.MethodCallExpr)
 
 		nodeGenerics = mcall.GenericArgs
@@ -405,37 +409,37 @@ func (w *Walker) accessExpression(node *ast.AccessExpr, scope *Scope) Value {
 
 	prevNode := node.Start
 	for i := range node.Accessed {
-		valPVT := val.GetType().PVT()
-		if valPVT == ast.Invalid {
+		valType := val.GetType()
+		if valType == InvalidType {
 			return &Invalid{}
 		}
 
 		scopedVal, scopeable := val.(ScopeableValue)
 
-		if valPVT != ast.List && valPVT != ast.Map && !scopeable {
-			w.AlertSingle(&alerts.InvalidAccessValue{}, node.GetToken(), valPVT)
+		if valType.GetType() != Wrapper && !scopeable {
+			w.AlertSingle(&alerts.InvalidAccessValue{}, prevNode.GetToken(), valType)
 			return &Invalid{}
 		}
 		token := node.Accessed[i].GetToken()
 		exprType := node.Accessed[i].GetType()
 
 		// list and map error handling
-		if valPVT == ast.List || valPVT == ast.Map {
+		if valType.GetType() == Wrapper {
 			if exprType == ast.FieldExpression {
 				w.AlertSingle(&alerts.FieldAccessOnListOrMap{}, token,
-					prevNode.GetToken().Lexeme,
-					valPVT,
+					node.Accessed[i].GetToken().Lexeme,
+					valType,
 				)
 				return &Invalid{}
 			}
 
 			member := node.Accessed[i].(*ast.MemberExpr).Member
 			memberVal := w.GetActualNodeValue(&member, scope)
-			if (memberVal.GetType().PVT() != ast.Number && valPVT == ast.List) ||
-				(memberVal.GetType().PVT() != ast.String && valPVT == ast.Map) {
+			if (memberVal.GetType().PVT() != ast.Number && valType.PVT() == ast.List) ||
+				(memberVal.GetType().PVT() != ast.String && valType.PVT() == ast.Map) {
 
 				w.AlertSingle(&alerts.InvalidMemberIndex{}, token,
-					string(valPVT),
+					valType,
 					member.GetToken().Lexeme,
 				)
 			}
@@ -449,20 +453,26 @@ func (w *Walker) accessExpression(node *ast.AccessExpr, scope *Scope) Value {
 		if scopeable {
 			if exprType == ast.MemberExpression {
 				w.AlertSingle(&alerts.MemberAccessOnNonListOrMap{}, token,
-					prevNode.GetToken().Lexeme,
-					valPVT,
+					node.Accessed[i].GetToken().Lexeme,
+					valType,
 				)
 				return &Invalid{}
 			}
 
-			field := node.Accessed[i].(*ast.FieldExpr).Field
-			fieldVal := w.GetNodeValue(&field, scopedVal.Scopify(scope))
+			field := node.Accessed[i].(*ast.FieldExpr)
+			fieldVal := w.GetNodeValue(&field.Field, scopedVal.Scopify(scope))
 
-			if fieldVal.GetType().PVT() == ast.Invalid {
+			if fieldVal.GetType() == InvalidType {
 				w.AlertSingle(&alerts.InvalidField{}, token,
-					valPVT,
+					fieldVal.GetType(),
 					token.Lexeme,
 				)
+			}
+
+			fc := val.(FieldContainer)
+			_, index, found := fc.ContainsField(field.GetToken().Lexeme)
+			if found {
+				field.Index = index
 			}
 
 			val = fieldVal
@@ -550,7 +560,7 @@ func (w *Walker) selfExpression(self *ast.SelfExpr, scope *Scope) Value {
 	if sc == nil {
 		entitySc, _, entityTag := resolveTagScope[*EntityTag](scope)
 		if entitySc != nil {
-			self.Type = ast.SelfEntity
+			self.Type = ast.EntityMethod
 			self.EntityName = (*entityTag).EntityType.Type.Name
 			return (*entityTag).EntityType
 		}
@@ -558,7 +568,7 @@ func (w *Walker) selfExpression(self *ast.SelfExpr, scope *Scope) Value {
 		return &Invalid{}
 	}
 
-	(*self).Type = ast.SelfClass
+	(*self).Type = ast.ClassMethod
 	return (*classTag).Val
 }
 
