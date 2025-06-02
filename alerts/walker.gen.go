@@ -306,7 +306,7 @@ type InvalidCallerType struct {
 }
 
 func (ict *InvalidCallerType) Message() string {
-	return fmt.Sprintf("cannot call value of of type '%s' as a function", ict.Type)
+	return fmt.Sprintf("cannot call value of type '%s' as a function", ict.Type)
 }
 
 func (ict *InvalidCallerType) SnippetSpecifier() Snippet {
