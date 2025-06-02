@@ -49,7 +49,7 @@ func (iet *InvalidEnvironmentType) SnippetSpecifier() Snippet {
 }
 
 func (iet *InvalidEnvironmentType) Note() string {
-	return "environment type can be 'Level', 'Mesh' or 'Sound'"
+	return "environment type can be 'Level', 'Mesh', 'Sound' or 'Generic'"
 }
 
 func (iet *InvalidEnvironmentType) ID() string {
@@ -1651,5 +1651,112 @@ func (isp *InvalidSpawnerParameters) ID() string {
 }
 
 func (isp *InvalidSpawnerParameters) AlertType() Type {
+	return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidUniqueVariable struct {
+	Specifier Snippet
+	UniqueVar string
+	Type      string
+}
+
+func (iuv *InvalidUniqueVariable) Message() string {
+	return fmt.Sprintf("'%s' variable should be global and of type 'list<%s>''", iuv.UniqueVar, iuv.Type)
+}
+
+func (iuv *InvalidUniqueVariable) SnippetSpecifier() Snippet {
+	return iuv.Specifier
+}
+
+func (iuv *InvalidUniqueVariable) Note() string {
+	return ""
+}
+
+func (iuv *InvalidUniqueVariable) ID() string {
+	return "hyb064W"
+}
+
+func (iuv *InvalidUniqueVariable) AlertType() Type {
+	return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type MissingUniqueVariable struct {
+	Specifier Snippet
+	UniqueVar string
+	EnvType   string
+}
+
+func (muv *MissingUniqueVariable) Message() string {
+	return fmt.Sprintf("A %s environment must have a '%s' variable", muv.EnvType, muv.UniqueVar)
+}
+
+func (muv *MissingUniqueVariable) SnippetSpecifier() Snippet {
+	return muv.Specifier
+}
+
+func (muv *MissingUniqueVariable) Note() string {
+	return ""
+}
+
+func (muv *MissingUniqueVariable) ID() string {
+	return "hyb065W"
+}
+
+func (muv *MissingUniqueVariable) AlertType() Type {
+	return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type UnallowedEnvironmentAccess struct {
+	Specifier Snippet
+	Unallowed string
+	From      string
+}
+
+func (uea *UnallowedEnvironmentAccess) Message() string {
+	return fmt.Sprintf("cannot access a %s environment from a %s environment", uea.Unallowed, uea.From)
+}
+
+func (uea *UnallowedEnvironmentAccess) SnippetSpecifier() Snippet {
+	return uea.Specifier
+}
+
+func (uea *UnallowedEnvironmentAccess) Note() string {
+	return ""
+}
+
+func (uea *UnallowedEnvironmentAccess) ID() string {
+	return "hyb066W"
+}
+
+func (uea *UnallowedEnvironmentAccess) AlertType() Type {
+	return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidDefaultCasePlacement struct {
+	Specifier Snippet
+	Context   string
+}
+
+func (idcp *InvalidDefaultCasePlacement) Message() string {
+	return fmt.Sprintf("the default case must always be at the end %s", idcp.Context)
+}
+
+func (idcp *InvalidDefaultCasePlacement) SnippetSpecifier() Snippet {
+	return idcp.Specifier
+}
+
+func (idcp *InvalidDefaultCasePlacement) Note() string {
+	return ""
+}
+
+func (idcp *InvalidDefaultCasePlacement) ID() string {
+	return "hyb067W"
+}
+
+func (idcp *InvalidDefaultCasePlacement) AlertType() Type {
 	return Error
 }

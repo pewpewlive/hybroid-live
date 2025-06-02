@@ -17,7 +17,7 @@
     },
     "message": "'%s' is not a valid environment type",
     "message_format": ["Type"],
-    "note": "environment type can be 'Level', 'Mesh' or 'Sound'"
+    "note": "environment type can be 'Level', 'Mesh', 'Sound' or 'Generic'"
   },
   {
     "name": "EnvironmentRedaclaration",
@@ -111,7 +111,7 @@
     "fields": {
       "Type": "string"
     },
-    "message": "cannot call value of of type '%s' as a function",
+    "message": "cannot call value of type '%s' as a function",
     "message_format": ["Type"]
   },
   {
@@ -527,5 +527,44 @@
     "name": "InvalidSpawnerParameters",
     "type": "Error",
     "message": "the first two parameters of the spawner must be fixedpoints"
+  },
+  {
+    "name": "InvalidUniqueVariable",
+    "type": "Error",
+    "fields": {
+      "UniqueVar": "string",
+      "Type": "string"
+    },
+    "message": "'%s' variable should be global and of type 'list<%s>''",
+    "message_format": ["UniqueVar", "Type"]
+  },
+  {
+    "name": "MissingUniqueVariable",
+    "type": "Error",
+    "fields": {
+      "UniqueVar": "string",
+      "EnvType": "string"
+    },
+    "message": "A %s environment must have a '%s' variable",
+    "message_format": ["EnvType", "UniqueVar"]
+  },
+  {
+    "name": "UnallowedEnvironmentAccess",
+    "type": "Error",
+    "fields": {
+      "Unallowed": "string",
+      "From": "string"
+    },
+    "message": "cannot access a %s environment from a %s environment",
+    "message_format":["Unallowed", "From"]
+  },
+  {
+    "name": "InvalidDefaultCasePlacement",
+    "type": "Error",
+    "fields":{
+      "Context": "string"
+    },
+    "message": "the default case must always be at the end %s",
+    "message_format": ["Context"]
   }
 ]

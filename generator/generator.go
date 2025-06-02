@@ -58,6 +58,7 @@ type Generator struct {
 	envName        string
 	env            ast.Env
 	ContinueLabels core.Stack[string]
+	BreakLabels    core.Stack[string]
 	YieldContexts  core.Stack[YieldContext]
 	buffer         StringBuilder
 	writeToBuffer  bool

@@ -9,9 +9,8 @@ type AssignmentStmt struct {
 	Token       tokens.Token
 }
 
-func (as *AssignmentStmt) GetType() NodeType                { return AssignmentStatement }
-func (as *AssignmentStmt) GetToken() tokens.Token           { return as.Token }
-func (as *AssignmentStmt) GetValueType() PrimitiveValueType { return Invalid }
+func (as *AssignmentStmt) GetType() NodeType      { return AssignmentStatement }
+func (as *AssignmentStmt) GetToken() tokens.Token { return as.Token }
 
 type DestroyStmt struct {
 	Identifier  Node
@@ -22,9 +21,8 @@ type DestroyStmt struct {
 	Token       tokens.Token
 }
 
-func (ne *DestroyStmt) GetType() NodeType                { return DestroyStatement }
-func (ne *DestroyStmt) GetToken() tokens.Token           { return ne.Token }
-func (ne *DestroyStmt) GetValueType() PrimitiveValueType { return Invalid }
+func (ne *DestroyStmt) GetType() NodeType      { return DestroyStatement }
+func (ne *DestroyStmt) GetToken() tokens.Token { return ne.Token }
 
 func (ne *DestroyStmt) GetGenerics() []*TypeExpr {
 	return ne.GenericArgs
@@ -43,26 +41,26 @@ type IfStmt struct {
 	Token    tokens.Token
 }
 
-func (is *IfStmt) GetType() NodeType                { return IfStatement }
-func (is *IfStmt) GetToken() tokens.Token           { return is.Token }
-func (is *IfStmt) GetValueType() PrimitiveValueType { return Invalid }
+func (is *IfStmt) GetType() NodeType      { return IfStatement }
+func (is *IfStmt) GetToken() tokens.Token { return is.Token }
 
 type CaseStmt struct {
 	Body
-
-	Expression Node
+	Expressions []Node
 }
+
+func (ms *CaseStmt) GetType() NodeType      { return CaseStatement }
+func (ms *CaseStmt) GetToken() tokens.Token { return ms.Expressions[0].GetToken() }
 
 type MatchStmt struct {
 	Token       tokens.Token
 	ExprToMatch Node
-	Cases       []CaseStmt
+	Cases       []*CaseStmt
 	HasDefault  bool
 }
 
-func (ms *MatchStmt) GetType() NodeType                { return MatchStatement }
-func (ms *MatchStmt) GetValueType() PrimitiveValueType { return Invalid }
-func (ms *MatchStmt) GetToken() tokens.Token           { return ms.Token }
+func (ms *MatchStmt) GetType() NodeType      { return MatchStatement }
+func (ms *MatchStmt) GetToken() tokens.Token { return ms.Token }
 
 type RepeatStmt struct {
 	Body
@@ -74,9 +72,8 @@ type RepeatStmt struct {
 	Token    tokens.Token
 }
 
-func (rs *RepeatStmt) GetType() NodeType                { return RepeatStatement }
-func (rs *RepeatStmt) GetToken() tokens.Token           { return rs.Token }
-func (rs *RepeatStmt) GetValueType() PrimitiveValueType { return Invalid }
+func (rs *RepeatStmt) GetType() NodeType      { return RepeatStatement }
+func (rs *RepeatStmt) GetToken() tokens.Token { return rs.Token }
 
 type WhileStmt struct {
 	Body
@@ -85,9 +82,8 @@ type WhileStmt struct {
 	Token     tokens.Token
 }
 
-func (fs *WhileStmt) GetType() NodeType                { return WhileStatement }
-func (fs *WhileStmt) GetToken() tokens.Token           { return fs.Token }
-func (fs *WhileStmt) GetValueType() PrimitiveValueType { return Invalid }
+func (fs *WhileStmt) GetType() NodeType      { return WhileStatement }
+func (fs *WhileStmt) GetToken() tokens.Token { return fs.Token }
 
 type ForStmt struct {
 	Body
@@ -99,9 +95,8 @@ type ForStmt struct {
 	Token            tokens.Token
 }
 
-func (fs *ForStmt) GetType() NodeType                { return ForStatement }
-func (fs *ForStmt) GetToken() tokens.Token           { return fs.Token }
-func (fs *ForStmt) GetValueType() PrimitiveValueType { return Invalid }
+func (fs *ForStmt) GetType() NodeType      { return ForStatement }
+func (fs *ForStmt) GetToken() tokens.Token { return fs.Token }
 
 type TickStmt struct {
 	Body
@@ -110,43 +105,38 @@ type TickStmt struct {
 	Token    tokens.Token
 }
 
-func (ts *TickStmt) GetType() NodeType                { return TickStatement }
-func (ts *TickStmt) GetToken() tokens.Token           { return ts.Token }
-func (ts *TickStmt) GetValueType() PrimitiveValueType { return Invalid }
+func (ts *TickStmt) GetType() NodeType      { return TickStatement }
+func (ts *TickStmt) GetToken() tokens.Token { return ts.Token }
 
 type ReturnStmt struct {
 	Args  []Node
 	Token tokens.Token
 }
 
-func (rs *ReturnStmt) GetType() NodeType                { return ReturnStatement }
-func (rs *ReturnStmt) GetToken() tokens.Token           { return rs.Token }
-func (rs *ReturnStmt) GetValueType() PrimitiveValueType { return Invalid }
+func (rs *ReturnStmt) GetType() NodeType      { return ReturnStatement }
+func (rs *ReturnStmt) GetToken() tokens.Token { return rs.Token }
 
 type YieldStmt struct {
 	Args  []Node
 	Token tokens.Token
 }
 
-func (ys *YieldStmt) GetType() NodeType                { return YieldStatement }
-func (ys *YieldStmt) GetToken() tokens.Token           { return ys.Token }
-func (ys *YieldStmt) GetValueType() PrimitiveValueType { return Invalid }
+func (ys *YieldStmt) GetType() NodeType      { return YieldStatement }
+func (ys *YieldStmt) GetToken() tokens.Token { return ys.Token }
 
 type BreakStmt struct {
 	Token tokens.Token
 }
 
-func (bs *BreakStmt) GetType() NodeType                { return BreakStatement }
-func (bs *BreakStmt) GetToken() tokens.Token           { return bs.Token }
-func (bs *BreakStmt) GetValueType() PrimitiveValueType { return Invalid }
+func (bs *BreakStmt) GetType() NodeType      { return BreakStatement }
+func (bs *BreakStmt) GetToken() tokens.Token { return bs.Token }
 
 type ContinueStmt struct {
 	Token tokens.Token
 }
 
-func (cs *ContinueStmt) GetType() NodeType                { return ContinueStatement }
-func (cs *ContinueStmt) GetToken() tokens.Token           { return cs.Token }
-func (cs *ContinueStmt) GetValueType() PrimitiveValueType { return Invalid }
+func (cs *ContinueStmt) GetType() NodeType      { return ContinueStatement }
+func (cs *ContinueStmt) GetToken() tokens.Token { return cs.Token }
 
 type AddStmt struct {
 	Value      Node
@@ -154,9 +144,8 @@ type AddStmt struct {
 	Token      tokens.Token
 }
 
-func (as *AddStmt) GetType() NodeType                { return AddStatement }
-func (as *AddStmt) GetToken() tokens.Token           { return as.Token }
-func (as *AddStmt) GetValueType() PrimitiveValueType { return Invalid }
+func (as *AddStmt) GetType() NodeType      { return AddStatement }
+func (as *AddStmt) GetToken() tokens.Token { return as.Token }
 
 type RemoveStmt struct {
 	Value      Node
@@ -164,15 +153,13 @@ type RemoveStmt struct {
 	Token      tokens.Token
 }
 
-func (rs *RemoveStmt) GetType() NodeType                { return RemoveStatement }
-func (rs *RemoveStmt) GetToken() tokens.Token           { return rs.Token }
-func (rs *RemoveStmt) GetValueType() PrimitiveValueType { return Invalid }
+func (rs *RemoveStmt) GetType() NodeType      { return RemoveStatement }
+func (rs *RemoveStmt) GetToken() tokens.Token { return rs.Token }
 
 type UseStmt struct {
 	Token    tokens.Token
 	PathExpr *EnvPathExpr
 }
 
-func (us *UseStmt) GetType() NodeType                { return UseStatement }
-func (us *UseStmt) GetToken() tokens.Token           { return us.Token }
-func (us *UseStmt) GetValueType() PrimitiveValueType { return Invalid }
+func (us *UseStmt) GetType() NodeType      { return UseStatement }
+func (us *UseStmt) GetToken() tokens.Token { return us.Token }

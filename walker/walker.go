@@ -172,7 +172,33 @@ func (w *Walker) Walk() {
 		w.walkNode(&w.program[i], scope)
 	}
 
+	w.CheckUniqueVariables()
+
 	w.Walked = true
+}
+
+func (w *Walker) CheckUniqueVariables() {
+	if w.environment.Type == ast.MeshEnv {
+		variable, ok := w.environment.Scope.Variables["meshes"]
+		if !ok {
+			w.AlertSingle(&alerts.MissingUniqueVariable{}, w.environment._envStmt.GetToken(), "meshes", "Mesh")
+			return
+		}
+		if !variable.IsPub || !TypeEquals(variable.Value.GetType(), MeshesValueType) {
+			w.AlertSingle(&alerts.InvalidUniqueVariable{}, variable.Token, "meshes", MeshValueType)
+		}
+		return
+	}
+	if w.environment.Type == ast.SoundEnv {
+		variable, ok := w.environment.Scope.Variables["sounds"]
+		if !ok {
+			w.AlertSingle(&alerts.MissingUniqueVariable{}, w.environment._envStmt.GetToken(), "sounds", "Sound")
+			return
+		}
+		if !variable.IsPub || !TypeEquals(variable.Value.GetType(), SoundsValueType) {
+			w.AlertSingle(&alerts.InvalidUniqueVariable{}, variable.Token, "sounds", SoundValueType)
+		}
+	}
 }
 
 func (w *Walker) walkNode(node *ast.Node, scope *Scope) {
@@ -213,7 +239,7 @@ func (w *Walker) walkNode(node *ast.Node, scope *Scope) {
 	case *ast.EnumDecl:
 		w.enumDeclaration(newNode, scope)
 	case *ast.MatchStmt:
-		w.matchStatement(newNode, false, scope)
+		w.matchStatement(newNode, scope)
 	case *ast.AssignmentStmt:
 		w.assignmentStatement(newNode, scope)
 	case *ast.UseStmt:
@@ -296,11 +322,19 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 	return val
 }
 
+func (w *Walker) IsExitNode(nodeType ast.NodeType) bool {
+	return nodeType == ast.BreakStatement || nodeType == ast.ContinueStatement || nodeType == ast.ReturnStatement || nodeType == ast.YieldStatement
+}
+
 func (w *Walker) walkBody(body *ast.Body, tag ExitableTag, scope *Scope) {
 	endIndex := -1
 	bodySlice := *body
 	for i := range bodySlice {
-		if tag.GetIfExits(All) {
+		var prevNodeType ast.NodeType = ast.NA
+		if i != 0 {
+			prevNodeType = bodySlice[i-1].GetType()
+		}
+		if tag.GetIfExits(All) || (w.IsExitNode(prevNodeType)) {
 			w.AlertMulti(&alerts.UnreachableCode{}, bodySlice[i].GetToken(), bodySlice[body.Size()-1].GetToken())
 			endIndex = i
 			break

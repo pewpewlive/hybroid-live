@@ -37,41 +37,52 @@ func (w *Walker) functionExpression(fn *ast.FunctionExpr, scope *Scope) Value {
 }
 
 func (w *Walker) matchExpression(node *ast.MatchExpr, scope *Scope) Value {
-	mtt := &MatchExprTag{}
+	matchStmt := node.MatchStmt
 
-	matchScope := NewScope(scope, mtt, YieldAllowing)
-	cases := node.MatchStmt.Cases
+	cases := matchStmt.Cases
 	casesLength := len(cases)
-	if !node.MatchStmt.HasDefault {
-		w.AlertSingle(&alerts.DefaultCaseMissing{}, node.MatchStmt.Token)
+	if !matchStmt.HasDefault {
+		w.AlertSingle(&alerts.DefaultCaseMissing{}, matchStmt.Token)
 		casesLength++
 		if casesLength < 1 {
-			w.AlertSingle(&alerts.InsufficientCases{}, node.MatchStmt.Token)
+			w.AlertSingle(&alerts.InsufficientCases{}, matchStmt.Token)
 		}
 	} else if casesLength < 2 {
-		w.AlertSingle(&alerts.InsufficientCases{}, node.MatchStmt.Token)
+		w.AlertSingle(&alerts.InsufficientCases{}, matchStmt.Token)
 	}
-	matchScope.Tag = &MatchExprTag{YieldTypes: make([]Type, 0)}
+	matchScope := NewScope(scope, &MatchExprTag{YieldTypes: make([]Type, 0)}, YieldAllowing)
 	mpt := NewMultiPathTag(casesLength, YieldAllowing)
 
-	valToMatch := w.GetActualNodeValue(&node.MatchStmt.ExprToMatch, scope)
+	valToMatch := w.GetActualNodeValue(&matchStmt.ExprToMatch, scope)
+	valType := valToMatch.GetType()
 
 	for i := range cases {
 		caseScope := NewScope(matchScope, mpt)
-		caseExpr := cases[i].Expression
-		if caseExpr.GetToken().Lexeme != "else" {
-			val := w.GetNodeValue(&caseExpr, matchScope)
-			if !TypeEquals(valToMatch.GetType(), val.GetType()) {
-				w.AlertSingle(&alerts.InvalidCaseType{}, caseExpr.GetToken(), valToMatch.GetType(), val.GetType())
+
+		w.walkBody(&matchStmt.Cases[i].Body, mpt, caseScope)
+
+		if matchStmt.Cases[i].Expressions[0].GetToken().Lexeme == "else" {
+			if i != len(matchStmt.Cases)-1 {
+				w.AlertSingle(&alerts.InvalidDefaultCasePlacement{}, matchStmt.Cases[i].Expressions[0].GetToken(), "in match expression")
+			}
+			continue
+		}
+
+		for j := range matchStmt.Cases[i].Expressions {
+			caseValType := w.GetNodeValue(&matchStmt.Cases[i].Expressions[j], scope).GetType()
+			if valType == InvalidType || caseValType == InvalidType {
+				continue
+			}
+			if !TypeEquals(valType, caseValType) {
+				w.AlertSingle(&alerts.InvalidCaseType{}, matchStmt.Cases[i].Expressions[j].GetToken(), valType, caseValType)
 			}
 		}
-		w.walkBody(&cases[i].Body, mpt, caseScope)
 	}
 
-	if node.MatchStmt.HasDefault && !mpt.GetIfExits(Yield) {
+	if !mpt.GetIfExits(Yield) {
 		w.AlertMulti(&alerts.NotAllCodePathsExit{},
-			cases[0].Expression.GetToken(),
-			cases[len(cases)-1].Expression.GetToken(),
+			cases[0].Expressions[0].GetToken(),
+			cases[len(cases)-1].Expressions[0].GetToken(),
 			"yield",
 		)
 	}
@@ -151,6 +162,17 @@ func (w *Walker) binaryExpression(node *ast.BinaryExpr, scope *Scope) Value {
 			w.AlertSingle(&alerts.TypesMismatch{}, node.Left.GetToken(), leftType, rightType)
 		}
 		return NewBoolVal()
+	case tokens.Pipe, tokens.Ampersand, tokens.LeftShift, tokens.RightShift:
+		if leftType == InvalidType || rightType == InvalidType {
+			return &NumberVal{}
+		}
+		if leftType.PVT() != ast.Number {
+			w.AlertSingle(&alerts.TypeMismatch{}, node.Left.GetToken(), "number", leftType, "in bitwise expression")
+		}
+		if rightType.PVT() != ast.Number {
+			w.AlertSingle(&alerts.TypeMismatch{}, node.Right.GetToken(), "number", rightType, "in bitwise expression")
+		}
+		return &NumberVal{}
 	default: // logical comparison
 		if op.Type == tokens.Or {
 			var operand ast.Node
@@ -296,6 +318,14 @@ func (w *Walker) environmentAccessExpression(node *ast.EnvAccessExpr) (Value, as
 
 	if walker.environment.Name == w.environment.Name {
 		w.AlertSingle(&alerts.EnvironmentAccessToItself{}, node.PathExpr.GetToken())
+		return &Invalid{}, nil
+	}
+
+	if walker.environment.Type != ast.GenericEnv && (w.environment.Type == ast.MeshEnv || w.environment.Type == ast.SoundEnv) {
+		w.AlertSingle(&alerts.UnallowedEnvironmentAccess{}, node.PathExpr.GetToken(), "non Generic", "Mesh or Sound")
+		return &Invalid{}, nil
+	} else if w.environment.Type == ast.LevelEnv && (walker.environment.Type == ast.MeshEnv || walker.environment.Type == ast.SoundEnv) {
+		w.AlertSingle(&alerts.UnallowedEnvironmentAccess{}, node.PathExpr.GetToken(), "Mesh or Sound", "Level")
 		return &Invalid{}, nil
 	}
 

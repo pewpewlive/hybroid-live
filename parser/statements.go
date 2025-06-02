@@ -155,31 +155,13 @@ func (p *Parser) assignmentStatement(expr ast.Node) ast.Node {
 		}
 		return &ast.AssignmentStmt{Identifiers: idents, Values: exprs, AssignOp: equal, Token: idents[0].GetToken()}
 	}
-	if p.match(tokens.PlusEqual, tokens.MinusEqual, tokens.SlashEqual, tokens.StarEqual, tokens.CaretEqual, tokens.ModuloEqual, tokens.BackSlashEqual) {
+	if p.match(tokens.PlusEqual, tokens.MinusEqual, tokens.SlashEqual, tokens.StarEqual, tokens.CaretEqual, tokens.ModuloEqual, tokens.BackSlashEqual, tokens.AmpersandEqual, tokens.PipeEqual, tokens.LeftShiftEqual, tokens.RightShiftEqual) {
 		assignOp := p.peek(-1)
-		op := tokens.Token{Literal: assignOp.Literal, Location: assignOp.Location}
-		switch assignOp.Type {
-		case tokens.PlusEqual:
-			op.Type = tokens.Plus
-		case tokens.MinusEqual:
-			op.Type = tokens.Minus
-		case tokens.SlashEqual:
-			op.Type = tokens.Slash
-		case tokens.StarEqual:
-			op.Type = tokens.Star
-		case tokens.CaretEqual:
-			op.Type = tokens.Caret
-		case tokens.ModuloEqual:
-			op.Type = tokens.Modulo
-		case tokens.BackSlashEqual:
-			op.Type = tokens.BackSlash
-		}
-
 		exprs, ok := p.expressions("in assignment statement", false)
 		if !ok {
 			return ast.NewImproper(expr.GetToken(), ast.AssignmentStatement)
 		}
-		return &ast.AssignmentStmt{Identifiers: idents, Values: exprs, AssignOp: op, Token: idents[0].GetToken()}
+		return &ast.AssignmentStmt{Identifiers: idents, Values: exprs, AssignOp: assignOp, Token: idents[0].GetToken()}
 	}
 	return ast.NewImproper(expr.GetToken(), ast.NA)
 }
@@ -406,28 +388,28 @@ func (p *Parser) matchStatement(isExpr bool) ast.Node {
 	}
 
 	for p.consumeTill("in match statement", start, tokens.RightBrace) {
-		stmts, ok := p.caseStatement(isExpr)
+		node, ok := p.caseStatement(isExpr)
 		if !ok {
 			p.synchronizeMatchBody()
 			continue
 		}
-		for i := range stmts {
-			if stmts[i].Expression.GetToken().Lexeme == "else" {
-				if matchStmt.HasDefault {
-					p.Alert(&alerts.MoreThanOneDefaultCase{}, alerts.NewSingle(stmts[i].Expression.GetToken()))
-					continue
-				}
-				matchStmt.HasDefault = true
+		caseStmt := node.(*ast.CaseStmt)
+		if caseStmt.Expressions[0].GetToken().Lexeme == "else" {
+			if matchStmt.HasDefault {
+				p.Alert(&alerts.MoreThanOneDefaultCase{}, alerts.NewSingle(caseStmt.Expressions[0].GetToken()))
+				continue
 			}
-			matchStmt.Cases = append(matchStmt.Cases, stmts[i])
+			matchStmt.HasDefault = true
 		}
+		matchStmt.Cases = append(matchStmt.Cases, caseStmt)
 	}
 
 	return &matchStmt
 }
 
-func (p *Parser) caseStatement(isExpr bool) ([]ast.CaseStmt, bool) {
-	caseStmts := []ast.CaseStmt{}
+func (p *Parser) caseStatement(isExpr bool) (ast.Node, bool) {
+	token := p.peek()
+	caseStmt := &ast.CaseStmt{}
 
 	exprs := []ast.Node{}
 	if p.match(tokens.Else) {
@@ -435,21 +417,22 @@ func (p *Parser) caseStatement(isExpr bool) ([]ast.CaseStmt, bool) {
 	} else {
 		exprs2, ok := p.expressions("in match case", false)
 		if !ok {
-			return caseStmts, false
+			return ast.NewImproper(token, ast.CaseStatement), false
 		}
 		exprs = exprs2
 	}
 
+	caseStmt.Expressions = exprs
 	_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.FatArrow, "in match case")
 	if !ok {
-		return caseStmts, false
+		return ast.NewImproper(token, ast.CaseStatement), false
 	}
 
 	body := ast.Body{}
 	if !p.check(tokens.LeftBrace) {
 		args, ok := p.expressions("after '=>' in match case", false)
 		if !ok {
-			return caseStmts, false
+			return ast.NewImproper(token, ast.CaseStatement), false
 		}
 		var argsStmt ast.Node
 		if isExpr {
@@ -467,17 +450,11 @@ func (p *Parser) caseStatement(isExpr bool) ([]ast.CaseStmt, bool) {
 	} else {
 		body2, ok2 := p.body(false, false)
 		if !ok2 {
-			return caseStmts, false
+			return caseStmt, false
 		}
 		body = body2
 	}
+	caseStmt.Body = body
 
-	for _, v := range exprs {
-		caseStmts = append(caseStmts, ast.CaseStmt{
-			Expression: v,
-			Body:       body,
-		})
-	}
-
-	return caseStmts, true
+	return caseStmt, true
 }

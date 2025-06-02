@@ -153,12 +153,28 @@ func (l *Lexer) next() (*tokens.Token, error) {
 			token.Type = tokens.Bang
 		}
 	case '<':
+		if l.match('<') {
+			if l.match('=') {
+				token.Type = tokens.LeftShiftEqual
+			} else {
+				token.Type = tokens.LeftShift
+			}
+			break
+		}
 		if l.match('=') {
 			token.Type = tokens.LessEqual
 		} else {
 			token.Type = tokens.Less
 		}
 	case '>':
+		if l.match('>') {
+			if l.match('=') {
+				token.Type = tokens.RightShiftEqual
+			} else {
+				token.Type = tokens.RightShift
+			}
+			break
+		}
 		if l.match('=') {
 			token.Type = tokens.GreaterEqual
 		} else {
@@ -170,6 +186,10 @@ func (l *Lexer) next() (*tokens.Token, error) {
 		} else {
 			token.Type = tokens.Modulo
 		}
+	case '|':
+		token.Type = tokens.Pipe
+	case '&':
+		token.Type = tokens.Ampersand
 	case '/':
 		if l.match('/') {
 			err := l.handleComment(false)

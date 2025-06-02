@@ -19,6 +19,8 @@ func (w *Walker) environmentDeclaration(node *ast.EnvironmentDecl) {
 		node.EnvType.Type = ast.MeshEnv
 	case "Sound":
 		node.EnvType.Type = ast.SoundEnv
+	case "Generic":
+		node.EnvType.Type = ast.GenericEnv
 	default:
 		w.AlertSingle(&alerts.InvalidEnvironmentType{}, node.EnvType.Token, node.EnvType.Token.Lexeme)
 	}
@@ -334,7 +336,10 @@ func (w *Walker) functionDeclaration(node *ast.FunctionDecl, scope *Scope, procT
 		Token: node.GetToken(),
 		IsPub: node.IsPub,
 	}
-	w.declareVariable(scope, variable)
+
+	if _, success := w.declareVariable(scope, variable); !success {
+		w.AlertSingle(&alerts.Redeclaration{}, node.Name, node.Name.Lexeme, "variable")
+	}
 
 	if procType == Function {
 		w.walkFuncBody(node, &node.Body, funcTag, fnScope)

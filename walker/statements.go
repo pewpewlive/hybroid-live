@@ -243,8 +243,9 @@ func (w *Walker) tickStatement(node *ast.TickStmt, scope *Scope) {
 	w.reportExits(funcTag, scope)
 }
 
-func (w *Walker) matchStatement(node *ast.MatchStmt, isExpr bool, scope *Scope) {
+func (w *Walker) matchStatement(node *ast.MatchStmt, scope *Scope) {
 	val := w.GetNodeValue(&node.ExprToMatch, scope)
+	valType := val.GetType()
 	casesLength := len(node.Cases)
 	if !node.HasDefault {
 		casesLength++
@@ -256,21 +257,28 @@ func (w *Walker) matchStatement(node *ast.MatchStmt, isExpr bool, scope *Scope) 
 	}
 	mpt := NewMultiPathTag(casesLength, scope.Attributes...)
 	multiPathScope := NewScope(scope, mpt)
+	multiPathScope.Attributes.Add(BreakAllowing)
 
 	for i := range node.Cases {
 		caseScope := NewScope(multiPathScope, &UntaggedTag{})
 
-		if !isExpr {
-			w.walkBody(&node.Cases[i].Body, mpt, caseScope)
-		}
+		w.walkBody(&node.Cases[i].Body, mpt, caseScope)
 
-		if node.Cases[i].Expression.GetToken().Lexeme == "else" {
+		if node.Cases[i].Expressions[0].GetToken().Lexeme == "else" {
+			if i != len(node.Cases)-1 {
+				w.AlertSingle(&alerts.InvalidDefaultCasePlacement{}, node.Cases[i].Expressions[0].GetToken(), "in match statement")
+			}
 			continue
 		}
 
-		caseValType := w.GetNodeValue(&node.Cases[i].Expression, scope).GetType()
-		if !TypeEquals(val.GetType(), caseValType) {
-			w.AlertSingle(&alerts.InvalidCaseType{}, node.Cases[i].Expression.GetToken(), val.GetType(), caseValType)
+		for j := range node.Cases[i].Expressions {
+			caseValType := w.GetNodeValue(&node.Cases[i].Expressions[j], scope).GetType()
+			if valType == InvalidType || caseValType == InvalidType {
+				continue
+			}
+			if !TypeEquals(valType, caseValType) {
+				w.AlertSingle(&alerts.InvalidCaseType{}, node.Cases[i].Expressions[j].GetToken(), valType, caseValType)
+			}
 		}
 	}
 	w.reportExits(mpt, scope)
@@ -415,9 +423,21 @@ func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 	}
 
 	walker, found := w.walkers[envName]
-
 	if !found {
 		w.AlertSingle(&alerts.InvalidEnvironmentAccess{}, node.PathExpr.Path, envName)
+		return
+	}
+
+	if walker.environment.Name == w.environment.Name {
+		w.AlertSingle(&alerts.EnvironmentAccessToItself{}, node.PathExpr.GetToken())
+		return
+	}
+
+	if walker.environment.Type != ast.GenericEnv && (w.environment.Type == ast.MeshEnv || w.environment.Type == ast.SoundEnv) {
+		w.AlertSingle(&alerts.UnallowedEnvironmentAccess{}, node.PathExpr.GetToken(), "non Generic", "Mesh or Sound")
+		return
+	} else if w.environment.Type == ast.LevelEnv && (walker.environment.Type == ast.MeshEnv || walker.environment.Type == ast.SoundEnv) {
+		w.AlertSingle(&alerts.UnallowedEnvironmentAccess{}, node.PathExpr.GetToken(), "Mesh or Sound", "Level")
 		return
 	}
 

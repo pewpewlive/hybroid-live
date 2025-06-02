@@ -23,42 +23,50 @@ const (
 
 	// Tokens
 
-	Hash           TokenType = iota // #
-	LeftParen                       // (
-	RightParen                      // )
-	LeftBrace                       // {
-	RightBrace                      // }
-	LeftBracket                     // [
-	RightBracket                    // ]
-	Comma                           // ,
-	Colon                           // :
-	Dot                             // .
-	Concat                          // ..
-	Ellipsis                        // ...
-	Minus                           // -
-	MinusEqual                      // -=
-	Plus                            // +
-	PlusEqual                       // +=
-	Slash                           // /
-	SlashEqual                      // /=
-	BackSlash                       // \
-	BackSlashEqual                  // \=
-	Star                            // *
-	StarEqual                       // *=
-	Caret                           // ^
-	CaretEqual                      // ^=
-	Bang                            // !
-	BangEqual                       // !=
-	Equal                           // =
-	EqualEqual                      // ==
-	FatArrow                        // =>
-	ThinArrow                       // ->
-	Greater                         // >
-	GreaterEqual                    // >=
-	Less                            // <
-	LessEqual                       // <=
-	Modulo                          // %
-	ModuloEqual                     // %=
+	Hash            TokenType = iota // #
+	LeftParen                        // (
+	RightParen                       // )
+	LeftBrace                        // {
+	RightBrace                       // }
+	LeftBracket                      // [
+	RightBracket                     // ]
+	Comma                            // ,
+	Colon                            // :
+	Dot                              // .
+	Concat                           // ..
+	Ellipsis                         // ...
+	Minus                            // -
+	MinusEqual                       // -=
+	Plus                             // +
+	PlusEqual                        // +=
+	Slash                            // /
+	SlashEqual                       // /=
+	BackSlash                        // \
+	BackSlashEqual                   // \=
+	Star                             // *
+	StarEqual                        // *=
+	Caret                            // ^
+	CaretEqual                       // ^=
+	Bang                             // !
+	BangEqual                        // !=
+	Equal                            // =
+	EqualEqual                       // ==
+	FatArrow                         // =>
+	ThinArrow                        // ->
+	Greater                          // >
+	GreaterEqual                     // >=
+	Less                             // <
+	LessEqual                        // <=
+	Modulo                           // %
+	ModuloEqual                      // %=
+	LeftShift                        // <<
+	LeftShiftEqual                   // <<=
+	RightShift                       // >>
+	RightShiftEqual                  // >>=
+	Pipe                             // |
+	PipeEqual                        // |=
+	Ampersand                        // &
+	AmpersandEqual                   // &=
 
 	// Literals
 

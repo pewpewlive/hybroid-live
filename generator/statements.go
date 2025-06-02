@@ -59,7 +59,7 @@ func (gen *Generator) assignmentStmt(assignStmt ast.AssignmentStmt) {
 	}
 	for i := range values {
 		if assignStmt.AssignOp.Type != tokens.Equal {
-			op := tokens.TokenType(int(assignStmt.AssignOp.Type))
+			op := tokens.TokenType(int(assignStmt.AssignOp.Type) - 1)
 			src.Write(fmt.Sprintf("%s %s (%s)", gen.GenerateExpr(assignStmt.Identifiers[i]), op, values[i]))
 		} else {
 			src.Write(values[i])
@@ -110,19 +110,23 @@ func (gen *Generator) yieldStmt(node ast.YieldStmt) {
 		}
 	}
 	src.Write("\n")
-	src.WriteTabbed("goto", ctx.label)
+	src.WriteTabbed("goto ", ctx.label)
 
 	gen.Write(src.String())
 }
 
 func (gen *Generator) breakStmt(_ ast.BreakStmt) {
+	if gen.BreakLabels.Top().Item != "" {
+		gen.WriteTabbed("goto ", gen.BreakLabels.Top().Item)
+		return
+	}
 	gen.WriteTabbed("break")
 }
 
 func (gen *Generator) continueStmt(_ ast.ContinueStmt) {
 	label := gen.ContinueLabels.Top().Item
 
-	gen.WriteTabbed(fmt.Sprintf("goto %s", label))
+	gen.WriteTabbed("goto ", label)
 }
 
 func (gen *Generator) repeatStmt(node ast.RepeatStmt) {
@@ -139,9 +143,11 @@ func (gen *Generator) repeatStmt(node ast.RepeatStmt) {
 
 	gotoLabel := GenerateVar(hyGotoLabel)
 	gen.ContinueLabels.Push("RepeatStmt", gotoLabel)
+	gen.BreakLabels.Push("RepeatStmt", "")
 
 	gen.GenerateBody(node.Body)
 
+	gen.BreakLabels.Pop("RepeatStmt")
 	gen.ContinueLabels.Pop("RepeatStmt")
 
 	gen.WriteTabbed("::" + gotoLabel + "::\n")
@@ -153,9 +159,11 @@ func (gen *Generator) whileStmt(node ast.WhileStmt) {
 
 	gotoLabel := GenerateVar(hyGotoLabel)
 	gen.ContinueLabels.Push("WhileStmt", gotoLabel)
+	gen.BreakLabels.Push("WhileStmt", "")
 
 	gen.GenerateBody(node.Body)
 
+	gen.BreakLabels.Pop("WhileStmt")
 	gen.ContinueLabels.Pop("WhileStmt")
 
 	gen.WriteTabbed("::" + gotoLabel + "::\n")
@@ -179,9 +187,11 @@ func (gen *Generator) forStmt(node ast.ForStmt) {
 	}
 	gotoLabel := GenerateVar(hyGotoLabel)
 	gen.ContinueLabels.Push("ForStmt", gotoLabel)
+	gen.BreakLabels.Push("ForStmt", "")
 
 	gen.GenerateBody(node.Body)
 
+	gen.BreakLabels.Pop("ForStmt")
 	gen.ContinueLabels.Pop("ForStmt")
 
 	gen.WriteTabbed("::" + gotoLabel + "::\n")
@@ -226,32 +236,31 @@ func (gen *Generator) GenerateParams(params []ast.FunctionParam) {
 }
 
 func (gen *Generator) matchStmt(node ast.MatchStmt) {
-	ifStmt := ast.IfStmt{
-		BoolExpr: &ast.BinaryExpr{Left: node.ExprToMatch, Operator: tokens.Token{Type: tokens.EqualEqual, Lexeme: "=="}, Right: node.Cases[0].Expression},
-		Body:     node.Cases[0].Body,
-	}
-	has_default := false
-	for i := range node.Cases {
-		if node.Cases[i].Expression.GetToken().Lexeme == "_" {
-			has_default = true
+	gotoLabel := GenerateVar(hyGotoLabel)
+
+	toMatch := gen.GenerateExpr(node.ExprToMatch)
+	for i, matchCase := range node.Cases {
+		conditionsSrc := StringBuilder{}
+		for j, expr := range matchCase.Expressions {
+			conditionsSrc.Write(toMatch, " == ", gen.GenerateExpr(expr))
+			if j != len(matchCase.Expressions)-1 {
+				conditionsSrc.Write(" or ")
+			}
 		}
-		if i == 0 || (i == len(node.Cases)-1 && has_default) {
-			continue
+		if i == 0 {
+			gen.WriteTabbed("if ", conditionsSrc.String(), " then\n")
+		} else if i == len(node.Cases)-1 {
+			gen.WriteTabbed("else\n")
+		} else {
+			gen.WriteTabbed("elseif ", conditionsSrc.String(), " then\n")
 		}
-		elseIfStmt := ast.IfStmt{
-			BoolExpr: &ast.BinaryExpr{Left: node.ExprToMatch, Operator: tokens.Token{Type: tokens.EqualEqual, Lexeme: "=="}, Right: node.Cases[i].Expression},
-			Body:     node.Cases[i].Body,
-		}
-		ifStmt.Elseifs = append(ifStmt.Elseifs, &elseIfStmt)
+		gen.BreakLabels.Push("MatchExpr", gotoLabel)
+		gen.GenerateBody(matchCase.Body)
+		gen.BreakLabels.Pop("MatchExpr")
 	}
 
-	if has_default {
-		ifStmt.Else = &ast.IfStmt{
-			Body: node.Cases[len(node.Cases)-1].Body,
-		}
-	}
-
-	gen.ifStmt(ifStmt)
+	gen.WriteTabbed("end\n")
+	gen.WriteTabbed(fmt.Sprintf("::%s::\n", gotoLabel))
 }
 
 func (gen *Generator) destroyStmt(node ast.DestroyStmt) {

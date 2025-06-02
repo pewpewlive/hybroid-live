@@ -32,6 +32,7 @@ const (
 	ReturnStatement     NodeType = "returnStatement"
 	YieldStatement      NodeType = "yieldStatement"
 	MatchStatement      NodeType = "matchStatement"
+	CaseStatement       NodeType = "caseStatement"
 
 	EnvironmentPathExpression   NodeType = "environmentPathExpression"
 	EnvironmentAccessExpression NodeType = "environmentAccessExpression"
@@ -99,6 +100,7 @@ const (
 	MeshEnv    Env = "MeshEnv"
 	LevelEnv   Env = "LevelEnv"
 	SoundEnv   Env = "SoundEnv"
+	GenericEnv Env = "GenericEnv"
 	InvalidEnv Env = "InvalidEnv"
 )
 

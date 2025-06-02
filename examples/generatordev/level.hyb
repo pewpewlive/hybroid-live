@@ -1,72 +1,104 @@
 env Main as Level
 
-// fn funny2() -> fixed {
-//     return 1f
-// }
+fn funny2() -> fixed {
+    return 1f
+}
 
-// fn funny() -> (fixed, fixed) {
-//     return 1f, 2f
-// }
+fn funny() -> (fixed, fixed) {
+    return 1f, 2f
+}
 
-// let a, n, b, c, d = funny2(), 1, funny(), funny2()
-// a, b, c, b, d += funny(), 1fx, 2fx, 3fx
+let a, n, b, c, d = funny2(), 1, funny(), funny2()
+a, b, c, b, d += funny(), 1fx, 2fx, 3fx
 
-// class thing {
-//     let o = fn(){}
-//     let i = [fn() {
-//         funny()
+class thing {
+    let o = fn(){}
+    let i = [fn() {
+        funny()
 
-//         let a = 2
+        let a = 2
 
-//         if a == 2 {
+        if a == 2 {
             
-//         }
-//     }]
-//     let foo, bar, e = funny(), a
-//     fixed a
+        }
+    }]
+    let foo, bar, e = funny(), a
+    fixed a
     
-//     new(){
-//         funny()
-//     }
+    new(){
+        funny()
+    }
 
-//     fn method() -> thing {
-//         return self
-//     }
-// }
+    fn method() -> thing {
+        return self
+    }
+}
 
-// let thingthing = new thing()
+let thingthing = new thing()
 
-// // thingthing.a = 9fx
-// // thingthing.o()
-// // thingthing.i[1] = fn(){}
-// // thingthing.method()
+// thingthing.a = 9fx
+// thingthing.o()
+// thingthing.i[1] = fn(){}
+// thingthing.method()
 
-// let map = {"o" = thingthing}
+let map = {"o" = thingthing}
 
-// //map["o"].method()
+//map["o"].method()
 
-// map["0"].method().i[1]()
+map["0"].method().i[1]()
 
-// entity example {
-//     let o = 2
+entity example {
+    let o = 2
 
-//     spawn(fixed x, y) {
-//         funny()
-//     }
-//     destroy() {}
-// }
+    spawn(fixed x, y) {
+        funny()
+    }
+    destroy() {}
+}
 
-// enum test {
-//     field1,
-//     field2
-// }
+enum test {
+    field1,
+    field2
+}
 
-// let test2 = test.field2
+let test2 = test.field2
 
-// fn SetEntityPosition() {
+fn SetEntityPosition(fixed o) {
+    if o >  20fx {
+        return
+    }
+}
 
-// }
-
-// SetEntityPosition()
+SetEntityPosition(9fx)
 
 let test3 = Pewpew:CannonFreq.Freq15
+
+Fmath:RandomFixed(0fx, 100fx)
+
+let o = 0b111 >> 0b000
+
+entity id = Pewpew:NewEntity(100fx, 100fx)
+Pewpew:SetEntityMesh(id, Mesh, 0)
+
+fn test4(number a) {
+
+}
+
+test4(match o {
+    0b000, 0b100 => 2
+    else => 4
+})
+
+let oo = match o {
+    0b000, 0b100 => true
+    else => false
+}
+
+match oo {
+    true => {
+        break
+    }
+    else => {
+        break
+    }
+}

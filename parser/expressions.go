@@ -106,7 +106,7 @@ func (p *Parser) term() ast.Node {
 	if ast.IsImproper(expr, ast.NA) {
 		return expr
 	}
-	if p.match(tokens.Plus, tokens.Minus) {
+	if p.match(tokens.Plus, tokens.Minus, tokens.Ampersand, tokens.Pipe, tokens.LeftShift, tokens.RightShift) {
 		operator := p.peek(-1)
 		right := p.term()
 		if ast.IsImproper(right, ast.NA) {
@@ -526,7 +526,7 @@ func (p *Parser) structExpr() ast.Node {
 		}
 	}
 
-	p.alertMultiConsume(&alerts.ExpectedSymbol{}, start, p.peek(), tokens.RightBrace)
+	_, ok = p.alertMultiConsume(&alerts.ExpectedSymbol{}, start, p.peek(), tokens.RightBrace)
 	if !ok && p.syncExpr(tokens.RightBrace) {
 		p.advance()
 	}

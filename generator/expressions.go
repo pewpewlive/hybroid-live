@@ -278,12 +278,19 @@ func (gen *Generator) matchExpr(match ast.MatchExpr) string {
 	toMatch := gen.GenerateExpr(node.ExprToMatch)
 
 	for i, matchCase := range node.Cases {
+		conditionsSrc := StringBuilder{}
+		for j, expr := range matchCase.Expressions {
+			conditionsSrc.Write(toMatch, " == ", gen.GenerateExpr(expr))
+			if j != len(matchCase.Expressions)-1 {
+				conditionsSrc.Write(" or ")
+			}
+		}
 		if i == 0 {
-			gen.WriteTabbed("if ", toMatch, " == ", gen.GenerateExpr(matchCase.Expression), " then\n")
+			gen.WriteTabbed("if ", conditionsSrc.String(), " then\n")
 		} else if i == len(node.Cases)-1 {
 			gen.WriteTabbed("else\n")
 		} else {
-			gen.WriteTabbed("elseif ", toMatch, " == ", gen.GenerateExpr(matchCase.Expression), " then\n")
+			gen.WriteTabbed("elseif ", conditionsSrc.String(), " then\n")
 		}
 		gen.YieldContexts.Push("MatchExpr", ctx)
 
@@ -313,12 +320,16 @@ func (gen *Generator) envAccessExpr(node ast.EnvAccessExpr) string {
 		gen.pewpewEnum = &temp
 	case "Fmath":
 		prefix = "fmath."
+		accessed = FmathFunctions[accessed]
 	case "Math":
 		prefix = "math."
+		accessed = MathVariables[accessed]
 	case "String":
 		prefix = "string."
+		accessed = StringVariables[accessed]
 	case "Table":
 		prefix = "table."
+		accessed = TableVariables[accessed]
 	default:
 		prefix = envMap[envName]
 	}
