@@ -529,24 +529,24 @@
     "message": "the first two parameters of the spawner must be fixedpoints"
   },
   {
-    "name": "InvalidUniqueVariable",
+    "name": "InvalidPewpewVariable",
     "type": "Error",
     "fields": {
-      "UniqueVar": "string",
+      "PewpewVar": "string",
       "Type": "string"
     },
-    "message": "'%s' variable should be global and of type 'list<%s>''",
-    "message_format": ["UniqueVar", "Type"]
+    "message": "'%s' variable should be global and of type 'list<%s>'",
+    "message_format": ["PewpewVar", "Type"]
   },
   {
-    "name": "MissingUniqueVariable",
+    "name": "MissingPewpewVariable",
     "type": "Error",
     "fields": {
-      "UniqueVar": "string",
+      "PewpewVar": "string",
       "EnvType": "string"
     },
     "message": "A %s environment must have a '%s' variable",
-    "message_format": ["EnvType", "UniqueVar"]
+    "message_format": ["EnvType", "PewpewVar"]
   },
   {
     "name": "UnallowedEnvironmentAccess",

@@ -1,0 +1,13 @@
+env Test as Level
+
+let a = false
+fn thing() -> bool {
+    return a
+}
+if thing() {
+
+}else if thing() {
+
+}else {
+    
+}

@@ -20,7 +20,15 @@ spawn SuperInertiac(0f, 0f)
 
 AddWall(750f, 250f, 500f, 500f)
 
+enum thing { // E_thing
+  Freq15
+}
+
 tick with time {
+  let a = fn(Pewpew:CannonFreq a) {
+    let b = thing.Freq15
+  }
+
   if GetPlayerConfig(0).has_lost == true {
     StopGame()
   }

@@ -74,6 +74,9 @@ func (gen *Generator) identifierExpr(node ast.IdentifierExpr) string {
 	if gen.env == ast.SoundEnv && node.Name.Lexeme == "sounds" {
 		return "sounds"
 	}
+	if node.Type == ast.Builtin {
+		return node.Name.Lexeme
+	}
 	return gen.WriteVar(node.Name.Lexeme)
 }
 
@@ -161,20 +164,23 @@ func (gen *Generator) unaryExpr(node ast.UnaryExpr) string {
 	return fmt.Sprintf("%s%s", op, gen.GenerateExpr(node.Value))
 }
 
-func (gen *Generator) accessExpr(node ast.AccessExpr) string {
+func (gen *Generator) accessExpr(node ast.AccessExpr) string { // thing.Freq15
 	src := StringBuilder{}
-	src.Write(gen.GenerateExpr(node.Start))
+	if node.Start.GetType() == ast.SelfExpression && node.Start.(*ast.SelfExpr).Type == ast.EntityMethod {
+		src.Write("Self")
+	} else {
+		src.Write(gen.GenerateExpr(node.Start))
+	}
 	for _, accessed := range node.Accessed {
 		switch expr := accessed.(type) {
 		case *ast.FieldExpr:
-			if gen.pewpewEnum != nil {
-				src.Write(".", (*gen.pewpewEnum)[expr.Field.GetToken().Lexeme])
-				gen.pewpewEnum = nil
+			if expr.Index == 0 {
+				src.Write(fmt.Sprintf("[\"%s\"]", expr.GetToken().Lexeme))
 				continue
 			}
 			src.Write(fmt.Sprintf("[%v]", expr.Index))
 		case *ast.MemberExpr:
-			src.Write(fmt.Sprintf("[%s]", expr.GetToken().Lexeme))
+			src.Write(fmt.Sprintf("[%s]", gen.GenerateExpr(expr.Member)))
 		}
 	}
 
@@ -185,9 +191,9 @@ func (gen *Generator) functionExpr(fn ast.FunctionExpr) string {
 	src := StringBuilder{}
 	src.WriteString("function (")
 	for i, param := range fn.Params {
-		gen.Write(param.Name.Lexeme)
+		src.Write(param.Name.Lexeme)
 		if i != len(fn.Params)-1 {
-			gen.Write(", ")
+			src.Write(", ")
 		}
 	}
 	src.Write(")")
@@ -209,7 +215,7 @@ func (gen *Generator) structExpr(node ast.StructExpr) string {
 	src.Write("{\n")
 	TabsCount += 1
 	for i, v := range node.Fields {
-		src.WriteTabbed(gen.GenerateExpr(v), " = ", gen.GenerateExpr(node.Expressions[i]))
+		src.WriteTabbed(v.Name.Lexeme, " = ", gen.GenerateExpr(node.Expressions[i]))
 		if i != len(node.Fields)-1 {
 			src.Write(", ")
 		}
@@ -224,10 +230,9 @@ func (gen *Generator) structExpr(node ast.StructExpr) string {
 func (gen *Generator) selfExpr(self ast.SelfExpr) string {
 	if self.Type == ast.ClassMethod {
 		return "Self"
-	} else if self.Type == ast.EntityMethod {
-		return "id"
 	}
-	return ""
+
+	return "id"
 }
 
 func (gen *Generator) newExpr(new ast.NewExpr, stmt bool) string {
@@ -316,8 +321,6 @@ func (gen *Generator) envAccessExpr(node ast.EnvAccessExpr) string {
 	case "Pewpew":
 		prefix = "pewpew."
 		accessed = PewpewVariables[accessed]
-		temp := PewpewEnums[accessed]
-		gen.pewpewEnum = &temp
 	case "Fmath":
 		prefix = "fmath."
 		accessed = FmathFunctions[accessed]
@@ -343,11 +346,8 @@ func (gen *Generator) spawnExpr(spawn ast.SpawnExpr, stmt bool) string {
 	if stmt {
 		src.WriteTabbed()
 	}
-	length := len(spawn.Type.Name.GetToken().Lexeme)
 	name := gen.GenerateExpr(spawn.Type.Name)
-	fullLength := len(name)
-	cut := name[fullLength-length:]
-	src.Write(name[:fullLength-length], hyEntity, cut, "_Spawn(")
+	src.Write(envMap[spawn.EnvName], hyEntity, name, "_Spawn(")
 	for i, arg := range spawn.Args {
 		src.Write(gen.GenerateExpr(arg))
 		if i != len(spawn.Args)-1 {
@@ -381,4 +381,11 @@ func (gen *Generator) methodCallExpr(methodCall ast.MethodCallExpr, stmt bool) s
 	}
 
 	return src.String()
+}
+
+func (gen *Generator) PewpewExpr(pewpew ast.PewpewExpr) string {
+	gen.isPewpew = true
+	value := gen.GenerateExpr(pewpew.Expr)
+	gen.isPewpew = false
+	return value
 }

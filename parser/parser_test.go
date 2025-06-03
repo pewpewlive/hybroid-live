@@ -10,32 +10,9 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
-	"strings"
 	"testing"
 	"time"
 )
-
-func printAlerts[A any](t *testing.T, kind string, alertsToPrint ...A) {
-	if len(alertsToPrint) == 100 {
-		t.Logf("%s 100+ alert(s):", kind)
-	} else {
-		t.Logf("%s %d alert(s):", kind, len(alertsToPrint))
-	}
-
-	for i, alert := range alertsToPrint {
-		if alert, ok := any(alert).(reflect.Type); ok {
-			t.Logf("%d. %s", i+1, alert.Name())
-			continue
-		}
-
-		actualAlert := any(alert).(alerts.Alert)
-		token := actualAlert.SnippetSpecifier().GetTokens()[0]
-		loc := token.Location
-		name := reflect.ValueOf(alert).Elem().Type().Name()
-		msg := strings.TrimSpace(actualAlert.Message())
-		t.Logf("%d. %s (%s) at line %d, column %d on token '%s'", i+1, name, msg, loc.Line, loc.Column.Start, token.Lexeme)
-	}
-}
 
 type parseResults struct {
 	alerts    []alerts.Alert
@@ -97,8 +74,8 @@ func performParsing(t *testing.T, path, subtest string) (parseResults, error) {
 	// Will return true if success, false if timeout
 	if !<-hangFree {
 		t.Errorf("Parser hung on %s", sourcePath)
-		alerts := parser.GetAlerts()
-		printAlerts(t, "Hung with", alerts[:min(len(alerts), 100)]...)
+		alrts := parser.GetAlerts()
+		alerts.PrintAlerts(t, "Hung with", alrts[:min(len(alrts), 100)]...)
 		t.FailNow()
 	}
 
@@ -122,7 +99,7 @@ func performTest(t *testing.T, testName string, expectedAlerts []reflect.Type) {
 		}
 		if results.hasAlerts {
 			t.Errorf("[Valid] Found alerts in *valid* input")
-			printAlerts(t, "Unexpected", results.alerts...)
+			alerts.PrintAlerts(t, "Unexpected", results.alerts...)
 		}
 	})
 
@@ -143,8 +120,8 @@ func performTest(t *testing.T, testName string, expectedAlerts []reflect.Type) {
 		if !core.ListsAreSame(alertTypes, expectedAlerts) {
 			t.Errorf("[Invalid] Mismatch in *expected* and *received* alerts")
 
-			printAlerts(t, "Expected", expectedAlerts...)
-			printAlerts(t, "Received", results.alerts...)
+			alerts.PrintAlerts(t, "Expected", expectedAlerts...)
+			alerts.PrintAlerts(t, "Received", results.alerts...)
 		}
 	})
 

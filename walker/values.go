@@ -104,14 +104,16 @@ func FindFromList(list []*VariableVal, name string) (*VariableVal, int, bool) {
 }
 
 type PathVal struct {
-	Path string
-	Env  ast.Env
+	Path    string
+	Env     ast.Env
+	EnvName string
 }
 
-func NewPathVal(path string, envType ast.Env) *PathVal {
+func NewPathVal(path string, envType ast.Env, envName string) *PathVal {
 	return &PathVal{
-		Path: path,
-		Env:  envType,
+		Path:    path,
+		Env:     envType,
+		EnvName: envName,
 	}
 }
 
@@ -182,12 +184,14 @@ func (asv *AnonStructVal) Scopify(parent *Scope) *Scope {
 type EnumVal struct {
 	Type   *EnumType
 	Fields map[string]*VariableVal
+	IsPub  bool
 }
 
 func NewEnumVal(envName string, name string, isPub bool, fields ...string) *EnumVal {
 	val := &EnumVal{
 		Type:   NewEnumType(envName, name),
 		Fields: map[string]*VariableVal{},
+		IsPub:  isPub,
 	}
 	if len(fields) == 0 {
 		return val

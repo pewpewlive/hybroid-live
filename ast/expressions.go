@@ -39,7 +39,13 @@ func (eae *EnvAccessExpr) GetToken() tokens.Token { return eae.Accessed.GetToken
 
 // func (mce *MacroCallExpr) GetType() NodeType                { return MacroCallExpression }
 // func (mce *MacroCallExpr) GetToken() tokens.Token           { return mce.Caller.GetToken() }
-// func (mce *MacroCallExpr) GetValueType() PrimitiveValueType { return Invalid }
+
+type PewpewExpr struct {
+	Expr Node
+}
+
+func (pe *PewpewExpr) GetType() NodeType      { return PewpewExpression }
+func (pe *PewpewExpr) GetToken() tokens.Token { return pe.Expr.GetToken() }
 
 type LiteralExpr struct {
 	Value string
@@ -113,17 +119,9 @@ type CallExpr struct {
 func (ce *CallExpr) GetType() NodeType      { return CallExpression }
 func (ce *CallExpr) GetToken() tokens.Token { return ce.Caller.GetToken() }
 
-func (ce *CallExpr) GetGenerics() []*TypeExpr {
-	return ce.GenericArgs
-}
-
-func (ce *CallExpr) GetArgs() []Node {
-	return ce.Args
-}
-
-func (ce *CallExpr) GetReturnAmount() int {
-	return ce.ReturnAmount
-}
+func (ce *CallExpr) GetGenerics() []*TypeExpr { return ce.GenericArgs }
+func (ce *CallExpr) GetArgs() []Node          { return ce.Args }
+func (ce *CallExpr) GetReturnAmount() int     { return ce.ReturnAmount }
 
 type MethodCallExpr struct {
 	MethodInfo
@@ -136,17 +134,9 @@ type MethodCallExpr struct {
 func (mce *MethodCallExpr) GetType() NodeType      { return MethodCallExpression }
 func (mce *MethodCallExpr) GetToken() tokens.Token { return mce.Caller.GetToken() }
 
-func (mce *MethodCallExpr) GetGenerics() []*TypeExpr {
-	return mce.GenericArgs
-}
-
-func (mce *MethodCallExpr) GetArgs() []Node {
-	return mce.Args
-}
-
-func (ce *MethodCallExpr) GetReturnAmount() int {
-	return ce.ReturnAmount
-}
+func (mce *MethodCallExpr) GetGenerics() []*TypeExpr { return mce.GenericArgs }
+func (mce *MethodCallExpr) GetArgs() []Node          { return mce.Args }
+func (ce *MethodCallExpr) GetReturnAmount() int      { return ce.ReturnAmount }
 
 type FunctionExpr struct {
 	Body
@@ -191,36 +181,35 @@ type NewExpr struct {
 	GenericArgs []*TypeExpr
 	Args        []Node
 	Token       tokens.Token
+	EnvName     string
 }
 
 func (ne *NewExpr) GetType() NodeType      { return NewExpession }
 func (ne *NewExpr) GetToken() tokens.Token { return ne.Token }
 
-func (ne *NewExpr) GetGenerics() []*TypeExpr {
-	return ne.GenericArgs
-}
-
-func (ne *NewExpr) GetArgs() []Node {
-	return ne.Args
-}
+func (ne *NewExpr) GetGenerics() []*TypeExpr { return ne.GenericArgs }
+func (ne *NewExpr) GetArgs() []Node          { return ne.Args }
 
 type SpawnExpr struct {
 	Type        *TypeExpr
 	Args        []Node
 	GenericArgs []*TypeExpr
 	Token       tokens.Token
+	EnvName     string
 }
 
 func (ne *SpawnExpr) GetType() NodeType      { return SpawnExpression }
 func (ne *SpawnExpr) GetToken() tokens.Token { return ne.Token }
 
-func (ne *SpawnExpr) GetGenerics() []*TypeExpr {
-	return ne.GenericArgs
-}
+func (ne *SpawnExpr) GetGenerics() []*TypeExpr { return ne.GenericArgs }
+func (ne *SpawnExpr) GetArgs() []Node          { return ne.Args }
 
-func (ne *SpawnExpr) GetArgs() []Node {
-	return ne.Args
-}
+type IdentifierType int
+
+const (
+	Other IdentifierType = iota
+	Builtin
+)
 
 type AccessExpr struct {
 	Start    Node
@@ -246,9 +235,7 @@ type MemberExpr struct {
 func (me *MemberExpr) GetType() NodeType      { return MemberExpression }
 func (me *MemberExpr) GetToken() tokens.Token { return me.Member.GetToken() }
 
-func (me *MemberExpr) GetIdentifier() Node {
-	return me.Member
-}
+func (me *MemberExpr) GetIdentifier() Node { return me.Member }
 
 type MapExpr struct {
 	Token        tokens.Token
@@ -267,6 +254,7 @@ func (le *ListExpr) GetType() NodeType      { return ListExpression }
 func (le *ListExpr) GetToken() tokens.Token { return le.Token }
 
 type IdentifierExpr struct {
+	Type IdentifierType
 	Name tokens.Token
 }
 

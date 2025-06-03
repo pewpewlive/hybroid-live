@@ -1,4 +1,4 @@
-env ColorHelpers as Mesh
+env ColorHelpers as Generic
 
 // function helper.make_color(r, g, b, a)
 //   local color = r * 256 + g

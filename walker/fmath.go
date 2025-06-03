@@ -15,6 +15,7 @@ var FmathEnv = &Environment{
 	UsedLibraries:   make([]Library, 0),
 	Classes:         make(map[string]*ClassVal),
 	Entities:        make(map[string]*EntityVal),
+	Enums:           map[string]*EnumVal{},
 }
 
 var FmathVariables = map[string]*VariableVal{

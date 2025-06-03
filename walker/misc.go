@@ -38,6 +38,9 @@ func (w *Walker) typeExists(name string) bool {
 	if _, found := w.environment.Scope.AliasTypes[name]; found {
 		return true
 	}
+	if _, found := w.environment.Enums[name]; found {
+		return true
+	}
 
 	return false
 }
@@ -449,20 +452,6 @@ func (w *Walker) typeToValue(_type Type) Value {
 		return &AnonStructVal{
 			Fields: _type.(*StructType).Fields,
 		}
-	case ast.Enum:
-		enum := _type.(*EnumType)
-		walker, found := w.walkers[enum.EnvName]
-		var variable *VariableVal
-		switch enum.EnvName {
-		case "Pewpew":
-			variable = PewpewEnv.Scope.Variables[enum.Name]
-		default:
-			variable = walker.environment.Scope.Variables[enum.Name]
-		}
-		if variable == nil {
-			panic(fmt.Sprintf("Enum variable could not be found when converting enum type to value (envName:%v, name:%v, walkerFound:%v)", enum.EnvName, enum.Name, found))
-		}
-		return variable
 	case ast.Entity:
 		val := w.walkers[_type.(*NamedType).EnvName].environment.Entities[_type.String()]
 		return val
@@ -471,6 +460,14 @@ func (w *Walker) typeToValue(_type Type) Value {
 	case ast.Generic:
 		return &GenericVal{
 			Type: _type.(*GenericType),
+		}
+	case ast.Enum:
+		enumType := _type.(*EnumType)
+		switch enumType.EnvName {
+		case "Pewpew":
+			return PewpewEnv.Enums[enumType.Name]
+		default:
+			return w.walkers[enumType.EnvName].environment.Enums[enumType.Name]
 		}
 	default:
 		return &Invalid{}

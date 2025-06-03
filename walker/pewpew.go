@@ -15,51 +15,19 @@ var PewpewEnv = &Environment{
 	UsedLibraries:   make([]Library, 0),
 	Classes:         make(map[string]*ClassVal),
 	Entities:        make(map[string]*EntityVal),
+	Enums: map[string]*EnumVal{
+		"EntityType":     PewpewEntityType,
+		"MothershipType": MothershipType,
+		"CannonType":     CannonType,
+		"CannonFreq":     CannonFrequency,
+		"BombType":       BombType,
+		"BonusType":      BonusType,
+		"AsteroidSize":   AsteroidSize,
+		"WeaponType":     WeaponType,
+	},
 }
 
 var PewpewVariables = map[string]*VariableVal{
-	//enums
-	"EntityType": {
-		Name:  "EntityType",
-		Value: PewpewEntityType,
-		IsPub: true,
-	},
-	"MothershipType": {
-		Name:  "MothershipType",
-		Value: MothershipType,
-		IsPub: true,
-	},
-	"CannonType": {
-		Name:  "CannonType",
-		Value: CannonType,
-		IsPub: true,
-	},
-	"CannonFreq": {
-		Name:  "CannonFreq",
-		Value: CannonFrequency,
-		IsPub: true,
-	},
-	"BombType": {
-		Name:  "BombType",
-		Value: BombType,
-		IsPub: true,
-	},
-	"BonusType": {
-		Name:  "BonusType",
-		Value: BonusType,
-		IsPub: true,
-	},
-	"WeaponType": {
-		Name:  "WeaponType",
-		Value: WeaponType,
-		IsPub: true,
-	},
-	"AsteroidSize": {
-		Name:  "AsteroidSize",
-		Value: AsteroidSize,
-		IsPub: true,
-	},
-
 	//functions
 	"Print": {
 		Name:  "Print",
@@ -616,7 +584,7 @@ var PewpewVariables = map[string]*VariableVal{
 	},
 }
 
-var PewpewEntityType = NewEnumVal("Pewpew", "EntityType", false,
+var PewpewEntityType = NewEnumVal("Pewpew", "EntityType", true,
 	"Asteroid",
 	"YellowBaf",
 	"Inertiac",
@@ -645,12 +613,12 @@ var PewpewEntityType = NewEnumVal("Pewpew", "EntityType", false,
 	"PlasmaField",
 )
 
-var MaceType = NewEnumVal("Pewpew", "MaceType", false,
+var MaceType = NewEnumVal("Pewpew", "MaceType", true,
 	"DamagePlayers",
 	"DamageEntities",
 )
 
-var MothershipType = NewEnumVal("Pewpew", "MothershipType", false,
+var MothershipType = NewEnumVal("Pewpew", "MothershipType", true,
 	"Triangle",
 	"Square",
 	"Pentagon",
@@ -658,7 +626,7 @@ var MothershipType = NewEnumVal("Pewpew", "MothershipType", false,
 	"Heptagon",
 )
 
-var CannonType = NewEnumVal("Pewpew", "CannonType", false,
+var CannonType = NewEnumVal("Pewpew", "CannonType", true,
 	"Single",
 	"TicToc",
 	"Double",
@@ -670,7 +638,7 @@ var CannonType = NewEnumVal("Pewpew", "CannonType", false,
 	"Laser",
 )
 
-var CannonFrequency = NewEnumVal("Pewpew", "CannonFreq", false,
+var CannonFrequency = NewEnumVal("Pewpew", "CannonFreq", true,
 	"Freq30",
 	"Freq15",
 	"Freq10",

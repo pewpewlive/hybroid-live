@@ -244,14 +244,12 @@ func (w *Walker) enumDeclaration(node *ast.EnumDecl, scope *Scope) {
 		enumVal.AddField(variable)
 	}
 
-	enumVar := NewVariable(node.Name, enumVal, node.IsPub).Const()
-
-	if w.typeExists(enumVar.Name) {
+	if w.typeExists(node.Name.Lexeme) {
 		w.AlertSingle(&alerts.TypeRedeclaration{}, node.Name, node.Name.Lexeme)
 		return
 	}
 
-	w.declareVariable(scope, enumVar)
+	w.environment.Enums[node.Name.Lexeme] = enumVal
 }
 
 func (w *Walker) fieldDeclaration(node *ast.VariableDecl, container FieldContainer, scope *Scope, allowSelf bool) {

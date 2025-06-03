@@ -306,7 +306,7 @@ type InvalidCallerType struct {
 }
 
 func (ict *InvalidCallerType) Message() string {
-	return fmt.Sprintf("cannot call value of of type '%s' as a function", ict.Type)
+	return fmt.Sprintf("cannot call value of type '%s' as a function", ict.Type)
 }
 
 func (ict *InvalidCallerType) SnippetSpecifier() Snippet {
@@ -1655,56 +1655,56 @@ func (isp *InvalidSpawnerParameters) AlertType() Type {
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type InvalidUniqueVariable struct {
+type InvalidPewpewVariable struct {
 	Specifier Snippet
-	UniqueVar string
+	PewpewVar string
 	Type      string
 }
 
-func (iuv *InvalidUniqueVariable) Message() string {
-	return fmt.Sprintf("'%s' variable should be global and of type 'list<%s>''", iuv.UniqueVar, iuv.Type)
+func (ipv *InvalidPewpewVariable) Message() string {
+	return fmt.Sprintf("'%s' variable should be global and of type 'list<%s>'", ipv.PewpewVar, ipv.Type)
 }
 
-func (iuv *InvalidUniqueVariable) SnippetSpecifier() Snippet {
-	return iuv.Specifier
+func (ipv *InvalidPewpewVariable) SnippetSpecifier() Snippet {
+	return ipv.Specifier
 }
 
-func (iuv *InvalidUniqueVariable) Note() string {
+func (ipv *InvalidPewpewVariable) Note() string {
 	return ""
 }
 
-func (iuv *InvalidUniqueVariable) ID() string {
+func (ipv *InvalidPewpewVariable) ID() string {
 	return "hyb064W"
 }
 
-func (iuv *InvalidUniqueVariable) AlertType() Type {
+func (ipv *InvalidPewpewVariable) AlertType() Type {
 	return Error
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type MissingUniqueVariable struct {
+type MissingPewpewVariable struct {
 	Specifier Snippet
-	UniqueVar string
+	PewpewVar string
 	EnvType   string
 }
 
-func (muv *MissingUniqueVariable) Message() string {
-	return fmt.Sprintf("A %s environment must have a '%s' variable", muv.EnvType, muv.UniqueVar)
+func (mpv *MissingPewpewVariable) Message() string {
+	return fmt.Sprintf("A %s environment must have a '%s' variable", mpv.EnvType, mpv.PewpewVar)
 }
 
-func (muv *MissingUniqueVariable) SnippetSpecifier() Snippet {
-	return muv.Specifier
+func (mpv *MissingPewpewVariable) SnippetSpecifier() Snippet {
+	return mpv.Specifier
 }
 
-func (muv *MissingUniqueVariable) Note() string {
+func (mpv *MissingPewpewVariable) Note() string {
 	return ""
 }
 
-func (muv *MissingUniqueVariable) ID() string {
+func (mpv *MissingPewpewVariable) ID() string {
 	return "hyb065W"
 }
 
-func (muv *MissingUniqueVariable) AlertType() Type {
+func (mpv *MissingPewpewVariable) AlertType() Type {
 	return Error
 }
 

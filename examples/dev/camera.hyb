@@ -1,0 +1,31 @@
+env Utils as Level
+
+use Fmath
+use Pewpew
+
+// Should be created only once 
+pub class Camera {
+  let fixed x, y, z // Offset values
+  let fixed shipX, shipY 
+
+  // Camera shake
+  let fixed shakePower = 10f
+  let fixed shakeDecay = 0.5f
+
+  new() {}
+
+  fn Update() {
+    Shake()
+  }
+
+  fn Shake() {
+    x = RandomFixed(-shakePower, shakePower)
+
+    ConfigurePlayer(0, struct{
+      camera_x_override = shipX + x,
+      camera_y_override = shipY + y
+    })
+
+    shakePower *= shakeDecay
+  }
+}

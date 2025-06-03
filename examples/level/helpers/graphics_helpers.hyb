@@ -1,4 +1,4 @@
-env Graphix as Mesh
+env Graphix as Generic
 
 use Table
 

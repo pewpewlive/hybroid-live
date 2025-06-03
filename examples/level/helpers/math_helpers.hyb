@@ -1,4 +1,4 @@
-env MathHelper as Mesh
+env MathHelper as Generic
 
 use Math
 

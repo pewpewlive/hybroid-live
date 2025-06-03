@@ -38,6 +38,10 @@ func NewEvaluator(files []core.FileInformation) Evaluator {
 	return evaluator
 }
 
+func (e *Evaluator) GetAlerts(sourcePath string) []alerts.Alert {
+	return e.printer.GetAlerts(sourcePath)
+}
+
 func (e *Evaluator) Action(cwd, outputDir string) error {
 	generate := true
 
@@ -160,6 +164,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 	}
 
 	e.printer.PrintAlerts()
+	generator.ResetGlobalGeneratorValues()
 
 	return nil
 }

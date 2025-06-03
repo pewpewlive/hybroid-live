@@ -3,7 +3,9 @@ package walker
 import (
 	"hybroid/alerts"
 	"hybroid/ast"
+	"hybroid/generator"
 	"hybroid/tokens"
+	"strconv"
 )
 
 func (w *Walker) structExpression(node *ast.StructExpr, scope *Scope) *AnonStructVal {
@@ -216,12 +218,14 @@ func (w *Walker) identifierExpression(node *ast.Node, scope *Scope) Value {
 	sc := w.resolveVariable(scope, ident.Name)
 check:
 	if sc == nil {
+
 		walker, found := w.walkers[ident.Name.Lexeme]
 		if found {
 			*node = &ast.LiteralExpr{
 				Value: "\"" + walker.environment.luaPath + "\"",
+				Token: ident.Name,
 			}
-			return NewPathVal(walker.environment.luaPath, walker.environment.Type)
+			return NewPathVal(walker.environment.luaPath, walker.environment.Type, walker.environment.Name)
 		}
 
 		w.AlertSingle(&alerts.UndeclaredVariableAccess{}, identToken, identToken.Lexeme)
@@ -264,6 +268,7 @@ check:
 		w.AlertSingle(&alerts.MethodOrFieldNotFound{}, identToken, variable.Name)
 	} else if sc.Environment.Name == "Builtin" {
 		scope.Environment.AddBuiltinVar(ident.Name.Lexeme)
+		ident.Type = ast.Builtin
 	} else if sc.Environment.Name != w.environment.Name && scope != sc {
 		*node = &ast.EnvAccessExpr{
 			PathExpr: &ast.EnvPathExpr{
@@ -288,7 +293,7 @@ func (w *Walker) environmentAccessExpression(node *ast.EnvAccessExpr) (Value, as
 		path := envName + ":" + name
 		walker, found := w.walkers[path]
 		if found {
-			return NewPathVal(walker.environment.luaPath, walker.environment.Type), &ast.LiteralExpr{
+			return NewPathVal(walker.environment.luaPath, walker.environment.Type, walker.environment.Name), &ast.LiteralExpr{
 				Value: "\"" + walker.environment.luaPath + "\"",
 			}
 		}
@@ -434,8 +439,18 @@ func (w *Walker) callExpression(val Value, node *ast.Node, scope *Scope) Value {
 }
 
 // Rewrote
-func (w *Walker) accessExpression(node *ast.AccessExpr, scope *Scope) Value {
-	val := w.GetActualNodeValue(&node.Start, scope)
+func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
+	node := (*_node).(*ast.AccessExpr)
+	var val Value
+
+	typeExpr := &ast.TypeExpr{Name: node.Start}
+	typ := w.typeExpression(typeExpr, scope)
+	if et, ok := typ.(*EnumType); ok {
+		val = w.typeToValue(et)
+		node.Start = typeExpr.Name
+	} else {
+		val = w.GetActualNodeValue(&node.Start, scope)
+	}
 
 	prevNode := node.Start
 	for i := range node.Accessed {
@@ -490,26 +505,37 @@ func (w *Walker) accessExpression(node *ast.AccessExpr, scope *Scope) Value {
 			}
 
 			field := node.Accessed[i].(*ast.FieldExpr)
-			w.ignoreAlerts = true
 			fieldVal := w.GetNodeValue(&field.Field, scopedVal.Scopify(scope))
-			w.ignoreAlerts = false
 
-			if fieldVal.GetType() == InvalidType {
+			if _, found := fieldVal.(*VariableVal); !found {
 				w.AlertSingle(&alerts.InvalidField{}, token,
 					prevNode.GetToken().Lexeme,
 					token.Lexeme,
 				)
+				return &Invalid{}
 			}
+			fieldVal = fieldVal.(*VariableVal).Value
 
 			fc := val.(FieldContainer)
 			_, index, found := fc.ContainsField(field.GetToken().Lexeme)
-			if found {
+			if found && valType.GetType() == Named {
 				field.Index = index
 			}
 
 			val = fieldVal
 			prevNode = node.Accessed[i]
-			continue
+		}
+	}
+
+	if enumVal, ok := val.(*EnumFieldVal); ok {
+		if enumVal.Type.EnvName == "Pewpew" {
+			ident := node.Accessed[0].(*ast.FieldExpr).Field.(*ast.IdentifierExpr)
+			ident.Name.Lexeme = generator.PewpewEnums[enumVal.Type.Name][ident.Name.Lexeme]
+			return val
+		}
+		*_node = &ast.LiteralExpr{
+			Value: strconv.Itoa(enumVal.Index),
+			Token: node.GetToken(),
 		}
 	}
 
@@ -623,6 +649,7 @@ func (w *Walker) newExpression(new *ast.NewExpr, scope *Scope) Value {
 	}
 	suppliedGenerics := w.getGenerics(new.GenericArgs, val.Generics, scope)
 	w.validateArguments(suppliedGenerics, args, val.Params, new)
+	new.EnvName = val.Type.EnvName
 
 	return val
 }
@@ -646,6 +673,7 @@ func (w *Walker) spawnExpression(new *ast.SpawnExpr, scope *Scope) Value {
 	}
 	suppliedGenerics := w.getGenerics(new.GenericArgs, val.SpawnGenerics, scope)
 	w.validateArguments(suppliedGenerics, args, val.SpawnParams, new)
+	new.EnvName = val.Type.EnvName
 
 	return val
 }
@@ -722,8 +750,6 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 		typ = NewBasicType(pvt)
 	case ast.Fixed, ast.FixedPoint, ast.Radian, ast.Degree:
 		typ = NewFixedPointType()
-	case ast.Enum:
-		typ = NewBasicType(ast.Enum)
 	case ast.Struct:
 		fields := []*VariableVal{}
 
@@ -758,6 +784,11 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 		typeName := typee.Name.GetToken().Lexeme
 
 		// check for types of the environment
+		if val, ok := scope.Environment.Enums[typeName]; ok {
+			typ = val.Type
+			w.checkAccessibility(scope, val.IsPub, typee.Name.GetToken())
+			break
+		}
 		if entityVal, found := scope.Environment.Entities[typeName]; found {
 			typ = entityVal.GetType()
 			break
@@ -772,11 +803,6 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 		}
 		if aliasType, found := BuiltinEnv.Scope.AliasTypes[typeName]; found {
 			typ = aliasType.UnderlyingType
-			break
-		}
-		if val, ok := scope.Environment.Scope.Variables[typeName]; ok && val.GetType().PVT() == ast.Enum {
-			typ = val.GetType()
-			w.checkAccessibility(scope, val.IsPub, typee.Name.GetToken())
 			break
 		}
 
@@ -818,7 +844,7 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 		}
 
 		if len(types) > 1 {
-			w.AlertSingle(&alerts.EnvironmentAccessAmbiguity{}, typee.GetToken(), typeName, envs)
+			w.AlertSingle(&alerts.EnvironmentAccessAmbiguity{}, typee.GetToken(), envs, typeName)
 			typ = InvalidType
 			break
 		}
@@ -826,7 +852,6 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 			typ = InvalidType
 			break
 		}
-
 		typee.Name = &ast.EnvAccessExpr{
 			PathExpr: &ast.EnvPathExpr{
 				Path: tokens.Token{

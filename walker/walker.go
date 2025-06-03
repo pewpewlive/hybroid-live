@@ -30,6 +30,7 @@ type Environment struct {
 
 	Classes  map[string]*ClassVal
 	Entities map[string]*EntityVal
+	Enums    map[string]*EnumVal
 
 	_envStmt *ast.EnvironmentDecl
 }
@@ -64,6 +65,7 @@ func NewEnvironment(hybroidPath, luaPath string) *Environment {
 		UsedLibraries: make([]Library, 0),
 		Classes:       map[string]*ClassVal{},
 		Entities:      map[string]*EntityVal{},
+		Enums:         map[string]*EnumVal{},
 	}
 
 	global.Scope.Environment = global
@@ -167,6 +169,10 @@ func (w *Walker) Walk() {
 		return
 	}
 
+	if w.program[0].GetType() != ast.EnvironmentDeclaration {
+		return
+	}
+
 	scope := &w.environment.Scope
 	for i := range w.program {
 		w.walkNode(&w.program[i], scope)
@@ -181,22 +187,22 @@ func (w *Walker) CheckUniqueVariables() {
 	if w.environment.Type == ast.MeshEnv {
 		variable, ok := w.environment.Scope.Variables["meshes"]
 		if !ok {
-			w.AlertSingle(&alerts.MissingUniqueVariable{}, w.environment._envStmt.GetToken(), "meshes", "Mesh")
+			w.AlertSingle(&alerts.MissingPewpewVariable{}, w.environment._envStmt.GetToken(), "meshes", "Mesh")
 			return
 		}
 		if !variable.IsPub || !TypeEquals(variable.Value.GetType(), MeshesValueType) {
-			w.AlertSingle(&alerts.InvalidUniqueVariable{}, variable.Token, "meshes", MeshValueType)
+			w.AlertSingle(&alerts.InvalidPewpewVariable{}, variable.Token, "meshes", MeshValueType)
 		}
 		return
 	}
 	if w.environment.Type == ast.SoundEnv {
 		variable, ok := w.environment.Scope.Variables["sounds"]
 		if !ok {
-			w.AlertSingle(&alerts.MissingUniqueVariable{}, w.environment._envStmt.GetToken(), "sounds", "Sound")
+			w.AlertSingle(&alerts.MissingPewpewVariable{}, w.environment._envStmt.GetToken(), "sounds", "Sound")
 			return
 		}
 		if !variable.IsPub || !TypeEquals(variable.Value.GetType(), SoundsValueType) {
-			w.AlertSingle(&alerts.InvalidUniqueVariable{}, variable.Token, "sounds", SoundValueType)
+			w.AlertSingle(&alerts.InvalidPewpewVariable{}, variable.Token, "sounds", SoundValueType)
 		}
 	}
 }
@@ -297,7 +303,7 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 	case *ast.StructExpr:
 		val = w.structExpression(newNode, scope)
 	case *ast.AccessExpr:
-		val = w.accessExpression(newNode, scope)
+		val = w.accessExpression(node, scope)
 	case *ast.NewExpr:
 		val = w.newExpression(newNode, scope)
 	case *ast.SelfExpr:

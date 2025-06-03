@@ -1,0 +1,8 @@
+env Test as Level
+
+let a = 1fx
+fixed b = 0.1f
+const c = 0.1r
+pub d = 0.1d
+let e, f, g = fn() -> (number, number) { return 2, 3 }, 0o234567, 0xffffaaff
+let h, i, j = e(), true

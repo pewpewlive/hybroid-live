@@ -20,6 +20,12 @@ var varCounter = 0
 var envCounter = 0
 var TabsCount int
 
+func ResetGlobalGeneratorValues() {
+	envMap = map[string]string{}
+	varCounter = 0
+	envCounter = 0
+}
+
 func ResolveVarCounter(varname *StringBuilder, counter int) {
 	if counter > len(charset)-1 {
 		newCounter := counter - len(charset)
@@ -62,7 +68,7 @@ type Generator struct {
 	YieldContexts  core.Stack[YieldContext]
 	buffer         StringBuilder
 	writeToBuffer  bool
-	pewpewEnum     *map[string]string
+	isPewpew       bool
 }
 
 func (gen *Generator) Write(chunks ...string) {
@@ -255,8 +261,6 @@ func (gen *Generator) GenerateStmt(node ast.Node) {
 		gen.WriteString(val)
 	case *ast.FunctionDecl:
 		gen.functionDeclaration(*newNode)
-	case *ast.EnumDecl:
-		gen.enumDeclaration(*newNode)
 	case *ast.ClassDecl:
 		gen.classDeclaration(*newNode)
 	case *ast.EnvAccessExpr:
@@ -310,8 +314,6 @@ func (gen *Generator) GenerateExpr(node ast.Node) string {
 		return gen.spawnExpr(*newNode, false)
 	case *ast.MethodCallExpr:
 		return gen.methodCallExpr(*newNode, false)
-		// case *ast.CastExpr:
-		// 	return gen.castExpr(*newNode)
 	}
 
 	return ""

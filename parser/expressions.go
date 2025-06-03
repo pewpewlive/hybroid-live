@@ -230,8 +230,8 @@ accessCheck:
 	for p.match(tokens.Dot, tokens.LeftBracket) {
 		tokenType := p.peek(-1).Type
 
-		if tokenType == tokens.Dot {
-			expr2 := p.matchExpr()
+		if tokenType == tokens.Dot { // self.frames[]
+			expr2 := p.primary()
 			access.Accessed = append(access.Accessed, &ast.FieldExpr{
 				Field: expr2,
 			})
