@@ -179,7 +179,7 @@ func (gen *Generator) spawnDeclaration(node ast.EntityFunctionDecl, entity ast.E
 
 	gen.WriteTabbed("local id = pewpew.new_customizable_entity(", gen.WriteVar(node.Params[0].Name.Lexeme), ", ", gen.WriteVar(node.Params[1].Name.Lexeme), ")\n")
 	tableAccess := entityName + "[id]"
-	gen.WriteTabbed(tableAccess, " = {}")
+	gen.WriteTabbed(tableAccess, " = {}\n")
 	gen.WriteTabbed("local Self = ", tableAccess)
 	counter := 1
 	for _, field := range entity.Fields {

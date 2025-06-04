@@ -36,4 +36,4 @@ pub entity Ship {
   }
 }
 
-pub Ship SHIP = spawn SHIP()
+pub Ship SHIP = spawn Ship(0fx, 0fx)

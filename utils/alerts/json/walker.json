@@ -566,5 +566,15 @@
     },
     "message": "the default case must always be at the end %s",
     "message_format": ["Context"]
+  },
+  {
+    "name": "InvalidType",
+    "type": "Error",
+    "fields":{
+      "Type": "string",
+      "Context": "string"
+    },
+    "message": "cannot have a type '%s' %s",
+    "message_format": ["Type", "Context"]
   }
 ]

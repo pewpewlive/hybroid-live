@@ -1760,3 +1760,30 @@ func (idcp *InvalidDefaultCasePlacement) ID() string {
 func (idcp *InvalidDefaultCasePlacement) AlertType() Type {
 	return Error
 }
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidType struct {
+	Specifier Snippet
+	Type      string
+	Context   string
+}
+
+func (it *InvalidType) Message() string {
+	return fmt.Sprintf("cannot have a type '%s' %s", it.Type, it.Context)
+}
+
+func (it *InvalidType) SnippetSpecifier() Snippet {
+	return it.Specifier
+}
+
+func (it *InvalidType) Note() string {
+	return ""
+}
+
+func (it *InvalidType) ID() string {
+	return "hyb068W"
+}
+
+func (it *InvalidType) AlertType() Type {
+	return Error
+}

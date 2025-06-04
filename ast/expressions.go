@@ -40,12 +40,14 @@ func (eae *EnvAccessExpr) GetToken() tokens.Token { return eae.Accessed.GetToken
 // func (mce *MacroCallExpr) GetType() NodeType                { return MacroCallExpression }
 // func (mce *MacroCallExpr) GetToken() tokens.Token           { return mce.Caller.GetToken() }
 
-type PewpewExpr struct {
-	Expr Node
+type EntityAccessExpr struct {
+	Expr       Node
+	EntityName string
+	EnvName    string
 }
 
-func (pe *PewpewExpr) GetType() NodeType      { return PewpewExpression }
-func (pe *PewpewExpr) GetToken() tokens.Token { return pe.Expr.GetToken() }
+func (pe *EntityAccessExpr) GetType() NodeType      { return EntityAccessExpression }
+func (pe *EntityAccessExpr) GetToken() tokens.Token { return pe.Expr.GetToken() }
 
 type LiteralExpr struct {
 	Value string
@@ -86,7 +88,7 @@ type EntityEvaluationExpr struct {
 	Token              tokens.Token
 }
 
-func (eee *EntityEvaluationExpr) GetType() NodeType      { return GroupExpression }
+func (eee *EntityEvaluationExpr) GetType() NodeType      { return EntityEvaluationExpression }
 func (eee *EntityEvaluationExpr) GetToken() tokens.Token { return eee.Token }
 
 type GroupExpr struct {
@@ -208,7 +210,7 @@ type IdentifierType int
 
 const (
 	Other IdentifierType = iota
-	Builtin
+	Raw
 )
 
 type AccessExpr struct {

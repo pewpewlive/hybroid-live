@@ -52,27 +52,6 @@ const (
 	All
 )
 
-/*
-
-match {
-	fn {
-		if {
-			if {
-				return
-			}
-		}
-
-		if {
-		}
-
-		return
-	}
-}
-
-
-
-*/
-
 type ExitableTag interface {
 	ScopeTag
 	SetExit(state bool, _type ExitType)
@@ -98,7 +77,7 @@ func (st *ClassTag) GetType() ScopeTagType {
 }
 
 type EntityTag struct {
-	EntityType *EntityVal
+	EntityVal *EntityVal
 }
 
 func (et *EntityTag) GetType() ScopeTagType {
@@ -252,8 +231,9 @@ type Scope struct {
 	Tag        ScopeTag
 	Attributes ScopeAttributes
 
-	Variables  map[string]*VariableVal
-	AliasTypes map[string]*AliasType
+	Variables   map[string]*VariableVal
+	AliasTypes  map[string]*AliasType
+	ConstValues map[string]ast.Node
 
 	Body *[]*ast.Node
 }
@@ -301,7 +281,9 @@ func NewScope(parent *Scope, tag ScopeTag, extraAttrs ...ScopeAttribute) *Scope 
 		Tag:        tag,
 		Attributes: attrs,
 
-		Variables: map[string]*VariableVal{},
+		Variables:   map[string]*VariableVal{},
+		AliasTypes:  map[string]*AliasType{},
+		ConstValues: make(map[string]ast.Node),
 	}
 	return &scope
 }

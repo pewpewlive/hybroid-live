@@ -57,17 +57,17 @@ type VariableVal struct {
 	Token   tokens.Token
 }
 
-// args go as follows: value Value, isLocal bool
+// args go as follows: value Value, isPub bool
 func NewVariable(token tokens.Token, args ...any) *VariableVal {
 	var value Value
-	isLocal := true
+	isPub := false
 	if args != nil {
 		if args[0] != nil {
 			value = args[0].(Value)
 		}
 
 		if len(args) == 2 {
-			isLocal = args[1].(bool)
+			isPub = args[1].(bool)
 		}
 	}
 
@@ -75,7 +75,7 @@ func NewVariable(token tokens.Token, args ...any) *VariableVal {
 		Name:   token.Lexeme,
 		Token:  token,
 		Value:  value,
-		IsPub:  isLocal,
+		IsPub:  isPub,
 		IsInit: value != nil,
 	}
 }

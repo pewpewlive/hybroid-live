@@ -133,22 +133,6 @@ func (sc *Scope) resolveReturnable() *ExitableTag {
 	return sc.Parent.resolveReturnable()
 }
 
-func convertNodeToAccessFieldExpr(ident ast.Node, index int) *ast.AccessExpr {
-	fieldExpr := &ast.FieldExpr{
-		Index: index,
-		Field: ident,
-	}
-
-	return &ast.AccessExpr{
-		Start: &ast.SelfExpr{
-			Token: ident.GetToken(),
-		},
-		Accessed: []ast.Node{
-			fieldExpr,
-		},
-	}
-}
-
 func convertCallToMethodCall(call *ast.CallExpr, mi ast.MethodInfo) *ast.MethodCallExpr {
 	copy := *call
 	return &ast.MethodCallExpr{

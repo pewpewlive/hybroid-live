@@ -31,6 +31,7 @@ var BuiltinEnv = &Environment{
 			}, false), false),
 			"Sound": NewAliasType("Sound", SoundValueType, false),
 		},
+		ConstValues: make(map[string]ast.Node),
 	},
 	importedWalkers: make([]*Walker, 0),
 	UsedLibraries:   make([]Library, 0),

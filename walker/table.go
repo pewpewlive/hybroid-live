@@ -5,9 +5,10 @@ import "hybroid/ast"
 var TableEnv = &Environment{
 	Name: "Table",
 	Scope: Scope{
-		Variables:  TableVariables,
-		Tag:        &UntaggedTag{},
-		AliasTypes: make(map[string]*AliasType),
+		Variables:   TableVariables,
+		Tag:         &UntaggedTag{},
+		AliasTypes:  make(map[string]*AliasType),
+		ConstValues: make(map[string]ast.Node),
 	},
 	importedWalkers: make([]*Walker, 0),
 	UsedLibraries:   make([]Library, 0),

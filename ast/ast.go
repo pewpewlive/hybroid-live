@@ -57,12 +57,9 @@ const (
 	SelfExpression              NodeType = "selfExpression"
 	NewExpession                NodeType = "newExpession"
 	SpawnExpression             NodeType = "spawnExpression"
-	EntityExpression            NodeType = "entityExpression"
+	EntityEvaluationExpression  NodeType = "entityEvaluationExpression"
 
-	PewpewExpression   NodeType = "pewpewExpression"
-	FmathExpression    NodeType = "fmathExpression"
-	BuiltinExpression  NodeType = "builtinExpression"
-	StandardExpression NodeType = "standardExpression"
+	EntityAccessExpression NodeType = "entityAccessExpression"
 
 	Identifier NodeType = "identifier"
 

@@ -53,9 +53,10 @@ func (e *Environment) AddBuiltinVar(name string) {
 
 func NewEnvironment(hybroidPath, luaPath string) *Environment {
 	scope := Scope{
-		Tag:        &UntaggedTag{},
-		Variables:  map[string]*VariableVal{},
-		AliasTypes: make(map[string]*AliasType),
+		Tag:         &UntaggedTag{},
+		Variables:   map[string]*VariableVal{},
+		AliasTypes:  make(map[string]*AliasType),
+		ConstValues: make(map[string]ast.Node),
 	}
 	global := &Environment{
 		hybroidPath:   hybroidPath,

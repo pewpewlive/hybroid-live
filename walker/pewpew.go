@@ -7,9 +7,10 @@ import (
 var PewpewEnv = &Environment{
 	Name: "Pewpew",
 	Scope: Scope{
-		Variables:  PewpewVariables,
-		Tag:        &UntaggedTag{},
-		AliasTypes: make(map[string]*AliasType),
+		Variables:   PewpewVariables,
+		Tag:         &UntaggedTag{},
+		AliasTypes:  make(map[string]*AliasType),
+		ConstValues: make(map[string]ast.Node),
 	},
 	importedWalkers: make([]*Walker, 0),
 	UsedLibraries:   make([]Library, 0),

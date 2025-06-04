@@ -137,13 +137,13 @@ func (w *Walker) entityDeclaration(node *ast.EntityDecl, scope *Scope) {
 
 	entityVal := NewEntityVal(w.environment.Name, node.Name.Lexeme, node.IsPub)
 
+	et.EntityVal = entityVal
+	w.declareEntity(entityVal)
+
 	// DECLARATIONS
 	for i := range node.Fields {
 		w.fieldDeclaration(&node.Fields[i], entityVal, entityScope, false)
 	}
-
-	et.EntityType = entityVal
-	w.declareEntity(entityVal)
 
 	for i := range node.Methods {
 		w.methodDeclaration(&node.Methods[i], entityVal, entityScope, true)
@@ -240,7 +240,7 @@ func (w *Walker) enumDeclaration(node *ast.EnumDecl, scope *Scope) {
 			w.AlertSingle(&alerts.DuplicateElement{}, v.GetToken(), "enum field", v.Name.Lexeme)
 			continue
 		}
-		variable := NewVariable(v.Name, &EnumFieldVal{Type: enumVal.Type}, node.IsPub).Const()
+		variable := NewVariable(v.Name, &EnumFieldVal{Type: enumVal.Type}, node.IsPub)
 		enumVal.AddField(variable)
 	}
 
@@ -420,6 +420,7 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 			}
 			variable.IsConst = true
 			w.declareVariable(scope, variable)
+			scope.ConstValues[variable.Name] = exprs[values[i].Index]
 			continue
 		}
 

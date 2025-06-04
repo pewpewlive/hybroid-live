@@ -267,7 +267,7 @@ func (gen *Generator) destroyStmt(node ast.DestroyStmt) {
 	src := StringBuilder{}
 
 	src.WriteTabbed()
-	src.Write(envMap[node.EnvName], hyEntity, node.EntityName, "_Destroy(", gen.GenerateExpr(node.Identifier))
+	src.Write(hyEntity, envMap[node.EnvName], node.EntityName, "_Destroy(", gen.GenerateExpr(node.Identifier))
 	for _, arg := range node.Args {
 		src.Write(", ")
 		src.Write(gen.GenerateExpr(arg))

@@ -68,7 +68,7 @@ type Generator struct {
 	YieldContexts  core.Stack[YieldContext]
 	buffer         StringBuilder
 	writeToBuffer  bool
-	isPewpew       bool
+	envPrefixName  string
 }
 
 func (gen *Generator) Write(chunks ...string) {
@@ -113,14 +113,25 @@ func (gen *Generator) SetUniqueEnvName(name string) {
 func (gen *Generator) SetEnv(name string, env ast.Env) {
 	gen.envName = envMap[name]
 	gen.env = env
+	gen.envPrefixName = gen.envName
 }
 
 func (gen *Generator) WriteVar(name string) string {
-	return gen.envName + name
+	defer func() {
+		if gen.envPrefixName != gen.envName {
+			gen.envPrefixName = gen.envName
+		}
+	}()
+	return gen.envPrefixName + name
 }
 
-func (gen *Generator) WriteVarExtra(name, middle string) string {
-	return gen.envName + middle + name
+func (gen *Generator) WriteVarExtra(name, extra string) string {
+	defer func() {
+		if gen.envPrefixName != gen.envName {
+			gen.envPrefixName = gen.envName
+		}
+	}()
+	return extra + gen.envPrefixName + name
 }
 
 func getTabs() string {
@@ -314,6 +325,10 @@ func (gen *Generator) GenerateExpr(node ast.Node) string {
 		return gen.spawnExpr(*newNode, false)
 	case *ast.MethodCallExpr:
 		return gen.methodCallExpr(*newNode, false)
+	case *ast.EntityAccessExpr:
+		return gen.entityAccessExpr(*newNode)
+	case *ast.FieldExpr:
+		return fmt.Sprintf("[%v]", newNode.Index)
 	}
 
 	return ""

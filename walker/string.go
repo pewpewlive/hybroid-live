@@ -5,9 +5,10 @@ import "hybroid/ast"
 var StringEnv = &Environment{
 	Name: "String",
 	Scope: Scope{
-		Variables:  StringVariables,
-		Tag:        &UntaggedTag{},
-		AliasTypes: make(map[string]*AliasType),
+		Variables:   StringVariables,
+		Tag:         &UntaggedTag{},
+		AliasTypes:  make(map[string]*AliasType),
+		ConstValues: make(map[string]ast.Node),
 	},
 	importedWalkers: make([]*Walker, 0),
 	UsedLibraries:   make([]Library, 0),

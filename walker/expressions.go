@@ -9,15 +9,19 @@ import (
 )
 
 func (w *Walker) structExpression(node *ast.StructExpr, scope *Scope) *AnonStructVal {
-	anonStructScope := NewScope(scope, &UntaggedTag{})
 	structTypeVal := NewAnonStructVal(make(map[string]Field), false)
 
 	for i := range node.Fields {
-		w.fieldDeclaration(&ast.VariableDecl{
-			Identifiers: []*ast.IdentifierExpr{node.Fields[i]},
-			Expressions: []ast.Node{node.Expressions[i]},
-			Token:       node.Fields[i].GetToken(),
-		}, structTypeVal, anonStructScope, true)
+		fieldToken := node.Fields[i].Name
+		val := w.GetActualNodeValue(&node.Expressions[i], scope)
+		if field, found := structTypeVal.Fields[fieldToken.Lexeme]; found {
+			w.AlertSingle(&alerts.Redeclaration{}, fieldToken, field.Var.Name, "struct field")
+			continue
+		}
+		if _, ok := val.(Values); ok {
+			w.AlertSingle(&alerts.InvalidType{}, node.Expressions[i].GetToken(), val.GetType(), "in struct field declaration")
+		}
+		structTypeVal.Fields[fieldToken.Lexeme] = NewField(0, NewVariable(fieldToken, val))
 	}
 
 	return structTypeVal
@@ -178,9 +182,9 @@ func (w *Walker) binaryExpression(node *ast.BinaryExpr, scope *Scope) Value {
 	default: // logical comparison
 		if op.Type == tokens.Or {
 			var operand ast.Node
-			if node.Left.GetType() == ast.EntityExpression {
+			if node.Left.GetType() == ast.EntityEvaluationExpression {
 				operand = node.Left
-			} else if node.Right.GetType() == ast.EntityExpression {
+			} else if node.Right.GetType() == ast.EntityEvaluationExpression {
 				operand = node.Right
 			}
 			if operand != nil && operand.(*ast.EntityEvaluationExpr).ConvertedVarName != nil {
@@ -238,11 +242,26 @@ check:
 	}
 
 	variable := w.getVariable(sc, ident.Name)
+	if val, ok := sc.ConstValues[variable.Name]; variable.IsConst && ok {
+		*node = val
+		return variable
+	}
 	if sc.Tag.GetType() == Class {
 		class := sc.Tag.(*ClassTag).Val
 		field, index, found := class.ContainsField(variable.Name)
 
-		*node = convertNodeToAccessFieldExpr(ident, index)
+		*node = &ast.AccessExpr{
+			Start: &ast.SelfExpr{
+				Token: ident.GetToken(),
+				Type:  ast.ClassMethod,
+			},
+			Accessed: []ast.Node{
+				&ast.FieldExpr{
+					Index: index,
+					Field: ident,
+				},
+			},
+		}
 
 		if found {
 			return field
@@ -253,10 +272,22 @@ check:
 		}
 		w.AlertSingle(&alerts.MethodOrFieldNotFound{}, identToken, ident.Name.Lexeme)
 	} else if sc.Tag.GetType() == Entity && scope.Is(SelfAllowing) {
-		entity := sc.Tag.(*EntityTag).EntityType
+		entity := sc.Tag.(*EntityTag).EntityVal
 		field, index, found := entity.ContainsField(variable.Name)
 
-		*node = convertNodeToAccessFieldExpr(ident, index)
+		*node = &ast.AccessExpr{
+			Start: &ast.SelfExpr{
+				Token:      ident.GetToken(),
+				EntityName: entity.Type.Name,
+				Type:       ast.EntityMethod,
+			},
+			Accessed: []ast.Node{
+				&ast.FieldExpr{
+					Index: index,
+					Field: ident,
+				},
+			},
+		}
 
 		if found {
 			return field
@@ -268,7 +299,7 @@ check:
 		w.AlertSingle(&alerts.MethodOrFieldNotFound{}, identToken, variable.Name)
 	} else if sc.Environment.Name == "Builtin" {
 		scope.Environment.AddBuiltinVar(ident.Name.Lexeme)
-		ident.Type = ast.Builtin
+		ident.Type = ast.Raw
 	} else if sc.Environment.Name != w.environment.Name && scope != sc {
 		*node = &ast.EnvAccessExpr{
 			PathExpr: &ast.EnvPathExpr{
@@ -289,8 +320,8 @@ func (w *Walker) environmentAccessExpression(node *ast.EnvAccessExpr) (Value, as
 	envName := node.PathExpr.Path.Lexeme
 
 	if node.Accessed.GetType() == ast.Identifier {
-		name := node.Accessed.(*ast.IdentifierExpr).Name.Lexeme
-		path := envName + ":" + name
+		ident := node.Accessed.(*ast.IdentifierExpr)
+		path := envName + ":" + ident.Name.Lexeme
 		walker, found := w.walkers[path]
 		if found {
 			return NewPathVal(walker.environment.luaPath, walker.environment.Type, walker.environment.Name), &ast.LiteralExpr{
@@ -349,7 +380,7 @@ func (w *Walker) environmentAccessExpression(node *ast.EnvAccessExpr) (Value, as
 		return value, nil
 	}
 
-	walker.environment.AddRequirement(walker.environment.luaPath)
+	w.environment.AddRequirement(walker.environment.luaPath)
 
 	if !walker.Walked {
 		walker.Walk()
@@ -452,7 +483,7 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 		val = w.GetActualNodeValue(&node.Start, scope)
 	}
 
-	prevNode := node.Start
+	prevNode := &node.Start
 	for i := range node.Accessed {
 		valType := val.GetType()
 		if valType == InvalidType {
@@ -462,7 +493,7 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 		scopedVal, scopeable := val.(ScopeableValue)
 
 		if valType.GetType() != Wrapper && !scopeable {
-			w.AlertSingle(&alerts.InvalidAccessValue{}, prevNode.GetToken(), valType)
+			w.AlertSingle(&alerts.InvalidAccessValue{}, (*prevNode).GetToken(), valType)
 			return &Invalid{}
 		}
 		token := node.Accessed[i].GetToken()
@@ -490,7 +521,7 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 			}
 
 			val = w.typeToValue(val.GetType().(*WrapperType).WrappedType)
-			prevNode = node.Accessed[i]
+			prevNode = &node.Accessed[i]
 			continue
 		}
 
@@ -509,7 +540,7 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 
 			if _, found := fieldVal.(*VariableVal); !found {
 				w.AlertSingle(&alerts.InvalidField{}, token,
-					prevNode.GetToken().Lexeme,
+					(*prevNode).GetToken().Lexeme,
 					token.Lexeme,
 				)
 				return &Invalid{}
@@ -521,9 +552,17 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 			if found && valType.GetType() == Named {
 				field.Index = index
 			}
+			if entityVal, ok := val.(*EntityVal); ok {
+
+				*prevNode = &ast.EntityAccessExpr{
+					Expr:       *prevNode,
+					EntityName: entityVal.Type.Name,
+					EnvName:    entityVal.Type.EnvName,
+				}
+			}
 
 			val = fieldVal
-			prevNode = node.Accessed[i]
+			prevNode = &node.Accessed[i]
 		}
 	}
 
@@ -541,6 +580,28 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 
 	return val
 }
+
+// // thignAccess[shipAccess[shipid][2]][3]
+
+// // shipAccess[shipid]
+
+// func (w *Walker) ConvertAccessExprToEntityAccessExpr(entityVal *EntityVal, start *ast.Node, accessed ...ast.Node) {
+// 	entityAccess := &ast.EntityAccessExpr{
+// 		EnvName:    entityVal.Type.EnvName,
+// 		EntityName: entityVal.Type.Name,
+// 	}
+
+// 	if len(accessed) == 0 {
+// 		entityAccess.Expr = *start
+// 	} else {
+// 		entityAccess.Expr = &ast.AccessExpr{
+// 			Start:    *start,
+// 			Accessed: accessed,
+// 		}
+// 	}
+
+// 	*start = entityAccess
+// }
 
 // Rewrote
 func (w *Walker) mapExpression(node *ast.MapExpr, scope *Scope) Value {
@@ -619,8 +680,8 @@ func (w *Walker) selfExpression(self *ast.SelfExpr, scope *Scope) Value {
 		entitySc, _, entityTag := resolveTagScope[*EntityTag](scope)
 		if entitySc != nil {
 			self.Type = ast.EntityMethod
-			self.EntityName = (*entityTag).EntityType.Type.Name
-			return (*entityTag).EntityType
+			self.EntityName = (*entityTag).EntityVal.Type.Name
+			return (*entityTag).EntityVal
 		}
 		w.AlertSingle(&alerts.InvalidUseOfSelf{}, self.Token)
 		return &Invalid{}
@@ -633,9 +694,6 @@ func (w *Walker) selfExpression(self *ast.SelfExpr, scope *Scope) Value {
 func (w *Walker) newExpression(new *ast.NewExpr, scope *Scope) Value {
 	_type := w.typeExpression(new.Type, scope)
 
-	if _type.PVT() == ast.Invalid {
-		return &Invalid{}
-	}
 	if _type.PVT() != ast.Class {
 		w.AlertSingle(&alerts.TypeMismatch{}, new.Type.GetToken(), "class", _type.String(), "in new expression")
 		return &Invalid{}
@@ -657,9 +715,6 @@ func (w *Walker) newExpression(new *ast.NewExpr, scope *Scope) Value {
 func (w *Walker) spawnExpression(new *ast.SpawnExpr, scope *Scope) Value {
 	_type := w.typeExpression(new.Type, scope)
 
-	if _type.PVT() == ast.Invalid {
-		return &Invalid{}
-	}
 	if _type.PVT() != ast.Entity {
 		w.AlertSingle(&alerts.TypeMismatch{}, new.Type.GetToken(), "entity", _type.String(), "in spawn expression")
 		return &Invalid{}
@@ -684,6 +739,7 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 	}
 
 	var typ Type
+
 	if typee.Name.GetType() == ast.EnvironmentAccessExpression {
 		expr, _ := typee.Name.(*ast.EnvAccessExpr)
 		path := expr.PathExpr.Path
@@ -728,7 +784,10 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 			env = walker.environment
 		}
 
-		ident := &ast.IdentifierExpr{Name: expr.Accessed.GetToken()}
+		if expr.Accessed.GetType() != ast.Identifier {
+			return InvalidType
+		}
+		ident := expr.Accessed.(*ast.IdentifierExpr)
 		typ = w.typeExpression(&ast.TypeExpr{Name: ident}, &env.Scope)
 		if typee.IsVariadic {
 			return NewVariadicType(typ)

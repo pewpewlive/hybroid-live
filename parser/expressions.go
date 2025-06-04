@@ -210,7 +210,7 @@ func (p *Parser) entity() ast.Node {
 
 	if letMatched {
 		p.AlertSingle(&alerts.ExpectedKeyword{}, p.peek(), "is/isnt")
-		return ast.NewImproper(token, ast.EntityExpression)
+		return ast.NewImproper(token, ast.EntityEvaluationExpression)
 	}
 
 	return variable

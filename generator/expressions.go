@@ -27,7 +27,7 @@ func (gen *Generator) entityExpr(node ast.EntityEvaluationExpr) string {
 	}
 	expr := gen.GenerateExpr(node.Expr)
 
-	src.Write(envMap[node.EnvName], hyEntity, node.EntityName, "[", expr, "] ", op, " nil")
+	src.Write(hyEntity, envMap[node.EnvName], node.EntityName, "[", expr, "] ", op, " nil")
 
 	if node.ConvertedVarName != nil {
 		preSrc := StringBuilder{}
@@ -74,7 +74,7 @@ func (gen *Generator) identifierExpr(node ast.IdentifierExpr) string {
 	if gen.env == ast.SoundEnv && node.Name.Lexeme == "sounds" {
 		return "sounds"
 	}
-	if node.Type == ast.Builtin {
+	if node.Type == ast.Raw {
 		return node.Name.Lexeme
 	}
 	return gen.WriteVar(node.Name.Lexeme)
@@ -162,28 +162,46 @@ func (gen *Generator) unaryExpr(node ast.UnaryExpr) string {
 		op = node.Operator.Lexeme
 	}
 	return fmt.Sprintf("%s%s", op, gen.GenerateExpr(node.Value))
+
 }
 
 func (gen *Generator) accessExpr(node ast.AccessExpr) string { // thing.Freq15
-	src := StringBuilder{}
-	if node.Start.GetType() == ast.SelfExpression && node.Start.(*ast.SelfExpr).Type == ast.EntityMethod {
-		src.Write("Self")
-	} else {
-		src.Write(gen.GenerateExpr(node.Start))
-	}
-	for _, accessed := range node.Accessed {
+	str := ""
+
+	next_format := "%s"
+
+	for i := range node.Accessed {
+		accessed := node.Accessed[(len(node.Accessed)-1)-i]
 		switch expr := accessed.(type) {
 		case *ast.FieldExpr:
 			if expr.Index == 0 {
-				src.Write(fmt.Sprintf("[\"%s\"]", expr.GetToken().Lexeme))
+				str = fmt.Sprintf(fmt.Sprintf(next_format, "[\"%s\"]"), expr.GetToken().Lexeme)
+				next_format = "%s" + str
 				continue
 			}
-			src.Write(fmt.Sprintf("[%v]", expr.Index))
+			str = fmt.Sprintf(fmt.Sprintf(next_format, "[%v]"), expr.Index)
+			next_format = "%s" + str
 		case *ast.MemberExpr:
-			src.Write(fmt.Sprintf("[%s]", gen.GenerateExpr(expr.Member)))
+			str = fmt.Sprintf(fmt.Sprintf(next_format, "[%s]"), gen.GenerateExpr(expr.Member))
+			next_format = "%s" + str
+		case *ast.EntityAccessExpr:
+			tableAccess := hyEntity + envMap[expr.EnvName] + expr.EntityName
+			str = fmt.Sprintf("%s]%s", gen.GenerateExpr(expr.Expr), str)
+			next_format = tableAccess + "[" + "%s" + str
 		}
+	} // shio.thing.id ->  thignAcess[[2]][2]
+	if node.Start.GetType() == ast.SelfExpression && node.Start.(*ast.SelfExpr).Type == ast.EntityMethod {
+		str = fmt.Sprintf(next_format, "Self")
+	} else {
+		str = fmt.Sprintf(next_format, gen.GenerateExpr(node.Start))
 	}
 
+	return str
+}
+
+func (gen *Generator) entityAccessExpr(node ast.EntityAccessExpr) string {
+	src := StringBuilder{}
+	src.Write(hyEntity, envMap[node.EnvName], node.EntityName, "[", gen.GenerateExpr(node.Expr), "]")
 	return src.String()
 }
 
@@ -242,11 +260,9 @@ func (gen *Generator) newExpr(new ast.NewExpr, stmt bool) string {
 		src.WriteTabbed()
 	}
 
-	length := len(new.Type.Name.GetToken().Lexeme)
+	gen.envPrefixName = envMap[new.EnvName]
 	name := gen.GenerateExpr(new.Type.Name)
-	fullLength := len(name)
-	cut := name[fullLength-length:]
-	src.Write(name[:fullLength-length], hyClass, cut, "_New(")
+	src.Write(hyClass, name, "_New(")
 	for i, arg := range new.Args {
 		src.Write(gen.GenerateExpr(arg))
 		if i != len(new.Args)-1 {
@@ -255,6 +271,25 @@ func (gen *Generator) newExpr(new ast.NewExpr, stmt bool) string {
 	}
 	src.Write(")")
 
+	return src.String()
+}
+
+func (gen *Generator) spawnExpr(spawn ast.SpawnExpr, stmt bool) string {
+	src := StringBuilder{}
+
+	if stmt {
+		src.WriteTabbed()
+	}
+	gen.envPrefixName = envMap[spawn.EnvName]
+	name := gen.GenerateExpr(spawn.Type.Name)
+	src.Write(hyEntity, name, "_Spawn(")
+	for i, arg := range spawn.Args {
+		src.Write(gen.GenerateExpr(arg))
+		if i != len(spawn.Args)-1 {
+			src.Write(", ")
+		}
+	}
+	src.Write(")")
 	return src.String()
 }
 
@@ -312,10 +347,10 @@ func (gen *Generator) matchExpr(match ast.MatchExpr) string {
 }
 
 func (gen *Generator) envAccessExpr(node ast.EnvAccessExpr) string {
-	accessed := gen.GenerateExpr(node.Accessed)
-	accessed = accessed[len(gen.envName):]
-
 	envName := node.PathExpr.Path.Lexeme
+	gen.envPrefixName = envMap[envName]
+	accessed := gen.GenerateExpr(node.Accessed)
+
 	var prefix string
 	switch envName {
 	case "Pewpew":
@@ -334,28 +369,10 @@ func (gen *Generator) envAccessExpr(node ast.EnvAccessExpr) string {
 		prefix = "table."
 		accessed = TableVariables[accessed]
 	default:
-		prefix = envMap[envName]
+		prefix = ""
 	}
 
 	return prefix + accessed
-}
-
-func (gen *Generator) spawnExpr(spawn ast.SpawnExpr, stmt bool) string {
-	src := StringBuilder{}
-
-	if stmt {
-		src.WriteTabbed()
-	}
-	name := gen.GenerateExpr(spawn.Type.Name)
-	src.Write(envMap[spawn.EnvName], hyEntity, name, "_Spawn(")
-	for i, arg := range spawn.Args {
-		src.Write(gen.GenerateExpr(arg))
-		if i != len(spawn.Args)-1 {
-			src.Write(", ")
-		}
-	}
-	src.Write(")")
-	return src.String()
 }
 
 func (gen *Generator) methodCallExpr(methodCall ast.MethodCallExpr, stmt bool) string {
@@ -370,7 +387,7 @@ func (gen *Generator) methodCallExpr(methodCall ast.MethodCallExpr, stmt bool) s
 	} else {
 		extra = hyEntity
 	}
-	src.Write(envMap[methodCall.EnvName], extra, methodCall.TypeName, "_", methodCall.MethodName, "(", gen.GenerateExpr(methodCall.Caller))
+	src.Write(extra, envMap[methodCall.EnvName], methodCall.TypeName, "_", methodCall.MethodName, "(", gen.GenerateExpr(methodCall.Caller))
 	for i := range methodCall.Args {
 		src.Write(", ", gen.GenerateExpr(methodCall.Args[i]))
 	}
@@ -381,11 +398,4 @@ func (gen *Generator) methodCallExpr(methodCall ast.MethodCallExpr, stmt bool) s
 	}
 
 	return src.String()
-}
-
-func (gen *Generator) PewpewExpr(pewpew ast.PewpewExpr) string {
-	gen.isPewpew = true
-	value := gen.GenerateExpr(pewpew.Expr)
-	gen.isPewpew = false
-	return value
 }
