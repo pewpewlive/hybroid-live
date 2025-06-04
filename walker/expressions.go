@@ -117,7 +117,7 @@ func (w *Walker) entityEvaluationExpression(node *ast.EntityEvaluationExpr, scop
 			"Ufo", "Wary", "Crowder", "Ship", "Bomb", "BlueBaf",
 			"RedBaf", "WaryMissile", "UfoBullet", "PlayerBullet",
 			"BombExplosion", "PlayerExplosion", "Bonus", "FloatingMessage",
-			"Pointonium", "BonusImplosion":
+			"Pointonium", "BonusImplosion", "Mace", "PlasmaField":
 			typ = &RawEntityType{}
 			node.OfficialEntityType = true
 		}
@@ -694,6 +694,9 @@ func (w *Walker) selfExpression(self *ast.SelfExpr, scope *Scope) Value {
 func (w *Walker) newExpression(new *ast.NewExpr, scope *Scope) Value {
 	_type := w.typeExpression(new.Type, scope)
 
+	if _type == InvalidType {
+		return &Invalid{}
+	}
 	if _type.PVT() != ast.Class {
 		w.AlertSingle(&alerts.TypeMismatch{}, new.Type.GetToken(), "class", _type.String(), "in new expression")
 		return &Invalid{}
@@ -715,6 +718,9 @@ func (w *Walker) newExpression(new *ast.NewExpr, scope *Scope) Value {
 func (w *Walker) spawnExpression(new *ast.SpawnExpr, scope *Scope) Value {
 	_type := w.typeExpression(new.Type, scope)
 
+	if _type == InvalidType {
+		return &Invalid{}
+	}
 	if _type.PVT() != ast.Entity {
 		w.AlertSingle(&alerts.TypeMismatch{}, new.Type.GetToken(), "entity", _type.String(), "in spawn expression")
 		return &Invalid{}
@@ -735,11 +741,10 @@ func (w *Walker) spawnExpression(new *ast.SpawnExpr, scope *Scope) Value {
 
 func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 	if typee == nil {
-		return InvalidType
+		return UnknownTyp
 	}
 
 	var typ Type
-
 	if typee.Name.GetType() == ast.EnvironmentAccessExpression {
 		expr, _ := typee.Name.(*ast.EnvAccessExpr)
 		path := expr.PathExpr.Path
@@ -785,7 +790,7 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 		}
 
 		if expr.Accessed.GetType() != ast.Identifier {
-			return InvalidType
+			return UnknownTyp
 		}
 		ident := expr.Accessed.(*ast.IdentifierExpr)
 		typ = w.typeExpression(&ast.TypeExpr{Name: ident}, &env.Scope)
@@ -866,7 +871,7 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 		}
 
 		if scope.Environment.Name != w.environment.Name {
-			typ = InvalidType
+			typ = UnknownTyp
 			break
 		}
 
@@ -885,7 +890,7 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 		envs := []string{}
 		for _, v := range scope.Environment.UsedLibraries {
 			typ := w.typeExpression(typee, &LibraryEnvs[v].Scope)
-			if typ != InvalidType {
+			if typ != InvalidType && typ != UnknownTyp {
 				types = append(types, typ)
 				envs = append(envs, LibraryEnvs[v].Name)
 			}
@@ -896,7 +901,7 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 				scope.Environment.importedWalkers[i].Walk()
 			}
 			typ := w.typeExpression(typee, &scope.Environment.importedWalkers[i].environment.Scope)
-			if typ != InvalidType {
+			if typ != InvalidType && typ != UnknownTyp {
 				types = append(types, typ)
 				envs = append(envs, scope.Environment.importedWalkers[i].environment.Name)
 			}
@@ -908,7 +913,7 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 			break
 		}
 		if len(types) == 0 {
-			typ = InvalidType
+			typ = UnknownTyp
 			break
 		}
 		typee.Name = &ast.EnvAccessExpr{

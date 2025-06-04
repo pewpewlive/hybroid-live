@@ -62,14 +62,20 @@ func readExpectedFile(t *testing.T) string {
 
 // useful minifier code
 func minify(str string) string {
+	str = strings.Trim(str, "\t \n\r")
+
+	str = strings.Replace(str, "\r", " ", -1)
+	str = strings.Replace(str, "\n", " ", -1)
+	str = strings.Replace(str, "\t", " ", -1)
+
 	for i := 0; i < len(str); i++ {
 		switch rune(str[i]) {
-		case '\t', '\n', ' ', '\r':
+		case ' ':
 			if i == 0 {
 				continue
 			}
 			switch str[i-1] {
-			case '\t', '\n', ' ', '\r':
+			case ' ':
 				if i == len(str)-1 {
 					str = str[:i-1]
 				} else if i == 0 {
@@ -81,12 +87,6 @@ func minify(str string) string {
 			}
 		}
 	}
-
-	str = strings.Trim(str, "\t \n\r")
-
-	str = strings.Replace(str, "\r", " ", -1)
-	str = strings.Replace(str, "\n", " ", -1)
-	str = strings.Replace(str, "\t", " ", -1)
 
 	return str
 }

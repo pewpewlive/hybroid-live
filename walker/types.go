@@ -466,7 +466,7 @@ func (wt *WrapperType) String() string {
 
 type UnknownType struct{}
 
-var ObjectTyp = &UnknownType{}
+var UnknownTyp = &UnknownType{}
 
 func (ot *UnknownType) PVT() ast.PrimitiveValueType {
 	return ast.Object

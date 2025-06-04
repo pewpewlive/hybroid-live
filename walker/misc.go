@@ -461,7 +461,7 @@ func (w *Walker) typeToValue(_type Type) Value {
 func (w *Walker) getContentsValueType(elems []ast.Node, scope *Scope) Type {
 	valTypes := []Type{}
 	if len(elems) == 0 {
-		return ObjectTyp
+		return UnknownTyp
 	}
 	val := w.GetActualNodeValue(&elems[0], scope)
 	valTypes = append(valTypes, val.GetType())

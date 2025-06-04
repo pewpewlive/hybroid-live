@@ -230,6 +230,7 @@ func (gen *Generator) GenerateStmt(node ast.Node) {
 		assignStmts := gen.breakDownAssignStmt(*newNode)
 		for _, assignStmt := range assignStmts {
 			gen.assignmentStmt(assignStmt)
+			gen.Write("\n")
 		}
 		return
 	case *ast.BreakStmt:
@@ -256,6 +257,7 @@ func (gen *Generator) GenerateStmt(node ast.Node) {
 		varDecls := gen.breakDownVariableDeclaration(*newNode)
 		for _, varDecl := range varDecls {
 			gen.variableDeclaration(varDecl)
+			gen.Write("\n")
 		}
 		return
 	case *ast.CallExpr:

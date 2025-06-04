@@ -70,7 +70,7 @@ func (gen *Generator) assignmentStmt(assignStmt ast.AssignmentStmt) {
 	}
 
 	gen.Write(preSrc.String())
-	gen.Write(src.String(), "\n")
+	gen.Write(src.String())
 }
 
 func (gen *Generator) returnStmt(node ast.ReturnStmt) {
