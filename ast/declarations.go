@@ -46,14 +46,15 @@ func (ad *AliasDecl) GetToken() tokens.Token           { return ad.Token }
 func (ad *AliasDecl) GetValueType() PrimitiveValueType { return Invalid }
 
 type EntityDecl struct {
-	Token     tokens.Token
-	Name      tokens.Token
-	Fields    []VariableDecl
-	Spawner   *EntityFunctionDecl
-	Destroyer *EntityFunctionDecl
-	Callbacks []*EntityFunctionDecl
-	Methods   []MethodDecl
-	IsPub     bool
+	Token         tokens.Token
+	Name          tokens.Token
+	GenericParams []*IdentifierExpr
+	Fields        []VariableDecl
+	Spawner       *EntityFunctionDecl
+	Destroyer     *EntityFunctionDecl
+	Callbacks     []*EntityFunctionDecl
+	Methods       []MethodDecl
+	IsPub         bool
 }
 
 func (ed *EntityDecl) GetType() NodeType                { return EntityDeclaration }
@@ -146,12 +147,13 @@ func (vd *VariableDecl) GetToken() tokens.Token           { return vd.Token }
 func (vd *VariableDecl) GetValueType() PrimitiveValueType { return Invalid }
 
 type ClassDecl struct {
-	Token       tokens.Token
-	Name        tokens.Token
-	Constructor *ConstructorDecl
-	Fields      []VariableDecl
-	Methods     []MethodDecl
-	IsPub       bool
+	Token         tokens.Token
+	Name          tokens.Token
+	Constructor   *ConstructorDecl
+	Fields        []VariableDecl
+	Methods       []MethodDecl
+	GenericParams []*IdentifierExpr
+	IsPub         bool
 }
 
 func (cd *ClassDecl) GetType() NodeType                { return ClassDeclaration }

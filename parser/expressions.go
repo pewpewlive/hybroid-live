@@ -108,7 +108,7 @@ func (p *Parser) term() ast.Node {
 
 	isLeftShift := p.peek().Type == tokens.Less && p.peek(1).Type == tokens.Less && p.peek(2).Type != tokens.Equal
 	isRightShift := p.peek().Type == tokens.Greater && p.peek(1).Type == tokens.Greater && p.peek(2).Type != tokens.Equal
-	isNormalOp := p.check(tokens.Plus, tokens.Minus, tokens.Ampersand, tokens.Pipe)
+	isNormalOp := p.check(tokens.Plus, tokens.Minus, tokens.Ampersand, tokens.Pipe, tokens.Tilde)
 
 	var op tokens.Token
 	if isNormalOp {
@@ -347,8 +347,24 @@ func (p *Parser) new() ast.Node {
 		expr := ast.NewExpr{
 			Token: p.peek(-1),
 		}
+		// new<T, E>
+		classGenericArgs, ok := p.genericArgs()
+		if !ok {
+			return ast.NewImproper(expr.Token, ast.NewExpession)
+		}
+		expr.ClassGenericArgs = classGenericArgs
 
-		expr.Type = p.typeExpr("in new expression")
+		// new<T, E> Type
+		expr.Type = p.typeExpr("in new expression", false)
+
+		// new<T, E> Type<F, G>
+		genericsArgs, ok := p.genericArgs()
+		if !ok {
+			return ast.NewImproper(expr.Token, ast.NewExpession)
+		}
+		expr.GenericArgs = genericsArgs
+
+		// new<T, E> Type<F, G>(...)
 		args, ok := p.functionArgs()
 		if !ok {
 			return ast.NewImproper(expr.Token, ast.NewExpession)
@@ -367,10 +383,27 @@ func (p *Parser) spawn() ast.Node {
 			Token: p.peek(-1),
 		}
 
-		expr.Type = p.typeExpr("in spawn expression")
+		// spawn<T, E>
+		classGenericArgs, ok := p.genericArgs()
+		if !ok {
+			return ast.NewImproper(expr.Token, ast.NewExpession)
+		}
+		expr.EntityGenericArgs = classGenericArgs
+
+		// spawn<T, E> Type
+		expr.Type = p.typeExpr("in spawn expression", false)
+
+		// spawn<T, E> Type<F, G>
+		genericsArgs, ok := p.genericArgs()
+		if !ok {
+			return ast.NewImproper(expr.Token, ast.NewExpession)
+		}
+		expr.GenericArgs = genericsArgs
+
+		// spawn<T, E> Type<F, G>(...)
 		args, ok := p.functionArgs()
 		if !ok {
-			return ast.NewImproper(expr.Token, ast.SpawnExpression)
+			return ast.NewImproper(expr.Token, ast.NewExpession)
 		}
 		expr.Args = args
 
@@ -564,7 +597,11 @@ func (p *Parser) wrappedTypeExpr(typeContext string) *ast.TypeExpr {
 	return p.typeExpr(typeContext)
 }
 
-func (p *Parser) typeExpr(typeContext string) *ast.TypeExpr {
+func (p *Parser) typeExpr(typeContext string, allowWrapped ...bool) *ast.TypeExpr {
+	allowWrap := true
+	if allowWrapped != nil {
+		allowWrap = allowWrapped[0]
+	}
 	var expr ast.Node
 	token := p.advance()
 	improperType := &ast.TypeExpr{Name: ast.NewImproper(token, ast.TypeExpression)}
@@ -608,7 +645,7 @@ func (p *Parser) typeExpr(typeContext string) *ast.TypeExpr {
 
 	switch exprToken.Type {
 	case tokens.Identifier:
-		if p.match(tokens.Less) {
+		if allowWrap && p.match(tokens.Less) {
 			typeExpr.WrappedType = p.wrappedTypeExpr(typeContext)
 			_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.Greater)
 			if !ok {

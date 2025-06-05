@@ -61,25 +61,22 @@ func (w *Walker) classDeclaration(node *ast.ClassDecl, scope *Scope) {
 		w.AlertSingle(&alerts.TypeRedeclaration{}, node.Name, node.Name.Lexeme)
 	}
 
-	generics := make([]*GenericType, 0)
-	if node.Constructor != nil {
-		for _, param := range node.Constructor.Generics {
-			generics = append(generics, NewGeneric(param.Name.Lexeme))
-		}
+	classVal := &ClassVal{
+		Type:    *NewNamedType(w.environment.Name, node.Name.Lexeme, ast.Class),
+		IsLocal: node.IsPub,
+		Fields:  make(map[string]Field),
+		Methods: map[string]*VariableVal{},
+		New:     NewFunction(),
 	}
 
-	classVal := &ClassVal{
-		Type:     *NewNamedType(w.environment.Name, node.Name.Lexeme, ast.Class),
-		IsLocal:  node.IsPub,
-		Fields:   make(map[string]Field),
-		Methods:  map[string]*VariableVal{},
-		Generics: generics,
-		Params:   []Type{},
+	generics := make([]*GenericType, 0)
+	for _, param := range node.GenericParams {
+		generics = append(generics, NewGeneric(param.Name.Lexeme))
 	}
+	classVal.Generics = generics
 
 	// DECLARATIONS
 	w.declareClass(classVal)
-
 	classScope := NewScope(scope, &ClassTag{Val: classVal}, SelfAllowing)
 
 	for i := range node.Fields {
@@ -91,12 +88,6 @@ func (w *Walker) classDeclaration(node *ast.ClassDecl, scope *Scope) {
 	}
 
 	if node.Constructor != nil {
-		params := make([]Type, 0)
-		for _, param := range node.Constructor.Params {
-			params = append(params, w.typeExpression(param.Type, scope))
-		}
-		classVal.Params = params
-
 		constructor := ast.MethodDecl{
 			Name:     node.Constructor.Token,
 			Params:   node.Constructor.Params,
@@ -107,6 +98,8 @@ func (w *Walker) classDeclaration(node *ast.ClassDecl, scope *Scope) {
 
 		w.methodDeclaration(&constructor, classVal, classScope, true)  // declaration
 		w.methodDeclaration(&constructor, classVal, classScope, false) // walking
+		classVal.New = classVal.Methods["new"].Value.(*FunctionVal)
+		delete(classVal.Methods, "new")
 	}
 
 	// WALKING
@@ -125,17 +118,21 @@ func (w *Walker) classDeclaration(node *ast.ClassDecl, scope *Scope) {
 func (w *Walker) entityDeclaration(node *ast.EntityDecl, scope *Scope) {
 	et := &EntityTag{}
 	entityScope := NewScope(scope, et, SelfAllowing)
-
 	if scope.Parent != nil {
 		w.AlertSingle(&alerts.InvalidStmtInLocalBlock{}, node.Token, "entity declaration")
 		return
 	}
-
 	if w.typeExists(node.Name.Lexeme) {
 		w.AlertSingle(&alerts.TypeRedeclaration{}, node.Name, node.Name.Lexeme)
 	}
 
 	entityVal := NewEntityVal(w.environment.Name, node.Name.Lexeme, node.IsPub)
+
+	generics := make([]*GenericType, 0)
+	for _, param := range node.GenericParams {
+		generics = append(generics, NewGeneric(param.Name.Lexeme))
+	}
+	entityVal.Generics = generics
 
 	et.EntityVal = entityVal
 	w.declareEntity(entityVal)
@@ -168,15 +165,13 @@ func (w *Walker) entityDeclaration(node *ast.EntityDecl, scope *Scope) {
 		w.AlertSingle(&alerts.MissingDestroy{}, node.Token)
 	} else {
 		fn := w.entityFunctionDeclaration(node.Destroyer, entityScope)
-		entityVal.DestroyGenerics = fn.Generics
-		entityVal.DestroyParams = fn.Params
+		entityVal.Destroy = fn
 	}
 	if node.Spawner == nil {
 		w.AlertSingle(&alerts.MissingConstructor{}, node.Token, "spawn", "in entity declaration")
 	} else {
 		fn := w.entityFunctionDeclaration(node.Spawner, entityScope)
-		entityVal.SpawnGenerics = fn.Generics
-		entityVal.SpawnParams = fn.Params
+		entityVal.Spawn = fn
 	}
 	for _, v := range entityVal.Fields {
 		if !v.Var.IsInit {
@@ -187,23 +182,18 @@ func (w *Walker) entityDeclaration(node *ast.EntityDecl, scope *Scope) {
 }
 
 func (w *Walker) entityFunctionDeclaration(node *ast.EntityFunctionDecl, scope *Scope) *FunctionVal {
-	generics := make([]*GenericType, 0)
-	for _, param := range node.Generics {
-		generics = append(generics, NewGeneric(param.Name.Lexeme))
-	}
-	ret := w.getReturns(node.Returns, scope)
-
 	ft := &FuncTag{
-		Generics:    generics,
-		ReturnTypes: ret,
-		Returns:     make([]bool, 0),
+		Returns: make([]bool, 0),
 	}
 	fnScope := NewScope(scope, ft, ReturnAllowing)
+	ft.Generics = w.getGenericParams(node.Generics, scope)
+
+	ft.ReturnTypes = w.getReturns(node.Returns, fnScope)
 	params := w.getParameters(node.Params, fnScope)
 
-	funcSign := NewFuncSignature(generics...).
+	funcSign := NewFuncSignature(ft.Generics...).
 		WithParams(params...).
-		WithReturns(ret...)
+		WithReturns(ft.ReturnTypes...)
 
 	w.walkFuncBody(node, &node.Body, ft, fnScope)
 
@@ -226,7 +216,7 @@ func (w *Walker) entityFunctionDeclaration(node *ast.EntityFunctionDecl, scope *
 		}
 	}
 
-	return NewFunction(params...).WithGenerics(generics...).WithReturns(ret...)
+	return NewFunction(params...).WithGenerics(ft.Generics...).WithReturns(ft.ReturnTypes...)
 }
 
 func (w *Walker) enumDeclaration(node *ast.EnumDecl, scope *Scope) {
@@ -316,21 +306,20 @@ func (w *Walker) methodDeclaration(node *ast.MethodDecl, container MethodContain
 }
 
 func (w *Walker) functionDeclaration(node *ast.FunctionDecl, scope *Scope, procType ProcedureType) *VariableVal {
-	generics := w.getGenericParams(node.Generics)
+	ft := &FuncTag{
+		Returns: make([]bool, 0),
+	}
+	fnScope := NewScope(scope, ft, ReturnAllowing)
+	ft.Generics = w.getGenericParams(node.Generics, scope)
 
-	funcTag := &FuncTag{Generics: generics}
-	fnScope := NewScope(scope, funcTag, ReturnAllowing)
-
-	ret := w.getReturns(node.Returns, fnScope)
-	funcTag.ReturnTypes = ret
-
+	ft.ReturnTypes = w.getReturns(node.Returns, fnScope)
 	params := w.getParameters(node.Params, fnScope)
 
 	variable := &VariableVal{
 		Name: node.Name.Lexeme,
 		Value: NewFunction(params...).
-			WithGenerics(generics...).
-			WithReturns(ret...),
+			WithGenerics(ft.Generics...).
+			WithReturns(ft.ReturnTypes...),
 		Token: node.GetToken(),
 		IsPub: node.IsPub,
 	}
@@ -340,7 +329,7 @@ func (w *Walker) functionDeclaration(node *ast.FunctionDecl, scope *Scope, procT
 	}
 
 	if procType == Function {
-		w.walkFuncBody(node, &node.Body, funcTag, fnScope)
+		w.walkFuncBody(node, &node.Body, ft, fnScope)
 	}
 
 	return variable

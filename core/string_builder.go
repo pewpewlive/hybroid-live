@@ -1,6 +1,7 @@
-package generator
+package core
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -14,10 +15,6 @@ func (sb *StringBuilder) Write(chunks ...string) {
 	}
 }
 
-func (sb *StringBuilder) WriteTabbed(chunks ...string) {
-	sb.WriteString(getTabs())
-
-	for _, chunk := range chunks {
-		sb.WriteString(chunk)
-	}
+func (sb *StringBuilder) Writef(format string, args ...any) {
+	sb.WriteString(fmt.Sprintf(format, args...))
 }

@@ -1,11 +1,12 @@
 import os
+import subprocess
 import requests
 
 from api import pewpew, fmath
 
 
 def _generate(lib, extension, output):
-    with open(f"{lib}.gen.{extension}", mode="x", encoding="utf-8") as f:
+    with open(f"api_{lib}.gen.{extension}", mode="x", encoding="utf-8") as f:
         f.write(output)
 
 
@@ -30,6 +31,13 @@ if __name__ == "__main__":
     # Generate API!
     _generate("pewpew", "go", pewpew.generate_api(pewpew_lib))
     _generate("fmath", "go", fmath.generate_api(fmath_lib))
+
+    # Format generated go file
+    subprocess.run(
+        ["gofmt", "-s", "-w", f"alerts/"],
+        cwd=os.path.dirname(__file__) + "/..",
+    )
+
     print("[+] API generated!")
 
     # Generation for docs

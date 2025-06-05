@@ -8,14 +8,6 @@ import (
 	"slices"
 )
 
-var LibraryEnvs = map[Library]*Environment{
-	Pewpew: PewpewEnv,
-	Fmath:  FmathEnv,
-	Math:   MathEnv,
-	String: StringEnv,
-	Table:  TableEnv,
-}
-
 type Environment struct {
 	Name        string
 	luaPath     string // dynamic lua path
@@ -270,8 +262,11 @@ func (w *Walker) walkNode(node *ast.Node, scope *Scope) {
 
 func (w *Walker) GetActualNodeValue(node *ast.Node, scope *Scope) Value {
 	val := w.GetNodeValue(node, scope)
-	if val, ok := val.(*VariableVal); ok {
-		return val.Value
+	if variable, ok := val.(*VariableVal); ok {
+		val = variable.Value
+	}
+	if constVal, ok := val.(*ConstVal); ok {
+		val = constVal.Val
 	}
 
 	return val

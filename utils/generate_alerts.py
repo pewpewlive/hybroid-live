@@ -1,7 +1,5 @@
 import json
 import os
-from pathlib import Path
-import re
 import subprocess
 
 from alerts.alert import Alert
@@ -71,6 +69,6 @@ if __name__ == "__main__":
     # Format generated go file
     subprocess.run(
         ["gofmt", "-s", "-w", f"alerts/"],
-        cwd=Path(os.path.dirname(__file__)).parent.as_posix(),
+        cwd=os.path.dirname(__file__) + "/..",
     )
     print("[+] Alerts generated!")

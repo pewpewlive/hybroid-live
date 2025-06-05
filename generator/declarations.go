@@ -3,6 +3,7 @@ package generator
 import (
 	"fmt"
 	"hybroid/ast"
+	"hybroid/core"
 )
 
 func (gen *Generator) variableDeclaration(declaration ast.VariableDecl) {
@@ -15,10 +16,10 @@ func (gen *Generator) variableDeclaration(declaration ast.VariableDecl) {
 		values = append(values, gen.GenerateExpr(expr))
 	}
 
-	src := StringBuilder{}
-	src2 := StringBuilder{}
+	src := core.StringBuilder{}
+	src2 := core.StringBuilder{}
 
-	src.WriteTabbed()
+	src.Write(gen.tabString())
 	if !declaration.IsPub {
 		src.Write("local ")
 	}
@@ -67,16 +68,16 @@ func (gen *Generator) entityDeclaration(node ast.EntityDecl) {
 		if i != 0 {
 			gen.Write("\n")
 		}
-		gen.WriteTabbed(fmt.Sprintf("local function %sHCb%d", entityName, i), "(id")
+		gen.Twrite(fmt.Sprintf("local function %sHCb%d", entityName, i), "(id")
 		if len(v.Params) != 0 {
 			gen.Write(", ")
 		}
 		gen.GenerateParams(v.Params)
-		TabsCount++
-		gen.WriteTabbed("local Self = ", entityName, "[id]\n")
-		TabsCount--
+		gen.tabCount++
+		gen.Twrite("local Self = ", entityName, "[id]\n")
+		gen.tabCount--
 		gen.GenerateBody(v.Body)
-		gen.WriteTabbed("end\n")
+		gen.Twrite("end\n")
 	}
 
 	totalFieldDecls := make([]ast.VariableDecl, 0)
@@ -101,26 +102,26 @@ func (gen *Generator) constructorDeclaration(node ast.ConstructorDecl, class ast
 
 	gen.GenerateParams(node.Params)
 
-	TabsCount++
-	gen.WriteTabbed("local Self = {}\n")
+	gen.tabCount++
+	gen.Twrite("local Self = {}\n")
 	counter := 1
 	for _, fieldDecl := range class.Fields {
 		gen.fieldDeclaration(fieldDecl, counter)
 		gen.Write("\n")
 		counter += len(fieldDecl.Identifiers)
 	}
-	TabsCount--
+	gen.tabCount--
 	gen.GenerateBody(node.Body)
-	TabsCount++
-	gen.WriteTabbed("return Self\n")
-	TabsCount--
-	gen.WriteTabbed("end")
+	gen.tabCount++
+	gen.Twrite("return Self\n")
+	gen.tabCount--
+	gen.Twrite("end")
 }
 
 func (gen *Generator) fieldDeclaration(node ast.VariableDecl, index int) {
-	src := StringBuilder{}
+	src := core.StringBuilder{}
 
-	src.WriteTabbed()
+	src.Write(gen.tabString())
 	for i := range node.Identifiers {
 		src.Write(fmt.Sprintf("Self[%v]", index+i))
 		if i != len(node.Identifiers)-1 {
@@ -140,14 +141,14 @@ func (gen *Generator) fieldDeclaration(node ast.VariableDecl, index int) {
 func (gen *Generator) methodDeclaration(node ast.MethodDecl, Struct ast.ClassDecl) {
 	gen.Write("function ", gen.WriteVarExtra(Struct.Name.Lexeme, hyClass), "_", node.Name.Lexeme, "(Self")
 	for _, param := range node.Params {
-		gen.WriteString(", ")
+		gen.Write(", ")
 		gen.Write(gen.WriteVar(param.Name.Lexeme))
 	}
 	gen.Write(")\n")
 
 	gen.GenerateBody(node.Body)
 
-	gen.WriteTabbed("end")
+	gen.Twrite("end")
 }
 
 func (gen *Generator) entityFunctionDeclaration(node ast.MethodDecl, entity ast.EntityDecl) {
@@ -155,17 +156,17 @@ func (gen *Generator) entityFunctionDeclaration(node ast.MethodDecl, entity ast.
 
 	gen.Write("function ", entityName, "_", node.Name.Lexeme, "(id")
 	for _, param := range node.Params {
-		gen.WriteString(", ")
+		gen.Write(", ")
 		gen.Write(gen.WriteVar(param.Name.Lexeme))
 	}
 	gen.Write(")\n")
-	TabsCount++
-	gen.WriteTabbed("local Self = ", entityName, "[id]\n")
-	TabsCount--
+	gen.tabCount++
+	gen.Twrite("local Self = ", entityName, "[id]\n")
+	gen.tabCount--
 
 	gen.GenerateBody(node.Body)
 
-	gen.WriteTabbed("end")
+	gen.Twrite("end")
 }
 
 func (gen *Generator) spawnDeclaration(node ast.EntityFunctionDecl, entity ast.EntityDecl) {
@@ -175,39 +176,39 @@ func (gen *Generator) spawnDeclaration(node ast.EntityFunctionDecl, entity ast.E
 
 	gen.GenerateParams(node.Params)
 
-	TabsCount++
+	gen.tabCount++
 
-	gen.WriteTabbed("local id = pewpew.new_customizable_entity(", gen.WriteVar(node.Params[0].Name.Lexeme), ", ", gen.WriteVar(node.Params[1].Name.Lexeme), ")\n")
+	gen.Twrite("local id = pewpew.new_customizable_entity(", gen.WriteVar(node.Params[0].Name.Lexeme), ", ", gen.WriteVar(node.Params[1].Name.Lexeme), ")\n")
 	tableAccess := entityName + "[id]"
-	gen.WriteTabbed(tableAccess, " = {}\n")
-	gen.WriteTabbed("local Self = ", tableAccess)
+	gen.Twrite(tableAccess, " = {}\n")
+	gen.Twrite("local Self = ", tableAccess, "\n")
 	counter := 1
 	for _, field := range entity.Fields {
-		gen.Write("\n")
 		gen.fieldDeclaration(field, counter)
+		gen.Write("\n")
 		counter += len(field.Identifiers)
 	}
 
-	TabsCount--
+	gen.tabCount--
 	gen.GenerateBody(node.Body)
-	TabsCount++
+	gen.tabCount++
 
 	for i, v := range entity.Callbacks {
 		switch v.Type {
 		case ast.WallCollision:
-			gen.WriteTabbed(fmt.Sprintf("\npewpew.customizable_entity_configure_wall_collision(id, true, %sHCb%d)\n", entityName, i))
+			gen.Twrite(fmt.Sprintf("pewpew.customizable_entity_configure_wall_collision(id, true, %sHCb%d)\n", entityName, i))
 		case ast.WeaponCollision:
-			gen.WriteTabbed(fmt.Sprintf("\npewpew.customizable_entity_set_weapon_collision_callback(id, %sHCb%d)\n", entityName, i))
+			gen.Twrite(fmt.Sprintf("pewpew.customizable_entity_set_weapon_collision_callback(id, %sHCb%d)\n", entityName, i))
 		case ast.PlayerCollision:
-			gen.WriteTabbed(fmt.Sprintf("\npewpew.customizable_entity_set_player_collision_callback(id, %sHCb%d)\n", entityName, i))
+			gen.Twrite(fmt.Sprintf("pewpew.customizable_entity_set_player_collision_callback(id, %sHCb%d)\n", entityName, i))
 		case ast.Update:
-			gen.WriteTabbed(fmt.Sprintf("\npewpew.entity_set_update_callback(id, %sHCb%d)\n", entityName, i))
+			gen.Twrite(fmt.Sprintf("pewpew.entity_set_update_callback(id, %sHCb%d)\n", entityName, i))
 		}
 	}
-	gen.WriteTabbed("return id\n")
-	TabsCount--
+	gen.Twrite("return id\n")
+	gen.tabCount--
 
-	gen.WriteTabbed("end")
+	gen.Twrite("end")
 }
 
 func (gen *Generator) destroyDeclaration(node ast.EntityFunctionDecl, entity ast.EntityDecl) {
@@ -217,18 +218,18 @@ func (gen *Generator) destroyDeclaration(node ast.EntityFunctionDecl, entity ast
 		gen.Write(", ")
 	}
 	gen.GenerateParams(node.Params)
-	TabsCount++
-	gen.WriteTabbed("local Self = ", entityName, "[id]\n")
-	TabsCount--
+	gen.tabCount++
+	gen.Twrite("local Self = ", entityName, "[id]\n")
+	gen.tabCount--
 
 	gen.GenerateBody(node.Body)
 
-	gen.WriteString("end")
+	gen.Write("end")
 }
 
 func (gen *Generator) functionDeclaration(node ast.FunctionDecl) {
 	if !node.IsPub {
-		gen.WriteTabbed("local ")
+		gen.Twrite("local ")
 	}
 
 	gen.Write("function ", gen.WriteVar(node.Name.Lexeme), "(")
@@ -236,5 +237,5 @@ func (gen *Generator) functionDeclaration(node ast.FunctionDecl) {
 
 	gen.GenerateBody(node.Body)
 
-	gen.WriteTabbed("end")
+	gen.Twrite("end")
 }

@@ -71,8 +71,13 @@ func (p *Parser) destroyStatement() ast.Node {
 		Token: p.peek(-1),
 	}
 
-	expr := p.self()
+	entityArgs, ok := p.genericArgs()
+	if !ok {
+		return ast.NewImproper(destroyStmt.Token, ast.DestroyStatement)
+	}
+	destroyStmt.EntityGenericArgs = entityArgs
 
+	expr := p.self()
 	if ast.IsImproper(expr, ast.NA) {
 		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), "in destroy statement")
 		return ast.NewImproper(destroyStmt.Token, ast.DestroyStatement)
@@ -158,7 +163,7 @@ func (p *Parser) assignmentStatement(expr ast.Node) ast.Node {
 
 	isLeftShiftEqual := p.peek().Type == tokens.Less && p.peek(1).Type == tokens.Less && p.peek(2).Type == tokens.Equal
 	isRightShiftEqual := p.peek().Type == tokens.Greater && p.peek(1).Type == tokens.Greater && p.peek(2).Type == tokens.Equal
-	isNormalCompoundOp := p.check(tokens.PlusEqual, tokens.MinusEqual, tokens.SlashEqual, tokens.StarEqual, tokens.CaretEqual, tokens.ModuloEqual, tokens.BackSlashEqual, tokens.AmpersandEqual, tokens.PipeEqual)
+	isNormalCompoundOp := p.check(tokens.PlusEqual, tokens.MinusEqual, tokens.SlashEqual, tokens.StarEqual, tokens.CaretEqual, tokens.ModuloEqual, tokens.BackSlashEqual, tokens.AmpersandEqual, tokens.PipeEqual, tokens.TildeEqual)
 	var op tokens.Token
 	if isNormalCompoundOp {
 		op = p.advance()

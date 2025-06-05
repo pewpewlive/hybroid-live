@@ -7,7 +7,7 @@ class APIType(Enum):
     BOOL = 1
     NUMBER = 2
     FIXED = 3
-    RAW_ENTITY = 4
+    ENTITY = 4
     LIST = 5
     MAP = 6
     STRING = 7
@@ -23,7 +23,7 @@ class APIType(Enum):
             case "fixedpoint":
                 return APIType.FIXED
             case "entityid":
-                return APIType.RAW_ENTITY
+                return APIType.ENTITY
             case "list":
                 return APIType.LIST
             case "map":
@@ -49,15 +49,15 @@ class APIType(Enum):
                 return "struct"
             case APIType.CALLBACK:
                 return "fn"
-            case APIType.RAW_ENTITY:
+            case APIType.ENTITY:
                 return "entity"
 
-    def generate_str(self, param: bool, name: str) -> str:
-        # APIType.generate_str cannot generate a map, call APIParameter.generate_str instead
+    def generate(self, param: bool, name: str) -> str:
+        # APIType.generate_str cannot generate a map, call APIParameter.generate instead
         assert self is not APIType.MAP, "Cannot generate APIType.MAP"
 
         # Early return if the type is of raw entity
-        if self is APIType.RAW_ENTITY:
+        if self is APIType.ENTITY:
             return "&RawEntityType{}"
 
         # The mapping of parameter types
@@ -82,7 +82,7 @@ class APIType(Enum):
         if param and self is APIType.CALLBACK:
             return _CALLBACK_TYPE_MAPPING[name]
         elif param:
-            return _PARAM_TYPE_MAPPING[self]
+            return _PARAM_TYPE_MAPPING[self]  # TODO: fghfgh
 
         match self:
             case APIType.BOOL:
@@ -133,7 +133,7 @@ class APIFunction:
         self.parameters = [APIParameter(param) for param in raw["parameters"]]
         self.return_types = [APIParameter(type) for type in raw["return_types"]]
 
-    def generate_str(self) -> str:
+    def generate(self) -> str:
         return ""
 
 
@@ -145,22 +145,18 @@ class APIEnum:
         self.name = raw["name"]
         self.values = raw["values"]
 
-    def generate_str(self) -> str:
+    def generate(self) -> tuple[str, str]:
         ENUM_TEMPLATE = 'var {name} = NewEnumVal("Pewpew", "{name}", false, {values})'
+        DESCRIPTION_TEMPLATE = (
+            '"{name}": {{Name: "{name}", Value: {name}, IsPub: true, IsConst: true}},'
+        )
 
         return ENUM_TEMPLATE.format_map(
             {
                 "name": self.name + "a",
                 "values": ", ".join(
-                    f'"{mappings.get(value, helpers.to_pascal_case)}"'
+                    f'"{mappings.get(value, helpers.pascal_case)}"'
                     for value in self.values
                 ),
             }
-        )
-
-    def generate_desc(self) -> str:
-        ENUM_TEMPLATE = (
-            '"{name}": {{Name: "{name}", Value: {name}, IsPub: true, IsConst: true}},'
-        )
-
-        return ENUM_TEMPLATE.format_map({"name": self.name + "a"})
+        ), DESCRIPTION_TEMPLATE.format_map({"name": self.name + "a"})

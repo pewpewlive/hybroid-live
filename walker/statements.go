@@ -108,17 +108,22 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 			continue
 		}
 
-		if assignOp.Type != tokens.Equal {
+		if assignOp.Type == tokens.PipeEqual || assignOp.Type == tokens.AmpersandEqual || assignOp.Type == tokens.LeftShiftEqual || assignOp.Type == tokens.RightShiftEqual || assignOp.Type == tokens.TildeEqual {
+			if valType.PVT() != ast.Number {
+				w.AlertSingle(&alerts.InvalidType{}, exprs[values[i].Index].GetToken(), valType, "in bitwise compound assignment")
+				continue
+			}
+			if variableType.PVT() != ast.Number {
+				w.AlertSingle(&alerts.InvalidType{}, idents[i].GetToken(), variableType, "in bitwise compound assignment")
+				continue
+			}
+		} else if assignOp.Type != tokens.Equal {
 			if !isNumerical(valType.PVT()) {
-				w.AlertSingle(&alerts.InvalidTypeInCompoundAssignment{}, exprs[values[i].Index].GetToken(),
-					valType.String(),
-				)
+				w.AlertSingle(&alerts.InvalidTypeInCompoundAssignment{}, exprs[values[i].Index].GetToken(), valType)
 				continue
 			}
 			if !isNumerical(variableType.PVT()) {
-				w.AlertSingle(&alerts.InvalidTypeInCompoundAssignment{}, idents[i].GetToken(),
-					variableType.String(),
-				)
+				w.AlertSingle(&alerts.InvalidTypeInCompoundAssignment{}, idents[i].GetToken(), variableType)
 				continue
 			}
 		}
@@ -211,7 +216,7 @@ func (w *Walker) forStatement(node *ast.ForStmt, scope *Scope) {
 	if node.First.Name.Lexeme != "_" {
 		var firstValue Value
 		if node.OrderedIteration {
-			firstValue = &NumberVal{}
+			firstValue = NewNumberVal()
 		} else {
 			firstValue = &StringVal{}
 		}
@@ -236,7 +241,7 @@ func (w *Walker) tickStatement(node *ast.TickStmt, scope *Scope) {
 	tickScope := NewScope(scope, funcTag, ReturnAllowing)
 
 	if node.Variable != nil {
-		w.declareVariable(tickScope, NewVariable(node.Variable.Name, &NumberVal{}))
+		w.declareVariable(tickScope, NewVariable(node.Variable.Name, NewNumberVal()))
 	}
 
 	w.walkBody(&node.Body, funcTag, tickScope)
@@ -493,6 +498,6 @@ func (w *Walker) destroyStatement(node *ast.DestroyStmt, scope *Scope) {
 		args = append(args, w.GetActualNodeValue(&node.Args[i], scope))
 	}
 
-	suppliedGenerics := w.getGenerics(node.GenericArgs, entityVal.DestroyGenerics, scope)
-	w.validateArguments(suppliedGenerics, args, entityVal.DestroyParams, node)
+	suppliedGenerics := w.getGenerics(node.GenericArgs, entityVal.Destroy.Generics, scope)
+	w.validateArguments(suppliedGenerics, args, entityVal.Destroy, node)
 }

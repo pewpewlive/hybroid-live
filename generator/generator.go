@@ -7,6 +7,7 @@ import (
 	"hybroid/core"
 	"math"
 	"strconv"
+	"strings"
 )
 
 const charset = "_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -18,7 +19,6 @@ const hyEntity = "HE"
 var envMap = map[string]string{}
 var varCounter = 0
 var envCounter = 0
-var TabsCount int
 
 func ResetGlobalGeneratorValues() {
 	envMap = map[string]string{}
@@ -26,7 +26,7 @@ func ResetGlobalGeneratorValues() {
 	envCounter = 0
 }
 
-func ResolveVarCounter(varname *StringBuilder, counter int) {
+func ResolveVarCounter(varname *core.StringBuilder, counter int) {
 	if counter > len(charset)-1 {
 		newCounter := counter - len(charset)
 		varname.WriteByte(charset[len(charset)-1])
@@ -37,7 +37,7 @@ func ResolveVarCounter(varname *StringBuilder, counter int) {
 }
 
 func GenerateVar(prefix string) string {
-	varName := StringBuilder{}
+	varName := core.StringBuilder{}
 	varName.Write(prefix)
 	ResolveVarCounter(&varName, varCounter)
 	varCounter++
@@ -59,16 +59,26 @@ func NewYieldContext(vars []string, label string) YieldContext {
 
 type Generator struct {
 	alerts.Collector
-	src StringBuilder
 
 	envName        string
 	env            ast.Env
 	ContinueLabels core.Stack[string]
 	BreakLabels    core.Stack[string]
 	YieldContexts  core.Stack[YieldContext]
-	buffer         StringBuilder
+	buffer         core.StringBuilder
+	src            core.StringBuilder
+	tabCount       int
 	writeToBuffer  bool
 	envPrefixName  string
+}
+
+func (gen *Generator) Twrite(chunks ...string) {
+	chunks = append([]string{gen.tabString()}, chunks...)
+	if gen.writeToBuffer {
+		gen.buffer.Write(chunks...)
+	} else {
+		gen.src.Write(chunks...)
+	}
 }
 
 func (gen *Generator) Write(chunks ...string) {
@@ -79,30 +89,18 @@ func (gen *Generator) Write(chunks ...string) {
 	}
 }
 
-func (gen *Generator) WriteString(str string) {
-	if gen.writeToBuffer {
-		gen.buffer.WriteString(str)
-	} else {
-		gen.src.Write(str)
-	}
-}
-
-func (gen *Generator) WriteTabbed(chunks ...string) {
-	if gen.writeToBuffer {
-		gen.buffer.WriteTabbed(chunks...)
-	} else {
-		gen.src.WriteTabbed(chunks...)
-	}
-}
-
 func NewGenerator() Generator {
 	return Generator{
 		Collector: alerts.NewCollector(),
 	}
 }
 
+func (gen *Generator) tabString() string {
+	return strings.Repeat("\t", gen.tabCount)
+}
+
 func (gen *Generator) SetUniqueEnvName(name string) {
-	uniqueName := StringBuilder{}
+	uniqueName := core.StringBuilder{}
 	uniqueName.WriteByte('E')
 	ResolveVarCounter(&uniqueName, envCounter)
 	envCounter++
@@ -134,64 +132,53 @@ func (gen *Generator) WriteVarExtra(name, extra string) string {
 	return extra + gen.envPrefixName + name
 }
 
-func getTabs() string {
-	tabs := StringBuilder{}
-	for range TabsCount {
-		tabs.Write("\t")
-	}
-
-	return tabs.String()
-}
-
 func (gen *Generator) GetSrc() string {
 	return gen.src.String()
 }
 
 func (gen *Generator) Generate(program []ast.Node, builtins []string) {
 	for i := range builtins {
-		gen.WriteString(functions[builtins[i]])
-		gen.Write("\n")
+		gen.Write(functions[builtins[i]], "\n")
 	}
 	gen.envStmt(*program[0].(*ast.EnvironmentDecl))
 	for i, node := range program {
 		if i == 0 {
 			continue
 		}
-		gen.WriteString("\n")
+		gen.Write("\n")
 		gen.GenerateStmt(node)
 	}
 }
 
 func (gen *Generator) GenerateWithBuiltins(program []ast.Node) {
-	gen.Write(ParseSoundFunction, "\n\n")
-	gen.Write(ToStringFunction, "\n")
+	gen.Write(ParseSoundFunction, "\n\n", ToStringFunction, "\n")
 	gen.envStmt(*program[0].(*ast.EnvironmentDecl))
 	for i, node := range program {
 		if i == 0 {
 			continue
 		}
-		gen.WriteString("\n")
+		gen.Write("\n")
 		gen.GenerateStmt(node)
 	}
 }
 
 func (gen *Generator) GenerateBody(body ast.Body) {
-	TabsCount += 1
+	gen.tabCount++
 	for _, node := range body {
-		gen.WriteString("\n")
+		gen.Write("\n")
 		gen.GenerateStmt(node)
 	}
-	TabsCount -= 1
+	gen.tabCount--
 }
 
 func (gen *Generator) GenerateBodyValue(body ast.Body) string {
 	gen.writeToBuffer = true
-	TabsCount += 1
+	gen.tabCount++
 	for _, node := range body {
-		gen.WriteString("\n")
+		gen.Write("\n")
 		gen.GenerateStmt(node)
 	}
-	TabsCount--
+	gen.tabCount--
 	gen.writeToBuffer = false
 	defer gen.buffer.Reset()
 	return gen.buffer.String()
@@ -262,23 +249,23 @@ func (gen *Generator) GenerateStmt(node ast.Node) {
 		return
 	case *ast.CallExpr:
 		val := gen.callExpr(*newNode, true)
-		gen.WriteString(val)
+		gen.Write(val)
 	case *ast.MethodCallExpr:
 		val := gen.methodCallExpr(*newNode, true)
-		gen.WriteString(val)
+		gen.Write(val)
 	case *ast.SpawnExpr:
 		val := gen.spawnExpr(*newNode, true)
-		gen.WriteString(val)
+		gen.Write(val)
 	case *ast.NewExpr:
 		val := gen.newExpr(*newNode, true)
-		gen.WriteString(val)
+		gen.Write(val)
 	case *ast.FunctionDecl:
 		gen.functionDeclaration(*newNode)
 	case *ast.ClassDecl:
 		gen.classDeclaration(*newNode)
 	case *ast.EnvAccessExpr:
 		val := gen.envAccessExpr(*newNode)
-		gen.WriteString(val)
+		gen.Write(val)
 	case *ast.EntityDecl:
 		gen.entityDeclaration(*newNode)
 	case *ast.DestroyStmt:

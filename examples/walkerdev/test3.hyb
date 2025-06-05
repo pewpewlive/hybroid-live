@@ -1,72 +1,66 @@
 env Test3 as Level
 
-// use Pewpew
+use Pewpew
 
-// pub entity SuperInertiac {
-//   fixed x, y = 0f, 0f
-//   fixed velX, velY = 0f, 0f
-//   fixed acceleration = 2f
-//   fixed dashSpeed = 2f
+pub entity SuperInertiac {
+  fixed x, y = 0f, 0f
+  fixed velX, velY = 0f, 0f
+  fixed acceleration = 2f
+  fixed dashSpeed = 2f
 
-//   number hitCooldownTimer
+  number hitCooldownTimer
 
-//   number dashCooldown
-//   number dashPraparationTimer
-//   bool isPreparingDash
+  number dashCooldown
+  number dashPraparationTimer
+  bool isPreparingDash
 
-//   number health = 70
+  number health = 70
 
-//   fixed radius = 25f
+  fixed radius = 25f
 
-//   spawn(fixed x, fixed y) {
+  spawn(fixed x, fixed y) {
 
-//   }
+  }
 
-//   destroy() {
+  destroy() {
 
-//   }
+  }
 
-//   fn Bounce(entity e, fixed intensity) {
-//     if IsEntityAlive(e) {
-//       fixed sX, sY = GetEntityPosition(e) 
-//       fixed dX, dY = Normalize(x - sX, y - sY)
-//       velX, velY += dX * intensity, dY * intensity
-//     }
-//   }
-// }
+  fn Bounce(entity e, fixed intensity) {
+    if IsEntityAlive(e) {
+      fixed sX, sY = GetEntityPosition(e) 
+    }
+  }
+}
 
-// enum ParamType {
-//     Squared,
-//     Rooted,
-//     Linear
-// }
+enum ParamType {
+    Squared,
+    Rooted,
+    Linear
+}
 
-// alias Parameter = struct{number x, y, ParamType pt}
-// alias Parameters = list<Parameter>
+alias Parameter = struct{number x, y, ParamType pt}
+alias Parameters = list<Parameter>
 
-// pub fn ParametricInvLerp(number a, b, v, Parameters parameters) {
-//     for i, v in parameters {
-//     }    
-// }
+pub fn ParametricInvLerp(number a, b, v, Parameters parameters) {
+    for i, v in parameters {
+    }    
+}
 
-// pub entity Ship {
-//   let entity id
-//   let Camera cam = new Camera()
+pub entity Ship {
+  let entity id
 
-//   spawn(fixed x, y) {
-//   }
+  spawn(fixed x, y) {
+    id = Pewpew:NewEntity(x, y)
+  }
 
-//   destroy() {
+  destroy() {
 
-//   }
+  }
 
-//   Update() {
-//     if !IsEntityAlive(id) {
-//       return
-//     }
-//     cam.shipX, cam.shipY = GetEntityPosition(id) 
-//     cam.Update()
-//   }
-// }
-
-let a = 1 % asdiaydliahs
+  Update() {
+    if !IsEntityAlive(id) {
+      return
+    }
+  }
+}

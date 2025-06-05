@@ -104,7 +104,7 @@ var PewpewVariables = map[string]*VariableVal{
 			},
 			{
 				Name:  "shield",
-				Value: &NumberVal{},
+				Value: NewNumberVal(),
 			},
 			{
 				Name:  "camera_x_override",
@@ -124,11 +124,11 @@ var PewpewVariables = map[string]*VariableVal{
 			},
 			{
 				Name:  "move_joystick_color",
-				Value: &NumberVal{},
+				Value: NewNumberVal(),
 			},
 			{
 				Name:  "shoot_joystick_color",
-				Value: &NumberVal{},
+				Value: NewNumberVal(),
 			},
 		}, true)),
 		IsPub: true,
@@ -148,7 +148,7 @@ var PewpewVariables = map[string]*VariableVal{
 		Value: NewFunction(NewBasicType(ast.Number)).WithReturns(NewStructType([]*VariableVal{
 			{
 				Name:  "shield",
-				Value: &NumberVal{},
+				Value: NewNumberVal(),
 			},
 			{
 				Name:  "has_lost",
@@ -170,7 +170,7 @@ var PewpewVariables = map[string]*VariableVal{
 			},
 			{
 				Name:  "duration",
-				Value: &NumberVal{},
+				Value: NewNumberVal(),
 			},
 		}, true)),
 		IsPub: true,
@@ -275,7 +275,7 @@ var PewpewVariables = map[string]*VariableVal{
 		Value: NewFunction(NewFixedPointType(), NewFixedPointType(), NewEnumType("Pewpew", "BonusType"), NewStructType([]*VariableVal{
 			{
 				Name:  "box_duration",
-				Value: &NumberVal{},
+				Value: NewNumberVal(),
 			},
 			{
 				Name:  "cannon",
@@ -287,7 +287,7 @@ var PewpewVariables = map[string]*VariableVal{
 			},
 			{
 				Name:  "weapon_duration",
-				Value: &NumberVal{},
+				Value: NewNumberVal(),
 			},
 			{
 				Name:  "speed_factor",
@@ -299,7 +299,7 @@ var PewpewVariables = map[string]*VariableVal{
 			},
 			{
 				Name:  "speed_duration",
-				Value: &NumberVal{},
+				Value: NewNumberVal(),
 			},
 			{
 				Name: "taken_callback",
@@ -328,7 +328,7 @@ var PewpewVariables = map[string]*VariableVal{
 			},
 			{
 				Name:  "ticks_before_fade",
-				Value: &NumberVal{},
+				Value: NewNumberVal(),
 			},
 			{
 				Name:  "is_optional",
@@ -450,7 +450,7 @@ var PewpewVariables = map[string]*VariableVal{
 			},
 			{
 				Name:  "player_index",
-				Value: &NumberVal{},
+				Value: NewNumberVal(),
 			},
 		}, false)),
 		IsPub: true,
@@ -480,11 +480,6 @@ var PewpewVariables = map[string]*VariableVal{
 		Value: NewFunction(&RawEntityType{}),
 		IsPub: true,
 	},
-	"NewString": {
-		Name:  "NewString",
-		Value: NewFunction(&RawEntityType{}, NewBasicType(ast.String)),
-		IsPub: true,
-	},
 	"SetEntityMeshPosition": {
 		Name:  "SetEntityMeshPosition",
 		Value: NewFunction(&RawEntityType{}, NewFixedPointType(), NewFixedPointType(), NewFixedPointType()),
@@ -510,11 +505,11 @@ var PewpewVariables = map[string]*VariableVal{
 		Value: NewFunction(&RawEntityType{}, NewStructType([]*VariableVal{
 			{
 				Name:  "color_start",
-				Value: &NumberVal{},
+				Value: NewNumberVal(),
 			},
 			{
 				Name:  "color_end",
-				Value: &NumberVal{},
+				Value: NewNumberVal(),
 			},
 			{
 				Name:  "scale_x_start",

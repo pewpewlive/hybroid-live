@@ -28,7 +28,7 @@ func (w *Walker) structExpression(node *ast.StructExpr, scope *Scope) *AnonStruc
 }
 
 func (w *Walker) functionExpression(fn *ast.FunctionExpr, scope *Scope) Value {
-	generics := w.getGenericParams(fn.Generics)
+	generics := w.getGenericParams(fn.Generics, scope)
 	returnTypes := w.getReturns(fn.Returns, scope)
 	funcTag := &FuncTag{Generics: generics, ReturnTypes: returnTypes}
 	fnScope := NewScope(scope, funcTag, ReturnAllowing)
@@ -150,8 +150,7 @@ func (w *Walker) binaryExpression(node *ast.BinaryExpr, scope *Scope) Value {
 	op := node.Operator
 	switch op.Type {
 	case tokens.Plus, tokens.Minus, tokens.Caret, tokens.Star, tokens.Slash, tokens.Modulo, tokens.BackSlash:
-		typ := w.validateArithmeticOperands(leftType, rightType, node, "in arithmetic expression")
-		return w.typeToValue(typ)
+		return w.validateArithmeticOperands(left, right, node, "in arithmetic expression")
 	case tokens.Concat:
 		if leftType.PVT() != ast.String {
 			w.AlertSingle(&alerts.TypeMismatch{}, node.Left.GetToken(), "string", leftType, "in concatenation")
@@ -168,9 +167,9 @@ func (w *Walker) binaryExpression(node *ast.BinaryExpr, scope *Scope) Value {
 			w.AlertSingle(&alerts.TypesMismatch{}, node.Left.GetToken(), leftType, rightType)
 		}
 		return NewBoolVal()
-	case tokens.Pipe, tokens.Ampersand, tokens.LeftShift, tokens.RightShift:
+	case tokens.Pipe, tokens.Ampersand, tokens.LeftShift, tokens.RightShift, tokens.Tilde:
 		if leftType == InvalidType || rightType == InvalidType {
-			return &NumberVal{}
+			return &Invalid{}
 		}
 		if leftType.PVT() != ast.Number {
 			w.AlertSingle(&alerts.TypeMismatch{}, node.Left.GetToken(), "number", leftType, "in bitwise expression")
@@ -178,7 +177,7 @@ func (w *Walker) binaryExpression(node *ast.BinaryExpr, scope *Scope) Value {
 		if rightType.PVT() != ast.Number {
 			w.AlertSingle(&alerts.TypeMismatch{}, node.Right.GetToken(), "number", rightType, "in bitwise expression")
 		}
-		return &NumberVal{}
+		return NewNumberVal()
 	default: // logical comparison
 		if op.Type == tokens.Or {
 			var operand ast.Node
@@ -204,11 +203,9 @@ func (w *Walker) literalExpression(node *ast.LiteralExpr) Value {
 	case tokens.Fixed, tokens.Radian, tokens.FixedPoint, tokens.Degree:
 		return &FixedVal{}
 	case tokens.True, tokens.False:
-		return &BoolVal{
-			Value: node.Value,
-		}
+		return NewBoolVal(node.Value)
 	case tokens.Number:
-		return &NumberVal{}
+		return NewNumberVal(node.Value)
 	default:
 		return &Invalid{}
 	}
@@ -417,7 +414,7 @@ func (w *Walker) callExpression(val Value, node *ast.Node, scope *Scope) Value {
 		val = variable.Value
 	}
 
-	fn := val.(*FunctionVal)
+	fn := *val.(*FunctionVal)
 
 	nodeGenerics := call.GenericArgs
 	nodeArgs := call.Args
@@ -436,28 +433,13 @@ func (w *Walker) callExpression(val Value, node *ast.Node, scope *Scope) Value {
 	}
 
 	genericArgs := w.getGenerics(nodeGenerics, fn.Generics, scope)
-	actualParams := make([]Type, 0)
-	for i := range fn.Params {
-		if fn.Params[i].GetType() == Generic {
-			actualParams = append(actualParams, genericArgs[fn.Params[i].(*GenericType).Name])
-		} else {
-			actualParams = append(actualParams, fn.Params[i])
-		}
-	}
 	args := []Value{}
 	for i := range call.Args {
 		args = append(args, w.GetActualNodeValue(&nodeArgs[i], scope))
 	}
-	w.validateArguments(genericArgs, args, actualParams, call)
-	actualReturns := make([]Type, 0)
-	for i := range fn.Returns {
-		if fn.Returns[i].GetType() == Generic {
-			actualReturns = append(actualReturns, genericArgs[fn.Returns[i].(*GenericType).Name])
-		} else {
-			actualReturns = append(actualReturns, fn.Returns[i])
-		}
-	}
+	w.validateArguments(genericArgs, args, &fn, call)
 
+	actualReturns := fn.Returns
 	returnLen := len(actualReturns)
 	call.ReturnAmount = returnLen
 	if returnLen == 0 {
@@ -479,8 +461,10 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 	if et, ok := typ.(*EnumType); ok {
 		val = w.typeToValue(et)
 		node.Start = typeExpr.Name
-	} else {
+	} else if typ == UnknownTyp {
 		val = w.GetActualNodeValue(&node.Start, scope)
+	} else {
+		val = &Invalid{}
 	}
 
 	prevNode := &node.Start
@@ -518,6 +502,17 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 					valType,
 					member.GetToken().Lexeme,
 				)
+			}
+			if memberVal.GetType().PVT() == ast.Number && valType.PVT() == ast.List {
+				num := memberVal.(*NumberVal)
+				if num.Value != "unknown" {
+					n, err := strconv.ParseFloat(num.Value, 64)
+					if err == nil && n < 1 {
+						w.AlertSingle(&alerts.ListIndexOutOfBounds{}, member.GetToken(), num.Value)
+					} else if err == nil && n != float64(int64(n)) {
+						w.AlertSingle(&alerts.InvalidListIndex{}, member.GetToken())
+					}
+				}
 			}
 
 			val = w.typeToValue(val.GetType().(*WrapperType).WrappedType)
@@ -581,28 +576,6 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 	return val
 }
 
-// // thignAccess[shipAccess[shipid][2]][3]
-
-// // shipAccess[shipid]
-
-// func (w *Walker) ConvertAccessExprToEntityAccessExpr(entityVal *EntityVal, start *ast.Node, accessed ...ast.Node) {
-// 	entityAccess := &ast.EntityAccessExpr{
-// 		EnvName:    entityVal.Type.EnvName,
-// 		EntityName: entityVal.Type.Name,
-// 	}
-
-// 	if len(accessed) == 0 {
-// 		entityAccess.Expr = *start
-// 	} else {
-// 		entityAccess.Expr = &ast.AccessExpr{
-// 			Start:    *start,
-// 			Accessed: accessed,
-// 		}
-// 	}
-
-// 	*start = entityAccess
-// }
-
 // Rewrote
 func (w *Walker) mapExpression(node *ast.MapExpr, scope *Scope) Value {
 	mapVal := MapVal{}
@@ -658,7 +631,7 @@ func (w *Walker) unaryExpression(node *ast.UnaryExpr, scope *Scope) Value {
 		if !(valType.GetType() == Wrapper && valType.(*WrapperType).Type.PVT() == ast.List) {
 			w.AlertSingle(&alerts.TypeMismatch{}, token, "list", valType.String(), "after '#' in unary expression")
 		}
-		return &NumberVal{}
+		return NewNumberVal()
 	case tokens.Minus:
 		if !isNumerical(valPVT) {
 			w.AlertSingle(&alerts.TypeMismatch{}, token, "a numerical type", valType.String(), "after '-' in unary expression")
@@ -701,17 +674,47 @@ func (w *Walker) newExpression(new *ast.NewExpr, scope *Scope) Value {
 		w.AlertSingle(&alerts.TypeMismatch{}, new.Type.GetToken(), "class", _type.String(), "in new expression")
 		return &Invalid{}
 	}
-
 	val := w.typeToValue(_type).(*ClassVal)
 
 	args := make([]Value, 0)
 	for i := range new.Args {
 		args = append(args, w.GetActualNodeValue(&new.Args[i], scope))
 	}
-	suppliedGenerics := w.getGenerics(new.GenericArgs, val.Generics, scope)
-	w.validateArguments(suppliedGenerics, args, val.Params, new)
-	new.EnvName = val.Type.EnvName
 
+	explicitClassGenericArgs := w.getGenerics(new.ClassGenericArgs, val.Generics, scope)
+	explicitGenericArgs := w.getGenerics(new.GenericArgs, val.New.Generics, scope)
+	for k, v := range explicitClassGenericArgs {
+		explicitGenericArgs[k] = v
+	}
+
+	w.validateArguments(explicitGenericArgs, args, val.New, new)
+	for _, v := range val.Generics {
+		generic := explicitGenericArgs[v.Name]
+		if generic.Type == UnknownTyp {
+			continue
+		}
+		for i, v := range val.Fields {
+			if v.Var.Value.GetType().GetType() == Generic {
+				val.Fields[i].Var.Value = w.typeToValue(generic.Type)
+			}
+		}
+		for i := range val.Methods {
+			fn := val.Methods[i].Value.(*FunctionVal)
+			for j, v3 := range fn.Params {
+				if gen, ok := v3.(*GenericType); ok && gen.Name == v.Name {
+					fn.Params[j] = generic.Type
+				}
+			}
+			for j, v3 := range fn.Returns {
+				if gen, ok := v3.(*GenericType); ok && gen.Name == v.Name {
+					fn.Returns[j] = generic.Type
+				}
+			}
+		}
+		val.Type.Generics = append(val.Type.Generics, generic)
+	}
+
+	new.EnvName = val.Type.EnvName
 	return val
 }
 
@@ -725,17 +728,58 @@ func (w *Walker) spawnExpression(new *ast.SpawnExpr, scope *Scope) Value {
 		w.AlertSingle(&alerts.TypeMismatch{}, new.Type.GetToken(), "entity", _type.String(), "in spawn expression")
 		return &Invalid{}
 	}
-
 	val := w.typeToValue(_type).(*EntityVal)
 
 	args := make([]Value, 0)
 	for i := range new.Args {
 		args = append(args, w.GetActualNodeValue(&new.Args[i], scope))
 	}
-	suppliedGenerics := w.getGenerics(new.GenericArgs, val.SpawnGenerics, scope)
-	w.validateArguments(suppliedGenerics, args, val.SpawnParams, new)
-	new.EnvName = val.Type.EnvName
 
+	explicitEntityGenericArgs := w.getGenerics(new.EntityGenericArgs, val.Generics, scope)
+	explicitGenericArgs := w.getGenerics(new.GenericArgs, val.Spawn.Generics, scope)
+	for k, v := range explicitEntityGenericArgs {
+		explicitGenericArgs[k] = v
+	}
+
+	w.validateArguments(explicitGenericArgs, args, val.Spawn, new)
+	for _, v := range val.Generics {
+		generic := explicitGenericArgs[v.Name]
+		if generic.Type == UnknownTyp {
+			continue
+		}
+		for i, v := range val.Fields {
+			if v.Var.Value.GetType().GetType() == Generic {
+				val.Fields[i].Var.Value = w.typeToValue(generic.Type)
+			}
+		}
+		for i := range val.Methods {
+			fn := val.Methods[i].Value.(*FunctionVal)
+			for j, v3 := range fn.Params {
+				if gen, ok := v3.(*GenericType); ok && gen.Name == v.Name {
+					fn.Params[j] = generic.Type
+				}
+			}
+			for j, v3 := range fn.Returns {
+				if gen, ok := v3.(*GenericType); ok && gen.Name == v.Name {
+					fn.Returns[j] = generic.Type
+				}
+			}
+		}
+		fn := val.Destroy
+		for j, v3 := range fn.Params {
+			if gen, ok := v3.(*GenericType); ok && gen.Name == v.Name {
+				fn.Params[j] = generic.Type
+			}
+		}
+		for j, v3 := range fn.Returns {
+			if gen, ok := v3.(*GenericType); ok && gen.Name == v.Name {
+				fn.Returns[j] = generic.Type
+			}
+		}
+		val.Type.Generics = append(val.Type.Generics, generic)
+	}
+
+	new.EnvName = val.Type.EnvName
 	return val
 }
 
@@ -876,23 +920,17 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 		}
 
 		// Check for function generics
-		sc, _, fnTag := resolveTagScope[*FuncTag](scope)
-		if sc != nil {
-			fnTag := *fnTag
-			for _, v := range fnTag.Generics {
-				if v.Name == typeName {
-					return v
-				}
-			}
+		if gen, ok := w.resolveGenericParam(typeName, scope); ok {
+			return gen
 		}
 
 		types := []Type{}
 		envs := []string{}
 		for _, v := range scope.Environment.UsedLibraries {
-			typ := w.typeExpression(typee, &LibraryEnvs[v].Scope)
+			typ := w.typeExpression(typee, &BuiltinLibraries[v].Scope)
 			if typ != InvalidType && typ != UnknownTyp {
 				types = append(types, typ)
-				envs = append(envs, LibraryEnvs[v].Name)
+				envs = append(envs, BuiltinLibraries[v].Name)
 			}
 		}
 

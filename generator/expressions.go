@@ -3,11 +3,12 @@ package generator
 import (
 	"fmt"
 	"hybroid/ast"
+	"hybroid/core"
 	"hybroid/tokens"
 )
 
 func (gen *Generator) entityExpr(node ast.EntityEvaluationExpr) string {
-	src := StringBuilder{}
+	src := core.StringBuilder{}
 	var op string
 	switch node.Operator.Type {
 	case tokens.Is:
@@ -30,10 +31,10 @@ func (gen *Generator) entityExpr(node ast.EntityEvaluationExpr) string {
 	src.Write(hyEntity, envMap[node.EnvName], node.EntityName, "[", expr, "] ", op, " nil")
 
 	if node.ConvertedVarName != nil {
-		preSrc := StringBuilder{}
+		preSrc := core.StringBuilder{}
 
 		preSrc.Write("local ", gen.WriteVar(node.ConvertedVarName.Lexeme), " = ", expr, "\n")
-		gen.WriteTabbed(preSrc.String())
+		gen.Twrite(preSrc.String())
 	}
 	return src.String()
 }
@@ -85,7 +86,7 @@ func (gen *Generator) groupingExpr(node ast.GroupExpr) string {
 }
 
 func (gen *Generator) listExpr(node ast.ListExpr) string {
-	src := StringBuilder{}
+	src := core.StringBuilder{}
 
 	src.Write("{")
 	for i, expr := range node.List {
@@ -101,11 +102,11 @@ func (gen *Generator) listExpr(node ast.ListExpr) string {
 }
 
 func (gen *Generator) callExpr(node ast.CallExpr, tabbed bool) string {
-	src := StringBuilder{}
+	src := core.StringBuilder{}
 	fn := gen.GenerateExpr(node.Caller)
 
 	if tabbed {
-		src.WriteTabbed(fn, "(")
+		src.Write(gen.tabString(), fn, "(")
 	} else {
 		src.Write(fn, "(")
 	}
@@ -115,7 +116,7 @@ func (gen *Generator) callExpr(node ast.CallExpr, tabbed bool) string {
 }
 
 func (gen *Generator) GenerateArgs(args []ast.Node) string {
-	src := StringBuilder{}
+	src := core.StringBuilder{}
 
 	for i, arg := range args {
 		src.Write(gen.GenerateExpr(arg))
@@ -129,10 +130,10 @@ func (gen *Generator) GenerateArgs(args []ast.Node) string {
 }
 
 func (gen *Generator) mapExpr(node ast.MapExpr) string {
-	src := StringBuilder{}
+	src := core.StringBuilder{}
 
 	src.Write("{\n")
-	TabsCount += 1
+	gen.tabCount++
 	index := 0
 	for _, v := range node.KeyValueList {
 		val := gen.GenerateExpr(v.Expr)
@@ -141,14 +142,14 @@ func (gen *Generator) mapExpr(node ast.MapExpr) string {
 		ident := token.Lexeme
 
 		if index != len(node.KeyValueList)-1 {
-			src.WriteTabbed(fmt.Sprintf("[%s] = %v,\n", ident, val))
+			src.Write(gen.tabString(), fmt.Sprintf("[%s] = %v,\n", ident, val))
 		} else {
-			src.WriteTabbed(fmt.Sprintf("[%s] = %v\n", ident, val))
+			src.Write(gen.tabString(), fmt.Sprintf("[%s] = %v\n", ident, val))
 		}
 		index++
 	}
-	TabsCount -= 1
-	src.WriteTabbed("}")
+	gen.tabCount--
+	src.Write(gen.tabString(), "}")
 
 	return src.String()
 }
@@ -200,14 +201,14 @@ func (gen *Generator) accessExpr(node ast.AccessExpr) string { // thing.Freq15
 }
 
 func (gen *Generator) entityAccessExpr(node ast.EntityAccessExpr) string {
-	src := StringBuilder{}
+	src := core.StringBuilder{}
 	src.Write(hyEntity, envMap[node.EnvName], node.EntityName, "[", gen.GenerateExpr(node.Expr), "]")
 	return src.String()
 }
 
 func (gen *Generator) functionExpr(fn ast.FunctionExpr) string {
-	src := StringBuilder{}
-	src.WriteString("function (")
+	src := core.StringBuilder{}
+	src.Write("function (")
 	for i, param := range fn.Params {
 		src.Write(param.Name.Lexeme)
 		if i != len(fn.Params)-1 {
@@ -222,25 +223,25 @@ func (gen *Generator) functionExpr(fn ast.FunctionExpr) string {
 		src.Write("\n")
 	}
 	src.Write(gen.GenerateBodyValue(fn.Body))
-	src.WriteTabbed("end")
+	src.Write(gen.tabString(), "end")
 
 	return src.String()
 }
 
 func (gen *Generator) structExpr(node ast.StructExpr) string {
-	src := StringBuilder{}
+	src := core.StringBuilder{}
 
 	src.Write("{\n")
-	TabsCount += 1
+	gen.tabCount++
 	for i, v := range node.Fields {
-		src.WriteTabbed(v.Name.Lexeme, " = ", gen.GenerateExpr(node.Expressions[i]))
+		src.Write(gen.tabString(), v.Name.Lexeme, " = ", gen.GenerateExpr(node.Expressions[i]))
 		if i != len(node.Fields)-1 {
 			src.Write(", ")
 		}
 		src.Write("\n")
 	}
-	TabsCount -= 1
-	src.WriteTabbed("}")
+	gen.tabCount--
+	src.Write(gen.tabString(), "}")
 
 	return src.String()
 }
@@ -254,10 +255,10 @@ func (gen *Generator) selfExpr(self ast.SelfExpr) string {
 }
 
 func (gen *Generator) newExpr(new ast.NewExpr, stmt bool) string {
-	src := StringBuilder{}
+	src := core.StringBuilder{}
 
 	if stmt {
-		src.WriteTabbed()
+		src.Write(gen.tabString())
 	}
 
 	gen.envPrefixName = envMap[new.EnvName]
@@ -275,10 +276,10 @@ func (gen *Generator) newExpr(new ast.NewExpr, stmt bool) string {
 }
 
 func (gen *Generator) spawnExpr(spawn ast.SpawnExpr, stmt bool) string {
-	src := StringBuilder{}
+	src := core.StringBuilder{}
 
 	if stmt {
-		src.WriteTabbed()
+		src.Write(gen.tabString())
 	}
 	gen.envPrefixName = envMap[spawn.EnvName]
 	name := gen.GenerateExpr(spawn.Type.Name)
@@ -294,14 +295,14 @@ func (gen *Generator) spawnExpr(spawn ast.SpawnExpr, stmt bool) string {
 }
 
 func (gen *Generator) matchExpr(match ast.MatchExpr) string {
-	varsSrc := StringBuilder{}
+	varsSrc := core.StringBuilder{}
 	vars := []string{}
 	gotoLabel := GenerateVar(hyGotoLabel)
 
 	for i := 0; i < match.ReturnAmount; i++ {
 		helperVarName := GenerateVar(hyVar)
 		if i == 0 {
-			gen.WriteTabbed("local ", helperVarName)
+			gen.Twrite("local ", helperVarName)
 			varsSrc.Write(helperVarName)
 		} else {
 			gen.Write(", ", helperVarName)
@@ -318,7 +319,7 @@ func (gen *Generator) matchExpr(match ast.MatchExpr) string {
 	toMatch := gen.GenerateExpr(node.ExprToMatch)
 
 	for i, matchCase := range node.Cases {
-		conditionsSrc := StringBuilder{}
+		conditionsSrc := core.StringBuilder{}
 		for j, expr := range matchCase.Expressions {
 			conditionsSrc.Write(toMatch, " == ", gen.GenerateExpr(expr))
 			if j != len(matchCase.Expressions)-1 {
@@ -326,11 +327,11 @@ func (gen *Generator) matchExpr(match ast.MatchExpr) string {
 			}
 		}
 		if i == 0 {
-			gen.WriteTabbed("if ", conditionsSrc.String(), " then\n")
+			gen.Twrite("if ", conditionsSrc.String(), " then\n")
 		} else if i == len(node.Cases)-1 {
-			gen.WriteTabbed("else\n")
+			gen.Twrite("else\n")
 		} else {
-			gen.WriteTabbed("elseif ", conditionsSrc.String(), " then\n")
+			gen.Twrite("elseif ", conditionsSrc.String(), " then\n")
 		}
 		gen.YieldContexts.Push("MatchExpr", ctx)
 
@@ -339,9 +340,9 @@ func (gen *Generator) matchExpr(match ast.MatchExpr) string {
 		gen.YieldContexts.Pop("MatchExpr")
 	}
 
-	gen.WriteTabbed("end\n")
+	gen.Twrite("end\n")
 
-	gen.WriteTabbed(fmt.Sprintf("::%s::\n", gotoLabel))
+	gen.Twrite(fmt.Sprintf("::%s::\n", gotoLabel))
 
 	return varsSrc.String()
 }
@@ -376,10 +377,10 @@ func (gen *Generator) envAccessExpr(node ast.EnvAccessExpr) string {
 }
 
 func (gen *Generator) methodCallExpr(methodCall ast.MethodCallExpr, stmt bool) string {
-	src := StringBuilder{}
+	src := core.StringBuilder{}
 
 	if stmt {
-		src.WriteTabbed()
+		src.Write(gen.tabString())
 	}
 	var extra string
 	if methodCall.MethodType == ast.ClassMethod {

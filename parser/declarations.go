@@ -192,8 +192,9 @@ func (p *Parser) aliasDeclaration() ast.Node {
 
 func (p *Parser) classDeclaration() ast.Node {
 	stmt := &ast.ClassDecl{
-		IsPub: p.context.isPub,
-		Token: p.peek(-1),
+		IsPub:         p.context.isPub,
+		Token:         p.peek(-1),
+		GenericParams: make([]*ast.IdentifierExpr, 0),
 	}
 	if p.context.isPub {
 		stmt.Token = p.peek(-2)
@@ -201,6 +202,15 @@ func (p *Parser) classDeclaration() ast.Node {
 
 	name, _ := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name of the class"), tokens.Identifier)
 	stmt.Name = name
+
+	if p.tryGenericArgs() {
+		generics, ok := p.genericParams()
+		if !ok {
+			p.syncExpr(tokens.LeftBrace)
+		} else {
+			stmt.GenericParams = generics
+		}
+	}
 
 	_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.LeftBrace)
 	if !ok {
@@ -231,8 +241,9 @@ func (p *Parser) classDeclaration() ast.Node {
 
 func (p *Parser) entityDeclaration() ast.Node {
 	stmt := &ast.EntityDecl{
-		IsPub: p.context.isPub,
-		Token: p.peek(-1),
+		IsPub:         p.context.isPub,
+		Token:         p.peek(-1),
+		GenericParams: make([]*ast.IdentifierExpr, 0),
 	}
 	if p.context.isPub {
 		stmt.Token = p.peek(-2)
@@ -240,6 +251,15 @@ func (p *Parser) entityDeclaration() ast.Node {
 
 	name := p.advance()
 	stmt.Name = name
+
+	if p.tryGenericParams() {
+		generics, ok := p.genericParams()
+		if !ok {
+			p.syncExpr(tokens.LeftBrace)
+		} else {
+			stmt.GenericParams = generics
+		}
+	}
 
 	if !p.match(tokens.LeftBrace) {
 		p.disadvance(2)

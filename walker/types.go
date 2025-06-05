@@ -2,7 +2,7 @@ package walker
 
 import (
 	"hybroid/ast"
-	"hybroid/generator"
+	"hybroid/core"
 )
 
 type Type interface {
@@ -29,7 +29,6 @@ const (
 	Generic
 	Path
 	NA
-	NotKnown
 )
 
 type VariadicType struct {
@@ -166,7 +165,7 @@ func (ft *FunctionType) _eq(other Type) bool {
 }
 
 func (ft *FunctionType) String() string {
-	src := generator.StringBuilder{}
+	src := core.StringBuilder{}
 
 	src.Write("fn(")
 
@@ -346,7 +345,7 @@ func (st *StructType) _eq(other Type) bool {
 }
 
 func (st *StructType) String() string {
-	src := generator.StringBuilder{}
+	src := core.StringBuilder{}
 
 	src.Write("struct{")
 	length := len(st.Fields) - 1
@@ -367,17 +366,19 @@ func (st *StructType) String() string {
 }
 
 type NamedType struct {
-	Pvt     ast.PrimitiveValueType
-	EnvName string
-	Name    string
-	IsUsed  bool
+	Pvt      ast.PrimitiveValueType
+	EnvName  string
+	Name     string
+	IsUsed   bool
+	Generics []Type
 }
 
 func NewNamedType(envName string, name string, primitive ast.PrimitiveValueType) *NamedType {
 	return &NamedType{
-		EnvName: envName,
-		Name:    name,
-		Pvt:     primitive,
+		EnvName:  envName,
+		Name:     name,
+		Pvt:      primitive,
+		Generics: make([]Type, 0),
 	}
 }
 
@@ -395,7 +396,20 @@ func (nt *NamedType) _eq(othr Type) bool {
 }
 
 func (nt *NamedType) String() string {
-	return nt.Name
+	if len(nt.Generics) == 0 {
+		return nt.Name
+	}
+
+	src := core.StringBuilder{}
+	src.Write("(")
+	for i := range nt.Generics {
+		src.Write(nt.Generics[i].String())
+		if i != len(nt.Generics)-1 {
+			src.Write(", ")
+		}
+	}
+	src.Write(")")
+	return nt.Name + src.String()
 }
 
 type EnumType struct {
@@ -509,7 +523,7 @@ func (fs *FuncSignature) WithReturns(returns ...Type) *FuncSignature {
 }
 
 func (fs *FuncSignature) String() string {
-	src := generator.StringBuilder{}
+	src := core.StringBuilder{}
 
 	src.Write("fn")
 
@@ -600,6 +614,12 @@ func TypeEquals(t Type, other Type) bool {
 	return t._eq(other)
 }
 
+// uesed for generics
+type Type2 struct {
+	Type
+	Index int
+}
+
 var InvalidType = NewBasicType(ast.Invalid)
 
 var numberListVal = &ListVal{ValueType: NewBasicType(ast.Number)}
@@ -623,123 +643,123 @@ var MeshesValueType = (&ListVal{ValueType: MeshValueType}).GetType()
 var SoundValueType = NewStructType([]*VariableVal{
 	{
 		Name:  "attack",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "decay",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "sustain",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "sustainPunch",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "amplification",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "harmonics",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "harmonicsFalloff",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "tremoloDepth",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "tremoloFrequency",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "frequency",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "frequencyDeltaSweep",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "frequencyJump1Onset",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "frequencyJump2Onset",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "frequencyJump1Amount",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "frequencyJump2Amount",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "frequencySweep",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "vibratoFrequency",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "vibratoDepth",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "flangerOffset",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "flangerOffsetSweep",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "repeatFrequency",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "lowPassCutoff",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "lowPassCutoffSweep",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "highPassCutoff",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "highPassCutoffSweep",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "bitCrush",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "bitCrushSweep",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "squareDuty",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "squareDutySweep",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "harmonicsFalloff",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "normalization",
@@ -751,23 +771,23 @@ var SoundValueType = NewStructType([]*VariableVal{
 	},
 	{
 		Name:  "compression",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "harmonics",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "harmonicsFalloff",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "repeatFrequency",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "sampleRate",
-		Value: &NumberVal{},
+		Value: NewNumberVal(),
 	},
 	{
 		Name:  "waveform",

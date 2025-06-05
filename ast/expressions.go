@@ -123,6 +123,7 @@ func (ce *CallExpr) GetToken() tokens.Token { return ce.Caller.GetToken() }
 
 func (ce *CallExpr) GetGenerics() []*TypeExpr { return ce.GenericArgs }
 func (ce *CallExpr) GetArgs() []Node          { return ce.Args }
+func (ce *CallExpr) GetCaller() Node          { return ce.Caller }
 func (ce *CallExpr) GetReturnAmount() int     { return ce.ReturnAmount }
 
 type MethodCallExpr struct {
@@ -138,7 +139,8 @@ func (mce *MethodCallExpr) GetToken() tokens.Token { return mce.Caller.GetToken(
 
 func (mce *MethodCallExpr) GetGenerics() []*TypeExpr { return mce.GenericArgs }
 func (mce *MethodCallExpr) GetArgs() []Node          { return mce.Args }
-func (ce *MethodCallExpr) GetReturnAmount() int      { return ce.ReturnAmount }
+func (mce *MethodCallExpr) GetCaller() Node          { return mce.Caller }
+func (mce *MethodCallExpr) GetReturnAmount() int     { return mce.ReturnAmount }
 
 type FunctionExpr struct {
 	Body
@@ -179,31 +181,35 @@ func (se *SelfExpr) GetType() NodeType      { return SelfExpression }
 func (se *SelfExpr) GetToken() tokens.Token { return se.Token }
 
 type NewExpr struct {
-	Type        *TypeExpr
-	GenericArgs []*TypeExpr
-	Args        []Node
-	Token       tokens.Token
-	EnvName     string
+	Type             *TypeExpr
+	GenericArgs      []*TypeExpr
+	ClassGenericArgs []*TypeExpr
+	Args             []Node
+	Token            tokens.Token
+	EnvName          string
 }
 
 func (ne *NewExpr) GetType() NodeType      { return NewExpession }
 func (ne *NewExpr) GetToken() tokens.Token { return ne.Token }
 
 func (ne *NewExpr) GetGenerics() []*TypeExpr { return ne.GenericArgs }
+func (ne *NewExpr) GetCaller() Node          { return ne.Type }
 func (ne *NewExpr) GetArgs() []Node          { return ne.Args }
 
 type SpawnExpr struct {
-	Type        *TypeExpr
-	Args        []Node
-	GenericArgs []*TypeExpr
-	Token       tokens.Token
-	EnvName     string
+	Type              *TypeExpr
+	Args              []Node
+	GenericArgs       []*TypeExpr
+	EntityGenericArgs []*TypeExpr
+	Token             tokens.Token
+	EnvName           string
 }
 
 func (ne *SpawnExpr) GetType() NodeType      { return SpawnExpression }
 func (ne *SpawnExpr) GetToken() tokens.Token { return ne.Token }
 
 func (ne *SpawnExpr) GetGenerics() []*TypeExpr { return ne.GenericArgs }
+func (ne *SpawnExpr) GetCaller() Node          { return ne.Type }
 func (ne *SpawnExpr) GetArgs() []Node          { return ne.Args }
 
 type IdentifierType int

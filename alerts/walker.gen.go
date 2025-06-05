@@ -1370,12 +1370,14 @@ func (lc *LiteralCondition) AlertType() Type {
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type TypesMismatch struct {
 	Specifier Snippet
+	Value1    string
 	Type1     string
+	Value2    string
 	Type2     string
 }
 
 func (tm *TypesMismatch) Message() string {
-	return fmt.Sprintf("left value is of type '%s', but right value is of type '%s'", tm.Type1, tm.Type2)
+	return fmt.Sprintf("%s is of type '%s', but %s is of type '%s'", tm.Value1, tm.Type1, tm.Value2, tm.Type2)
 }
 
 func (tm *TypesMismatch) SnippetSpecifier() Snippet {
@@ -1785,5 +1787,82 @@ func (it *InvalidType) ID() string {
 }
 
 func (it *InvalidType) AlertType() Type {
+	return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type ListIndexOutOfBounds struct {
+	Specifier Snippet
+	Value     string
+}
+
+func (lioob *ListIndexOutOfBounds) Message() string {
+	return fmt.Sprintf("list index is '%s', but it must be 1 or more", lioob.Value)
+}
+
+func (lioob *ListIndexOutOfBounds) SnippetSpecifier() Snippet {
+	return lioob.Specifier
+}
+
+func (lioob *ListIndexOutOfBounds) Note() string {
+	return ""
+}
+
+func (lioob *ListIndexOutOfBounds) ID() string {
+	return "hyb069W"
+}
+
+func (lioob *ListIndexOutOfBounds) AlertType() Type {
+	return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidListIndex struct {
+	Specifier Snippet
+}
+
+func (ili *InvalidListIndex) Message() string {
+	return "a list index must be a whole number"
+}
+
+func (ili *InvalidListIndex) SnippetSpecifier() Snippet {
+	return ili.Specifier
+}
+
+func (ili *InvalidListIndex) Note() string {
+	return ""
+}
+
+func (ili *InvalidListIndex) ID() string {
+	return "hyb070W"
+}
+
+func (ili *InvalidListIndex) AlertType() Type {
+	return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type MissingGenericArgument struct {
+	Specifier Snippet
+	Type      string
+}
+
+func (mga *MissingGenericArgument) Message() string {
+	return fmt.Sprintf("generic type '%s' could not be inferred", mga.Type)
+}
+
+func (mga *MissingGenericArgument) SnippetSpecifier() Snippet {
+	return mga.Specifier
+}
+
+func (mga *MissingGenericArgument) Note() string {
+	return ""
+}
+
+func (mga *MissingGenericArgument) ID() string {
+	return "hyb071W"
+}
+
+func (mga *MissingGenericArgument) AlertType() Type {
 	return Error
 }

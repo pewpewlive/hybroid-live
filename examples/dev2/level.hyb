@@ -1,1 +1,24 @@
-a <<= o > 2
+env SuperInertiacEntity as Level
+
+use Pewpew
+
+entity Thing<T> {
+    T o
+
+    spawn(fixed x, y, T a) {
+      o = a
+    }
+
+    fn thing() -> T {
+      return o
+    }
+
+    destroy() {
+
+    }
+}
+
+let a = spawn Thing(100fx, 200fx, 1) 
+destroy a()
+
+number b = a.thing()

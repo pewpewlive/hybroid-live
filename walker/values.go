@@ -3,18 +3,18 @@ package walker
 import (
 	"fmt"
 	"hybroid/ast"
-	"hybroid/generator"
+	"hybroid/core"
 	"hybroid/tokens"
 )
-
-type ScopeableValue interface {
-	Value
-	Scopify(parent *Scope) *Scope
-}
 
 type Value interface {
 	GetType() Type
 	GetDefault() *ast.LiteralExpr
+}
+
+type ScopeableValue interface {
+	Value
+	Scopify(parent *Scope) *Scope
 }
 
 type FieldContainer interface {
@@ -142,7 +142,7 @@ func (asv *AnonStructVal) GetType() Type {
 }
 
 func (asv *AnonStructVal) GetDefault() *ast.LiteralExpr {
-	src := generator.StringBuilder{}
+	src := core.StringBuilder{}
 
 	src.Write("{")
 	length := len(asv.Fields) - 1
@@ -277,22 +277,25 @@ func NewField(index int, val *VariableVal) Field {
 }
 
 type EntityVal struct {
-	Type            NamedType
-	IsLocal         bool
-	Fields          map[string]Field
-	Methods         map[string]*VariableVal
-	SpawnParams     []Type
-	DestroyParams   []Type
-	SpawnGenerics   []*GenericType
-	DestroyGenerics []*GenericType
+	Type     NamedType
+	IsLocal  bool
+	Fields   map[string]Field
+	Methods  map[string]*VariableVal
+	Generics []*GenericType
+
+	Spawn   *FunctionVal
+	Destroy *FunctionVal
 }
 
 func NewEntityVal(envName string, name string, isLocal bool) *EntityVal {
 	return &EntityVal{
-		Type:    *NewNamedType(envName, name, ast.Entity),
-		IsLocal: isLocal,
-		Methods: make(map[string]*VariableVal),
-		Fields:  make(map[string]Field, 0),
+		Type:     *NewNamedType(envName, name, ast.Entity),
+		IsLocal:  isLocal,
+		Methods:  make(map[string]*VariableVal),
+		Fields:   make(map[string]Field, 0),
+		Generics: make([]*GenericType, 0),
+		Destroy:  NewMethod(ast.NewMethodInfo(ast.EntityMethod, "destroy", name, envName)),
+		Spawn:    NewMethod(ast.NewMethodInfo(ast.EntityMethod, "spawn", name, envName)),
 	}
 }
 
@@ -344,12 +347,14 @@ func (ev *EntityVal) Scopify(parent *Scope) *Scope {
 }
 
 type ClassVal struct {
-	Type     NamedType
-	IsLocal  bool
-	Fields   map[string]Field
-	Methods  map[string]*VariableVal
-	Params   []Type
-	Generics []*GenericType
+	Type        NamedType
+	IsLocal     bool
+	Fields      map[string]Field
+	Methods     map[string]*VariableVal
+	Generics    []*GenericType
+	GenericArgs []Type
+
+	New *FunctionVal
 }
 
 func (cv *ClassVal) GetType() Type {
@@ -423,7 +428,9 @@ func (l *ListVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "{}"}
 }
 
-type NumberVal struct{}
+type NumberVal struct {
+	Value string
+}
 
 func (n *NumberVal) GetType() Type {
 	return NewBasicType(ast.Number)
@@ -431,6 +438,17 @@ func (n *NumberVal) GetType() Type {
 
 func (n *NumberVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "0"}
+}
+
+func NewNumberVal(value ...string) *NumberVal {
+	val := "unknown"
+	if value != nil {
+		val = value[0]
+	}
+
+	return &NumberVal{
+		Value: val,
+	}
 }
 
 type FixedVal struct {
@@ -473,7 +491,7 @@ func (rt Values) Eq(otherRT Values) bool {
 }
 
 func TypesToString(types []Type) string {
-	src := generator.StringBuilder{}
+	src := core.StringBuilder{}
 
 	for i := range types {
 		src.Write(types[i].String())
@@ -531,7 +549,7 @@ func (f *FunctionVal) GetReturns() []Type {
 }
 
 func (f *FunctionVal) GetDefault() *ast.LiteralExpr {
-	src := generator.StringBuilder{}
+	src := core.StringBuilder{}
 	src.Write("function(")
 	for i := range f.Params {
 		src.Write(fmt.Sprintf("param%v", i))

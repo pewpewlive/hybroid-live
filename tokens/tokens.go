@@ -12,12 +12,6 @@ const (
 	// Unused tokens
 	// At @
 	// SemiColon ;
-	// Pipe |
-	// Ampersand &
-	// LeftShift <<
-	// LeftShiftEqual <<=
-	// RightShift >>
-	// RightShiftEqual >>=
 	// Find
 	// Macro
 
@@ -67,6 +61,8 @@ const (
 	PipeEqual                        // |=
 	Ampersand                        // &
 	AmpersandEqual                   // &=
+	Tilde                            // ~
+	TildeEqual                       // ~=
 
 	// Literals
 

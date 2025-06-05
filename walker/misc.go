@@ -5,6 +5,7 @@ import (
 	"hybroid/alerts"
 	"hybroid/ast"
 	"hybroid/tokens"
+	"math"
 	"strconv"
 )
 
@@ -96,9 +97,9 @@ func (w *Walker) resolveVariable(s *Scope, token tokens.Token) *Scope {
 			}
 		}
 		for _, v := range s.Environment.UsedLibraries {
-			_, ok := LibraryEnvs[v].Scope.Variables[name]
+			_, ok := BuiltinLibraries[v].Scope.Variables[name]
 			if ok {
-				return &LibraryEnvs[v].Scope
+				return &BuiltinLibraries[v].Scope
 			}
 		}
 		return nil
@@ -143,9 +144,19 @@ func convertCallToMethodCall(call *ast.CallExpr, mi ast.MethodInfo) *ast.MethodC
 	}
 }
 
-func (w *Walker) validateArguments(generics map[string]Type, args []Value, params []Type, call ast.NodeCall) {
+func (w *Walker) validateArguments(generics map[string]Type2, args []Value, fn *FunctionVal, call ast.NodeCall) {
 	nodeArgs := call.GetArgs()
-	paramCount := len(params)
+	nodeGenerics := call.GetGenerics()
+	paramCount := len(fn.Params)
+
+	defer func() {
+		for k := range generics {
+			generic := generics[k]
+			if generic.Type == UnknownTyp {
+				w.AlertSingle(&alerts.MissingGenericArgument{}, call.GetToken(), k)
+			}
+		}
+	}()
 
 	var param Type
 	for i, arg := range args {
@@ -159,14 +170,15 @@ func (w *Walker) validateArguments(generics map[string]Type, args []Value, param
 			)
 			return
 		}
+
 		if i >= paramCount-1 {
-			if params[paramCount-1].GetType() == Variadic {
-				param = params[paramCount-1].(*VariadicType).Type
+			if fn.Params[paramCount-1].GetType() == Variadic {
+				param = fn.Params[paramCount-1].(*VariadicType).Type
 			} else {
-				param = params[i]
+				param = fn.Params[i]
 			}
 		} else {
-			param = params[i]
+			param = fn.Params[i]
 		}
 
 		if _, ok := arg.(Values); ok {
@@ -176,14 +188,19 @@ func (w *Walker) validateArguments(generics map[string]Type, args []Value, param
 
 		argType := arg.GetType()
 
-		if typFound, found := resolveGenericType(&param); found {
-			generic := (*typFound).(*GenericType)
-			if typ, found := generics[generic.Name]; found {
-				*typFound = typ
-			} else {
-				generics[generic.Name] = resolveMatchingType(param, argType)
+		if typFound, found := resolveGenericType(param); found {
+			genericArg := generics[typFound.Name]
+			if genericArg.Index == -1 {
+				genericArg.Type = argType
+				generics[typFound.Name] = genericArg
 				param = argType
+			} else if !TypeEquals(genericArg.Type, argType) {
+				w.AlertSingle(&alerts.TypesMismatch{}, nodeGenerics[genericArg.Index].GetToken(),
+					"generic argument", genericArg.Type,
+					fmt.Sprintf("function argument '%s'", nodeArgs[i].GetToken().Lexeme), argType,
+				)
 			}
+			continue
 		}
 
 		if param == InvalidType || argType == InvalidType {
@@ -195,6 +212,7 @@ func (w *Walker) validateArguments(generics map[string]Type, args []Value, param
 			return
 		}
 	}
+
 	if paramCount > len(args) {
 		if len(nodeArgs) == 0 {
 			w.AlertSingle(&alerts.TooFewValuesGiven{}, call.GetToken(), paramCount-len(args), "in call arguments")
@@ -204,13 +222,13 @@ func (w *Walker) validateArguments(generics map[string]Type, args []Value, param
 	}
 }
 
-func resolveGenericType(typ *Type) (*Type, bool) {
-	if (*typ).GetType() == Generic {
-		return typ, true
+func resolveGenericType(typ Type) (*GenericType, bool) {
+	if typ.GetType() == Generic {
+		return typ.(*GenericType), true
 	}
 
-	if (*typ).GetType() == Wrapper {
-		return resolveGenericType(&(*typ).(*WrapperType).WrappedType)
+	if typ.GetType() == Wrapper {
+		return resolveGenericType(typ.(*WrapperType).WrappedType)
 	}
 
 	return nil, false
@@ -231,26 +249,59 @@ func resolveMatchingType(predefinedType Type, receivedType Type) Type {
 	return receivedType
 }
 
-func (w *Walker) validateArithmeticOperands(left Type, right Type, node *ast.BinaryExpr, context string) Type {
+var ops = map[string]func(int, int) int{
+	"+":  func(a, b int) int { return a + b },
+	"-":  func(a, b int) int { return a - b },
+	"*":  func(a, b int) int { return a * b },
+	"/":  func(a, b int) int { return a / b },
+	"^":  func(a, b int) int { return int(math.Pow(float64(a), float64(b))) },
+	"%":  func(a, b int) int { return a % b },
+	"\\": func(a, b int) int { return a / b },
+}
+
+// Validates the arithmetic operands, so for example a condition "value1 + value2", "value1 - value2"
+//
+// If both values are booleans, and the boolean values are known at compile time, the condition will be calculated and the returning Value will have the calculation in the BoolVal.
+func (w *Walker) validateArithmeticOperands(leftVal Value, rightVal Value, node *ast.BinaryExpr, context string) Value {
+	left, right := leftVal.GetType(), rightVal.GetType()
 	if left == InvalidType || right == InvalidType {
-		return InvalidType
+		return &Invalid{}
 	}
 	if !isNumerical(left.PVT()) {
 		w.AlertSingle(&alerts.TypeMismatch{}, node.Left.GetToken(), "a numerical type", left, context)
-		return InvalidType
+		return &Invalid{}
 	}
 	if !isNumerical(right.PVT()) {
 		w.AlertSingle(&alerts.TypeMismatch{}, node.Right.GetToken(), "a numerical type", right, context)
-		return InvalidType
+		return &Invalid{}
 	}
 	if !TypeEquals(left, right) {
 		w.AlertSingle(&alerts.TypesMismatch{}, node.Left.GetToken(), left, right)
-		return InvalidType
+		return &Invalid{}
+	}
+	if left.PVT() != ast.Number {
+		return w.typeToValue(left)
+	}
+	num1, num2 := leftVal.(*NumberVal), rightVal.(*NumberVal)
+	if num1.Value == "unknown" || num2.Value == "unknown" {
+		return NewNumberVal()
 	}
 
-	return left
+	n1, err := strconv.Atoi(num1.Value)
+	if err != nil {
+		return NewNumberVal()
+	}
+	n2, err2 := strconv.Atoi(num1.Value)
+	if err2 != nil {
+		return NewNumberVal()
+	}
+
+	return NewNumberVal(fmt.Sprintf("%v", ops[node.Operator.Lexeme](n1, n2)))
 }
 
+// Validates the conditional operands, so for example a condition "value1 and value2", "value1 or value2"
+//
+// If both values are booleans, and the boolean values are known at compile time, the condition will be calculated and the returning Value will have the calculation in the BoolVal.
 func (w *Walker) validateConditionalOperands(leftVal Value, rightVal Value, node *ast.BinaryExpr) Value {
 	left, right := leftVal.GetType(), rightVal.GetType()
 
@@ -355,15 +406,42 @@ func (w *Walker) getReturns(returns []*ast.TypeExpr, scope *Scope) []Type {
 	return returnType
 }
 
-func (w *Walker) getGenericParams(genericParams []*ast.IdentifierExpr) []*GenericType {
+func (w *Walker) resolveGenericParam(name string, scope *Scope) (*GenericType, bool) {
+	if scope.Parent == nil {
+		return nil, false
+	}
+
+	generics := []*GenericType{}
+	if fn, ok := scope.Tag.(*FuncTag); ok {
+		generics = fn.Generics
+	} else if ct, ok := scope.Tag.(*ClassTag); ok {
+		generics = ct.Val.Generics
+	} else if et, ok := scope.Tag.(*EntityTag); ok {
+		generics = et.EntityVal.Generics
+	}
+	for _, v := range generics {
+		if name == v.Name {
+			return v, true
+		}
+	}
+
+	return w.resolveGenericParam(name, scope.Parent)
+}
+
+func (w *Walker) getGenericParams(genericParams []*ast.IdentifierExpr, scope *Scope) []*GenericType {
 	generics := make([]*GenericType, 0)
 
 	for _, generic := range genericParams {
+		if _, found := w.resolveGenericParam(generic.Name.Lexeme, scope); found {
+			w.AlertSingle(&alerts.DuplicateElement{}, generic.GetToken(), "generic parameter", generic.Name.Lexeme)
+			break
+		}
 		for i := range generics {
 			if generics[i].Name == generic.Name.Lexeme {
 				w.AlertSingle(&alerts.DuplicateElement{}, generic.GetToken(), "generic parameter", generic.Name.Lexeme)
 				break
 			}
+
 		}
 		generics = append(generics, NewGeneric(generic.Name.Lexeme))
 	}
@@ -371,26 +449,26 @@ func (w *Walker) getGenericParams(genericParams []*ast.IdentifierExpr) []*Generi
 	return generics
 }
 
-func (w *Walker) getGenerics(genericArgs []*ast.TypeExpr, expectedGenerics []*GenericType, scope *Scope) map[string]Type {
+func (w *Walker) getGenerics(genericArgs []*ast.TypeExpr, expectedGenerics []*GenericType, scope *Scope) map[string]Type2 {
 	receivedGenericsLength := len(genericArgs)
 	expectedGenericsLength := len(expectedGenerics)
 
-	suppliedGenerics := map[string]Type{}
+	suppliedGenerics := map[string]Type2{}
 	if receivedGenericsLength > expectedGenericsLength {
 		extraAmount := receivedGenericsLength - expectedGenericsLength
 		w.AlertMulti(&alerts.TooManyValuesGiven{},
-			genericArgs[expectedGenericsLength-extraAmount].GetToken(),
-			genericArgs[expectedGenericsLength-1].GetToken(),
+			genericArgs[receivedGenericsLength-extraAmount].GetToken(),
+			genericArgs[receivedGenericsLength-1].GetToken(),
 			extraAmount,
 			"in generic arguments",
 		)
 	} else {
 		for i := range expectedGenerics {
-			if i+1 > len(genericArgs) {
-				suppliedGenerics[expectedGenerics[i].Name] = (&Unknown{}).GetType()
-			} else {
-				suppliedGenerics[expectedGenerics[i].Name] = w.typeExpression(genericArgs[i], scope)
+			if i > len(genericArgs)-1 {
+				suppliedGenerics[expectedGenerics[i].Name] = Type2{UnknownTyp, -1}
+				continue
 			}
+			suppliedGenerics[expectedGenerics[i].Name] = Type2{w.typeExpression(genericArgs[i], scope), i}
 		}
 	}
 
@@ -420,7 +498,7 @@ func (w *Walker) typeToValue(_type Type) Value {
 	case ast.String:
 		return &StringVal{}
 	case ast.Number:
-		return &NumberVal{}
+		return NewNumberVal()
 	case ast.List:
 		return &ListVal{
 			ValueType: _type.(*WrapperType).WrappedType,
@@ -430,15 +508,15 @@ func (w *Walker) typeToValue(_type Type) Value {
 			MemberType: _type.(*WrapperType).WrappedType,
 		}
 	case ast.Class:
-		val := w.walkers[_type.(*NamedType).EnvName].environment.Classes[_type.String()]
-		return val
+		val := *w.walkers[_type.(*NamedType).EnvName].environment.Classes[_type.String()]
+		return &val
 	case ast.Struct:
 		return &AnonStructVal{
 			Fields: _type.(*StructType).Fields,
 		}
 	case ast.Entity:
-		val := w.walkers[_type.(*NamedType).EnvName].environment.Entities[_type.String()]
-		return val
+		val := *w.walkers[_type.(*NamedType).EnvName].environment.Entities[_type.String()]
+		return &val
 	case ast.Object:
 		return &Unknown{}
 	case ast.Generic:

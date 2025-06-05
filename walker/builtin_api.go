@@ -56,3 +56,11 @@ var BuiltinVariables = map[string]*VariableVal{
 		IsPub:   true,
 	},
 }
+
+var BuiltinLibraries = map[Library]*Environment{
+	Pewpew: PewpewEnv,
+	Fmath:  FmathEnv,
+	Math:   MathEnv,
+	String: StringEnv,
+	Table:  TableEnv,
+}

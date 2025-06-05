@@ -3,6 +3,7 @@ package generator
 import (
 	"fmt"
 	"hybroid/ast"
+	"hybroid/core"
 	"hybroid/tokens"
 )
 
@@ -13,28 +14,28 @@ func (gen *Generator) envStmt(node ast.EnvironmentDecl) {
 }
 
 func (gen *Generator) ifStmt(node ast.IfStmt) {
-	expr := gen.GenerateExpr(node.BoolExpr) // very important that this is called before gen.WriteTabbed (entityExpr might write on gen)
-	gen.WriteTabbed("if ", expr, " then\n")
+	expr := gen.GenerateExpr(node.BoolExpr) // very important that this is called before gen.Twrite (entityExpr might write on gen)
+	gen.Twrite("if ", expr, " then\n")
 
 	gen.GenerateBody(node.Body)
 	for _, elseif := range node.Elseifs {
-		gen.WriteTabbed("elseif ", gen.GenerateExpr(elseif.BoolExpr), " then\n")
+		gen.Twrite("elseif ", gen.GenerateExpr(elseif.BoolExpr), " then\n")
 		gen.GenerateBody(elseif.Body)
 	}
 	if node.Else != nil {
-		gen.WriteTabbed("else \n")
+		gen.Twrite("else \n")
 		gen.GenerateBody(node.Else.Body)
 	}
 
-	gen.WriteTabbed("end\n")
+	gen.Twrite("end\n")
 }
 
 func (gen *Generator) assignmentStmt(assignStmt ast.AssignmentStmt) {
-	src := StringBuilder{}
-	preSrc := StringBuilder{}
+	src := core.StringBuilder{}
+	preSrc := core.StringBuilder{}
 	values := []string{}
 
-	src.WriteTabbed()
+	src.Write(gen.tabString())
 	for i, v := range assignStmt.Identifiers {
 		src.Write(gen.GenerateExpr(v))
 		if i != len(assignStmt.Identifiers)-1 {
@@ -43,7 +44,7 @@ func (gen *Generator) assignmentStmt(assignStmt ast.AssignmentStmt) {
 	}
 	src.Write(" = ")
 	if call, ok := assignStmt.Values[0].(ast.CallNode); ok && call.GetReturnAmount() > 1 && assignStmt.AssignOp.Type != tokens.Equal {
-		preSrc.WriteTabbed("local ")
+		preSrc.Write(gen.tabString(), "local ")
 		for i := range call.GetReturnAmount() {
 			values = append(values, GenerateVar(hyVar))
 			preSrc.Write(values[i])
@@ -60,7 +61,7 @@ func (gen *Generator) assignmentStmt(assignStmt ast.AssignmentStmt) {
 	for i := range values {
 		if assignStmt.AssignOp.Type != tokens.Equal {
 			op := tokens.TokenType(int(assignStmt.AssignOp.Type) - 1)
-			src.Write(fmt.Sprintf("%s %s (%s)", gen.GenerateExpr(assignStmt.Identifiers[i]), op, values[i]))
+			src.Writef("%s %s (%s)", gen.GenerateExpr(assignStmt.Identifiers[i]), op, values[i])
 		} else {
 			src.Write(values[i])
 		}
@@ -74,9 +75,9 @@ func (gen *Generator) assignmentStmt(assignStmt ast.AssignmentStmt) {
 }
 
 func (gen *Generator) returnStmt(node ast.ReturnStmt) {
-	src := StringBuilder{}
+	src := core.StringBuilder{}
 
-	src.WriteTabbed("return ")
+	src.Write(gen.tabString(), "return ")
 	for i, expr := range node.Args {
 		val := gen.GenerateExpr(expr)
 		src.Write(val)
@@ -89,12 +90,12 @@ func (gen *Generator) returnStmt(node ast.ReturnStmt) {
 }
 
 func (gen *Generator) yieldStmt(node ast.YieldStmt) {
-	src := StringBuilder{}
+	src := core.StringBuilder{}
 
 	ctx := gen.YieldContexts.Top().Item
 	lenVars := len(ctx.vars)
 
-	src.WriteTabbed()
+	src.Write(gen.tabString())
 	for i, v := range ctx.vars {
 		if i == lenVars-1 {
 			src.Write(fmt.Sprintf("%s = ", v))
@@ -110,23 +111,23 @@ func (gen *Generator) yieldStmt(node ast.YieldStmt) {
 		}
 	}
 	src.Write("\n")
-	src.WriteTabbed("goto ", ctx.label)
+	src.Write(gen.tabString(), "goto ", ctx.label)
 
 	gen.Write(src.String())
 }
 
 func (gen *Generator) breakStmt(_ ast.BreakStmt) {
 	if gen.BreakLabels.Top().Item != "" {
-		gen.WriteTabbed("goto ", gen.BreakLabels.Top().Item)
+		gen.Twrite("goto ", gen.BreakLabels.Top().Item)
 		return
 	}
-	gen.WriteTabbed("break")
+	gen.Twrite("break")
 }
 
 func (gen *Generator) continueStmt(_ ast.ContinueStmt) {
 	label := gen.ContinueLabels.Top().Item
 
-	gen.WriteTabbed("goto ", label)
+	gen.Twrite("goto ", label)
 }
 
 func (gen *Generator) repeatStmt(node ast.RepeatStmt) {
@@ -136,9 +137,9 @@ func (gen *Generator) repeatStmt(node ast.RepeatStmt) {
 	skip := gen.GenerateExpr(node.Skip)
 	if node.Variable != nil {
 		variable := gen.GenerateExpr(node.Variable)
-		gen.WriteTabbed("for ", variable, " = ", start, ", ", end, ", ", skip, " do\n")
+		gen.Twrite("for ", variable, " = ", start, ", ", end, ", ", skip, " do\n")
 	} else {
-		gen.WriteTabbed("for _ = ", start, ", ", end, ", ", skip, " do\n")
+		gen.Twrite("for _ = ", start, ", ", end, ", ", skip, " do\n")
 	}
 
 	gotoLabel := GenerateVar(hyGotoLabel)
@@ -150,12 +151,12 @@ func (gen *Generator) repeatStmt(node ast.RepeatStmt) {
 	gen.BreakLabels.Pop("RepeatStmt")
 	gen.ContinueLabels.Pop("RepeatStmt")
 
-	gen.WriteTabbed("::" + gotoLabel + "::\n")
+	gen.Twrite("::" + gotoLabel + "::\n")
 	gen.Write("end")
 }
 
 func (gen *Generator) whileStmt(node ast.WhileStmt) {
-	gen.WriteTabbed("while ", gen.GenerateExpr(node.Condition), " do\n")
+	gen.Twrite("while ", gen.GenerateExpr(node.Condition), " do\n")
 
 	gotoLabel := GenerateVar(hyGotoLabel)
 	gen.ContinueLabels.Push("WhileStmt", gotoLabel)
@@ -166,12 +167,12 @@ func (gen *Generator) whileStmt(node ast.WhileStmt) {
 	gen.BreakLabels.Pop("WhileStmt")
 	gen.ContinueLabels.Pop("WhileStmt")
 
-	gen.WriteTabbed("::" + gotoLabel + "::\n")
-	gen.WriteTabbed("end")
+	gen.Twrite("::" + gotoLabel + "::\n")
+	gen.Twrite("end")
 }
 
 func (gen *Generator) forStmt(node ast.ForStmt) {
-	gen.WriteTabbed("for ")
+	gen.Twrite("for ")
 
 	pairs := "pairs"
 	if node.OrderedIteration {
@@ -194,32 +195,30 @@ func (gen *Generator) forStmt(node ast.ForStmt) {
 	gen.BreakLabels.Pop("ForStmt")
 	gen.ContinueLabels.Pop("ForStmt")
 
-	gen.WriteTabbed("::" + gotoLabel + "::\n")
-	gen.WriteTabbed("end")
+	gen.Twrite("::" + gotoLabel + "::\n")
+	gen.Twrite("end")
 }
 
 func (gen *Generator) tickStmt(node ast.TickStmt) {
-	tickTabs := getTabs()
-
 	if node.Variable != nil {
 		variable := gen.GenerateExpr(node.Variable)
-		gen.Write(tickTabs, "local ", variable, " = 0\n")
-		gen.Write(tickTabs, "pewpew.add_update_callback(function()\n")
-		gen.WriteTabbed(variable, " = ", variable, " + 1\n")
+		gen.Twrite("local ", variable, " = 0\n")
+		gen.Twrite("pewpew.add_update_callback(function()\n")
+		gen.Twrite(variable, " = ", variable, " + 1\n")
 	} else {
-		gen.Write(tickTabs, "pewpew.add_update_callback(function()\n")
+		gen.Twrite("pewpew.add_update_callback(function()\n")
 	}
 
 	gen.GenerateBody(node.Body)
 
-	gen.Write(tickTabs, "end)")
+	gen.Twrite("end)")
 }
 
 func (gen *Generator) GenerateParams(params []ast.FunctionParam) {
 	var variadicParam string
 	for i, param := range params {
 		if param.Type.IsVariadic {
-			gen.WriteString("...")
+			gen.Write("...")
 			variadicParam = gen.WriteVar(param.Name.Lexeme)
 		} else {
 			gen.Write(gen.WriteVar(param.Name.Lexeme))
@@ -231,7 +230,7 @@ func (gen *Generator) GenerateParams(params []ast.FunctionParam) {
 	gen.Write(")\n")
 
 	if variadicParam != "" {
-		gen.WriteTabbed("local ", variadicParam, " = {...}\n")
+		gen.Twrite("local ", variadicParam, " = {...}\n")
 	}
 }
 
@@ -240,7 +239,7 @@ func (gen *Generator) matchStmt(node ast.MatchStmt) {
 
 	toMatch := gen.GenerateExpr(node.ExprToMatch)
 	for i, matchCase := range node.Cases {
-		conditionsSrc := StringBuilder{}
+		conditionsSrc := core.StringBuilder{}
 		for j, expr := range matchCase.Expressions {
 			conditionsSrc.Write(toMatch, " == ", gen.GenerateExpr(expr))
 			if j != len(matchCase.Expressions)-1 {
@@ -248,25 +247,25 @@ func (gen *Generator) matchStmt(node ast.MatchStmt) {
 			}
 		}
 		if i == 0 {
-			gen.WriteTabbed("if ", conditionsSrc.String(), " then\n")
+			gen.Twrite("if ", conditionsSrc.String(), " then\n")
 		} else if i == len(node.Cases)-1 {
-			gen.WriteTabbed("else\n")
+			gen.Twrite("else\n")
 		} else {
-			gen.WriteTabbed("elseif ", conditionsSrc.String(), " then\n")
+			gen.Twrite("elseif ", conditionsSrc.String(), " then\n")
 		}
 		gen.BreakLabels.Push("MatchExpr", gotoLabel)
 		gen.GenerateBody(matchCase.Body)
 		gen.BreakLabels.Pop("MatchExpr")
 	}
 
-	gen.WriteTabbed("end\n")
-	gen.WriteTabbed(fmt.Sprintf("::%s::\n", gotoLabel))
+	gen.Twrite("end\n")
+	gen.Twrite(fmt.Sprintf("::%s::\n", gotoLabel))
 }
 
 func (gen *Generator) destroyStmt(node ast.DestroyStmt) {
-	src := StringBuilder{}
+	src := core.StringBuilder{}
 
-	src.WriteTabbed()
+	src.Write(gen.tabString())
 	src.Write(hyEntity, envMap[node.EnvName], node.EntityName, "_Destroy(", gen.GenerateExpr(node.Identifier))
 	for _, arg := range node.Args {
 		src.Write(", ")

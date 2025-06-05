@@ -102,7 +102,7 @@ func (p *Parser) parseNode(syncFunc func()) (returnNode ast.Node) {
 		p.context.isPub = true
 	}
 
-	if p.peek().Type == tokens.Entity && p.peek(1).Type == tokens.Identifier && p.peek(2).Type == tokens.LeftBrace {
+	if p.peek().Type == tokens.Entity && p.peek(1).Type == tokens.Identifier && (p.peek(2).Type == tokens.Less || p.peek(2).Type == tokens.LeftBrace) {
 		p.advance()
 		returnNode = p.entityDeclaration()
 		return

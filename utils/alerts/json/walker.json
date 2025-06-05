@@ -447,11 +447,13 @@
     "name": "TypesMismatch",
     "type": "Error",
     "fields": {
+      "Value1": "string",
       "Type1": "string",
+      "Value2": "string",
       "Type2": "string"
     },
-    "message": "left value is of type '%s', but right value is of type '%s'",
-    "message_format": ["Type1", "Type2"]
+    "message": "%s is of type '%s', but %s is of type '%s'",
+    "message_format": ["Value1", "Type1", "Value2", "Type2"]
   },
   {
     "name": "MissingConstructor",
@@ -576,5 +578,28 @@
     },
     "message": "cannot have a type '%s' %s",
     "message_format": ["Type", "Context"]
+  },
+  {
+    "name": "ListIndexOutOfBounds",
+    "type": "Error",
+    "fields":{
+      "Value": "string"
+    },
+    "message": "list index is '%s', but it must be 1 or more",
+    "message_format": ["Value"]
+  },
+  {
+    "name": "InvalidListIndex",
+    "type": "Error",
+    "message": "a list index must be a whole number"
+  },
+  {
+    "name": "MissingGenericArgument",
+    "type": "Error",
+    "fields":{
+      "Type": "string"
+    },
+    "message": "generic type '%s' could not be inferred",
+    "message_format": ["Type"]
   }
 ]

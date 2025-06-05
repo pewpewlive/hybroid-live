@@ -4,6 +4,7 @@ import (
 	"hybroid/alerts"
 	"hybroid/ast"
 	"hybroid/tokens"
+	"strings"
 )
 
 func (p *Parser) getFunctionParam() (ast.FunctionParam, bool) {
@@ -71,6 +72,38 @@ func (p *Parser) functionParams(opening tokens.TokenType, closing tokens.TokenTy
 	return args, success
 }
 
+// Prerequisite of calling this function is that you checked on peek and it was tokens.Less
+func (p *Parser) tryGenericParams(offset ...int) bool {
+	p.context.ignoreAlerts.Push("TryGenericParams", true)
+	defer p.context.ignoreAlerts.Pop("TryGenericParams")
+
+	off := 0
+	if offset != nil {
+		off = offset[0]
+	}
+	currentStart := p.current
+	if off != 0 {
+		p.advance(off)
+	}
+	if !p.match(tokens.Less) {
+		return false
+	}
+
+	p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in generic parameters"), tokens.Identifier)
+
+	for p.match(tokens.Comma) {
+		p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in generic parameters"), tokens.Identifier)
+	}
+
+	next := p.peek()
+
+	p.disadvance(p.current - currentStart)
+	if next.Type == tokens.Greater || next.Type == tokens.LeftParen {
+		return true
+	}
+	return false
+}
+
 func (p *Parser) genericParams() ([]*ast.IdentifierExpr, bool) {
 	params := []*ast.IdentifierExpr{}
 	if !p.match(tokens.Less) {
@@ -103,18 +136,17 @@ func (p *Parser) tryGenericArgs() bool {
 	defer p.context.ignoreAlerts.Pop("TryGenericArgs")
 
 	currentStart := p.current
-	p.match(tokens.Less)
+	if !p.match(tokens.Less) {
+		return false
+	}
 
 	p.typeExpr("in generic arguments")
-
 	for p.match(tokens.Comma) {
 		p.typeExpr("in generic arguments")
 	}
-
 	next := p.peek()
 
 	p.disadvance(p.current - currentStart)
-
 	if next.Type == tokens.Greater || next.Type == tokens.LeftParen {
 		return true
 	}
@@ -584,6 +616,7 @@ func (p *Parser) combineTokens(tokenType tokens.TokenType, n int) (tokens.Token,
 		}
 		newToken.Column.Start = min(newToken.Column.Start, next.Column.Start)
 		newToken.Column.End = max(newToken.Column.End, next.Column.End)
+		newToken.Lexeme = strings.Join([]string{newToken.Lexeme, next.Lexeme}, "")
 		i++
 	}
 
