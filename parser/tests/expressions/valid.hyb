@@ -126,3 +126,14 @@ let b = match p {
     "p" => {}
     else => {}
 }
+
+if 3 >= 3 {
+    
+}
+a >>= 3
+
+a <<= o > 2
+a >>= o <= 2
+a >>= o == 2
+
+pub c = fn<T>(T a) => a < 2

@@ -89,13 +89,12 @@ func (p *Parser) comparison() ast.Node {
 		return expr
 	}
 
-	if p.isComparison() {
-		operator := p.peek(-1)
+	if op, ok := p.isComparison(); ok {
 		right := p.term()
 		if ast.IsImproper(right, ast.NA) {
 			p.AlertSingle(&alerts.ExpectedExpression{}, right.GetToken(), "as right value in binary expression")
 		}
-		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right}
+		expr = &ast.BinaryExpr{Left: expr, Operator: op, Right: right}
 	}
 
 	return expr
@@ -106,13 +105,34 @@ func (p *Parser) term() ast.Node {
 	if ast.IsImproper(expr, ast.NA) {
 		return expr
 	}
-	if p.match(tokens.Plus, tokens.Minus, tokens.Ampersand, tokens.Pipe, tokens.LeftShift, tokens.RightShift) {
-		operator := p.peek(-1)
+
+	isLeftShift := p.peek().Type == tokens.Less && p.peek(1).Type == tokens.Less && p.peek(2).Type != tokens.Equal
+	isRightShift := p.peek().Type == tokens.Greater && p.peek(1).Type == tokens.Greater && p.peek(2).Type != tokens.Equal
+	isNormalOp := p.check(tokens.Plus, tokens.Minus, tokens.Ampersand, tokens.Pipe)
+
+	var op tokens.Token
+	if isNormalOp {
+		op = p.advance()
+	} else if isLeftShift {
+		newToken, success := p.combineTokens(tokens.LeftShift, 2)
+		if !success {
+			return expr
+		}
+		op = newToken
+	} else if isRightShift {
+		newToken, success := p.combineTokens(tokens.RightShift, 2)
+		if !success {
+			return expr
+		}
+		op = newToken
+	}
+
+	if isNormalOp || isLeftShift || isRightShift {
 		right := p.term()
 		if ast.IsImproper(right, ast.NA) {
 			p.AlertSingle(&alerts.ExpectedExpression{}, right.GetToken(), "as right value in binary expression")
 		}
-		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right}
+		expr = &ast.BinaryExpr{Left: expr, Operator: op, Right: right}
 	}
 
 	return expr

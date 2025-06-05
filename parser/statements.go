@@ -155,13 +155,33 @@ func (p *Parser) assignmentStatement(expr ast.Node) ast.Node {
 		}
 		return &ast.AssignmentStmt{Identifiers: idents, Values: exprs, AssignOp: equal, Token: idents[0].GetToken()}
 	}
-	if p.match(tokens.PlusEqual, tokens.MinusEqual, tokens.SlashEqual, tokens.StarEqual, tokens.CaretEqual, tokens.ModuloEqual, tokens.BackSlashEqual, tokens.AmpersandEqual, tokens.PipeEqual, tokens.LeftShiftEqual, tokens.RightShiftEqual) {
-		assignOp := p.peek(-1)
+
+	isLeftShiftEqual := p.peek().Type == tokens.Less && p.peek(1).Type == tokens.Less && p.peek(2).Type == tokens.Equal
+	isRightShiftEqual := p.peek().Type == tokens.Greater && p.peek(1).Type == tokens.Greater && p.peek(2).Type == tokens.Equal
+	isNormalCompoundOp := p.check(tokens.PlusEqual, tokens.MinusEqual, tokens.SlashEqual, tokens.StarEqual, tokens.CaretEqual, tokens.ModuloEqual, tokens.BackSlashEqual, tokens.AmpersandEqual, tokens.PipeEqual)
+	var op tokens.Token
+	if isNormalCompoundOp {
+		op = p.advance()
+	} else if isLeftShiftEqual {
+		newToken, success := p.combineTokens(tokens.LeftShiftEqual, 3)
+		if !success {
+			return ast.NewImproper(expr.GetToken(), ast.NA)
+		}
+		op = newToken
+	} else if isRightShiftEqual {
+		newToken, success := p.combineTokens(tokens.RightShiftEqual, 3)
+		if !success {
+			return ast.NewImproper(expr.GetToken(), ast.NA)
+		}
+		op = newToken
+	}
+
+	if isNormalCompoundOp || isLeftShiftEqual || isRightShiftEqual {
 		exprs, ok := p.expressions("in assignment statement", false)
 		if !ok {
 			return ast.NewImproper(expr.GetToken(), ast.AssignmentStatement)
 		}
-		return &ast.AssignmentStmt{Identifiers: idents, Values: exprs, AssignOp: assignOp, Token: idents[0].GetToken()}
+		return &ast.AssignmentStmt{Identifiers: idents, Values: exprs, AssignOp: op, Token: idents[0].GetToken()}
 	}
 	return ast.NewImproper(expr.GetToken(), ast.NA)
 }

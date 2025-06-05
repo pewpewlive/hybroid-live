@@ -153,33 +153,9 @@ func (l *Lexer) next() (*tokens.Token, error) {
 			token.Type = tokens.Bang
 		}
 	case '<':
-		if l.match('<') {
-			if l.match('=') {
-				token.Type = tokens.LeftShiftEqual
-			} else {
-				token.Type = tokens.LeftShift
-			}
-			break
-		}
-		if l.match('=') {
-			token.Type = tokens.LessEqual
-		} else {
-			token.Type = tokens.Less
-		}
+		token.Type = tokens.Less
 	case '>':
-		if l.match('>') {
-			if l.match('=') {
-				token.Type = tokens.RightShiftEqual
-			} else {
-				token.Type = tokens.RightShift
-			}
-			break
-		}
-		if l.match('=') {
-			token.Type = tokens.GreaterEqual
-		} else {
-			token.Type = tokens.Greater
-		}
+		token.Type = tokens.Greater
 	case '%':
 		if l.match('=') {
 			token.Type = tokens.ModuloEqual

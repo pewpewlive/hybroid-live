@@ -566,6 +566,30 @@ func (p *Parser) synchronizeMatchBody() {
 	}
 }
 
+// Combines the locations as well as the lexemes and literals of the n tokens. It is assumed that you use this function to create an already existing token type and also that n is more than 1.
+//
+// It can fail when one of the given tokens is not in the same line as the previous ones. In this case it will disadvance back to the start.
+//
+// E.g. combining tokens '>', '>' and '=' would result with a token of '>>=' with the appropriate location. The type is of course 'RightshiftEqual', which you have to give.
+// If it fails at '=', it will still give whatever it combined. In this case '>>'.
+func (p *Parser) combineTokens(tokenType tokens.TokenType, n int) (tokens.Token, bool) {
+	newToken := p.advance()
+	newToken.Type = tokenType
+	i := 1
+	for i < n {
+		next := p.advance()
+		if newToken.Line != next.Line {
+			p.disadvance(i + 1)
+			return newToken, false
+		}
+		newToken.Column.Start = min(newToken.Column.Start, next.Column.Start)
+		newToken.Column.End = max(newToken.Column.End, next.Column.End)
+		i++
+	}
+
+	return newToken, true
+}
+
 // Checks if there is a discrepancy between the line location of tokenStart and tokenEnd
 //
 // Returns true if there was a discrepancy. AllowNewLine is false by default.

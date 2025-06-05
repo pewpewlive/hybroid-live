@@ -10,8 +10,30 @@ func (p *Parser) isMultiComparison() bool {
 	return p.match(tokens.And, tokens.Or)
 }
 
-func (p *Parser) isComparison() bool {
-	return p.match(tokens.Greater, tokens.GreaterEqual, tokens.Less, tokens.LessEqual, tokens.BangEqual, tokens.EqualEqual)
+func (p *Parser) isComparison() (tokens.Token, bool) {
+	op := tokens.Token{}
+
+	isGreaterComp := p.check(tokens.Greater)
+	isLessComp := p.check(tokens.Less)
+	if isGreaterComp || isLessComp {
+		compToken := p.peek()
+		if p.peek(1).Type == tokens.Less || p.peek(1).Type == tokens.Greater {
+			return op, false
+		}
+		if p.peek(1).Type == tokens.Equal {
+			newToken, success := p.combineTokens(tokens.TokenType(int(compToken.Type)+1), 2)
+			if !success {
+				return op, false
+			}
+			return newToken, true
+		}
+		p.advance()
+		return compToken, true
+	}
+	if !isGreaterComp && !isLessComp {
+		return p.peek(), p.match(tokens.BangEqual, tokens.EqualEqual)
+	}
+	return op, false
 }
 
 // Checks if the current position the parser is at is the End Of File
