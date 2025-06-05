@@ -1,6 +1,6 @@
 <img src="https://hybroid.pewpew.live/Logo.png" alt="Hybroid Logo" width="128" height="128">
 
-# Hybroid Live
+# Hybroid Live [![Go](https://github.com/pewpewlive/hybroid/actions/workflows/go.yml/badge.svg)](https://github.com/pewpewlive/hybroid/actions/workflows/go.yml)
 
 Programming language, handcrafted for PewPew.
 
