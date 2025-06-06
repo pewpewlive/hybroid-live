@@ -17,8 +17,9 @@ let bg = NewEntity(0f, 0f)
 SetEntityMesh(bg, MapMesh, 0)
 
 spawn SuperInertiac(0f, 0f)
+spawn SuperInertiac(500f, 0f)
 
-AddWall(750f, 250f, 500f, 500f)
+//AddWall(750f, 250f, 500f, 500f)
 
 enum thing { // E_thing
   Freq15

@@ -169,9 +169,10 @@ pub entity SuperInertiac {
           if converted.isDead {
             continue
           }
-          if Length(converted.velX, converted.velY) > Length(velX, velY) {
-            Bounce(converted, 1.2f)
-            destroy converted()
+          let x2, y2 = GetEntityPosition(converted)
+          if Length(x2-x, y2-y) < 50f {
+            Bounce(converted, 3f)
+            converted.Bounce(self, 3f)
             continue
           }
           continue

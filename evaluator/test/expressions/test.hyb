@@ -6,3 +6,32 @@ const c = 0.1r
 pub d = 0.1d
 let e, f, g = fn() -> (number, number) { return 2, 3 }, 0o234567, 0xffffaaff
 let h, i, j = e(), true
+
+entity Entity {
+    let o = fn() {}
+
+    spawn(fixed x, y) {
+
+    }
+
+    fn method1() {
+
+    }
+
+    destroy() {
+
+    }
+}
+
+let k = spawn Entity(0fx, 0fx)
+k.o()
+
+let mp = [k.o, fn() {}]
+mp[1]()
+
+let l = [k, spawn Entity(200f, 200f)]
+l[2].o()
+
+let po = {"thing" = l}
+po["thing"][2].o()
+po["thing"][2].method1()

@@ -97,7 +97,7 @@ func check(t *testing.T) {
 	minifiedGenerated := minify(generated)
 	minifiedExpected := minify(expected)
 	if minifiedGenerated != minifiedExpected {
-		t.Errorf("Test case failed: expected\n%v\ngot\n%v", minifiedGenerated, minifiedExpected)
+		t.Errorf("Test case failed: expected\n%v\ngot\n%v", minifiedExpected, minifiedGenerated)
 		t.FailNow()
 	}
 }
