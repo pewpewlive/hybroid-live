@@ -547,8 +547,11 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 			if found && valType.GetType() == Named {
 				field.Index = index
 			}
-			if entityVal, ok := val.(*EntityVal); ok {
-
+			ok2 := true
+			if fn, ok := fieldVal.(*FunctionVal); ok && fn.ProcType == Method {
+				ok2 = false
+			}
+			if entityVal, ok := val.(*EntityVal); ok && ok2 {
 				*prevNode = &ast.EntityAccessExpr{
 					Expr:       *prevNode,
 					EntityName: entityVal.Type.Name,
@@ -561,6 +564,7 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 		}
 	}
 
+	// check if we got an enum variant and convert that to its constant value
 	if enumVal, ok := val.(*EnumFieldVal); ok {
 		if enumVal.Type.EnvName == "Pewpew" {
 			ident := node.Accessed[0].(*ast.FieldExpr).Field.(*ast.IdentifierExpr)

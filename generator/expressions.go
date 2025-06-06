@@ -163,39 +163,40 @@ func (gen *Generator) unaryExpr(node ast.UnaryExpr) string {
 		op = node.Operator.Lexeme
 	}
 	return fmt.Sprintf("%s%s", op, gen.GenerateExpr(node.Value))
-
 }
+
+// Start: E_l
+// [1]: [1]
+// [2]: .o
+//
+//	E_l
+//  tableAccess[%s[2]]
+//  %s[1]
 
 func (gen *Generator) accessExpr(node ast.AccessExpr) string { // thing.Freq15
 	str := ""
-
-	next_format := "%s"
+	if node.Start.GetType() == ast.SelfExpression && node.Start.(*ast.SelfExpr).Type == ast.EntityMethod {
+		str = "Self"
+	} else {
+		str = gen.GenerateExpr(node.Start)
+	}
 
 	for i := range node.Accessed {
-		accessed := node.Accessed[(len(node.Accessed)-1)-i]
+		accessed := node.Accessed[i]
 		switch expr := accessed.(type) {
 		case *ast.FieldExpr:
 			if expr.Index == 0 {
-				str = fmt.Sprintf(fmt.Sprintf(next_format, "[\"%s\"]"), expr.GetToken().Lexeme)
-				next_format = "%s" + str
-				continue
+				str = fmt.Sprintf("%s[\"%s\"]", str, gen.GenerateExpr(expr.Field))
+				break
 			}
-			str = fmt.Sprintf(fmt.Sprintf(next_format, "[%v]"), expr.Index)
-			next_format = "%s" + str
+			str = fmt.Sprintf("%s[%v]", str, expr.Index)
 		case *ast.MemberExpr:
-			str = fmt.Sprintf(fmt.Sprintf(next_format, "[%s]"), gen.GenerateExpr(expr.Member))
-			next_format = "%s" + str
+			str = fmt.Sprintf("%s[%s]", str, gen.GenerateExpr(expr.Member))
 		case *ast.EntityAccessExpr:
 			tableAccess := hyEntity + envMap[expr.EnvName] + expr.EntityName
-			str = fmt.Sprintf("%s]%s", gen.GenerateExpr(expr.Expr), str)
-			next_format = tableAccess + "[" + "%s" + str
+			str = fmt.Sprintf("%s[%s%s]", tableAccess, str, gen.GenerateExpr(expr.Expr))
 		}
 	} // shio.thing.id ->  thignAcess[[2]][2]
-	if node.Start.GetType() == ast.SelfExpression && node.Start.(*ast.SelfExpr).Type == ast.EntityMethod {
-		str = fmt.Sprintf(next_format, "Self")
-	} else {
-		str = fmt.Sprintf(next_format, gen.GenerateExpr(node.Start))
-	}
 
 	return str
 }
@@ -204,6 +205,19 @@ func (gen *Generator) entityAccessExpr(node ast.EntityAccessExpr) string {
 	src := core.StringBuilder{}
 	src.Write(hyEntity, envMap[node.EnvName], node.EntityName, "[", gen.GenerateExpr(node.Expr), "]")
 	return src.String()
+}
+
+func (gen *Generator) memberExpr(node ast.MemberExpr) string {
+	src := core.StringBuilder{}
+	src.Write("[", gen.GenerateExpr(node.Member), "]")
+	return src.String()
+}
+
+func (gen *Generator) fieldExpr(node ast.FieldExpr) string {
+	if node.Index == 0 {
+		return fmt.Sprintf("[\"%s\"]", gen.GenerateExpr(node.Field))
+	}
+	return fmt.Sprintf("[%v]", node.Index)
 }
 
 func (gen *Generator) functionExpr(fn ast.FunctionExpr) string {

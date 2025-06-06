@@ -317,7 +317,9 @@ func (gen *Generator) GenerateExpr(node ast.Node) string {
 	case *ast.EntityAccessExpr:
 		return gen.entityAccessExpr(*newNode)
 	case *ast.FieldExpr:
-		return fmt.Sprintf("[%v]", newNode.Index)
+		return gen.fieldExpr(*newNode)
+	case *ast.MemberExpr:
+		return gen.memberExpr(*newNode)
 	}
 
 	return ""
