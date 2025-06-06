@@ -42,7 +42,7 @@ if __name__ == "__main__":
 
     # Generation for docs
     # Go to the docs directory where the following steps will be executed
-    os.chdir(os.getcwd() + "/../docs/src/content/docs/appapi")
+    os.chdir(os.getcwd() + "/../docs/src/content/docs/libraries")
 
     # Delete already existing generated .gen.md files
     for file in os.listdir(os.getcwd()):

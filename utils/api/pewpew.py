@@ -51,7 +51,7 @@ def generate_api(pewpew_lib: dict) -> str:
 
 _PEWPEW_DOCS_TEMPLATE = """---
 title: PewPew API
-slug: appapi/pewpew
+slug: libraries/pewpew
 sidebar:
   order: 1
 ---

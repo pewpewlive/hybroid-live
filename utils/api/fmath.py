@@ -11,7 +11,7 @@ def generate_api(fmath_lib: dict) -> str:
 
 _FMATH_DOCS_TEMPLATE = """---
 title: Fmath API
-slug: appapi/fmath
+slug: libraries/fmath
 sidebar:
   order: 2
 ---
