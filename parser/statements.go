@@ -466,7 +466,7 @@ func (p *Parser) caseStatement(isExpr bool) (ast.Node, bool) {
 				Token: args[0].GetToken(),
 			}
 		} else {
-			argsStmt = &ast.YieldStmt{
+			argsStmt = &ast.ReturnStmt{
 				Args:  args,
 				Token: args[0].GetToken(),
 			}

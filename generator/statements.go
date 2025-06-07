@@ -117,10 +117,6 @@ func (gen *Generator) yieldStmt(node ast.YieldStmt) {
 }
 
 func (gen *Generator) breakStmt(_ ast.BreakStmt) {
-	if gen.BreakLabels.Top().Item != "" {
-		gen.Twrite("goto ", gen.BreakLabels.Top().Item)
-		return
-	}
 	gen.Twrite("break")
 }
 
@@ -253,9 +249,7 @@ func (gen *Generator) matchStmt(node ast.MatchStmt) {
 		} else {
 			gen.Twrite("elseif ", conditionsSrc.String(), " then\n")
 		}
-		gen.BreakLabels.Push("MatchExpr", gotoLabel)
 		gen.GenerateBody(matchCase.Body)
-		gen.BreakLabels.Pop("MatchExpr")
 	}
 
 	gen.Twrite("end\n")

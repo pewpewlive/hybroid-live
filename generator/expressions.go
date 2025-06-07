@@ -186,7 +186,7 @@ func (gen *Generator) accessExpr(node ast.AccessExpr) string { // thing.Freq15
 		switch expr := accessed.(type) {
 		case *ast.FieldExpr:
 			if expr.Index == 0 {
-				str = fmt.Sprintf("%s[\"%s\"]", str, gen.GenerateExpr(expr.Field))
+				str = fmt.Sprintf("%s[\"%s\"]", str, expr.Field.GetToken().Lexeme)
 				break
 			}
 			str = fmt.Sprintf("%s[%v]", str, expr.Index)
@@ -215,7 +215,7 @@ func (gen *Generator) memberExpr(node ast.MemberExpr) string {
 
 func (gen *Generator) fieldExpr(node ast.FieldExpr) string {
 	if node.Index == 0 {
-		return fmt.Sprintf("[\"%s\"]", gen.GenerateExpr(node.Field))
+		return fmt.Sprintf("[\"%s\"]", node.Field.GetToken().Lexeme)
 	}
 	return fmt.Sprintf("[%v]", node.Index)
 }

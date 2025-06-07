@@ -11,3 +11,27 @@ if thing() {
 }else {
     
 }
+
+fn thing2(struct{list<number> numbers, list<bool> booleans} data) -> (number, fn() -> number) {
+    let a = data.numbers
+    let b = fn() -> number { 
+        if #a < 3 {
+            return 1
+        }else {
+            return 2
+        }
+    }
+
+    for i, v in a {
+        if a[i] >= 6 and v < 9{
+            match data.booleans[1] {
+                true => 9, b
+                else => {
+                    continue
+                }
+            }
+        }
+    }
+
+    return 0, fn() -> number { return -1 }
+}
