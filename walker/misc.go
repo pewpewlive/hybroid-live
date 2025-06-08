@@ -276,7 +276,7 @@ func (w *Walker) validateArithmeticOperands(leftVal Value, rightVal Value, node 
 		return &Invalid{}
 	}
 	if !TypeEquals(left, right) {
-		w.AlertSingle(&alerts.TypesMismatch{}, node.Left.GetToken(), left, right)
+		w.AlertSingle(&alerts.TypesMismatch{}, node.Left.GetToken(), "left value", left, "right value", right)
 		return &Invalid{}
 	}
 	if left.PVT() != ast.Number {
@@ -284,16 +284,16 @@ func (w *Walker) validateArithmeticOperands(leftVal Value, rightVal Value, node 
 	}
 	num1, num2 := leftVal.(*NumberVal), rightVal.(*NumberVal)
 	if num1.Value == "unknown" || num2.Value == "unknown" {
-		return NewNumberVal()
+		return &NumberVal{}
 	}
 
 	n1, err := strconv.Atoi(num1.Value)
 	if err != nil {
-		return NewNumberVal()
+		return &NumberVal{}
 	}
 	n2, err2 := strconv.Atoi(num1.Value)
 	if err2 != nil {
-		return NewNumberVal()
+		return &NumberVal{}
 	}
 
 	return NewNumberVal(fmt.Sprintf("%v", ops[node.Operator.Lexeme](n1, n2)))
@@ -310,11 +310,11 @@ func (w *Walker) validateConditionalOperands(leftVal Value, rightVal Value, node
 	}
 	if left.PVT() != ast.Bool {
 		w.AlertSingle(&alerts.TypeMismatch{}, node.Left.GetToken(), "a boolean", left, "in logical comparison expression")
-		return NewBoolVal()
+		return &BoolVal{}
 	}
 	if right.PVT() != ast.Bool {
 		w.AlertSingle(&alerts.TypeMismatch{}, node.Right.GetToken(), "a boolean", right, "in logical comparison expression")
-		return NewBoolVal()
+		return &BoolVal{}
 	}
 	leftBool, rightBool := leftVal.(*BoolVal), rightVal.(*BoolVal)
 
@@ -333,7 +333,7 @@ func (w *Walker) validateConditionalOperands(leftVal Value, rightVal Value, node
 			return NewBoolVal(strconv.FormatBool(leftCondition || rightCondition))
 		}
 	}
-	return NewBoolVal()
+	return &BoolVal{}
 }
 
 func (w *Walker) validateReturnValues(returnArgs []ast.Node, _return []Value2, expectReturn []Type, context string) {
@@ -485,20 +485,20 @@ func (w *Walker) typeToValue(_type Type) Value {
 		}
 	}
 	switch _type.PVT() {
-	case ast.Radian, ast.Fixed, ast.FixedPoint, ast.Degree:
+	case ast.Fixed:
 		return &FixedVal{}
 	case ast.Bool:
-		return NewBoolVal()
+		return &BoolVal{}
 	case ast.Func:
 		ft := _type.(*FunctionType)
 		return &FunctionVal{
 			Params:  ft.Params,
 			Returns: ft.Returns,
 		}
-	case ast.String:
+	case ast.Text:
 		return &StringVal{}
 	case ast.Number:
-		return NewNumberVal()
+		return &NumberVal{}
 	case ast.List:
 		return &ListVal{
 			ValueType: _type.(*WrapperType).WrappedType,
@@ -508,14 +508,16 @@ func (w *Walker) typeToValue(_type Type) Value {
 			MemberType: _type.(*WrapperType).WrappedType,
 		}
 	case ast.Class:
-		val := *w.walkers[_type.(*NamedType).EnvName].environment.Classes[_type.String()]
+		named := _type.(*NamedType)
+		val := *w.walkers[named.EnvName].environment.Classes[named.Name]
 		return &val
 	case ast.Struct:
-		return &AnonStructVal{
+		return &StructVal{
 			Fields: _type.(*StructType).Fields,
 		}
 	case ast.Entity:
-		val := *w.walkers[_type.(*NamedType).EnvName].environment.Entities[_type.String()]
+		named := _type.(*NamedType)
+		val := *w.walkers[named.EnvName].environment.Entities[named.Name]
 		return &val
 	case ast.Object:
 		return &Unknown{}
@@ -567,9 +569,9 @@ func (w *Walker) getTypeFromString(str string) ast.PrimitiveValueType {
 	case "number":
 		return ast.Number
 	case "fixed":
-		return ast.FixedPoint
+		return ast.Fixed
 	case "text":
-		return ast.String
+		return ast.Text
 	case "map":
 		return ast.Map
 	case "list":
@@ -627,20 +629,7 @@ const (
 )
 
 func isNumerical(pvt ast.PrimitiveValueType) bool {
-	return isOfPrimitiveType(pvt, ast.Number, ast.Fixed, ast.FixedPoint, ast.Degree, ast.Radian)
-}
-
-func isOfPrimitiveType(pvt ast.PrimitiveValueType, types ...ast.PrimitiveValueType) bool {
-	if types == nil {
-		return false
-	}
-	for _, prim := range types {
-		if pvt == prim {
-			return true
-		}
-	}
-
-	return false
+	return pvt == ast.Number || pvt == ast.Fixed
 }
 
 func determineCallTypeString(callType ProcedureType) string {

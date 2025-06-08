@@ -276,7 +276,7 @@ func NewFixedPointType() *FixedPoint {
 }
 
 func (fp *FixedPoint) PVT() ast.PrimitiveValueType {
-	return ast.FixedPoint
+	return ast.Fixed
 }
 
 func (fp *FixedPoint) GetType() ValueType {
@@ -288,7 +288,7 @@ func (fp *FixedPoint) _eq(other Type) bool {
 }
 
 func (fp *FixedPoint) String() string {
-	return string(ast.FixedPoint)
+	return string(ast.Fixed)
 }
 
 type StructType struct {

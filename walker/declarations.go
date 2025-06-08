@@ -348,7 +348,7 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 
 	// get all values from the right side of the declaration
 	for i := range declaration.Expressions {
-		exprValue := w.GetNodeValue(&declaration.Expressions[i], scope)
+		exprValue := w.GetActualNodeValue(&declaration.Expressions[i], scope)
 		if vls, ok := exprValue.(Values); ok {
 			for _, v := range vls {
 				values = append(values, Value2{v, i})

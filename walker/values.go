@@ -125,29 +125,29 @@ func (pv *PathVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "nil"}
 }
 
-type AnonStructVal struct {
+type StructVal struct {
 	Fields  map[string]Field
 	Lenient bool
 }
 
-func NewAnonStructVal(fields map[string]Field, lenient bool) *AnonStructVal {
-	return &AnonStructVal{
+func NewStructVal(fields map[string]Field, lenient bool) *StructVal {
+	return &StructVal{
 		Fields:  fields,
 		Lenient: lenient,
 	}
 }
 
-func (asv *AnonStructVal) GetType() Type {
-	return NewStructTypeWithFields(asv.Fields, asv.Lenient)
+func (sv *StructVal) GetType() Type {
+	return NewStructTypeWithFields(sv.Fields, sv.Lenient)
 }
 
-func (asv *AnonStructVal) GetDefault() *ast.LiteralExpr {
+func (sv *StructVal) GetDefault() *ast.LiteralExpr {
 	src := core.StringBuilder{}
 
 	src.Write("{")
-	length := len(asv.Fields) - 1
+	length := len(sv.Fields) - 1
 	index := 0
-	for k, v := range asv.Fields {
+	for k, v := range sv.Fields {
 		if index == length {
 			src.Write(k, " = ", v.Var.GetDefault().Value)
 		} else {
@@ -160,22 +160,22 @@ func (asv *AnonStructVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: src.String()}
 }
 
-func (asv *AnonStructVal) AddField(variable *VariableVal) {
-	asv.Fields[variable.Name] = NewField(len(asv.Fields), variable)
+func (sv *StructVal) AddField(variable *VariableVal) {
+	sv.Fields[variable.Name] = NewField(len(sv.Fields), variable)
 }
 
-func (asv *AnonStructVal) ContainsField(name string) (*VariableVal, int, bool) {
-	if v, found := asv.Fields[name]; found {
+func (sv *StructVal) ContainsField(name string) (*VariableVal, int, bool) {
+	if v, found := sv.Fields[name]; found {
 		return v.Var, v.Index + 1, true
 	}
 
 	return nil, -1, false
 }
 
-func (asv *AnonStructVal) Scopify(parent *Scope) *Scope {
+func (sv *StructVal) Scopify(parent *Scope) *Scope {
 	scope := NewScope(parent, &UntaggedTag{})
 
-	for k, v := range asv.Fields {
+	for k, v := range sv.Fields {
 		scope.Variables[k] = v.Var
 	}
 	return scope
@@ -440,14 +440,9 @@ func (n *NumberVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "0"}
 }
 
-func NewNumberVal(value ...string) *NumberVal {
-	val := "unknown"
-	if value != nil {
-		val = value[0]
-	}
-
+func NewNumberVal(value string) *NumberVal {
 	return &NumberVal{
-		Value: val,
+		Value: value,
 	}
 }
 
@@ -573,20 +568,16 @@ func (b *BoolVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "false"}
 }
 
-func NewBoolVal(value ...string) *BoolVal {
-	val := "unknown"
-	if value != nil {
-		val = value[0]
-	}
+func NewBoolVal(value string) *BoolVal {
 	return &BoolVal{
-		Value: val,
+		Value: value,
 	}
 }
 
 type StringVal struct{}
 
 func (s *StringVal) GetType() Type {
-	return NewBasicType(ast.String)
+	return NewBasicType(ast.Text)
 }
 
 func (s *StringVal) GetDefault() *ast.LiteralExpr {

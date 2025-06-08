@@ -16,8 +16,8 @@ func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 	condition := w.GetActualNodeValue(&node.BoolExpr, scope)
 	if condition.GetType().PVT() != ast.Bool {
 		w.AlertSingle(&alerts.InvalidCondition{}, node.BoolExpr.GetToken(), "in if statement")
-	} else if condition.(*BoolVal).Value != "unknown" {
-		w.AlertSingle(&alerts.LiteralCondition{}, node.BoolExpr.GetToken(), condition.(*BoolVal).Value)
+	} else if conditionValue := condition.(*BoolVal).Value; conditionValue != "" {
+		w.AlertSingle(&alerts.LiteralCondition{}, node.BoolExpr.GetToken(), conditionValue)
 	}
 
 	multiPathScope := NewScope(scope, mpt)
@@ -38,8 +38,8 @@ func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 		condition := w.GetActualNodeValue(&node.Elseifs[i].BoolExpr, scope)
 		if condition.GetType().PVT() != ast.Bool {
 			w.AlertSingle(&alerts.InvalidCondition{}, boolExpr.GetToken(), "in if statement")
-		} else if condition.(*BoolVal).Value != "unknown" {
-			w.AlertSingle(&alerts.LiteralCondition{}, boolExpr.GetToken(), condition.(*BoolVal).Value)
+		} else if conditionValue := condition.(*BoolVal).Value; conditionValue != "" {
+			w.AlertSingle(&alerts.LiteralCondition{}, boolExpr.GetToken(), conditionValue)
 		}
 		ifScope := NewScope(multiPathScope, &UntaggedTag{})
 		for w.context.EntityCasts.Count() != 0 {
@@ -92,6 +92,9 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 		value := w.GetNodeValue(&idents[i], scope)
 		variable, ok := value.(*VariableVal)
 		if !ok {
+			if value.GetType() != InvalidType {
+				w.AlertSingle(&alerts.InvalidAssignment{}, idents[i].GetToken())
+			}
 			continue
 		}
 		if variable.IsConst {
@@ -216,7 +219,7 @@ func (w *Walker) forStatement(node *ast.ForStmt, scope *Scope) {
 	if node.First.Name.Lexeme != "_" {
 		var firstValue Value
 		if node.OrderedIteration {
-			firstValue = NewNumberVal()
+			firstValue = &NumberVal{}
 		} else {
 			firstValue = &StringVal{}
 		}
@@ -241,7 +244,7 @@ func (w *Walker) tickStatement(node *ast.TickStmt, scope *Scope) {
 	tickScope := NewScope(scope, funcTag, ReturnAllowing)
 
 	if node.Variable != nil {
-		w.declareVariable(tickScope, NewVariable(node.Variable.Name, NewNumberVal()))
+		w.declareVariable(tickScope, NewVariable(node.Variable.Name, &NumberVal{}))
 	}
 
 	w.walkBody(&node.Body, funcTag, tickScope)
@@ -262,7 +265,6 @@ func (w *Walker) matchStatement(node *ast.MatchStmt, scope *Scope) {
 	}
 	mpt := NewMultiPathTag(casesLength, scope.Attributes...)
 	multiPathScope := NewScope(scope, mpt)
-	multiPathScope.Attributes.Add(BreakAllowing)
 
 	for i := range node.Cases {
 		caseScope := NewScope(multiPathScope, &UntaggedTag{})

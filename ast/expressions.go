@@ -199,8 +199,8 @@ func (ne *NewExpr) GetArgs() []Node          { return ne.Args }
 type SpawnExpr struct {
 	Type              *TypeExpr
 	Args              []Node
-	GenericArgs       []*TypeExpr
 	EntityGenericArgs []*TypeExpr
+	GenericArgs       []*TypeExpr
 	Token             tokens.Token
 	EnvName           string
 }
@@ -208,7 +208,7 @@ type SpawnExpr struct {
 func (ne *SpawnExpr) GetType() NodeType      { return SpawnExpression }
 func (ne *SpawnExpr) GetToken() tokens.Token { return ne.Token }
 
-func (ne *SpawnExpr) GetGenerics() []*TypeExpr { return ne.GenericArgs }
+func (ne *SpawnExpr) GetGenerics() []*TypeExpr { return ne.EntityGenericArgs }
 func (ne *SpawnExpr) GetCaller() Node          { return ne.Type }
 func (ne *SpawnExpr) GetArgs() []Node          { return ne.Args }
 

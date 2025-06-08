@@ -71,12 +71,9 @@ type PrimitiveValueType string
 const (
 	Object        PrimitiveValueType = "object"
 	Number        PrimitiveValueType = "number"
-	String        PrimitiveValueType = "string"
+	Text          PrimitiveValueType = "text"
 	Bool          PrimitiveValueType = "bool"
-	FixedPoint    PrimitiveValueType = "fixedPoint"
 	Fixed         PrimitiveValueType = "fixed"
-	Radian        PrimitiveValueType = "radian"
-	Degree        PrimitiveValueType = "degree"
 	List          PrimitiveValueType = "list"
 	Map           PrimitiveValueType = "map"
 	Func          PrimitiveValueType = "func"

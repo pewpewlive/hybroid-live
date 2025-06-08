@@ -8,8 +8,8 @@ import (
 	"strconv"
 )
 
-func (w *Walker) structExpression(node *ast.StructExpr, scope *Scope) *AnonStructVal {
-	structTypeVal := NewAnonStructVal(make(map[string]Field), false)
+func (w *Walker) structExpression(node *ast.StructExpr, scope *Scope) *StructVal {
+	structTypeVal := NewStructVal(make(map[string]Field), false)
 
 	for i := range node.Fields {
 		fieldToken := node.Fields[i].Name
@@ -141,7 +141,7 @@ func (w *Walker) entityEvaluationExpression(node *ast.EntityEvaluationExpr, scop
 		w.AlertSingle(&alerts.OfficialEntityConversion{}, *node.ConvertedVarName)
 	}
 
-	return NewBoolVal()
+	return &BoolVal{}
 }
 
 func (w *Walker) binaryExpression(node *ast.BinaryExpr, scope *Scope) Value {
@@ -152,21 +152,21 @@ func (w *Walker) binaryExpression(node *ast.BinaryExpr, scope *Scope) Value {
 	case tokens.Plus, tokens.Minus, tokens.Caret, tokens.Star, tokens.Slash, tokens.Modulo, tokens.BackSlash:
 		return w.validateArithmeticOperands(left, right, node, "in arithmetic expression")
 	case tokens.Concat:
-		if leftType.PVT() != ast.String {
+		if leftType.PVT() != ast.Text {
 			w.AlertSingle(&alerts.TypeMismatch{}, node.Left.GetToken(), "string", leftType, "in concatenation")
 		}
-		if rightType.PVT() != ast.String {
+		if rightType.PVT() != ast.Text {
 			w.AlertSingle(&alerts.TypeMismatch{}, node.Right.GetToken(), "string", rightType, "in concatenation")
 		}
 		return &StringVal{}
 	case tokens.Greater, tokens.GreaterEqual, tokens.Less, tokens.LessEqual, tokens.BangEqual, tokens.EqualEqual:
 		if leftType == InvalidType || rightType == InvalidType {
-			return NewBoolVal()
+			return &BoolVal{}
 		}
 		if !TypeEquals(leftType, rightType) {
-			w.AlertSingle(&alerts.TypesMismatch{}, node.Left.GetToken(), leftType, rightType)
+			w.AlertSingle(&alerts.TypesMismatch{}, node.Left.GetToken(), "left value", leftType, "right value", rightType)
 		}
-		return NewBoolVal()
+		return &BoolVal{}
 	case tokens.Pipe, tokens.Ampersand, tokens.LeftShift, tokens.RightShift, tokens.Tilde:
 		if leftType == InvalidType || rightType == InvalidType {
 			return &Invalid{}
@@ -177,7 +177,7 @@ func (w *Walker) binaryExpression(node *ast.BinaryExpr, scope *Scope) Value {
 		if rightType.PVT() != ast.Number {
 			w.AlertSingle(&alerts.TypeMismatch{}, node.Right.GetToken(), "number", rightType, "in bitwise expression")
 		}
-		return NewNumberVal()
+		return &NumberVal{}
 	default: // logical comparison
 		if op.Type == tokens.Or {
 			var operand ast.Node
@@ -188,7 +188,7 @@ func (w *Walker) binaryExpression(node *ast.BinaryExpr, scope *Scope) Value {
 			}
 			if operand != nil && operand.(*ast.EntityEvaluationExpr).ConvertedVarName != nil {
 				w.AlertSingle(&alerts.EntityConversionWithOrCondition{}, operand.GetToken())
-				return NewBoolVal()
+				return &BoolVal{}
 			}
 		}
 
@@ -496,7 +496,7 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 			member := node.Accessed[i].(*ast.MemberExpr).Member
 			memberVal := w.GetActualNodeValue(&member, scope)
 			if (memberVal.GetType().PVT() != ast.Number && valType.PVT() == ast.List) ||
-				(memberVal.GetType().PVT() != ast.String && valType.PVT() == ast.Map) {
+				(memberVal.GetType().PVT() != ast.Text && valType.PVT() == ast.Map) {
 
 				w.AlertSingle(&alerts.InvalidMemberIndex{}, token,
 					valType,
@@ -540,7 +540,7 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 				)
 				return &Invalid{}
 			}
-			fieldVal = fieldVal.(*VariableVal).Value
+			innerVal := fieldVal.(*VariableVal).Value
 
 			fc := val.(FieldContainer)
 			_, index, found := fc.ContainsField(field.GetToken().Lexeme)
@@ -548,10 +548,10 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 				field.Index = index
 			}
 			ok2 := true
-			if fn, ok := fieldVal.(*FunctionVal); ok && fn.ProcType == Method {
+			if fn, ok := innerVal.(*FunctionVal); ok && fn.ProcType == Method {
 				ok2 = false
 			}
-			if entityVal, ok := val.(*EntityVal); ok && ok2 {
+			if entityVal, ok := val.(*EntityVal); ok && ok2 && (*prevNode).GetType() != ast.SelfExpression {
 				*prevNode = &ast.EntityAccessExpr{
 					Expr:       *prevNode,
 					EntityName: entityVal.Type.Name,
@@ -564,8 +564,12 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 		}
 	}
 
+	if _, ok := val.(*VariableVal); !ok {
+		val = NewVariable((*prevNode).GetToken(), val)
+	}
+
 	// check if we got an enum variant and convert that to its constant value
-	if enumVal, ok := val.(*EnumFieldVal); ok {
+	if enumVal, ok := val.(*VariableVal).Value.(*EnumFieldVal); ok {
 		if enumVal.Type.EnvName == "Pewpew" {
 			ident := node.Accessed[0].(*ast.FieldExpr).Field.(*ast.IdentifierExpr)
 			ident.Name.Lexeme = generator.PewpewEnums[enumVal.Type.Name][ident.Name.Lexeme]
@@ -635,7 +639,7 @@ func (w *Walker) unaryExpression(node *ast.UnaryExpr, scope *Scope) Value {
 		if !(valType.GetType() == Wrapper && valType.(*WrapperType).Type.PVT() == ast.List) {
 			w.AlertSingle(&alerts.TypeMismatch{}, token, "list", valType.String(), "after '#' in unary expression")
 		}
-		return NewNumberVal()
+		return &NumberVal{}
 	case tokens.Minus:
 		if !isNumerical(valPVT) {
 			w.AlertSingle(&alerts.TypeMismatch{}, token, "a numerical type", valType.String(), "after '-' in unary expression")
@@ -858,9 +862,9 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 
 	pvt := w.getTypeFromString(typee.Name.GetToken().Lexeme)
 	switch pvt {
-	case ast.Bool, ast.String, ast.Number:
+	case ast.Bool, ast.Text, ast.Number:
 		typ = NewBasicType(pvt)
-	case ast.Fixed, ast.FixedPoint, ast.Radian, ast.Degree:
+	case ast.Fixed:
 		typ = NewFixedPointType()
 	case ast.Struct:
 		fields := []*VariableVal{}
