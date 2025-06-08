@@ -15,10 +15,10 @@ Hybroid Live was created to overcome the limitations and shortcomings of Lua, as
 ## Pros and cons of Hybroid Live
 
 Benefits of Hybroid Live:
-- Contains many new features which are missing in Lua (such as enums, structs, etc.)
+- Contains many new features which are missing in Lua (such as enums, classes, etc.)
 - PewPew Live specific features (such as the tick loop or entities)
 - State of the art error messages, inspired by Rust and Scala
-- Optimized OOP via structs and entities
+- Optimized OOP via classes and entities
 - Familiar syntax reminiscent of Rust and other popular languages
 - Automatic dead-code elimination
 - Strict typing
