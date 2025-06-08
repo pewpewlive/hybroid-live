@@ -2,8 +2,6 @@ import re
 
 from . import imports
 
-_imports = set()
-
 
 def to_receiver(original: str) -> str:
     # Takes each capital letter in a name and

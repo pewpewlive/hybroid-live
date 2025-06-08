@@ -7,31 +7,41 @@ pub d = 0.1d
 let e, f, g = fn() -> (number, number) { return 2, 3 }, 0o234567, 0xffffaaff
 let h, i, j = e(), true
 
-entity Entity {
+entity Entity<A> {
     let o = fn() {}
 
-    spawn(fixed x, y) {
-
+    spawn<B>(fixed x, y) {
+        self.o2 = 1
     }
 
     fn method1() {
-
+        method2()
     }
 
-    destroy() {
+    fn method2() {
+        method1()
+    }
+
+    let o2 = 2
+
+    destroy(number param) {
 
     }
 }
 
-let k = spawn Entity(0fx, 0fx)
+let k = spawn<fixed> Entity<number>(0fx, 0fx)
 k.o()
 
 let mp = [k.o, fn() {}]
 mp[1]()
 
-let l = [k, spawn Entity(200f, 200f)]
+let l = [k, spawn<fixed> Entity<number>(200f, 200f)]
 l[2].o()
+destroy l[2](2)
+destroy k(2)
 
 let po = {"thing" = l}
 po["thing"][2].o()
 po["thing"][2].method1()
+
+let m = ToString(2)

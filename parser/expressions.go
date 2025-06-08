@@ -388,7 +388,7 @@ func (p *Parser) spawn() ast.Node {
 		if !ok {
 			return ast.NewImproper(expr.Token, ast.NewExpession)
 		}
-		expr.EntityGenericArgs = classGenericArgs
+		expr.GenericArgs = classGenericArgs
 
 		// spawn<T, E> Type
 		expr.Type = p.typeExpr("in spawn expression", false)
@@ -398,7 +398,7 @@ func (p *Parser) spawn() ast.Node {
 		if !ok {
 			return ast.NewImproper(expr.Token, ast.NewExpession)
 		}
-		expr.GenericArgs = genericsArgs
+		expr.EntityGenericArgs = genericsArgs
 
 		// spawn<T, E> Type<F, G>(...)
 		args, ok := p.functionArgs()

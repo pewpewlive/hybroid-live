@@ -77,18 +77,21 @@ func (p *Parser) destroyStatement() ast.Node {
 	}
 	destroyStmt.EntityGenericArgs = entityArgs
 
-	expr := p.self()
+	expr := p.AccessorExpr()
 	if ast.IsImproper(expr, ast.NA) {
 		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), "in destroy statement")
 		return ast.NewImproper(destroyStmt.Token, ast.DestroyStatement)
-	}
-	destroyStmt.Identifier = expr
-	destroyStmt.GenericArgs, _ = p.genericArgs()
-	args, ok := p.functionArgs()
-	if !ok {
+	} else if expr.GetType() != ast.CallExpression {
+		if expr.GetType() != ast.NA {
+			p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), "in destroy statement")
+		}
 		return ast.NewImproper(destroyStmt.Token, ast.DestroyStatement)
 	}
-	destroyStmt.Args = args
+	call := expr.(*ast.CallExpr)
+
+	destroyStmt.Identifier = call.Caller
+	destroyStmt.GenericArgs = call.GenericArgs
+	destroyStmt.Args = call.Args
 
 	return &destroyStmt
 }

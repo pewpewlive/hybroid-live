@@ -1,4 +1,6 @@
 
+
+
 local E_a = 1fx
 
 local E_b = 0.409fx
@@ -21,13 +23,25 @@ function HEE_Entity_Spawn(E_x, E_y)
 	HEE_Entity[id] = {}
 	local Self = HEE_Entity[id]
 	Self[1] = function () end
+	Self[2] = 2
+
+	Self[2] = 1
 	return id
 end
-function HEE_Entity_Destroy(id)
+function HEE_Entity_Destroy(id, E_param)
 	local Self = HEE_Entity[id]
 end
 function HEE_Entity_method1(id)
 	local Self = HEE_Entity[id]
+
+	HEE_Entity_method2(id)
+
+end
+function HEE_Entity_method2(id)
+	local Self = HEE_Entity[id]
+
+	HEE_Entity_method1(id)
+
 end
 
 local E_k = HEE_Entity_Spawn(0fx, 0fx)
@@ -42,6 +56,10 @@ local E_l = {E_k, HEE_Entity_Spawn(200fx, 200fx)}
 
 HEE_Entity[E_l[2]][1]()
 
+HEE_Entity_Destroy(E_l[2], 2)
+
+HEE_Entity_Destroy(E_k, 2)
+
 local E_po = {
 	["thing"] = E_l
 }
@@ -49,3 +67,6 @@ local E_po = {
 HEE_Entity[E_po["thing"][2]][1]()
 
 HEE_Entity_method1(E_po["thing"][2])
+
+
+local E_m = ToString(2)

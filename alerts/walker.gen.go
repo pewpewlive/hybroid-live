@@ -1866,3 +1866,28 @@ func (mga *MissingGenericArgument) ID() string {
 func (mga *MissingGenericArgument) AlertType() Type {
 	return Error
 }
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidAssignment struct {
+	Specifier Snippet
+}
+
+func (ia *InvalidAssignment) Message() string {
+	return "left value was not a variable"
+}
+
+func (ia *InvalidAssignment) SnippetSpecifier() Snippet {
+	return ia.Specifier
+}
+
+func (ia *InvalidAssignment) Note() string {
+	return ""
+}
+
+func (ia *InvalidAssignment) ID() string {
+	return "hyb072W"
+}
+
+func (ia *InvalidAssignment) AlertType() Type {
+	return Error
+}

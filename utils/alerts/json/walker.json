@@ -558,12 +558,12 @@
       "From": "string"
     },
     "message": "cannot access a %s environment from a %s environment",
-    "message_format":["Unallowed", "From"]
+    "message_format": ["Unallowed", "From"]
   },
   {
     "name": "InvalidDefaultCasePlacement",
     "type": "Error",
-    "fields":{
+    "fields": {
       "Context": "string"
     },
     "message": "the default case must always be at the end %s",
@@ -572,7 +572,7 @@
   {
     "name": "InvalidType",
     "type": "Error",
-    "fields":{
+    "fields": {
       "Type": "string",
       "Context": "string"
     },
@@ -582,7 +582,7 @@
   {
     "name": "ListIndexOutOfBounds",
     "type": "Error",
-    "fields":{
+    "fields": {
       "Value": "string"
     },
     "message": "list index is '%s', but it must be 1 or more",
@@ -596,10 +596,15 @@
   {
     "name": "MissingGenericArgument",
     "type": "Error",
-    "fields":{
+    "fields": {
       "Type": "string"
     },
     "message": "generic type '%s' could not be inferred",
     "message_format": ["Type"]
+  },
+  {
+    "name": "InvalidAssignment",
+    "type": "Error",
+    "message": "left value was not a variable"
   }
 ]

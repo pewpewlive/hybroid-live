@@ -1,4 +1,6 @@
 
+
+
 local E_a = false
 
 local function E_thing()
@@ -35,11 +37,13 @@ local function E_thing2(E_data)
 			if E_data["booleans"][1] == true then
 
 				return 9, E_b
+			elseif E_data["booleans"][1] == false then
+
+				return 0, E_b
 			else
 
 				goto GL_
 			end
-			::GL0::
 
 		end
 
@@ -51,3 +55,10 @@ local function E_thing2(E_data)
 		return -1
 	end
 end
+
+local E_data = {
+	numbers = {1, 2}, 
+	booleans = {false}
+}
+
+E_thing2(E_data)
