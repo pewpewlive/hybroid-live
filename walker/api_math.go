@@ -2,7 +2,7 @@ package walker
 
 import "hybroid/ast"
 
-var MathEnv = &Environment{
+var MathAPI = &Environment{
 	Name: "Math",
 	Scope: Scope{
 		Variables: map[string]*VariableVal{

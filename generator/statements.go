@@ -231,8 +231,6 @@ func (gen *Generator) GenerateParams(params []ast.FunctionParam) {
 }
 
 func (gen *Generator) matchStmt(node ast.MatchStmt) {
-	gotoLabel := GenerateVar(hyGotoLabel)
-
 	toMatch := gen.GenerateExpr(node.ExprToMatch)
 	for i, matchCase := range node.Cases {
 		conditionsSrc := core.StringBuilder{}
@@ -253,7 +251,6 @@ func (gen *Generator) matchStmt(node ast.MatchStmt) {
 	}
 
 	gen.Twrite("end\n")
-	gen.Twrite(fmt.Sprintf("::%s::\n", gotoLabel))
 }
 
 func (gen *Generator) destroyStmt(node ast.DestroyStmt) {

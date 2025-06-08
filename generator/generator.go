@@ -5,6 +5,7 @@ import (
 	"hybroid/alerts"
 	"hybroid/ast"
 	"hybroid/core"
+	"hybroid/generator/mapping"
 	"math"
 	"strconv"
 	"strings"
@@ -60,16 +61,19 @@ func NewYieldContext(vars []string, label string) YieldContext {
 type Generator struct {
 	alerts.Collector
 
-	envName        string
-	env            ast.Env
+	env      ast.Env
+	src      core.StringBuilder
+	tabCount int
+
+	envName       string
+	envPrefixName string
+
 	ContinueLabels core.Stack[string]
 	BreakLabels    core.Stack[string]
 	YieldContexts  core.Stack[YieldContext]
-	buffer         core.StringBuilder
-	src            core.StringBuilder
-	tabCount       int
-	writeToBuffer  bool
-	envPrefixName  string
+
+	buffer        core.StringBuilder
+	writeToBuffer bool
 }
 
 func (gen *Generator) Twrite(chunks ...string) {
@@ -138,25 +142,17 @@ func (gen *Generator) GetSrc() string {
 
 func (gen *Generator) Generate(program []ast.Node, builtins []string) {
 	for i := range builtins {
-		gen.Write(functions[builtins[i]], "\n")
+		gen.Write(mapping.Functions[builtins[i]])
 	}
-	gen.envStmt(*program[0].(*ast.EnvironmentDecl))
-	for i, node := range program {
-		if i == 0 {
-			continue
-		}
+	for _, node := range program {
 		gen.Write("\n")
 		gen.GenerateStmt(node)
 	}
 }
 
 func (gen *Generator) GenerateWithBuiltins(program []ast.Node) {
-	gen.Write(ParseSoundFunction, "\n\n", ToStringFunction, "\n")
-	gen.envStmt(*program[0].(*ast.EnvironmentDecl))
-	for i, node := range program {
-		if i == 0 {
-			continue
-		}
+	gen.Write(mapping.ParseSoundFunction, "\n\n", mapping.ToStringFunction)
+	for _, node := range program {
 		gen.Write("\n")
 		gen.GenerateStmt(node)
 	}
@@ -213,6 +209,8 @@ func degToRad(floatstr string) string {
 
 func (gen *Generator) GenerateStmt(node ast.Node) {
 	switch newNode := node.(type) {
+	case *ast.EnvironmentDecl:
+		gen.envStmt(*newNode)
 	case *ast.AssignmentStmt:
 		assignStmts := gen.breakDownAssignStmt(*newNode)
 		for _, assignStmt := range assignStmts {

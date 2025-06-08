@@ -10,6 +10,11 @@ def _generate(lib, extension, output):
         f.write(output)
 
 
+def _generate_mapping(lib, extension, output):
+    with open(f"{lib}.gen.{extension}", mode="x", encoding="utf-8") as f:
+        pass
+
+
 if __name__ == "__main__":
     # Get the latest raw docs from the ppl-docs repo
     raw_json = requests.get(
@@ -34,7 +39,7 @@ if __name__ == "__main__":
 
     # Format generated go file
     subprocess.run(
-        ["gofmt", "-s", "-w", f"alerts/"],
+        ["gofmt", "-s", "-w", f"walker/"],
         cwd=os.path.dirname(__file__) + "/..",
     )
 

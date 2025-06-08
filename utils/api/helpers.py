@@ -23,3 +23,21 @@ def camel_case_all(original: str) -> str:
         original = original.replace(match, camel_case(match))
 
     return original
+
+
+def pewpew_conversion(original: str) -> str:
+    conversions = {
+        "customizable_entity_set": "set_entity",
+        "customizable_entity_get": "get_entity",
+        "customizable_entity_skip": "skip_entity",
+        "collision_callback": "collision",
+        "player_ship": "ship",
+        "entity_set": "set_entity",
+        "entity_get": "get_entity",
+        "fixedpoint": "fixed",
+    }
+
+    for ppl, hyb in conversions.items():
+        original = original.replace(ppl, hyb)
+
+    return pascal_case(original)

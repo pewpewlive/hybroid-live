@@ -183,8 +183,8 @@ func (w *Walker) CheckUniqueVariables() {
 			w.AlertSingle(&alerts.MissingPewpewVariable{}, w.environment._envStmt.GetToken(), "meshes", "Mesh")
 			return
 		}
-		if !variable.IsPub || !TypeEquals(variable.Value.GetType(), MeshesValueType) {
-			w.AlertSingle(&alerts.InvalidPewpewVariable{}, variable.Token, "meshes", MeshValueType)
+		if !variable.IsPub || !TypeEquals(variable.Value.GetType(), MeshesType) {
+			w.AlertSingle(&alerts.InvalidPewpewVariable{}, variable.Token, "meshes", MeshType)
 		}
 		return
 	}
@@ -194,8 +194,8 @@ func (w *Walker) CheckUniqueVariables() {
 			w.AlertSingle(&alerts.MissingPewpewVariable{}, w.environment._envStmt.GetToken(), "sounds", "Sound")
 			return
 		}
-		if !variable.IsPub || !TypeEquals(variable.Value.GetType(), SoundsValueType) {
-			w.AlertSingle(&alerts.InvalidPewpewVariable{}, variable.Token, "sounds", SoundValueType)
+		if !variable.IsPub || !TypeEquals(variable.Value.GetType(), SoundsType) {
+			w.AlertSingle(&alerts.InvalidPewpewVariable{}, variable.Token, "sounds", SoundType)
 		}
 	}
 }

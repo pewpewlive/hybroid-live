@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hybroid/ast"
 	"hybroid/core"
+	"hybroid/generator/mapping"
 	"hybroid/tokens"
 )
 
@@ -23,7 +24,7 @@ func (gen *Generator) entityExpr(node ast.EntityEvaluationExpr) string {
 		case tokens.Isnt:
 			op = "~="
 		}
-		src.Write("pewpew.get_entity_type(", gen.GenerateExpr(node.Expr), ") ", op, " ", "pewpew.EntityType.", PewpewEnums["EntityType"][node.Type.GetToken().Lexeme])
+		src.Write("pewpew.get_entity_type(", gen.GenerateExpr(node.Expr), ") ", op, " ", "pewpew.EntityType.", mapping.PewpewEnums["EntityType"][node.Type.GetToken().Lexeme])
 		return src.String()
 	}
 	expr := gen.GenerateExpr(node.Expr)
@@ -370,19 +371,19 @@ func (gen *Generator) envAccessExpr(node ast.EnvAccessExpr) string {
 	switch envName {
 	case "Pewpew":
 		prefix = "pewpew."
-		accessed = PewpewVariables[accessed]
+		accessed = mapping.PewpewVariables[accessed]
 	case "Fmath":
 		prefix = "fmath."
-		accessed = FmathFunctions[accessed]
+		accessed = mapping.FmathFunctions[accessed]
 	case "Math":
 		prefix = "math."
-		accessed = MathVariables[accessed]
+		accessed = mapping.MathVariables[accessed]
 	case "String":
 		prefix = "string."
-		accessed = StringVariables[accessed]
+		accessed = mapping.StringVariables[accessed]
 	case "Table":
 		prefix = "table."
-		accessed = TableVariables[accessed]
+		accessed = mapping.TableVariables[accessed]
 	default:
 		prefix = ""
 	}

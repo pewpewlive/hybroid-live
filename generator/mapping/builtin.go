@@ -1,6 +1,6 @@
-package generator
+package mapping
 
-var functions = map[string]string{
+var Functions = map[string]string{
 	"ToString":   ToStringFunction,
 	"ParseSound": ParseSoundFunction,
 }

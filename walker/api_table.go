@@ -2,7 +2,7 @@ package walker
 
 import "hybroid/ast"
 
-var TableEnv = &Environment{
+var TableAPI = &Environment{
 	Name: "Table",
 	Scope: Scope{
 		Variables: map[string]*VariableVal{

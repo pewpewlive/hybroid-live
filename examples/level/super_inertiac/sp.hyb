@@ -42,7 +42,7 @@ pub entity SuperInertiac {
 
   spawn(fixed x, fixed y) {
     SpawnEntity(self, 60)
-    SetEntityInterpolation(self, true)
+    SetEntityPositionInterpolation(self, true)
 
     SetEntityPosition(self, x, y)
 
@@ -52,7 +52,7 @@ pub entity SuperInertiac {
     
     predictionLine = NewEntity(x, y)
     SetEntityMesh(predictionLine, SPPredLineMesh, 1)
-    SetEntityInterpolation(predictionLine, true)
+    SetEntityPositionInterpolation(predictionLine, true)
 
     Table:Insert(frames, 0)
 
@@ -62,14 +62,14 @@ pub entity SuperInertiac {
       fixed t = InvLerp(4f, 1f, i)
       SetEntityMeshScale(ring, t)
       SetEntityMesh(ring, SPAnim, 0)
-      SetEntityInterpolation(ring, true)
+      SetEntityPositionInterpolation(ring, true)
       //SetEntityColor(ring, ColorHelpers:MakeColor(Fmath:ToNum(100 * t), Fmath:ToNum(255 * t), 255, 200))
       Table:Insert(axes, struct{
         x = Fmath:RandomFixed(-1f, 1f),
         y = Fmath:RandomFixed(-1f, 1f),
         z = Fmath:RandomFixed(-0.3f, 0.3f)
       })
-      Table:Insert(frames, Fmath:RandomNum(0, 59))
+      Table:Insert(frames, Fmath:RandomNumber(0, 59))
     }
   }
 
@@ -79,7 +79,7 @@ pub entity SuperInertiac {
     hitCooldownTimer = 999999999
     
     PlaySound(SPSound, 0, x, y)
-    SetEntityWallCollision(self, false)
+    SetEntityWallCollision(self, false, fn(entity _, fixed _, _) {})
     ExplodeEntity(self, 20)
     CreateExplosion(x, y, 0x1144aaff, 1.6f, 50)
     CreateExplosion(x, y, 0x330077ff, 1.6f, 50)
@@ -160,7 +160,7 @@ pub entity SuperInertiac {
     x, y = GetEntityPosition(self)
 
     if !isDead {
-      let entities = GetEntitiesCollidingWithDisk(x, y, radius)
+      let entities = GetEntitiesInRadius(x, y, radius)
       for i, v in entities {
         if v == self {
           continue
@@ -282,7 +282,7 @@ pub entity SuperInertiac {
     // if magnitude == 0f 
     //   return
 
-    RotateEntityMesh(self, magnitude*magnitude + 0.1f, Fmath:RandomFixed(0f, 1f), Fmath:RandomFixed(0f, 1f), 0f)
+    AddRotationToEntityMesh(self, magnitude*magnitude + 0.1f, Fmath:RandomFixed(0f, 1f), Fmath:RandomFixed(0f, 1f), 0f)
     
     if !isDead {
       frames[1] += 1 
@@ -292,7 +292,7 @@ pub entity SuperInertiac {
     SetEntityFlippingMeshes(self, SPAnim, frames[1] % maxFrames + frameOffset, MathHelper:Wrap(frames[1] % maxFrames + 1 + frameOffset, frameOffset, 59+frameOffset))
     for i in rings {
       SetEntityFlippingMeshes(rings[i], SPAnim, frames[i+1] % maxFrames + frameOffset, MathHelper:Wrap(frames[i+1] % maxFrames + 1 + frameOffset, frameOffset, 59+frameOffset))
-      RotateEntityMesh(rings[i], magnitude*magnitude + 0.1f, axes[i].x, axes[i].y, 0f)
+      AddRotationToEntityMesh(rings[i], magnitude*magnitude + 0.1f, axes[i].x, axes[i].y, 0f)
       if !isDead {
         frames[i+1] += 1
         frames[1] = MathHelper:Wrap(frames[1], 0, 59)

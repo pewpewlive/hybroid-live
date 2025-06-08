@@ -2,7 +2,7 @@ package walker
 
 import "hybroid/ast"
 
-var StringEnv = &Environment{
+var StringAPI = &Environment{
 	Name: "String",
 	Scope: Scope{
 		Variables: map[string]*VariableVal{

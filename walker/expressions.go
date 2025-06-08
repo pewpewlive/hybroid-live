@@ -3,7 +3,7 @@ package walker
 import (
 	"hybroid/alerts"
 	"hybroid/ast"
-	"hybroid/generator"
+	"hybroid/generator/mapping"
 	"hybroid/tokens"
 	"strconv"
 )
@@ -329,18 +329,18 @@ func (w *Walker) environmentAccessExpression(node *ast.EnvAccessExpr) (Value, as
 
 	switch envName {
 	case "Pewpew":
-		return w.GetNodeValue(&node.Accessed, &PewpewEnv.Scope), nil
+		return w.GetNodeValue(&node.Accessed, &PewpewAPI.Scope), nil
 	case "Fmath":
-		return w.GetNodeValue(&node.Accessed, &FmathEnv.Scope), nil
+		return w.GetNodeValue(&node.Accessed, &FmathAPI.Scope), nil
 	case "Math":
 		if w.environment.Type == ast.LevelEnv {
 			w.AlertSingle(&alerts.UnallowedLibraryUse{}, node.PathExpr.Path, "Math", "Level")
 		}
-		return w.GetNodeValue(&node.Accessed, &MathEnv.Scope), nil
+		return w.GetNodeValue(&node.Accessed, &MathAPI.Scope), nil
 	case "String":
-		return w.GetNodeValue(&node.Accessed, &StringEnv.Scope), nil
+		return w.GetNodeValue(&node.Accessed, &StringAPI.Scope), nil
 	case "Table":
-		return w.GetNodeValue(&node.Accessed, &TableEnv.Scope), nil
+		return w.GetNodeValue(&node.Accessed, &TableAPI.Scope), nil
 	}
 
 	walker, found := w.walkers[envName]
@@ -572,7 +572,7 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 	if enumVal, ok := val.(*VariableVal).Value.(*EnumFieldVal); ok {
 		if enumVal.Type.EnvName == "Pewpew" {
 			ident := node.Accessed[0].(*ast.FieldExpr).Field.(*ast.IdentifierExpr)
-			ident.Name.Lexeme = generator.PewpewEnums[enumVal.Type.Name][ident.Name.Lexeme]
+			ident.Name.Lexeme = mapping.PewpewEnums[enumVal.Type.Name][ident.Name.Lexeme]
 			return val
 		}
 		*_node = &ast.LiteralExpr{
@@ -806,15 +806,15 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 		if !found {
 			switch path.Lexeme {
 			case "Pewpew":
-				env = PewpewEnv
+				env = PewpewAPI
 			case "Fmath":
-				env = FmathEnv
+				env = FmathAPI
 			case "Math":
-				env = MathEnv
+				env = MathAPI
 			case "String":
-				env = StringEnv
+				env = StringAPI
 			case "Table":
-				env = TableEnv
+				env = TableAPI
 			default:
 				w.AlertSingle(&alerts.InvalidEnvironment{}, path)
 				return InvalidType

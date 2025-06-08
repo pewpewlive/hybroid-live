@@ -529,7 +529,7 @@ func (w *Walker) typeToValue(_type Type) Value {
 		enumType := _type.(*EnumType)
 		switch enumType.EnvName {
 		case "Pewpew":
-			return PewpewEnv.Enums[enumType.Name]
+			return PewpewAPI.Enums[enumType.Name]
 		default:
 			return w.walkers[enumType.EnvName].environment.Enums[enumType.Name]
 		}
@@ -641,11 +641,11 @@ func determineCallTypeString(callType ProcedureType) string {
 }
 
 func SetupLibraryEnvironments() {
-	PewpewEnv.Scope.Environment = PewpewEnv
-	FmathEnv.Scope.Environment = FmathEnv
-	MathEnv.Scope.Environment = MathEnv
-	StringEnv.Scope.Environment = StringEnv
-	TableEnv.Scope.Environment = TableEnv
+	PewpewAPI.Scope.Environment = PewpewAPI
+	FmathAPI.Scope.Environment = FmathAPI
+	MathAPI.Scope.Environment = MathAPI
+	StringAPI.Scope.Environment = StringAPI
+	TableAPI.Scope.Environment = TableAPI
 	BuiltinEnv.Scope.Environment = BuiltinEnv
 }
 
