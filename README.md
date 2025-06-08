@@ -10,30 +10,27 @@ As Hybroid Live is still in alpha, the language features may have breaking chang
 
 ## Why was Hybroid Live created?
 
-Hybroid Live was created to overcome the limitations of Lua and projects like PewPewScript, and also for us to learn the making of programming languages.
+Hybroid Live was created to overcome the limitations and shortcomings of Lua, as well as to provide a better developer experience.
 
-## Why should I choose Hybroid Live over other solutions?
-
-That's because Hybroid Live comes with many benefits, and only a few downsides.
+## Pros and cons of Hybroid Live
 
 Benefits of Hybroid Live:
-
-- Contains many new features which are missing in Lua
-- Optimized OOP via classes and entities
+- Contains many new features which are missing in Lua (such as enums, structs, etc.)
+- PewPew Live specific features (such as the tick loop or entities)
+- State of the art error messages, inspired by Rust and Scala
+- Optimized OOP via structs and entities
+- Familiar syntax reminiscent of Rust and other popular languages
 - Automatic dead-code elimination
 - Strict typing
-- Certain PewPew APIs are now an integral part of Hybroid Live (such as `tick` statement)
-- Native support for fixedpoint numbers (including support for degree-to-radian conversion, transpile-time float-to-fixedpoint conversion)
-- Native support for PewPew Marketplace
+- Native support for fixedpoint numbers (including support for degree-to-radian and float-to-fixedpoint conversion)
 
 However, Hybroid Live does come with certain limitations:
-
 - Not beginner-friendly
-- No support for Lua helpers and libraries
+- No support for Lua interoperability
 
 ## Syntax
 
-The preliminary syntax for Hybroid Live can be found [here](spec.md).
+The syntax for Hybroid Live can be found [here](spec.md). The syntax specification may not be up to date.
 
 ## Syntax highlighting
 
