@@ -189,7 +189,7 @@ In PPL, for updating every tick, `pewpew.add_update_callback` is used. Hybroid L
 
 ```rs
 tick {
-  Pewpew:Print("I am Pewpew:Printed every tick!")
+  Pewpew:Print("I am printed every tick!")
 }
 ```
 
