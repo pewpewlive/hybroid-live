@@ -13,18 +13,17 @@ func (as *AssignmentStmt) GetType() NodeType      { return AssignmentStatement }
 func (as *AssignmentStmt) GetToken() tokens.Token { return as.Token }
 
 type DestroyStmt struct {
-	Identifier        Node
-	Args              []Node
-	GenericArgs       []*TypeExpr
-	EntityGenericArgs []*TypeExpr
-	EntityName        string
-	EnvName           string
-	Token             tokens.Token
+	Identifier   Node
+	Args         []Node
+	GenericsArgs []*TypeExpr
+	EntityName   string
+	EnvName      string
+	Token        tokens.Token
 }
 
 func (ds *DestroyStmt) GetType() NodeType        { return DestroyStatement }
 func (ds *DestroyStmt) GetToken() tokens.Token   { return ds.Token }
-func (ds *DestroyStmt) GetGenerics() []*TypeExpr { return ds.GenericArgs }
+func (ds *DestroyStmt) GetGenerics() []*TypeExpr { return ds.GenericsArgs }
 func (ds *DestroyStmt) GetCaller() Node          { return ds.Identifier }
 func (ds *DestroyStmt) GetArgs() []Node          { return ds.Args }
 

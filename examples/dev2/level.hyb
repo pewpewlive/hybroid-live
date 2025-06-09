@@ -1,24 +1,33 @@
-env SuperInertiacEntity as Level
+env Thing as Level 
+//
+alias f = fn() -> (e, zb) 
 
-use Pewpew
+fn name() {
+    destroy new
 
-entity Thing<T> {
-    T o
+    {}
 
-    spawn(fixed x, y, T a) {
-      o = a
-    }
+    pub destroy thing()
 
-    fn thing() -> T {
-      return o
-    }
-
-    destroy() {
+    if condition and * {
 
     }
+
+    let a = [
+        struct{
+            thing = fn() {
+                1
+            }
+        }
+    ]
+
+    pub a = 
 }
 
-let a = spawn Thing(100fx, 200fx, 1) 
-destroy a()
+match p {
+    "a", 1 => 3,4
+    "p" => {
 
-number b = a.thing()
+    }
+    1
+}

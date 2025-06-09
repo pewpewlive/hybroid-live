@@ -345,7 +345,7 @@ func (w *Walker) environmentAccessExpression(node *ast.EnvAccessExpr) (Value, as
 
 	walker, found := w.walkers[envName]
 	if !found {
-		w.AlertSingle(&alerts.InvalidEnvironmentAccess{}, node.PathExpr.GetToken())
+		w.AlertSingle(&alerts.InvalidEnvironmentAccess{}, node.PathExpr.GetToken(), envName)
 		return &Invalid{}, nil
 	}
 
@@ -354,8 +354,8 @@ func (w *Walker) environmentAccessExpression(node *ast.EnvAccessExpr) (Value, as
 		return &Invalid{}, nil
 	}
 
-	if walker.environment.Type != ast.GenericEnv && (w.environment.Type == ast.MeshEnv || w.environment.Type == ast.SoundEnv) {
-		w.AlertSingle(&alerts.UnallowedEnvironmentAccess{}, node.PathExpr.GetToken(), "non Generic", "Mesh or Sound")
+	if walker.environment.Type != ast.SharedEnv && (w.environment.Type == ast.MeshEnv || w.environment.Type == ast.SoundEnv) {
+		w.AlertSingle(&alerts.UnallowedEnvironmentAccess{}, node.PathExpr.GetToken(), "non Shared", "Mesh or Sound")
 		return &Invalid{}, nil
 	} else if w.environment.Type == ast.LevelEnv && (walker.environment.Type == ast.MeshEnv || walker.environment.Type == ast.SoundEnv) {
 		w.AlertSingle(&alerts.UnallowedEnvironmentAccess{}, node.PathExpr.GetToken(), "Mesh or Sound", "Level")
@@ -959,7 +959,16 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 			break
 		}
 		if len(types) == 0 {
-			typ = UnknownTyp
+			switch typeName {
+			case "MeshEnv":
+				return NewPathType(ast.MeshEnv)
+			case "SoundEnv":
+				return NewPathType(ast.SoundEnv)
+			case "SharedEnv":
+				return NewPathType(ast.SharedEnv)
+			case "LevelEnv":
+				return NewPathType(ast.LevelEnv)
+			}
 			break
 		}
 		typee.Name = &ast.EnvAccessExpr{

@@ -1,4 +1,4 @@
-env Graphix as Generic
+env Graphix as Shared
 
 use Table
 
@@ -80,18 +80,18 @@ pub fn AddStar(Mesh mesh, Vertex center, number sides, color, insetColor, radius
 
   sides *= 2
 
-  let Vertexes vertexes 
-  let Colors colors
+  Vertexes vertexes 
+  Colors colors
 
-  let number x = center[1]
-  let number y = center[2]
-  let number z
+  number x = center[1]
+  number y = center[2]
+  number z
   if #center >= 3 {
     z = center[3]
   }
 
-  let number currentRadius
-  let number currentColor
+  number currentRadius
+  number currentColor
 
   repeat sides with i {
     if i % 2 == 0 {

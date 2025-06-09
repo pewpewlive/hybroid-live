@@ -17,7 +17,7 @@
     },
     "message": "'%s' is not a valid environment type",
     "message_format": ["Type"],
-    "note": "environment type can be 'Level', 'Mesh', 'Sound' or 'Generic'"
+    "note": "environment type can be 'Level', 'Mesh', 'Sound' or 'Shared'"
   },
   {
     "name": "EnvironmentRedaclaration",
@@ -102,7 +102,7 @@
       "Type1": "string",
       "Type2": "string"
     },
-    "message": "a %s's members must be the same type (found types: '%s' and '%s')",
+    "message": "%s member is of type '%s', but the previous one was '%s'",
     "message_format": ["ContainerType", "Type1", "Type2"]
   },
   {
@@ -606,5 +606,14 @@
     "name": "InvalidAssignment",
     "type": "Error",
     "message": "left value was not a variable"
+  },
+  {
+    "name": "ConflictingVariableNameWithType",
+    "type": "Error",
+    "fields": {
+      "Type": "string"
+    },
+    "message": "variable name conflicts with type '%s'",
+    "message_format": ["Type"]
   }
 ]

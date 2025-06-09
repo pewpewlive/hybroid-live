@@ -53,6 +53,10 @@ func (s *Scope) assignVariable(variable *VariableVal, value Value) Value {
 }
 
 func (w *Walker) declareVariable(s *Scope, value *VariableVal) (*VariableVal, bool) {
+	if w.typeExists(value.Name) {
+		w.AlertSingle(&alerts.ConflictingVariableNameWithType{}, value.Token, value.Name)
+		return value, false
+	}
 	if varFound, found := s.Variables[value.Name]; found {
 		return varFound, false
 	}
@@ -533,6 +537,9 @@ func (w *Walker) typeToValue(_type Type) Value {
 		default:
 			return w.walkers[enumType.EnvName].environment.Enums[enumType.Name]
 		}
+	case ast.Path:
+		pathType := _type.(*PathType)
+		return NewPathVal("", pathType.Env, "")
 	default:
 		return &Invalid{}
 	}
@@ -554,8 +561,8 @@ func (w *Walker) getContentsValueType(elems []ast.Node, scope *Scope) Type {
 		if !TypeEquals(valTypes[i-1], valTypes[i]) {
 			w.AlertSingle(&alerts.MixedMapOrListContents{}, elems[i].GetToken(),
 				"list",
-				valTypes[i-1].String(),
 				valTypes[i].String(),
+				valTypes[i-1].String(),
 			)
 			return InvalidType
 		}

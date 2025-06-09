@@ -1,49 +1,11 @@
 env Thing as Level
 
-use Pewpew
-use Utils
-
-enum Thing {
-  a,
-  b
+class A {
+  number A
+  
+  new() {}
 }
 
+A A = new A()
 
-let a = Thing.a
-
-if a == Thing.b {
-  a = Thing.a
-}
-
-pub entity Ship {
-  let entity id
-  let Camera cam = new Camera()
-
-  spawn(fixed x, y) {
-    id = NewShip(x, y, 0)
-
-    let playerConfig = struct{
-      shield = 5,
-      camera_distance = -50f
-    }
-
-    ConfigurePlayer(0, playerConfig)
-
-    ConfigureShipWeapon(id, struct{
-      cannon = CannonType.Double,
-      frequency = CannonFreq.Freq10,
-    })
-  }
-
-  destroy() {
-
-  }
-
-  Update() {
-    if !IsEntityAlive(id) {
-      return
-    }
-    cam.shipX, cam.shipY = GetEntityPosition(id) 
-    cam.Update()
-  }
-}
+Pewpew:Print(ToString(A.A))

@@ -19,8 +19,8 @@ func (w *Walker) environmentDeclaration(node *ast.EnvironmentDecl) {
 		node.EnvType.Type = ast.MeshEnv
 	case "Sound":
 		node.EnvType.Type = ast.SoundEnv
-	case "Generic":
-		node.EnvType.Type = ast.GenericEnv
+	case "Shared":
+		node.EnvType.Type = ast.SharedEnv
 	default:
 		w.AlertSingle(&alerts.InvalidEnvironmentType{}, node.EnvType.Token, node.EnvType.Token.Lexeme)
 	}

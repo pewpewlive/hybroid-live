@@ -194,7 +194,7 @@ func (p *Parser) entity() ast.Node {
 		token = p.peek(-1)
 	}
 
-	variable := p.AccessorExpr()
+	variable := p.AccessorExpr(true)
 	var expr ast.Node
 	var conv *tokens.Token
 	if letMatched {
@@ -202,7 +202,7 @@ func (p *Parser) entity() ast.Node {
 			tkn := variable.GetToken()
 			conv = &tkn
 
-			expr = p.AccessorExpr()
+			expr = p.AccessorExpr(true)
 		} else {
 			p.AlertSingle(&alerts.ExpectedSymbol{}, p.peek(), tokens.Equal, "in entity expression")
 		}
@@ -236,8 +236,11 @@ func (p *Parser) entity() ast.Node {
 	return variable
 }
 
-func (p *Parser) AccessorExpr() ast.Node {
-	expr := p.call(p.matchExpr())
+func (p *Parser) AccessorExpr(allowCall bool) ast.Node {
+	expr := p.matchExpr()
+	if allowCall {
+		expr = p.call(expr)
+	}
 
 accessCheck:
 	var access *ast.AccessExpr
@@ -262,7 +265,9 @@ accessCheck:
 				Member: expr2,
 			})
 		}
-		expr = p.call(access)
+		if allowCall {
+			expr = p.call(access)
+		}
 		if expr.GetType() == ast.CallExpression {
 			goto accessCheck
 		}
@@ -694,6 +699,7 @@ func (p *Parser) typeExpr(typeContext string, allowWrapped ...bool) *ast.TypeExp
 	case tokens.Entity:
 		typeExpr.Name = &ast.IdentifierExpr{Name: exprToken}
 	default:
+		p.disadvance()
 		p.AlertSingle(&alerts.ExpectedType{}, expr.GetToken(), typeContext)
 		typeExpr.Name = ast.NewImproper(expr.GetToken(), ast.NA)
 	}

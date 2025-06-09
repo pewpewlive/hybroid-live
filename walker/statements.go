@@ -13,11 +13,12 @@ func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 	length := len(node.Elseifs) + 2
 	mpt := NewMultiPathTag(length, scope.Attributes...)
 
+	nodeCondition := node.BoolExpr
 	condition := w.GetActualNodeValue(&node.BoolExpr, scope)
 	if condition.GetType().PVT() != ast.Bool {
 		w.AlertSingle(&alerts.InvalidCondition{}, node.BoolExpr.GetToken(), "in if statement")
 	} else if conditionValue := condition.(*BoolVal).Value; conditionValue != "" {
-		w.AlertSingle(&alerts.LiteralCondition{}, node.BoolExpr.GetToken(), conditionValue)
+		w.AlertSingle(&alerts.LiteralCondition{}, nodeCondition.GetToken(), conditionValue)
 	}
 
 	multiPathScope := NewScope(scope, mpt)
@@ -165,18 +166,23 @@ func (w *Walker) repeatStatement(node *ast.RepeatStmt, scope *Scope) {
 	if !isNumerical(endType.PVT()) {
 		w.AlertSingle(&alerts.InvalidRepeatIterator{}, node.Iterator.GetToken(), endType)
 	}
+	var start Value
 	if node.Start == nil {
-		node.Start = &ast.LiteralExpr{Value: "1", Token: tokens.NewToken(tokens.Number, "1", "1", tokens.Location{})}
+		start = w.typeToValue(endType)
+		node.Start = start.GetDefault()
+	} else {
+		start = w.GetNodeValue(&node.Start, scope)
 	}
-	start := w.GetNodeValue(&node.Start, scope)
+	var skip Value
 	if node.Skip == nil {
-		node.Skip = &ast.LiteralExpr{Value: "1", Token: tokens.NewToken(tokens.Number, "1", "1", tokens.Location{})}
+		skip = w.typeToValue(endType)
+		node.Skip = skip.GetDefault()
+	} else {
+		skip = w.GetNodeValue(&node.Skip, scope)
 	}
-	skip := w.GetNodeValue(&node.Skip, scope)
 
 	startType := start.GetType()
 	skipType := skip.GetType()
-
 	if !(TypeEquals(endType, startType) && TypeEquals(startType, skipType)) {
 		w.AlertSingle(&alerts.InconsistentRepeatTypes{}, node.Token,
 			startType.String(),
@@ -440,12 +446,10 @@ func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 		return
 	}
 
-	if walker.environment.Type != ast.GenericEnv && (w.environment.Type == ast.MeshEnv || w.environment.Type == ast.SoundEnv) {
-		w.AlertSingle(&alerts.UnallowedEnvironmentAccess{}, node.PathExpr.GetToken(), "non Generic", "Mesh or Sound")
-		return
+	if walker.environment.Type != ast.SharedEnv && (w.environment.Type == ast.MeshEnv || w.environment.Type == ast.SoundEnv) {
+		w.AlertSingle(&alerts.UnallowedEnvironmentAccess{}, node.PathExpr.GetToken(), "non Shared", "Mesh or Sound")
 	} else if w.environment.Type == ast.LevelEnv && (walker.environment.Type == ast.MeshEnv || walker.environment.Type == ast.SoundEnv) {
 		w.AlertSingle(&alerts.UnallowedEnvironmentAccess{}, node.PathExpr.GetToken(), "Mesh or Sound", "Level")
-		return
 	}
 
 	for i := range walker.environment.importedWalkers {
@@ -500,6 +504,6 @@ func (w *Walker) destroyStatement(node *ast.DestroyStmt, scope *Scope) {
 		args = append(args, w.GetActualNodeValue(&node.Args[i], scope))
 	}
 
-	suppliedGenerics := w.getGenerics(node.GenericArgs, entityVal.Destroy.Generics, scope)
+	suppliedGenerics := w.getGenerics(node.GenericsArgs, entityVal.Destroy.Generics, scope)
 	w.validateArguments(suppliedGenerics, args, entityVal.Destroy, node)
 }

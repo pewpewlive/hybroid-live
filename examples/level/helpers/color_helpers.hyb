@@ -1,4 +1,4 @@
-env ColorHelpers as Generic
+env ColorHelpers as Shared
 
 // function helper.make_color(r, g, b, a)
 //   local color = r * 256 + g
@@ -12,4 +12,16 @@ pub fn MakeColor(number r, g, b, a) -> number {
     color = color * 256 + b
     color = color * 256 + a
     return color
+}
+
+fn Lerp(number a, b, fixed, t) -> number {
+    fixed a2, b2 = Fmath:ToFixed(a), Fmath:ToFixed(b)
+    return Fmath:ToNumber(a2 + (b2 - a2) * t)
+}
+
+pub fn LerpColors(number color1, color2, fixed t) -> number {
+    return (Lerp(color1 >> 24 & 0xff, color2 >> 24 & 0xff, t) << 24) |
+           (Lerp(color1 >> 16 & 0xff, color2 >> 16 & 0xff, t) << 16) |
+           (Lerp(color1 >> 8  & 0xff, color2 >> 8  & 0xff, t) << 8)  |
+            Lerp(color1       & 0xff, color2       & 0xff, t)
 }

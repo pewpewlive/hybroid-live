@@ -94,7 +94,7 @@ const (
 	MeshEnv    Env = "MeshEnv"
 	LevelEnv   Env = "LevelEnv"
 	SoundEnv   Env = "SoundEnv"
-	GenericEnv Env = "GenericEnv"
+	SharedEnv  Env = "SharedEnv"
 	InvalidEnv Env = "InvalidEnv"
 )
 

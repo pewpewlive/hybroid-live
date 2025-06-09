@@ -317,26 +317,6 @@ func (p *Parser) identExprPairs(typeContext string, optional bool) ([]*ast.Ident
 	return idents, exprs, true
 }
 
-func (p *Parser) mapKeyValuePair() (ast.Node, ast.Node, bool) {
-	key := p.expression()
-	if key.GetType() != ast.LiteralExpression || key.GetToken().Type != tokens.String {
-		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(key.GetToken()), "as map key")
-		p.advance()
-		return nil, nil, false
-	}
-	_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.Equal, "after as map key")
-	if !ok {
-		return nil, nil, false
-	}
-
-	expr := p.expression()
-	if ast.IsImproper(expr, ast.NA) {
-		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()), "as as map key value")
-	}
-
-	return key, expr, expr.GetType() != ast.NA
-}
-
 func (p *Parser) keyValuePair(isMap bool, context string) (ast.Node, ast.Node, bool) {
 	key := p.expression()
 	condition := key.GetType() != ast.Identifier
@@ -363,22 +343,6 @@ func (p *Parser) keyValuePair(isMap bool, context string) (ast.Node, ast.Node, b
 	}
 
 	return key, expr, expr.GetType() != ast.NA
-}
-
-func (p *Parser) tryIdentifiers() bool {
-	ident := p.advance()
-	if ident.Type != tokens.Identifier {
-		return false
-	}
-
-	for p.match(tokens.Comma) {
-		ident := p.advance()
-		if ident.Type != tokens.Identifier {
-			return false
-		}
-	}
-
-	return true
 }
 
 // Tells you whether the attempted parsed type is an actual TypeExpression (or Improper{Type:ast.TypeExpression}), in which case returning true, or Improper{Type:ast.NA}, in which case returning false

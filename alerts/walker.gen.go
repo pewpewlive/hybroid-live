@@ -49,7 +49,7 @@ func (iet *InvalidEnvironmentType) SnippetSpecifier() Snippet {
 }
 
 func (iet *InvalidEnvironmentType) Note() string {
-	return "environment type can be 'Level', 'Mesh', 'Sound' or 'Generic'"
+	return "environment type can be 'Level', 'Mesh', 'Sound' or 'Shared'"
 }
 
 func (iet *InvalidEnvironmentType) ID() string {
@@ -280,7 +280,7 @@ type MixedMapOrListContents struct {
 }
 
 func (mmolc *MixedMapOrListContents) Message() string {
-	return fmt.Sprintf("a %s's members must be the same type (found types: '%s' and '%s')", mmolc.ContainerType, mmolc.Type1, mmolc.Type2)
+	return fmt.Sprintf("%s member is of type '%s', but the previous one was '%s'", mmolc.ContainerType, mmolc.Type1, mmolc.Type2)
 }
 
 func (mmolc *MixedMapOrListContents) SnippetSpecifier() Snippet {
@@ -1889,5 +1889,31 @@ func (ia *InvalidAssignment) ID() string {
 }
 
 func (ia *InvalidAssignment) AlertType() Type {
+	return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type ConflictingVariableNameWithType struct {
+	Specifier Snippet
+	Type      string
+}
+
+func (cvnwt *ConflictingVariableNameWithType) Message() string {
+	return fmt.Sprintf("variable name conflicts with type '%s'", cvnwt.Type)
+}
+
+func (cvnwt *ConflictingVariableNameWithType) SnippetSpecifier() Snippet {
+	return cvnwt.Specifier
+}
+
+func (cvnwt *ConflictingVariableNameWithType) Note() string {
+	return ""
+}
+
+func (cvnwt *ConflictingVariableNameWithType) ID() string {
+	return "hyb073W"
+}
+
+func (cvnwt *ConflictingVariableNameWithType) AlertType() Type {
 	return Error
 }

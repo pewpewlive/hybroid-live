@@ -1,4 +1,4 @@
-env MathHelper as Generic
+env MathHelper as Shared
 
 use Math
 
