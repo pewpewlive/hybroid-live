@@ -90,7 +90,7 @@ var PewpewAPI = &Environment{
 				Name: "GetEntityCount", Value: NewFunction(NewEnumType("Pewpew", "EntityType")).WithReturns(NewBasicType(ast.Number)), IsPub: true,
 			},
 			"GetEntityType": {
-				Name: "GetEntityType", Value: NewFunction(&RawEntityType{}).WithReturns(NewBasicType(ast.Number)), IsPub: true,
+				Name: "GetEntityType", Value: NewFunction(&RawEntityType{}).WithReturns(NewEnumType("Pewpew", "EntityType")), IsPub: true,
 			},
 			"PlayAmbientSound": {
 				Name: "PlayAmbientSound", Value: NewFunction(NewPathType(ast.SoundEnv), NewBasicType(ast.Number)), IsPub: true,
@@ -239,8 +239,8 @@ var PewpewAPI = &Environment{
 			"SetEntityMeshScale": {
 				Name: "SetEntityMeshScale", Value: NewFunction(&RawEntityType{}, NewFixedPointType()), IsPub: true,
 			},
-			"SetEntityMeshXyzScale": {
-				Name: "SetEntityMeshXyzScale", Value: NewFunction(&RawEntityType{}, NewFixedPointType(), NewFixedPointType(), NewFixedPointType()), IsPub: true,
+			"SetEntityMeshXYZScale": {
+				Name: "SetEntityMeshXYZScale", Value: NewFunction(&RawEntityType{}, NewFixedPointType(), NewFixedPointType(), NewFixedPointType()), IsPub: true,
 			},
 			"SetEntityMeshAngle": {
 				Name: "SetEntityMeshAngle", Value: NewFunction(&RawEntityType{}, NewFixedPointType(), NewFixedPointType(), NewFixedPointType(), NewFixedPointType()), IsPub: true,

@@ -252,7 +252,7 @@ type InvalidField struct {
 }
 
 func (_if *InvalidField) Message() string {
-	return fmt.Sprintf("field '%s' does not belong to the '%s'", _if.FieldName, _if.AccessType)
+	return fmt.Sprintf("field '%s' does not belong to '%s'", _if.FieldName, _if.AccessType)
 }
 
 func (_if *InvalidField) SnippetSpecifier() Snippet {
@@ -641,12 +641,11 @@ func (tmvg *TooManyValuesGiven) AlertType() Type {
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ImportCycle struct {
 	Specifier Snippet
-	HybPath1  string
-	HybPath2  string
+	HybPaths  []string
 }
 
 func (ic *ImportCycle) Message() string {
-	return fmt.Sprintf("import cycle detected: cycling paths: '%s' and '%s'", ic.HybPath1, ic.HybPath2)
+	return fmt.Sprintf("import cycle detected: %s", strings.Join(ic.HybPaths, " -> "))
 }
 
 func (ic *ImportCycle) SnippetSpecifier() Snippet {
@@ -669,10 +668,11 @@ func (ic *ImportCycle) AlertType() Type {
 type UndeclaredVariableAccess struct {
 	Specifier Snippet
 	Var       string
+	Context   string
 }
 
 func (uva *UndeclaredVariableAccess) Message() string {
-	return fmt.Sprintf("'%s' is not a declared variable", uva.Var)
+	return fmt.Sprintf("'%s' is not a declared variable %s", uva.Var, uva.Context)
 }
 
 func (uva *UndeclaredVariableAccess) SnippetSpecifier() Snippet {
@@ -758,7 +758,7 @@ func (itica *InvalidTypeInCompoundAssignment) SnippetSpecifier() Snippet {
 }
 
 func (itica *InvalidTypeInCompoundAssignment) Note() string {
-	return "only numerical types are allowed, like numbers, fixeds, fixedpoints, degrees and radians"
+	return "only numerical types are allowed, like number or fixed"
 }
 
 func (itica *InvalidTypeInCompoundAssignment) ID() string {

@@ -65,7 +65,7 @@ var BuiltinEnv = &Environment{
 		Variables: map[string]*VariableVal{
 			"ToString": {
 				Name:    "ToString",
-				Value:   NewFunction(NewBasicType(ast.Object)),
+				Value:   NewFunction(NewBasicType(ast.Object)).WithReturns(NewBasicType(ast.Text)),
 				IsUsed:  false,
 				IsConst: true,
 				IsPub:   true,

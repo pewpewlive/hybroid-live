@@ -99,16 +99,14 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 
 	for i, walker := range e.walkerList {
 		sourcePath := e.files[i].Path()
-		if walker.Walked {
-			e.printer.StageAlerts(sourcePath, walker.GetAlerts())
-			continue
-		}
 		color.Printf("[dark_gray]-->File: %s\n", sourcePath)
 
 		start := time.Now()
 
 		fmt.Println("Walking through the nodes...")
-		walker.Walk()
+		if !walker.Walked {
+			walker.Walk()
+		}
 		fmt.Printf("Walking time: %f seconds\n\n", time.Since(start).Seconds())
 
 		e.printer.StageAlerts(sourcePath, walker.GetAlerts())

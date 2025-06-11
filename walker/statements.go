@@ -5,6 +5,7 @@ import (
 	"hybroid/ast"
 	"hybroid/core"
 	"hybroid/tokens"
+	"strings"
 )
 
 func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
@@ -13,14 +14,7 @@ func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 	length := len(node.Elseifs) + 2
 	mpt := NewMultiPathTag(length, scope.Attributes...)
 
-	nodeCondition := node.BoolExpr
-	condition := w.GetActualNodeValue(&node.BoolExpr, scope)
-	if condition.GetType().PVT() != ast.Bool {
-		w.AlertSingle(&alerts.InvalidCondition{}, node.BoolExpr.GetToken(), "in if statement")
-	} else if conditionValue := condition.(*BoolVal).Value; conditionValue != "" {
-		w.AlertSingle(&alerts.LiteralCondition{}, nodeCondition.GetToken(), conditionValue)
-	}
-
+	w.ifCondition(&node.BoolExpr, scope)
 	multiPathScope := NewScope(scope, mpt)
 	ifScope := NewScope(multiPathScope, &UntaggedTag{})
 
@@ -32,16 +26,11 @@ func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 			IsInit: true,
 		})
 	}
+
 	w.walkBody(&node.Body, mpt, ifScope)
 
 	for i := range node.Elseifs {
-		boolExpr := node.Elseifs[i].BoolExpr
-		condition := w.GetActualNodeValue(&node.Elseifs[i].BoolExpr, scope)
-		if condition.GetType().PVT() != ast.Bool {
-			w.AlertSingle(&alerts.InvalidCondition{}, boolExpr.GetToken(), "in if statement")
-		} else if conditionValue := condition.(*BoolVal).Value; conditionValue != "" {
-			w.AlertSingle(&alerts.LiteralCondition{}, boolExpr.GetToken(), conditionValue)
-		}
+		w.ifCondition(&node.Elseifs[i].BoolExpr, scope)
 		ifScope := NewScope(multiPathScope, &UntaggedTag{})
 		for w.context.EntityCasts.Count() != 0 {
 			cast := w.context.EntityCasts.Pop()
@@ -108,7 +97,7 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 
 		variableType := variable.GetType()
 		valType := values[i].GetType()
-		if valType == InvalidType {
+		if valType == InvalidType || variableType == InvalidType {
 			continue
 		}
 
@@ -130,10 +119,6 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 				w.AlertSingle(&alerts.InvalidTypeInCompoundAssignment{}, idents[i].GetToken(), variableType)
 				continue
 			}
-		}
-
-		if valType == InvalidType {
-			continue
 		}
 
 		if !TypeEquals(variableType, valType) {
@@ -163,20 +148,24 @@ func (w *Walker) repeatStatement(node *ast.RepeatStmt, scope *Scope) {
 
 	end := w.GetActualNodeValue(&node.Iterator, scope)
 	endType := end.GetType()
-	if !isNumerical(endType.PVT()) {
+	if endType != InvalidType && !isNumerical(endType.PVT()) {
 		w.AlertSingle(&alerts.InvalidRepeatIterator{}, node.Iterator.GetToken(), endType)
 	}
 	var start Value
 	if node.Start == nil {
 		start = w.typeToValue(endType)
-		node.Start = start.GetDefault()
+		literal := start.GetDefault()
+		literal.Value = strings.Replace(literal.Value, "0", "1", 1)
+		node.Start = literal
 	} else {
 		start = w.GetNodeValue(&node.Start, scope)
 	}
 	var skip Value
 	if node.Skip == nil {
 		skip = w.typeToValue(endType)
-		node.Skip = skip.GetDefault()
+		literal := skip.GetDefault()
+		literal.Value = strings.Replace(literal.Value, "0", "1", 1)
+		node.Skip = literal
 	} else {
 		skip = w.GetNodeValue(&node.Skip, scope)
 	}
@@ -214,7 +203,7 @@ func (w *Walker) forStatement(node *ast.ForStmt, scope *Scope) {
 	lt := NewMultiPathTag(1, forScope.Attributes...)
 	forScope.Tag = lt
 
-	valType := w.GetNodeValue(&node.Iterator, scope).GetType()
+	valType := w.GetActualNodeValue(&node.Iterator, scope).GetType()
 	wrapper, ok := valType.(*WrapperType)
 	if !ok {
 		w.AlertSingle(&alerts.InvalidIteratorType{}, node.Iterator.GetToken(), valType.String())
@@ -270,7 +259,7 @@ func (w *Walker) matchStatement(node *ast.MatchStmt, scope *Scope) {
 		w.AlertSingle(&alerts.InsufficientCases{}, node.Token)
 	}
 	mpt := NewMultiPathTag(casesLength, scope.Attributes...)
-	multiPathScope := NewScope(scope, mpt)
+	multiPathScope := NewScope(scope, mpt, BreakAllowing)
 
 	for i := range node.Cases {
 		caseScope := NewScope(multiPathScope, &UntaggedTag{})
@@ -452,11 +441,10 @@ func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 		w.AlertSingle(&alerts.UnallowedEnvironmentAccess{}, node.PathExpr.GetToken(), "Mesh or Sound", "Level")
 	}
 
-	for i := range walker.environment.importedWalkers {
-		if walker.environment.importedWalkers[i].environment.Name == w.environment.Name {
-			w.AlertSingle(&alerts.ImportCycle{}, node.PathExpr.Path, w.environment.hybroidPath, walker.environment.hybroidPath)
-			return
-		}
+	if paths, isCycle := w.ResolveImportCycle(walker); isCycle {
+		paths = append([]string{w.environment.hybroidPath}, paths...)
+		w.AlertSingle(&alerts.ImportCycle{}, node.PathExpr.Path, paths)
+		return
 	}
 
 	if walker.environment.luaPath == "/dynamic/level.lua" {

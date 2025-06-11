@@ -42,14 +42,11 @@ func (w *Walker) typeExists(name string) bool {
 	if _, found := w.environment.Enums[name]; found {
 		return true
 	}
+	if w.getTypeFromString(name) != ast.Invalid {
+		return true
+	}
 
 	return false
-}
-
-func (s *Scope) assignVariable(variable *VariableVal, value Value) Value {
-	variable.Value = value
-
-	return variable
 }
 
 func (w *Walker) declareVariable(s *Scope, value *VariableVal) (*VariableVal, bool) {
@@ -193,8 +190,8 @@ func (w *Walker) validateArguments(generics map[string]Type2, args []Value, fn *
 		argType := arg.GetType()
 
 		if typFound, found := resolveGenericType(param); found {
-			genericArg := generics[typFound.Name]
-			if genericArg.Index == -1 {
+			genericArg, ok := generics[typFound.Name]
+			if genericArg.Index == -1 || !ok {
 				genericArg.Type = argType
 				generics[typFound.Name] = genericArg
 				param = argType
@@ -217,6 +214,17 @@ func (w *Walker) validateArguments(generics map[string]Type2, args []Value, fn *
 		}
 	}
 
+	for _, retArg := range fn.Returns {
+		if retArg.GetType() == Generic {
+			generic := retArg.(*GenericType)
+			if generics[generic.Name].Type == UnknownTyp {
+				w.AlertSingle(&alerts.MissingGenericArgument{}, call.GetToken(), generic.Name)
+				continue
+			}
+			retArg = generics[generic.Name]
+		}
+	}
+
 	if paramCount > len(args) {
 		if len(nodeArgs) == 0 {
 			w.AlertSingle(&alerts.TooFewValuesGiven{}, call.GetToken(), paramCount-len(args), "in call arguments")
@@ -224,6 +232,7 @@ func (w *Walker) validateArguments(generics map[string]Type2, args []Value, fn *
 			w.AlertSingle(&alerts.TooFewValuesGiven{}, nodeArgs[len(nodeArgs)-1].GetToken(), paramCount-len(args), "in call arguments")
 		}
 	}
+
 }
 
 func resolveGenericType(typ Type) (*GenericType, bool) {
@@ -280,7 +289,7 @@ func (w *Walker) validateArithmeticOperands(leftVal Value, rightVal Value, node 
 		return &Invalid{}
 	}
 	if !TypeEquals(left, right) {
-		w.AlertSingle(&alerts.TypesMismatch{}, node.Left.GetToken(), "left value", left, "right value", right)
+		w.AlertMulti(&alerts.TypesMismatch{}, node.Left.GetToken(), node.Right.GetToken(), "left value", left, "right value", right)
 		return &Invalid{}
 	}
 	if left.PVT() != ast.Number {
@@ -369,6 +378,18 @@ func (w *Walker) validateReturnValues(returnArgs []ast.Node, _return []Value2, e
 				fmt.Sprintf(context+" (arg %d)", i+1),
 			)
 		}
+	}
+}
+
+func (w *Walker) ifCondition(node *ast.Node, scope *Scope) {
+	condition := w.GetActualNodeValue(node, scope)
+	if condition.GetType() == InvalidType {
+		return
+	}
+	if condition.GetType().PVT() != ast.Bool {
+		w.AlertSingle(&alerts.InvalidCondition{}, (*node).GetToken(), "in if statement")
+	} else if conditionValue := condition.(*BoolVal).Value; conditionValue != "" {
+		w.AlertSingle(&alerts.LiteralCondition{}, (*node).GetToken(), conditionValue)
 	}
 }
 

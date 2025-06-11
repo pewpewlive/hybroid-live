@@ -5,6 +5,7 @@ import (
 	"hybroid/ast"
 	"hybroid/generator/mapping"
 	"hybroid/tokens"
+	"reflect"
 	"strconv"
 )
 
@@ -219,7 +220,6 @@ func (w *Walker) identifierExpression(node *ast.Node, scope *Scope) Value {
 	sc := w.resolveVariable(scope, ident.Name)
 check:
 	if sc == nil {
-
 		walker, found := w.walkers[ident.Name.Lexeme]
 		if found {
 			*node = &ast.LiteralExpr{
@@ -228,8 +228,11 @@ check:
 			}
 			return NewPathVal(walker.environment.luaPath, walker.environment.Type, walker.environment.Name)
 		}
-
-		w.AlertSingle(&alerts.UndeclaredVariableAccess{}, identToken, identToken.Lexeme)
+		var context string
+		if scope.Environment.Name != w.environment.Name {
+			context = "in the environment " + scope.Environment.Name
+		}
+		w.AlertSingle(&alerts.UndeclaredVariableAccess{}, identToken, identToken.Lexeme, context)
 		return &Invalid{}
 	}
 
@@ -241,6 +244,18 @@ check:
 	variable := w.getVariable(sc, ident.Name)
 	if val, ok := sc.ConstValues[variable.Name]; variable.IsConst && ok {
 		*node = val
+		ref := reflect.ValueOf(*node).Elem()
+		field := ref.FieldByName("Token")
+		if !field.IsValid() {
+			field = ref.FieldByName("Name")
+		}
+		if !field.IsValid() {
+			field = ref.FieldByName("Operator")
+		}
+		if field.IsValid() {
+			location := field.FieldByName("Location")
+			location.Set(reflect.ValueOf(identToken.Location))
+		}
 		return variable
 	}
 	if sc.Tag.GetType() == Class {
@@ -327,64 +342,67 @@ func (w *Walker) environmentAccessExpression(node *ast.EnvAccessExpr) (Value, as
 		}
 	}
 
+	var val Value
 	switch envName {
 	case "Pewpew":
-		return w.GetNodeValue(&node.Accessed, &PewpewAPI.Scope), nil
+		val = w.GetNodeValue(&node.Accessed, &PewpewAPI.Scope)
 	case "Fmath":
-		return w.GetNodeValue(&node.Accessed, &FmathAPI.Scope), nil
+		val = w.GetNodeValue(&node.Accessed, &FmathAPI.Scope)
 	case "Math":
 		if w.environment.Type == ast.LevelEnv {
 			w.AlertSingle(&alerts.UnallowedLibraryUse{}, node.PathExpr.Path, "Math", "Level")
 		}
-		return w.GetNodeValue(&node.Accessed, &MathAPI.Scope), nil
+		val = w.GetNodeValue(&node.Accessed, &MathAPI.Scope)
 	case "String":
-		return w.GetNodeValue(&node.Accessed, &StringAPI.Scope), nil
+		val = w.GetNodeValue(&node.Accessed, &StringAPI.Scope)
 	case "Table":
-		return w.GetNodeValue(&node.Accessed, &TableAPI.Scope), nil
-	}
-
-	walker, found := w.walkers[envName]
-	if !found {
-		w.AlertSingle(&alerts.InvalidEnvironmentAccess{}, node.PathExpr.GetToken(), envName)
-		return &Invalid{}, nil
-	}
-
-	if walker.environment.Name == w.environment.Name {
-		w.AlertSingle(&alerts.EnvironmentAccessToItself{}, node.PathExpr.GetToken())
-		return &Invalid{}, nil
-	}
-
-	if walker.environment.Type != ast.SharedEnv && (w.environment.Type == ast.MeshEnv || w.environment.Type == ast.SoundEnv) {
-		w.AlertSingle(&alerts.UnallowedEnvironmentAccess{}, node.PathExpr.GetToken(), "non Shared", "Mesh or Sound")
-		return &Invalid{}, nil
-	} else if w.environment.Type == ast.LevelEnv && (walker.environment.Type == ast.MeshEnv || walker.environment.Type == ast.SoundEnv) {
-		w.AlertSingle(&alerts.UnallowedEnvironmentAccess{}, node.PathExpr.GetToken(), "Mesh or Sound", "Level")
-		return &Invalid{}, nil
-	}
-
-	for i := range walker.environment.importedWalkers {
-		if walker.environment.importedWalkers[i].environment.Name == w.environment.Name {
-			w.AlertSingle(&alerts.ImportCycle{}, node.GetToken(), w.environment.hybroidPath, walker.environment.hybroidPath)
+		val = w.GetNodeValue(&node.Accessed, &TableAPI.Scope)
+	default:
+		walker, found := w.walkers[envName]
+		if !found {
+			w.AlertSingle(&alerts.InvalidEnvironmentAccess{}, node.PathExpr.GetToken(), envName)
 			return &Invalid{}, nil
 		}
-	}
 
-	if walker.environment.luaPath == "/dynamic/level.lua" {
+		if walker.environment.Name == w.environment.Name {
+			w.AlertSingle(&alerts.EnvironmentAccessToItself{}, node.PathExpr.GetToken())
+			return &Invalid{}, nil
+		}
+
+		if walker.environment.Type != ast.SharedEnv && (w.environment.Type == ast.MeshEnv || w.environment.Type == ast.SoundEnv) {
+			w.AlertSingle(&alerts.UnallowedEnvironmentAccess{}, node.PathExpr.GetToken(), "non Shared", "Mesh or Sound")
+			return &Invalid{}, nil
+		} else if w.environment.Type == ast.LevelEnv && (walker.environment.Type == ast.MeshEnv || walker.environment.Type == ast.SoundEnv) {
+			w.AlertSingle(&alerts.UnallowedEnvironmentAccess{}, node.PathExpr.GetToken(), "Mesh or Sound", "Level")
+			return &Invalid{}, nil
+		}
+
+		if paths, isCycle := w.ResolveImportCycle(walker); isCycle {
+			paths = append([]string{w.environment.hybroidPath}, paths...)
+			w.AlertSingle(&alerts.ImportCycle{}, node.PathExpr.Path, paths)
+			return &Invalid{}, nil
+		}
+
+		if walker.environment.luaPath == "/dynamic/level.lua" {
+			if !walker.Walked {
+				walker.Walk()
+			}
+			value := w.GetNodeValue(&node.Accessed, &walker.environment.Scope)
+			return value, nil
+		}
+
+		w.environment.AddRequirement(walker.environment.luaPath)
+
 		if !walker.Walked {
 			walker.Walk()
 		}
-		value := w.GetNodeValue(&node.Accessed, &walker.environment.Scope)
-		return value, nil
+
+		val = w.GetNodeValue(&node.Accessed, &walker.environment.Scope)
+		if node.Accessed.GetType() == ast.LiteralExpression {
+			return val, node.Accessed
+		}
 	}
-
-	w.environment.AddRequirement(walker.environment.luaPath)
-
-	if !walker.Walked {
-		walker.Walk()
-	}
-
-	value := w.GetNodeValue(&node.Accessed, &walker.environment.Scope)
-	return value, nil
+	return val, nil
 }
 
 func (w *Walker) groupExpression(node *ast.GroupExpr, scope *Scope) Value {
@@ -418,20 +436,6 @@ func (w *Walker) callExpression(val Value, node *ast.Node, scope *Scope) Value {
 
 	nodeGenerics := call.GenericArgs
 	nodeArgs := call.Args
-	if fn.ProcType == Method {
-		caller := call.Caller.(*ast.AccessExpr)
-		caller.Accessed = caller.Accessed[:len(caller.Accessed)-1]
-		if len(caller.Accessed) == 0 {
-			call.Caller = caller.Start
-		}
-
-		*node = convertCallToMethodCall(call, fn.MethodInfo)
-		mcall := (*node).(*ast.MethodCallExpr)
-
-		nodeGenerics = mcall.GenericArgs
-		nodeArgs = mcall.Args
-	}
-
 	genericArgs := w.getGenerics(nodeGenerics, fn.Generics, scope)
 	args := []Value{}
 	for i := range call.Args {
@@ -441,7 +445,21 @@ func (w *Walker) callExpression(val Value, node *ast.Node, scope *Scope) Value {
 
 	actualReturns := fn.Returns
 	returnLen := len(actualReturns)
-	call.ReturnAmount = returnLen
+
+	if fn.ProcType == Method {
+		caller := call.Caller.(*ast.AccessExpr)
+		caller.Accessed = caller.Accessed[:len(caller.Accessed)-1]
+		if len(caller.Accessed) == 0 {
+			call.Caller = caller.Start
+		}
+
+		*node = convertCallToMethodCall(call, fn.MethodInfo)
+		mcall := (*node).(*ast.MethodCallExpr)
+		mcall.ReturnAmount = returnLen
+	} else {
+		call.ReturnAmount = returnLen
+	}
+
 	if returnLen == 0 {
 		return &Invalid{}
 	} else if returnLen == 1 {
@@ -458,7 +476,8 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 
 	typeExpr := &ast.TypeExpr{Name: node.Start}
 	typ := w.typeExpression(typeExpr, scope)
-	if et, ok := typ.(*EnumType); ok {
+	et, isEnum := typ.(*EnumType)
+	if isEnum {
 		val = w.typeToValue(et)
 		node.Start = typeExpr.Name
 	} else if typ == UnknownTyp {
@@ -531,7 +550,9 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 			}
 
 			field := node.Accessed[i].(*ast.FieldExpr)
+			w.ignoreAlerts = true
 			fieldVal := w.GetNodeValue(&field.Field, scopedVal.Scopify(scope))
+			w.ignoreAlerts = false
 
 			if _, found := fieldVal.(*VariableVal); !found {
 				w.AlertSingle(&alerts.InvalidField{}, token,
@@ -569,7 +590,7 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 	}
 
 	// check if we got an enum variant and convert that to its constant value
-	if enumVal, ok := val.(*VariableVal).Value.(*EnumFieldVal); ok {
+	if enumVal, ok := val.(*VariableVal).Value.(*EnumFieldVal); ok && isEnum {
 		if enumVal.Type.EnvName == "Pewpew" {
 			ident := node.Accessed[0].(*ast.FieldExpr).Field.(*ast.IdentifierExpr)
 			ident.Name.Lexeme = mapping.PewpewEnums[enumVal.Type.Name][ident.Name.Lexeme]
@@ -791,12 +812,31 @@ func (w *Walker) spawnExpression(new *ast.SpawnExpr, scope *Scope) Value {
 	return val
 }
 
-func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
-	if typee == nil {
-		return UnknownTyp
+func (w *Walker) ResolveImportCycle(walker *Walker) ([]string, bool) {
+	if walker == w {
+		return []string{}, false
+	}
+	for _, v := range walker.environment.Requirements() {
+		if v == w.environment.luaPath {
+			return []string{walker.environment.hybroidPath}, true
+		}
 	}
 
-	var typ Type
+	for _, v := range walker.environment.importedWalkers {
+		if path, isCycle := w.ResolveImportCycle(v); isCycle {
+			return append([]string{walker.environment.hybroidPath}, path...), true
+		}
+	}
+
+	return []string{}, false
+}
+
+func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
+	var typ Type = UnknownTyp
+	if typee == nil {
+		return typ
+	}
+
 	if typee.Name.GetType() == ast.EnvironmentAccessExpression {
 		expr, _ := typee.Name.(*ast.EnvAccessExpr)
 		path := expr.PathExpr.Path
@@ -825,12 +865,10 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 			}
 			env = walker.environment
 		} else {
-
-			for _, v := range walker.environment.Requirements() {
-				if v == w.environment.luaPath {
-					w.AlertSingle(&alerts.ImportCycle{}, typee.GetToken(), w.environment.hybroidPath, walker.environment.hybroidPath)
-					return InvalidType
-				}
+			if paths, isCycle := w.ResolveImportCycle(walker); isCycle {
+				paths = append([]string{w.environment.hybroidPath}, paths...)
+				w.AlertSingle(&alerts.ImportCycle{}, typee.GetToken(), paths)
+				return InvalidType
 			}
 
 			w.environment.AddRequirement(walker.environment.luaPath)
