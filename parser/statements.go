@@ -77,28 +77,12 @@ func (p *Parser) destroyStatement() ast.Node {
 	}
 	destroyStmt.GenericsArgs = entityArgs
 
-	expr := p.AccessorExpr(false)
-	if expr.GetType() == ast.SelfExpression {
-		generics, ok := p.genericArgs()
-		if !ok {
-			return ast.NewImproper(destroyStmt.Token, ast.DestroyStatement)
-		}
-		args, ok := p.functionArgs()
-		if !ok {
-			return ast.NewImproper(destroyStmt.Token, ast.DestroyStatement)
-		}
-		expr = &ast.CallExpr{
-			Caller:      expr,
-			GenericArgs: generics,
-			Args:        args,
-		}
-	}
-	if ast.IsImproper(expr, ast.NA) {
-		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), "in destroy statement")
-		return ast.NewImproper(destroyStmt.Token, ast.DestroyStatement)
-	} else if expr.GetType() != ast.CallExpression {
+	expr := p.AccessorExpr()
+	if expr.GetType() != ast.CallExpression {
 		if expr.GetType() != ast.NA {
-			p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), "(", "in destroy statement")
+			p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), "in destroy statement")
+		} else if ast.IsImproper(expr, ast.NA) {
+			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), "in destroy statement")
 		}
 		return ast.NewImproper(destroyStmt.Token, ast.DestroyStatement)
 	}

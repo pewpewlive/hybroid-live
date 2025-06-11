@@ -194,7 +194,7 @@ func (p *Parser) entity() ast.Node {
 		token = p.peek(-1)
 	}
 
-	variable := p.AccessorExpr(true)
+	variable := p.AccessorExpr()
 	var expr ast.Node
 	var conv *tokens.Token
 	if letMatched {
@@ -202,7 +202,7 @@ func (p *Parser) entity() ast.Node {
 			tkn := variable.GetToken()
 			conv = &tkn
 
-			expr = p.AccessorExpr(true)
+			expr = p.AccessorExpr()
 		} else {
 			p.AlertSingle(&alerts.ExpectedSymbol{}, p.peek(), tokens.Equal, "in entity expression")
 		}
@@ -236,11 +236,8 @@ func (p *Parser) entity() ast.Node {
 	return variable
 }
 
-func (p *Parser) AccessorExpr(allowCall bool) ast.Node {
-	expr := p.matchExpr()
-	if allowCall {
-		expr = p.call(expr)
-	}
+func (p *Parser) AccessorExpr() ast.Node {
+	expr := p.call(p.matchExpr())
 
 accessCheck:
 	var access *ast.AccessExpr
@@ -265,9 +262,7 @@ accessCheck:
 				Member: expr2,
 			})
 		}
-		if allowCall {
-			expr = p.call(access)
-		}
+		expr = p.call(access)
 		if expr.GetType() == ast.CallExpression {
 			goto accessCheck
 		}
@@ -277,28 +272,22 @@ accessCheck:
 }
 
 func (p *Parser) call(caller ast.Node) ast.Node {
-	hasGenerics := false
 	genericArgs := []*ast.TypeExpr{}
+	hasGenerics := false
 	if p.check(tokens.Less) {
 		ok := p.tryGenericArgs()
 		if !ok {
 			return caller
 		}
-		genericArgs, _ = p.genericArgs()
 		hasGenerics = true
-	}
-	if !p.check(tokens.LeftParen) {
-		if hasGenerics {
-			p.AlertSingle(&alerts.ExpectedCallArgs{}, p.peek())
+		genericArgs, ok = p.genericArgs()
+		if !ok {
+			return ast.NewImproper(caller.GetToken(), ast.CallExpression)
 		}
-		return caller
 	}
 
-	callerType := caller.GetType()
-	if callerType != ast.Identifier && callerType != ast.CallExpression && callerType != ast.EnvironmentAccessExpression && callerType != ast.MemberExpression && callerType != ast.FieldExpression {
-		p.AlertSingle(&alerts.InvalidCall{}, p.peek(-1))
-		p.functionArgs()
-		return ast.NewImproper(caller.GetToken(), ast.CallExpression)
+	if !hasGenerics && !p.check(tokens.LeftParen) {
+		return caller
 	}
 
 	args, ok := p.functionArgs()
@@ -361,6 +350,9 @@ func (p *Parser) new() ast.Node {
 
 		// new<T, E> Type
 		expr.Type = p.typeExpr("in new expression", false)
+		if ast.IsImproper(expr.Type.Name, ast.NA) {
+			return ast.NewImproper(expr.Token, ast.NewExpession)
+		}
 
 		// new<T, E> Type<F, G>
 		genericsArgs, ok := p.genericArgs()

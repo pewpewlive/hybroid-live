@@ -159,12 +159,24 @@ func (p *Parser) genericArgs() ([]*ast.TypeExpr, bool) {
 		return params, true // generic args are optional
 	}
 
+	success := true
+
 	expr := p.typeExpr("in generic arguments")
-	params = append(params, expr)
+	if ast.IsImproper(expr.Name, ast.NA) {
+		p.AlertSingle(&alerts.ExpectedCallArgs{}, expr.GetToken())
+		success = false
+	} else {
+		params = append(params, expr)
+	}
 
 	for p.match(tokens.Comma) {
 		expr := p.typeExpr("in generic arguments")
-		params = append(params, expr)
+		if ast.IsImproper(expr.Name, ast.NA) {
+			p.AlertSingle(&alerts.ExpectedCallArgs{}, expr.GetToken())
+			success = false
+		} else {
+			params = append(params, expr)
+		}
 	}
 
 	if p.match(tokens.Greater) {
@@ -173,7 +185,7 @@ func (p *Parser) genericArgs() ([]*ast.TypeExpr, bool) {
 
 	p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Greater)
 
-	return params, false
+	return params, success
 }
 
 func (p *Parser) functionArgs() ([]ast.Node, bool) {

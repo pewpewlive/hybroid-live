@@ -130,7 +130,7 @@ func performTest(t *testing.T, testName string, expectedAlerts []reflect.Type) {
 
 func TestExpressions(t *testing.T) {
 	expectedAlerts := []reflect.Type{
-		reflect.TypeFor[alerts.ExpectedExpression](),
+		reflect.TypeFor[alerts.ExpectedType](),
 		reflect.TypeFor[alerts.UnexpectedKeyword](),
 		reflect.TypeFor[alerts.ExpectedExpression](),
 		reflect.TypeFor[alerts.UnknownStatement](),
