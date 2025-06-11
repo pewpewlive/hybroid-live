@@ -162,7 +162,6 @@ pub entity SuperInertiac {
 
     if cooldown > 0 {
       cooldown -= 1
-      return
     } else if Is(State.FOLLOWING_PLAYER) {
       match Fmath:RandomNumber(0, 1) {
         0 => {
@@ -174,9 +173,6 @@ pub entity SuperInertiac {
           preparationTimer = LASER_PREPARATION_TIME
         }
       }
-      return
-    }else {
-      return
     }
 
     if preparationTimer > 0 {
