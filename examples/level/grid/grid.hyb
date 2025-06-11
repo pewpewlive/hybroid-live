@@ -4,6 +4,8 @@ number gridColor, activeGridColor = 0x4445FF00, 0xFF221055
 fixed offsetX, offsetY, offsetZ
 fixed cellSize
 
+pub const ENTITY_TAG = 1337 
+
 class PointInfo {
     fixed anchorX, anchorY
     fixed currentX, currentY
@@ -29,6 +31,7 @@ class Point {
         
         Pewpew:SetEntityMesh(id, GridMesh, 1)
         Pewpew:SetEntityPositionInterpolation(id, true)
+        Pewpew:SetEntityTag(id, ENTITY_TAG)
 
         Pewpew:SetEntityMeshZ(id, offsetZ)
         Pewpew:SpawnEntity(id, 0)
@@ -51,6 +54,7 @@ class Line {
         id = Pewpew:NewEntity(base.currentX, base.currentY)
         self.base, self.following = base, following
 
+        Pewpew:SetEntityTag(id, ENTITY_TAG)
         Pewpew:SetEntityMesh(id, GridMesh, 0)
         Pewpew:SetEntityPositionInterpolation(id, true)
         Pewpew:SetEntityAngleInterpolation(id, true)
@@ -60,17 +64,17 @@ class Line {
     }
 
     fn Update() {
-        Pewpew:SetEntityPosition(id, base.currentX, base.curren)
+        Pewpew:SetEntityPosition(id, base.currentX, base.currentY)
 
         let dx, dy = following.currentX - base.currentX, following.currentY - base.currentY
         let mag = FmathHelpers:Length(dx, dy)
 
-        Pewpew:SetEntityMeshXYZScale(id, mag, 1f, 0f, 0f)
+        Pewpew:SetEntityMeshXYZScale(id, mag, 0f, 0f)
         Pewpew:SetEntityMeshAngle(id, Fmath:Atan2(dy, dx), 0f, 0f, 1f)
 
         Pewpew:SetEntityMeshColor(id,
             ColorHelpers:LerpColors(gridColor, activeGridColor,
-            FmathHelpers:Clamp((base.power + following.power) + (mag - cellSize), 0f, 80f) / 80f)
+            FmathHelpers:Clamp((base.power + following.power) + (mag - cellSize), 0f, 80f) / 80f))
     }
 }
 
@@ -81,14 +85,14 @@ pub class Grid {
     number gridSizeX, gridSizeY, gridCount
     const debug = false
    
-    new(number sizeX, sizeY, fixed cellSize, _offsetX, _offsetY, _offsetZ) {
+    new(number sizeX, sizeY, fixed _cellSize, _offsetX, _offsetY, _offsetZ) {
         gridSizeX, gridSizeY = sizeX, sizeY
         gridCount = sizeX * sizeY
-        cellSize = cellSize
+        cellSize = _cellSize
         offsetX, offsetY, offsetZ = _offsetX, _offsetY, _offsetZ
 
-        repeat Fmath:ToFixed(gridSizeY) with y {
-            repeat Fmath:ToFixed(gridSizeX) with x {
+        repeat Fmath:ToFixed(gridSizeX) with x {
+            repeat Fmath:ToFixed(gridSizeY) with y {
                 let px = (x - 1f) * cellSize + offsetX
                 let py = (y - 1f) * cellSize + offsetY
                 
@@ -109,26 +113,20 @@ pub class Grid {
                 let velX, velY = point.velocityX, point.velocityY
             
                 velX += point.anchorX - posX
-                velX *= 0.5f
+                velX *= 0.2248fx
                 velY += point.anchorY - posY
-                velY *= 0.5f
+                velY *= 0.2248fx
             
                 posX += velX
                 posY += velY
             
                 point.velocityX, point.velocityY = velX, velY
                 point.currentX, point.currentY = posX, posY
-                point.power = FmathHelpers:Length(point.anchorX, point.anchorY, posX, posY)
+                point.power = FmathHelpers:Length(point.anchorX - posX, point.anchorY - posY)
             }
 
-            if #lines != 0 {
-                for _, v in lines {
-                    v.Update()
-                }
-            } else if #points != 0 {
-                for _, v in points {
-                    v.Update()
-                }
+            for _, v in lines {
+                v.Update()
             }
         }
     }
@@ -144,12 +142,12 @@ pub class Grid {
         => MathHelpers:Clamp(Fmath:ToNumber((x + cellSize / 2f) / cellSize) + 1, 1, gridSizeX), MathHelpers:Clamp(Fmath:ToNumber((y + cellSize / 2f) / cellSize) + 1, 1, gridSizeY)
 
     fn CreateLineGrid() {
-        repeat gridSizeY with y {
-            repeat gridSizeX with x {
-                if x < grid_size_x {
+        repeat gridSizeX with x {
+            repeat gridSizeY with y {
+                if x < gridSizeX {
                     Table:Insert(lines, new Line(GetPoint(x, y), GetPoint(x + 1, y)))
                 }
-                if y < grid_size_y {
+                if y < gridSizeY {
                     Table:Insert(lines, new Line(GetPoint(x, y), GetPoint(x, y + 1)))
                 }
             }
@@ -165,18 +163,18 @@ pub class Grid {
     }
 
     fn Pulse(fixed x, y, power, radius) {
-        let left_extent, bottom_extent = WorldToGridPos(x - radius, y - radius)
-        let right_extent, top_extent = WorldToGridPos(x + radius, y + radius)
+        let leftExtent, bottomExtent = WorldToGridPos(x - radius, y - radius)
+        let rightExtent, topExtent = WorldToGridPos(x + radius, y + radius)
 
-        repeat from bottom_extent to top_extent with gy {
-            repeat from left_extent to right_extent with gx {
+        repeat from leftExtent to rightExtent with gx {
+            repeat from bottomExtent to topExtent with gy {
                 let point = GetPoint(gx, gy)
 
                 let dx, dy = point.anchorX - x, point.anchorY - y
                 let len = FmathHelpers:Length(dx, dy)
 
                 if len < radius {
-                    let factor = (1f - (len / radius)) * power * (len ^ -1)
+                    let factor = (1f - (len / radius)) * power * (len ^ -1f)
                     point.velocityX, point.velocityY += dx * factor, dy * factor
                 }
             }

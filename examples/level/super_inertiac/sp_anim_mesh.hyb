@@ -1,7 +1,7 @@
 env SPAnim as Mesh
 
 use Graphix
-use MathHelper
+use MathHelpers
 use Table
 use Math
 
@@ -21,7 +21,7 @@ fn WeirdAhhMesh(number color, color2) {
     let Mesh mesh
     repeat lineAmount with j {
       let angle = (Pi * 2 * j) / lineAmount
-      let currentHeight = radius+ParametricInvLerp(0, linesTillPeak, j+step*i, MathHelper:SineWave)*height
+      let currentHeight = radius+ParametricInvLerp(0, linesTillPeak, j+step*i, MathHelpers:SineWave)*height
       //Pewpew:Print("Current: "..currentHeight)
       Insert(mesh.vertexes, [Cos(angle)*radius, Sin(angle)*radius])
       Insert(mesh.vertexes, [Cos(angle)*currentHeight, Sin(angle)*currentHeight])

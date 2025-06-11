@@ -36,6 +36,11 @@ pub fn Lerp(fixed a, b, t) -> fixed
 pub fn InvLerp(fixed a, b, v) -> fixed 
   => (v-a)/(b-a)
 
+pub fn Remap(fixed a, b, c, d, v) -> fixed {
+    let t = InvLerp(c, d, v)
+    return Lerp(a, b, t)
+}
+
 pub fn Dot(fixed x, y, nX, nY) -> fixed
   => x * nX + y * nY
 

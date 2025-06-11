@@ -1,0 +1,17 @@
+env LaserMesh as Mesh
+
+use Graphix
+
+pub meshes = [
+    struct{
+        vertexes = [],
+        segments = [],
+        colors = [],
+    }
+]
+const THICKNESS = 0.1
+
+// AddLine(Mesh mesh, Vertexes vertexes, Colors colors, bool closeLoop)
+AddLine(meshes[1], [[0,THICKNESS], [1,THICKNESS]], [0xffffffff, 0xffffffff], false)
+AddLine(meshes[1], [[0,0], [1,0]], [0xffffffff, 0xffffffff], false)
+AddLine(meshes[1], [[0,-THICKNESS], [1,-THICKNESS]], [0xffffffff, 0xffffffff], false)

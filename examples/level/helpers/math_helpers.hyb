@@ -1,4 +1,4 @@
-env MathHelper as Shared
+env MathHelpers as Shared
 
 use Math
 
@@ -30,6 +30,11 @@ pub fn Lerp(number a, b, t) -> number {
 
 pub fn InvLerp(number a, b, v) -> number 
     => Wrap((v-a)/(b-a), 0, 1)
+
+pub fn Remap(number a, b, c, d, v) -> number {
+    let t = InvLerp(c, d, v)
+    return Lerp(a, b, t)
+}
 
 enum ParamType {
     Squared,

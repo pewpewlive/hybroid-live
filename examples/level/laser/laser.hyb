@@ -1,0 +1,54 @@
+env Laser as Level
+
+use Pewpew
+use Fmath
+use Globals
+
+const LASER_DURATION = 30f
+
+entity Laser {
+    fixed timer = LASER_DURATION
+    fixed scale
+
+    bool isDead
+
+    spawn(fixed x, y, lookToAngle) {
+        SetEntityMeshAngle(self, lookToAngle, 0f, 0f, 1f)
+        SkipEntityMeshAttributesInterpolation(self)
+        let ly, lx = Sincos(lookToAngle)
+
+        let ax, ay = x, y
+        if lx > 0f {
+            ax = WIDTH-x
+        }
+        if ly > 0f {
+            ay = HEIGHT-y
+        }
+
+        fixed a, b = Fmath:AbsFixed(ax/(lx*5f)), Fmath:AbsFixed(ay/(ly*5f))
+        Print("a: "..ToString(a) .. "b: "..ToString(b))
+        if b <= a {
+            scale = b *5f
+        }else {
+            scale = a *5f
+        }
+        Print("Chose: "..ToString(scale))
+        SetEntityMeshXYZScale(self, scale, 1f, 1f)
+        SetEntityMesh(self, LaserMesh, 0)
+        SpawnEntity(self, 0)
+    }
+
+    destroy() {
+        isDead = true
+        SetEntityUpdateCallback(self, fn(entity id){})
+        DestroyEntity(self)
+    }
+
+    Update() {
+        timer -= 1f
+        //SetEntityMeshXYZScale(self, scale, FmathHelpers:Remap(1f, 0f, LASER_DURATION, 0f, timer), 1f)
+        if timer <= 0f {
+            destroy self()
+        }
+    }
+}

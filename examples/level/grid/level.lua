@@ -14,7 +14,6 @@ end
 
 pewpew.enable_flag(0)
 
-grid.debug = false
 grid.init(18, 18, 50fx, 0fx, 0fx, 0fx)
 
 local level_width, level_height = grid.get_size()

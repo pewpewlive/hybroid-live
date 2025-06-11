@@ -4,41 +4,49 @@ use Pewpew
 use FmathHelpers
 use ShipEntity
 
+enum State {
+  FOLLOWING_PLAYER,
+  PREPARING_DASH,
+  PREPARING_LASER,
+  DEAD
+}
+
+const RING_AMOUNT = 3f
+const RADIUS = 25f
+const PREDICTION_SPEED = 0.65f
+const DASH_PREPARATION_TIME = 25
+const LASER_PREPARATION_TIME = 25
+const SPREAD_MAX = 35d
+const COLLISION_COOLDOWN_MAX = 10
+const HIT_COOLDOWN_MAX = 4
+const COOLDOWN_MAX = 90
+
 pub entity SuperInertiac {
   fixed x, y = 0f, 0f
   fixed velX, velY = 0f, 0f
-  fixed acceleration = 2f
-  fixed dashSpeed = 2f
-
-  number hitCooldownTimer
-
-  number dashCooldown
-  number dashPraparationTimer
-  bool isPreparingDash
-
+  
   number health = 70
 
-  bool canHit
+  number cooldown = COOLDOWN_MAX
+  number collisionCooldown
+  number hitCooldown
+  number preparationTimer
 
-  bool isDead
-  
+  State state = State.FOLLOWING_PLAYER
+
   number frameOffset = 0
   number maxFrames = 60
   list<number> frames
 
-  fixed ringAmount = 3f
   list<entity> rings
-  list<struct{fixed x, y, z}> axes
+  list<struct{fixed x, y}> axes
 
-  fixed predictionSpeed = 0.65f
   entity predictionLine
   fixed pdX, pdY
 
-  number time
-  number reactionTime = 4
-  bool hit
-
-  fixed radius = 25f
+  list<entity> laserIndicators
+  fixed currentSpread = 0d
+  fixed lookToPlayerAngle
 
   spawn(fixed x, fixed y) {
     SpawnEntity(self, 60)
@@ -48,15 +56,22 @@ pub entity SuperInertiac {
 
     //SetEntityColor(self, 0x00ffffff)
     SetEntityMesh(self, SPAnim, 0)
-    SetEntityRadius(self, radius)
+    SetEntityRadius(self, RADIUS)
     
     predictionLine = NewEntity(x, y)
+    SetEntityTag(predictionLine, Grid:ENTITY_TAG)
     SetEntityMesh(predictionLine, SPPredLineMesh, 1)
     SetEntityPositionInterpolation(predictionLine, true)
 
-    Table:Insert(frames, 0)
+    repeat 3 {
+      let laserIndicator = NewEntity(x, y)
+      Table:Insert(laserIndicators, laserIndicator)
+      SetEntityTag(laserIndicator, Grid:ENTITY_TAG)
+      SetEntityPositionInterpolation(laserIndicator, true)
+    }
 
-    repeat from ringAmount to 1f by -1f with i {
+    Table:Insert(frames, 0)
+    repeat from RING_AMOUNT to 1f by -1f with i {
       entity ring = NewEntity(x, y)
       Table:Insert(rings, ring)
       fixed t = InvLerp(4f, 1f, i)
@@ -67,17 +82,12 @@ pub entity SuperInertiac {
       Table:Insert(axes, struct{
         x = Fmath:RandomFixed(-1f, 1f),
         y = Fmath:RandomFixed(-1f, 1f),
-        z = Fmath:RandomFixed(-0.3f, 0.3f)
       })
       Table:Insert(frames, Fmath:RandomNumber(0, 59))
     }
   }
 
   destroy() {
-    isDead = true
-    canHit = false
-    hitCooldownTimer = 999999999
-    
     PlaySound(SPSound, 0, x, y)
     SetEntityWallCollision(self, false, fn(entity _, fixed _, _) {})
     ExplodeEntity(self, 20)
@@ -93,7 +103,7 @@ pub entity SuperInertiac {
   }
 
   WallCollision(fixed normalX, fixed normalY) {
-    if isDead 
+    if IsDead() 
       return 
     
     if !IsEntityAlive(SHIP.id) 
@@ -103,30 +113,22 @@ pub entity SuperInertiac {
   }
   
   PlayerCollision(number playerIndex, entity shipId) {
-    if IsEntityAlive(shipId) and canHit {
+    if IsEntityAlive(shipId) and CanCollide() {
       velX, velY = -velX * 1.5f, -velY * 1.5f
       DamageShip(shipId, 1)
 
-      health = MathHelper:Clamp(health + 10, 0, 70)
+      health = MathHelpers:Clamp(health + 10, 0, 70)
 
       CreateExplosion(x, y, 0x1144aaff, 0.8f, 10)
       CreateExplosion(x, y, 0x330077ff, 0.8f, 10)
       CreateExplosion(x, y, 0x00aaddff, 0.8f, 10)
     }
 
-    canHit = false
-  }
-
-  fn Bounce(entity e, fixed intensity) {
-    if IsEntityAlive(e) {
-      fixed sX, sY = GetEntityPosition(e) 
-      fixed dX, dY = Normalize(x - sX, y - sY)
-      velX, velY += dX * intensity, dY * intensity
-    }
+    collisionCooldown = COLLISION_COOLDOWN_MAX
   }
 
   WeaponCollision(number playerIndex, WeaponType weaponType) -> bool {
-    if isDead 
+    if IsDead() 
       return false
 
     if weaponType == WeaponType.Bullet {
@@ -134,7 +136,7 @@ pub entity SuperInertiac {
       if health > 0 {
         Bounce(SHIP.id, 1.1f)
 
-        hit = true
+        hitCooldown = HIT_COOLDOWN_MAX
         PlaySound(SPSound, 1+health, x, y)
       }
 
@@ -143,95 +145,134 @@ pub entity SuperInertiac {
       CreateExplosion(x, y, 0x00aaddff, 0.8f, 10)
     }
     
-    if health <= 0 {
+    if health <= 0
       destroy self()
-    }
   
     return true
   }
 
   Update() {
-    x, y = GetEntityPosition(self)
-
-    UpdateCooldown()
-  
+    if IsDead()
+      return
+    
     Move()
+    UpdatePredicitonLine()
+    UpdateIndicators()
+    UpdateVisuals()
 
-    x, y = GetEntityPosition(self)
-
-    if !isDead {
-      let entities = GetEntitiesInRadius(x, y, radius)
-      for i, v in entities {
-        if v == self {
-          continue
+    if cooldown > 0 {
+      cooldown -= 1
+    } else if Is(State.FOLLOWING_PLAYER) {
+      match Fmath:RandomNumber(0, 1) {
+        0 => {
+          state = State.PREPARING_DASH
+          preparationTimer = DASH_PREPARATION_TIME
         }
-        if let converted = v is SuperInertiac and IsEntityAlive(v) {
-          if converted.isDead {
-            continue
-          }
-          let x2, y2 = GetEntityPosition(converted)
-          if Length(x2-x, y2-y) < 50f {
-            Bounce(converted, 3f)
-            converted.Bounce(self, 3f)
-            continue
-          }
-          continue
+        1 => {
+          state = State.PREPARING_LASER
+          preparationTimer = LASER_PREPARATION_TIME
         }
-        EntityReactToWeapon(v, struct{ // if quadro is Quadro
-          type = WeaponType.Bullet, // if Pewpew:GetCustomizableEntityType(quadro) == Quadro { } 
-          x = velX,
-          y = velY,
-          player_index = -1
-        })
       }
     }
-    if dashPraparationTimer <= 0 {
-      isPreparingDash = false
-      dashPraparationTimer = 25
-      Dash()
-    }
 
-    UpdatePredicitonLine()
-    UpdateVisuals()
+    if preparationTimer > 0 {
+      preparationTimer -= 1
+      match state {
+        State.PREPARING_LASER => {
+          if preparationTimer == LASER_PREPARATION_TIME-1 {
+            for _, v in laserIndicators {
+              SetEntityMesh(v, SPPredLineMesh, 0)
+            }
+          }
+          if preparationTimer > 0
+            break
+
+          state = State.FOLLOWING_PLAYER
+          cooldown = COOLDOWN_MAX
+          for i, v in laserIndicators {
+            SetEntityMesh(v, SPPredLineMesh, 1)
+            spawn Laser:Laser(x, y, lookToPlayerAngle+currentSpread*Fmath:ToFixed(i-2))
+          }
+          currentSpread = 0d
+        }
+        State.PREPARING_DASH => {
+          SetEntityMesh(predictionLine, SPPredLineMesh, 0)
+          preparationTimer -= 1
+
+          if preparationTimer > 0
+            break
+            
+          state = State.FOLLOWING_PLAYER
+          SetEntityMesh(predictionLine, SPPredLineMesh, 1)
+          cooldown = COOLDOWN_MAX
+          Dash()
+        }
+      }
+    }
+    
+    if !CanCollide() 
+      collisionCooldown -= 1
+
+    x, y = GetEntityPosition(self)
+    let entities = GetEntitiesInRadius(x, y, RADIUS)
+    for i, v in entities {
+      if v == self {
+        continue
+      }
+      if let converted = v is SuperInertiac and IsEntityAlive(v) {
+        if converted.IsDead() {
+          continue
+        }
+        let x2, y2 = GetEntityPosition(converted)
+        if Length(x2-x, y2-y) < 50f {
+          Bounce(converted, 3f)
+          converted.Bounce(self, 3f)
+        }
+        continue
+      }
+      EntityReactToWeapon(v, struct{ // if quadro is Quadro
+        type = WeaponType.Bullet, // if GetCustomizableEntityType(quadro) == Quadro { } 
+        x = velX,
+        y = velY,
+        player_index = -1
+      })
+    }
   }
 
-  fn Move() {
-    fixed length = 1f
+  fn CanCollide() -> bool => collisionCooldown <= 0
+  fn IsHit() -> bool => hitCooldown > 0
+  fn IsDead() -> bool => state == State.DEAD
+  fn Is(State state) -> bool => self.state == state
 
-    if !isDead and IsEntityAlive(SHIP.id) and !isPreparingDash {
+  fn Move() {
+    if Is(State.FOLLOWING_PLAYER) and IsEntityAlive(SHIP.id) {
       fixed sX, sY = GetEntityPosition(SHIP.id) 
       fixed dX, dY = Normalize(sX - x, sY - y)
 
       velX += dX * 1.7f
       velY += dY * 1.7f
       velX, velY *= 0.95f, 0.95f
-    } else if isDead or !IsEntityAlive(SHIP.id) or isPreparingDash {
+    } else if !Is(State.FOLLOWING_PLAYER) or !IsEntityAlive(SHIP.id)  {
       velX, velY *= 0.80f, 0.80f
     }
 
     x, y += velX, velY
     SetEntityPosition(self, x, y)
     for i in rings {
-        fixed r1x, r1y = GetEntityPosition(rings[i])
-        fixed fixedI = Fmath:ToFixed(i)
-        //Print(fixedI)
-        fixed fixedT = Lerp(0.2f, 1f, InvLerp(1f, 3f, fixedI))
-        if fixedT < 0.5f {
-          //fixedT = Fmath:Sqrt(fixedT)
-        }else {
-          fixedT *= fixedT
-        }
-        SetEntityPosition(rings[i], Lerp(r1x, x, fixedT), Lerp(r1y, y, fixedT))
+      fixed rx, ry = GetEntityPosition(rings[i])
+      //Print(fixedI)
+      fixed t = Lerp(0.2f, 1f, InvLerp(1f, 3f, Fmath:ToFixed(i)))
+      if t < 0.5f {
+        //fixedT = Fmath:Sqrt(fixedT)
+      } else {
+        t *= t
       }
-    if !isDead {
-      SetEntityPosition(predictionLine, x, y)
+      SetEntityPosition(rings[i], Lerp(rx, x, t), Lerp(ry, y, t))
     }
   }
 
   fn Dash() {
-    //fixed pDY, pDX = GetPlayerMovementPrediction()
-
-    if isDead or !IsEntityAlive(SHIP.id) 
+    if IsDead() or !IsEntityAlive(SHIP.id) 
       return 
 
     velX = pdX * 40f
@@ -243,66 +284,63 @@ pub entity SuperInertiac {
     CreateExplosion(x, y, 0x0044aaff, 1f, 20)
   }
 
-  fn UpdateCooldown() {
-    if !canHit 
-      hitCooldownTimer -= 1
-    
-    if hitCooldownTimer <= 0 and !canHit {
-      hitCooldownTimer = 10
-      canHit = true
+  fn UpdateIndicators() {
+    for i, v in laserIndicators {
+      SetEntityPosition(v, x, y)
+      SetEntityMeshAngle(v, lookToPlayerAngle+currentSpread*Fmath:ToFixed(i-2), 0f, 0f, 1f)
+      if Is(State.PREPARING_LASER) {
+        continue
+      }
+      if IsEntityAlive(SHIP.id) {
+        let px, py = GetEntityPosition(SHIP.id)
+        lookToPlayerAngle = Fmath:Atan2(py-y, px-x)
+      }
     }
-
-    if !isPreparingDash
-      dashCooldown -= 1
-
-    if dashCooldown <= 0 and !isPreparingDash {
-      isPreparingDash = true
-      dashCooldown = 90
+    if Is(State.PREPARING_LASER) {
+      currentSpread = FmathHelpers:Lerp(currentSpread, SPREAD_MAX, 0.2f)
     }
+  }
 
-    if isPreparingDash and !isDead {
-      SetEntityMesh(predictionLine, SPPredLineMesh, 0)
-      dashPraparationTimer -= 1
+  fn Bounce(entity e, fixed intensity) {
+    if IsEntityAlive(e) {
+      fixed sX, sY = GetEntityPosition(e)
+      fixed dX, dY = Normalize(x - sX, y - sY)
+      velX, velY += dX * intensity, dY * intensity
     }
   }
 
   fn UpdateVisuals() {
-    if hit {
+    if IsHit() {
       frameOffset = 60
-      time += 1
-      if time >= reactionTime {
-        hit = false
-        time = 0
+      hitCooldown -= 1
+      if hitCooldown <= 0 {
         frameOffset = 0
       }
     }
 
     fixed magnitude = Length(velX, velY) * 0.02f
 
-    // if magnitude == 0f 
-    //   return
-
     AddRotationToEntityMesh(self, magnitude*magnitude + 0.1f, Fmath:RandomFixed(0f, 1f), Fmath:RandomFixed(0f, 1f), 0f)
     
-    if !isDead {
+    if !IsDead() {
       frames[1] += 1 
-      frames[1] = MathHelper:Wrap(frames[1], 0, 59)
+      frames[1] = MathHelpers:Wrap(frames[1], 0, 59)
     }
     
-    SetEntityFlippingMeshes(self, SPAnim, frames[1] % maxFrames + frameOffset, MathHelper:Wrap(frames[1] % maxFrames + 1 + frameOffset, frameOffset, 59+frameOffset))
+    SetEntityFlippingMeshes(self, SPAnim, frames[1] % maxFrames + frameOffset, MathHelpers:Wrap(frames[1] % maxFrames + 1 + frameOffset, frameOffset, 59+frameOffset))
     for i in rings {
-      SetEntityFlippingMeshes(rings[i], SPAnim, frames[i+1] % maxFrames + frameOffset, MathHelper:Wrap(frames[i+1] % maxFrames + 1 + frameOffset, frameOffset, 59+frameOffset))
+      SetEntityFlippingMeshes(rings[i], SPAnim, frames[i+1] % maxFrames + frameOffset, MathHelpers:Wrap(frames[i+1] % maxFrames + 1 + frameOffset, frameOffset, 59+frameOffset))
       AddRotationToEntityMesh(rings[i], magnitude*magnitude + 0.1f, axes[i].x, axes[i].y, 0f)
-      if !isDead {
+      if !IsDead() {
         frames[i+1] += 1
-        frames[1] = MathHelper:Wrap(frames[1], 0, 59)
+        frames[1] = MathHelpers:Wrap(frames[1], 0, 59)
       }
     }
   }
 
   fn UpdatePredicitonLine() {
     //fixed pDY, pDX = GetPlayerMovementPrediction()
-    if isDead or !IsEntityAlive(SHIP.id) 
+    if IsDead() or !IsEntityAlive(SHIP.id) 
       return 
 
     fixed sX, sY = GetEntityPosition(SHIP.id)
@@ -315,9 +353,10 @@ pub entity SuperInertiac {
     predMovX, predMovY = -predMovX, -predMovY
 
     fixed pDX, pDY = Normalize((dX - predMovX - velX), (dY - predMovY - velY)) 
-    pdX = Lerp(pdX, pDX, predictionSpeed)
-    pdY = Lerp(pdY, pDY, predictionSpeed)
+    pdX = Lerp(pdX, pDX, PREDICTION_SPEED)
+    pdY = Lerp(pdY, pDY, PREDICTION_SPEED)
 
     SetEntityMeshAngle(predictionLine, Fmath:Atan2(pdY, pdX), 0f, 0f, 1f)
+    SetEntityPosition(predictionLine, x, y)
   }
 }

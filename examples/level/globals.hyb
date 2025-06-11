@@ -1,0 +1,5 @@
+env Globals as Shared
+
+pub const WIDTH, HEIGHT = 1000f, 1000f
+pub const CELLCOUNT = 15
+pub const CELLSIZE = WIDTH/Fmath:ToFixed(CELLCOUNT)

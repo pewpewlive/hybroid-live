@@ -3,29 +3,38 @@ env Utils as Level
 use Fmath
 use Pewpew
 
+const POWER_MAX = 10f
+
 // Should be created only once 
 pub class Camera {
   fixed x, y, z // Offset values
-  fixed shipX, shipY 
 
   // Camera shake
-  fixed shakePower = 10f
+  fixed shakePower = POWER_MAX
   fixed shakeDecay = 0.5f
 
   new() {}
 
-  fn Update() {
-    Shake()
+  fn Update(entity id) {
+    Shake(id)
   }
 
-  fn Shake() {
+  fn ResetShake() {
+    shakePower = POWER_MAX
+  }
+
+  fn Shake(entity id) {
     x = RandomFixed(-shakePower, shakePower)
+    y = RandomFixed(-shakePower, shakePower)
+    if Pewpew:IsEntityAlive(id) {
+      let shipX, shipY = Pewpew:GetEntityPosition(id)
 
-    ConfigurePlayer(0, struct{
-      camera_x_override = shipX + x,
-      camera_y_override = shipY + y
-    })
-
-    shakePower *= shakeDecay
+      ConfigurePlayer(0, struct{
+        camera_x_override = shipX + x,
+        camera_y_override = shipY + y
+      })
+      
+      shakePower *= shakeDecay
+    }
   }
 }

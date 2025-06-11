@@ -1,37 +1,52 @@
 env Main as Level
 
 use Pewpew
+use ShipEntity
 use SuperInertiacEntity
+use Globals
 
-const WIDTH, HEIGHT = 1000f, 1000f
-SetLevelSize(WIDTH, 1000f)
+SetLevelSize(WIDTH, HEIGHT)
 
 let playerConfig = struct{
-  shield = 5, camera_distance = -50f
+  shield = 5, camera_distance = -150f
 }
 ConfigurePlayer(0, playerConfig)
 
-//SetShipSpeed(Ship, 1f, 1f, -1)
-
-let bg = NewEntity(0f, 0f)
-SetEntityMesh(bg, MapMesh, 0)
-
+// let bg = NewEntity(0f, 0f)
+// SetEntityMesh(bg, MapMesh, 0)
 spawn SuperInertiac(0f, 0f)
 spawn SuperInertiac(500f, 0f)
 
 //AddWall(750f, 250f, 500f, 500f)
 
-enum thing { // E_thing
-  Freq15
-}
+let grid = new Grid:Grid(CELLCOUNT+1, CELLCOUNT+1, CELLSIZE, 0f, 0f, 0f)
+
+grid.SetColors(0x4445FF11, 0xFF221055)
+grid.CreateLineGrid()
 
 tick with time {
-  let a = fn(Pewpew:CannonFreq a) {
-    let b = thing.Freq15
-  }
-
   if GetPlayerConfig(0).has_lost == true {
     StopGame()
+  }
+  let entities = GetAllEntities()
+  for i, v in entities {
+    let entityType = GetEntityType(v)
+    if v == SHIP.id or (entityType == EntityType.CustomizableEntity and GetEntityTag(v) == Grid:ENTITY_TAG) {
+      continue
+    }
+    let ex, ey = GetEntityPosition(v)
+    match entityType {
+      EntityType.CustomizableEntity => {
+        grid.Pulse(ex, ey, -10f, 50f)
+      }
+      EntityType.PlayerBullet => {
+        grid.Pulse(ex, ey, 15f, 70f)
+      }
+    }
+  }
+  if IsEntityAlive(SHIP.id) {
+    let px, py = GetEntityPosition(SHIP.id)
+    grid.Pulse(px, py, 30f, 250f)
   }
   if time % 30 == 0 {
     //Print(ToString(playerConfig))

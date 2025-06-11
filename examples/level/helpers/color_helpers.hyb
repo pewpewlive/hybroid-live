@@ -14,7 +14,7 @@ pub fn MakeColor(number r, g, b, a) -> number {
     return color
 }
 
-fn Lerp(number a, b, fixed, t) -> number {
+fn Lerp(number a, b, fixed t) -> number {
     fixed a2, b2 = Fmath:ToFixed(a), Fmath:ToFixed(b)
     return Fmath:ToNumber(a2 + (b2 - a2) * t)
 }

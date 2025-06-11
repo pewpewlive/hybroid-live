@@ -23,17 +23,14 @@ pub entity Ship {
     })
   }
 
-  destroy() {
-
-  }
+  destroy() {}
 
   Update() {
     if !IsEntityAlive(id) {
       return
     }
-    cam.shipX, cam.shipY = GetEntityPosition(id) 
-    cam.Update()
+    cam.Update(id)
   }
 }
 
-pub Ship SHIP = spawn Ship(300fx, 300fx)
+pub Ship SHIP = spawn Ship(Globals:WIDTH / 2f, Globals:HEIGHT / 2f)
