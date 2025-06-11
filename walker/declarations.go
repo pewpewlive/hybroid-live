@@ -183,7 +183,7 @@ func (w *Walker) entityDeclaration(node *ast.EntityDecl, scope *Scope) {
 
 func (w *Walker) entityFunctionDeclaration(node *ast.EntityFunctionDecl, scope *Scope) *FunctionVal {
 	ft := &FuncTag{
-		Returns: make([]bool, 0),
+		Return: false,
 	}
 	fnScope := NewScope(scope, ft, ReturnAllowing)
 	ft.Generics = w.getGenericParams(node.Generics, scope)
@@ -195,12 +195,21 @@ func (w *Walker) entityFunctionDeclaration(node *ast.EntityFunctionDecl, scope *
 		WithParams(params...).
 		WithReturns(ft.ReturnTypes...)
 
-	w.walkFuncBody(node, &node.Body, ft, fnScope)
-
 	switch node.Type {
 	case ast.Spawn:
 		if len(params) < 2 || !(params[0].GetType() == Fixed && params[1].GetType() == Fixed) {
 			w.AlertSingle(&alerts.InvalidSpawnerParameters{}, node.GetToken())
+			break
+		}
+		if node.Params[0].Name.Lexeme == "_" {
+			w.AlertSingle(&alerts.EmptyIdentifierOnSpawnParameters{}, node.Params[0].Name)
+		} else {
+			fnScope.Variables["x"].IsUsed = true // its used regardless of user input in the generator (to create the customizable entity)
+		}
+		if node.Params[1].Name.Lexeme == "_" {
+			w.AlertSingle(&alerts.EmptyIdentifierOnSpawnParameters{}, node.Params[1].Name)
+		} else {
+			fnScope.Variables["y"].IsUsed = true // its used regardless of user input in the generator (to create the customizable entity)
 		}
 	case ast.WallCollision:
 		if !funcSign.Equals(WallCollisionSign) {
@@ -215,6 +224,8 @@ func (w *Walker) entityFunctionDeclaration(node *ast.EntityFunctionDecl, scope *
 			w.AlertSingle(&alerts.InvalidEntityFunctionSignature{}, node.GetToken(), funcSign, WeaponCollisionSign, node.Type)
 		}
 	}
+
+	w.walkFuncBody(node, &node.Body, ft, fnScope)
 
 	return NewFunction(params...).WithGenerics(ft.Generics...).WithReturns(ft.ReturnTypes...)
 }
@@ -268,7 +279,7 @@ func (w *Walker) methodDeclaration(node *ast.MethodDecl, container MethodContain
 		}
 		fn := variable.Value.(*FunctionVal)
 		fnTag := &FuncTag{
-			Returns:     make([]bool, 0),
+			Return:      false,
 			ReturnTypes: fn.Returns,
 			Generics:    fn.Generics,
 		}
@@ -306,7 +317,7 @@ func (w *Walker) methodDeclaration(node *ast.MethodDecl, container MethodContain
 
 func (w *Walker) functionDeclaration(node *ast.FunctionDecl, scope *Scope, procType ProcedureType) *VariableVal {
 	ft := &FuncTag{
-		Returns: make([]bool, 0),
+		Return: false,
 	}
 	fnScope := NewScope(scope, ft, ReturnAllowing)
 	ft.Generics = w.getGenericParams(node.Generics, scope)

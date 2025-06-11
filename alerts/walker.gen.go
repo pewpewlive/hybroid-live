@@ -1942,3 +1942,28 @@ func (uv *UnusedVariable) ID() string {
 func (uv *UnusedVariable) AlertType() Type {
 	return Warning
 }
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type EmptyIdentifierOnSpawnParameters struct {
+	Specifier Snippet
+}
+
+func (eiosp *EmptyIdentifierOnSpawnParameters) Message() string {
+	return "cannot use an empty identifier ('_') for the first two spawn parameters"
+}
+
+func (eiosp *EmptyIdentifierOnSpawnParameters) SnippetSpecifier() Snippet {
+	return eiosp.Specifier
+}
+
+func (eiosp *EmptyIdentifierOnSpawnParameters) Note() string {
+	return ""
+}
+
+func (eiosp *EmptyIdentifierOnSpawnParameters) ID() string {
+	return "hyb075W"
+}
+
+func (eiosp *EmptyIdentifierOnSpawnParameters) AlertType() Type {
+	return Error
+}

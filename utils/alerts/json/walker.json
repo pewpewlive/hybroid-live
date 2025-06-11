@@ -620,5 +620,10 @@
     "name": "UnusedVariable",
     "type": "Warning",
     "message": "variable is not used"
+  },
+  {
+    "name": "EmptyIdentifierOnSpawnParameters",
+    "type": "Error",
+    "message": "cannot use an empty identifier ('_') for the first two spawn parameters"
   }
 ]

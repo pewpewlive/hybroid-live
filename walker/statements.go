@@ -11,12 +11,7 @@ import (
 func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 	w.context.EntityCasts.Clear()
 
-	length := len(node.Elseifs) + 2
-	mpt := NewMultiPathTag(length, scope.Attributes...)
-
 	w.ifCondition(&node.BoolExpr, scope)
-	multiPathScope := NewScope(scope, mpt)
-	ifScope := NewScope(multiPathScope, &UntaggedTag{})
 
 	for w.context.EntityCasts.Count() != 0 {
 		cast := w.context.EntityCasts.Pop()
@@ -27,11 +22,16 @@ func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 		})
 	}
 
-	w.walkBody(&node.Body, mpt, ifScope)
+	pt := NewPathTag(scope.Attributes...)
+	ifScope := NewScope(scope, pt)
 
+	w.walkBody(&node.Body, pt, ifScope)
+
+	prevPathTag := *pt
 	for i := range node.Elseifs {
 		w.ifCondition(&node.Elseifs[i].BoolExpr, scope)
-		ifScope := NewScope(multiPathScope, &UntaggedTag{})
+		pt := NewPathTag(scope.Attributes...)
+		ifScope := NewScope(scope, pt)
 		for w.context.EntityCasts.Count() != 0 {
 			cast := w.context.EntityCasts.Pop()
 			w.declareVariable(scope, &VariableVal{
@@ -40,15 +40,20 @@ func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 				IsInit: true,
 			})
 		}
-		w.walkBody(&node.Elseifs[i].Body, mpt, ifScope)
+		w.walkBody(&node.Elseifs[i].Body, pt, ifScope)
+		prevPathTag.SetAllExitAND(pt)
 	}
 
 	if node.Else != nil {
-		elseScope := NewScope(multiPathScope, &UntaggedTag{})
-		w.walkBody(&node.Else.Body, mpt, elseScope)
+		pt := NewPathTag(scope.Attributes...)
+		elseScope := NewScope(scope, pt)
+		w.walkBody(&node.Else.Body, pt, elseScope)
+		prevPathTag.SetAllExitAND(pt)
+	} else {
+		prevPathTag.SetAllFalse()
 	}
 
-	w.reportExits(mpt, scope)
+	w.reportExits(&prevPathTag, scope)
 }
 
 // Rewrote
@@ -143,8 +148,8 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 }
 
 func (w *Walker) repeatStatement(node *ast.RepeatStmt, scope *Scope) {
-	repeatScope := NewScope(scope, &MultiPathTag{}, BreakAllowing, ContinueAllowing)
-	lt := NewMultiPathTag(1, repeatScope.Attributes...)
+	repeatScope := NewScope(scope, &PathTag{}, BreakAllowing, ContinueAllowing)
+	lt := NewPathTag(repeatScope.Attributes...)
 	repeatScope.Tag = lt
 
 	end := w.GetActualNodeValue(&node.Iterator, scope)
@@ -190,8 +195,8 @@ func (w *Walker) repeatStatement(node *ast.RepeatStmt, scope *Scope) {
 }
 
 func (w *Walker) whileStatement(node *ast.WhileStmt, scope *Scope) {
-	whileScope := NewScope(scope, &MultiPathTag{}, BreakAllowing, ContinueAllowing)
-	lt := NewMultiPathTag(1, whileScope.Attributes...)
+	whileScope := NewScope(scope, &PathTag{}, BreakAllowing, ContinueAllowing)
+	lt := NewPathTag(whileScope.Attributes...)
 	whileScope.Tag = lt
 	w.GetNodeValue(&node.Condition, scope)
 
@@ -200,8 +205,8 @@ func (w *Walker) whileStatement(node *ast.WhileStmt, scope *Scope) {
 }
 
 func (w *Walker) forStatement(node *ast.ForStmt, scope *Scope) {
-	forScope := NewScope(scope, &MultiPathTag{}, BreakAllowing, ContinueAllowing)
-	lt := NewMultiPathTag(1, forScope.Attributes...)
+	forScope := NewScope(scope, &PathTag{}, BreakAllowing, ContinueAllowing)
+	lt := NewPathTag(forScope.Attributes...)
 	forScope.Tag = lt
 
 	valType := w.GetActualNodeValue(&node.Iterator, scope).GetType()
@@ -236,8 +241,8 @@ func (w *Walker) forStatement(node *ast.ForStmt, scope *Scope) {
 }
 
 func (w *Walker) tickStatement(node *ast.TickStmt, scope *Scope) {
-	tickScope := NewScope(scope, &MultiPathTag{}, ReturnAllowing)
-	tt := NewMultiPathTag(1, tickScope.Attributes...)
+	tickScope := NewScope(scope, &PathTag{}, ReturnAllowing)
+	tt := NewPathTag(tickScope.Attributes...)
 	tickScope.Tag = tt
 
 	if node.Variable != nil {
@@ -253,20 +258,23 @@ func (w *Walker) matchStatement(node *ast.MatchStmt, scope *Scope) {
 	valType := val.GetType()
 	casesLength := len(node.Cases)
 	if !node.HasDefault {
-		casesLength++
 		if casesLength < 1 {
 			w.AlertSingle(&alerts.InsufficientCases{}, node.Token)
 		}
 	} else if casesLength < 2 {
 		w.AlertSingle(&alerts.InsufficientCases{}, node.Token)
 	}
-	mpt := NewMultiPathTag(casesLength, scope.Attributes...)
-	multiPathScope := NewScope(scope, mpt, BreakAllowing)
 
+	var prevPathTag PathTag
 	for i := range node.Cases {
-		caseScope := NewScope(multiPathScope, &UntaggedTag{})
-
-		w.walkBody(&node.Cases[i].Body, mpt, caseScope)
+		pt := NewPathTag(scope.Attributes...)
+		caseScope := NewScope(scope, pt, BreakAllowing)
+		w.walkBody(&node.Cases[i].Body, pt, caseScope)
+		if i != 0 {
+			prevPathTag.SetAllExitAND(pt)
+		} else {
+			prevPathTag = *pt
+		}
 
 		if node.Cases[i].Expressions[0].GetToken().Lexeme == "else" {
 			if i != len(node.Cases)-1 {
@@ -285,14 +293,17 @@ func (w *Walker) matchStatement(node *ast.MatchStmt, scope *Scope) {
 			}
 		}
 	}
-	w.reportExits(mpt, scope)
+	if !node.HasDefault {
+		prevPathTag.SetAllFalse()
+	}
+	w.reportExits(&prevPathTag, scope)
 }
 
 func (w *Walker) breakStatement(node *ast.BreakStmt, scope *Scope) {
 	if !scope.Is(BreakAllowing) {
 		w.AlertSingle(&alerts.InvalidUseOfExitStmt{}, node.Token,
 			"break",
-			"for loops",
+			"for loops or match statement",
 		)
 	}
 

@@ -1,11 +1,11 @@
 env Test as Level
 
-let a = 1fx
-fixed b = 0.1f
-const c = 0.1r
-pub d = 0.1d
-let e, f, g = fn() -> (number, number) { return 2, 3 }, 0o234567, 0xffffaaff
-let h, i, j = e(), true
+let _ = 1fx
+fixed _ = 0.1f
+const _ = 0.1r
+pub _ = 0.1d
+let e, _, _ = fn() -> (number, number) { return 2, 3 }, 0o234567, 0xffffaaff
+let _, _, _ = e(), true
 
 entity Entity<A> {
     let o = fn() {}
@@ -24,7 +24,7 @@ entity Entity<A> {
 
     let o2 = 2
 
-    destroy(number param) {
+    destroy(number _) {
 
     }
 }
@@ -44,4 +44,4 @@ let po = {"thing" = l}
 po["thing"][2].o()
 po["thing"][2].method1()
 
-let m = ToString(2)
+let _ = ToString(2)

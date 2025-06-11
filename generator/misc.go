@@ -3,6 +3,7 @@ package generator
 import (
 	"fmt"
 	"hybroid/ast"
+	"hybroid/core"
 	"math"
 	"strconv"
 )
@@ -12,9 +13,9 @@ func (gen *Generator) GenerateParams(params []ast.FunctionParam) {
 	for i, param := range params {
 		if param.Type.IsVariadic {
 			gen.Write("...")
-			variadicParam = gen.WriteVar(param.Name.Lexeme)
+			variadicParam = gen.GenerateExpr(&ast.IdentifierExpr{Name: param.Name})
 		} else {
-			gen.Write(gen.WriteVar(param.Name.Lexeme))
+			gen.Write(gen.GenerateExpr(&ast.IdentifierExpr{Name: param.Name}))
 		}
 		if i != len(params)-1 {
 			gen.Write(", ")
@@ -25,6 +26,20 @@ func (gen *Generator) GenerateParams(params []ast.FunctionParam) {
 	if variadicParam != "" {
 		gen.Twrite("local ", variadicParam, " = {...}\n")
 	}
+}
+
+func (gen *Generator) GenerateArgs(args []ast.Node) string {
+	src := core.StringBuilder{}
+
+	for i, arg := range args {
+		src.Write(gen.GenerateExpr(arg))
+		if i != len(args)-1 {
+			src.Write(", ")
+		}
+	}
+	src.Write(")")
+
+	return src.String()
 }
 
 func (gen *Generator) breakDownAssignStmt(stmt ast.AssignmentStmt) []ast.AssignmentStmt {

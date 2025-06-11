@@ -76,7 +76,7 @@ func (gen *Generator) identifierExpr(node ast.IdentifierExpr) string {
 	if gen.env == ast.SoundEnv && node.Name.Lexeme == "sounds" {
 		return "sounds"
 	}
-	if node.Type == ast.Raw {
+	if node.Type == ast.Raw || node.Name.Lexeme == "_" {
 		return node.Name.Lexeme
 	}
 	return gen.WriteVar(node.Name.Lexeme)
@@ -112,20 +112,6 @@ func (gen *Generator) callExpr(node ast.CallExpr, tabbed bool) string {
 		src.Write(fn, "(")
 	}
 	src.Write(gen.GenerateArgs(node.Args))
-
-	return src.String()
-}
-
-func (gen *Generator) GenerateArgs(args []ast.Node) string {
-	src := core.StringBuilder{}
-
-	for i, arg := range args {
-		src.Write(gen.GenerateExpr(arg))
-		if i != len(args)-1 {
-			src.Write(", ")
-		}
-	}
-	src.Write(")")
 
 	return src.String()
 }

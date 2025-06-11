@@ -31,23 +31,18 @@ local function E_thing2(E_data)
 	end
 
 	for E_i, E_v in ipairs(E_a) do
-
 		if E_a[E_i] >= 6 and E_v < 9 then
-
-			if E_data["booleans"][1] == true then
-
+			local H1 = E_data["booleans"][1]
+			if H1 == true then
 				return 9, E_b
-			elseif E_data["booleans"][1] == false then
-
+			elseif H1 == false then
 				return 0, E_b
 			else
-
 				goto GL_
 			end
-
+			::GL0::
 		end
-
-	::GL_::
+		::GL_::
 	end
 
 	return 0, function ()

@@ -50,7 +50,6 @@ func (w *Walker) matchExpression(node *ast.MatchExpr, scope *Scope) Value {
 	casesLength := len(cases)
 	if !matchStmt.HasDefault {
 		w.AlertSingle(&alerts.DefaultCaseMissing{}, matchStmt.Token)
-		casesLength++
 		if casesLength < 1 {
 			w.AlertSingle(&alerts.InsufficientCases{}, matchStmt.Token)
 		}
@@ -58,15 +57,19 @@ func (w *Walker) matchExpression(node *ast.MatchExpr, scope *Scope) Value {
 		w.AlertSingle(&alerts.InsufficientCases{}, matchStmt.Token)
 	}
 	matchScope := NewScope(scope, &MatchExprTag{YieldTypes: make([]Type, 0)}, YieldAllowing)
-	mpt := NewMultiPathTag(casesLength, YieldAllowing)
-
 	valToMatch := w.GetActualNodeValue(&matchStmt.ExprToMatch, scope)
 	valType := valToMatch.GetType()
 
+	var prevPathTag PathTag
 	for i := range cases {
-		caseScope := NewScope(matchScope, mpt)
-
-		w.walkBody(&matchStmt.Cases[i].Body, mpt, caseScope)
+		pt := NewPathTag(append(scope.Attributes, YieldAllowing)...)
+		caseScope := NewScope(matchScope, pt)
+		w.walkBody(&matchStmt.Cases[i].Body, pt, caseScope)
+		if i != 0 {
+			prevPathTag.SetAllExitAND(pt)
+		} else {
+			prevPathTag = *pt
+		}
 
 		if matchStmt.Cases[i].Expressions[0].GetToken().Lexeme == "else" {
 			if i != len(matchStmt.Cases)-1 {
@@ -85,15 +88,17 @@ func (w *Walker) matchExpression(node *ast.MatchExpr, scope *Scope) Value {
 			}
 		}
 	}
+	if !matchStmt.HasDefault {
+		prevPathTag.SetAllFalse()
+	}
 
-	if !mpt.GetIfExits(Yield) {
+	if !prevPathTag.GetIfExits(Yield) {
 		w.AlertMulti(&alerts.NotAllCodePathsExit{},
 			cases[0].Expressions[0].GetToken(),
 			cases[len(cases)-1].Expressions[0].GetToken(),
 			"yield",
 		)
 	}
-
 	yieldTypes := matchScope.Tag.(*MatchExprTag).YieldTypes
 	node.ReturnAmount = len(yieldTypes)
 

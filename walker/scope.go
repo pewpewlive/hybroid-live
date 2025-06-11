@@ -41,7 +41,7 @@ const (
 	Class
 	Entity
 	Func
-	MultiPath
+	NormalPath
 	MatchExpr
 )
 
@@ -88,7 +88,7 @@ func (et *EntityTag) GetType() ScopeTagType {
 }
 
 type FuncTag struct {
-	Returns     []bool
+	Return      bool
 	ReturnTypes []Type
 
 	Generics []*GenericType
@@ -102,28 +102,17 @@ func (ft *FuncTag) SetExit(state bool, etype ExitType) {
 	if etype != Return && etype != All {
 		return
 	}
-	ft.Returns = append(ft.Returns, state)
+	if state {
+		ft.Return = true
+	}
 }
 
 func (ft *FuncTag) GetIfExits(et ExitType) bool {
-	if et != Return && et != All {
-		return false
-	}
-	if len(ft.Returns) == 0 {
-		return false
-	}
-
-	for _, v := range ft.Returns {
-		if v {
-			return true
-		}
-	}
-
-	return false
+	return ft.Return
 }
 
 type MatchExprTag struct {
-	Mpt        *MultiPathTag
+	Mpt        *PathTag
 	YieldTypes []Type
 }
 
@@ -139,60 +128,60 @@ func (met *MatchExprTag) GetIfExits(et ExitType) bool {
 	return met.Mpt.GetIfExits(et)
 }
 
-type MultiPathTag struct {
-	Exits map[ExitType][]bool
+type PathTag struct {
+	Exits map[ExitType]bool
 }
 
-func (mpt *MultiPathTag) GetType() ScopeTagType {
-	return MultiPath
+func (mpt *PathTag) GetType() ScopeTagType {
+	return NormalPath
 }
 
-func (mpt *MultiPathTag) SetExit(state bool, typ ExitType) {
+func (mpt *PathTag) SetAllFalse() {
+	for typ := range mpt.Exits {
+		mpt.Exits[typ] = false
+	}
+}
+
+func (mpt *PathTag) SetExit(state bool, typ ExitType) {
 	if _, found := mpt.Exits[typ]; !found {
 		return
 	}
-	for i := range mpt.Exits[typ] {
-		if !mpt.Exits[typ][i] {
-			mpt.Exits[typ][i] = state
-			break
-		}
+	if !mpt.Exits[typ] {
+		mpt.Exits[typ] = state
 	}
 }
 
-func (mpt *MultiPathTag) GetIfExits(et ExitType) bool {
-	exits := mpt.Exits[et]
-
-	if len(exits) == 0 {
-		return false
-	}
-
-	for _, v := range exits {
-		if !v {
-			return false
+func (mpt *PathTag) SetAllExitAND(other *PathTag) {
+	for typ := range mpt.Exits {
+		if _, found := other.Exits[typ]; !found {
+			continue
 		}
+		mpt.Exits[typ] = mpt.Exits[typ] && other.Exits[typ]
 	}
-
-	return true
 }
 
-func NewMultiPathTag(requirement int, attrs ...ScopeAttribute) *MultiPathTag {
-	exits := map[ExitType][]bool{
-		All: make([]bool, requirement),
+func (mpt *PathTag) GetIfExits(et ExitType) bool {
+	return mpt.Exits[et]
+}
+
+func NewPathTag(attrs ...ScopeAttribute) *PathTag {
+	exits := map[ExitType]bool{
+		All: false,
 	}
 	for _, v := range attrs {
 		switch v {
 		case YieldAllowing:
-			exits[Yield] = make([]bool, requirement)
+			exits[Yield] = false
 		case BreakAllowing:
-			exits[Break] = make([]bool, requirement)
+			exits[Break] = false
 		case ContinueAllowing:
-			exits[Continue] = make([]bool, requirement)
+			exits[Continue] = false
 		case ReturnAllowing:
-			exits[Return] = make([]bool, requirement)
+			exits[Return] = false
 		}
 	}
 
-	return &MultiPathTag{Exits: exits}
+	return &PathTag{Exits: exits}
 }
 
 type ScopeAttribute int

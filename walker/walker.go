@@ -331,20 +331,11 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 
 	return val
 }
-
-func (w *Walker) IsExitNode(nodeType ast.NodeType) bool {
-	return nodeType == ast.BreakStatement || nodeType == ast.ContinueStatement || nodeType == ast.ReturnStatement || nodeType == ast.YieldStatement
-}
-
 func (w *Walker) walkBody(body *ast.Body, tag ExitableTag, scope *Scope) {
 	endIndex := -1
 	bodySlice := *body
 	for i := range bodySlice {
-		var prevNodeType ast.NodeType = ast.NA
-		if i != 0 {
-			prevNodeType = bodySlice[i-1].GetType()
-		}
-		if tag.GetIfExits(All) || (w.IsExitNode(prevNodeType)) {
+		if tag.GetIfExits(All) {
 			w.AlertMulti(&alerts.UnreachableCode{}, bodySlice[i].GetToken(), bodySlice[body.Size()-1].GetToken())
 			endIndex = i
 			break
