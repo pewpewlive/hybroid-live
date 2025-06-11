@@ -1,12 +1,14 @@
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 package mapping
 
-var FmathFunctions = map[string]string{
+// AUTO-GENERATED VARIABLES, DO NOT MANUALLY MODIFY!
+var FmathVariables = map[string]string{
+	"RandomNumber": "random_int",
+	"ToNumber":     "to_int",
 	"MaxFixed":     "max_fixedpoint",
 	"RandomFixed":  "random_fixedpoint",
-	"RandomNum":    "random_int",
 	"Sqrt":         "sqrt",
 	"FromFraction": "from_fraction",
-	"ToNum":        "to_int",
 	"AbsFixed":     "abs_fixedpoint",
 	"ToFixed":      "to_fixedpoint",
 	"Sincos":       "sincos",

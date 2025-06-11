@@ -1,35 +1,42 @@
 # The function mapping dictionary holds the initial mapping of Lua functions to Hybroid
 # Gets populated as the generation goes
-_FUNCTION_MAPPING = {
-    # Fmath Functions
-    "random_int": "RandomNumber",
-    "to_int": "ToNumber",
-    # Pewpew Functions
-    "increase_score_of_player": "IncreasePlayerScore",
-    "increase_score_streak_of_player": "IncreasePlayerScoreStreak",
-    "get_score_of_player": "GetPlayerScore",
-    "get_score_streak_level": "GetPlayerScoreStreak",
-    "get_player_configuration": "GetPlayerConfig",
-    "add_damage_to_player_ship": "DamageShip",
-    "entity_get_is_alive": "IsEntityAlive",
-    "entity_get_is_started_to_be_destroyed": "IsEntityBeingDestroyed",
-    "new_customizable_entity": "NewEntity",
-    "new_baf": "NewYellowBAF",
-    "new_baf_red": "NewRedBAF",
-    "new_baf_blue": "NewBlueBAF",
-    "new_ufo": "NewUFO",
-    "get_entities_colliding_with_disk": "GetEntitiesInRadius",
-    "customizable_entity_add_rotation_to_mesh": "AddRotationToEntityMesh",
-    "customizable_entity_configure_music_response": "SetEntityMusicResponse",
-    "customizable_entity_set_mesh_xyz": "SetEntityMeshPosition",
-    "customizable_entity_configure_wall_collision": "SetEntityWallCollision",
-    "ufo_set_enable_collisions_with_walls": "SetUFOWallCollision",
-    "entity_destroy": "DestroyEntity",
-    "customizable_entity_start_spawning": "SpawnEntity",
-    "customizable_entity_start_exploding": "ExplodeEntity",
+type FunctionMap = dict[str, dict[str, str]]
+_FUNCTION_MAPPING: FunctionMap = {
+    "fmath": {
+        # Fmath Functions
+        "random_int": "RandomNumber",
+        "to_int": "ToNumber",
+    },
+    "pewpew": {
+        # Pewpew Functions
+        "increase_score_of_player": "IncreasePlayerScore",
+        "increase_score_streak_of_player": "IncreasePlayerScoreStreak",
+        "get_score_of_player": "GetPlayerScore",
+        "get_score_streak_level": "GetPlayerScoreStreak",
+        "get_player_configuration": "GetPlayerConfig",
+        "add_damage_to_player_ship": "DamageShip",
+        "entity_get_is_alive": "IsEntityAlive",
+        "entity_get_is_started_to_be_destroyed": "IsEntityBeingDestroyed",
+        "new_customizable_entity": "NewEntity",
+        "new_baf": "NewYellowBAF",
+        "new_baf_red": "NewRedBAF",
+        "new_baf_blue": "NewBlueBAF",
+        "new_ufo": "NewUFO",
+        "get_entities_colliding_with_disk": "GetEntitiesInRadius",
+        "customizable_entity_add_rotation_to_mesh": "AddRotationToEntityMesh",
+        "customizable_entity_configure_music_response": "SetEntityMusicResponse",
+        "customizable_entity_set_mesh_xyz": "SetEntityMeshPosition",
+        "customizable_entity_set_mesh_xyz_scale": "SetEntityMeshXYZScale",
+        "customizable_entity_configure_wall_collision": "SetEntityWallCollision",
+        "ufo_set_enable_collisions_with_walls": "SetUFOWallCollision",
+        "entity_destroy": "DestroyEntity",
+        "customizable_entity_start_spawning": "SpawnEntity",
+        "customizable_entity_start_exploding": "ExplodeEntity",
+    },
 }
 
-_ENUM_MAPPING = {
+type EnumMap = dict[str, tuple[str, dict[str, str]]]
+_ENUM_MAPPING: EnumMap = {
     "EntityType": (
         "EntityType",
         {
@@ -54,15 +61,15 @@ _ENUM_MAPPING = {
 }
 
 
-def get_function(key: str, fn) -> str:
+def get_function(lib: str, key: str, fn) -> str:
     """
     Attempts to find value in mapping by key, if not found, uses the specified function to generate one.
     """
 
-    value = _FUNCTION_MAPPING.get(key, None)
+    value = _FUNCTION_MAPPING[lib].get(key, None)
     if value is None:
         value = fn(key)
-        _FUNCTION_MAPPING[key] = value
+        _FUNCTION_MAPPING[lib][key] = value
 
     return value
 
@@ -95,5 +102,14 @@ def get_enum(key: str, value: str | None, fn) -> str:
     return variant
 
 
-def inverse_mapping() -> dict[str, str]:
-    return {hyb: ppl for ppl, hyb in _FUNCTION_MAPPING.items()}
+def inverse_mappings(lib: str) -> tuple[FunctionMap, EnumMap]:
+    inverse_functions: FunctionMap = {
+        lib: {hyb: ppl for ppl, hyb in _FUNCTION_MAPPING[lib].items()}
+    }
+    inverse_enums: EnumMap = {}
+
+    for ppl, enum in _ENUM_MAPPING.items():
+        hyb, enum = enum
+        inverse_enums[hyb] = (ppl, {hyb: ppl for ppl, hyb in enum.items()})
+
+    return inverse_functions, inverse_enums

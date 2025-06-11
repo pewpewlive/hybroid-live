@@ -25,16 +25,61 @@ var PewpewAPI = &Environment{{
 }}
 """
 
+_PEWPEW_API_MAP_TEMPLATE = """// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+package mapping
+
+// AUTO-GENERATED ENUMS, DO NOT MANUALLY MODIFY!
+var PewpewEnums = map[string]map[string]string{{
+    {enums}
+}}
+
+// AUTO-GENERATED VARIABLES, DO NOT MANUALLY MODIFY!
+var PewpewVariables = map[string]string{{
+    {functions},
+
+    {enum_names},
+}}
+"""
+
 
 def generate_api(pewpew_lib: dict) -> str:
     enums = [api.Enum(enum).generate() for enum in pewpew_lib["enums"]]
     functions = [
-        api.Function(function).generate("Pewpew")
+        api.Function("pewpew", function).generate("Pewpew")
         for function in pewpew_lib["functions"]
     ]
 
     return _PEWPEW_API_TEMPLATE.format(
         ",\n".join(functions), f"map[string]*EnumVal{{\n{",\n".join(enums)}}}"
+    )
+
+
+def generate_api_mapping() -> str:
+    functions, enums = mappings.inverse_mappings("pewpew")
+    functions = functions["pewpew"]
+
+    ENUM_TEMPLATE = '"{name}": {{\n{values},\n}},'
+
+    generated_enums = ""
+    for hyb, enum in enums.items():
+        _, enum = enum
+        generated_enums += ENUM_TEMPLATE.format_map(
+            {
+                "name": hyb,
+                "values": ",".join(f'"{hyb}":"{ppl}"' for hyb, ppl in enum.items()),
+            }
+        )
+
+    return _PEWPEW_API_MAP_TEMPLATE.format_map(
+        {
+            "enums": generated_enums,
+            "functions": ",\n".join(
+                f'"{hyb}":"{ppl}"' for hyb, ppl in functions.items()
+            ),
+            "enum_names": ",\n".join(
+                f'"{hyb}":"{enum[0]}"' for hyb, enum in enums.items()
+            ),
+        }
     )
 
 
@@ -61,7 +106,7 @@ def _generate_enum_docs(enum: api.Enum) -> str:
     enum_template = f"### `{enum.name}`\n"
     enum_template += "".join(
         [
-            f"\n- `{mappings.get_function(value, helpers.pascal_case)}`"
+            f"\n- `{mappings.get_function("pewpew", value, helpers.pascal_case)}`"
             for value in enum.variants
         ]
     )
@@ -84,7 +129,7 @@ def _handle_params(parameters: list[api.Value]):
 
 
 def _generate_function_docs(function: api.Function) -> str:
-    processed_name = mappings.get_function(function.name, helpers.pascal_case)
+    processed_name = mappings.get_function("pewpew", function.name, helpers.pascal_case)
     # returns = (
     #     (
     #         "-> "
@@ -104,7 +149,9 @@ def _generate_function_docs(function: api.Function) -> str:
 
 def generate_docs(pewpew_lib: dict) -> str:
     enums = [api.Enum(enum) for enum in pewpew_lib["enums"]]
-    functions = [api.Function(function) for function in pewpew_lib["functions"]]
+    functions = [
+        api.Function("pewpew", function) for function in pewpew_lib["functions"]
+    ]
 
     generated_enums = [_generate_enum_docs(enum) for enum in enums]
     generated_functions = [_generate_function_docs(function) for function in functions]

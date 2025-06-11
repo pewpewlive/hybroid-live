@@ -46,7 +46,6 @@ var ParseSoundFunction = `function split(str, pat)
    end
    return t
 end
-
 function ParseSound(link)
   local parts = split(link, '%%22')
   local sound = {}

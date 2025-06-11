@@ -38,6 +38,9 @@ class Type:
                 case "PlaySound" | "PlayAmbientSound":
                     return "NewPathType(ast.SoundEnv)"
 
+        if self.type is types.Type.NUMBER and name == "GetEntityType":
+            return 'NewEnumType("Pewpew", "EntityType")'
+
         # The mapping of callback types, not including the `taken_callback` exception,
         # which is a map entry, and not a parameter, so it is dealt with later
         CALLBACK_TYPES = {
@@ -115,8 +118,10 @@ class Value:
 
 
 class Function(types.Function):
-    def __init__(self, raw: dict):
-        self.name = mappings.get_function(raw["func_name"], helpers.pewpew_conversion)
+    def __init__(self, lib: str, raw: dict):
+        self.name = mappings.get_function(
+            lib, raw["func_name"], helpers.pewpew_conversion
+        )
         self.description = raw["comment"]
         self.parameters = [Value(param) for param in raw["parameters"]]
         self.returns = [Value(type) for type in raw["return_types"]]

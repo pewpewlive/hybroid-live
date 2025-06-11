@@ -1,4 +1,4 @@
-from . import api
+from . import api, mappings
 
 
 _FMATH_API_TEMPLATE = """// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
@@ -25,13 +25,32 @@ var FmathAPI = &Environment{{
 }}
 """
 
+_FMATH_API_MAP_TEMPLATE = """// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+package mapping
+
+// AUTO-GENERATED VARIABLES, DO NOT MANUALLY MODIFY!
+var FmathVariables = map[string]string{{
+    {functions},
+}}
+"""
+
 
 def generate_api(fmath_lib: dict) -> str:
     functions = [
-        api.Function(function).generate("Fmath") for function in fmath_lib["functions"]
+        api.Function("fmath", function).generate("Fmath")
+        for function in fmath_lib["functions"]
     ]
 
     return _FMATH_API_TEMPLATE.format(",\n".join(functions))
+
+
+def generate_api_mapping() -> str:
+    functions, _ = mappings.inverse_mappings("fmath")
+    functions = functions["fmath"]
+
+    return _FMATH_API_MAP_TEMPLATE.format_map(
+        {"functions": ",\n".join(f'"{hyb}":"{ppl}"' for hyb, ppl in functions.items())}
+    )
 
 
 _FMATH_DOCS_TEMPLATE = """---

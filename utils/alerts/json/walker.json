@@ -91,7 +91,7 @@
       "AccessType": "string",
       "FieldName": "string"
     },
-    "message": "field '%s' does not belong to the '%s'",
+    "message": "field '%s' does not belong to '%s'",
     "message_format": ["FieldName", "AccessType"]
   },
   {
@@ -216,20 +216,20 @@
     "name": "ImportCycle",
     "type": "Error",
     "fields": {
-      "HybPath1": "string",
-      "HybPath2": "string"
+      "HybPaths": "[]string"
     },
-    "message": "import cycle detected: cycling paths: '%s' and '%s'",
-    "message_format": ["HybPath1", "HybPath2"]
+    "message": "import cycle detected: %s",
+    "message_format": [{ "HybPaths": "strings.Join({}, \" -> \")" }]
   },
   {
     "name": "UndeclaredVariableAccess",
     "type": "Error",
     "fields": {
-      "Var": "string"
+      "Var": "string",
+      "Context": "string"
     },
-    "message": "'%s' is not a declared variable",
-    "message_format": ["Var"]
+    "message": "'%s' is not a declared variable %s",
+    "message_format": ["Var", "Context"]
   },
   {
     "name": "ConstValueAssignment",
@@ -254,7 +254,7 @@
     },
     "message": "the type '%s' is not allowed in compound assignment",
     "message_format": ["Type"],
-    "note": "only numerical types are allowed, like numbers, fixeds, fixedpoints, degrees and radians"
+    "note": "only numerical types are allowed, like number or fixed"
   },
   {
     "name": "InvalidUseOfSelf",
