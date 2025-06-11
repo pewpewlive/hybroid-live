@@ -125,8 +125,15 @@ func (w *Walker) entityDeclaration(node *ast.EntityDecl, scope *Scope) {
 	if w.typeExists(node.Name.Lexeme) {
 		w.AlertSingle(&alerts.TypeRedeclaration{}, node.Name, node.Name.Lexeme)
 	}
+	if node.Destroyer == nil {
+		w.AlertSingle(&alerts.MissingDestroy{}, node.Token)
+		return
+	} else if node.Spawner == nil {
+		w.AlertSingle(&alerts.MissingConstructor{}, node.Token, "spawn", "in entity declaration")
+		return
+	}
 
-	entityVal := NewEntityVal(w.environment.Name, node.Name.Lexeme, node.IsPub)
+	entityVal := NewEntityVal(w.environment.Name, node)
 
 	generics := make([]*GenericType, 0)
 	for _, param := range node.GenericParams {
@@ -161,18 +168,11 @@ func (w *Walker) entityDeclaration(node *ast.EntityDecl, scope *Scope) {
 		}
 	}
 
-	if node.Destroyer == nil {
-		w.AlertSingle(&alerts.MissingDestroy{}, node.Token)
-	} else {
-		fn := w.entityFunctionDeclaration(node.Destroyer, entityScope)
-		entityVal.Destroy = fn
-	}
-	if node.Spawner == nil {
-		w.AlertSingle(&alerts.MissingConstructor{}, node.Token, "spawn", "in entity declaration")
-	} else {
-		fn := w.entityFunctionDeclaration(node.Spawner, entityScope)
-		entityVal.Spawn = fn
-	}
+	fn := w.entityFunctionDeclaration(node.Destroyer, entityScope)
+	entityVal.Destroy = fn
+	fn = w.entityFunctionDeclaration(node.Spawner, entityScope)
+	entityVal.Spawn = fn
+
 	for _, v := range entityVal.Fields {
 		if !v.Var.IsInit {
 			w.AlertSingle(&alerts.UninitializedFieldInConstructor{}, v.Var.Token, v.Var.Name, "in entity declaration")
@@ -280,7 +280,6 @@ func (w *Walker) methodDeclaration(node *ast.MethodDecl, container MethodContain
 			variable := NewVariable(param.Name, w.typeToValue(fn.Params[i]))
 			w.declareVariable(fnScope, variable)
 		}
-
 		w.walkFuncBody(node, &node.Body, fnTag, fnScope)
 	} else {
 		funcExpr := ast.FunctionDecl{
@@ -320,7 +319,7 @@ func (w *Walker) functionDeclaration(node *ast.FunctionDecl, scope *Scope, procT
 		Value: NewFunction(params...).
 			WithGenerics(ft.Generics...).
 			WithReturns(ft.ReturnTypes...),
-		Token: node.GetToken(),
+		Token: node.Name,
 		IsPub: node.IsPub,
 	}
 
@@ -343,52 +342,58 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 		declaration.IsPub = false
 	}
 
-	exprs := declaration.Expressions
-	values := make([]Value2, 0)
-
-	// get all values from the right side of the declaration
-	for i := range declaration.Expressions {
-		exprValue := w.GetActualNodeValue(&declaration.Expressions[i], scope)
-		if vls, ok := exprValue.(Values); ok {
-			for _, v := range vls {
-				values = append(values, Value2{v, i})
-			}
-			continue
-		}
-		values = append(values, Value2{exprValue, i})
+	var declType Type = UnknownTyp
+	if declaration.Type != nil {
+		declType = w.typeExpression(declaration.Type, scope)
 	}
-
-	//compare values with the identifiers on the left side
-	valuesLen := len(values)
+	variables := make([]*VariableVal, 0)
+	values := make([]Value2, 0)
+	exprCounter := 0
 	for i := range declaration.Identifiers {
 		ident := declaration.Identifiers[i]
+		variable := NewVariable(ident.GetToken(), &Invalid{})
+
 		if _, alreadyExists := scope.Variables[ident.Name.Lexeme]; alreadyExists {
 			w.AlertSingle(&alerts.Redeclaration{}, ident.Name, ident.Name.Lexeme, "variable")
-			continue
+		} else {
+			variable.IsPub = declaration.IsPub
+			variable.IsConst = declaration.IsConst
+			variables = append(variables, variable)
 		}
-		if i+1 > valuesLen && declaration.Type == nil {
-			requiredAmount := len(declaration.Identifiers) - valuesLen
-			lastToken := declaration.Token
-			if len(exprs) != 0 {
-				lastToken = exprs[len(exprs)-1].GetToken()
+
+		if i <= len(values)-1 {
+			variable.Value = values[i].Value
+		} else if exprCounter < len(declaration.Expressions) {
+			val := w.GetActualNodeValue(&declaration.Expressions[exprCounter], scope)
+			if vls, ok := val.(Values); ok {
+				for _, v := range vls {
+					values = append(values, Value2{v, i})
+				}
+			} else {
+				values = append(values, Value2{val, i})
 			}
-			w.AlertSingle(&alerts.TooFewValuesGiven{},
-				lastToken,
-				requiredAmount,
-				"variable declaration",
-			)
-			break
-		}
 
-		if ident.Name.Lexeme == "_" {
+			variable.Value = values[i].Value
+			exprCounter++
+		} else if declaration.IsConst {
+			w.AlertSingle(&alerts.NoValueGivenForConstant{}, ident.Name)
 			continue
-		}
+		} else if declaration.Type == nil {
+			w.AlertSingle(&alerts.ExplicitTypeRequiredInDeclaration{}, ident.Name)
+			continue
+		} else {
+			val := w.typeToValue(declType)
+			defaultVal := val.GetDefault()
 
-		var value Value = nil
-		if i < valuesLen {
-			value = values[i].Value
+			if defaultVal.Value == "nil" && !allowUnitialized {
+				w.AlertSingle(&alerts.ExplicitTypeNotAllowed{}, declaration.Type.GetToken(), declType.String())
+				continue
+			}
+
+			variable.Value = val
+			declaration.Expressions = append(declaration.Expressions, defaultVal)
+			exprCounter++
 		}
-		variable := NewVariable(ident.Name, nil, declaration.IsPub)
 		variable.IsInit = true
 
 		if declaration.IsConst {
@@ -398,77 +403,45 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 				)
 			}
 
-			if value == nil {
-				w.AlertSingle(&alerts.NoValueGivenForConstant{}, ident.Name)
-				value = &Unknown{}
-			}
-
 			variable.Value = &ConstVal{
 				Node: ident,
-				Val:  value,
+				Val:  variable.Value,
 			}
-			variable.IsConst = true
-			w.declareVariable(scope, variable)
-			scope.ConstValues[variable.Name] = exprs[values[i].Index]
+			scope.ConstValues[variable.Name] = declaration.Expressions[values[i].Index]
 			continue
 		}
-
-		var explicitType Type = nil
-		if declaration.Type != nil {
-			explicitType = w.typeExpression(declaration.Type, scope)
+		if declType == nil {
+			continue
 		}
-		if explicitType == nil && value == nil {
-			if allowUnitialized {
-				declaration.Expressions = append(declaration.Expressions, &ast.LiteralExpr{Value: "nil"})
-			} else {
-				w.AlertSingle(&alerts.ExplicitTypeRequiredInDeclaration{}, ident.Name)
-			}
-			variable.IsInit = false
-			value = &Unknown{}
-		} else if explicitType != nil && value == nil {
-			if allowUnitialized {
-				print()
-			}
-			value = w.typeToValue(explicitType)
-			defaultVal := value.GetDefault()
-
-			if defaultVal.Value == "nil" {
-				variable.IsInit = false
-				if !allowUnitialized {
-					w.AlertSingle(&alerts.ExplicitTypeNotAllowed{}, declaration.Type.GetToken(), explicitType.String())
-				}
-			}
-
-			declaration.Expressions = append(declaration.Expressions, defaultVal)
-		} else if explicitType != nil && value != nil {
-			if explicitType.GetType() == RawEntity && value.GetType().PVT() == ast.Number {
-				value = &RawEntityVal{}
-			} else if !TypeEquals(explicitType, value.GetType()) && explicitType != InvalidType && value.GetType() != InvalidType {
-				w.AlertSingle(&alerts.ExplicitTypeMismatch{},
-					variable.Token,
-					explicitType.String(),
-					value.GetType().String(),
-				)
-			}
+		valType := variable.GetType()
+		if declType.GetType() == RawEntity && valType.PVT() == ast.Number {
+			variable.Value = &RawEntityVal{}
+		} else if !TypeEquals(declType, valType) && declType != InvalidType && valType != InvalidType {
+			w.AlertSingle(&alerts.ExplicitTypeMismatch{},
+				variable.Token,
+				declType.String(),
+				valType.String(),
+			)
 		}
-
-		variable.Value = value
-		w.declareVariable(scope, variable)
 	}
 
-	identsLen := len(declaration.Identifiers)
-	if identsLen < valuesLen {
-		extraAmount := valuesLen - identsLen
+	for i := range variables {
+		w.declareVariable(scope, variables[i])
+	}
+	exprsLen := len(declaration.Expressions)
+	varsLen, valsLen := len(variables), len(values)
+	if varsLen < valsLen {
+		extraAmount := valsLen - varsLen
 		if extraAmount == 1 {
 			w.AlertSingle(&alerts.TooManyValuesGiven{},
-				exprs[len(exprs)-1].GetToken(),
+				declaration.Expressions[exprsLen-1].GetToken(),
 				extraAmount,
 				"in variable declaration",
 			)
 		} else {
 			w.AlertMulti(&alerts.TooManyValuesGiven{},
-				exprs[values[valuesLen-extraAmount].Index].GetToken(),
-				exprs[values[valuesLen-1].Index].GetToken(),
+				declaration.Expressions[values[valsLen-extraAmount].Index].GetToken(),
+				declaration.Expressions[values[valsLen-1].Index].GetToken(),
 				extraAmount,
 				"in variable declaration",
 			)

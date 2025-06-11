@@ -54,32 +54,14 @@ func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 // Rewrote
 func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scope) {
 	values := []Value2{}
-	for i := range assignStmt.Values {
-		exprValue := w.GetActualNodeValue(&assignStmt.Values[i], scope)
-		if vals, ok := exprValue.(Values); ok {
-			for j := range vals {
-				values = append(values, Value2{vals[j], i})
-			}
-		} else {
-			values = append(values, Value2{exprValue, i})
-		}
-	}
-
 	idents := assignStmt.Identifiers
-
-	identsLen := len(idents)
-	valuesLen := len(values)
-
 	exprs := assignStmt.Values
-
+	identsLen := len(idents)
 	assignOp := assignStmt.AssignOp
 	for i := range assignStmt.Identifiers {
-		if i >= valuesLen {
-			requiredAmount := identsLen - valuesLen
-			w.AlertSingle(&alerts.TooFewValuesGiven{}, exprs[len(exprs)-1].GetToken(), requiredAmount, "in assignment")
-			return
-		}
+		w.context.DontSetToUsed = true
 		value := w.GetNodeValue(&idents[i], scope)
+		w.context.DontSetToUsed = false
 		variable, ok := value.(*VariableVal)
 		if !ok {
 			if value.GetType() != InvalidType {
@@ -94,9 +76,27 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 		if !variable.IsInit {
 			variable.IsInit = true
 		}
-
 		variableType := variable.GetType()
-		valType := values[i].GetType()
+
+		var valType Type
+		if i <= len(values)-1 {
+			valType = values[i].GetType()
+		} else if i <= len(assignStmt.Values)-1 {
+			exprValue := w.GetActualNodeValue(&assignStmt.Values[i], scope)
+			if vals, ok := exprValue.(Values); ok {
+				for j := range vals {
+					values = append(values, Value2{vals[j], i})
+				}
+			} else {
+				values = append(values, Value2{exprValue, i})
+			}
+			valType = values[i].GetType()
+		} else {
+			requiredAmount := identsLen - len(values)
+			w.AlertSingle(&alerts.TooFewValuesGiven{}, exprs[len(exprs)-1].GetToken(), requiredAmount, "in assignment")
+			return
+		}
+
 		if valType == InvalidType || variableType == InvalidType {
 			continue
 		}
@@ -129,6 +129,7 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 			continue
 		}
 	}
+	valuesLen := len(values)
 	if valuesLen > identsLen {
 		extraAmount := valuesLen - identsLen
 		w.AlertMulti(&alerts.TooManyValuesGiven{},
@@ -235,15 +236,16 @@ func (w *Walker) forStatement(node *ast.ForStmt, scope *Scope) {
 }
 
 func (w *Walker) tickStatement(node *ast.TickStmt, scope *Scope) {
-	funcTag := &FuncTag{ReturnTypes: EmptyReturn}
-	tickScope := NewScope(scope, funcTag, ReturnAllowing)
+	tickScope := NewScope(scope, &MultiPathTag{}, ReturnAllowing)
+	tt := NewMultiPathTag(1, tickScope.Attributes...)
+	tickScope.Tag = tt
 
 	if node.Variable != nil {
 		w.declareVariable(tickScope, NewVariable(node.Variable.Name, &NumberVal{}))
 	}
 
-	w.walkBody(&node.Body, funcTag, tickScope)
-	w.reportExits(funcTag, scope)
+	w.walkBody(&node.Body, tt, tickScope)
+	w.reportExits(tt, scope)
 }
 
 func (w *Walker) matchStatement(node *ast.MatchStmt, scope *Scope) {
@@ -333,7 +335,7 @@ func (w *Walker) returnStatement(node *ast.ReturnStmt, scope *Scope) *[]Type {
 			ret = append(ret, Value2{val, i})
 		}
 	}
-	sc, _, funcTag := resolveTagScope[*FuncTag](scope)
+	sc, funcTag := resolveTagScope[*FuncTag](scope)
 	if sc == nil {
 		return ret.Types()
 	}
@@ -367,7 +369,7 @@ func (w *Walker) yieldStatement(node *ast.YieldStmt, scope *Scope) *[]Type {
 			ret = append(ret, Value2{val, i})
 		}
 	}
-	sc, _, matchExprT := resolveTagScope[*MatchExprTag](scope)
+	sc, matchExprT := resolveTagScope[*MatchExprTag](scope)
 
 	if sc == nil {
 		return ret.Types()

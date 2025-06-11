@@ -109,13 +109,25 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		}
 		fmt.Printf("Walking time: %f seconds\n\n", time.Since(start).Seconds())
 
-		e.printer.StageAlerts(sourcePath, walker.GetAlerts())
 		for _, v := range walker.GetAlerts() {
 			if v.AlertType() == alerts.Error {
 				generate = false
 				break
 			}
 		}
+	}
+
+	for i, walker := range e.walkerList {
+		sourcePath := e.files[i].Path()
+		color.Printf("[dark_gray]-->File: %s\n", sourcePath)
+
+		start := time.Now()
+
+		fmt.Println("Postwalking...")
+		walker.PostWalk()
+		fmt.Printf("Postwalking time: %f seconds\n\n", time.Since(start).Seconds())
+
+		e.printer.StageAlerts(sourcePath, walker.GetAlerts())
 	}
 
 	if !generate {

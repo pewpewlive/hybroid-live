@@ -1,12 +1,3 @@
 env Thing as Level 
 
-pub fn ScaleAxis(Mesh mesh, Vertex mods) {
-  for _, v in mesh.vertexes {
-    for i in v {
-      if #mods < i {
-        continue
-      }
-      v[i] *= mods[i]
-    }
-  }
-}
+Pewpew:Print(ToString(Env2:o))

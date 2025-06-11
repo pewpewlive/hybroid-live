@@ -3,8 +3,6 @@ env SPMesh as Mesh
 use Table
 use Graphix
 
-let a = 20
-
 pub meshes = [
   NewMesh()
 ]

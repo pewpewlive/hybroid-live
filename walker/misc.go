@@ -50,6 +50,9 @@ func (w *Walker) typeExists(name string) bool {
 }
 
 func (w *Walker) declareVariable(s *Scope, value *VariableVal) (*VariableVal, bool) {
+	if value.Name == "_" {
+		return value, false
+	}
 	if w.typeExists(value.Name) {
 		w.AlertSingle(&alerts.ConflictingVariableNameWithType{}, value.Token, value.Name)
 		return value, false
@@ -109,13 +112,13 @@ func (w *Walker) resolveVariable(s *Scope, token tokens.Token) *Scope {
 	return w.resolveVariable(s.Parent, token)
 }
 
-func resolveTagScope[T ScopeTag](sc *Scope) (*Scope, *ScopeTag, *T) {
+func resolveTagScope[T ScopeTag](sc *Scope) (*Scope, *T) {
 	if tag, ok := sc.Tag.(T); ok {
-		return sc, &sc.Tag, &tag
+		return sc, &tag
 	}
 
 	if sc.Parent == nil {
-		return nil, nil, nil
+		return nil, nil
 	}
 
 	return resolveTagScope[T](sc.Parent)

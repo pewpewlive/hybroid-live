@@ -615,5 +615,10 @@
     },
     "message": "variable name conflicts with type '%s'",
     "message_format": ["Type"]
+  },
+  {
+    "name": "UnusedVariable",
+    "type": "Warning",
+    "message": "variable is not used"
   }
 ]

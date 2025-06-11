@@ -95,7 +95,7 @@ pub entity SuperInertiac {
     CreateExplosion(x, y, 0x330077ff, 1.6f, 50)
     CreateExplosion(x, y, 0x00aaddff, 1.6f, 50)
 
-    for i, v in rings{
+    for i in rings{
       ExplodeEntity(rings[i], 20)
     }
 
@@ -112,7 +112,7 @@ pub entity SuperInertiac {
     velX, velY = Reflect(velX, velY, normalX, normalY)
   }
   
-  PlayerCollision(number playerIndex, entity shipId) {
+  PlayerCollision(number _, entity shipId) {
     if IsEntityAlive(shipId) and CanCollide() {
       velX, velY = -velX * 1.5f, -velY * 1.5f
       DamageShip(shipId, 1)
@@ -127,7 +127,7 @@ pub entity SuperInertiac {
     collisionCooldown = COLLISION_COOLDOWN_MAX
   }
 
-  WeaponCollision(number playerIndex, WeaponType weaponType) -> bool {
+  WeaponCollision(number _, WeaponType weaponType) -> bool {
     if IsDead() 
       return false
 
@@ -215,7 +215,7 @@ pub entity SuperInertiac {
 
     x, y = GetEntityPosition(self)
     let entities = GetEntitiesInRadius(x, y, RADIUS)
-    for i, v in entities {
+    for _, v in entities {
       if v == self {
         continue
       }
@@ -347,7 +347,6 @@ pub entity SuperInertiac {
     fixed dX, dY = sX - x, sY - y
     fixed sMovAngle, sMovDist, _, _ = GetPlayerInputs(0) 
 
-    fixed mag = Length(dX, dY)
     fixed sMovDY, sMovDX = Fmath:Sincos(sMovAngle)
     fixed predMovX, predMovY = sMovDX * sMovDist * 100f, sMovDY * sMovDist * 100f
     predMovX, predMovY = -predMovX, -predMovY

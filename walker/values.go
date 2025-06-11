@@ -57,6 +57,17 @@ type VariableVal struct {
 	Token   tokens.Token
 }
 
+func (w *Walker) SetVarToUsed(v *VariableVal) {
+	v.IsUsed = true
+	if fn, ok := v.Value.(*FunctionVal); ok && fn.ProcType == Method {
+		if fn.MethodName == "spawn" && fn.MethodType == ast.EntityMethod {
+			w.walkers[fn.EnvName].environment.Entities[fn.TypeName].Type.IsUsed = true
+		} else if fn.MethodName == "new" && fn.MethodType == ast.ClassMethod {
+			w.walkers[fn.EnvName].environment.Classes[fn.TypeName].Type.IsUsed = true
+		}
+	}
+}
+
 // args go as follows: value Value, isPub bool
 func NewVariable(token tokens.Token, args ...any) *VariableVal {
 	var value Value
@@ -287,10 +298,11 @@ type EntityVal struct {
 	Destroy *FunctionVal
 }
 
-func NewEntityVal(envName string, name string, isLocal bool) *EntityVal {
+func NewEntityVal(envName string, node *ast.EntityDecl) *EntityVal {
+	name := node.Name.Lexeme
 	return &EntityVal{
 		Type:     *NewNamedType(envName, name, ast.Entity),
-		IsLocal:  isLocal,
+		IsLocal:  !node.IsPub,
 		Methods:  make(map[string]*VariableVal),
 		Fields:   make(map[string]Field, 0),
 		Generics: make([]*GenericType, 0),

@@ -19,15 +19,18 @@ func NewEntityCast(name tokens.Token, val *EntityVal) EntityCast {
 	}
 }
 
+type Binding struct {
+	Scope   *Scope
+	VarName string
+}
+
 type Context struct {
-	Node        ast.Node
-	Value       Value
-	EntityCasts core.Queue[EntityCast]
+	EntityCasts   core.Queue[EntityCast]
+	DontSetToUsed bool
 }
 
 func (c *Context) Clear() {
-	c.Node = &ast.Improper{}
-	c.Value = &Unknown{}
+	c.DontSetToUsed = false
 	c.EntityCasts.Clear()
 }
 

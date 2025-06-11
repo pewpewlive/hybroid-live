@@ -40,7 +40,7 @@ entity Laser {
 
     destroy() {
         isDead = true
-        SetEntityUpdateCallback(self, fn(entity id){})
+        SetEntityUpdateCallback(self, fn(entity _){})
         DestroyEntity(self)
     }
 

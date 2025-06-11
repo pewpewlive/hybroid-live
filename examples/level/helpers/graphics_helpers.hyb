@@ -31,8 +31,6 @@ pub fn ScaleAxis(Mesh mesh, Vertex mods) {
 
 pub fn AddLine(Mesh mesh, Vertexes vertexes, Colors colors, bool closeLoop) {
   let vertexCount = #mesh.vertexes
-  let colorCount = #mesh.colors
-  let segmentCount = #mesh.segments
 
   let numberOfNewSegments = #vertexes - 1
   let Segment segment = []

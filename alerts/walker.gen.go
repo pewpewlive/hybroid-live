@@ -1917,3 +1917,28 @@ func (cvnwt *ConflictingVariableNameWithType) ID() string {
 func (cvnwt *ConflictingVariableNameWithType) AlertType() Type {
 	return Error
 }
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type UnusedVariable struct {
+	Specifier Snippet
+}
+
+func (uv *UnusedVariable) Message() string {
+	return "variable is not used"
+}
+
+func (uv *UnusedVariable) SnippetSpecifier() Snippet {
+	return uv.Specifier
+}
+
+func (uv *UnusedVariable) Note() string {
+	return ""
+}
+
+func (uv *UnusedVariable) ID() string {
+	return "hyb074W"
+}
+
+func (uv *UnusedVariable) AlertType() Type {
+	return Warning
+}

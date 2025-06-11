@@ -29,7 +29,7 @@ tick with time {
     StopGame()
   }
   let entities = GetAllEntities()
-  for i, v in entities {
+  for _, v in entities {
     let entityType = GetEntityType(v)
     if v == SHIP.id or (entityType == EntityType.CustomizableEntity and GetEntityTag(v) == Grid:ENTITY_TAG) {
       continue

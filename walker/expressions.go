@@ -97,9 +97,10 @@ func (w *Walker) matchExpression(node *ast.MatchExpr, scope *Scope) Value {
 	yieldTypes := matchScope.Tag.(*MatchExprTag).YieldTypes
 	node.ReturnAmount = len(yieldTypes)
 
-	if node.ReturnAmount == 0 {
+	switch node.ReturnAmount {
+	case 0:
 		return &Invalid{}
-	} else if node.ReturnAmount == 1 {
+	case 1:
 		return w.typeToValue(yieldTypes[0])
 	}
 
@@ -256,6 +257,10 @@ check:
 			location := field.FieldByName("Location")
 			location.Set(reflect.ValueOf(identToken.Location))
 		}
+		if !w.context.DontSetToUsed {
+			w.SetVarToUsed(variable)
+			return variable
+		}
 		return variable
 	}
 	if sc.Tag.GetType() == Class {
@@ -276,13 +281,15 @@ check:
 		}
 
 		if found {
-			return field
+			variable = field
+		} else {
+			method, found2 := class.Methods[variable.Name]
+			if found2 {
+				variable = method
+			} else {
+				w.AlertSingle(&alerts.MethodOrFieldNotFound{}, identToken, variable.Name)
+			}
 		}
-		method, found := class.Methods[variable.Name]
-		if found {
-			return method
-		}
-		w.AlertSingle(&alerts.MethodOrFieldNotFound{}, identToken, ident.Name.Lexeme)
 	} else if sc.Tag.GetType() == Entity && scope.Is(SelfAllowing) {
 		entity := sc.Tag.(*EntityTag).EntityVal
 		field, index, found := entity.ContainsField(variable.Name)
@@ -302,13 +309,15 @@ check:
 		}
 
 		if found {
-			return field
+			variable = field
+		} else {
+			method, found2 := entity.Methods[variable.Name]
+			if found2 {
+				variable = method
+			} else {
+				w.AlertSingle(&alerts.MethodOrFieldNotFound{}, identToken, variable.Name)
+			}
 		}
-		method, found := entity.Methods[variable.Name]
-		if found {
-			return method
-		}
-		w.AlertSingle(&alerts.MethodOrFieldNotFound{}, identToken, variable.Name)
 	} else if sc.Environment.Name == "Builtin" {
 		scope.Environment.AddBuiltinVar(ident.Name.Lexeme)
 		ident.Type = ast.Raw
@@ -324,7 +333,11 @@ check:
 		}
 	}
 
-	variable.IsUsed = true
+	if !w.context.DontSetToUsed {
+		w.SetVarToUsed(variable)
+		return variable
+	}
+
 	return variable
 }
 
@@ -460,9 +473,10 @@ func (w *Walker) callExpression(val Value, node *ast.Node, scope *Scope) Value {
 		call.ReturnAmount = returnLen
 	}
 
-	if returnLen == 0 {
+	switch returnLen {
+	case 0:
 		return &Invalid{}
-	} else if returnLen == 1 {
+	case 1:
 		return w.typeToValue(actualReturns[returnLen-1])
 	}
 
@@ -471,6 +485,7 @@ func (w *Walker) callExpression(val Value, node *ast.Node, scope *Scope) Value {
 
 // Rewrote
 func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
+	w.context.DontSetToUsed = false
 	node := (*_node).(*ast.AccessExpr)
 	var val Value
 
@@ -676,10 +691,10 @@ func (w *Walker) selfExpression(self *ast.SelfExpr, scope *Scope) Value {
 		w.AlertSingle(&alerts.InvalidUseOfSelf{}, self.Token)
 		return &Invalid{}
 	}
-	sc, _, classTag := resolveTagScope[*ClassTag](scope)
+	sc, classTag := resolveTagScope[*ClassTag](scope)
 
 	if sc == nil {
-		entitySc, _, entityTag := resolveTagScope[*EntityTag](scope)
+		entitySc, entityTag := resolveTagScope[*EntityTag](scope)
 		if entitySc != nil {
 			self.Type = ast.EntityMethod
 			self.EntityName = (*entityTag).EntityVal.Type.Name
@@ -764,13 +779,14 @@ func (w *Walker) spawnExpression(new *ast.SpawnExpr, scope *Scope) Value {
 		args = append(args, w.GetActualNodeValue(&new.Args[i], scope))
 	}
 
+	fn := val.Spawn
 	explicitEntityGenericArgs := w.getGenerics(new.EntityGenericArgs, val.Generics, scope)
-	explicitGenericArgs := w.getGenerics(new.GenericArgs, val.Spawn.Generics, scope)
+	explicitGenericArgs := w.getGenerics(new.GenericArgs, fn.Generics, scope)
 	for k, v := range explicitEntityGenericArgs {
 		explicitGenericArgs[k] = v
 	}
 
-	w.validateArguments(explicitGenericArgs, args, val.Spawn, new)
+	w.validateArguments(explicitGenericArgs, args, fn, new)
 	for _, v := range val.Generics {
 		generic := explicitGenericArgs[v.Name]
 		if generic.Type == UnknownTyp {
@@ -794,7 +810,6 @@ func (w *Walker) spawnExpression(new *ast.SpawnExpr, scope *Scope) Value {
 				}
 			}
 		}
-		fn := val.Destroy
 		for j, v3 := range fn.Params {
 			if gen, ok := v3.(*GenericType); ok && gen.Name == v.Name {
 				fn.Params[j] = generic.Type

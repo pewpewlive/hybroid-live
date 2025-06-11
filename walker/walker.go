@@ -117,7 +117,6 @@ func NewWalker(hybroidPath, luaPath string) *Walker {
 		environment: NewEnvironment(hybroidPath, luaPath),
 		program:     []ast.Node{},
 		context: Context{
-			Value:       &Unknown{},
 			EntityCasts: core.NewQueue[EntityCast]("EntityCasts"),
 		},
 		Collector: alerts.NewCollector(),
@@ -170,10 +169,17 @@ func (w *Walker) Walk() {
 	for i := range w.program {
 		w.walkNode(&w.program[i], scope)
 	}
-
 	w.CheckUniqueVariables()
 
 	w.Walked = true
+}
+
+func (w *Walker) PostWalk() {
+	for _, v := range w.environment.Scope.Variables {
+		if !v.IsUsed {
+			w.AlertSingle(&alerts.UnusedVariable{}, v.Token)
+		}
+	}
 }
 
 func (w *Walker) CheckUniqueVariables() {
@@ -183,6 +189,7 @@ func (w *Walker) CheckUniqueVariables() {
 			w.AlertSingle(&alerts.MissingPewpewVariable{}, w.environment._envStmt.GetToken(), "meshes", "Mesh")
 			return
 		}
+		variable.IsUsed = true
 		if !variable.IsPub || !TypeEquals(variable.Value.GetType(), MeshesType) {
 			w.AlertSingle(&alerts.InvalidPewpewVariable{}, variable.Token, "meshes", MeshType)
 		}
@@ -194,6 +201,7 @@ func (w *Walker) CheckUniqueVariables() {
 			w.AlertSingle(&alerts.MissingPewpewVariable{}, w.environment._envStmt.GetToken(), "sounds", "Sound")
 			return
 		}
+		variable.IsUsed = true
 		if !variable.IsPub || !TypeEquals(variable.Value.GetType(), SoundsType) {
 			w.AlertSingle(&alerts.InvalidPewpewVariable{}, variable.Token, "sounds", SoundType)
 		}
@@ -345,6 +353,11 @@ func (w *Walker) walkBody(body *ast.Body, tag ExitableTag, scope *Scope) {
 	}
 	if endIndex != -1 {
 		*body = bodySlice[:endIndex]
+	}
+	for i := range scope.Variables {
+		if !scope.Variables[i].IsUsed {
+			w.AlertSingle(&alerts.UnusedVariable{}, scope.Variables[i].Token)
+		}
 	}
 }
 
