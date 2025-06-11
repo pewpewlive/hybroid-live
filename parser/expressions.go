@@ -501,13 +501,13 @@ func (p *Parser) parseList() ast.Node {
 	}
 
 	list, ok := p.expressions("in list expression", true)
-	if !ok {
-		p.syncExpr(tokens.RightBracket)
+	if !ok && !p.sync(tokens.RightBracket) {
+		return ast.NewImproper(listExpr.Token, ast.ListExpression)
 	}
 	listExpr.List = list
 
 	_, ok = p.alertMultiConsume(&alerts.ExpectedSymbol{}, listExpr.Token, p.peek(), tokens.RightBracket, "in list expression")
-	if !ok && p.syncExpr(tokens.RightBracket) {
+	if !ok && p.sync(tokens.RightBracket) {
 		p.advance()
 	}
 
@@ -526,7 +526,7 @@ func (p *Parser) parseMap() ast.Node {
 
 	key, value, ok := p.keyValuePair(true, "map key")
 	if !ok {
-		p.syncExpr(tokens.Comma, tokens.RightBrace)
+		p.sync(tokens.Comma, tokens.RightBrace)
 	} else {
 		mapExpr.KeyValueList = append(mapExpr.KeyValueList, ast.Property{Key: key, Expr: value})
 	}
@@ -534,14 +534,14 @@ func (p *Parser) parseMap() ast.Node {
 	for p.match(tokens.Comma) {
 		key, value, ok = p.keyValuePair(true, "map key")
 		if !ok {
-			p.syncExpr(tokens.Comma, tokens.RightBrace)
+			p.sync(tokens.Comma, tokens.RightBrace)
 		} else {
 			mapExpr.KeyValueList = append(mapExpr.KeyValueList, ast.Property{Key: key, Expr: value})
 		}
 	}
 
 	_, ok = p.alertMultiConsume(&alerts.ExpectedSymbol{}, mapExpr.Token, p.peek(), tokens.RightBrace, "in map expression")
-	if !ok && p.syncExpr(tokens.RightBrace) {
+	if !ok && p.sync(tokens.RightBrace) {
 		p.advance()
 	}
 
@@ -565,7 +565,7 @@ func (p *Parser) structExpr() ast.Node {
 
 	field, value, ok := p.keyValuePair(false, "struct field")
 	if !ok {
-		p.syncExpr(tokens.Comma, tokens.RightBrace)
+		p.sync(tokens.Comma, tokens.RightBrace)
 	} else {
 		structExpr.Fields = append(structExpr.Fields, field.(*ast.IdentifierExpr))
 		structExpr.Expressions = append(structExpr.Expressions, value)
@@ -577,7 +577,7 @@ func (p *Parser) structExpr() ast.Node {
 		}
 		field, value, ok := p.keyValuePair(false, "struct field")
 		if !ok {
-			p.syncExpr(tokens.Comma, tokens.RightBrace)
+			p.sync(tokens.Comma, tokens.RightBrace)
 		} else {
 			structExpr.Fields = append(structExpr.Fields, field.(*ast.IdentifierExpr))
 			structExpr.Expressions = append(structExpr.Expressions, value)
@@ -585,7 +585,7 @@ func (p *Parser) structExpr() ast.Node {
 	}
 
 	_, ok = p.alertMultiConsume(&alerts.ExpectedSymbol{}, start, p.peek(), tokens.RightBrace)
-	if !ok && p.syncExpr(tokens.RightBrace) {
+	if !ok && p.sync(tokens.RightBrace) {
 		p.advance()
 	}
 

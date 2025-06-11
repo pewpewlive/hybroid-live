@@ -19,6 +19,7 @@ type Parser struct {
 type parserContext struct {
 	isPub        bool
 	ignoreAlerts core.Stack[bool]
+	syncedToken  tokens.Token
 }
 
 func NewParser(tokens []tokens.Token) Parser {
@@ -30,6 +31,10 @@ func NewParser(tokens []tokens.Token) Parser {
 			ignoreAlerts: core.NewStack[bool]("IgnoreAlerts"),
 		},
 		Collector: alerts.NewCollector(),
+	}
+
+	if len(tokens) != 0 {
+		parser.context.syncedToken = tokens[0]
 	}
 
 	parser.context.ignoreAlerts.Push("default", false)

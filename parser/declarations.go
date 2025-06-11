@@ -146,12 +146,16 @@ func (p *Parser) enumDeclaration() ast.Node {
 			enumStmt.Fields = append(enumStmt.Fields, v.(*ast.IdentifierExpr))
 		} else {
 			p.AlertSingle(&alerts.InvalidEnumVariantName{}, v.GetToken())
-			return ast.NewImproper(enumStmt.Token, ast.EnumDeclaration)
+			p.sync(tokens.RightBrace)
+			break
 		}
 	}
 
 	_, ok = p.alertMultiConsume(&alerts.ExpectedSymbol{}, start, p.peek(), tokens.RightBrace)
 	if !ok {
+		if p.sync(tokens.RightBrace) {
+			p.advance()
+		}
 		return ast.NewImproper(enumStmt.Token, ast.EnumDeclaration)
 	}
 
@@ -205,8 +209,8 @@ func (p *Parser) classDeclaration() ast.Node {
 
 	if p.tryGenericArgs() {
 		generics, ok := p.genericParams()
-		if !ok {
-			p.syncExpr(tokens.LeftBrace)
+		if !ok && !p.sync(tokens.LeftBrace) {
+			return ast.NewImproper(stmt.Token, ast.ClassDeclaration)
 		} else {
 			stmt.GenericParams = generics
 		}
@@ -254,8 +258,8 @@ func (p *Parser) entityDeclaration() ast.Node {
 
 	if p.tryGenericParams() {
 		generics, ok := p.genericParams()
-		if !ok {
-			p.syncExpr(tokens.LeftBrace)
+		if !ok && !p.sync(tokens.LeftBrace) {
+			return ast.NewImproper(stmt.Token, ast.EntityDeclaration)
 		} else {
 			stmt.GenericParams = generics
 		}

@@ -434,7 +434,7 @@ func (p *Parser) isCall(nodeType ast.NodeType) bool {
 }
 
 // this is used only for maps, lists and structs
-func (p *Parser) syncExpr(syncPoints ...tokens.TokenType) bool {
+func (p *Parser) sync(syncPoints ...tokens.TokenType) bool {
 	expectedBlockCount := 0
 	for !p.isAtEnd() {
 		peekType := p.peek().Type
@@ -466,21 +466,31 @@ func (p *Parser) synchronizeBody() {
 			p.advance()
 			if p.peek().Type != tokens.LeftParen {
 				p.disadvance()
+				p.context.syncedToken = p.peek()
 				return
 			}
 		case tokens.LeftBrace:
 			expectedBlockCount++
 		case tokens.RightBrace:
 			if expectedBlockCount == 0 {
+				if p.context.syncedToken == p.peek() {
+					break
+				}
+				p.context.syncedToken = p.peek()
 				return
 			}
 
 			expectedBlockCount--
 		case tokens.Entity:
 			if p.peek(1).Type == tokens.Identifier && p.peek(2).Type == tokens.LeftBrace {
+				if p.context.syncedToken == p.peek() {
+					break
+				}
+				p.context.syncedToken = p.peek()
 				return
 			}
 		case tokens.Let, tokens.Pub, tokens.Const, tokens.Class, tokens.Alias:
+			p.context.syncedToken = p.peek()
 			return
 		}
 
@@ -496,18 +506,27 @@ func (p *Parser) synchronizeDeclBody() {
 			p.advance()
 			if p.peek().Type != tokens.LeftParen {
 				p.disadvance()
+				p.context.syncedToken = p.peek()
 				return
 			}
 		case tokens.LeftBrace:
 			expectedBlockCount++
 		case tokens.RightBrace:
 			if expectedBlockCount == 0 {
+				if p.context.syncedToken == p.peek() {
+					break
+				}
+				p.context.syncedToken = p.peek()
 				return
 			}
 
 			expectedBlockCount--
 		case tokens.Entity:
 			if p.peek(1).Type == tokens.Identifier && p.peek(2).Type == tokens.LeftBrace {
+				if p.context.syncedToken == p.peek() {
+					break
+				}
+				p.context.syncedToken = p.peek()
 				return
 			}
 		case tokens.Identifier:
@@ -517,6 +536,7 @@ func (p *Parser) synchronizeDeclBody() {
 			if _, ok := p.functionParams(tokens.LeftParen, tokens.RightParen); ok && p.check(tokens.LeftBrace) {
 				p.disadvance(p.current - current)
 				p.context.ignoreAlerts.Pop("SynchronizeDeclBody")
+				p.context.syncedToken = p.peek()
 				return
 			}
 			p.disadvance(p.current - current)
@@ -524,9 +544,11 @@ func (p *Parser) synchronizeDeclBody() {
 			p.context.ignoreAlerts.Pop("SynchronizeDeclBody")
 			if !ast.IsImproper(node, ast.NA) {
 				p.disadvance(p.current - current)
+				p.context.syncedToken = p.peek()
 				return
 			}
 		case tokens.Let, tokens.Pub, tokens.Const, tokens.Class, tokens.Alias, tokens.New, tokens.Spawn, tokens.Destroy:
+			p.context.syncedToken = p.peek()
 			return
 		}
 

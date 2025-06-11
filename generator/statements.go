@@ -9,7 +9,10 @@ import (
 
 func (gen *Generator) envStmt(node ast.EnvironmentDecl) {
 	for i := range node.Requirements {
-		gen.Write("require(\"", node.Requirements[i], "\")\n")
+		gen.Write("require(\"", node.Requirements[i], "\")")
+		if i != len(node.Requirements)-1 {
+			gen.Write("\n")
+		}
 	}
 }
 
@@ -27,7 +30,7 @@ func (gen *Generator) ifStmt(node ast.IfStmt) {
 		gen.GenerateBody(node.Else.Body)
 	}
 
-	gen.Twrite("end\n")
+	gen.Twrite("end")
 }
 
 func (gen *Generator) assignmentStmt(assignStmt ast.AssignmentStmt) {
@@ -52,7 +55,7 @@ func (gen *Generator) assignmentStmt(assignStmt ast.AssignmentStmt) {
 				preSrc.Write(", ")
 			}
 		}
-		preSrc.Write(" = ", gen.GenerateExpr(assignStmt.Values[0]), "\n")
+		preSrc.Write(" = ", gen.GenerateExpr(assignStmt.Values[0]))
 	} else {
 		for _, v := range assignStmt.Values {
 			values = append(values, gen.GenerateExpr(v))
@@ -117,7 +120,12 @@ func (gen *Generator) yieldStmt(node ast.YieldStmt) {
 }
 
 func (gen *Generator) breakStmt(_ ast.BreakStmt) {
-	gen.Twrite("break")
+	if gen.BreakLabels.Top().Item == "" {
+		gen.Twrite("break")
+		return
+	}
+
+	gen.Twrite("goto ", gen.BreakLabels.Top().Item)
 }
 
 func (gen *Generator) continueStmt(_ ast.ContinueStmt) {
@@ -147,8 +155,10 @@ func (gen *Generator) repeatStmt(node ast.RepeatStmt) {
 	gen.BreakLabels.Pop("RepeatStmt")
 	gen.ContinueLabels.Pop("RepeatStmt")
 
+	gen.tabCount++
 	gen.Twrite("::" + gotoLabel + "::\n")
-	gen.Write("end")
+	gen.tabCount--
+	gen.Twrite("end")
 }
 
 func (gen *Generator) whileStmt(node ast.WhileStmt) {
@@ -163,7 +173,9 @@ func (gen *Generator) whileStmt(node ast.WhileStmt) {
 	gen.BreakLabels.Pop("WhileStmt")
 	gen.ContinueLabels.Pop("WhileStmt")
 
+	gen.tabCount++
 	gen.Twrite("::" + gotoLabel + "::\n")
+	gen.tabCount--
 	gen.Twrite("end")
 }
 
@@ -191,7 +203,9 @@ func (gen *Generator) forStmt(node ast.ForStmt) {
 	gen.BreakLabels.Pop("ForStmt")
 	gen.ContinueLabels.Pop("ForStmt")
 
+	gen.tabCount++
 	gen.Twrite("::" + gotoLabel + "::\n")
+	gen.tabCount--
 	gen.Twrite("end")
 }
 
@@ -210,47 +224,33 @@ func (gen *Generator) tickStmt(node ast.TickStmt) {
 	gen.Twrite("end)")
 }
 
-func (gen *Generator) GenerateParams(params []ast.FunctionParam) {
-	var variadicParam string
-	for i, param := range params {
-		if param.Type.IsVariadic {
-			gen.Write("...")
-			variadicParam = gen.WriteVar(param.Name.Lexeme)
-		} else {
-			gen.Write(gen.WriteVar(param.Name.Lexeme))
-		}
-		if i != len(params)-1 {
-			gen.Write(", ")
-		}
-	}
-	gen.Write(")\n")
-
-	if variadicParam != "" {
-		gen.Twrite("local ", variadicParam, " = {...}\n")
-	}
-}
-
 func (gen *Generator) matchStmt(node ast.MatchStmt) {
+	label := GenerateVar(hyGotoLabel)
 	toMatch := gen.GenerateExpr(node.ExprToMatch)
+	hyVar := GenerateVar(hyVar)
+	gen.Twrite("local ", hyVar, " = ", toMatch, "\n")
 	for i, matchCase := range node.Cases {
 		conditionsSrc := core.StringBuilder{}
 		for j, expr := range matchCase.Expressions {
-			conditionsSrc.Write(toMatch, " == ", gen.GenerateExpr(expr))
+			conditionsSrc.Write(hyVar, " == ", gen.GenerateExpr(expr))
 			if j != len(matchCase.Expressions)-1 {
 				conditionsSrc.Write(" or ")
 			}
 		}
 		if i == 0 {
 			gen.Twrite("if ", conditionsSrc.String(), " then\n")
-		} else if i == len(node.Cases)-1 {
+		} else if i == len(node.Cases)-1 && node.HasDefault {
 			gen.Twrite("else\n")
 		} else {
 			gen.Twrite("elseif ", conditionsSrc.String(), " then\n")
 		}
+		gen.BreakLabels.Push("MatchStmt", label)
 		gen.GenerateBody(matchCase.Body)
+		gen.BreakLabels.Pop("MatchStmt")
 	}
 
 	gen.Twrite("end\n")
+	gen.Twrite("::", label, "::")
 }
 
 func (gen *Generator) destroyStmt(node ast.DestroyStmt) {

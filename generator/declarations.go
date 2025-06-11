@@ -65,9 +65,6 @@ func (gen *Generator) entityDeclaration(node ast.EntityDecl) {
 
 	gen.Write(entityName, " = {}\n")
 	for i, v := range node.Callbacks {
-		if i != 0 {
-			gen.Write("\n")
-		}
 		gen.Twrite(fmt.Sprintf("local function %sHCb%d", entityName, i), "(id")
 		if len(v.Params) != 0 {
 			gen.Write(", ")
@@ -223,6 +220,8 @@ func (gen *Generator) destroyDeclaration(node ast.EntityFunctionDecl, entity ast
 	gen.tabCount--
 
 	gen.GenerateBody(node.Body)
+
+	gen.Twrite(entityName, "[id] = nil\n")
 
 	gen.Write("end")
 }

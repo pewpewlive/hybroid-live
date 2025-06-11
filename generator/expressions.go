@@ -330,13 +330,13 @@ func (gen *Generator) matchExpr(match ast.MatchExpr) string {
 	gen.Write("\n")
 
 	node := match.MatchStmt
-
 	toMatch := gen.GenerateExpr(node.ExprToMatch)
-
+	hyVar := GenerateVar(hyVar)
+	gen.Twrite("local ", hyVar, " = ", toMatch, "\n")
 	for i, matchCase := range node.Cases {
 		conditionsSrc := core.StringBuilder{}
 		for j, expr := range matchCase.Expressions {
-			conditionsSrc.Write(toMatch, " == ", gen.GenerateExpr(expr))
+			conditionsSrc.Write(hyVar, " == ", gen.GenerateExpr(expr))
 			if j != len(matchCase.Expressions)-1 {
 				conditionsSrc.Write(" or ")
 			}
@@ -356,7 +356,6 @@ func (gen *Generator) matchExpr(match ast.MatchExpr) string {
 	}
 
 	gen.Twrite("end\n")
-
 	gen.Twrite(fmt.Sprintf("::%s::\n", gotoLabel))
 
 	return varsSrc.String()
@@ -374,7 +373,7 @@ func (gen *Generator) envAccessExpr(node ast.EnvAccessExpr) string {
 		accessed = mapping.PewpewVariables[accessed]
 	case "Fmath":
 		prefix = "fmath."
-		accessed = mapping.FmathFunctions[accessed]
+		accessed = mapping.FmathVariables[accessed]
 	case "Math":
 		prefix = "math."
 		accessed = mapping.MathVariables[accessed]
