@@ -227,6 +227,10 @@ func (w *Walker) entityFunctionDeclaration(node *ast.EntityFunctionDecl, scope *
 
 	w.walkFuncBody(node, &node.Body, ft, fnScope)
 
+	if node.Type == ast.Destroy && !ft.GetIfExits(EntityDestruction) {
+		w.AlertSingle(&alerts.NotAllCodePathsExit{}, node.Token, "destroy the entity")
+	}
+
 	return NewFunction(params...).WithGenerics(ft.Generics...).WithReturns(ft.ReturnTypes...)
 }
 

@@ -22,7 +22,7 @@ func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 		})
 	}
 
-	pt := NewPathTag(scope.Attributes...)
+	pt := NewPathTag()
 	ifScope := NewScope(scope, pt)
 
 	w.walkBody(&node.Body, pt, ifScope)
@@ -30,7 +30,7 @@ func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 	prevPathTag := *pt
 	for i := range node.Elseifs {
 		w.ifCondition(&node.Elseifs[i].BoolExpr, scope)
-		pt := NewPathTag(scope.Attributes...)
+		pt := NewPathTag()
 		ifScope := NewScope(scope, pt)
 		for w.context.EntityCasts.Count() != 0 {
 			cast := w.context.EntityCasts.Pop()
@@ -45,7 +45,7 @@ func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 	}
 
 	if node.Else != nil {
-		pt := NewPathTag(scope.Attributes...)
+		pt := NewPathTag()
 		elseScope := NewScope(scope, pt)
 		w.walkBody(&node.Else.Body, pt, elseScope)
 		prevPathTag.SetAllExitAND(pt)
@@ -149,7 +149,7 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 
 func (w *Walker) repeatStatement(node *ast.RepeatStmt, scope *Scope) {
 	repeatScope := NewScope(scope, &PathTag{}, BreakAllowing, ContinueAllowing)
-	lt := NewPathTag(repeatScope.Attributes...)
+	lt := NewPathTag()
 	repeatScope.Tag = lt
 
 	end := w.GetActualNodeValue(&node.Iterator, scope)
@@ -196,7 +196,7 @@ func (w *Walker) repeatStatement(node *ast.RepeatStmt, scope *Scope) {
 
 func (w *Walker) whileStatement(node *ast.WhileStmt, scope *Scope) {
 	whileScope := NewScope(scope, &PathTag{}, BreakAllowing, ContinueAllowing)
-	lt := NewPathTag(whileScope.Attributes...)
+	lt := NewPathTag()
 	whileScope.Tag = lt
 	w.GetNodeValue(&node.Condition, scope)
 
@@ -206,7 +206,7 @@ func (w *Walker) whileStatement(node *ast.WhileStmt, scope *Scope) {
 
 func (w *Walker) forStatement(node *ast.ForStmt, scope *Scope) {
 	forScope := NewScope(scope, &PathTag{}, BreakAllowing, ContinueAllowing)
-	lt := NewPathTag(forScope.Attributes...)
+	lt := NewPathTag()
 	forScope.Tag = lt
 
 	valType := w.GetActualNodeValue(&node.Iterator, scope).GetType()
@@ -242,7 +242,7 @@ func (w *Walker) forStatement(node *ast.ForStmt, scope *Scope) {
 
 func (w *Walker) tickStatement(node *ast.TickStmt, scope *Scope) {
 	tickScope := NewScope(scope, &PathTag{}, ReturnAllowing)
-	tt := NewPathTag(tickScope.Attributes...)
+	tt := NewPathTag()
 	tickScope.Tag = tt
 
 	if node.Variable != nil {
@@ -267,7 +267,7 @@ func (w *Walker) matchStatement(node *ast.MatchStmt, scope *Scope) {
 
 	var prevPathTag PathTag
 	for i := range node.Cases {
-		pt := NewPathTag(scope.Attributes...)
+		pt := NewPathTag()
 		caseScope := NewScope(scope, pt, BreakAllowing)
 		w.walkBody(&node.Cases[i].Body, pt, caseScope)
 		if i != 0 {
@@ -308,8 +308,7 @@ func (w *Walker) breakStatement(node *ast.BreakStmt, scope *Scope) {
 	}
 
 	if returnable := scope.resolveReturnable(); returnable != nil {
-		(*returnable).SetExit(true, Break)
-		(*returnable).SetExit(true, All)
+		(*returnable).SetExit(true, ControlFlow)
 	}
 }
 
@@ -322,8 +321,7 @@ func (w *Walker) continueStatement(node *ast.ContinueStmt, scope *Scope) {
 	}
 
 	if returnable := scope.resolveReturnable(); returnable != nil {
-		(*returnable).SetExit(true, Continue)
-		(*returnable).SetExit(true, All)
+		(*returnable).SetExit(true, ControlFlow)
 	}
 }
 
@@ -355,7 +353,7 @@ func (w *Walker) returnStatement(node *ast.ReturnStmt, scope *Scope) *[]Type {
 
 	if returnable := scope.resolveReturnable(); returnable != nil {
 		(*returnable).SetExit(true, Return)
-		(*returnable).SetExit(true, All)
+		(*returnable).SetExit(true, ControlFlow)
 	}
 
 	return ret.Types()
@@ -396,7 +394,7 @@ func (w *Walker) yieldStatement(node *ast.YieldStmt, scope *Scope) *[]Type {
 
 	if returnable := scope.resolveReturnable(); returnable != nil {
 		(*returnable).SetExit(true, Yield)
-		(*returnable).SetExit(true, All)
+		(*returnable).SetExit(true, ControlFlow)
 	}
 
 	return ret.Types()

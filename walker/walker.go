@@ -236,11 +236,6 @@ func (w *Walker) walkNode(node *ast.Node, scope *Scope) {
 	case *ast.CallExpr:
 		val := w.GetNodeValue(&newNode.Caller, scope)
 		w.callExpression(val, node, scope)
-	case *ast.EnvAccessExpr:
-		_, newVersion := w.environmentAccessExpression(newNode)
-		if newVersion != nil {
-			*node = newVersion
-		}
 	case *ast.ClassDecl:
 		w.classDeclaration(newNode, scope)
 	case *ast.EnumDecl:
@@ -317,11 +312,7 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 	case *ast.EntityEvaluationExpr:
 		val = w.entityEvaluationExpression(newNode, scope)
 	case *ast.EnvAccessExpr:
-		var newVersion ast.Node
-		val, newVersion = w.environmentAccessExpression(newNode)
-		if newVersion != nil {
-			*node = newVersion
-		}
+		val = w.environmentAccessExpression(node)
 	case *ast.SpawnExpr:
 		val = w.spawnExpression(newNode, scope)
 	default:
@@ -335,7 +326,7 @@ func (w *Walker) walkBody(body *ast.Body, tag ExitableTag, scope *Scope) {
 	endIndex := -1
 	bodySlice := *body
 	for i := range bodySlice {
-		if tag.GetIfExits(All) {
+		if tag.GetIfExits(ControlFlow) {
 			w.AlertMulti(&alerts.UnreachableCode{}, bodySlice[i].GetToken(), bodySlice[body.Size()-1].GetToken())
 			endIndex = i
 			break

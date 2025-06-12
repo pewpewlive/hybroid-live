@@ -50,9 +50,8 @@ type ExitType int
 const (
 	Yield ExitType = iota
 	Return
-	Continue
-	Break
-	All
+	EntityDestruction
+	ControlFlow
 )
 
 type ExitableTag interface {
@@ -90,8 +89,9 @@ func (et *EntityTag) GetType() ScopeTagType {
 type FuncTag struct {
 	Return      bool
 	ReturnTypes []Type
+	Generics    []*GenericType
 
-	Generics []*GenericType
+	Destroys bool
 }
 
 func (ft *FuncTag) GetType() ScopeTagType {
@@ -99,20 +99,27 @@ func (ft *FuncTag) GetType() ScopeTagType {
 }
 
 func (ft *FuncTag) SetExit(state bool, etype ExitType) {
-	if etype != Return && etype != All {
-		return
-	}
-	if state {
-		ft.Return = true
+	switch etype {
+	case Return:
+		if state {
+			ft.Return = true
+		}
+	case EntityDestruction:
+		if state {
+			ft.Destroys = true
+		}
 	}
 }
 
 func (ft *FuncTag) GetIfExits(et ExitType) bool {
+	if et == EntityDestruction {
+		return ft.Destroys
+	}
 	return ft.Return
 }
 
 type MatchExprTag struct {
-	Mpt        *PathTag
+	Pt         *PathTag
 	YieldTypes []Type
 }
 
@@ -121,11 +128,11 @@ func (met *MatchExprTag) GetType() ScopeTagType {
 }
 
 func (met *MatchExprTag) SetExit(state bool, typ ExitType) {
-	met.Mpt.SetExit(state, typ)
+	met.Pt.SetExit(state, typ)
 }
 
 func (met *MatchExprTag) GetIfExits(et ExitType) bool {
-	return met.Mpt.GetIfExits(et)
+	return met.Pt.GetIfExits(et)
 }
 
 type PathTag struct {
@@ -164,21 +171,12 @@ func (mpt *PathTag) GetIfExits(et ExitType) bool {
 	return mpt.Exits[et]
 }
 
-func NewPathTag(attrs ...ScopeAttribute) *PathTag {
+func NewPathTag() *PathTag {
 	exits := map[ExitType]bool{
-		All: false,
-	}
-	for _, v := range attrs {
-		switch v {
-		case YieldAllowing:
-			exits[Yield] = false
-		case BreakAllowing:
-			exits[Break] = false
-		case ContinueAllowing:
-			exits[Continue] = false
-		case ReturnAllowing:
-			exits[Return] = false
-		}
+		ControlFlow:       false,
+		Yield:             false,
+		Return:            false,
+		EntityDestruction: false,
 	}
 
 	return &PathTag{Exits: exits}

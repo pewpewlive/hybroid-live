@@ -62,7 +62,7 @@ func (w *Walker) matchExpression(node *ast.MatchExpr, scope *Scope) Value {
 
 	var prevPathTag PathTag
 	for i := range cases {
-		pt := NewPathTag(append(scope.Attributes, YieldAllowing)...)
+		pt := NewPathTag()
 		caseScope := NewScope(matchScope, pt)
 		w.walkBody(&matchStmt.Cases[i].Body, pt, caseScope)
 		if i != 0 {
@@ -346,67 +346,77 @@ check:
 	return variable
 }
 
-func (w *Walker) environmentAccessExpression(node *ast.EnvAccessExpr) (Value, ast.Node) {
+func (w *Walker) environmentAccessExpression(expr *ast.Node) Value {
+	node := (*expr).(*ast.EnvAccessExpr)
 	envName := node.PathExpr.Path.Lexeme
-
-	if node.Accessed.GetType() == ast.Identifier {
-		ident := node.Accessed.(*ast.IdentifierExpr)
-		path := envName + ":" + ident.Name.Lexeme
-		walker, found := w.walkers[path]
-		if found {
-			return NewPathVal(walker.environment.luaPath, walker.environment.Type, walker.environment.Name), &ast.LiteralExpr{
-				Value: "\"" + walker.environment.luaPath + "\"",
-			}
+	var accessed ast.Node = node.Accessed
+	defer func() {
+		if (*expr).GetType() != ast.EnvironmentAccessExpression {
+			return
 		}
+		if accessed.GetType() != ast.Identifier {
+			*expr = accessed
+			return
+		}
+		node.Accessed = accessed.(*ast.IdentifierExpr)
+	}()
+
+	path := envName + ":" + node.Accessed.Name.Lexeme
+	walker, found := w.walkers[path]
+	if found {
+		*expr = &ast.LiteralExpr{
+			Value: "\"" + walker.environment.luaPath + "\"",
+		}
+		return NewPathVal(walker.environment.luaPath, walker.environment.Type, walker.environment.Name)
 	}
 
 	var val Value
 	switch envName {
 	case "Pewpew":
-		val = w.GetNodeValue(&node.Accessed, &PewpewAPI.Scope)
+		val = w.GetNodeValue(&accessed, &PewpewAPI.Scope)
 	case "Fmath":
-		val = w.GetNodeValue(&node.Accessed, &FmathAPI.Scope)
+		val = w.GetNodeValue(&accessed, &FmathAPI.Scope)
 	case "Math":
 		if w.environment.Type == ast.LevelEnv {
 			w.AlertSingle(&alerts.UnallowedLibraryUse{}, node.PathExpr.Path, "Math", "Level")
 		}
-		val = w.GetNodeValue(&node.Accessed, &MathAPI.Scope)
+		val = w.GetNodeValue(&accessed, &MathAPI.Scope)
 	case "String":
-		val = w.GetNodeValue(&node.Accessed, &StringAPI.Scope)
+		val = w.GetNodeValue(&accessed, &StringAPI.Scope)
 	case "Table":
-		val = w.GetNodeValue(&node.Accessed, &TableAPI.Scope)
+		val = w.GetNodeValue(&accessed, &TableAPI.Scope)
 	default:
 		walker, found := w.walkers[envName]
 		if !found {
 			w.AlertSingle(&alerts.InvalidEnvironmentAccess{}, node.PathExpr.GetToken(), envName)
-			return &Invalid{}, nil
+			return &Invalid{}
 		}
 
 		if walker.environment.Name == w.environment.Name {
 			w.AlertSingle(&alerts.EnvironmentAccessToItself{}, node.PathExpr.GetToken())
-			return &Invalid{}, nil
+			return &Invalid{}
 		}
 
 		if walker.environment.Type != ast.SharedEnv && (w.environment.Type == ast.MeshEnv || w.environment.Type == ast.SoundEnv) {
 			w.AlertSingle(&alerts.UnallowedEnvironmentAccess{}, node.PathExpr.GetToken(), "non Shared", "Mesh or Sound")
-			return &Invalid{}, nil
+			return &Invalid{}
 		} else if w.environment.Type == ast.LevelEnv && (walker.environment.Type == ast.MeshEnv || walker.environment.Type == ast.SoundEnv) {
 			w.AlertSingle(&alerts.UnallowedEnvironmentAccess{}, node.PathExpr.GetToken(), "Mesh or Sound", "Level")
-			return &Invalid{}, nil
+			return &Invalid{}
 		}
 
 		if paths, isCycle := w.ResolveImportCycle(walker); isCycle {
 			paths = append([]string{w.environment.hybroidPath}, paths...)
 			w.AlertSingle(&alerts.ImportCycle{}, node.PathExpr.Path, paths)
-			return &Invalid{}, nil
+			return &Invalid{}
 		}
 
 		if walker.environment.luaPath == "/dynamic/level.lua" {
 			if !walker.Walked {
 				walker.Walk()
 			}
-			value := w.GetNodeValue(&node.Accessed, &walker.environment.Scope)
-			return value, nil
+			value := w.GetNodeValue(&accessed, &walker.environment.Scope)
+			return value
 		}
 
 		w.environment.AddRequirement(walker.environment.luaPath)
@@ -415,12 +425,9 @@ func (w *Walker) environmentAccessExpression(node *ast.EnvAccessExpr) (Value, as
 			walker.Walk()
 		}
 
-		val = w.GetNodeValue(&node.Accessed, &walker.environment.Scope)
-		if node.Accessed.GetType() == ast.LiteralExpression {
-			return val, node.Accessed
-		}
+		val = w.GetNodeValue(&accessed, &walker.environment.Scope)
 	}
-	return val, nil
+	return val
 }
 
 func (w *Walker) groupExpression(node *ast.GroupExpr, scope *Scope) Value {
@@ -448,6 +455,13 @@ func (w *Walker) callExpression(val Value, node *ast.Node, scope *Scope) Value {
 
 	if variable, ok := val.(*VariableVal); ok {
 		val = variable.Value
+	}
+
+	if envAccess, ok := call.Caller.(*ast.EnvAccessExpr); ok {
+		receiver_ := scope.resolveReturnable()
+		if (envAccess.Accessed.Name.Lexeme == "ExplodeEntity" || envAccess.Accessed.Name.Lexeme == "DestroyEntity") && envAccess.PathExpr.Path.Lexeme == "Pewpew" && receiver_ != nil {
+			(*receiver_).SetExit(true, EntityDestruction)
+		}
 	}
 
 	fn := *val.(*FunctionVal)
@@ -899,11 +913,7 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 			env = walker.environment
 		}
 
-		if expr.Accessed.GetType() != ast.Identifier {
-			return UnknownTyp
-		}
-		ident := expr.Accessed.(*ast.IdentifierExpr)
-		typ = w.typeExpression(&ast.TypeExpr{Name: ident}, &env.Scope)
+		typ = w.typeExpression(&ast.TypeExpr{Name: expr.Accessed}, &env.Scope)
 		if typee.IsVariadic {
 			return NewVariadicType(typ)
 		}

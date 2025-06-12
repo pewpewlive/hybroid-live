@@ -1,3 +1,10 @@
 env Thing as Level 
 
-Pewpew:Print(ToString(Env2:o))
+use Pewpew
+
+entity Yeah {
+    spawn(fixed x, y) {}
+    destroy() {
+        ExplodeEntity(self, 20)
+    }
+}

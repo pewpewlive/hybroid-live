@@ -23,7 +23,9 @@ pub entity Ship {
     })
   }
 
-  destroy() {}
+  destroy() {
+    DestroyEntity(self)
+  }
 
   Update() {
     if !IsEntityAlive(id) {

@@ -27,7 +27,7 @@ func (epe *EnvPathExpr) Combine(token tokens.Token) {
 
 type EnvAccessExpr struct {
 	PathExpr *EnvPathExpr
-	Accessed Node
+	Accessed *IdentifierExpr
 }
 
 func (eae *EnvAccessExpr) GetType() NodeType      { return EnvironmentAccessExpression }
