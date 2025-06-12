@@ -342,11 +342,11 @@ func (p *Parser) new() ast.Node {
 			Token: p.peek(-1),
 		}
 		// new<T, E>
-		classGenericArgs, ok := p.genericArgs()
+		generics, ok := p.genericArgs()
 		if !ok {
 			return ast.NewImproper(expr.Token, ast.NewExpession)
 		}
-		expr.ClassGenericArgs = classGenericArgs
+		expr.GenericArgs = generics
 
 		// new<T, E> Type<F, G>
 		expr.Type = p.typeExpr("in new expression")

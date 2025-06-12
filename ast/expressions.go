@@ -181,12 +181,11 @@ func (se *SelfExpr) GetType() NodeType      { return SelfExpression }
 func (se *SelfExpr) GetToken() tokens.Token { return se.Token }
 
 type NewExpr struct {
-	Type             *TypeExpr
-	GenericArgs      []*TypeExpr
-	ClassGenericArgs []*TypeExpr
-	Args             []Node
-	Token            tokens.Token
-	EnvName          string
+	Type        *TypeExpr
+	GenericArgs []*TypeExpr
+	Args        []Node
+	Token       tokens.Token
+	EnvName     string
 }
 
 func (ne *NewExpr) GetType() NodeType      { return NewExpession }

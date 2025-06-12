@@ -13,8 +13,8 @@ enum State {
 
 const RING_AMOUNT = 3f
 const RADIUS = 25f
-const PREDICTION_SPEED = 0.65f
-const DASH_PREPARATION_TIME = 25
+const PREDICTION_SPEED = 0.66f
+const DASH_PREPARATION_TIME = 26
 const LASER_PREPARATION_TIME = 25
 const SPREAD_MAX = 35d
 const COLLISION_COOLDOWN_MAX = 10
@@ -100,7 +100,9 @@ pub entity SuperInertiac {
     for i in rings{
       ExplodeEntity(rings[i], 20)
     }
-
+    for i in laserIndicators {
+      DestroyEntity(laserIndicators[i])
+    }
     ExplodeEntity(predictionLine, 0)
   }
 
@@ -183,7 +185,7 @@ pub entity SuperInertiac {
         State.PREPARING_LASER => {
           if preparationTimer == LASER_PREPARATION_TIME-1 {
             for _, v in laserIndicators {
-              SetEntityMesh(v, SPPredLineMesh, 0)
+              SetEntityMesh(v, SPPredLineMesh, 2)
             }
           }
           if preparationTimer > 0

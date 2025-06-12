@@ -66,7 +66,7 @@ func (p *Parser) functionParams(opening tokens.TokenType, closing tokens.TokenTy
 
 		args = append(args, param)
 	}
-	_, ok = p.alertSingleConsume(&alerts.ExpectedSymbol{}, closing)
+	_, ok = p.alertSingleConsume(&alerts.ExpectedSymbol{}, closing, "in function parameters")
 	success = success && ok
 
 	return args, success

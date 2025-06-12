@@ -87,7 +87,16 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 		if i <= len(values)-1 {
 			valType = values[i].GetType()
 		} else if i <= len(assignStmt.Values)-1 {
-			exprValue := w.GetActualNodeValue(&assignStmt.Values[i], scope)
+			exprValue := w.GetNodeValue(&assignStmt.Values[i], scope)
+			if variable2, ok := exprValue.(*VariableVal); ok {
+				if variable2 == variable && assignStmt.Values[i].GetType() == ast.Identifier && assignOp.Type == tokens.Equal {
+					w.AlertSingle(&alerts.AssignmentToSelf{}, assignStmt.Values[i].GetToken(), variable.Name)
+				}
+				exprValue = variable2.Value
+			}
+			if constVal, ok := exprValue.(*ConstVal); ok {
+				exprValue = constVal.Val
+			}
 			if vals, ok := exprValue.(Values); ok {
 				for j := range vals {
 					values = append(values, Value2{vals[j], i})

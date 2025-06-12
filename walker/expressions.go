@@ -743,12 +743,7 @@ func (w *Walker) newExpression(new *ast.NewExpr, scope *Scope) Value {
 	for i := range new.Args {
 		args = append(args, w.GetActualNodeValue(&new.Args[i], scope))
 	}
-
-	explicitClassGenericArgs := w.getGenerics(new.ClassGenericArgs, val.Generics, scope)
 	explicitGenericArgs := w.getGenerics(new.GenericArgs, val.New.Generics, scope)
-	for k, v := range explicitClassGenericArgs {
-		explicitGenericArgs[k] = v
-	}
 
 	w.validateArguments(explicitGenericArgs, args, val.New, new)
 
@@ -930,22 +925,29 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 		if val, ok := scope.Environment.Enums[typeName]; ok {
 			typ = val.Type
 			w.checkAccessibility(scope, val.IsPub, typee.Name.GetToken())
-		} else if entityVal, found := scope.Environment.Entities[typeName]; found {
+			break
+		}
+		if entityVal, found := scope.Environment.Entities[typeName]; found {
 			val := *entityVal
 			CopyNamedType(&val.Type)
 			typ = &val.Type
 			w.FillGenericsInNamedType(&val.Type, typee, scope)
 			break
-		} else if classVal, found := scope.Environment.Classes[typeName]; found {
+		}
+		if classVal, found := scope.Environment.Classes[typeName]; found {
 			val := *classVal
 			CopyNamedType(&val.Type)
 			typ = &val.Type
 			w.FillGenericsInNamedType(&val.Type, typee, scope)
 			break
-		} else if aliasType, found := scope.resolveAlias(typeName); found {
+		}
+		if aliasType, found := scope.resolveAlias(typeName); found {
 			typ = aliasType.UnderlyingType
-		} else if aliasType, found := BuiltinEnv.Scope.AliasTypes[typeName]; found {
+			break
+		}
+		if aliasType, found := BuiltinEnv.Scope.AliasTypes[typeName]; found {
 			typ = aliasType.UnderlyingType
+			break
 		}
 
 		if scope.Environment.Name != w.environment.Name {

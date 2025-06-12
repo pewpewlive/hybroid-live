@@ -45,6 +45,7 @@ entity Laser {
         }
         SetEntityMeshXYZScale(self, scale, 1f, 1f)
         SetEntityMesh(self, LaserMesh, 0)
+        PlaySound(LaserSound, 0, x, y)
         SpawnEntity(self, 0)
     }
 
@@ -64,7 +65,6 @@ entity Laser {
             destroy self()
             return
         }
-
         if !IsEntityAlive(SHIP.id) return
 
         let px, py = GetEntityPosition(SHIP.id)
@@ -84,7 +84,7 @@ entity Laser {
             isInFront = true
         }
 
-        if dist < 20f and timer > 8f and isInFront {
+        if dist < 24f and timer > 8f and isInFront {
             CollideWithPlayer()
         }
     }

@@ -10,7 +10,7 @@ pub meshes = [
     }
 ]
 
-const THICKNESS = 5
+const THICKNESS = 7
 const ITERATIONS = 7
 
 AddLine(meshes[1], [[0,0], [1,0]], [0xffffffff, 0xffffffff], false)

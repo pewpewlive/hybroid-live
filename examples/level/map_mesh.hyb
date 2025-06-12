@@ -1,11 +1,10 @@
 env MapMesh as Mesh
 
 use Graphix
+use Globals
 
 const SIZE = 1400
 
 pub meshes = [
   NewMesh()
 ]
-// Mesh mesh, Vertex center, number sides, color, radius, startAngle
-AddFlatPoly(meshes[1], [SIZE/2, SIZE/2], 6, 0xffffffff, SIZE/2, 0)

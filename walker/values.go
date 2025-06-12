@@ -163,10 +163,14 @@ func (sv *StructVal) GetDefault() *ast.LiteralExpr {
 	length := len(sv.Fields) - 1
 	index := 0
 	for k, v := range sv.Fields {
+		val := v.Var.GetDefault().Value
+		if val == "nil" {
+			return &ast.LiteralExpr{Value: "nil"}
+		}
 		if index == length {
-			src.Write(k, " = ", v.Var.GetDefault().Value)
+			src.Write(k, " = ", val)
 		} else {
-			src.Write(k, " = ", v.Var.GetDefault().Value, ", ")
+			src.Write(k, " = ", val, ", ")
 		}
 		index++
 	}

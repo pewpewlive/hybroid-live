@@ -1994,3 +1994,29 @@ func (ilomwt *InvalidListOrMapWrappedType) ID() string {
 func (ilomwt *InvalidListOrMapWrappedType) AlertType() Type {
 	return Error
 }
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type AssignmentToSelf struct {
+	Specifier Snippet
+	VarName   string
+}
+
+func (ats *AssignmentToSelf) Message() string {
+	return fmt.Sprintf("the variable '%s' is assigned to itself", ats.VarName)
+}
+
+func (ats *AssignmentToSelf) SnippetSpecifier() Snippet {
+	return ats.Specifier
+}
+
+func (ats *AssignmentToSelf) Note() string {
+	return ""
+}
+
+func (ats *AssignmentToSelf) ID() string {
+	return "hyb077W"
+}
+
+func (ats *AssignmentToSelf) AlertType() Type {
+	return Warning
+}

@@ -12,8 +12,8 @@ let playerConfig = struct{
 }
 ConfigurePlayer(0, playerConfig)
 
-// let bg = NewEntity(0f, 0f)
-// SetEntityMesh(bg, MapMesh, 0)
+let bg = NewEntity(WIDTH/2f, HEIGHT/2f)
+SetEntityMesh(bg, MapMesh, 0)
 spawn SuperInertiac(0f, 0f)
 spawn SuperInertiac(500f, 0f)
 

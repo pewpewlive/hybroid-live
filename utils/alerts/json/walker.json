@@ -632,5 +632,14 @@
     "name": "InvalidListOrMapWrappedType",
     "type": "Error",
     "message": "lists and maps have a singular wrapped type"
+  },
+  {
+    "name": "AssignmentToSelf",
+    "type": "Warning",
+    "fields": {
+      "VarName": "string"
+    },
+    "message": "the variable '%s' is assigned to itself",
+    "message_format": ["VarName"]
   }
 ]
