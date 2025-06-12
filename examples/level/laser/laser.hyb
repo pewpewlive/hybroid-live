@@ -67,13 +67,26 @@ entity Laser {
             return
         }
 
+        if !IsEntityAlive(SHIP.id) return
+
         let px, py = GetEntityPosition(SHIP.id)
 
         let b1 = -slope*px+py
         let b2 = -slope*x+y
 
         let dist = Fmath:AbsFixed(b1-b2)/Fmath:Sqrt(1f+slope^2f)
-        if dist < 13f and timer < 8f {
+
+        let playerVector = Fmath:Atan2(py-y, px-x)
+        let laserVector = Fmath:Atan2(ly-y, lx-x)
+        let diff = Fmath:AbsFixed(playerVector-laserVector)
+        bool isInFront
+        if diff < 90d {
+            isInFront = true
+        }else if diff > 270d {
+            isInFront = true
+        }
+
+        if dist < 13f and timer > 8f and isInFront {
             CollideWithPlayer()
         }
     }
