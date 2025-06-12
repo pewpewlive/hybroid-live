@@ -2,9 +2,33 @@ env Thing as Level
 
 use Pewpew
 
-entity Yeah {
-    spawn(fixed x, y) {}
+entity Yeah<T> {
+    T a
+    spawn(fixed x, y, T a) { self.a = a }
     destroy() {
         ExplodeEntity(self, 20)
     }
+
+    fn method() -> T {
+        return a
+    }
 }
+
+fn TEST(bool i, fixed... a) -> fixed {
+    fixed b
+    for _, v in a {
+        b += v
+    }
+    return b
+}
+
+TEST(true, 1f, 2f, 3f)
+
+Table:Insert([1,2,3], 2)
+
+fn name<T>(T a, b, c) {}
+name(1, 2, 3)
+
+Yeah<fixed> o = spawn Yeah<fixed>(1f, 1f, 2f)
+
+fixed _ = o.method()

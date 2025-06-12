@@ -365,12 +365,17 @@ func (st *StructType) String() string {
 	return src.String()
 }
 
+type GenericWithType struct {
+	GenericName string
+	Type        Type
+}
+
 type NamedType struct {
 	Pvt      ast.PrimitiveValueType
 	EnvName  string
 	Name     string
 	IsUsed   bool
-	Generics []Type
+	Generics []GenericWithType
 }
 
 func NewNamedType(envName string, name string, primitive ast.PrimitiveValueType) *NamedType {
@@ -378,7 +383,7 @@ func NewNamedType(envName string, name string, primitive ast.PrimitiveValueType)
 		EnvName:  envName,
 		Name:     name,
 		Pvt:      primitive,
-		Generics: make([]Type, 0),
+		Generics: []GenericWithType{},
 	}
 }
 
@@ -392,6 +397,14 @@ func (nt *NamedType) GetType() ValueType {
 
 func (nt *NamedType) _eq(othr Type) bool {
 	other := othr.(*NamedType)
+	if len(nt.Generics) != len(other.Generics) {
+		return false
+	}
+	for i, v := range nt.Generics {
+		if v.GenericName != other.Generics[i].GenericName || !TypeEquals(v.Type, other.Generics[i].Type) {
+			return false
+		}
+	}
 	return nt.Name == other.Name
 }
 
@@ -401,14 +414,16 @@ func (nt *NamedType) String() string {
 	}
 
 	src := core.StringBuilder{}
-	src.Write("(")
+	src.Write("<")
+	index := 0
 	for i := range nt.Generics {
-		src.Write(nt.Generics[i].String())
-		if i != len(nt.Generics)-1 {
+		src.Write(nt.Generics[i].Type.String())
+		if index != len(nt.Generics)-1 {
 			src.Write(", ")
 		}
+		index++
 	}
-	src.Write(")")
+	src.Write(">")
 	return nt.Name + src.String()
 }
 
@@ -588,12 +603,6 @@ func TypeEquals(t Type, other Type) bool {
 	tpvt := t.PVT()
 	otherpvt := other.PVT()
 
-	/*
-		if (ttype == Fixed && otherpvt == ast.Number) || (othertype == Fixed && tpvt == ast.Number) {
-			return true
-		}
-	*/
-
 	if tpvt == ast.Object {
 		return true
 	} else if otherpvt == ast.Object {
@@ -612,12 +621,6 @@ func TypeEquals(t Type, other Type) bool {
 	}
 
 	return t._eq(other)
-}
-
-// uesed for generics
-type Type2 struct {
-	Type
-	Index int
 }
 
 var InvalidType = NewBasicType(ast.Invalid)

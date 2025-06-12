@@ -66,12 +66,12 @@ func (ue *UnaryExpr) GetType() NodeType      { return UnaryExpression }
 func (ue *UnaryExpr) GetToken() tokens.Token { return ue.Value.GetToken() }
 
 type TypeExpr struct {
-	WrappedType *TypeExpr
-	Name        Node
-	Params      []*TypeExpr
-	Returns     []*TypeExpr
-	Fields      []FunctionParam
-	IsVariadic  bool
+	WrappedTypes []*TypeExpr
+	Name         Node
+	Params       []*TypeExpr
+	Returns      []*TypeExpr
+	Fields       []FunctionParam
+	IsVariadic   bool
 }
 
 func (te *TypeExpr) GetType() NodeType      { return TypeExpression }
@@ -197,18 +197,17 @@ func (ne *NewExpr) GetCaller() Node          { return ne.Type }
 func (ne *NewExpr) GetArgs() []Node          { return ne.Args }
 
 type SpawnExpr struct {
-	Type              *TypeExpr
-	Args              []Node
-	EntityGenericArgs []*TypeExpr
-	GenericArgs       []*TypeExpr
-	Token             tokens.Token
-	EnvName           string
+	Type        *TypeExpr
+	Args        []Node
+	GenericArgs []*TypeExpr
+	Token       tokens.Token
+	EnvName     string
 }
 
 func (ne *SpawnExpr) GetType() NodeType      { return SpawnExpression }
 func (ne *SpawnExpr) GetToken() tokens.Token { return ne.Token }
 
-func (ne *SpawnExpr) GetGenerics() []*TypeExpr { return ne.EntityGenericArgs }
+func (ne *SpawnExpr) GetGenerics() []*TypeExpr { return ne.GenericArgs }
 func (ne *SpawnExpr) GetCaller() Node          { return ne.Type }
 func (ne *SpawnExpr) GetArgs() []Node          { return ne.Args }
 

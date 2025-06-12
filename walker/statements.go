@@ -98,7 +98,7 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 			valType = values[i].GetType()
 		} else {
 			requiredAmount := identsLen - len(values)
-			w.AlertSingle(&alerts.TooFewValuesGiven{}, exprs[len(exprs)-1].GetToken(), requiredAmount, "in assignment")
+			w.AlertSingle(&alerts.TooFewElementsGiven{}, exprs[len(exprs)-1].GetToken(), requiredAmount, "value", "in assignment")
 			return
 		}
 
@@ -137,10 +137,11 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 	valuesLen := len(values)
 	if valuesLen > identsLen {
 		extraAmount := valuesLen - identsLen
-		w.AlertMulti(&alerts.TooManyValuesGiven{},
+		w.AlertMulti(&alerts.TooManyElementsGiven{},
 			exprs[values[valuesLen-1].Index].GetToken(),
 			exprs[values[valuesLen-extraAmount].Index].GetToken(),
 			extraAmount,
+			"value",
 			"in assignment",
 		)
 		return

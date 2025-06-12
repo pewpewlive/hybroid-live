@@ -125,8 +125,14 @@ pub class Grid {
                 point.power = FmathHelpers:Length(point.anchorX - posX, point.anchorY - posY)
             }
 
-            for _, v in lines {
-                v.Update()
+            if #lines > 0 {
+                for _, v in lines {
+                    v.Update()
+                }
+            }else if #points > 0 {
+                for _, v in points {
+                    v.Update()
+                }
             }
         }
     }

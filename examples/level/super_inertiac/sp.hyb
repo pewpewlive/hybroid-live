@@ -25,6 +25,7 @@ const LASER_COLOR = 0x00ffffff
 pub entity SuperInertiac {
   fixed x, y = 0f, 0f
   fixed velX, velY = 0f, 0f
+  fixed lvx, lvy
   
   number health = 70
 
@@ -289,12 +290,15 @@ pub entity SuperInertiac {
     for i, v in laserIndicators {
       SetEntityPosition(v, x, y)
       SetEntityMeshAngle(v, lookToPlayerAngle+currentSpread*Fmath:ToFixed(i-2), 0f, 0f, 1f)
+      let lerpPower = 0.9f
       if Is(State.PREPARING_LASER) {
-        continue
+        lerpPower = 0.01f
       }
       if IsEntityAlive(SHIP.id) {
         let px, py = GetEntityPosition(SHIP.id)
-        lookToPlayerAngle = Fmath:Atan2(py-y, px-x)
+        lvx = Lerp(lvx, px-x, lerpPower)
+        lvy = Lerp(lvy, py-y, lerpPower)
+        lookToPlayerAngle = Fmath:Atan2(lvy, lvx)
       }
     }
     if Is(State.PREPARING_LASER) {

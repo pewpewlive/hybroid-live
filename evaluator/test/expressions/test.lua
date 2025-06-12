@@ -20,7 +20,8 @@ function HEE_Entity_Spawn(E_x, E_y)
 end
 function HEE_Entity_Destroy(id, _)
 	local Self = HEE_Entity[id]
-HEE_Entity[id] = nil
+	pewpew.entity_destroy(id)
+	HEE_Entity[id] = nil
 end
 function HEE_Entity_method1(id)
 	local Self = HEE_Entity[id]

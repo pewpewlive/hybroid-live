@@ -507,29 +507,58 @@ func (nvgfc *NoValueGivenForConstant) AlertType() Type {
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type TooFewValuesGiven struct {
+type TooFewElementsGiven struct {
 	Specifier      Snippet
 	RequiredAmount int
+	Elem           string
 	Context        string
 }
 
-func (tfvg *TooFewValuesGiven) Message() string {
-	return fmt.Sprintf("%d more value(s) required %s", tfvg.RequiredAmount, tfvg.Context)
+func (tfeg *TooFewElementsGiven) Message() string {
+	return fmt.Sprintf("%d more %s(s) required %s", tfeg.RequiredAmount, tfeg.Elem, tfeg.Context)
 }
 
-func (tfvg *TooFewValuesGiven) SnippetSpecifier() Snippet {
-	return tfvg.Specifier
+func (tfeg *TooFewElementsGiven) SnippetSpecifier() Snippet {
+	return tfeg.Specifier
 }
 
-func (tfvg *TooFewValuesGiven) Note() string {
+func (tfeg *TooFewElementsGiven) Note() string {
 	return ""
 }
 
-func (tfvg *TooFewValuesGiven) ID() string {
+func (tfeg *TooFewElementsGiven) ID() string {
 	return "hyb020W"
 }
 
-func (tfvg *TooFewValuesGiven) AlertType() Type {
+func (tfeg *TooFewElementsGiven) AlertType() Type {
+	return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type TooManyElementsGiven struct {
+	Specifier   Snippet
+	ExtraAmount int
+	Elem        string
+	Context     string
+}
+
+func (tmeg *TooManyElementsGiven) Message() string {
+	return fmt.Sprintf("%d less %s(s) required %s", tmeg.ExtraAmount, tmeg.Elem, tmeg.Context)
+}
+
+func (tmeg *TooManyElementsGiven) SnippetSpecifier() Snippet {
+	return tmeg.Specifier
+}
+
+func (tmeg *TooManyElementsGiven) Note() string {
+	return ""
+}
+
+func (tmeg *TooManyElementsGiven) ID() string {
+	return "hyb021W"
+}
+
+func (tmeg *TooManyElementsGiven) AlertType() Type {
 	return Error
 }
 
@@ -551,7 +580,7 @@ func (etrid *ExplicitTypeRequiredInDeclaration) Note() string {
 }
 
 func (etrid *ExplicitTypeRequiredInDeclaration) ID() string {
-	return "hyb021W"
+	return "hyb022W"
 }
 
 func (etrid *ExplicitTypeRequiredInDeclaration) AlertType() Type {
@@ -578,7 +607,7 @@ func (etm *ExplicitTypeMismatch) Note() string {
 }
 
 func (etm *ExplicitTypeMismatch) ID() string {
-	return "hyb022W"
+	return "hyb023W"
 }
 
 func (etm *ExplicitTypeMismatch) AlertType() Type {
@@ -604,37 +633,10 @@ func (etna *ExplicitTypeNotAllowed) Note() string {
 }
 
 func (etna *ExplicitTypeNotAllowed) ID() string {
-	return "hyb023W"
-}
-
-func (etna *ExplicitTypeNotAllowed) AlertType() Type {
-	return Error
-}
-
-// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type TooManyValuesGiven struct {
-	Specifier   Snippet
-	ExtraAmount int
-	Context     string
-}
-
-func (tmvg *TooManyValuesGiven) Message() string {
-	return fmt.Sprintf("%d less value(s) required %s", tmvg.ExtraAmount, tmvg.Context)
-}
-
-func (tmvg *TooManyValuesGiven) SnippetSpecifier() Snippet {
-	return tmvg.Specifier
-}
-
-func (tmvg *TooManyValuesGiven) Note() string {
-	return ""
-}
-
-func (tmvg *TooManyValuesGiven) ID() string {
 	return "hyb024W"
 }
 
-func (tmvg *TooManyValuesGiven) AlertType() Type {
+func (etna *ExplicitTypeNotAllowed) AlertType() Type {
 	return Error
 }
 
@@ -1965,5 +1967,30 @@ func (eiosp *EmptyIdentifierOnSpawnParameters) ID() string {
 }
 
 func (eiosp *EmptyIdentifierOnSpawnParameters) AlertType() Type {
+	return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidListOrMapWrappedType struct {
+	Specifier Snippet
+}
+
+func (ilomwt *InvalidListOrMapWrappedType) Message() string {
+	return "lists and maps have a singular wrapped type"
+}
+
+func (ilomwt *InvalidListOrMapWrappedType) SnippetSpecifier() Snippet {
+	return ilomwt.Specifier
+}
+
+func (ilomwt *InvalidListOrMapWrappedType) Note() string {
+	return ""
+}
+
+func (ilomwt *InvalidListOrMapWrappedType) ID() string {
+	return "hyb076W"
+}
+
+func (ilomwt *InvalidListOrMapWrappedType) AlertType() Type {
 	return Error
 }

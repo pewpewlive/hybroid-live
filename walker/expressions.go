@@ -751,31 +751,6 @@ func (w *Walker) newExpression(new *ast.NewExpr, scope *Scope) Value {
 	}
 
 	w.validateArguments(explicitGenericArgs, args, val.New, new)
-	for _, v := range val.Generics {
-		generic := explicitGenericArgs[v.Name]
-		if generic.Type == UnknownTyp {
-			continue
-		}
-		for i, v := range val.Fields {
-			if v.Var.Value.GetType().GetType() == Generic {
-				val.Fields[i].Var.Value = w.typeToValue(generic.Type)
-			}
-		}
-		for i := range val.Methods {
-			fn := val.Methods[i].Value.(*FunctionVal)
-			for j, v3 := range fn.Params {
-				if gen, ok := v3.(*GenericType); ok && gen.Name == v.Name {
-					fn.Params[j] = generic.Type
-				}
-			}
-			for j, v3 := range fn.Returns {
-				if gen, ok := v3.(*GenericType); ok && gen.Name == v.Name {
-					fn.Returns[j] = generic.Type
-				}
-			}
-		}
-		val.Type.Generics = append(val.Type.Generics, generic)
-	}
 
 	new.EnvName = val.Type.EnvName
 	return val
@@ -799,48 +774,8 @@ func (w *Walker) spawnExpression(new *ast.SpawnExpr, scope *Scope) Value {
 	}
 
 	fn := val.Spawn
-	explicitEntityGenericArgs := w.getGenerics(new.EntityGenericArgs, val.Generics, scope)
 	explicitGenericArgs := w.getGenerics(new.GenericArgs, fn.Generics, scope)
-	for k, v := range explicitEntityGenericArgs {
-		explicitGenericArgs[k] = v
-	}
-
 	w.validateArguments(explicitGenericArgs, args, fn, new)
-	for _, v := range val.Generics {
-		generic := explicitGenericArgs[v.Name]
-		if generic.Type == UnknownTyp {
-			continue
-		}
-		for i, v := range val.Fields {
-			if v.Var.Value.GetType().GetType() == Generic {
-				val.Fields[i].Var.Value = w.typeToValue(generic.Type)
-			}
-		}
-		for i := range val.Methods {
-			fn := val.Methods[i].Value.(*FunctionVal)
-			for j, v3 := range fn.Params {
-				if gen, ok := v3.(*GenericType); ok && gen.Name == v.Name {
-					fn.Params[j] = generic.Type
-				}
-			}
-			for j, v3 := range fn.Returns {
-				if gen, ok := v3.(*GenericType); ok && gen.Name == v.Name {
-					fn.Returns[j] = generic.Type
-				}
-			}
-		}
-		for j, v3 := range fn.Params {
-			if gen, ok := v3.(*GenericType); ok && gen.Name == v.Name {
-				fn.Params[j] = generic.Type
-			}
-		}
-		for j, v3 := range fn.Returns {
-			if gen, ok := v3.(*GenericType); ok && gen.Name == v.Name {
-				fn.Returns[j] = generic.Type
-			}
-		}
-		val.Type.Generics = append(val.Type.Generics, generic)
-	}
 
 	new.EnvName = val.Type.EnvName
 	return val
@@ -870,6 +805,22 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 	if typee == nil {
 		return typ
 	}
+
+	defer func() {
+		if typ == UnknownTyp || typ.GetType() == Wrapper {
+			return
+		}
+		wrappedLen := len(typee.WrappedTypes)
+		if ((typ.GetType() == Named && typ.PVT() == ast.Enum) || typ.GetType() != Named) && wrappedLen > 0 {
+			w.AlertMulti(&alerts.TooManyElementsGiven{},
+				typee.WrappedTypes[0].GetToken(),
+				typee.WrappedTypes[wrappedLen-1].GetToken(),
+				wrappedLen,
+				"wrapped type",
+				"in non-class/non-entity expression",
+			)
+		}
+	}()
 
 	if typee.Name.GetType() == ast.EnvironmentAccessExpression {
 		expr, _ := typee.Name.(*ast.EnvAccessExpr)
@@ -960,7 +911,15 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 			Returns: returns,
 		}
 	case ast.Map, ast.List:
-		wrapped := w.typeExpression(typee.WrappedType, scope)
+		var wrapped Type = InvalidType
+		wrappedLen := len(typee.WrappedTypes)
+		if wrappedLen == 0 {
+			w.AlertSingle(&alerts.InvalidListOrMapWrappedType{}, typee.GetToken())
+		} else if wrappedLen > 1 {
+			w.AlertSingle(&alerts.InvalidListOrMapWrappedType{}, typee.WrappedTypes[1].GetToken())
+		} else {
+			wrapped = w.typeExpression(typee.WrappedTypes[0], scope)
+		}
 		typ = NewWrapperType(NewBasicType(pvt), wrapped)
 	case ast.Entity:
 		typ = &RawEntityType{}
@@ -971,23 +930,22 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 		if val, ok := scope.Environment.Enums[typeName]; ok {
 			typ = val.Type
 			w.checkAccessibility(scope, val.IsPub, typee.Name.GetToken())
+		} else if entityVal, found := scope.Environment.Entities[typeName]; found {
+			val := *entityVal
+			CopyNamedType(&val.Type)
+			typ = &val.Type
+			w.FillGenericsInNamedType(&val.Type, typee, scope)
 			break
-		}
-		if entityVal, found := scope.Environment.Entities[typeName]; found {
-			typ = entityVal.GetType()
+		} else if classVal, found := scope.Environment.Classes[typeName]; found {
+			val := *classVal
+			CopyNamedType(&val.Type)
+			typ = &val.Type
+			w.FillGenericsInNamedType(&val.Type, typee, scope)
 			break
-		}
-		if structVal, found := scope.Environment.Classes[typeName]; found {
-			typ = structVal.GetType()
-			break
-		}
-		if aliasType, found := scope.resolveAlias(typeName); found {
+		} else if aliasType, found := scope.resolveAlias(typeName); found {
 			typ = aliasType.UnderlyingType
-			break
-		}
-		if aliasType, found := BuiltinEnv.Scope.AliasTypes[typeName]; found {
+		} else if aliasType, found := BuiltinEnv.Scope.AliasTypes[typeName]; found {
 			typ = aliasType.UnderlyingType
-			break
 		}
 
 		if scope.Environment.Name != w.environment.Name {
@@ -1057,4 +1015,21 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 		return NewVariadicType(typ)
 	}
 	return typ
+}
+
+func (w *Walker) FillGenericsInNamedType(named *NamedType, typ *ast.TypeExpr, scope *Scope) {
+	typesLen, genericsLen := len(typ.WrappedTypes), len(named.Generics)
+
+	if typesLen < genericsLen {
+		w.AlertSingle(&alerts.TooFewElementsGiven{}, typ.GetToken(), genericsLen-typesLen, "wrapped type", "in type expression")
+	}
+
+	for i := range typ.WrappedTypes {
+		if i > genericsLen-1 {
+			w.AlertMulti(&alerts.TooManyElementsGiven{}, typ.WrappedTypes[i].GetToken(), typ.WrappedTypes[typesLen-1].GetToken(), typesLen-genericsLen, "wrapped type", "in type expression")
+			return
+		}
+		typ := w.typeExpression(typ.WrappedTypes[i], scope)
+		named.Generics[i].Type = typ
+	}
 }

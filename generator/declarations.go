@@ -221,7 +221,9 @@ func (gen *Generator) destroyDeclaration(node ast.EntityFunctionDecl, entity ast
 
 	gen.GenerateBody(node.Body)
 
+	gen.tabCount++
 	gen.Twrite(entityName, "[id] = nil\n")
+	gen.tabCount--
 
 	gen.Write("end")
 }

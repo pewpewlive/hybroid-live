@@ -68,12 +68,11 @@ func (w *Walker) classDeclaration(node *ast.ClassDecl, scope *Scope) {
 		Methods: map[string]*VariableVal{},
 		New:     NewFunction(),
 	}
-
-	generics := make([]*GenericType, 0)
 	for _, param := range node.GenericParams {
-		generics = append(generics, NewGeneric(param.Name.Lexeme))
+		generic := NewGeneric(param.Name.Lexeme)
+		classVal.Generics = append(classVal.Generics, generic)
+		classVal.Type.Generics = append(classVal.Type.Generics, GenericWithType{GenericName: generic.Name, Type: UnknownTyp})
 	}
-	classVal.Generics = generics
 
 	// DECLARATIONS
 	w.declareClass(classVal)
@@ -134,12 +133,11 @@ func (w *Walker) entityDeclaration(node *ast.EntityDecl, scope *Scope) {
 	}
 
 	entityVal := NewEntityVal(w.environment.Name, node)
-
-	generics := make([]*GenericType, 0)
 	for _, param := range node.GenericParams {
-		generics = append(generics, NewGeneric(param.Name.Lexeme))
+		generic := NewGeneric(param.Name.Lexeme)
+		entityVal.Generics = append(entityVal.Generics, generic)
+		entityVal.Type.Generics = append(entityVal.Type.Generics, GenericWithType{GenericName: generic.Name, Type: UnknownTyp})
 	}
-	entityVal.Generics = generics
 
 	et.EntityVal = entityVal
 	w.declareEntity(entityVal)
@@ -448,16 +446,18 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 	if varsLen < valsLen {
 		extraAmount := valsLen - varsLen
 		if extraAmount == 1 {
-			w.AlertSingle(&alerts.TooManyValuesGiven{},
+			w.AlertSingle(&alerts.TooManyElementsGiven{},
 				declaration.Expressions[exprsLen-1].GetToken(),
 				extraAmount,
+				"value",
 				"in variable declaration",
 			)
 		} else {
-			w.AlertMulti(&alerts.TooManyValuesGiven{},
+			w.AlertMulti(&alerts.TooManyElementsGiven{},
 				declaration.Expressions[values[valsLen-extraAmount].Index].GetToken(),
 				declaration.Expressions[values[valsLen-1].Index].GetToken(),
 				extraAmount,
+				"value",
 				"in variable declaration",
 			)
 		}

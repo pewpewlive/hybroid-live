@@ -25,7 +25,7 @@ entity Entity<A> {
     let o2 = 2
 
     destroy(number _) {
-
+        Pewpew:DestroyEntity(self)
     }
 }
 

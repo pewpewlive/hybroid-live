@@ -61,9 +61,13 @@ func (w *Walker) SetVarToUsed(v *VariableVal) {
 	v.IsUsed = true
 	if fn, ok := v.Value.(*FunctionVal); ok && fn.ProcType == Method {
 		if fn.MethodName == "spawn" && fn.MethodType == ast.EntityMethod {
-			w.walkers[fn.EnvName].environment.Entities[fn.TypeName].Type.IsUsed = true
+			val := w.walkers[fn.EnvName].environment.Entities[fn.TypeName]
+			val.Type.IsUsed = true
+			w.walkers[fn.EnvName].environment.Entities[fn.TypeName] = val
 		} else if fn.MethodName == "new" && fn.MethodType == ast.ClassMethod {
-			w.walkers[fn.EnvName].environment.Classes[fn.TypeName].Type.IsUsed = true
+			val := w.walkers[fn.EnvName].environment.Classes[fn.TypeName]
+			val.Type.IsUsed = true
+			w.walkers[fn.EnvName].environment.Classes[fn.TypeName] = val
 		}
 	}
 }
@@ -296,6 +300,12 @@ type EntityVal struct {
 
 	Spawn   *FunctionVal
 	Destroy *FunctionVal
+}
+
+func CopyNamedType(n *NamedType) {
+	gens := []GenericWithType{}
+	gens = append(gens, n.Generics...)
+	n.Generics = gens
 }
 
 func NewEntityVal(envName string, node *ast.EntityDecl) *EntityVal {

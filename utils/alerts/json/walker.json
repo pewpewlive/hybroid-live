@@ -168,14 +168,26 @@
     "message": "constant must be declared with a value"
   },
   {
-    "name": "TooFewValuesGiven",
+    "name": "TooFewElementsGiven",
     "type": "Error",
     "fields": {
       "RequiredAmount": "int",
+      "Elem": "string",
       "Context": "string"
     },
-    "message": "%d more value(s) required %s",
-    "message_format": ["RequiredAmount", "Context"]
+    "message": "%d more %s(s) required %s",
+    "message_format": ["RequiredAmount", "Elem", "Context"]
+  },
+  {
+    "name": "TooManyElementsGiven",
+    "type": "Error",
+    "fields": {
+      "ExtraAmount": "int",
+      "Elem": "string",
+      "Context": "string"
+    },
+    "message": "%d less %s(s) required %s",
+    "message_format": ["ExtraAmount", "Elem", "Context"]
   },
   {
     "name": "ExplicitTypeRequiredInDeclaration",
@@ -201,16 +213,6 @@
     "message": "cannot create a default value from the explicit type '%s'",
     "message_format": ["ExplicitType"],
     "note": "some types don't have default values, like entities and classes"
-  },
-  {
-    "name": "TooManyValuesGiven",
-    "type": "Error",
-    "fields": {
-      "ExtraAmount": "int",
-      "Context": "string"
-    },
-    "message": "%d less value(s) required %s",
-    "message_format": ["ExtraAmount", "Context"]
   },
   {
     "name": "ImportCycle",
@@ -625,5 +627,10 @@
     "name": "EmptyIdentifierOnSpawnParameters",
     "type": "Error",
     "message": "cannot use an empty identifier ('_') for the first two spawn parameters"
+  },
+  {
+    "name": "InvalidListOrMapWrappedType",
+    "type": "Error",
+    "message": "lists and maps have a singular wrapped type"
   }
 ]

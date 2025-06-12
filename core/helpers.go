@@ -7,6 +7,23 @@ import (
 	"strings"
 )
 
+func MapsAreSame[T comparable, E comparable](map1 map[E]T, map2 map[E]T) bool {
+	if len(map1) != len(map2) {
+		return false
+	}
+
+	for k := range map1 {
+		if _, found := map2[k]; !found {
+			return false
+		}
+	}
+
+	return true
+}
+
+// should be used only for simple lists
+//
+// if a list has a pointer to a value this wont work
 func ListsAreSame[T comparable](list1 []T, list2 []T) bool {
 	if len(list1) != len(list2) {
 		return false

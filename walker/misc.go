@@ -65,12 +65,12 @@ func (w *Walker) declareVariable(s *Scope, value *VariableVal) (*VariableVal, bo
 	return value, true
 }
 
-func (w *Walker) declareClass(structVal *ClassVal) bool {
-	if _, found := w.environment.Classes[structVal.Type.Name]; found {
+func (w *Walker) declareClass(classVal *ClassVal) bool {
+	if _, found := w.environment.Classes[classVal.Type.Name]; found {
 		return false
 	}
 
-	w.environment.Classes[structVal.Type.Name] = structVal
+	w.environment.Classes[classVal.Type.Name] = classVal
 	return true
 }
 
@@ -148,33 +148,33 @@ func convertCallToMethodCall(call *ast.CallExpr, mi ast.MethodInfo) *ast.MethodC
 	}
 }
 
-func (w *Walker) validateArguments(generics map[string]Type2, args []Value, fn *FunctionVal, call ast.NodeCall) {
+func (w *Walker) validateArguments(generics map[string]Type, args []Value, fn *FunctionVal, call ast.NodeCall) {
 	nodeArgs := call.GetArgs()
-	nodeGenerics := call.GetGenerics()
 	paramCount := len(fn.Params)
 
 	defer func() {
 		for k := range generics {
 			generic := generics[k]
-			if generic.Type == UnknownTyp {
+			if generic == UnknownTyp {
 				w.AlertSingle(&alerts.MissingGenericArgument{}, call.GetToken(), k)
 			}
 		}
 	}()
 
+	if len(args) > paramCount && fn.Params[paramCount-1].GetType() != Variadic {
+		extraAmount := len(args) - paramCount
+		w.AlertMulti(&alerts.TooManyElementsGiven{},
+			nodeArgs[len(nodeArgs)-extraAmount].GetToken(),
+			nodeArgs[len(nodeArgs)-1].GetToken(),
+			extraAmount,
+			"value",
+			"in call arguments",
+		)
+		return
+	}
+
 	var param Type
 	for i, arg := range args {
-		if i > paramCount-1 {
-			extraAmount := len(args) - paramCount
-			w.AlertMulti(&alerts.TooManyValuesGiven{},
-				nodeArgs[len(nodeArgs)-extraAmount].GetToken(),
-				nodeArgs[len(nodeArgs)-1].GetToken(),
-				extraAmount,
-				"in call arguments",
-			)
-			return
-		}
-
 		if i >= paramCount-1 {
 			if fn.Params[paramCount-1].GetType() == Variadic {
 				param = fn.Params[paramCount-1].(*VariadicType).Type
@@ -194,14 +194,14 @@ func (w *Walker) validateArguments(generics map[string]Type2, args []Value, fn *
 
 		if typFound, found := resolveGenericType(param); found {
 			genericArg, ok := generics[typFound.Name]
-			if genericArg.Index == -1 || !ok {
-				genericArg.Type = argType
+			if !ok || genericArg == UnknownTyp {
+				genericArg = resolveGenericArgType(param, argType)
 				generics[typFound.Name] = genericArg
 				param = argType
-			} else if !TypeEquals(genericArg.Type, argType) {
-				w.AlertSingle(&alerts.TypesMismatch{}, nodeGenerics[genericArg.Index].GetToken(),
-					"generic argument", genericArg.Type,
-					fmt.Sprintf("function argument '%s'", nodeArgs[i].GetToken().Lexeme), argType,
+			} else if !TypeEquals(genericArg, argType) {
+				w.AlertSingle(&alerts.TypesMismatch{}, nodeArgs[i].GetToken(),
+					"generic argument", genericArg,
+					"function argument", argType,
 				)
 			}
 			continue
@@ -217,22 +217,22 @@ func (w *Walker) validateArguments(generics map[string]Type2, args []Value, fn *
 		}
 	}
 
-	for _, retArg := range fn.Returns {
+	for i, retArg := range fn.Returns {
 		if retArg.GetType() == Generic {
 			generic := retArg.(*GenericType)
-			if generics[generic.Name].Type == UnknownTyp {
+			if generics[generic.Name] == UnknownTyp {
 				w.AlertSingle(&alerts.MissingGenericArgument{}, call.GetToken(), generic.Name)
 				continue
 			}
-			retArg = generics[generic.Name]
+			fn.Returns[i] = generics[generic.Name]
 		}
 	}
 
 	if paramCount > len(args) {
 		if len(nodeArgs) == 0 {
-			w.AlertSingle(&alerts.TooFewValuesGiven{}, call.GetToken(), paramCount-len(args), "in call arguments")
+			w.AlertSingle(&alerts.TooFewElementsGiven{}, call.GetToken(), paramCount-len(args), "value", "in call arguments")
 		} else {
-			w.AlertSingle(&alerts.TooFewValuesGiven{}, nodeArgs[len(nodeArgs)-1].GetToken(), paramCount-len(args), "in call arguments")
+			w.AlertSingle(&alerts.TooFewElementsGiven{}, nodeArgs[len(nodeArgs)-1].GetToken(), paramCount-len(args), "value", "in call arguments")
 		}
 	}
 
@@ -250,19 +250,19 @@ func resolveGenericType(typ Type) (*GenericType, bool) {
 	return nil, false
 }
 
-func resolveMatchingType(predefinedType Type, receivedType Type) Type {
-	if predefinedType.GetType() == Wrapper && receivedType.GetType() == Wrapper {
-		wrapper1 := predefinedType.(*WrapperType)
-		wrapper2 := receivedType.(*WrapperType)
+func resolveGenericArgType(genericParam Type, genericArg Type) Type {
+	if genericParam.GetType() == Wrapper && genericArg.GetType() == Wrapper {
+		wrapper1 := genericParam.(*WrapperType)
+		wrapper2 := genericArg.(*WrapperType)
 
-		if TypeEquals(wrapper1.Type, wrapper2.Type) {
-			return resolveMatchingType(wrapper1.WrappedType, wrapper2.WrappedType)
+		if wrapper1.Type.GetType() != Generic {
+			return resolveGenericArgType(wrapper1.WrappedType, wrapper2.WrappedType)
 		}
 
 		return wrapper2.Type
 	}
 
-	return receivedType
+	return genericArg
 }
 
 var ops = map[string]func(int, int) int{
@@ -357,13 +357,14 @@ func (w *Walker) validateReturnValues(returnArgs []ast.Node, _return []Value2, e
 	expRetLen := len(expectReturn)
 	if retLen < expRetLen {
 		requiredAmount := expRetLen - retLen
-		w.AlertSingle(&alerts.TooFewValuesGiven{}, returnArgs[len(returnArgs)-1].GetToken(), requiredAmount, context)
+		w.AlertSingle(&alerts.TooFewElementsGiven{}, returnArgs[len(returnArgs)-1].GetToken(), requiredAmount, "return value", context)
 	} else if retLen > expRetLen {
 		extraAmount := retLen - expRetLen
-		w.AlertMulti(&alerts.TooFewValuesGiven{},
+		w.AlertMulti(&alerts.TooFewElementsGiven{},
 			returnArgs[len(returnArgs)-extraAmount].GetToken(),
 			returnArgs[len(returnArgs)-1].GetToken(),
 			extraAmount,
+			"return value",
 			context,
 		)
 	}
@@ -477,26 +478,27 @@ func (w *Walker) getGenericParams(genericParams []*ast.IdentifierExpr, scope *Sc
 	return generics
 }
 
-func (w *Walker) getGenerics(genericArgs []*ast.TypeExpr, expectedGenerics []*GenericType, scope *Scope) map[string]Type2 {
+func (w *Walker) getGenerics(genericArgs []*ast.TypeExpr, expectedGenerics []*GenericType, scope *Scope) map[string]Type {
 	receivedGenericsLength := len(genericArgs)
 	expectedGenericsLength := len(expectedGenerics)
 
-	suppliedGenerics := map[string]Type2{}
+	suppliedGenerics := map[string]Type{}
 	if receivedGenericsLength > expectedGenericsLength {
 		extraAmount := receivedGenericsLength - expectedGenericsLength
-		w.AlertMulti(&alerts.TooManyValuesGiven{},
+		w.AlertMulti(&alerts.TooManyElementsGiven{},
 			genericArgs[receivedGenericsLength-extraAmount].GetToken(),
 			genericArgs[receivedGenericsLength-1].GetToken(),
 			extraAmount,
+			"value",
 			"in generic arguments",
 		)
 	} else {
 		for i := range expectedGenerics {
 			if i > len(genericArgs)-1 {
-				suppliedGenerics[expectedGenerics[i].Name] = Type2{UnknownTyp, -1}
+				suppliedGenerics[expectedGenerics[i].Name] = UnknownTyp
 				continue
 			}
-			suppliedGenerics[expectedGenerics[i].Name] = Type2{w.typeExpression(genericArgs[i], scope), i}
+			suppliedGenerics[expectedGenerics[i].Name] = w.typeExpression(genericArgs[i], scope)
 		}
 	}
 
@@ -538,6 +540,44 @@ func (w *Walker) typeToValue(_type Type) Value {
 	case ast.Class:
 		named := _type.(*NamedType)
 		val := *w.walkers[named.EnvName].environment.Classes[named.Name]
+		for _, v := range named.Generics {
+			generic := v.Type
+			name := v.GenericName
+
+			if generic == UnknownTyp {
+				continue
+			}
+			for i, v := range val.Fields {
+				if v.Var.Value.GetType().GetType() == Generic {
+					val.Fields[i].Var.Value = w.typeToValue(generic)
+				}
+			}
+			for i := range val.Methods {
+				fn := val.Methods[i].Value.(*FunctionVal)
+				for j, v3 := range fn.Params {
+					if gen, ok := v3.(*GenericType); ok && gen.Name == name {
+						fn.Params[j] = generic
+					}
+				}
+				for j, v3 := range fn.Returns {
+					if gen, ok := v3.(*GenericType); ok && gen.Name == name {
+						fn.Returns[j] = generic
+					}
+				}
+			}
+			fn := val.New
+			for j, v3 := range fn.Params {
+				if gen, ok := v3.(*GenericType); ok && gen.Name == name {
+					fn.Params[j] = generic
+				}
+			}
+			for j, v3 := range fn.Returns {
+				if gen, ok := v3.(*GenericType); ok && gen.Name == name {
+					fn.Returns[j] = generic
+				}
+			}
+		}
+		val.Type.Generics = named.Generics
 		return &val
 	case ast.Struct:
 		return &StructVal{
@@ -546,6 +586,55 @@ func (w *Walker) typeToValue(_type Type) Value {
 	case ast.Entity:
 		named := _type.(*NamedType)
 		val := *w.walkers[named.EnvName].environment.Entities[named.Name]
+		for _, v := range named.Generics {
+			generic := v.Type
+			name := v.GenericName
+
+			if generic == UnknownTyp {
+				continue
+			}
+			for i, v := range val.Fields {
+				if v.Var.Value.GetType().GetType() == Generic {
+					val.Fields[i].Var.Value = w.typeToValue(generic)
+				}
+			}
+			for i := range val.Methods {
+				fn := val.Methods[i].Value.(*FunctionVal)
+				for j, v3 := range fn.Params {
+					if gen, ok := v3.(*GenericType); ok && gen.Name == name {
+						fn.Params[j] = generic
+					}
+				}
+				for j, v3 := range fn.Returns {
+					if gen, ok := v3.(*GenericType); ok && gen.Name == name {
+						fn.Returns[j] = generic
+					}
+				}
+			}
+			fn := val.Spawn
+			for j, v3 := range fn.Params {
+				if gen, ok := v3.(*GenericType); ok && gen.Name == name {
+					fn.Params[j] = generic
+				}
+			}
+			for j, v3 := range fn.Returns {
+				if gen, ok := v3.(*GenericType); ok && gen.Name == name {
+					fn.Returns[j] = generic
+				}
+			}
+			fn = val.Destroy
+			for j, v3 := range fn.Params {
+				if gen, ok := v3.(*GenericType); ok && gen.Name == name {
+					fn.Params[j] = generic
+				}
+			}
+			for j, v3 := range fn.Returns {
+				if gen, ok := v3.(*GenericType); ok && gen.Name == name {
+					fn.Returns[j] = generic
+				}
+			}
+		}
+		val.Type.Generics = named.Generics
 		return &val
 	case ast.Object:
 		return &Unknown{}
@@ -618,14 +707,6 @@ func (w *Walker) getTypeFromString(str string) ast.PrimitiveValueType {
 	}
 }
 
-func (w *Walker) determineCallTypeString(callType ProcedureType) string {
-	if callType == Function {
-		return "function"
-	}
-
-	return "method"
-}
-
 func (w *Walker) typesToValues(types []Type) Values {
 	vals := Values{}
 
@@ -660,14 +741,6 @@ const (
 
 func isNumerical(pvt ast.PrimitiveValueType) bool {
 	return pvt == ast.Number || pvt == ast.Fixed
-}
-
-func determineCallTypeString(callType ProcedureType) string {
-	if callType == Function {
-		return "function"
-	}
-
-	return "method"
 }
 
 func SetupLibraryEnvironments() {

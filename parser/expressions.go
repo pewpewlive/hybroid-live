@@ -348,18 +348,11 @@ func (p *Parser) new() ast.Node {
 		}
 		expr.ClassGenericArgs = classGenericArgs
 
-		// new<T, E> Type
-		expr.Type = p.typeExpr("in new expression", false)
+		// new<T, E> Type<F, G>
+		expr.Type = p.typeExpr("in new expression")
 		if ast.IsImproper(expr.Type.Name, ast.NA) {
 			return ast.NewImproper(expr.Token, ast.NewExpession)
 		}
-
-		// new<T, E> Type<F, G>
-		genericsArgs, ok := p.genericArgs()
-		if !ok {
-			return ast.NewImproper(expr.Token, ast.NewExpession)
-		}
-		expr.GenericArgs = genericsArgs
 
 		// new<T, E> Type<F, G>(...)
 		args, ok := p.functionArgs()
@@ -387,15 +380,8 @@ func (p *Parser) spawn() ast.Node {
 		}
 		expr.GenericArgs = classGenericArgs
 
-		// spawn<T, E> Type
-		expr.Type = p.typeExpr("in spawn expression", false)
-
 		// spawn<T, E> Type<F, G>
-		genericsArgs, ok := p.genericArgs()
-		if !ok {
-			return ast.NewImproper(expr.Token, ast.NewExpession)
-		}
-		expr.EntityGenericArgs = genericsArgs
+		expr.Type = p.typeExpr("in spawn expression")
 
 		// spawn<T, E> Type<F, G>(...)
 		args, ok := p.functionArgs()
@@ -594,11 +580,7 @@ func (p *Parser) wrappedTypeExpr(typeContext string) *ast.TypeExpr {
 	return p.typeExpr(typeContext)
 }
 
-func (p *Parser) typeExpr(typeContext string, allowWrapped ...bool) *ast.TypeExpr {
-	allowWrap := true
-	if allowWrapped != nil {
-		allowWrap = allowWrapped[0]
-	}
+func (p *Parser) typeExpr(typeContext string) *ast.TypeExpr {
 	var expr ast.Node
 	token := p.advance()
 	improperType := &ast.TypeExpr{Name: ast.NewImproper(token, ast.TypeExpression)}
@@ -642,8 +624,19 @@ func (p *Parser) typeExpr(typeContext string, allowWrapped ...bool) *ast.TypeExp
 
 	switch exprToken.Type {
 	case tokens.Identifier:
-		if allowWrap && p.match(tokens.Less) {
-			typeExpr.WrappedType = p.wrappedTypeExpr(typeContext)
+		if p.match(tokens.Less) {
+			wrapped := p.wrappedTypeExpr(typeContext)
+			if wrapped.Name.GetType() == ast.NA {
+				return improperType
+			}
+			typeExpr.WrappedTypes = append(typeExpr.WrappedTypes, wrapped)
+			for p.match(tokens.Comma) {
+				wrapped := p.wrappedTypeExpr(typeContext)
+				if wrapped.Name.GetType() == ast.NA {
+					return improperType
+				}
+				typeExpr.WrappedTypes = append(typeExpr.WrappedTypes, wrapped)
+			}
 			_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.Greater)
 			if !ok {
 				return improperType

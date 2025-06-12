@@ -37,14 +37,12 @@ entity Laser {
             ay = HEIGHT-y
         }
 
-        fixed a, b = Fmath:AbsFixed(ax/(lx*5f)), Fmath:AbsFixed(ay/(ly*5f))
-        Print("a: "..ToString(a) .. "b: "..ToString(b))
+        fixed a, b = Fmath:AbsFixed(ax/(lx*6f)), Fmath:AbsFixed(ay/(ly*6f))
         if b <= a {
-            scale = b *5f
+            scale = b *6f
         }else {
-            scale = a *5f
+            scale = a *6f
         }
-        Print("Chose: "..ToString(scale))
         SetEntityMeshXYZScale(self, scale, 1f, 1f)
         SetEntityMesh(self, LaserMesh, 0)
         SpawnEntity(self, 0)
@@ -86,7 +84,7 @@ entity Laser {
             isInFront = true
         }
 
-        if dist < 13f and timer > 8f and isInFront {
+        if dist < 20f and timer > 8f and isInFront {
             CollideWithPlayer()
         }
     }
