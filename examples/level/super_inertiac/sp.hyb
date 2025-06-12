@@ -20,6 +20,7 @@ const SPREAD_MAX = 35d
 const COLLISION_COOLDOWN_MAX = 10
 const HIT_COOLDOWN_MAX = 4
 const COOLDOWN_MAX = 90
+const LASER_COLOR = 0x00ffffff
 
 pub entity SuperInertiac {
   fixed x, y = 0f, 0f
@@ -191,7 +192,7 @@ pub entity SuperInertiac {
           cooldown = COOLDOWN_MAX
           for i, v in laserIndicators {
             SetEntityMesh(v, SPPredLineMesh, 1)
-            spawn Laser:Laser(x, y, lookToPlayerAngle+currentSpread*Fmath:ToFixed(i-2))
+            spawn Laser:Laser(x, y, lookToPlayerAngle+currentSpread*Fmath:ToFixed(i-2), LASER_COLOR)
           }
           currentSpread = 0d
         }

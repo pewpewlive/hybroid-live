@@ -21,7 +21,7 @@ spawn SuperInertiac(500f, 0f)
 
 let grid = new Grid:Grid(CELLCOUNT+1, CELLCOUNT+1, CELLSIZE, 0f, 0f, 0f)
 
-grid.SetColors(0x4445FF11, 0xFF221055)
+grid.SetColors(0x4445FF50, 0xFF221055)
 grid.CreateLineGrid()
 
 tick with time {

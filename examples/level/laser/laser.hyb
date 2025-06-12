@@ -3,19 +3,31 @@ env Laser as Level
 use Pewpew
 use Fmath
 use Globals
+use ShipEntity
 
-const LASER_DURATION = 30f
+const LASER_DURATION = 13f
+const HIT_COOLDOWN_MAX = 4
 
 entity Laser {
     fixed timer = LASER_DURATION
     fixed scale
 
     bool isDead
+    number color 
+    number hitCooldown = 0
 
-    spawn(fixed x, y, lookToAngle) {
+    fixed lx, ly
+    fixed slope
+    fixed x, y
+
+    spawn(fixed x, y, lookToAngle, number color) {
+        self.x, self.y = x, y
+        self.color = color
         SetEntityMeshAngle(self, lookToAngle, 0f, 0f, 1f)
         SkipEntityMeshAttributesInterpolation(self)
-        let ly, lx = Sincos(lookToAngle)
+        SetEntityMeshColor(self, color)
+        ly, lx = Sincos(lookToAngle)
+        slope = ly/lx
 
         let ax, ay = x, y
         if lx > 0f {
@@ -39,16 +51,39 @@ entity Laser {
     }
 
     destroy() {
-        isDead = true
         SetEntityUpdateCallback(self, fn(entity _){})
+        isDead = true
         DestroyEntity(self)
     }
 
     Update() {
+        hitCooldown -= 1
         timer -= 1f
-        //SetEntityMeshXYZScale(self, scale, FmathHelpers:Remap(1f, 0f, LASER_DURATION, 0f, timer), 1f)
+        let t = FmathHelpers:Remap(1f, 0f, LASER_DURATION, 0f, timer)^2f
+        SetEntityMeshXYZScale(self, scale, t, 1f)
+        SetEntityMeshColor(self, ColorHelpers:LerpColors(0x00000000, self.color, t))
         if timer <= 0f {
             destroy self()
+            return
         }
+
+        let px, py = GetEntityPosition(SHIP.id)
+
+        let b1 = -slope*px+py
+        let b2 = -slope*x+y
+
+        let dist = Fmath:AbsFixed(b1-b2)/Fmath:Sqrt(1f+slope^2f)
+        if dist < 13f and timer < 8f {
+            CollideWithPlayer()
+        }
+    }
+
+    fn CollideWithPlayer() {
+        if !IsEntityAlive(self) return
+        if !IsEntityAlive(SHIP.id) return
+        if hitCooldown < 0 {
+            DamageShip(SHIP.id, 1)
+        }
+        hitCooldown = HIT_COOLDOWN_MAX
     }
 }

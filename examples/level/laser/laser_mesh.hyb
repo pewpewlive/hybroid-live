@@ -9,9 +9,14 @@ pub meshes = [
         colors = [],
     }
 ]
-const THICKNESS = 0.1
 
-// AddLine(Mesh mesh, Vertexes vertexes, Colors colors, bool closeLoop)
-AddLine(meshes[1], [[0,THICKNESS], [1,THICKNESS]], [0xffffffff, 0xffffffff], false)
+const THICKNESS = 2.7
+const ITERATIONS = 5
+
 AddLine(meshes[1], [[0,0], [1,0]], [0xffffffff, 0xffffffff], false)
-AddLine(meshes[1], [[0,-THICKNESS], [1,-THICKNESS]], [0xffffffff, 0xffffffff], false)
+
+repeat from 1 to ITERATIONS-1 with i {
+    let height = MathHelpers:Remap(0, THICKNESS, 1, ITERATIONS, i)
+    AddLine(meshes[1], [[0,height], [1,height]], [0xffffffff, 0xffffffff], false)
+    AddLine(meshes[1], [[0,-height], [1,-height]], [0xffffffff, 0xffffffff], false)
+}
