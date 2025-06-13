@@ -30,5 +30,6 @@ fn name<T>(T a, b, c) {}
 name(1, 2, 3)
 
 Yeah<fixed> o = spawn Yeah<fixed>(1f, 1f, 2f)
+Yeah o2 = spawn Yeah<number>(1f, 1f, 2)
 
-fixed _ = o.method()
+number _ = o2.method()

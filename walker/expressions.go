@@ -1,6 +1,7 @@
 package walker
 
 import (
+	"fmt"
 	"hybroid/alerts"
 	"hybroid/ast"
 	"hybroid/generator/mapping"
@@ -928,15 +929,13 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 			break
 		}
 		if entityVal, found := scope.Environment.Entities[typeName]; found {
-			val := *entityVal
-			CopyNamedType(&val.Type)
+			val := CopyEntityVal(entityVal)
 			typ = &val.Type
 			w.FillGenericsInNamedType(&val.Type, typee, scope)
 			break
 		}
 		if classVal, found := scope.Environment.Classes[typeName]; found {
-			val := *classVal
-			CopyNamedType(&val.Type)
+			val := CopyClassVal(classVal)
 			typ = &val.Type
 			w.FillGenericsInNamedType(&val.Type, typee, scope)
 			break
@@ -1023,12 +1022,18 @@ func (w *Walker) FillGenericsInNamedType(named *NamedType, typ *ast.TypeExpr, sc
 	typesLen, genericsLen := len(typ.WrappedTypes), len(named.Generics)
 
 	if typesLen < genericsLen {
-		w.AlertSingle(&alerts.TooFewElementsGiven{}, typ.GetToken(), genericsLen-typesLen, "wrapped type", "in type expression")
+		w.AlertSingle(&alerts.TooFewElementsGiven{}, typ.GetToken(), genericsLen-typesLen, "wrapped type", fmt.Sprintf("for the type '%s", named.String()))
 	}
 
 	for i := range typ.WrappedTypes {
 		if i > genericsLen-1 {
-			w.AlertMulti(&alerts.TooManyElementsGiven{}, typ.WrappedTypes[i].GetToken(), typ.WrappedTypes[typesLen-1].GetToken(), typesLen-genericsLen, "wrapped type", "in type expression")
+			w.AlertMulti(&alerts.TooManyElementsGiven{},
+				typ.WrappedTypes[i].GetToken(),
+				typ.WrappedTypes[typesLen-1].GetToken(),
+				typesLen-genericsLen,
+				"wrapped type",
+				fmt.Sprintf("for the type '%s", named.String()),
+			)
 			return
 		}
 		typ := w.typeExpression(typ.WrappedTypes[i], scope)

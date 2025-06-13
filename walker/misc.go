@@ -440,17 +440,23 @@ func (w *Walker) resolveGenericParam(name string, scope *Scope) (*GenericType, b
 		return nil, false
 	}
 
-	generics := []*GenericType{}
 	if fn, ok := scope.Tag.(*FuncTag); ok {
-		generics = fn.Generics
+		for _, v := range fn.Generics {
+			if name == v.Name {
+				return v, true
+			}
+		}
 	} else if ct, ok := scope.Tag.(*ClassTag); ok {
-		generics = ct.Val.Generics
+		for _, v := range ct.Val.Type.Generics {
+			if name == v.GenericName {
+				return NewGeneric(name), true
+			}
+		}
 	} else if et, ok := scope.Tag.(*EntityTag); ok {
-		generics = et.EntityVal.Generics
-	}
-	for _, v := range generics {
-		if name == v.Name {
-			return v, true
+		for _, v := range et.EntityVal.Type.Generics {
+			if name == v.GenericName {
+				return NewGeneric(name), true
+			}
 		}
 	}
 
@@ -539,7 +545,7 @@ func (w *Walker) typeToValue(_type Type) Value {
 		}
 	case ast.Class:
 		named := _type.(*NamedType)
-		val := *w.walkers[named.EnvName].environment.Classes[named.Name]
+		val := CopyClassVal(w.walkers[named.EnvName].environment.Classes[named.Name])
 		for _, v := range named.Generics {
 			generic := v.Type
 			name := v.GenericName
@@ -585,7 +591,7 @@ func (w *Walker) typeToValue(_type Type) Value {
 		}
 	case ast.Entity:
 		named := _type.(*NamedType)
-		val := *w.walkers[named.EnvName].environment.Entities[named.Name]
+		val := CopyEntityVal(w.walkers[named.EnvName].environment.Entities[named.Name])
 		for _, v := range named.Generics {
 			generic := v.Type
 			name := v.GenericName

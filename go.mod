@@ -12,6 +12,11 @@ require (
 )
 
 require (
+	github.com/mitchellh/copystructure v1.2.0 // indirect
+	github.com/mitchellh/reflectwalk v1.0.2 // indirect
+)
+
+require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect

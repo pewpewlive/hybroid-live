@@ -5,6 +5,8 @@ import (
 	"hybroid/ast"
 	"hybroid/core"
 	"hybroid/tokens"
+
+	"github.com/mitchellh/copystructure"
 )
 
 type Value interface {
@@ -296,32 +298,37 @@ func NewField(index int, val *VariableVal) Field {
 }
 
 type EntityVal struct {
-	Type     NamedType
-	IsLocal  bool
-	Fields   map[string]Field
-	Methods  map[string]*VariableVal
-	Generics []*GenericType
+	Type    NamedType
+	IsLocal bool
+	Fields  map[string]Field
+	Methods map[string]*VariableVal
 
 	Spawn   *FunctionVal
 	Destroy *FunctionVal
 }
 
-func CopyNamedType(n *NamedType) {
-	gens := []GenericWithType{}
-	gens = append(gens, n.Generics...)
-	n.Generics = gens
+func CopyEntityVal(ref *EntityVal) EntityVal {
+	val, err := copystructure.Copy(*ref)
+	if err != nil {
+		panic(err)
+	}
+	switch newVal := val.(type) {
+	case EntityVal:
+		return newVal
+	default:
+		panic(fmt.Sprintf("Attempt to copy entityVal, got: %T", val))
+	}
 }
 
 func NewEntityVal(envName string, node *ast.EntityDecl) *EntityVal {
 	name := node.Name.Lexeme
 	return &EntityVal{
-		Type:     *NewNamedType(envName, name, ast.Entity),
-		IsLocal:  !node.IsPub,
-		Methods:  make(map[string]*VariableVal),
-		Fields:   make(map[string]Field, 0),
-		Generics: make([]*GenericType, 0),
-		Destroy:  NewMethod(ast.NewMethodInfo(ast.EntityMethod, "destroy", name, envName)),
-		Spawn:    NewMethod(ast.NewMethodInfo(ast.EntityMethod, "spawn", name, envName)),
+		Type:    *NewNamedType(envName, name, ast.Entity),
+		IsLocal: !node.IsPub,
+		Methods: make(map[string]*VariableVal),
+		Fields:  make(map[string]Field, 0),
+		Destroy: NewMethod(ast.NewMethodInfo(ast.EntityMethod, "destroy", name, envName)),
+		Spawn:   NewMethod(ast.NewMethodInfo(ast.EntityMethod, "spawn", name, envName)),
 	}
 }
 
@@ -377,10 +384,22 @@ type ClassVal struct {
 	IsLocal     bool
 	Fields      map[string]Field
 	Methods     map[string]*VariableVal
-	Generics    []*GenericType
 	GenericArgs []Type
 
 	New *FunctionVal
+}
+
+func CopyClassVal(ref *ClassVal) ClassVal {
+	val, err := copystructure.Copy(*ref)
+	if err != nil {
+		panic(err)
+	}
+	switch newVal := val.(type) {
+	case ClassVal:
+		return newVal
+	default:
+		panic(fmt.Sprintf("Attempt to copy classVal, got: %T", val))
+	}
 }
 
 func (cv *ClassVal) GetType() Type {

@@ -70,7 +70,6 @@ func (w *Walker) classDeclaration(node *ast.ClassDecl, scope *Scope) {
 	}
 	for _, param := range node.GenericParams {
 		generic := NewGeneric(param.Name.Lexeme)
-		classVal.Generics = append(classVal.Generics, generic)
 		classVal.Type.Generics = append(classVal.Type.Generics, GenericWithType{GenericName: generic.Name, Type: UnknownTyp})
 	}
 
@@ -135,7 +134,6 @@ func (w *Walker) entityDeclaration(node *ast.EntityDecl, scope *Scope) {
 	entityVal := NewEntityVal(w.environment.Name, node)
 	for _, param := range node.GenericParams {
 		generic := NewGeneric(param.Name.Lexeme)
-		entityVal.Generics = append(entityVal.Generics, generic)
 		entityVal.Type.Generics = append(entityVal.Type.Generics, GenericWithType{GenericName: generic.Name, Type: UnknownTyp})
 	}
 
