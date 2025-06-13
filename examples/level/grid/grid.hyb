@@ -1,10 +1,13 @@
 env Grid as Level
 
-number gridColor, activeGridColor = 0x4445FF00, 0xFF221055
+//use SuperInertiacEntity
+use Globals
+
+//spawn SuperInertiac(0f, 0f)
+// grid.SetColors(0x4445FF50, 0xFF221055)
+pub number gridColor, activeGridColor = 0x3335ff30, 0x00ffff80
 fixed offsetX, offsetY, offsetZ
 fixed cellSize
-
-pub const ENTITY_TAG = 1337 
 
 class PointInfo {
     fixed anchorX, anchorY
@@ -83,7 +86,6 @@ pub class Grid {
     list<Line> lines
     list<Point> points
     number gridSizeX, gridSizeY, gridCount
-    const debug = false
    
     new(number sizeX, sizeY, fixed _cellSize, _offsetX, _offsetY, _offsetZ) {
         gridSizeX, gridSizeY = sizeX, sizeY
@@ -98,11 +100,9 @@ pub class Grid {
                 
                 Table:Insert(gridContainer, new PointInfo(px, py, px, py, 0f, 0f, 0f))
 
-                if debug {
-                    let debugId = Pewpew:NewEntity(px, py)
-                    Pewpew:SetEntityMeshScale(debugId, 0.1500fx)
-                    Pewpew:SetEntityString(debugId, "#ffffff55o")
-                }
+                // let debugId = Pewpew:NewEntity(px, py)
+                // Pewpew:SetEntityMeshScale(debugId, 0.1500fx)
+                // Pewpew:SetEntityString(debugId, "#ffffff55o")
             }
         }
 
@@ -111,6 +111,23 @@ pub class Grid {
                 let point = gridContainer[i]
                 let posX, posY = point.currentX, point.currentY
                 let velX, velY = point.velocityX, point.velocityY
+
+                // let leftExtent, bottomExtent = WorldToGridPos(x - radius, y - radius)
+                // let rightExtent, topExtent = WorldToGridPos(x + radius, y + radius)
+
+                // repeat from leftExtent to rightExtent with gx {
+                //     repeat from bottomExtent to topExtent with gy {
+                //         let point = GetPoint(gx, gy)
+
+                //         let dx, dy = point.anchorX - x, point.anchorY - y
+                //         let len = FmathHelpers:Length(dx, dy)
+
+                //         if len < radius {
+                //             let factor = (1f - (len / radius)) * power * (len ^ -1f)
+                //             point.velocityX, point.velocityY += dx * factor, dy * factor
+                //         }
+                //     }
+                // }
             
                 velX += point.anchorX - posX
                 velX *= 0.2248fx

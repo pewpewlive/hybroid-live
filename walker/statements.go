@@ -15,11 +15,7 @@ func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 
 	for w.context.EntityCasts.Count() != 0 {
 		cast := w.context.EntityCasts.Pop()
-		w.declareVariable(scope, &VariableVal{
-			Name:   cast.Name.Lexeme,
-			Value:  cast.Entity,
-			IsInit: true,
-		})
+		w.declareVariable(scope, NewVariable(cast.Name, cast.Entity))
 	}
 
 	pt := NewPathTag()
@@ -34,11 +30,7 @@ func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 		ifScope := NewScope(scope, pt)
 		for w.context.EntityCasts.Count() != 0 {
 			cast := w.context.EntityCasts.Pop()
-			w.declareVariable(scope, &VariableVal{
-				Name:   cast.Name.Lexeme,
-				Value:  cast.Entity,
-				IsInit: true,
-			})
+			w.declareVariable(scope, NewVariable(cast.Name, cast.Entity))
 		}
 		w.walkBody(&node.Elseifs[i].Body, pt, ifScope)
 		prevPathTag.SetAllExitAND(pt)

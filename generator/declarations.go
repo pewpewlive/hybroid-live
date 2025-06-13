@@ -92,6 +92,9 @@ func (gen *Generator) entityDeclaration(node ast.EntityDecl) {
 		gen.Write("\n")
 		gen.entityFunctionDeclaration(v, node)
 	}
+	gen.Write("\n")
+	gen.Twrite("local function check() for k in pairs(", entityName, ") do if not pewpew.entity_get_is_alive(k) then ", entityName, "[k] = nil end end end\n")
+	gen.Twrite("pewpew.add_update_callback(check)")
 }
 
 func (gen *Generator) constructorDeclaration(node ast.ConstructorDecl, class ast.ClassDecl) {
@@ -220,10 +223,6 @@ func (gen *Generator) destroyDeclaration(node ast.EntityFunctionDecl, entity ast
 	gen.tabCount--
 
 	gen.GenerateBody(node.Body)
-
-	gen.tabCount++
-	gen.Twrite(entityName, "[id] = nil\n")
-	gen.tabCount--
 
 	gen.Write("end")
 }

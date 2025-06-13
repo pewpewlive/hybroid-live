@@ -299,7 +299,7 @@ func (w *Walker) validateArithmeticOperands(leftVal Value, rightVal Value, node 
 		return w.typeToValue(left)
 	}
 	num1, num2 := leftVal.(*NumberVal), rightVal.(*NumberVal)
-	if num1.Value == "unknown" || num2.Value == "unknown" {
+	if num1.Value == "" || num2.Value == "" {
 		return &NumberVal{}
 	}
 

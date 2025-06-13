@@ -94,9 +94,8 @@ func (w *Walker) matchExpression(node *ast.MatchExpr, scope *Scope) Value {
 	}
 
 	if !prevPathTag.GetIfExits(Yield) {
-		w.AlertMulti(&alerts.NotAllCodePathsExit{},
-			cases[0].Expressions[0].GetToken(),
-			cases[len(cases)-1].Expressions[0].GetToken(),
+		w.AlertSingle(&alerts.NotAllCodePathsExit{},
+			matchStmt.Token,
 			"yield",
 		)
 	}
@@ -527,7 +526,6 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 		if valType == InvalidType {
 			return &Invalid{}
 		}
-
 		scopedVal, scopeable := val.(ScopeableValue)
 
 		if valType.GetType() != Wrapper && !scopeable {
@@ -615,7 +613,11 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 				}
 			}
 
-			val = fieldVal
+			if i != len(node.Accessed) {
+				val = innerVal
+			} else {
+				val = fieldVal
+			}
 			prevNode = &node.Accessed[i]
 		}
 	}

@@ -224,7 +224,7 @@ func (p *Parser) repeatStatement() ast.Node {
 		Token: p.peek(-1),
 	}
 
-	allowedExprTypes := []ast.NodeType{ast.Identifier, ast.FieldExpression, ast.MemberExpression, ast.CallExpression, ast.MethodCallExpression, ast.LiteralExpression, ast.BinaryExpression, ast.UnaryExpression}
+	allowedExprTypes := []ast.NodeType{ast.Identifier, ast.FieldExpression, ast.MemberExpression, ast.CallExpression, ast.MethodCallExpression, ast.LiteralExpression, ast.BinaryExpression, ast.UnaryExpression, ast.GroupExpression}
 
 	i := 0
 outer:
@@ -414,7 +414,7 @@ func (p *Parser) matchStatement(isExpr bool) ast.Node {
 	}
 
 	for p.consumeTill("in match statement", start, tokens.RightBrace) {
-		node, ok := p.caseStatement(isExpr)
+		node, ok := p.caseStatement()
 		if !ok {
 			p.synchronizeMatchBody()
 			continue
@@ -433,7 +433,7 @@ func (p *Parser) matchStatement(isExpr bool) ast.Node {
 	return &matchStmt
 }
 
-func (p *Parser) caseStatement(isExpr bool) (ast.Node, bool) {
+func (p *Parser) caseStatement() (ast.Node, bool) {
 	token := p.peek()
 	caseStmt := &ast.CaseStmt{}
 
@@ -454,31 +454,9 @@ func (p *Parser) caseStatement(isExpr bool) (ast.Node, bool) {
 		return ast.NewImproper(token, ast.CaseStatement), false
 	}
 
-	body := ast.Body{}
-	if !p.check(tokens.LeftBrace) {
-		args, ok := p.expressions("after '=>' in match case", false)
-		if !ok {
-			return ast.NewImproper(token, ast.CaseStatement), false
-		}
-		var argsStmt ast.Node
-		if isExpr {
-			argsStmt = &ast.YieldStmt{
-				Args:  args,
-				Token: args[0].GetToken(),
-			}
-		} else {
-			argsStmt = &ast.ReturnStmt{
-				Args:  args,
-				Token: args[0].GetToken(),
-			}
-		}
-		body.Append(argsStmt)
-	} else {
-		body2, ok2 := p.body(false, false)
-		if !ok2 {
-			return caseStmt, false
-		}
-		body = body2
+	body, ok := p.body(true, false)
+	if !ok {
+		return caseStmt, false
 	}
 	caseStmt.Body = body
 

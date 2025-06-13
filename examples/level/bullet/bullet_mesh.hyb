@@ -1,0 +1,9 @@
+env BulletMesh as Mesh
+
+use Graphix
+
+pub meshes = [
+    NewMesh()
+]
+
+AddSphere(meshes[1], [0,0,0], 0xffffffff, 11)

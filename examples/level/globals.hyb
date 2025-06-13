@@ -1,5 +1,8 @@
 env Globals as Shared
 
 pub const WIDTH, HEIGHT = 1000f, 1000f
-pub const CELLCOUNT = 15
+pub const CELLCOUNT = 20
 pub const CELLSIZE = WIDTH/Fmath:ToFixed(CELLCOUNT)
+pub const NORMAL_PULL = 1
+pub const WORMHOLE_PULL = 2
+pub const ENTITY_TAG = 1337 

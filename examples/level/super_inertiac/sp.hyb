@@ -14,20 +14,21 @@ enum State {
 const RING_AMOUNT = 3f
 const RADIUS = 25f
 const PREDICTION_SPEED = 0.66f
-const DASH_PREPARATION_TIME = 26
+const DASH_PREPARATION_TIME = 35
 const LASER_PREPARATION_TIME = 25
 const SPREAD_MAX = 35d
 const COLLISION_COOLDOWN_MAX = 10
 const HIT_COOLDOWN_MAX = 4
 const COOLDOWN_MAX = 90
 const LASER_COLOR = 0x00ffffff
+const HP_MAX = 70
 
 pub entity SuperInertiac {
   fixed x, y = 0f, 0f
   fixed velX, velY = 0f, 0f
   fixed lvx, lvy
   
-  number health = 70
+  number health = HP_MAX
 
   number cooldown = COOLDOWN_MAX
   number collisionCooldown
@@ -59,6 +60,7 @@ pub entity SuperInertiac {
     //SetEntityColor(self, 0x00ffffff)
     SetEntityMesh(self, SPAnim, 0)
     SetEntityRadius(self, RADIUS)
+    SetEntityTag(self, Globals:NORMAL_PULL)
     
     predictionLine = NewEntity(x, y)
     SetEntityTag(predictionLine, Grid:ENTITY_TAG)
@@ -90,6 +92,7 @@ pub entity SuperInertiac {
   }
 
   destroy() {
+    state = State.DEAD
     PlaySound(SPSound, 0, x, y)
     SetEntityWallCollision(self, false, fn(entity _, fixed _, _) {})
     ExplodeEntity(self, 20)
@@ -141,7 +144,7 @@ pub entity SuperInertiac {
         Bounce(SHIP.id, 1.1f)
 
         hitCooldown = HIT_COOLDOWN_MAX
-        PlaySound(SPSound, 1+health, x, y)
+        PlaySound(SPSound, MathHelpers:Remap(1, 10, 0, HP_MAX, health)\1, x, y)
       }
 
       CreateExplosion(x, y, 0x1144aaff, 0.8f, 10)
@@ -218,20 +221,17 @@ pub entity SuperInertiac {
       collisionCooldown -= 1
 
     x, y = GetEntityPosition(self)
-    let entities = GetEntitiesInRadius(x, y, RADIUS)
+    let entities = GetEntitiesInRadius(x, y, RADIUS*1.8f)
     for _, v in entities {
-      if v == self {
+      if v == self or v is WormholeEntity:Wormhole {
         continue
       }
       if let converted = v is SuperInertiac and IsEntityAlive(v) {
         if converted.IsDead() {
           continue
         }
-        let x2, y2 = GetEntityPosition(converted)
-        if Length(x2-x, y2-y) < 50f {
-          Bounce(converted, 3f)
-          converted.Bounce(self, 3f)
-        }
+        Bounce(converted, 3f)
+        converted.Bounce(self, 3f)
         continue
       }
       EntityReactToWeapon(v, struct{ // if quadro is Quadro
@@ -253,8 +253,8 @@ pub entity SuperInertiac {
       fixed sX, sY = GetEntityPosition(SHIP.id) 
       fixed dX, dY = Normalize(sX - x, sY - y)
 
-      velX += dX * 1.7f
-      velY += dY * 1.7f
+      velX += dX * 1.3f
+      velY += dY  * 1.3f
       velX, velY *= 0.95f, 0.95f
     } else if !Is(State.FOLLOWING_PLAYER) or !IsEntityAlive(SHIP.id)  {
       velX, velY *= 0.80f, 0.80f
@@ -308,8 +308,8 @@ pub entity SuperInertiac {
     }
   }
 
-  fn Bounce(entity e, fixed intensity) {
-    if IsEntityAlive(e) {
+  fn Bounce(SuperInertiac e, fixed intensity) {
+    if !IsEntityBeingDestroyed(e) {
       fixed sX, sY = GetEntityPosition(e)
       fixed dX, dY = Normalize(x - sX, y - sY)
       velX, velY += dX * intensity, dY * intensity
@@ -346,7 +346,6 @@ pub entity SuperInertiac {
   }
 
   fn UpdatePredicitonLine() {
-    //fixed pDY, pDX = GetPlayerMovementPrediction()
     if IsDead() or !IsEntityAlive(SHIP.id) 
       return 
 

@@ -1,0 +1,10 @@
+env WormholeMesh as Mesh
+
+use Graphix
+
+pub meshes = [
+    NewMesh(),
+    NewMesh()
+]
+
+AddSphere(meshes[2], [0,0,0], 0xffffffff, 53)

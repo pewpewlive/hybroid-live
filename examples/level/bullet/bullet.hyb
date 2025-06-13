@@ -1,0 +1,147 @@
+env BulletEntity as Level
+
+use Pewpew
+use ShipEntity
+
+alias BulletSettings = struct{
+    number bounceWallCount,
+    bool homing,
+    bool bounceSelf,
+    fixed homingPower,
+    fixed scaleRate
+}
+
+const scale2rad = 4f
+
+entity Bullet {
+    BulletSettings bs = struct{
+        bounceWallCount = 0,
+        homing = true,
+        bounceSelf = false,
+        homingPower = 0f,
+        scaleRate = 0f
+    }
+    number wallBouncesLeft
+    fixed mx, my
+    fixed speed
+    fixed angle
+    fixed radius
+    fixed scale
+    number color
+    number lifetime
+
+    fixed roll
+
+    spawn(fixed x, y, speed, angle, size, number color, lifetime) {
+        if lifetime == -1 {
+            lifetime = 999999
+        }
+        self.color = color
+        self.lifetime = lifetime
+        self.speed = speed
+        my, mx = Fmath:Sincos(angle)
+        self.angle = angle
+        SetEntityMeshAngle(self, angle, 0f, 0f, 1f)
+        scale = FmathHelpers:InvLerp(0f, 3f, size*3f)
+        SetEntityMeshScale(self, scale)
+        radius = size*scale2rad
+        SetEntityRadius(self, radius)
+        SetEntityMeshColor(self, color)
+        SetEntityPositionInterpolation(self, true)
+        SetEntityTag(self, Globals:NORMAL_PULL)
+        SetEntityMesh(self, BulletMesh, 0)
+        SkipEntityMeshAttributesInterpolation(self)
+        SpawnEntity(self, 0)
+    }
+
+    destroy() {
+        let ex, ey = GetEntityPosition(self)
+        CreateExplosion(ex, ey, color, scale*0.6f, 20)
+
+        DestroyEntity(self)
+    }
+
+    PlayerCollision(number _, entity _) {
+        DamageShip(SHIP.id, 1)
+        destroy self()
+    }
+
+    WallCollision(fixed wallNormalX, wallNormalY) {
+        if wallBouncesLeft <= 0 {
+            destroy self()
+            return
+        }
+        wallBouncesLeft -= 1
+        mx, my = Reflect(wallNormalX, wallNormalY, my, mx)
+        angle = Fmath:Atan2(my, mx)
+        SetEntityMeshAngle(self, angle, 0f, 0f, 1f)
+    }
+
+    Update() {
+        if IsEntityBeingDestroyed(self) {
+            return
+        }
+        self.lifetime -= 1
+        if self.lifetime <= 0 {
+            destroy self()
+            return
+        }
+
+        scale = FmathHelpers:Clamp(scale+bs.scaleRate, 0f, 3.5f)
+        radius = FmathHelpers:Clamp(radius+bs.scaleRate*3f*scale2rad, 0f, 3.5f*3f*scale2rad)
+        SetEntityRadius(self, radius)
+        SetEntityMeshScale(self, scale)
+
+        roll += speed*2d
+        SetEntityMeshAngle(self, roll, 0f,1f,0f)
+        AddRotationToEntityMesh(self, angle, 0f,0f,1f)
+        let ex, ey = GetEntityPosition(self)
+        
+        if bs.homing and IsEntityAlive(ShipEntity:SHIP.id) {
+            let px, py = GetEntityPosition(ShipEntity:SHIP.id)
+            let dpx, dpy = FmathHelpers:Normalize(px - ex, py - ey)
+            dpx, dpy *= speed, speed
+
+            mx, my = FmathHelpers:Lerp(mx, dpx, bs.homingPower), FmathHelpers:Lerp(my, dpy, bs.homingPower)
+        }
+
+        if bs.bounceSelf {
+            let entities = GetEntitiesInRadius(ex, ey, radius*3f)
+            for i, v in entities {
+                if v == self {
+                    continue
+                }
+                if let other = v is Bullet {
+                    let x2, y2 = GetEntityPosition(other)
+                    Bounce(x2,y2, 1.2f)
+                    other.Bounce(ex, ey, 1.2f)
+                }
+            }
+        }
+
+        let nx, ny = FmathHelpers:Normalize(mx, my)
+        mx, my = FmathHelpers:Lerp(mx, nx, 0.4f), FmathHelpers:Lerp(my, ny, 0.4f)
+
+        ex, ey += mx*speed, my*speed
+
+        SetEntityPosition(self, ex, ey)
+    }
+
+    fn WithSettings(BulletSettings settings) {
+        bs = settings
+        wallBouncesLeft = bs.bounceWallCount
+    }
+
+    fn Reflect(fixed x1, y1, x2, y2) -> (fixed, fixed){
+        let wAngle = Fmath:Atan2(x1, y1)
+        let mAngle = Fmath:Atan2(-x2, -y2)
+        let x, y = Fmath:Sincos(mAngle+wAngle-mAngle)
+        return x, y
+    }
+
+    fn Bounce(fixed rx, ry, power) {
+        let ex, ey = GetEntityPosition(self)
+        mx, my = FmathHelpers:Normalize(ex-rx, ey-ry)
+        mx, my *= power, power
+    }
+}

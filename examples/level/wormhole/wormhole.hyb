@@ -1,0 +1,166 @@
+env WormholeEntity as Level
+
+use Pewpew
+
+enum AttackState {
+    NOTHING,
+    CHARADE
+}
+
+const MOVE_SPEED = 3f
+const HP_MAX = 80
+const CHARADE_PREPARATION_TIME = 120
+const CHARADE_DURATION = 100
+const CHARADE_BULLET_FREQUENCY = 8
+
+entity Wormhole {
+    AttackState state = AttackState.NOTHING
+    fixed mx, my
+    fixed radius
+    fixed currentPullRadius
+    fixed pullRadius
+    number hp = HP_MAX
+
+    number preparationTime = 20
+
+    // Charade-related
+    fixed shootAngle
+    fixed shootAngleStep
+    number charadeTime
+
+    spawn(fixed x, y, radius) {
+        SetEntityTag(self, Globals:WORMHOLE_PULL)
+        SetEntityRadius(self, radius)
+        self.radius = radius
+        self.pullRadius = radius*4f
+        self.currentPullRadius = self.pullRadius
+        my, mx = Fmath:Sincos(Fmath:RandomFixed(0f, Fmath:Tau()))
+    }
+
+    destroy() {
+        DestroyEntity(self)
+    }
+
+    Update() {
+        if !IsEntityAlive(self) {
+            return
+        }
+
+        currentPullRadius = FmathHelpers:Lerp(currentPullRadius, pullRadius, 0.6f)
+        let ex, ey = GetEntityPosition(self)
+        ex, ey += mx, my
+        SetEntityPosition(self, ex, ey)
+
+        repeat 5 {
+            let px, py = FmathHelpers:Normalize(Fmath:RandomFixed(-1f, 1f), Fmath:RandomFixed(-1f, 1f))
+            px, py *= radius, radius
+            let pdx, pdy = FmathHelpers:Normalize(Fmath:RandomFixed(-1f, 1f), Fmath:RandomFixed(-1f, 1f))
+            let rad = Fmath:RandomFixed(0f, radius)
+            pdx, pdy *= rad, rad
+            let col = ColorHelpers:LerpColors(Grid:gridColor, Grid:activeGridColor, Fmath:RandomFixed(0f, 1f))
+            Pewpew:AddParticle(ex+px, ey+py, 0f, pdx, pdy, 0f, col, Fmath:RandomNumber(10, 30))
+        }
+
+        
+        match state {
+        AttackState.NOTHING => {
+            preparationTime -= 1
+            if preparationTime <= 0 {
+                state = AttackState.CHARADE
+                shootAngleStep = Fmath:RandomFixed(10d, 40d)
+                if IsEntityAlive(ShipEntity:SHIP.id) {
+                    let px, py = GetEntityPosition(ShipEntity:SHIP.id)
+                    shootAngle = Fmath:Atan2(py-ey, px-ex)
+                }
+            }
+        }
+        AttackState.CHARADE => {
+            charadeTime += 1
+            if charadeTime % CHARADE_BULLET_FREQUENCY == 0 {
+                let bullet = spawn BulletEntity:Bullet(ex, ey, 3f, shootAngle, 1f, 0xaaffffff, 1000)
+                bullet.bs.scaleRate = 0.01f
+                shootAngle += shootAngleStep
+            }
+            if charadeTime >= CHARADE_DURATION {
+                state = AttackState.NOTHING
+                preparationTime = CHARADE_PREPARATION_TIME
+                charadeTime = 0
+            }
+        }
+        }
+    }
+
+    WallCollision(fixed wallNormalX, fixed wallNormalY) {
+        let wAngle = Fmath:Atan2(wallNormalY, wallNormalX)
+        let mAngle = Fmath:Atan2(-my, -mx)
+        my, mx = Fmath:Sincos(mAngle+wAngle-mAngle)
+    }
+
+    WeaponCollision(number _, WeaponType weaponType) -> bool {
+        match weaponType {
+        WeaponType.Bullet => {
+            hp -= 1
+            currentPullRadius *= 0.3f
+            if hp < 0 {
+                destroy self()
+                return true
+            }
+            return true
+        }
+        }
+        return false
+    }
+}
+
+// const HIT_COOLDOWN_MAX = 6f
+// const HP_MAX = 20
+
+// entity Sphere {
+//     entity worm
+//     fixed hitCooldown
+//     number hp = HP_MAX
+//     fixed randomAngle 
+//     number color
+
+//     spawn(fixed x, y, entity worm, fixed radius) {
+//         self.worm = worm
+//         SetEntityRadius(self, radius*2f)
+//         fixed a = FmathHelpers:Remap(0f, 53f, 0f, 26f, radius)
+//         fixed a2 = FmathHelpers:InvLerp(0f, 105f, a)
+//         SetEntityMeshScale(self, a2)
+//         SetEntityTag(self, Grid:ENTITY_TAG)
+//         randomAngle = Fmath:RandomFixed(0f, 8d)
+//         SetEntityMeshZ(self, a*5f+50f)
+//         SetEntityMesh(self, WormholeMesh, 1)
+//     }
+
+//     destroy() {
+//         DestroyEntity(self)
+//     }
+
+//     WeaponCollision(number _, WeaponType weaponType) -> bool {
+//         match weaponType {
+//         WeaponType.Bullet => {
+//             hp -= 1
+//             if hp < 0 {
+//                 destroy self()
+//                 return true
+//             }
+//             hitCooldown = HIT_COOLDOWN_MAX
+//             return true
+//         }
+//         }
+//         return false
+//     }
+
+//     Update() {
+//         hitCooldown = FmathHelpers:Clamp(hitCooldown-1f, 0f, HIT_COOLDOWN_MAX)
+//         color = ColorHelpers:LerpColors(0xffffffff, 0x00000000, FmathHelpers:InvLerp(HIT_COOLDOWN_MAX, 0f, hitCooldown))
+//         Pewpew:SetEntityMeshColor(self, color)
+//         let wx, wy = GetEntityPosition(worm)
+//         SetEntityPosition(self, wx, wy)
+//         if !IsEntityBeingDestroyed(self) {
+//             AddRotationToEntityMesh(self, randomAngle, 1f, -1f, 0.5f)
+//         }
+//     }
+// }

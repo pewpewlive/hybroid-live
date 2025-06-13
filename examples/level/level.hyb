@@ -4,6 +4,7 @@ use Pewpew
 use ShipEntity
 use SuperInertiacEntity
 use Globals
+use Test
 
 SetLevelSize(WIDTH, HEIGHT)
 
@@ -14,14 +15,13 @@ ConfigurePlayer(0, playerConfig)
 
 let bg = NewEntity(WIDTH/2f, HEIGHT/2f)
 SetEntityMesh(bg, MapMesh, 0)
-spawn SuperInertiac(0f, 0f)
-spawn SuperInertiac(500f, 0f)
+//spawn SuperInertiac(500f, 0f)
+
+spawn WormholeEntity:Wormhole(WIDTH/2f, HEIGHT/2f, 40f)
 
 //AddWall(750f, 250f, 500f, 500f)
 
 let grid = new Grid:Grid(CELLCOUNT+1, CELLCOUNT+1, CELLSIZE, 0f, 0f, 0f)
-
-grid.SetColors(0x4445FF50, 0xFF221055)
 grid.CreateLineGrid()
 
 tick with time {
@@ -29,15 +29,22 @@ tick with time {
     StopGame()
   }
   let entities = GetAllEntities()
-  for _, v in entities {
-    let entityType = GetEntityType(v)
-    if v == SHIP.id or (entityType == EntityType.CustomizableEntity and GetEntityTag(v) == Grid:ENTITY_TAG) {
+  for _, e in entities {
+    let entityType = GetEntityType(e)
+    if e == SHIP.id or (entityType == EntityType.CustomizableEntity and GetEntityTag(e) == Grid:ENTITY_TAG) {
       continue
     }
-    let ex, ey = GetEntityPosition(v)
+    let ex, ey = GetEntityPosition(e)
     match entityType {
       EntityType.CustomizableEntity => {
-        grid.Pulse(ex, ey, -10f, 50f)
+        match GetEntityTag(e) {
+          NORMAL_PULL => grid.Pulse(ex, ey, -25f, 60f)
+          WORMHOLE_PULL => {
+            if let wormhole = e is WormholeEntity:Wormhole {
+              grid.Pulse(ex, ey, -Fmath:RandomFixed(90f, 100f), Fmath:RandomFixed(wormhole.currentPullRadius, wormhole.currentPullRadius+20f))
+            }
+          }
+        }
       }
       EntityType.PlayerBullet => {
         grid.Pulse(ex, ey, 15f, 70f)

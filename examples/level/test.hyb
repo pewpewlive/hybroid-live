@@ -1,0 +1,5 @@
+env Test as Level
+
+use SuperInertiacEntity
+
+spawn SuperInertiac(0f, 0f)

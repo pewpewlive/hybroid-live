@@ -51,6 +51,25 @@ pub fn AddLine(Mesh mesh, Vertexes vertexes, Colors colors, bool closeLoop) {
   Insert(mesh.segments, segment)
 }
 
+pub fn AddSphere(Mesh mesh, Vertex center, number color, radius) {
+  let x, y, z = center[1], center[2], center[3]
+  let divisions = 8
+  let segments = 16
+
+  repeat from 0 to divisions with t {
+    let circleRadius = Math:Sin(Math:Pi * (t/divisions)) * radius
+    let circleZ = z + Math:Cos(Math:Pi * (t/divisions)) * radius
+    let vertexes = []
+    let colors = []
+    repeat segments - 1 with i {
+      let angle = (i * Math:Pi * 2) / segments 
+      Table:Insert(vertexes, [x + Math:Cos(angle) * circleRadius, y + Math:Sin(angle) * circleRadius, circleZ])
+      Table:Insert(colors, color)
+    }
+    AddLine(mesh, vertexes, colors, true)
+  }
+}
+
 pub fn AddFlatPoly(Mesh mesh, Vertex center, number sides, color, radius, startAngle) {
   if sides <= 2
     return
@@ -107,4 +126,28 @@ pub fn AddStar(Mesh mesh, Vertex center, number sides, color, insetColor, radius
   }
 
   AddLine(mesh, vertexes, colors, true)
+}
+
+pub fn AddCube(Mesh mesh, Vertex center, number sideLength, color) {
+  let half = sideLength / 2
+  let x = center[1]
+  let y = center[2]
+  let z = center[3]
+
+  let a = [x - half, y - half, z - half]
+  let b = [x - half, y + half, z - half]
+  let c = [x + half, y + half, z - half]
+  let d = [x + half, y - half, z - half]
+  let e = [x - half, y - half, z + half]
+  let f = [x - half, y + half, z + half]
+  let g = [x + half, y + half, z + half]
+  let h = [x + half, y - half, z + half]
+
+  AddLine(mesh, [a, b, c, d], [color, color, color, color], true)
+  AddLine(mesh, [e, f, g, h], [color, color, color, color], true)
+
+  AddLine(mesh, [a, e], [color, color], false)
+  AddLine(mesh, [b, f], [color, color], false)
+  AddLine(mesh, [c, g], [color, color], false)
+  AddLine(mesh, [d, h], [color, color], false)
 }
