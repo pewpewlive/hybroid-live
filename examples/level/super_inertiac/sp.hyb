@@ -169,7 +169,7 @@ pub entity SuperInertiac {
 
     if cooldown > 0 {
       cooldown -= 1
-    } else if Is(State.FOLLOWING_PLAYER) {
+    } else if Is(State.FOLLOWING_PLAYER) and IsEntityAlive(SHIP.id) {
       match Fmath:RandomNumber(0, 1) {
         0 => {
           state = State.PREPARING_DASH

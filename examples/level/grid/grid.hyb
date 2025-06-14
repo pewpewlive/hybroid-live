@@ -1,11 +1,8 @@
 env Grid as Level
 
-//use SuperInertiacEntity
 use Globals
 
-//spawn SuperInertiac(0f, 0f)
-// grid.SetColors(0x4445FF50, 0xFF221055)
-pub number gridColor, activeGridColor = 0x3335ff30, 0x00ffff80
+pub number gridColor, activeGridColor = 0x2335ff48, 0x00ffff80
 fixed offsetX, offsetY, offsetZ
 fixed cellSize
 
