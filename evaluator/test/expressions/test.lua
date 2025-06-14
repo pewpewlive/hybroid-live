@@ -21,7 +21,6 @@ end
 function HEE_Entity_Destroy(id, _)
 	local Self = HEE_Entity[id]
 	pewpew.entity_destroy(id)
-	HEE_Entity[id] = nil
 end
 function HEE_Entity_method1(id)
 	local Self = HEE_Entity[id]
@@ -33,6 +32,8 @@ function HEE_Entity_method2(id)
 	HEE_Entity_method1(id)
 
 end
+local function check() for k in pairs(HEE_Entity) do if not pewpew.entity_get_is_alive(k) then HEE_Entity[k] = nil end end end
+pewpew.add_update_callback(check)
 local E_k = HEE_Entity_Spawn(0fx, 0fx)
 HEE_Entity[E_k][1]()
 local E_mp = {HEE_Entity[E_k][1], function () end}
