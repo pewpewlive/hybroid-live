@@ -290,6 +290,14 @@ check:
 		} else {
 			method, found2 := class.Methods[variable.Name]
 			if found2 {
+				*node = &ast.MethodExpr{
+					MethodInfo: method.Value.(*FunctionVal).MethodInfo,
+					Token:      identToken,
+					Access: &ast.SelfExpr{
+						Token: ident.GetToken(),
+						Type:  ast.ClassMethod,
+					},
+				}
 				variable = method
 			} else {
 				w.AlertSingle(&alerts.MethodOrFieldNotFound{}, identToken, variable.Name)
@@ -315,9 +323,18 @@ check:
 
 		if found {
 			variable = field
+
 		} else {
 			method, found2 := entity.Methods[variable.Name]
 			if found2 {
+				*node = &ast.MethodExpr{
+					MethodInfo: method.Value.(*FunctionVal).MethodInfo,
+					Token:      identToken,
+					Access: &ast.SelfExpr{
+						Token: ident.GetToken(),
+						Type:  ast.EntityMethod,
+					},
+				}
 				variable = method
 			} else {
 				w.AlertSingle(&alerts.MethodOrFieldNotFound{}, identToken, variable.Name)
@@ -398,8 +415,7 @@ func (w *Walker) environmentAccessExpression(expr *ast.Node) Value {
 		}
 
 		if walker.environment.Name == w.environment.Name {
-			w.AlertSingle(&alerts.EnvironmentAccessToItself{}, node.PathExpr.GetToken())
-			return &Invalid{}
+			return w.GetNodeValue(&accessed, &w.environment.Scope)
 		}
 
 		if walker.environment.Type != ast.SharedEnv && (w.environment.Type == ast.MeshEnv || w.environment.Type == ast.SoundEnv) {
@@ -445,7 +461,7 @@ func (w *Walker) listExpression(node *ast.ListExpr, scope *Scope) Value {
 		if node.Type == nil {
 			w.AlertSingle(&alerts.UnknownListOrMapContents{}, node.Token)
 		} else {
-			value.ValueType = w.typeExpression(node.Type, scope)
+			value = w.typeToValue(w.typeExpression(node.Type, scope)).(*ListVal)
 			return value
 		}
 	}
@@ -492,13 +508,10 @@ func (w *Walker) callExpression(val Value, node *ast.Node, scope *Scope) Value {
 	returnLen := len(actualReturns)
 
 	if fn.ProcType == Method {
-		caller := call.Caller.(*ast.AccessExpr)
-		caller.Accessed = caller.Accessed[:len(caller.Accessed)-1]
-		if len(caller.Accessed) == 0 {
-			call.Caller = caller.Start
-		}
+		method := call.Caller.(*ast.MethodExpr)
+		call.Caller = method.Access
 
-		*node = convertCallToMethodCall(call, fn.MethodInfo)
+		*node = convertCallToMethodCall(call, method)
 		mcall := (*node).(*ast.MethodCallExpr)
 		mcall.ReturnAmount = returnLen
 	} else {
@@ -614,11 +627,23 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 			if found && valType.GetType() == Named {
 				field.Index = index
 			}
-			ok2 := true
 			if fn, ok := innerVal.(*FunctionVal); ok && fn.ProcType == Method {
-				ok2 = false
-			}
-			if entityVal, ok := val.(*EntityVal); ok && ok2 && (*prevNode).GetType() != ast.SelfExpression {
+				newAccess := *node
+				methodExpr := &ast.MethodExpr{
+					MethodInfo: fn.MethodInfo,
+					Token:      node.Accessed[i].GetToken(),
+					Access:     &newAccess,
+				}
+				newAccess.Accessed = newAccess.Accessed[:i]
+				node.Start = methodExpr
+				node.Accessed = node.Accessed[i+1:]
+				*_node = node
+				i = 0
+				if len(node.Accessed) == 0 {
+					*_node = methodExpr
+					return fn
+				}
+			} else if entityVal, ok := val.(*EntityVal); ok && (*prevNode).GetType() != ast.SelfExpression {
 				*prevNode = &ast.EntityAccessExpr{
 					Expr:       *prevNode,
 					EntityName: entityVal.Type.Name,

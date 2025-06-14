@@ -400,3 +400,17 @@ func (gen *Generator) methodCallExpr(methodCall ast.MethodCallExpr, stmt bool) s
 
 	return src.String()
 }
+
+func (gen *Generator) methodExpr(method ast.MethodExpr) string {
+	src := core.StringBuilder{}
+
+	var extra string
+	if method.MethodType == ast.ClassMethod {
+		extra = hyClass
+	} else {
+		extra = hyEntity
+	}
+	src.Write(extra, envMap[method.EnvName], method.TypeName, "_", method.MethodName)
+
+	return src.String()
+}

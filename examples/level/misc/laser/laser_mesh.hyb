@@ -3,11 +3,7 @@ env LaserMesh as Mesh
 use Graphix
 
 pub meshes = [
-    struct{
-        vertexes = [<list<number>>],
-        segments = [<list<number>>],
-        colors = [<number>],
-    }
+    NewMesh(),
 ]
 
 AddThickLine(meshes[1], 0xffffffff, 0xffffffff, 9, 1)

@@ -126,6 +126,15 @@ func (ce *CallExpr) GetArgs() []Node          { return ce.Args }
 func (ce *CallExpr) GetCaller() Node          { return ce.Caller }
 func (ce *CallExpr) GetReturnAmount() int     { return ce.ReturnAmount }
 
+type MethodExpr struct {
+	MethodInfo
+	Token  tokens.Token
+	Access Node
+}
+
+func (mce *MethodExpr) GetType() NodeType      { return MethodCallExpression }
+func (mce *MethodExpr) GetToken() tokens.Token { return mce.Token }
+
 type MethodCallExpr struct {
 	MethodInfo
 	Caller       Node

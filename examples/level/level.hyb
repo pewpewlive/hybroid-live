@@ -4,6 +4,7 @@ use Pewpew
 use ShipEntity
 use SuperInertiacEntity
 use Globals
+use Pylon
 
 SetLevelSize(WIDTH, HEIGHT)
 
@@ -15,7 +16,7 @@ ConfigurePlayer(0, playerConfig)
 let bg = NewEntity(WIDTH/2f, HEIGHT/2f)
 SetEntityMesh(bg, MapMesh, 1)
 spawn SuperInertiac(500f, 0f)
-
+spawn Pylon(100f, 100f)
 spawn WormholeEntity:Wormhole(WIDTH/2f, HEIGHT/2f, 40f)
 
 //AddWall(750f, 250f, 500f, 500f)

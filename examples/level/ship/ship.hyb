@@ -12,7 +12,8 @@ pub class Ship {
 
     let playerConfig = struct{
       shield = 5,
-      camera_distance = -50f
+      camera_distance = -50f,
+      camera_rotation_x_axis = -15d
     }
 
     ConfigurePlayer(0, playerConfig)

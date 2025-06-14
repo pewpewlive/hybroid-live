@@ -4,9 +4,9 @@ use Table
 
 pub fn NewMesh() -> Mesh {
   return struct{
-    vertexes = [<list<number>>],
-    segments = [<list<number>>],
-    colors = [<number>],
+    vertexes = list<list<number>>[],
+    segments = list<list<number>>[],
+    colors = list<number>[],
   }
 }
 
@@ -49,6 +49,13 @@ pub fn AddLine(Mesh mesh, Vertexes vertexes, Colors colors, bool closeLoop) {
     Insert(segment, vertexCount)
   }
   Insert(mesh.segments, segment)
+}
+
+pub fn AddSquare(Mesh mesh, Center center, number color, size) {
+  let x, y, z = center.x, center.y, center.z
+  let vertexes = [[x-size/2, y-size/2, z], [x+size/2, y-size/2, z], [x+size/2, y+size/2, z], [x-size/2, y+size/2, z]]
+  let colors = [color,color,color,color]
+  AddLine(mesh, vertexes, colors, true)
 }
 
 pub fn AddThickLine(Mesh mesh, number colorStart, number colorEnd, thickness, length) {

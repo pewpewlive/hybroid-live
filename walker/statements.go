@@ -454,7 +454,7 @@ func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 	}
 
 	if walker.environment.Name == w.environment.Name {
-		w.AlertSingle(&alerts.EnvironmentAccessToItself{}, node.PathExpr.GetToken())
+		w.AlertSingle(&alerts.EnvironmentUsesItself{}, node.PathExpr.GetToken())
 		return
 	}
 

@@ -277,6 +277,8 @@ func (gen *Generator) GenerateExpr(node ast.Node) string {
 		return gen.spawnExpr(*newNode, false)
 	case *ast.MethodCallExpr:
 		return gen.methodCallExpr(*newNode, false)
+	case *ast.MethodExpr:
+		return gen.methodExpr(*newNode)
 	case *ast.EntityAccessExpr:
 		return gen.entityAccessExpr(*newNode)
 	case *ast.FieldExpr:

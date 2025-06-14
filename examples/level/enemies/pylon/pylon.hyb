@@ -1,0 +1,203 @@
+env Pylon as Level
+
+use Pewpew
+use PylonSettings
+use BulletEntity
+use ShipEntity
+
+enum AttackState {
+    NOTHING,
+    BARRAGE
+}
+
+const BARRAGE_DURATION = 50
+const BARRAGE_BULLET_FREQUENCY = 15
+const PYLON_SIGHT_RADIUS = 500f
+const DEATH_DURATION = 40f
+const HP_MAX = 40
+const COLOR = 0x9058faff
+const COLOR2 = 0xf64400ff
+const HOVER_HEIGHT = 30f
+
+entity Shard {
+    fixed angle, speed, roll
+
+    spawn(fixed x, y, angle, speed) {
+        self.angle = angle
+        self.speed = speed
+        SetEntityMesh(self, PylonShard, 0)
+        SetEntityMeshXYZScale(self, 5f, 7f, 5f)
+        SetEntityPositionInterpolation(self, true)
+        SetEntityMeshColor(self, COLOR)
+        SetEntityMeshAngle(self, roll, 1f, 0f, 0f)
+        AddRotationToEntityMesh(self, angle, 0f, 0f, 1f)
+        SkipEntityMeshAttributesInterpolation(self)
+        SpawnEntity(self, 0)
+    }
+
+    destroy() {
+        let x, y = GetEntityPosition(self)
+        CreateExplosion(x, y, COLOR, 0.75f, 14)
+
+        DestroyEntity(self)
+    }
+
+    Update() {
+        roll += speed*1d
+        let moveY, moveX = Fmath:Sincos(angle)
+        let x, y = GetEntityPosition(self)
+        SetEntityPosition(self, x + moveX * speed, y + moveY * speed)
+        SetEntityMeshAngle(self, roll, 1f, 0f, 0f)
+        AddRotationToEntityMesh(self, angle, 0f, 0f, 1f)
+        SkipEntityMeshAttributesInterpolation(self)
+    }
+
+    WallCollision(fixed _, _) {
+        destroy self()
+    }
+
+    PlayerCollision(number _, entity shipId) {
+        DamageShip(shipId, 1)
+        destroy self()
+    }
+
+    WeaponCollision(number _, WeaponType weaponType) -> bool {
+        return false
+    }
+}
+
+entity Pylon {
+    AttackState state = AttackState.NOTHING
+    entity topPrism
+    fixed time
+    number attackTime = Fmath:RandomNumber(40, 60)
+    fixed prismRotation = 1d
+    fixed lookToAngle 
+    bool forceIdle
+    fixed x, y
+    number hp = HP_MAX
+    bool isDying
+
+    spawn(fixed x, y) {
+        self.x, self.y = x, y
+
+        // SetEntityMesh(self, PylonMesh, 0)
+        // SetEntityRadius(self, Globals:CELLSIZE/2f)
+
+        topPrism = NewEntity(x,y)
+        SetEntityMesh(topPrism, PylonMesh, 0)
+        // SetEntityMeshXYZScale(topPrism, 1f, 1f, -1f)
+        SetEntityMeshZ(topPrism, 10f)
+    }
+
+    destroy() {
+        DestroyEntity(topPrism)
+        DestroyEntity(self)
+        CreateExplosion(x, y, 0xff4000ff, 1.5f, 50)
+        CreateExplosion(x, y, COLOR2, 1f, 30)
+    }
+
+    Update() {
+        time += 1f
+
+        if IsEntityAlive(SHIP.id) {
+            let px, py = GetEntityPosition(SHIP.id)
+            let dx, dy = px - x, py - y
+            if dx * dx + dy * dy <= PYLON_SIGHT_RADIUS ^ 2f {
+                forceIdle = false
+                lookToAngle = Fmath:Atan2(dy, dx)
+            } else {
+                forceIdle = true
+            }
+        } else {
+            forceIdle = true
+        }
+    
+
+        match state {
+        AttackState.NOTHING => {
+            attackTime -= 1
+            if attackTime <= 0 and !forceIdle {
+                state = AttackState.BARRAGE
+                attackTime = 0
+            }
+        }
+        AttackState.BARRAGE => {
+            attackTime += 1
+
+            if attackTime >= BARRAGE_DURATION or !IsEntityAlive(SHIP.id) {
+                state = AttackState.NOTHING
+                attackTime = 50
+                break
+            }
+
+            if attackTime % BARRAGE_BULLET_FREQUENCY == 0 {
+                repeat from -1f to 1f with i {
+                    let offset = 25d * i
+                    let offsetY, offsetX = Fmath:Sincos(offset)
+                    spawn Shard(x + offsetX * 10f, y + offsetY * 10f, lookToAngle + offset, 5f)
+                }
+
+                prismRotation += 7d
+            }
+        }
+        }
+        
+        prismRotation = FmathHelpers:Lerp(prismRotation, 1d, 0.2f)
+        Rotate()
+        let sin, _ = Fmath:Sincos(time / 7f)
+        SetEntityMeshZ(topPrism, 10f + HOVER_HEIGHT * sin)
+    }
+
+    PlayerCollision(number _, entity shipId) {
+        if isDying return 
+        DamageShip(shipId, 0)
+    }
+
+    WeaponCollision(number _, WeaponType weaponType) -> bool {
+        if isDying return false
+
+        match weaponType {
+        WeaponType.Bullet => {
+            hp -= 1
+            if hp <= 0 {
+                InitiateDeath()
+            }
+            return true
+        }
+        }
+
+        return false
+    }
+
+    fn InitiateDeath() {
+        isDying = true
+        state = AttackState.NOTHING
+        time = 0f
+        SetEntityPositionInterpolation(self, false)
+        SetEntityPositionInterpolation(topPrism, false)
+        SetEntityUpdateCallback(self, DeathUpdateCallback)
+    }
+
+    fn Rotate() {
+        AddRotationToEntityMesh(topPrism, prismRotation, 0f, 0f, 0.2f)
+        AddRotationToEntityMesh(self, -prismRotation, 0f, 0f, 1f)
+    }
+
+    fn DeathUpdateCallback(entity _) {
+        time += 1f
+
+        prismRotation = FmathHelpers:Remap(1d, 32d, 0f, DEATH_DURATION, time)
+        Rotate()
+        let ry, rx = Fmath:Sincos(Fmath:RandomFixed(0d, 360d))
+        let length = Fmath:RandomFixed(2f, 4f)
+
+        SetEntityPosition(self, x+rx*length, y+ry*length)
+        SetEntityPosition(topPrism, x+rx*length, y+ry*length)
+ 
+
+        if time >= DEATH_DURATION {
+           destroy self()
+        }
+    }
+}

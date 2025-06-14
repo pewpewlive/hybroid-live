@@ -348,6 +348,23 @@ func (p *Parser) self() ast.Node {
 		}
 	}
 
+	return p.list()
+}
+
+func (p *Parser) list() ast.Node {
+	peek := p.peek()
+	if peek.Lexeme == "list" {
+		typ := p.typeExpr("in list expression")
+		_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.LeftBracket, "in list expression")
+		if !ok {
+			return ast.NewImproper(typ.GetToken(), ast.ListExpression)
+		}
+		return p.parseList(typ)
+	} else if peek.Type == tokens.LeftBracket {
+		p.advance()
+		return p.parseList(nil)
+	}
+
 	return p.primary()
 }
 
@@ -366,10 +383,6 @@ func (p *Parser) primary() ast.Node {
 
 	if p.match(tokens.LeftBrace) {
 		return p.parseMap()
-	}
-
-	if p.match(tokens.LeftBracket) {
-		return p.parseList()
 	}
 
 	if p.match(tokens.Struct) {
@@ -459,20 +472,10 @@ func (p *Parser) fn() ast.Node {
 	return fn
 }
 
-func (p *Parser) parseList() ast.Node {
+func (p *Parser) parseList(typ *ast.TypeExpr) ast.Node {
 	listExpr := &ast.ListExpr{
 		Token: p.peek(-1),
-	}
-
-	if p.match(tokens.Less) {
-		typeExpr := p.typeExpr("in list expression")
-		_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.Greater, "in list expression")
-		listExpr.Type = typeExpr
-		if !ok {
-			return listExpr
-		}
-		p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.RightBracket, "in list expression")
-		return listExpr
+		Type:  typ,
 	}
 
 	if p.match(tokens.RightBracket) {

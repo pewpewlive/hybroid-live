@@ -138,10 +138,10 @@ func (sc *Scope) resolveReturnable() *ExitableTag {
 	return sc.Parent.resolveReturnable()
 }
 
-func convertCallToMethodCall(call *ast.CallExpr, mi ast.MethodInfo) *ast.MethodCallExpr {
+func convertCallToMethodCall(call *ast.CallExpr, methodExpr *ast.MethodExpr) *ast.MethodCallExpr {
 	copy := *call
 	return &ast.MethodCallExpr{
-		MethodInfo:  mi,
+		MethodInfo:  methodExpr.MethodInfo,
 		Caller:      copy.Caller,
 		GenericArgs: copy.GenericArgs,
 		Args:        copy.Args,

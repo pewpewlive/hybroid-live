@@ -1010,27 +1010,27 @@ func (uei *UnnecessaryEmptyIdentifier) AlertType() Type {
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type EnvironmentAccessToItself struct {
+type EnvironmentUsesItself struct {
 	Specifier Snippet
 }
 
-func (eati *EnvironmentAccessToItself) Message() string {
-	return "an environment cannot access itself"
+func (eui *EnvironmentUsesItself) Message() string {
+	return "an environment cannot 'use' itself"
 }
 
-func (eati *EnvironmentAccessToItself) SnippetSpecifier() Snippet {
-	return eati.Specifier
+func (eui *EnvironmentUsesItself) SnippetSpecifier() Snippet {
+	return eui.Specifier
 }
 
-func (eati *EnvironmentAccessToItself) Note() string {
+func (eui *EnvironmentUsesItself) Note() string {
 	return ""
 }
 
-func (eati *EnvironmentAccessToItself) ID() string {
+func (eui *EnvironmentUsesItself) ID() string {
 	return "hyb039W"
 }
 
-func (eati *EnvironmentAccessToItself) AlertType() Type {
+func (eui *EnvironmentUsesItself) AlertType() Type {
 	return Error
 }
 

@@ -27,7 +27,11 @@ entity Laser {
         SkipEntityMeshAttributesInterpolation(self)
         SetEntityMeshColor(self, color)
         ly, lx = Sincos(lookToAngle)
-        slope = ly/lx
+        if lx == 0f {
+            slope = 2fx
+        }else {
+            slope = ly/lx
+        }
         SetEntityMeshXYZScale(self, LENGTH, 1f, 1f)
         SetEntityMesh(self, LaserMesh, 0)
         PlaySound(LaserSound, 0, x, y)
@@ -54,14 +58,20 @@ entity Laser {
 
         let px, py = GetEntityPosition(SHIP.id)
 
-        let b1 = -slope*px+py
-        let b2 = -slope*x+y
+        fixed dist
+        if slope == 2fx {
+            dist = Fmath:AbsFixed(x-px)
+        }else {
+            let b1 = -slope*px+py
+            let b2 = -slope*x+y
 
-        let dist = Fmath:AbsFixed(b1-b2)/Fmath:Sqrt(1f+slope^2f)
+            dist = Fmath:AbsFixed(b1-b2)/Fmath:Sqrt(1f+slope^2f)
+        }
 
         let playerVector = Fmath:Atan2(py-y, px-x)
-        let laserVector = Fmath:Atan2(ly-y, lx-x)
+        let laserVector = Fmath:Atan2(ly, lx)
         let diff = Fmath:AbsFixed(playerVector-laserVector)
+        
         bool isInFront
         if diff < 90d {
             isInFront = true

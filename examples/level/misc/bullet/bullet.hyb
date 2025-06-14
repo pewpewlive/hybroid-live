@@ -127,7 +127,7 @@ entity Bullet {
         let nx, ny = FmathHelpers:Normalize(mx, my)
         mx, my = FmathHelpers:Lerp(mx, nx, 0.4f), FmathHelpers:Lerp(my, ny, 0.4f)
 
-        roll += speed*2d
+        roll += speed*3d
         angle = Fmath:Atan2(my, mx)
         SetEntityMeshAngle(self, roll, 0f,1f,0f)
         AddRotationToEntityMesh(self, angle, 0f,0f,1f)

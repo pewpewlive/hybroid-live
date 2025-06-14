@@ -345,9 +345,9 @@
     "message_format": ["Context"]
   },
   {
-    "name": "EnvironmentAccessToItself",
+    "name": "EnvironmentUsesItself",
     "type": "Error",
-    "message": "an environment cannot access itself"
+    "message": "an environment cannot 'use' itself"
   },
   {
     "name": "EntityConversionWithOrCondition",
