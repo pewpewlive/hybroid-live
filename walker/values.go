@@ -71,6 +71,10 @@ func (w *Walker) SetVarToUsed(v *VariableVal) {
 			val.Type.IsUsed = true
 			w.walkers[fn.EnvName].environment.Classes[fn.TypeName] = val
 		}
+	} else if num, ok := v.Value.(*NumberVal); ok {
+		num.Value = ""
+	} else if boolean, ok := v.Value.(*BoolVal); ok {
+		boolean.Value = ""
 	}
 }
 
@@ -203,6 +207,7 @@ func (sv *StructVal) Scopify(parent *Scope) *Scope {
 }
 
 type EnumVal struct {
+	Token  tokens.Token
 	Type   *EnumType
 	Fields map[string]*VariableVal
 	IsPub  bool
@@ -298,6 +303,7 @@ func NewField(index int, val *VariableVal) Field {
 }
 
 type EntityVal struct {
+	Token   tokens.Token
 	Type    NamedType
 	IsLocal bool
 	Fields  map[string]Field
@@ -323,6 +329,7 @@ func CopyEntityVal(ref *EntityVal) EntityVal {
 func NewEntityVal(envName string, node *ast.EntityDecl) *EntityVal {
 	name := node.Name.Lexeme
 	return &EntityVal{
+		Token:   node.Name,
 		Type:    *NewNamedType(envName, name, ast.Entity),
 		IsLocal: !node.IsPub,
 		Methods: make(map[string]*VariableVal),
@@ -380,6 +387,7 @@ func (ev *EntityVal) Scopify(parent *Scope) *Scope {
 }
 
 type ClassVal struct {
+	Token       tokens.Token
 	Type        NamedType
 	IsLocal     bool
 	Fields      map[string]Field

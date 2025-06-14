@@ -1921,27 +1921,28 @@ func (cvnwt *ConflictingVariableNameWithType) AlertType() Type {
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type UnusedVariable struct {
+type UnusedElement struct {
 	Specifier Snippet
+	Elem      string
 }
 
-func (uv *UnusedVariable) Message() string {
-	return "variable is not used"
+func (ue *UnusedElement) Message() string {
+	return fmt.Sprintf("%s is not used", ue.Elem)
 }
 
-func (uv *UnusedVariable) SnippetSpecifier() Snippet {
-	return uv.Specifier
+func (ue *UnusedElement) SnippetSpecifier() Snippet {
+	return ue.Specifier
 }
 
-func (uv *UnusedVariable) Note() string {
+func (ue *UnusedElement) Note() string {
 	return ""
 }
 
-func (uv *UnusedVariable) ID() string {
+func (ue *UnusedElement) ID() string {
 	return "hyb074W"
 }
 
-func (uv *UnusedVariable) AlertType() Type {
+func (ue *UnusedElement) AlertType() Type {
 	return Warning
 }
 

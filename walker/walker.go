@@ -177,7 +177,27 @@ func (w *Walker) Walk() {
 func (w *Walker) PostWalk() {
 	for _, v := range w.environment.Scope.Variables {
 		if !v.IsUsed {
-			w.AlertSingle(&alerts.UnusedVariable{}, v.Token)
+			w.AlertSingle(&alerts.UnusedElement{}, v.Token, "variable")
+		}
+	}
+	for _, v := range w.environment.Entities {
+		if !v.Type.IsUsed {
+			w.AlertSingle(&alerts.UnusedElement{}, v.Token, "entity type")
+		}
+	}
+	for _, v := range w.environment.Classes {
+		if !v.Type.IsUsed {
+			w.AlertSingle(&alerts.UnusedElement{}, v.Token, "class type")
+		}
+	}
+	for _, v := range w.environment.Enums {
+		if !v.Type.IsUsed {
+			w.AlertSingle(&alerts.UnusedElement{}, v.Token, "enum type")
+		}
+	}
+	for _, v := range w.environment.Scope.AliasTypes {
+		if !v.IsUsed {
+			w.AlertSingle(&alerts.UnusedElement{}, v.Token, "alias type")
 		}
 	}
 }
@@ -336,9 +356,14 @@ func (w *Walker) walkBody(body *ast.Body, tag ExitableTag, scope *Scope) {
 	if endIndex != -1 {
 		*body = bodySlice[:endIndex]
 	}
-	for i := range scope.Variables {
-		if !scope.Variables[i].IsUsed {
-			w.AlertSingle(&alerts.UnusedVariable{}, scope.Variables[i].Token)
+	for k := range scope.Variables {
+		if !scope.Variables[k].IsUsed {
+			w.AlertSingle(&alerts.UnusedElement{}, scope.Variables[k].Token, "variable")
+		}
+	}
+	for k := range scope.AliasTypes {
+		if !scope.AliasTypes[k].IsUsed {
+			w.AlertSingle(&alerts.UnusedElement{}, scope.Variables[k].Token, "alias type")
 		}
 	}
 }

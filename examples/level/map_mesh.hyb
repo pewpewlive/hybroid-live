@@ -3,8 +3,6 @@ env MapMesh as Mesh
 use Graphix
 use Globals
 
-const SIZE = 1400
-
 pub meshes = [
   NewMesh()
 ]

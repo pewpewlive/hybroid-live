@@ -619,9 +619,13 @@
     "message_format": ["Type"]
   },
   {
-    "name": "UnusedVariable",
+    "name": "UnusedElement",
     "type": "Warning",
-    "message": "variable is not used"
+    "fields": {
+      "Elem": "string"
+    },
+    "message": "%s is not used",
+    "message_format": ["Elem"]
   },
   {
     "name": "EmptyIdentifierOnSpawnParameters",

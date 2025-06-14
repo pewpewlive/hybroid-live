@@ -44,7 +44,9 @@ func (w *Walker) aliasDeclaration(node *ast.AliasDecl, scope *Scope) {
 		w.AlertSingle(&alerts.Redeclaration{}, node.Token, node.Name, "alias")
 		return
 	}
-	scope.AliasTypes[node.Name.Lexeme] = NewAliasType(node.Name.Lexeme, w.typeExpression(node.Type, scope), !node.IsPub)
+	alias := NewAliasType(node.Name.Lexeme, w.typeExpression(node.Type, scope), !node.IsPub)
+	alias.Token = node.Token
+	scope.AliasTypes[node.Name.Lexeme] = alias
 }
 
 func (w *Walker) classDeclaration(node *ast.ClassDecl, scope *Scope) {
@@ -62,6 +64,7 @@ func (w *Walker) classDeclaration(node *ast.ClassDecl, scope *Scope) {
 	}
 
 	classVal := &ClassVal{
+		Token:   node.Name,
 		Type:    *NewNamedType(w.environment.Name, node.Name.Lexeme, ast.Class),
 		IsLocal: node.IsPub,
 		Fields:  make(map[string]Field),
@@ -250,6 +253,7 @@ func (w *Walker) enumDeclaration(node *ast.EnumDecl, scope *Scope) {
 		return
 	}
 
+	enumVal.Token = node.Name
 	w.environment.Enums[node.Name.Lexeme] = enumVal
 }
 

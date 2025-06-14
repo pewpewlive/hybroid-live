@@ -926,23 +926,27 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 
 		// check for types of the environment
 		if val, ok := scope.Environment.Enums[typeName]; ok {
+			val.Type.IsUsed = true
 			typ = val.Type
 			w.checkAccessibility(scope, val.IsPub, typee.Name.GetToken())
 			break
 		}
 		if entityVal, found := scope.Environment.Entities[typeName]; found {
+			entityVal.Type.IsUsed = true
 			val := CopyEntityVal(entityVal)
 			typ = &val.Type
 			w.FillGenericsInNamedType(&val.Type, typee, scope)
 			break
 		}
 		if classVal, found := scope.Environment.Classes[typeName]; found {
+			classVal.Type.IsUsed = true
 			val := CopyClassVal(classVal)
 			typ = &val.Type
 			w.FillGenericsInNamedType(&val.Type, typee, scope)
 			break
 		}
 		if aliasType, found := scope.resolveAlias(typeName); found {
+			aliasType.IsUsed = true
 			typ = aliasType.UnderlyingType
 			break
 		}

@@ -3,6 +3,7 @@ package walker
 import (
 	"hybroid/ast"
 	"hybroid/core"
+	"hybroid/tokens"
 )
 
 type Type interface {
@@ -86,6 +87,7 @@ func (pt *PathType) String() string {
 }
 
 type AliasType struct {
+	Token          tokens.Token
 	Name           string
 	UnderlyingType Type
 	IsUsed         bool

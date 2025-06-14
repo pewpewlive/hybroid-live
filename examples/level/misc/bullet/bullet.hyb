@@ -109,7 +109,7 @@ entity Bullet {
 
         if bs.bounceSelf and immunityFrames <= 0 {
             let entities = GetEntitiesInRadius(ex, ey, radius*3f)
-            for i, v in entities {
+            for _, v in entities {
                 if v == self {
                     continue
                 }
@@ -138,6 +138,16 @@ entity Bullet {
 
     fn WithSettings(BulletSettings settings) {
         bs = settings
+    }
+
+    fn EnableHoming(fixed homingPower) {
+        bs.homing = true
+        bs.homingPower = homingPower
+    }
+
+    fn DisableHoming() {
+        bs.homing = false
+        bs.homingPower = 0f
     }
 
     fn Bounce(fixed rx, ry, power) {

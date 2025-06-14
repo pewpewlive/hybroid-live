@@ -9,7 +9,7 @@ enum AttackState {
     CHARADE_BURST
 }
 
-const MOVE_SPEED = 3f
+const MOVE_SPEED = 1f
 const HP_MAX = 80
 
 const CHARADE_PREPARATION_TIME = 120
@@ -51,7 +51,6 @@ entity Wormhole {
     }
 
     destroy() {
-        let ex, ey = GetEntityPosition(self)
         PlayAmbientSound(WormholeSound, 1)
         DestroyEntity(self)
     }
@@ -63,7 +62,7 @@ entity Wormhole {
 
         currentPullRadius = FmathHelpers:Lerp(currentPullRadius, pullRadius, 0.6f)
         let ex, ey = GetEntityPosition(self)
-        ex, ey += mx, my
+        ex, ey += mx*MOVE_SPEED, my*MOVE_SPEED
         SetEntityPosition(self, ex, ey)
 
         repeat 5 {
@@ -112,7 +111,7 @@ entity Wormhole {
         AttackState.CHARADE => {
             attackTime += 1
             if attackTime % CHARADE_BULLET_FREQUENCY == 0 {
-                let bullet = spawn BulletEntity:Bullet(ex, ey, 3f, shootAngle, 1f, 0xaaffffff, 1000)
+                spawn BulletEntity:Bullet(ex, ey, 3f, shootAngle, 1f, 0xaaffffff, 1000)
                 shootAngle += shootAngleStep
             }
             if attackTime >= CHARADE_DURATION {

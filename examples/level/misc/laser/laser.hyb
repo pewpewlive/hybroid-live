@@ -28,16 +28,6 @@ entity Laser {
         SetEntityMeshColor(self, color)
         ly, lx = Sincos(lookToAngle)
         slope = ly/lx
-
-        let ax, ay = x, y
-        if lx > 0f {
-            ax = WIDTH-x
-        }
-        if ly > 0f {
-            ay = HEIGHT-y
-        }
-
-        fixed a, b = Fmath:AbsFixed(ax/(lx*6f)), Fmath:AbsFixed(ay/(ly*6f))
         SetEntityMeshXYZScale(self, LENGTH, 1f, 1f)
         SetEntityMesh(self, LaserMesh, 0)
         PlaySound(LaserSound, 0, x, y)
