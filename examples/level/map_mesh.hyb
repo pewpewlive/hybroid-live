@@ -4,5 +4,12 @@ use Graphix
 use Globals
 
 pub meshes = [
+  struct{
+    vertexes = [[-NWIDTH/2, -NHEIGHT/2], [NWIDTH/2, -NHEIGHT/2], [NWIDTH/2, NHEIGHT/2], [-NWIDTH/2, NHEIGHT/2]],
+    segments = [[0,1,2,3,0]],
+    colors = [Globals:GRID_COLOR, Globals:GRID_COLOR, Globals:GRID_COLOR,Globals:GRID_COLOR],
+  },
   NewMesh()
 ]
+
+AddGridMap(meshes[2], 0xaa2a0000, 0x1000aaaa, NWIDTH, 15, -1000, 0)

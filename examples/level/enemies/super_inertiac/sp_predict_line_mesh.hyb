@@ -1,22 +1,15 @@
 env SPPredLineMesh as Mesh
 
-const SMALL_LENGTH = 500
-const BIG_LENGTH = 800
+use Graphix
+
+const SMALL_LENGTH = 1000
+const BIG_LENGTH = 1600
 
 pub meshes = [
-  struct {
-    vertexes = [[0, 0], [SMALL_LENGTH, 0], [0, 1], [SMALL_LENGTH, 1], [0, -1], [SMALL_LENGTH, -1], [0, 2], [SMALL_LENGTH, 2], [0, -2], [SMALL_LENGTH, -2]],
-    segments = [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]],
-    colors = [0x000055dd, 0x00005500, 0x000055dd, 0x00005500, 0x000055dd, 0x00005500, 0x000055dd, 0x00005500, 0x000055dd, 0x00005500],
-  },
-  struct {
-    vertexes = [[0, 0], [SMALL_LENGTH, 0], [0, 1], [SMALL_LENGTH, 1], [0, -1], [SMALL_LENGTH, -1], [0, 2], [SMALL_LENGTH, 2], [0, -2], [SMALL_LENGTH, -2]],
-    segments = [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]],
-    colors = [0x44005500, 0x44005500, 0x44005500, 0x44005500, 0x44005500, 0x44005500, 0x44005500, 0x44005500, 0x44005500, 0x44005500],
-  },
-  struct {
-    vertexes = [[0, 0], [BIG_LENGTH, 0], [0, 1], [BIG_LENGTH, 1], [0, -1], [BIG_LENGTH, -1], [0, 2], [BIG_LENGTH, 2], [0, -2], [BIG_LENGTH, -2]],
-    segments = [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]],
-    colors = [0x000055dd, 0x44005500, 0x000055dd, 0x44005500, 0x000055dd, 0x44005500, 0x000055dd, 0x44005500, 0x000055dd, 0x44005500],
-  }
+  NewMesh(),
+  NewMesh(),
+  NewMesh()
 ]
+
+AddThickLine(meshes[1], 0x0000aadd, 0x00000000, 4, SMALL_LENGTH)
+AddThickLine(meshes[3], 0x440055aa, 0x00000000, 5, BIG_LENGTH)

@@ -140,6 +140,13 @@ func (gen *Generator) GetSrc() string {
 	return gen.src.String()
 }
 
+func (gen *Generator) GenerateUsedLibaries(usedLibraries []ast.Library) {
+	for _, v := range usedLibraries {
+		str := v.String()
+		gen.Write("local ", str, " = ", str, "\n")
+	}
+}
+
 func (gen *Generator) Generate(program []ast.Node, builtins []string) {
 	for i := range builtins {
 		gen.Write(mapping.Functions[builtins[i]])

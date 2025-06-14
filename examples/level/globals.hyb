@@ -1,8 +1,11 @@
 env Globals as Shared
 
 pub const WIDTH, HEIGHT = 1000f, 1000f
+pub const NWIDTH, NHEIGHT = Fmath:ToNumber(WIDTH)\1, Fmath:ToNumber(HEIGHT)\1
 pub const CELLCOUNT = 20
 pub const CELLSIZE = WIDTH/Fmath:ToFixed(CELLCOUNT)
 pub const NORMAL_PULL = 1
 pub const WORMHOLE_PULL = 2
 pub const ENTITY_TAG = 1337 
+pub const GRID_COLOR = 0x2335ff48
+pub const ACTIVE_GRID_COLOR = 0x00ffff80

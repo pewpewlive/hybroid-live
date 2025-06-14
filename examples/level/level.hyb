@@ -4,7 +4,6 @@ use Pewpew
 use ShipEntity
 use SuperInertiacEntity
 use Globals
-use Test
 
 SetLevelSize(WIDTH, HEIGHT)
 
@@ -14,8 +13,8 @@ let playerConfig = struct{
 ConfigurePlayer(0, playerConfig)
 
 let bg = NewEntity(WIDTH/2f, HEIGHT/2f)
-SetEntityMesh(bg, MapMesh, 0)
-//spawn SuperInertiac(500f, 0f)
+SetEntityMesh(bg, MapMesh, 1)
+spawn SuperInertiac(500f, 0f)
 
 spawn WormholeEntity:Wormhole(WIDTH/2f, HEIGHT/2f, 40f)
 

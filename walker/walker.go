@@ -17,7 +17,7 @@ type Environment struct {
 	Scope Scope
 
 	importedWalkers []*Walker // the walkers imported through UseStmt
-	UsedLibraries   []Library
+	UsedLibraries   []ast.Library
 	UsedBuiltinVars []string
 
 	Classes  map[string]*ClassVal
@@ -25,6 +25,16 @@ type Environment struct {
 	Enums    map[string]*EnumVal
 
 	_envStmt *ast.EnvironmentDecl
+}
+
+func (w *Walker) AddLibrary(lib ast.Library) bool {
+	for _, v := range w.environment.UsedLibraries {
+		if v == lib {
+			return false
+		}
+	}
+	w.environment.UsedLibraries = append(w.environment.UsedLibraries, lib)
+	return true
 }
 
 func (e *Environment) AddRequirement(path string) bool {
@@ -55,7 +65,7 @@ func NewEnvironment(hybroidPath, luaPath string) *Environment {
 		luaPath:       luaPath,
 		Type:          ast.InvalidEnv,
 		Scope:         scope,
-		UsedLibraries: make([]Library, 0),
+		UsedLibraries: make([]ast.Library, 0),
 		Classes:       map[string]*ClassVal{},
 		Entities:      map[string]*EntityVal{},
 		Enums:         map[string]*EnumVal{},
@@ -64,16 +74,6 @@ func NewEnvironment(hybroidPath, luaPath string) *Environment {
 	global.Scope.Environment = global
 	return global
 }
-
-type Library int
-
-const (
-	Pewpew Library = iota
-	Fmath
-	Math
-	String
-	Table
-)
 
 type Walker struct {
 	alerts.Collector

@@ -457,31 +457,6 @@ func (r *Redeclaration) AlertType() Type {
 }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
-type UnnecessaryTypeInConstDeclaration struct {
-	Specifier Snippet
-}
-
-func (uticd *UnnecessaryTypeInConstDeclaration) Message() string {
-	return "an explicit type is not necessary for a const declaration"
-}
-
-func (uticd *UnnecessaryTypeInConstDeclaration) SnippetSpecifier() Snippet {
-	return uticd.Specifier
-}
-
-func (uticd *UnnecessaryTypeInConstDeclaration) Note() string {
-	return ""
-}
-
-func (uticd *UnnecessaryTypeInConstDeclaration) ID() string {
-	return "hyb018W"
-}
-
-func (uticd *UnnecessaryTypeInConstDeclaration) AlertType() Type {
-	return Error
-}
-
-// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type NoValueGivenForConstant struct {
 	Specifier Snippet
 }
@@ -499,7 +474,7 @@ func (nvgfc *NoValueGivenForConstant) Note() string {
 }
 
 func (nvgfc *NoValueGivenForConstant) ID() string {
-	return "hyb019W"
+	return "hyb018W"
 }
 
 func (nvgfc *NoValueGivenForConstant) AlertType() Type {
@@ -527,7 +502,7 @@ func (tfeg *TooFewElementsGiven) Note() string {
 }
 
 func (tfeg *TooFewElementsGiven) ID() string {
-	return "hyb020W"
+	return "hyb019W"
 }
 
 func (tfeg *TooFewElementsGiven) AlertType() Type {
@@ -555,7 +530,7 @@ func (tmeg *TooManyElementsGiven) Note() string {
 }
 
 func (tmeg *TooManyElementsGiven) ID() string {
-	return "hyb021W"
+	return "hyb020W"
 }
 
 func (tmeg *TooManyElementsGiven) AlertType() Type {
@@ -565,10 +540,11 @@ func (tmeg *TooManyElementsGiven) AlertType() Type {
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ExplicitTypeRequiredInDeclaration struct {
 	Specifier Snippet
+	Context   string
 }
 
 func (etrid *ExplicitTypeRequiredInDeclaration) Message() string {
-	return "a variable declared without a value requires an explicit type"
+	return fmt.Sprintf("an explicit type is required %s", etrid.Context)
 }
 
 func (etrid *ExplicitTypeRequiredInDeclaration) SnippetSpecifier() Snippet {
@@ -580,7 +556,7 @@ func (etrid *ExplicitTypeRequiredInDeclaration) Note() string {
 }
 
 func (etrid *ExplicitTypeRequiredInDeclaration) ID() string {
-	return "hyb022W"
+	return "hyb021W"
 }
 
 func (etrid *ExplicitTypeRequiredInDeclaration) AlertType() Type {
@@ -607,7 +583,7 @@ func (etm *ExplicitTypeMismatch) Note() string {
 }
 
 func (etm *ExplicitTypeMismatch) ID() string {
-	return "hyb023W"
+	return "hyb022W"
 }
 
 func (etm *ExplicitTypeMismatch) AlertType() Type {
@@ -633,7 +609,7 @@ func (etna *ExplicitTypeNotAllowed) Note() string {
 }
 
 func (etna *ExplicitTypeNotAllowed) ID() string {
-	return "hyb024W"
+	return "hyb023W"
 }
 
 func (etna *ExplicitTypeNotAllowed) AlertType() Type {
@@ -659,7 +635,7 @@ func (ic *ImportCycle) Note() string {
 }
 
 func (ic *ImportCycle) ID() string {
-	return "hyb025W"
+	return "hyb024W"
 }
 
 func (ic *ImportCycle) AlertType() Type {
@@ -686,7 +662,7 @@ func (uva *UndeclaredVariableAccess) Note() string {
 }
 
 func (uva *UndeclaredVariableAccess) ID() string {
-	return "hyb026W"
+	return "hyb025W"
 }
 
 func (uva *UndeclaredVariableAccess) AlertType() Type {
@@ -711,7 +687,7 @@ func (cva *ConstValueAssignment) Note() string {
 }
 
 func (cva *ConstValueAssignment) ID() string {
-	return "hyb027W"
+	return "hyb026W"
 }
 
 func (cva *ConstValueAssignment) AlertType() Type {
@@ -738,7 +714,7 @@ func (atm *AssignmentTypeMismatch) Note() string {
 }
 
 func (atm *AssignmentTypeMismatch) ID() string {
-	return "hyb028W"
+	return "hyb027W"
 }
 
 func (atm *AssignmentTypeMismatch) AlertType() Type {
@@ -764,7 +740,7 @@ func (itica *InvalidTypeInCompoundAssignment) Note() string {
 }
 
 func (itica *InvalidTypeInCompoundAssignment) ID() string {
-	return "hyb029W"
+	return "hyb028W"
 }
 
 func (itica *InvalidTypeInCompoundAssignment) AlertType() Type {
@@ -789,7 +765,7 @@ func (iuos *InvalidUseOfSelf) Note() string {
 }
 
 func (iuos *InvalidUseOfSelf) ID() string {
-	return "hyb030W"
+	return "hyb029W"
 }
 
 func (iuos *InvalidUseOfSelf) AlertType() Type {
@@ -814,7 +790,7 @@ func (uc *UnreachableCode) Note() string {
 }
 
 func (uc *UnreachableCode) ID() string {
-	return "hyb031W"
+	return "hyb030W"
 }
 
 func (uc *UnreachableCode) AlertType() Type {
@@ -841,7 +817,7 @@ func (iuoes *InvalidUseOfExitStmt) Note() string {
 }
 
 func (iuoes *InvalidUseOfExitStmt) ID() string {
-	return "hyb032W"
+	return "hyb031W"
 }
 
 func (iuoes *InvalidUseOfExitStmt) AlertType() Type {
@@ -869,7 +845,7 @@ func (tm *TypeMismatch) Note() string {
 }
 
 func (tm *TypeMismatch) ID() string {
-	return "hyb033W"
+	return "hyb032W"
 }
 
 func (tm *TypeMismatch) AlertType() Type {
@@ -895,7 +871,7 @@ func (isilb *InvalidStmtInLocalBlock) Note() string {
 }
 
 func (isilb *InvalidStmtInLocalBlock) ID() string {
-	return "hyb034W"
+	return "hyb033W"
 }
 
 func (isilb *InvalidStmtInLocalBlock) AlertType() Type {
@@ -922,7 +898,7 @@ func (ulu *UnallowedLibraryUse) Note() string {
 }
 
 func (ulu *UnallowedLibraryUse) ID() string {
-	return "hyb035W"
+	return "hyb034W"
 }
 
 func (ulu *UnallowedLibraryUse) AlertType() Type {
@@ -948,7 +924,7 @@ func (iea *InvalidEnvironmentAccess) Note() string {
 }
 
 func (iea *InvalidEnvironmentAccess) ID() string {
-	return "hyb036W"
+	return "hyb035W"
 }
 
 func (iea *InvalidEnvironmentAccess) AlertType() Type {
@@ -974,7 +950,7 @@ func (er *EnvironmentReuse) Note() string {
 }
 
 func (er *EnvironmentReuse) ID() string {
-	return "hyb037W"
+	return "hyb036W"
 }
 
 func (er *EnvironmentReuse) AlertType() Type {
@@ -1000,7 +976,7 @@ func (iit *InvalidIteratorType) Note() string {
 }
 
 func (iit *InvalidIteratorType) ID() string {
-	return "hyb038W"
+	return "hyb037W"
 }
 
 func (iit *InvalidIteratorType) AlertType() Type {
@@ -1026,7 +1002,7 @@ func (uei *UnnecessaryEmptyIdentifier) Note() string {
 }
 
 func (uei *UnnecessaryEmptyIdentifier) ID() string {
-	return "hyb039W"
+	return "hyb038W"
 }
 
 func (uei *UnnecessaryEmptyIdentifier) AlertType() Type {
@@ -1051,7 +1027,7 @@ func (eati *EnvironmentAccessToItself) Note() string {
 }
 
 func (eati *EnvironmentAccessToItself) ID() string {
-	return "hyb040W"
+	return "hyb039W"
 }
 
 func (eati *EnvironmentAccessToItself) AlertType() Type {
@@ -1076,7 +1052,7 @@ func (ecwoc *EntityConversionWithOrCondition) Note() string {
 }
 
 func (ecwoc *EntityConversionWithOrCondition) ID() string {
-	return "hyb041W"
+	return "hyb040W"
 }
 
 func (ecwoc *EntityConversionWithOrCondition) AlertType() Type {
@@ -1102,7 +1078,7 @@ func (ic *InvalidCondition) Note() string {
 }
 
 func (ic *InvalidCondition) ID() string {
-	return "hyb042W"
+	return "hyb041W"
 }
 
 func (ic *InvalidCondition) AlertType() Type {
@@ -1128,7 +1104,7 @@ func (iri *InvalidRepeatIterator) Note() string {
 }
 
 func (iri *InvalidRepeatIterator) ID() string {
-	return "hyb043W"
+	return "hyb042W"
 }
 
 func (iri *InvalidRepeatIterator) AlertType() Type {
@@ -1156,7 +1132,7 @@ func (irt *InconsistentRepeatTypes) Note() string {
 }
 
 func (irt *InconsistentRepeatTypes) ID() string {
-	return "hyb044W"
+	return "hyb043W"
 }
 
 func (irt *InconsistentRepeatTypes) AlertType() Type {
@@ -1181,7 +1157,7 @@ func (oec *OfficialEntityConversion) Note() string {
 }
 
 func (oec *OfficialEntityConversion) ID() string {
-	return "hyb045W"
+	return "hyb044W"
 }
 
 func (oec *OfficialEntityConversion) AlertType() Type {
@@ -1206,7 +1182,7 @@ func (ie *InvalidEnvironment) Note() string {
 }
 
 func (ie *InvalidEnvironment) ID() string {
-	return "hyb046W"
+	return "hyb045W"
 }
 
 func (ie *InvalidEnvironment) AlertType() Type {
@@ -1233,7 +1209,7 @@ func (eaa *EnvironmentAccessAmbiguity) Note() string {
 }
 
 func (eaa *EnvironmentAccessAmbiguity) ID() string {
-	return "hyb047W"
+	return "hyb046W"
 }
 
 func (eaa *EnvironmentAccessAmbiguity) AlertType() Type {
@@ -1259,7 +1235,7 @@ func (nacpe *NotAllCodePathsExit) Note() string {
 }
 
 func (nacpe *NotAllCodePathsExit) ID() string {
-	return "hyb048W"
+	return "hyb047W"
 }
 
 func (nacpe *NotAllCodePathsExit) AlertType() Type {
@@ -1284,7 +1260,7 @@ func (ic *InsufficientCases) Note() string {
 }
 
 func (ic *InsufficientCases) ID() string {
-	return "hyb049W"
+	return "hyb048W"
 }
 
 func (ic *InsufficientCases) AlertType() Type {
@@ -1309,7 +1285,7 @@ func (dcm *DefaultCaseMissing) Note() string {
 }
 
 func (dcm *DefaultCaseMissing) ID() string {
-	return "hyb050W"
+	return "hyb049W"
 }
 
 func (dcm *DefaultCaseMissing) AlertType() Type {
@@ -1336,7 +1312,7 @@ func (ict *InvalidCaseType) Note() string {
 }
 
 func (ict *InvalidCaseType) ID() string {
-	return "hyb051W"
+	return "hyb050W"
 }
 
 func (ict *InvalidCaseType) AlertType() Type {
@@ -1362,7 +1338,7 @@ func (lc *LiteralCondition) Note() string {
 }
 
 func (lc *LiteralCondition) ID() string {
-	return "hyb052W"
+	return "hyb051W"
 }
 
 func (lc *LiteralCondition) AlertType() Type {
@@ -1391,7 +1367,7 @@ func (tm *TypesMismatch) Note() string {
 }
 
 func (tm *TypesMismatch) ID() string {
-	return "hyb053W"
+	return "hyb052W"
 }
 
 func (tm *TypesMismatch) AlertType() Type {
@@ -1418,7 +1394,7 @@ func (mc *MissingConstructor) Note() string {
 }
 
 func (mc *MissingConstructor) ID() string {
-	return "hyb054W"
+	return "hyb053W"
 }
 
 func (mc *MissingConstructor) AlertType() Type {
@@ -1443,7 +1419,7 @@ func (md *MissingDestroy) Note() string {
 }
 
 func (md *MissingDestroy) ID() string {
-	return "hyb055W"
+	return "hyb054W"
 }
 
 func (md *MissingDestroy) AlertType() Type {
@@ -1470,7 +1446,7 @@ func (ufic *UninitializedFieldInConstructor) Note() string {
 }
 
 func (ufic *UninitializedFieldInConstructor) ID() string {
-	return "hyb056W"
+	return "hyb055W"
 }
 
 func (ufic *UninitializedFieldInConstructor) AlertType() Type {
@@ -1496,7 +1472,7 @@ func (tr *TypeRedeclaration) Note() string {
 }
 
 func (tr *TypeRedeclaration) ID() string {
-	return "hyb057W"
+	return "hyb056W"
 }
 
 func (tr *TypeRedeclaration) AlertType() Type {
@@ -1521,7 +1497,7 @@ func (icaa *InvalidCallAsArgument) Note() string {
 }
 
 func (icaa *InvalidCallAsArgument) ID() string {
-	return "hyb058W"
+	return "hyb057W"
 }
 
 func (icaa *InvalidCallAsArgument) AlertType() Type {
@@ -1546,7 +1522,7 @@ func (mtovp *MoreThanOneVariadicParameter) Note() string {
 }
 
 func (mtovp *MoreThanOneVariadicParameter) ID() string {
-	return "hyb059W"
+	return "hyb058W"
 }
 
 func (mtovp *MoreThanOneVariadicParameter) AlertType() Type {
@@ -1571,7 +1547,7 @@ func (vpnae *VariadicParameterNotAtEnd) Note() string {
 }
 
 func (vpnae *VariadicParameterNotAtEnd) ID() string {
-	return "hyb060W"
+	return "hyb059W"
 }
 
 func (vpnae *VariadicParameterNotAtEnd) AlertType() Type {
@@ -1598,7 +1574,7 @@ func (de *DuplicateElement) Note() string {
 }
 
 func (de *DuplicateElement) ID() string {
-	return "hyb061W"
+	return "hyb060W"
 }
 
 func (de *DuplicateElement) AlertType() Type {
@@ -1626,7 +1602,7 @@ func (iefs *InvalidEntityFunctionSignature) Note() string {
 }
 
 func (iefs *InvalidEntityFunctionSignature) ID() string {
-	return "hyb062W"
+	return "hyb061W"
 }
 
 func (iefs *InvalidEntityFunctionSignature) AlertType() Type {
@@ -1651,7 +1627,7 @@ func (isp *InvalidSpawnerParameters) Note() string {
 }
 
 func (isp *InvalidSpawnerParameters) ID() string {
-	return "hyb063W"
+	return "hyb062W"
 }
 
 func (isp *InvalidSpawnerParameters) AlertType() Type {
@@ -1678,7 +1654,7 @@ func (ipv *InvalidPewpewVariable) Note() string {
 }
 
 func (ipv *InvalidPewpewVariable) ID() string {
-	return "hyb064W"
+	return "hyb063W"
 }
 
 func (ipv *InvalidPewpewVariable) AlertType() Type {
@@ -1705,7 +1681,7 @@ func (mpv *MissingPewpewVariable) Note() string {
 }
 
 func (mpv *MissingPewpewVariable) ID() string {
-	return "hyb065W"
+	return "hyb064W"
 }
 
 func (mpv *MissingPewpewVariable) AlertType() Type {
@@ -1732,7 +1708,7 @@ func (uea *UnallowedEnvironmentAccess) Note() string {
 }
 
 func (uea *UnallowedEnvironmentAccess) ID() string {
-	return "hyb066W"
+	return "hyb065W"
 }
 
 func (uea *UnallowedEnvironmentAccess) AlertType() Type {
@@ -1758,7 +1734,7 @@ func (idcp *InvalidDefaultCasePlacement) Note() string {
 }
 
 func (idcp *InvalidDefaultCasePlacement) ID() string {
-	return "hyb067W"
+	return "hyb066W"
 }
 
 func (idcp *InvalidDefaultCasePlacement) AlertType() Type {
@@ -1785,7 +1761,7 @@ func (it *InvalidType) Note() string {
 }
 
 func (it *InvalidType) ID() string {
-	return "hyb068W"
+	return "hyb067W"
 }
 
 func (it *InvalidType) AlertType() Type {
@@ -1795,11 +1771,10 @@ func (it *InvalidType) AlertType() Type {
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type ListIndexOutOfBounds struct {
 	Specifier Snippet
-	Value     string
 }
 
 func (lioob *ListIndexOutOfBounds) Message() string {
-	return fmt.Sprintf("list index is '%s', but it must be 1 or more", lioob.Value)
+	return "list index is 0 or less, but it must be 1 or more"
 }
 
 func (lioob *ListIndexOutOfBounds) SnippetSpecifier() Snippet {
@@ -1811,7 +1786,7 @@ func (lioob *ListIndexOutOfBounds) Note() string {
 }
 
 func (lioob *ListIndexOutOfBounds) ID() string {
-	return "hyb069W"
+	return "hyb068W"
 }
 
 func (lioob *ListIndexOutOfBounds) AlertType() Type {
@@ -1836,7 +1811,7 @@ func (ili *InvalidListIndex) Note() string {
 }
 
 func (ili *InvalidListIndex) ID() string {
-	return "hyb070W"
+	return "hyb069W"
 }
 
 func (ili *InvalidListIndex) AlertType() Type {
@@ -1862,7 +1837,7 @@ func (mga *MissingGenericArgument) Note() string {
 }
 
 func (mga *MissingGenericArgument) ID() string {
-	return "hyb071W"
+	return "hyb070W"
 }
 
 func (mga *MissingGenericArgument) AlertType() Type {
@@ -1887,7 +1862,7 @@ func (ia *InvalidAssignment) Note() string {
 }
 
 func (ia *InvalidAssignment) ID() string {
-	return "hyb072W"
+	return "hyb071W"
 }
 
 func (ia *InvalidAssignment) AlertType() Type {
@@ -1913,7 +1888,7 @@ func (cvnwt *ConflictingVariableNameWithType) Note() string {
 }
 
 func (cvnwt *ConflictingVariableNameWithType) ID() string {
-	return "hyb073W"
+	return "hyb072W"
 }
 
 func (cvnwt *ConflictingVariableNameWithType) AlertType() Type {
@@ -1939,7 +1914,7 @@ func (ue *UnusedElement) Note() string {
 }
 
 func (ue *UnusedElement) ID() string {
-	return "hyb074W"
+	return "hyb073W"
 }
 
 func (ue *UnusedElement) AlertType() Type {
@@ -1964,7 +1939,7 @@ func (eiosp *EmptyIdentifierOnSpawnParameters) Note() string {
 }
 
 func (eiosp *EmptyIdentifierOnSpawnParameters) ID() string {
-	return "hyb075W"
+	return "hyb074W"
 }
 
 func (eiosp *EmptyIdentifierOnSpawnParameters) AlertType() Type {
@@ -1989,7 +1964,7 @@ func (ilomwt *InvalidListOrMapWrappedType) Note() string {
 }
 
 func (ilomwt *InvalidListOrMapWrappedType) ID() string {
-	return "hyb076W"
+	return "hyb075W"
 }
 
 func (ilomwt *InvalidListOrMapWrappedType) AlertType() Type {
@@ -2015,9 +1990,34 @@ func (ats *AssignmentToSelf) Note() string {
 }
 
 func (ats *AssignmentToSelf) ID() string {
-	return "hyb077W"
+	return "hyb076W"
 }
 
 func (ats *AssignmentToSelf) AlertType() Type {
 	return Warning
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type UnknownListOrMapContents struct {
+	Specifier Snippet
+}
+
+func (ulomc *UnknownListOrMapContents) Message() string {
+	return "lists or maps with no values need to have their wrapped type explicitly given"
+}
+
+func (ulomc *UnknownListOrMapContents) SnippetSpecifier() Snippet {
+	return ulomc.Specifier
+}
+
+func (ulomc *UnknownListOrMapContents) Note() string {
+	return "this can be done like so: let exampleList = [<number>] or let exampleMap = {<number>}"
+}
+
+func (ulomc *UnknownListOrMapContents) ID() string {
+	return "hyb077W"
+}
+
+func (ulomc *UnknownListOrMapContents) AlertType() Type {
+	return Error
 }

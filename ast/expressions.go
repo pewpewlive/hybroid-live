@@ -245,6 +245,7 @@ func (me *MemberExpr) GetIdentifier() Node { return me.Member }
 
 type MapExpr struct {
 	Token        tokens.Token
+	Type         *TypeExpr
 	KeyValueList []Property
 }
 
@@ -253,6 +254,7 @@ func (me *MapExpr) GetToken() tokens.Token { return me.Token }
 
 type ListExpr struct {
 	List  []Node
+	Type  *TypeExpr
 	Token tokens.Token
 }
 

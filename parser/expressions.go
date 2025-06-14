@@ -7,62 +7,7 @@ import (
 )
 
 func (p *Parser) expression() ast.Node {
-	return p.mapExpr()
-}
-
-func (p *Parser) mapExpr() ast.Node {
-	if p.match(tokens.LeftBrace) {
-		return p.parseMap()
-	}
-	return p.list()
-}
-
-func (p *Parser) list() ast.Node {
-	if p.match(tokens.LeftBracket) {
-		return p.parseList()
-	}
-	return p.anonStruct()
-}
-
-func (p *Parser) anonStruct() ast.Node {
-	if p.match(tokens.Struct) {
-		return p.structExpr()
-	}
-
-	return p.fn()
-}
-
-func (p *Parser) fn() ast.Node {
-	if p.match(tokens.Fn) {
-		fn := &ast.FunctionExpr{
-			Token: p.peek(-1),
-		}
-		gens, ok := p.genericParams()
-		if !ok {
-			return ast.NewImproper(fn.Token, ast.FunctionExpression)
-		}
-		fn.Generics = gens
-		params, ok := p.functionParams(tokens.LeftParen, tokens.RightParen)
-		if !ok {
-			return ast.NewImproper(fn.Token, ast.FunctionExpression)
-		}
-		fn.Params = params
-		returns, ok := p.functionReturns()
-		if !ok {
-			return ast.NewImproper(fn.Token, ast.FunctionExpression)
-		}
-		fn.Returns = returns
-
-		var success bool
-		fn.Body, success = p.body(false, true)
-		if !success {
-			return ast.NewImproper(fn.Token, ast.FunctionExpression)
-		}
-
-		return fn
-	} else {
-		return p.multiComparison()
-	}
+	return p.multiComparison()
 }
 
 func (p *Parser) multiComparison() ast.Node {
@@ -419,6 +364,22 @@ func (p *Parser) primary() ast.Node {
 		return &ast.LiteralExpr{Value: literal.Literal, Token: literal}
 	}
 
+	if p.match(tokens.LeftBrace) {
+		return p.parseMap()
+	}
+
+	if p.match(tokens.LeftBracket) {
+		return p.parseList()
+	}
+
+	if p.match(tokens.Struct) {
+		return p.structExpr()
+	}
+
+	if p.match(tokens.Fn) {
+		return p.fn()
+	}
+
 	if p.match(tokens.Identifier) {
 		token := p.peek(-1)
 		if !p.match(tokens.Colon) {
@@ -469,9 +430,49 @@ func (p *Parser) primary() ast.Node {
 	return ast.NewImproper(p.peek(), ast.NA)
 }
 
+func (p *Parser) fn() ast.Node {
+	fn := &ast.FunctionExpr{
+		Token: p.peek(-1),
+	}
+	gens, ok := p.genericParams()
+	if !ok {
+		return ast.NewImproper(fn.Token, ast.FunctionExpression)
+	}
+	fn.Generics = gens
+	params, ok := p.functionParams(tokens.LeftParen, tokens.RightParen)
+	if !ok {
+		return ast.NewImproper(fn.Token, ast.FunctionExpression)
+	}
+	fn.Params = params
+	returns, ok := p.functionReturns()
+	if !ok {
+		return ast.NewImproper(fn.Token, ast.FunctionExpression)
+	}
+	fn.Returns = returns
+
+	var success bool
+	fn.Body, success = p.body(false, true)
+	if !success {
+		return ast.NewImproper(fn.Token, ast.FunctionExpression)
+	}
+
+	return fn
+}
+
 func (p *Parser) parseList() ast.Node {
 	listExpr := &ast.ListExpr{
 		Token: p.peek(-1),
+	}
+
+	if p.match(tokens.Less) {
+		typeExpr := p.typeExpr("in list expression")
+		_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.Greater, "in list expression")
+		listExpr.Type = typeExpr
+		if !ok {
+			return listExpr
+		}
+		p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.RightBracket, "in list expression")
+		return listExpr
 	}
 
 	if p.match(tokens.RightBracket) {
@@ -496,6 +497,17 @@ func (p *Parser) parseMap() ast.Node {
 	mapExpr := &ast.MapExpr{
 		Token:        p.peek(-1),
 		KeyValueList: make([]ast.Property, 0),
+	}
+
+	if p.match(tokens.Less) {
+		typeExpr := p.typeExpr("in map expression")
+		_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.Greater, "in map expression")
+		mapExpr.Type = typeExpr
+		if !ok {
+			return mapExpr
+		}
+		p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.RightBrace, "in map expression")
+		return mapExpr
 	}
 
 	if p.match(tokens.RightBrace) {

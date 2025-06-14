@@ -105,16 +105,16 @@ var BuiltinEnv = &Environment{
 		ConstValues: make(map[string]ast.Node),
 	},
 	importedWalkers: make([]*Walker, 0),
-	UsedLibraries:   make([]Library, 0),
+	UsedLibraries:   make([]ast.Library, 0),
 	Classes:         make(map[string]*ClassVal),
 	Entities:        make(map[string]*EntityVal),
 	Enums:           make(map[string]*EnumVal),
 }
 
-var BuiltinLibraries = map[Library]*Environment{
-	Pewpew: PewpewAPI,
-	Fmath:  FmathAPI,
-	Math:   MathAPI,
-	String: StringAPI,
-	Table:  TableAPI,
+var BuiltinLibraries = map[ast.Library]*Environment{
+	ast.Pewpew: PewpewAPI,
+	ast.Fmath:  FmathAPI,
+	ast.Math:   MathAPI,
+	ast.String: StringAPI,
+	ast.Table:  TableAPI,
 }

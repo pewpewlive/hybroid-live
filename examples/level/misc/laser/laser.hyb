@@ -5,7 +5,7 @@ use Fmath
 use Globals
 use ShipEntity
 
-const LASER_DURATION = 13f
+const LASER_DURATION = 16f
 const HIT_COOLDOWN_MAX = 4
 const LENGTH = 7000f
 
@@ -69,7 +69,7 @@ entity Laser {
             isInFront = true
         }
 
-        if dist < 24f and timer > 5f and isInFront {
+        if dist < FmathHelpers:Remap(3f, 18f, 0f, LASER_DURATION, timer) and timer > 1f and isInFront {
             CollideWithPlayer()
         }
     }

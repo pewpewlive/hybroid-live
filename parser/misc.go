@@ -30,7 +30,7 @@ func (p *Parser) getFunctionParam() (ast.FunctionParam, bool) {
 
 func (p *Parser) functionParams(opening tokens.TokenType, closing tokens.TokenType) ([]ast.FunctionParam, bool) {
 	if !p.match(opening) {
-		p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), opening)
+		p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), opening, "in function parameters")
 		return []ast.FunctionParam{}, false
 	}
 
@@ -147,10 +147,7 @@ func (p *Parser) tryGenericArgs() bool {
 	next := p.peek()
 
 	p.disadvance(p.current - currentStart)
-	if next.Type == tokens.Greater || next.Type == tokens.LeftParen {
-		return true
-	}
-	return false
+	return next.Type == tokens.Greater
 }
 
 func (p *Parser) genericArgs() ([]*ast.TypeExpr, bool) {
@@ -189,7 +186,7 @@ func (p *Parser) genericArgs() ([]*ast.TypeExpr, bool) {
 }
 
 func (p *Parser) functionArgs() ([]ast.Node, bool) {
-	if _, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.LeftParen); !ok {
+	if _, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.LeftParen, "in function arguments"); !ok {
 		return nil, false
 	}
 

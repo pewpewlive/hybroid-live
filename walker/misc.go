@@ -265,14 +265,14 @@ func resolveGenericArgType(genericParam Type, genericArg Type) Type {
 	return genericArg
 }
 
-var ops = map[string]func(int, int) int{
-	"+":  func(a, b int) int { return a + b },
-	"-":  func(a, b int) int { return a - b },
-	"*":  func(a, b int) int { return a * b },
-	"/":  func(a, b int) int { return a / b },
-	"^":  func(a, b int) int { return int(math.Pow(float64(a), float64(b))) },
-	"%":  func(a, b int) int { return a % b },
-	"\\": func(a, b int) int { return a / b },
+var ops = map[string]func(float64, float64) float64{
+	"+":  func(a, b float64) float64 { return a + b },
+	"-":  func(a, b float64) float64 { return a - b },
+	"*":  func(a, b float64) float64 { return a * b },
+	"/":  func(a, b float64) float64 { return a / b },
+	"^":  func(a, b float64) float64 { return math.Pow(a, a) },
+	"%":  func(a, b float64) float64 { return math.Mod(a, b) },
+	"\\": func(a, b float64) float64 { return a / b },
 }
 
 // Validates the arithmetic operands, so for example a condition "value1 + value2", "value1 - value2"
@@ -303,16 +303,18 @@ func (w *Walker) validateArithmeticOperands(leftVal Value, rightVal Value, node 
 		return &NumberVal{}
 	}
 
-	n1, err := strconv.Atoi(num1.Value)
+	n1, err := strconv.ParseFloat(num1.Value, 64)
 	if err != nil {
 		return &NumberVal{}
 	}
-	n2, err2 := strconv.Atoi(num1.Value)
+	n2, err2 := strconv.ParseFloat(num2.Value, 64)
 	if err2 != nil {
 		return &NumberVal{}
 	}
 
-	return NewNumberVal(fmt.Sprintf("%v", ops[node.Operator.Lexeme](n1, n2)))
+	n3 := ops[node.Operator.Lexeme](n1, n2)
+
+	return NewNumberVal(fmt.Sprintf("%v", n3))
 }
 
 // Validates the conditional operands, so for example a condition "value1 and value2", "value1 or value2"

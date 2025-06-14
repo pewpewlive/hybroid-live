@@ -4,19 +4,10 @@ use Graphix
 
 pub meshes = [
     struct{
-        vertexes = [],
-        segments = [],
-        colors = [],
+        vertexes = [<list<number>>],
+        segments = [<list<number>>],
+        colors = [<number>],
     }
 ]
 
-const THICKNESS = 7
-const ITERATIONS = 7
-
-AddLine(meshes[1], [[0,0], [1,0]], [0xffffffff, 0xffffffff], false)
-
-repeat from 1 to ITERATIONS-1 with i {
-    let height = MathHelpers:Remap(0, THICKNESS, 1, ITERATIONS, i)
-    AddLine(meshes[1], [[0,height], [1,height]], [0xffffffff, 0xffffffff], false)
-    AddLine(meshes[1], [[0,-height], [1,-height]], [0xffffffff, 0xffffffff], false)
-}
+AddThickLine(meshes[1], 0xffffffff, 0xffffffff, 9, 1)

@@ -415,25 +415,35 @@ func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 		if w.environment.Type != ast.LevelEnv {
 			w.AlertSingle(&alerts.UnallowedLibraryUse{}, node.PathExpr.Path, "Pewpew", "Mesh or Sound")
 		}
-		w.environment.UsedLibraries = append(w.environment.UsedLibraries, Pewpew)
+		if !w.AddLibrary(ast.Pewpew) {
+			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
+		}
 		return
 	case "Fmath":
 		if w.environment.Type != ast.LevelEnv {
 			w.AlertSingle(&alerts.UnallowedLibraryUse{}, node.PathExpr.Path, "Fmath", "Mesh or Sound")
 		}
-		w.environment.UsedLibraries = append(w.environment.UsedLibraries, Fmath)
+		if !w.AddLibrary(ast.Fmath) {
+			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
+		}
 		return
 	case "Math":
 		if w.environment.Type == ast.LevelEnv {
 			w.AlertSingle(&alerts.UnallowedLibraryUse{}, node.PathExpr.Path, "Math", "Level")
 		}
-		w.environment.UsedLibraries = append(w.environment.UsedLibraries, Math)
+		if !w.AddLibrary(ast.Math) {
+			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
+		}
 		return
 	case "String":
-		w.environment.UsedLibraries = append(w.environment.UsedLibraries, String)
+		if !w.AddLibrary(ast.String) {
+			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
+		}
 		return
 	case "Table":
-		w.environment.UsedLibraries = append(w.environment.UsedLibraries, Table)
+		if !w.AddLibrary(ast.Table) {
+			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
+		}
 		return
 	}
 

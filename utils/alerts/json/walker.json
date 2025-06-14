@@ -158,11 +158,6 @@
     "message_format": ["DeclType", "VarName"]
   },
   {
-    "name": "UnnecessaryTypeInConstDeclaration",
-    "type": "Error",
-    "message": "an explicit type is not necessary for a const declaration"
-  },
-  {
     "name": "NoValueGivenForConstant",
     "type": "Error",
     "message": "constant must be declared with a value"
@@ -192,7 +187,11 @@
   {
     "name": "ExplicitTypeRequiredInDeclaration",
     "type": "Error",
-    "message": "a variable declared without a value requires an explicit type"
+    "fields": {
+      "Context": "string"
+    },
+    "message": "an explicit type is required %s",
+    "message_format": ["Context"]
   },
   {
     "name": "ExplicitTypeMismatch",
@@ -584,11 +583,7 @@
   {
     "name": "ListIndexOutOfBounds",
     "type": "Error",
-    "fields": {
-      "Value": "string"
-    },
-    "message": "list index is '%s', but it must be 1 or more",
-    "message_format": ["Value"]
+    "message": "list index is 0 or less, but it must be 1 or more"
   },
   {
     "name": "InvalidListIndex",
@@ -645,5 +640,11 @@
     },
     "message": "the variable '%s' is assigned to itself",
     "message_format": ["VarName"]
+  },
+  {
+    "name": "UnknownListOrMapContents",
+    "type": "Error",
+    "message": "lists or maps with no values need to have their wrapped type explicitly given",
+    "note": "this can be done like so: let exampleList = [<number>] or let exampleMap = {<number>}"
   }
 ]

@@ -149,6 +149,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		fmt.Println("Generating the lua code...")
 
 		gen.SetEnv(walker.Env().Name, walker.Env().Type)
+		gen.GenerateUsedLibaries(walker.Env().UsedLibraries)
 		if e.files[i].FileName == "level" {
 			gen.GenerateWithBuiltins(walker.Program())
 		} else if e.walkerList[i].Env().Type != ast.LevelEnv {

@@ -13,7 +13,7 @@ enum State {
 
 const RING_AMOUNT = 3f
 const RADIUS = 25f
-const PREDICTION_SPEED = 0.66f
+const PREDICTION_SPEED = 0.6f
 const DASH_PREPARATION_TIME = 35
 const LASER_PREPARATION_TIME = 25
 const SPREAD_MAX = 35d

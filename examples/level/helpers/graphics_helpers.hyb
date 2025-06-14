@@ -4,9 +4,9 @@ use Table
 
 pub fn NewMesh() -> Mesh {
   return struct{
-    vertexes = [],
-    segments = [],
-    colors = [],
+    vertexes = [<list<number>>],
+    segments = [<list<number>>],
+    colors = [<number>],
   }
 }
 
@@ -33,7 +33,7 @@ pub fn AddLine(Mesh mesh, Vertexes vertexes, Colors colors, bool closeLoop) {
   let vertexCount = #mesh.vertexes
 
   let numberOfNewSegments = #vertexes - 1
-  let Segment segment = []
+  let Segment segment
   
   repeat with i to #vertexes {
     Insert(mesh.vertexes, vertexes[i])
@@ -51,6 +51,15 @@ pub fn AddLine(Mesh mesh, Vertexes vertexes, Colors colors, bool closeLoop) {
   Insert(mesh.segments, segment)
 }
 
+pub fn AddThickLine(Mesh mesh, number colorStart, number colorEnd, thickness, length) {
+  AddLine(mesh, [[0,0], [length,0]], [colorStart, colorEnd], false)
+
+  repeat from 1 to thickness-1 with i {
+    AddLine(mesh, [[0,i], [length,i]], [colorStart, colorEnd], false)
+    AddLine(mesh, [[0,-i], [length,-i]], [colorStart, colorEnd], false)
+  }
+}
+
 pub fn AddSphere(Mesh mesh, Vertex center, number color, radius) {
   let x, y, z = center[1], center[2], center[3]
   let divisions = 8
@@ -59,8 +68,8 @@ pub fn AddSphere(Mesh mesh, Vertex center, number color, radius) {
   repeat from 0 to divisions with t {
     let circleRadius = Math:Sin(Math:Pi * (t/divisions)) * radius
     let circleZ = z + Math:Cos(Math:Pi * (t/divisions)) * radius
-    let vertexes = []
-    let colors = []
+    Vertexes vertexes
+    Colors colors
     repeat segments - 1 with i {
       let angle = (i * Math:Pi * 2) / segments 
       Table:Insert(vertexes, [x + Math:Cos(angle) * circleRadius, y + Math:Sin(angle) * circleRadius, circleZ])
@@ -151,3 +160,28 @@ pub fn AddCube(Mesh mesh, Vertex center, number sideLength, color) {
   AddLine(mesh, [c, g], [color, color], false)
   AddLine(mesh, [d, h], [color, color], false)
 }
+
+fn JumpToHorizontal(number index, cellCount) -> number {
+  return (index+(cellCount)^2)\1
+}
+
+pub fn AddGridMap(Mesh mesh, number color1, color2, size, cellCount, zMin, zMax) {
+  let inc = size\cellCount
+
+  repeat from -size\2 to size\2 by inc with i {
+    repeat from -size\2 to size\2 by inc with j {
+      let z = Math:Random(zMin, zMax)
+      Table:Insert(mesh.colors, ColorHelpers:LerpColors2(color1, color2, MathHelpers:Remap(0, 1, zMin, zMax, z)))
+      Table:Insert(mesh.vertexes, [i, j, z])
+      if j != -size\2 and Math:Random(0,1) == 1 {
+        Table:Insert(mesh.segments, [#mesh.vertexes-2, #mesh.vertexes-1])
+      }
+    }
+  }
+  repeat #mesh.vertexes-cellCount-1 with i {
+    if Math:Random(0,1) == 1 {
+    Table:Insert(mesh.segments, [i-1, i+cellCount])
+    }
+  }
+}
+

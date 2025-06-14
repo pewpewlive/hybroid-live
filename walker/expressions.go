@@ -373,17 +373,22 @@ func (w *Walker) environmentAccessExpression(expr *ast.Node) Value {
 	var val Value
 	switch envName {
 	case "Pewpew":
+		w.AddLibrary(ast.Pewpew)
 		val = w.GetNodeValue(&accessed, &PewpewAPI.Scope)
 	case "Fmath":
+		w.AddLibrary(ast.Fmath)
 		val = w.GetNodeValue(&accessed, &FmathAPI.Scope)
 	case "Math":
+		w.AddLibrary(ast.Math)
 		if w.environment.Type == ast.LevelEnv {
 			w.AlertSingle(&alerts.UnallowedLibraryUse{}, node.PathExpr.Path, "Math", "Level")
 		}
 		val = w.GetNodeValue(&accessed, &MathAPI.Scope)
 	case "String":
+		w.AddLibrary(ast.String)
 		val = w.GetNodeValue(&accessed, &StringAPI.Scope)
 	case "Table":
+		w.AddLibrary(ast.Table)
 		val = w.GetNodeValue(&accessed, &TableAPI.Scope)
 	default:
 		walker, found := w.walkers[envName]
@@ -436,6 +441,14 @@ func (w *Walker) groupExpression(node *ast.GroupExpr, scope *Scope) Value {
 
 func (w *Walker) listExpression(node *ast.ListExpr, scope *Scope) Value {
 	value := &ListVal{}
+	if len(node.List) == 0 {
+		if node.Type == nil {
+			w.AlertSingle(&alerts.UnknownListOrMapContents{}, node.Token)
+		} else {
+			value.ValueType = w.typeExpression(node.Type, scope)
+			return value
+		}
+	}
 	value.ValueType = w.getContentsValueType(node.List, scope)
 	return value
 }
@@ -557,10 +570,10 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 			}
 			if memberVal.GetType().PVT() == ast.Number && valType.PVT() == ast.List {
 				num := memberVal.(*NumberVal)
-				if num.Value != "unknown" {
+				if num.Value != "" {
 					n, err := strconv.ParseFloat(num.Value, 64)
-					if err == nil && n < 1 {
-						w.AlertSingle(&alerts.ListIndexOutOfBounds{}, member.GetToken(), num.Value)
+					if err == nil && n < float64(1) {
+						w.AlertSingle(&alerts.ListIndexOutOfBounds{}, member.GetToken())
 					} else if err == nil && n != float64(int64(n)) {
 						w.AlertSingle(&alerts.InvalidListIndex{}, member.GetToken())
 					}
@@ -645,6 +658,14 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 // Rewrote
 func (w *Walker) mapExpression(node *ast.MapExpr, scope *Scope) Value {
 	mapVal := MapVal{}
+
+	if len(node.KeyValueList) == 0 {
+		if node.Type == nil {
+			w.AlertSingle(&alerts.UnknownListOrMapContents{}, node.Token)
+		} else {
+			mapVal.MemberType = w.typeExpression(node.Type, scope)
+		}
+	}
 
 	var currentType Type = InvalidType
 	keymap := make(map[string]bool)

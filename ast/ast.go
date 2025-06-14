@@ -174,3 +174,29 @@ func NewMethodInfo(methodType MethodCallType, methodName string, typeName string
 		EnvName:    envName,
 	}
 }
+
+type Library int
+
+const (
+	Pewpew Library = iota // pewpew
+	Fmath                 // fmath
+	Math                  // math
+	String                // string
+	Table                 // table
+)
+
+func (l Library) String() string {
+	switch l {
+	case Pewpew:
+		return "pewpew"
+	case Fmath:
+		return "fmath"
+	case Math:
+		return "math"
+	case String:
+		return "string"
+	case Table:
+		return "table"
+	}
+	return ""
+}

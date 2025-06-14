@@ -394,7 +394,7 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 			w.AlertSingle(&alerts.NoValueGivenForConstant{}, ident.Name)
 			continue
 		} else if declaration.Type == nil {
-			w.AlertSingle(&alerts.ExplicitTypeRequiredInDeclaration{}, ident.Name)
+			w.AlertSingle(&alerts.ExplicitTypeRequiredInDeclaration{}, ident.Name, "to infer the value")
 			continue
 		} else {
 			val := w.typeToValue(declType)
@@ -411,13 +411,8 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 		}
 		variable.IsInit = true
 
+		valType := variable.GetType()
 		if declaration.IsConst {
-			if declaration.Type != nil {
-				w.AlertSingle(&alerts.UnnecessaryTypeInConstDeclaration{},
-					declaration.Type.GetToken(),
-				)
-			}
-
 			variable.Value = &ConstVal{
 				Node: ident,
 				Val:  variable.Value,
@@ -428,7 +423,6 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 		if declType == nil {
 			continue
 		}
-		valType := variable.GetType()
 		if declType.GetType() == RawEntity && valType.PVT() == ast.Number {
 			variable.Value = &RawEntityVal{}
 		} else if !TypeEquals(declType, valType) && declType != InvalidType && valType != InvalidType {

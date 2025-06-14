@@ -284,7 +284,7 @@ var PewpewAPI = &Environment{
 		ConstValues: make(map[string]ast.Node),
 	},
 	importedWalkers: make([]*Walker, 0),
-	UsedLibraries:   make([]Library, 0),
+	UsedLibraries:   make([]ast.Library, 0),
 	Classes:         make(map[string]*ClassVal),
 	Entities:        make(map[string]*EntityVal),
 	Enums: map[string]*EnumVal{
