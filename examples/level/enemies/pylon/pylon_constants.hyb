@@ -1,0 +1,4 @@
+env PylonConstants as Shared
+
+pub const COLOR = 0xff5500ff
+pub const HEIGHT = 40

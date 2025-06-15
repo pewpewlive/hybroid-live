@@ -19,6 +19,7 @@ entity Laser {
     fixed lx, ly
     fixed slope
     fixed x, y
+    fixed b2
 
     spawn(fixed x, y, lookToAngle, number color) {
         self.x, self.y = x, y
@@ -29,8 +30,9 @@ entity Laser {
         ly, lx = Sincos(lookToAngle)
         if lx == 0f {
             slope = 2fx
-        }else {
+        } else {
             slope = ly/lx
+            b2 = -slope*x+y
         }
         SetEntityMeshXYZScale(self, LENGTH, 1f, 1f)
         SetEntityMesh(self, LaserMesh, 0)
@@ -57,35 +59,42 @@ entity Laser {
         if !IsEntityAlive(SHIP.id) return
 
         let px, py = GetEntityPosition(SHIP.id)
+        if IsHittable(px, py) {
+            CollideWithPlayer()
+        }
 
+        for v in every ShardEntity:Shard {
+            let ex, ey = GetEntityPosition(v)
+            if IsHittable(ex, ey) {
+                destroy v()
+            }
+        }
+    }
+
+    fn IsHittable(fixed ex, ey) -> bool {
         fixed dist
         if slope == 2fx {
-            dist = Fmath:AbsFixed(x-px)
-        }else {
-            let b1 = -slope*px+py
-            let b2 = -slope*x+y
-
+            dist = Fmath:AbsFixed(x-ex)
+        } else {
+            let b1 = -slope*ex+ey
             dist = Fmath:AbsFixed(b1-b2)/Fmath:Sqrt(1f+slope^2f)
         }
 
-        let playerVector = Fmath:Atan2(py-y, px-x)
+        let playerVector = Fmath:Atan2(ey-y, ex-x)
         let laserVector = Fmath:Atan2(ly, lx)
         let diff = Fmath:AbsFixed(playerVector-laserVector)
         
         bool isInFront
         if diff < 90d {
             isInFront = true
-        }else if diff > 270d {
+        } else if diff > 270d {
             isInFront = true
         }
 
-        if dist < FmathHelpers:Remap(3f, 18f, 0f, LASER_DURATION, timer) and timer > 1f and isInFront {
-            CollideWithPlayer()
-        }
+        return dist < FmathHelpers:Remap(3f, 18f, 0f, LASER_DURATION, timer) and timer > 1f and isInFront
     }
 
     fn CollideWithPlayer() {
-        if !IsEntityAlive(self) return
         if !IsEntityAlive(SHIP.id) return
         if hitCooldown < 0 {
             DamageShip(SHIP.id, 1)

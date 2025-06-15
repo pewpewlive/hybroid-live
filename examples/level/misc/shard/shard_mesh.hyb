@@ -1,4 +1,6 @@
-env PylonShard as Mesh
+env ShardMesh as Mesh
+
+use Graphix
 
 pub meshes=[
   struct{

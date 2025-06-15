@@ -1,37 +1,30 @@
 env PylonMesh as Mesh
 
 use Graphix
-use PylonSettings
+use PylonConstants
 
-// pub meshes = [
-//     NewMesh() 
-// ]
+const SIZE = 20
 
-const COLOR1 = 0xff5500ff
+fn AddPrism(Mesh mesh, Center squareCenter, number topZ, scale, alpha) {
+    let prevVertexCount = #mesh.vertexes
+    AddSquare(mesh, squareCenter, 0xffffff*256 + alpha, SIZE*2*scale)
+    let vertexCount = #mesh.vertexes
 
-// fn AddPrism(Mesh mesh, Center squareCenter, number topZ) {
-//     let prevVertexCount = #mesh.vertexes
-//     AddSquare(mesh, squareCenter, COLOR1, Fmath:ToNumber(Globals:CELLSIZE))
-//     let vertexCount = #mesh.vertexes
-
-//     Table:Insert(mesh.vertexes, [0,0,topZ])
-//     Table:Insert(mesh.colors, COLOR1)
-//     repeat from prevVertexCount to vertexCount with i {
-//         Table:Insert(mesh.segments, [i, vertexCount])
-//     }
-// }
-// AddPrism(meshes[1], struct{x = 0, y = 0, z = 0}, HEIGHT)
-
-fn CreateHypotrochoid(Mesh mesh, number R, r, d) {
-    // x(theta) = (R - r)sin * theta + d * cos((R-r)/r * theta)
-    // y(theta) = (R - r)sin * theta + d * cos((R-r)/r * theta)
+    Table:Insert(mesh.vertexes, [0,0,topZ*scale])
+    Table:Insert(mesh.colors, 0xffffff*256 + alpha)
+    repeat from prevVertexCount to vertexCount with i {
+        Table:Insert(mesh.segments, [i, vertexCount])
+    }
 }
 
 pub meshes = [
     NewMesh(),
     struct{
-        vertexes = [[-30, -30, 120], [-30, 30, 120], [30, 30, 120], [30, -30, 120], [0, 0, 150], [0, 0, 0]],
+        vertexes = [[-SIZE, -SIZE, 100], [-SIZE, SIZE, 100], [SIZE, SIZE, 100], [SIZE, -SIZE, 100], [0, 0, 130], [0, 0, 0]],
         segments = [[0, 1, 2, 3, 0], [4, 0, 5], [4, 1, 5], [4, 2, 5], [4, 3, 5]],
-        colors = list<number>[]
+        colors = [0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffff80, 0xffffff80]
     }
 ]
+
+AddPrism(meshes[1], struct{x = 0, y = 0, z = 0}, HEIGHT, 1, 255)
+AddPrism(meshes[1], struct{x = 0, y = 0, z = 0}, HEIGHT, 0.7, 140)

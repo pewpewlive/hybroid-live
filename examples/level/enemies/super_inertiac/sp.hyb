@@ -223,7 +223,7 @@ pub entity SuperInertiac {
     x, y = GetEntityPosition(self)
     let entities = GetEntitiesInRadius(x, y, RADIUS*1.8f)
     for _, v in entities {
-      if v == self or v is WormholeEntity:Wormhole {
+      if v == self {
         continue
       }
       if let converted = v is SuperInertiac and IsEntityAlive(v) {
@@ -234,12 +234,6 @@ pub entity SuperInertiac {
         converted.Bounce(self, 3f)
         continue
       }
-      EntityReactToWeapon(v, struct{ // if quadro is Quadro
-        type = WeaponType.Bullet, // if GetCustomizableEntityType(quadro) == Quadro { } 
-        x = velX,
-        y = velY,
-        player_index = -1
-      })
     }
   }
 

@@ -4,7 +4,7 @@ pub fn MakeColor(number r, g, b, a) -> number {
     let color = r * 256 + g
     color = color * 256 + b
     color = color * 256 + a
-    return color
+    return color 
 }
 
 fn Lerp(number a, b, fixed t) -> number {

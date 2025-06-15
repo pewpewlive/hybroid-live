@@ -1,6 +1,7 @@
 env WormholeEntity as Level
 
 use Pewpew
+use ShipEntity
 
 enum AttackState {
     NOTHING,
@@ -65,7 +66,7 @@ entity Wormhole {
         ex, ey += mx*MOVE_SPEED, my*MOVE_SPEED
         SetEntityPosition(self, ex, ey)
 
-        repeat 5 {
+        repeat 2 {
             let px, py = FmathHelpers:Normalize(Fmath:RandomFixed(-1f, 1f), Fmath:RandomFixed(-1f, 1f))
             px, py *= radius, radius
             let pdx, pdy = FmathHelpers:Normalize(Fmath:RandomFixed(-1f, 1f), Fmath:RandomFixed(-1f, 1f))
@@ -74,96 +75,105 @@ entity Wormhole {
             let col = ColorHelpers:LerpColors(Grid:gridColor, Grid:activeGridColor, Fmath:RandomFixed(0f, 1f))
             Pewpew:AddParticle(ex+px, ey+py, 0f, pdx, pdy, 0f, col, Fmath:RandomNumber(10, 30))
         }
-
+        
+        if IsEntityAlive(SHIP.id) {
+            let px, py = GetEntityPosition(SHIP.id)
+            let dist = FmathHelpers:Length(px-ex, py-ey)
+            if dist < radius*3f {
+                let resistance = FmathHelpers:Remap(0f, 8f, radius*3f, radius, dist)
+                let vx, vy = FmathHelpers:Normalize(px-ex, py-ey)
+                SetEntityPosition(SHIP.id, px+vx*resistance, py+vy*resistance)
+            }
+        }
         
         match state {
-        AttackState.NOTHING => {
-            preparationTime -= 1
-            if preparationTime > 0 
-                break
-            shootAngleStep = Fmath:RandomFixed(10d, 40d)
-            match Fmath:RandomNumber(0, 2) {
-            0 => {
-                state = AttackState.CHARADE
-                if IsEntityAlive(ShipEntity:SHIP.id) {
-                    let px, py = GetEntityPosition(ShipEntity:SHIP.id)
-                    shootAngle = Fmath:Atan2(py-ey, px-ex)
+            AttackState.NOTHING => {
+                preparationTime -= 1
+                if preparationTime > 0 
+                    break
+                shootAngleStep = Fmath:RandomFixed(10d, 40d)
+                match Fmath:RandomNumber(0, 2) {
+                0 => {
+                    state = AttackState.CHARADE
+                    if IsEntityAlive(ShipEntity:SHIP.id) {
+                        let px, py = GetEntityPosition(ShipEntity:SHIP.id)
+                        shootAngle = Fmath:Atan2(py-ey, px-ex)
+                    }
                 }
-            }
-            1 => {
-                state = AttackState.BURST
-                burstBulletFrequency = Fmath:RandomNumber(BURST_BULLET_FREQUENCY-1, BURST_BULLET_FREQUENCY+1)
-                burstFrequency = MathHelpers:Remap(50, 30, BURST_BULLET_FREQUENCY-1, BURST_BULLET_FREQUENCY+1, burstBulletFrequency)
-            }
-            2 => {
-                if IsEntityAlive(ShipEntity:SHIP.id) {
-                    let px, py = GetEntityPosition(ShipEntity:SHIP.id)
-                    shootAngle = Fmath:Atan2(py-ey, px-ex)
-                }
-                if burstBulletFrequency == 0 {
+                1 => {
+                    state = AttackState.BURST
                     burstBulletFrequency = Fmath:RandomNumber(BURST_BULLET_FREQUENCY-1, BURST_BULLET_FREQUENCY+1)
                     burstFrequency = MathHelpers:Remap(50, 30, BURST_BULLET_FREQUENCY-1, BURST_BULLET_FREQUENCY+1, burstBulletFrequency)
                 }
-                state = AttackState.CHARADE_BURST
-            }
-            }
-        }
-        AttackState.CHARADE => {
-            attackTime += 1
-            if attackTime % CHARADE_BULLET_FREQUENCY == 0 {
-                spawn BulletEntity:Bullet(ex, ey, 3f, shootAngle, 1f, 0xaaffffff, 1000)
-                shootAngle += shootAngleStep
-            }
-            if attackTime >= CHARADE_DURATION {
-                state = AttackState.NOTHING
-                preparationTime = CHARADE_PREPARATION_TIME
-                attackTime = 0
-            }
-        }
-        AttackState.BURST => {
-            attackTime += 1
-            burstTime += 1
-            if attackTime >= BURST_DURATION {
-                state = AttackState.NOTHING
-                preparationTime = BURST_PREPARATION_TIME
-                attackTime = 0
-                burstTime = 0
-                break
-            }
-            if burstTime > 0 and attackTime % burstBulletFrequency == 0 {
-                let increment = 360d/Fmath:ToFixed(burstBulletAmount)
-                repeat burstBulletAmount {
-                    spawn BulletEntity:Bullet(ex, ey, 5f, shootAngle, 1f, 0xaaffffff, 1000)
-                    shootAngle += increment
+                2 => {
+                    if IsEntityAlive(ShipEntity:SHIP.id) {
+                        let px, py = GetEntityPosition(ShipEntity:SHIP.id)
+                        shootAngle = Fmath:Atan2(py-ey, px-ex)
+                    }
+                    if burstBulletFrequency == 0 {
+                        burstBulletFrequency = Fmath:RandomNumber(BURST_BULLET_FREQUENCY-1, BURST_BULLET_FREQUENCY+1)
+                        burstFrequency = MathHelpers:Remap(50, 30, BURST_BULLET_FREQUENCY-1, BURST_BULLET_FREQUENCY+1, burstBulletFrequency)
+                    }
+                    state = AttackState.CHARADE_BURST
+                }
                 }
             }
-            if burstTime > burstBulletFrequency*3 {
-                burstTime = -burstFrequency
-                shootAngle += shootAngleStep
+            AttackState.CHARADE => {
+                attackTime += 1
+                if attackTime % CHARADE_BULLET_FREQUENCY == 0 {
+                    spawn BulletEntity:Bullet(ex, ey, 3f, shootAngle, 1f, 0xaaffffff, 1000)
+                    shootAngle += shootAngleStep
+                }
+                if attackTime >= CHARADE_DURATION {
+                    state = AttackState.NOTHING
+                    preparationTime = CHARADE_PREPARATION_TIME
+                    attackTime = 0
+                }
             }
-        }
-        AttackState.CHARADE_BURST => {
-            attackTime += 1
-            if attackTime >= (BURST_DURATION+CHARADE_DURATION)/2 {
-                state = AttackState.NOTHING
-                attackTime = 0
-                preparationTime = (BURST_PREPARATION_TIME+CHARADE_PREPARATION_TIME)/2
-                break
+            AttackState.BURST => {
+                attackTime += 1
+                burstTime += 1
+                if attackTime >= BURST_DURATION {
+                    state = AttackState.NOTHING
+                    preparationTime = BURST_PREPARATION_TIME
+                    attackTime = 0
+                    burstTime = 0
+                    break
+                }
+                if burstTime > 0 and attackTime % burstBulletFrequency == 0 {
+                    let increment = 360d/Fmath:ToFixed(burstBulletAmount)
+                    repeat burstBulletAmount {
+                        spawn BulletEntity:Bullet(ex, ey, 5f, shootAngle, 1f, 0xaaffffff, 1000)
+                        shootAngle += increment
+                    }
+                }
+                if burstTime > burstBulletFrequency*3 {
+                    burstTime = -burstFrequency
+                    shootAngle += shootAngleStep
+                }
             }
-            if attackTime % burstFrequency-CHARADE_BULLET_FREQUENCY == 0 {
-                let deg = 360d/Fmath:ToFixed(burstBulletAmount)
-                let inc = deg/Fmath:ToFixed(burstBulletAmount\2)
-                let bullet = spawn BulletEntity:Bullet(ex, ey, 5f, shootAngle, 1f, 0xaaffffff, 1000)
-                bullet.bs.bounceWallCount = 1
-                repeat burstBulletAmount\3 with i {
-                    let bullet = spawn BulletEntity:Bullet(ex, ey, 5f, shootAngle-inc*Fmath:ToFixed(i), 1f, 0xaaffffff, 1000)
+            AttackState.CHARADE_BURST => {
+                attackTime += 1
+                if attackTime >= (BURST_DURATION+CHARADE_DURATION)/2 {
+                    state = AttackState.NOTHING
+                    attackTime = 0
+                    preparationTime = (BURST_PREPARATION_TIME+CHARADE_PREPARATION_TIME)/2
+                    break
+                }
+                if attackTime % burstFrequency-CHARADE_BULLET_FREQUENCY == 0 {
+                    let deg = 360d/Fmath:ToFixed(burstBulletAmount)
+                    let inc = deg/Fmath:ToFixed(burstBulletAmount\2)
+                    let bullet = spawn BulletEntity:Bullet(ex, ey, 5f, shootAngle, 1f, 0xaaffffff, 1000)
                     bullet.bs.bounceWallCount = 1
-                    let bullet2 = spawn BulletEntity:Bullet(ex, ey, 5f, shootAngle+inc*Fmath:ToFixed(i), 1f, 0xaaffffff, 1000)
-                    bullet2.bs.bounceWallCount = 1
+                    repeat burstBulletAmount\3 with i {
+                        let bullet = spawn BulletEntity:Bullet(ex, ey, 5f, shootAngle-inc*Fmath:ToFixed(i), 1f, 0xaaffffff, 1000)
+                        bullet.bs.bounceWallCount = 1
+                        let bullet2 = spawn BulletEntity:Bullet(ex, ey, 5f, shootAngle+inc*Fmath:ToFixed(i), 1f, 0xaaffffff, 1000)
+                        bullet2.bs.bounceWallCount = 1
+                    }
+                    shootAngle += deg+shootAngleStep
                 }
-                shootAngle += deg+shootAngleStep
             }
-        }
         }
     }
 

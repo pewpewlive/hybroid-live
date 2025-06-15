@@ -68,6 +68,28 @@ pub SineWave = [
     }
 ]
 
+// function mh.parametric_remap(a,b, v, c,d, params) 
+//     local t = mh.invlerp(a, b, v)
+
+//     for i = 1, #params do  
+
+//         local param = params[i]
+
+//         if i <= param.max then 
+//             if param.inter == 1 then 
+//                 t = math.sqrt(t)
+//             elseif param.inter == 2 then
+//                 t = t*t
+//             end
+//         end
+
+//         return mh.lerp(c,d,t)
+//     end
+// end
+pub fn LerpMap(number t, Parameters params) -> number {
+
+}
+
 pub fn ParametricInvLerp(number a, b, v, Parameters parameters) -> number {
     let linearT = InvLerp(a, b, v)
 

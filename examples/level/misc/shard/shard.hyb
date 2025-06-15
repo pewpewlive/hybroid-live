@@ -1,0 +1,71 @@
+env ShardEntity as Level
+
+use Pewpew
+
+const COLOR = 0x9058faff
+const SHARD_HP_MAX = 5
+
+entity Shard {
+    fixed angle, speed, roll
+    number hp = SHARD_HP_MAX
+    number currentColor = COLOR
+
+    spawn(fixed x, y, angle, speed) {
+        self.angle = angle
+        self.speed = speed
+        SetEntityMesh(self, ShardMesh, 0)
+        SetEntityMeshXYZScale(self, 5f, 9f, 5f)
+        let yy, xx = Fmath:Sincos(angle)
+        SetEntityMeshPosition(self, xx * -2f, yy * -2f, 0f)
+        SetEntityPositionInterpolation(self, true)
+        SetEntityMeshColor(self, COLOR)
+        SetEntityMeshAngle(self, roll, 1f, 0f, 0f)
+        AddRotationToEntityMesh(self, angle, 0f, 0f, 1f)
+        SkipEntityMeshAttributesInterpolation(self)
+        SpawnEntity(self, 0)
+        SetEntityRadius(self, 10f)
+    }
+
+    destroy() {
+        let x, y = GetEntityPosition(self)
+        CreateExplosion(x, y, COLOR, 0.75f, 14)
+
+        DestroyEntity(self)
+    }
+
+    Update() {
+        roll += speed*1d
+        currentColor = ColorHelpers:LerpColors(currentColor, COLOR, 0.4f)
+        SetEntityMeshColor(self, currentColor)
+        let moveY, moveX = Fmath:Sincos(angle)
+        let x, y = GetEntityPosition(self)
+        SetEntityPosition(self, x + moveX * speed, y + moveY * speed)
+        SetEntityMeshAngle(self, roll, 1f, 0f, 0f)
+        AddRotationToEntityMesh(self, angle, 0f, 0f, 1f)
+        SkipEntityMeshAttributesInterpolation(self)
+    }
+
+    WallCollision(fixed _, _) {
+        destroy self()
+    }
+
+    PlayerCollision(number _, entity shipId) {
+        DamageShip(shipId, 1)
+        SetShipSpeed(shipId, 0.6f, 0f, 30)
+        destroy self()
+    }
+
+    WeaponCollision(number _, WeaponType weaponType) -> bool {
+        match weaponType {
+            WeaponType.Bullet => {
+                hp -= 1
+                currentColor = 0xffffffff
+                if hp <= 0 {
+                    destroy self()
+                }
+                return true
+            }
+        }
+        return true
+    }
+}
