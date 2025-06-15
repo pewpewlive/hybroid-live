@@ -1,4 +1,0 @@
-env PylonSettings as Shared
-
-pub const HEIGHT = 40
-pub const COLOR1 = 0xff5500ff

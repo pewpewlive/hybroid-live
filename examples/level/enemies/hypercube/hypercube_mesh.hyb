@@ -1,2 +1,88 @@
 env HypercubeMesh as Mesh
 
+use Graphix
+use MathHelpers
+
+fn AddPoly(Mesh mesh, Vertex center, number sides, color, radius) {
+  if sides <= 2
+    return
+  Vertexes vertexes 
+  Colors colors
+
+  number z
+  if #center >= 3 {
+    z = center[3]
+  }
+
+  repeat sides with i {
+    let angle = (Math:Pi * 2 * i) / sides
+    Table:Insert(vertexes, [center[1], center[2] + radius * Math:Sin(angle), z+ radius * Math:Cos(angle)])
+    Table:Insert(colors, color)
+  }
+
+  AddLine(mesh, vertexes, colors, true)
+}
+
+Meshes frames = list<Mesh>[]
+const SIZE = 30
+
+let posMap = [
+    struct{v1 = -SIZE, v2 = 0, t1 = 0, t2 = 0.125, type = ParamType.Rooted},
+    struct{v1 = 0, v2 = SIZE, t1 = 0.125, t2 = 0.25, type = ParamType.Squared},
+    struct{v1 = SIZE, v2 = SIZE/3, t1 = 0.25, t2 = 0.5, type = ParamType.Rooted},
+    struct{v1 = SIZE/3, v2 = -SIZE/3, t1 = 0.5, t2 = 0.75, type = ParamType.Linear},
+    struct{v1 = -SIZE/3, v2 = -SIZE, t1 = 0.75, t2 = 1, type = ParamType.Squared},
+]
+let sizeMap = [
+    struct{v1 = SIZE, v2 = SIZE*1.5, t1 = 0, t2 = 0.125, type = ParamType.Squared},
+    struct{v1 = SIZE*1.5, v2 = SIZE, t1 = 0.125, t2 = 0.25, type = ParamType.Rooted},
+    struct{v1 = SIZE, v2 = SIZE*0.5, t1 = 0.25, t2 = 0.5, type = ParamType.Squared},
+    struct{v1 = SIZE*0.5, v2 = SIZE*0.5, t1 = 0.5, t2 = 0.75, type = ParamType.Linear},
+    struct{v1 = SIZE*0.5, v2 = SIZE, t1 = 0.75, t2 = 1, type = ParamType.Squared},
+]
+let color1 = 0x4000ffff
+let color2 = 0xff0000ff
+let colorMap = [
+    struct{v1 = color1, v2 = color1, t1 = 0, t2 = 0.25, type = ParamType.Linear},
+    struct{v1 = color1, v2 = color2, t1 = 0.25, t2 = 0.5, type = ParamType.Linear},
+    struct{v1 = color2, v2 = color2, t1 = 0.5, t2 = 0.75, type = ParamType.Linear},
+    struct{v1 = color2, v2 = color1, t1 = 0.75, t2 = 1, type = ParamType.Linear},
+]
+
+let time = 0
+repeat 60 with i {
+    Table:Insert(frames, NewMesh())
+
+    AddPoly(frames[i], [LerpMap(time, posMap), 0, 0], 4, LerpMapColor(time, colorMap), LerpMap(time, sizeMap))
+    
+    let offset1 = time+0.25
+    if offset1 > 1 {
+        offset1 -= 1
+    }
+    AddPoly(frames[i], [LerpMap(offset1, posMap), 0, 0], 4, LerpMapColor(offset1, colorMap), LerpMap(offset1, sizeMap))
+
+    let offset3 = time+0.5
+    if offset3 > 1 {
+        offset3 -= 1
+    }
+    AddPoly(frames[i], [LerpMap(offset3, posMap), 0, 0], 4, LerpMapColor(offset3, colorMap), LerpMap(offset3, sizeMap))
+
+    let offset2 = time+0.75
+    if offset2 > 1 {
+        offset2 -= 1
+    }
+    AddPoly(frames[i], [LerpMap(offset2, posMap), 0, 0], 4, LerpMapColor(offset2, colorMap), LerpMap(offset2, sizeMap))
+
+    time += 1/60
+}
+for i in frames {
+    repeat #frames[i].vertexes with j {
+        let nextIndex = j+3
+        if j+4 > #frames[i].vertexes {
+            nextIndex = j+3-#frames[i].vertexes
+        }
+        Table:Insert(frames[i].segments, [j-1, nextIndex])
+    }
+}
+
+pub meshes = frames

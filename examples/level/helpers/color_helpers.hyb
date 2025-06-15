@@ -29,3 +29,10 @@ pub fn LerpColors2(number color1, color2, number t) -> number {
            (Lerp2(color1 >> 8  & 0xff, color2 >> 8  & 0xff, t)\1 << 8)  |
             Lerp2(color1       & 0xff, color2       & 0xff, t)\1
 }
+
+pub fn RandomColor(number color1, color2) -> number {
+    return (Fmath:RandomNumber(color1 >> 24 & 0xff, color2 >> 24 & 0xff)\1 << 24) |
+        (Fmath:RandomNumber(color1 >> 16 & 0xff, color2 >> 16 & 0xff)\1 << 16) |
+        (Fmath:RandomNumber(color1 >> 8  & 0xff, color2 >> 8  & 0xff)\1 << 8)  |
+        Fmath:RandomNumber(color1       & 0xff, color2       & 0xff)\1
+}

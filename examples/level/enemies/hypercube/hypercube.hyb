@@ -1,1 +1,66 @@
-env Hypercube as Level
+env HypercubeEntity as Level
+
+use Pewpew
+
+const SHARD_HP_MAX = 5
+
+entity Hypercube {
+    number time, frames
+    fixed mx, my
+    fixed speed = 2f
+    fixed scale
+
+    spawn(fixed x, y, angle) {
+        self.scale = 1f
+        SetEntityMesh(self, HypercubeMesh, 0)
+        SetEntityPositionInterpolation(self, true)
+        SkipEntityMeshAttributesInterpolation(self)
+        SpawnEntity(self, 0)
+        SetEntityRadius(self, 20f)
+
+        my, mx = Fmath:Sincos(angle)
+    }
+
+    destroy() {
+        let x, y = GetEntityPosition(self)
+        CreateExplosion(x, y, 0xff0000ff, scale, 30)
+        CreateExplosion(x, y, 0x4000ffff, scale*0.5f, 30)
+        DestroyEntity(self)
+    }
+
+    Update() {
+        scale = FmathHelpers:Lerp(scale, 3f, 0.1f)
+        if frames > 59 {
+            frames = 0
+        }
+
+        AddRotationToEntityMesh(self, 5d, 1f, -1f, 0.5f)
+
+        SetEntityMeshScale(self, scale)
+        SetEntityRadius(self, 20f*scale)
+        SetEntityMesh(self, HypercubeMesh, frames)
+        let x, y = GetEntityPosition(self)
+        SetEntityPosition(self, x + mx * speed, y + my * speed)
+
+        frames += 1
+    }
+
+    WallCollision(fixed _, _) {
+        destroy self()
+    }
+
+    PlayerCollision(number _, entity shipId) {
+        DamageShip(shipId, 1)
+        destroy self()
+    }
+
+    WeaponCollision(number _, WeaponType weaponType) -> bool {
+        match weaponType {
+            WeaponType.Bullet => {
+                scale *= 0.6f
+                return true
+            }
+        }
+        return true
+    }
+}

@@ -36,10 +36,10 @@ pub fn Remap(number a, b, c, d, v) -> number {
     return Lerp(a, b, t)
 }
 
-enum ParamType {
-    Squared,
+pub enum ParamType {
+    Linear,
     Rooted,
-    Linear
+    Squared,
 }
 
 alias Parameter = struct{number x, y, ParamType pt}
@@ -68,26 +68,39 @@ pub SineWave = [
     }
 ]
 
-// function mh.parametric_remap(a,b, v, c,d, params) 
-//     local t = mh.invlerp(a, b, v)
+alias MapValue = struct{
+    number v1, number v2, number t1, number t2, ParamType type
+}
 
-//     for i = 1, #params do  
+fn Remap2(number a, b, c, d, v, ParamType type) -> number {
+    let t = InvLerp(c, d, v)
+    if type == ParamType.Rooted {
+        t = t*t
+    }else if type == ParamType.Squared {
+        t = t^0.7
+    }
+    return Lerp(a, b, t)
+}
 
-//         local param = params[i]
+pub fn LerpMap(number t, list<MapValue> params) -> number {
+    repeat #params with i {
+        if params[i].t2 >= t and params[i].t1 <= t {
+            return Remap2(params[i].v1, params[i].v2, params[i].t1, params[i].t2, t, params[i].type)
+        }
+    }
 
-//         if i <= param.max then 
-//             if param.inter == 1 then 
-//                 t = math.sqrt(t)
-//             elseif param.inter == 2 then
-//                 t = t*t
-//             end
-//         end
+    return 0
+}
 
-//         return mh.lerp(c,d,t)
-//     end
-// end
-pub fn LerpMap(number t, Parameters params) -> number {
+pub fn LerpMapColor(number t, list<MapValue> params) -> number {
+    repeat #params with i {
+        if params[i].t2 >= t and params[i].t1 <= t {
+            let newT = InvLerp(params[i].t1, params[i].t2, t)
+            return ColorHelpers:LerpColors2(params[i].v1, params[i].v2, newT)
+        }
+    }
 
+    return 0
 }
 
 pub fn ParametricInvLerp(number a, b, v, Parameters parameters) -> number {

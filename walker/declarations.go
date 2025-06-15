@@ -237,6 +237,7 @@ func (w *Walker) enumDeclaration(node *ast.EnumDecl, scope *Scope) {
 	enumVal := &EnumVal{
 		Type:   NewEnumType(scope.Environment.Name, node.Name.Lexeme),
 		Fields: make(map[string]*VariableVal),
+		IsPub:  node.IsPub,
 	}
 
 	for _, v := range node.Fields {
