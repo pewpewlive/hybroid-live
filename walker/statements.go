@@ -211,6 +211,25 @@ func (w *Walker) forStatement(node *ast.ForStmt, scope *Scope) {
 	lt := NewPathTag()
 	forScope.Tag = lt
 
+	if node.IsEntity {
+		valType := w.typeExpression(node.Iterator.(*ast.TypeExpr), scope)
+		if nt, ok := valType.(*NamedType); ok && nt.Pvt == ast.Entity {
+			node.EnvName = nt.EnvName
+			node.EntityName = nt.Name
+			if node.Second != nil {
+				w.AlertSingle(&alerts.TooManyElementsGiven{}, node.Second.Name, 1, "for loop variable", "")
+			}
+			if node.First.Name.Lexeme != "_" {
+				w.declareVariable(forScope, NewVariable(node.First.Name, w.typeToValue(valType)))
+			}
+			w.walkBody(&node.Body, lt, forScope)
+			w.reportExits(lt, scope)
+			return
+		} else {
+			w.AlertSingle(&alerts.InvalidEntityForLoopType{}, node.Iterator.GetToken())
+		}
+	}
+
 	valType := w.GetActualNodeValue(&node.Iterator, scope).GetType()
 	wrapper, ok := valType.(*WrapperType)
 	if !ok {

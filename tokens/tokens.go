@@ -5,7 +5,6 @@ import "hybroid/core"
 // Make sure to run `go install golang.org/x/tools/cmd/stringer@latest` before trying to generate
 
 //go:generate stringer -type=TokenType -linecomment
-
 type TokenType int
 
 const (
@@ -85,6 +84,7 @@ const (
 	By       // by
 	Const    // const
 	Continue // continue
+	Every    // every
 	Else     // else
 	Entity   // entity
 	Enum     // enum
@@ -157,6 +157,7 @@ var keywords = map[string]TokenType{
 	"with":     With,
 	"yield":    Yield,
 	"destroy":  Destroy,
+	"every":    Every,
 }
 
 func KeywordToToken(keyword string) (TokenType, bool) {

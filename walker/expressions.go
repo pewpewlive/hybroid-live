@@ -11,7 +11,7 @@ import (
 )
 
 func (w *Walker) structExpression(node *ast.StructExpr, scope *Scope) *StructVal {
-	structTypeVal := NewStructVal(make(map[string]Field), false)
+	structTypeVal := NewStructVal(make(map[string]StructField))
 
 	for i := range node.Fields {
 		fieldToken := node.Fields[i].Name
@@ -23,7 +23,7 @@ func (w *Walker) structExpression(node *ast.StructExpr, scope *Scope) *StructVal
 		if _, ok := val.(Values); ok {
 			w.AlertSingle(&alerts.InvalidType{}, node.Expressions[i].GetToken(), val.GetType(), "in struct field declaration")
 		}
-		structTypeVal.Fields[fieldToken.Lexeme] = NewField(0, NewVariable(fieldToken, val))
+		structTypeVal.AddField(NewVariable(fieldToken, val))
 	}
 
 	return structTypeVal
@@ -272,73 +272,64 @@ check:
 		class := sc.Tag.(*ClassTag).Val
 		field, index, found := class.ContainsField(variable.Name)
 
-		*node = &ast.AccessExpr{
-			Start: &ast.SelfExpr{
-				Token: ident.GetToken(),
-				Type:  ast.ClassMethod,
-			},
-			Accessed: []ast.Node{
-				&ast.FieldExpr{
-					Index: index,
-					Field: ident,
-				},
-			},
-		}
-
 		if found {
 			variable = field
-		} else {
-			method, found2 := class.Methods[variable.Name]
-			if found2 {
-				*node = &ast.MethodExpr{
-					MethodInfo: method.Value.(*FunctionVal).MethodInfo,
-					Token:      identToken,
-					Access: &ast.SelfExpr{
-						Token: ident.GetToken(),
-						Type:  ast.ClassMethod,
+			*node = &ast.AccessExpr{
+				Start: &ast.SelfExpr{
+					Token: ident.GetToken(),
+					Type:  ast.ClassMethod,
+				},
+				Accessed: []ast.Node{
+					&ast.FieldExpr{
+						Index: index,
+						Field: ident,
 					},
-				}
-				variable = method
-			} else {
-				w.AlertSingle(&alerts.MethodOrFieldNotFound{}, identToken, variable.Name)
+				},
 			}
+		} else if method, found2 := class.Methods[variable.Name]; found2 {
+			*node = &ast.MethodExpr{
+				MethodInfo: method.Value.(*FunctionVal).MethodInfo,
+				Token:      identToken,
+				Access: &ast.SelfExpr{
+					Token: ident.GetToken(),
+					Type:  ast.ClassMethod,
+				},
+			}
+			variable = method
+		} else {
+			panic(fmt.Sprintf("ResolveVariableScope stopped on an entity scope, but there was no field or method found. (identifier: %s, env: %s)", ident.Name.Lexeme, w.environment.Name))
 		}
 	} else if sc.Tag.GetType() == Entity && scope.Is(SelfAllowing) {
 		entity := sc.Tag.(*EntityTag).EntityVal
 		field, index, found := entity.ContainsField(variable.Name)
 
-		*node = &ast.AccessExpr{
-			Start: &ast.SelfExpr{
-				Token:      ident.GetToken(),
-				EntityName: entity.Type.Name,
-				Type:       ast.EntityMethod,
-			},
-			Accessed: []ast.Node{
-				&ast.FieldExpr{
-					Index: index,
-					Field: ident,
-				},
-			},
-		}
-
 		if found {
 			variable = field
-
-		} else {
-			method, found2 := entity.Methods[variable.Name]
-			if found2 {
-				*node = &ast.MethodExpr{
-					MethodInfo: method.Value.(*FunctionVal).MethodInfo,
-					Token:      identToken,
-					Access: &ast.SelfExpr{
-						Token: ident.GetToken(),
-						Type:  ast.EntityMethod,
+			*node = &ast.AccessExpr{
+				Start: &ast.SelfExpr{
+					Token:      ident.GetToken(),
+					EntityName: entity.Type.Name,
+					Type:       ast.EntityMethod,
+				},
+				Accessed: []ast.Node{
+					&ast.FieldExpr{
+						Index: index,
+						Field: ident,
 					},
-				}
-				variable = method
-			} else {
-				w.AlertSingle(&alerts.MethodOrFieldNotFound{}, identToken, variable.Name)
+				},
 			}
+		} else if method, found2 := entity.Methods[variable.Name]; found2 {
+			*node = &ast.MethodExpr{
+				MethodInfo: method.Value.(*FunctionVal).MethodInfo,
+				Token:      identToken,
+				Access: &ast.SelfExpr{
+					Token: ident.GetToken(),
+					Type:  ast.EntityMethod,
+				},
+			}
+			variable = method
+		} else {
+			panic(fmt.Sprintf("ResolveVariableScope stopped on an entity scope, but there was no field or method found. (identifier: %s, env: %s)", ident.Name.Lexeme, w.environment.Name))
 		}
 	} else if sc.Environment.Name == "Builtin" {
 		scope.Environment.AddBuiltinVar(ident.Name.Lexeme)
@@ -930,17 +921,19 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 	case ast.Fixed:
 		typ = NewFixedPointType()
 	case ast.Struct:
-		fields := []*VariableVal{}
+		fields := []StructField{}
 
 		for _, v := range typee.Fields {
-			fields = append(fields, &VariableVal{
-				Name:  v.Name.Lexeme,
-				Value: w.typeToValue(w.typeExpression(v.Type, scope)),
-				Token: v.Name,
+			fields = append(fields, StructField{
+				Var: &VariableVal{
+					Name:  v.Name.Lexeme,
+					Value: w.typeToValue(w.typeExpression(v.Type, scope)),
+					Token: v.Name,
+				},
 			})
 		}
 
-		typ = NewStructType(fields, false)
+		typ = NewStructType(fields)
 	case ast.Func:
 		params := []Type{}
 

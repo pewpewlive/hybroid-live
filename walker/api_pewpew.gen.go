@@ -48,22 +48,22 @@ var PewpewAPI = &Environment{
 				Name: "GetPlayerScore", Value: NewFunction(NewBasicType(ast.Number)).WithReturns(NewBasicType(ast.Number)), IsPub: true,
 			},
 			"ConfigurePlayer": {
-				Name: "ConfigurePlayer", Value: NewFunction(NewBasicType(ast.Number), NewStructType([]*VariableVal{{Name: "has_lost", Value: &BoolVal{}}, {Name: "shield", Value: &NumberVal{}}, {Name: "camera_x_override", Value: &FixedVal{}}, {Name: "camera_y_override", Value: &FixedVal{}}, {Name: "camera_distance", Value: &FixedVal{}}, {Name: "camera_rotation_x_axis", Value: &FixedVal{}}, {Name: "move_joystick_color", Value: &NumberVal{}}, {Name: "shoot_joystick_color", Value: &NumberVal{}}}, true)), IsPub: true,
+				Name: "ConfigurePlayer", Value: NewFunction(NewBasicType(ast.Number), NewStructType([]StructField{NewStructField("has_lost", &BoolVal{}, true), NewStructField("shield", &NumberVal{}, true), NewStructField("camera_x_override", &FixedVal{}, true), NewStructField("camera_y_override", &FixedVal{}, true), NewStructField("camera_distance", &FixedVal{}, true), NewStructField("camera_rotation_x_axis", &FixedVal{}, true), NewStructField("move_joystick_color", &NumberVal{}, true), NewStructField("shoot_joystick_color", &NumberVal{}, true)})), IsPub: true,
 			},
 			"ConfigurePlayerHud": {
-				Name: "ConfigurePlayerHud", Value: NewFunction(NewBasicType(ast.Number), NewStructType([]*VariableVal{{Name: "top_left_line", Value: &StringVal{}}}, true)), IsPub: true,
+				Name: "ConfigurePlayerHud", Value: NewFunction(NewBasicType(ast.Number), NewStructType([]StructField{NewStructField("top_left_line", &StringVal{}, true)})), IsPub: true,
 			},
 			"GetPlayerConfig": {
-				Name: "GetPlayerConfig", Value: NewFunction(NewBasicType(ast.Number)).WithReturns(NewStructType([]*VariableVal{{Name: "shield", Value: &NumberVal{}}, {Name: "has_lost", Value: &BoolVal{}}}, true)), IsPub: true,
+				Name: "GetPlayerConfig", Value: NewFunction(NewBasicType(ast.Number)).WithReturns(NewStructType([]StructField{NewStructField("shield", &NumberVal{}, true), NewStructField("has_lost", &BoolVal{}, true)})), IsPub: true,
 			},
 			"ConfigureShipWeapon": {
-				Name: "ConfigureShipWeapon", Value: NewFunction(&RawEntityType{}, NewStructType([]*VariableVal{{Name: "frequency", Value: NewEnumVal("Pewpew", "CannonFreq", true)}, {Name: "cannon", Value: NewEnumVal("Pewpew", "CannonType", true)}, {Name: "duration", Value: &NumberVal{}}}, true)), IsPub: true,
+				Name: "ConfigureShipWeapon", Value: NewFunction(&RawEntityType{}, NewStructType([]StructField{NewStructField("frequency", NewEnumVal("Pewpew", "CannonFreq", true), true), NewStructField("cannon", NewEnumVal("Pewpew", "CannonType", true), true), NewStructField("duration", &NumberVal{}, true)})), IsPub: true,
 			},
 			"ConfigureShipWallTrail": {
-				Name: "ConfigureShipWallTrail", Value: NewFunction(&RawEntityType{}, NewStructType([]*VariableVal{{Name: "wall_length", Value: &NumberVal{}}}, true)), IsPub: true,
+				Name: "ConfigureShipWallTrail", Value: NewFunction(&RawEntityType{}, NewStructType([]StructField{NewStructField("wall_length", &NumberVal{}, true)})), IsPub: true,
 			},
 			"ConfigureShip": {
-				Name: "ConfigureShip", Value: NewFunction(&RawEntityType{}, NewStructType([]*VariableVal{{Name: "swap_inputs", Value: &BoolVal{}}}, true)), IsPub: true,
+				Name: "ConfigureShip", Value: NewFunction(&RawEntityType{}, NewStructType([]StructField{NewStructField("swap_inputs", &BoolVal{}, true)})), IsPub: true,
 			},
 			"DamageShip": {
 				Name: "DamageShip", Value: NewFunction(&RawEntityType{}, NewBasicType(ast.Number)), IsPub: true,
@@ -123,13 +123,13 @@ var PewpewAPI = &Environment{
 				Name: "NewBomb", Value: NewFunction(NewFixedPointType(), NewFixedPointType(), NewEnumType("Pewpew", "BombType")).WithReturns(&RawEntityType{}), IsPub: true,
 			},
 			"NewBonus": {
-				Name: "NewBonus", Value: NewFunction(NewFixedPointType(), NewFixedPointType(), NewEnumType("Pewpew", "BonusType"), NewStructType([]*VariableVal{{Name: "box_duration", Value: &NumberVal{}}, {Name: "cannon", Value: NewEnumVal("Pewpew", "CannonType", true)}, {Name: "frequency", Value: NewEnumVal("Pewpew", "CannonFreq", true)}, {Name: "weapon_duration", Value: &NumberVal{}}, {Name: "number_of_shields", Value: &NumberVal{}}, {Name: "speed_factor", Value: &FixedVal{}}, {Name: "speed_offset", Value: &FixedVal{}}, {Name: "speed_duration", Value: &NumberVal{}}, {Name: "taken_callback", Value: &FunctionVal{Params: []Type{&RawEntityType{}, NewBasicType(ast.Number), &RawEntityType{}}}}}, true)).WithReturns(&RawEntityType{}), IsPub: true,
+				Name: "NewBonus", Value: NewFunction(NewFixedPointType(), NewFixedPointType(), NewEnumType("Pewpew", "BonusType"), NewStructType([]StructField{NewStructField("box_duration", &NumberVal{}, true), NewStructField("cannon", NewEnumVal("Pewpew", "CannonType", true), true), NewStructField("frequency", NewEnumVal("Pewpew", "CannonFreq", true), true), NewStructField("weapon_duration", &NumberVal{}, true), NewStructField("number_of_shields", &NumberVal{}, true), NewStructField("speed_factor", &FixedVal{}, true), NewStructField("speed_offset", &FixedVal{}, true), NewStructField("speed_duration", &NumberVal{}, true), NewStructField("taken_callback", &FunctionVal{Params: []Type{&RawEntityType{}, NewBasicType(ast.Number), &RawEntityType{}}}, true)})).WithReturns(&RawEntityType{}), IsPub: true,
 			},
 			"NewCrowder": {
 				Name: "NewCrowder", Value: NewFunction(NewFixedPointType(), NewFixedPointType()).WithReturns(&RawEntityType{}), IsPub: true,
 			},
 			"NewFloatingMessage": {
-				Name: "NewFloatingMessage", Value: NewFunction(NewFixedPointType(), NewFixedPointType(), NewBasicType(ast.Text), NewStructType([]*VariableVal{{Name: "scale", Value: &FixedVal{}}, {Name: "dz", Value: &FixedVal{}}, {Name: "ticks_before_fade", Value: &NumberVal{}}, {Name: "is_optional", Value: &BoolVal{}}}, true)).WithReturns(&RawEntityType{}), IsPub: true,
+				Name: "NewFloatingMessage", Value: NewFunction(NewFixedPointType(), NewFixedPointType(), NewBasicType(ast.Text), NewStructType([]StructField{NewStructField("scale", &FixedVal{}, true), NewStructField("dz", &FixedVal{}, true), NewStructField("ticks_before_fade", &NumberVal{}, true), NewStructField("is_optional", &BoolVal{}, true)})).WithReturns(&RawEntityType{}), IsPub: true,
 			},
 			"NewEntity": {
 				Name: "NewEntity", Value: NewFunction(NewFixedPointType(), NewFixedPointType()).WithReturns(&RawEntityType{}), IsPub: true,
@@ -150,7 +150,7 @@ var PewpewAPI = &Environment{
 				Name: "NewPointonium", Value: NewFunction(NewFixedPointType(), NewFixedPointType(), NewBasicType(ast.Number)).WithReturns(&RawEntityType{}), IsPub: true,
 			},
 			"NewPlasmaField": {
-				Name: "NewPlasmaField", Value: NewFunction(&RawEntityType{}, &RawEntityType{}, NewStructType([]*VariableVal{{Name: "length", Value: &FixedVal{}}, {Name: "stiffness", Value: &FixedVal{}}}, true)).WithReturns(&RawEntityType{}), IsPub: true,
+				Name: "NewPlasmaField", Value: NewFunction(&RawEntityType{}, &RawEntityType{}, NewStructType([]StructField{NewStructField("length", &FixedVal{}, true), NewStructField("stiffness", &FixedVal{}, true)})).WithReturns(&RawEntityType{}), IsPub: true,
 			},
 			"NewShip": {
 				Name: "NewShip", Value: NewFunction(NewFixedPointType(), NewFixedPointType(), NewBasicType(ast.Number)).WithReturns(&RawEntityType{}), IsPub: true,
@@ -207,10 +207,10 @@ var PewpewAPI = &Environment{
 				Name: "DestroyEntity", Value: NewFunction(&RawEntityType{}), IsPub: true,
 			},
 			"EntityReactToWeapon": {
-				Name: "EntityReactToWeapon", Value: NewFunction(&RawEntityType{}, NewStructType([]*VariableVal{{Name: "type", Value: NewEnumVal("Pewpew", "WeaponType", true)}, {Name: "x", Value: &FixedVal{}}, {Name: "y", Value: &FixedVal{}}, {Name: "player_index", Value: &NumberVal{}}}, true)).WithReturns(NewBasicType(ast.Bool)), IsPub: true,
+				Name: "EntityReactToWeapon", Value: NewFunction(&RawEntityType{}, NewStructType([]StructField{NewStructField("type", NewEnumVal("Pewpew", "WeaponType", true), true), NewStructField("x", &FixedVal{}, true), NewStructField("y", &FixedVal{}, true), NewStructField("player_index", &NumberVal{}, true)})).WithReturns(NewBasicType(ast.Bool)), IsPub: true,
 			},
 			"EntityAddMace": {
-				Name: "EntityAddMace", Value: NewFunction(&RawEntityType{}, NewStructType([]*VariableVal{{Name: "distance", Value: &FixedVal{}}, {Name: "angle", Value: &FixedVal{}}, {Name: "rotation_speed", Value: &FixedVal{}}, {Name: "type", Value: NewEnumVal("Pewpew", "MaceType", true)}}, true)).WithReturns(&RawEntityType{}), IsPub: true,
+				Name: "EntityAddMace", Value: NewFunction(&RawEntityType{}, NewStructType([]StructField{NewStructField("distance", &FixedVal{}, true), NewStructField("angle", &FixedVal{}, true), NewStructField("rotation_speed", &FixedVal{}, true), NewStructField("type", NewEnumVal("Pewpew", "MaceType", true), true)})).WithReturns(&RawEntityType{}), IsPub: true,
 			},
 			"SetEntityPositionInterpolation": {
 				Name: "SetEntityPositionInterpolation", Value: NewFunction(&RawEntityType{}, NewBasicType(ast.Bool)), IsPub: true,
@@ -249,7 +249,7 @@ var PewpewAPI = &Environment{
 				Name: "SkipEntityMeshAttributesInterpolation", Value: NewFunction(&RawEntityType{}), IsPub: true,
 			},
 			"SetEntityMusicResponse": {
-				Name: "SetEntityMusicResponse", Value: NewFunction(&RawEntityType{}, NewStructType([]*VariableVal{{Name: "color_start", Value: &NumberVal{}}, {Name: "color_end", Value: &NumberVal{}}, {Name: "scale_x_start", Value: &FixedVal{}}, {Name: "scale_x_end", Value: &FixedVal{}}, {Name: "scale_y_start", Value: &FixedVal{}}, {Name: "scale_y_end", Value: &FixedVal{}}, {Name: "scale_z_start", Value: &FixedVal{}}, {Name: "scale_z_end", Value: &FixedVal{}}}, true)), IsPub: true,
+				Name: "SetEntityMusicResponse", Value: NewFunction(&RawEntityType{}, NewStructType([]StructField{NewStructField("color_start", &NumberVal{}, true), NewStructField("color_end", &NumberVal{}, true), NewStructField("scale_x_start", &FixedVal{}, true), NewStructField("scale_x_end", &FixedVal{}, true), NewStructField("scale_y_start", &FixedVal{}, true), NewStructField("scale_y_end", &FixedVal{}, true), NewStructField("scale_z_start", &FixedVal{}, true), NewStructField("scale_z_end", &FixedVal{}, true)})), IsPub: true,
 			},
 			"AddRotationToEntityMesh": {
 				Name: "AddRotationToEntityMesh", Value: NewFunction(&RawEntityType{}, NewFixedPointType(), NewFixedPointType(), NewFixedPointType(), NewFixedPointType()), IsPub: true,

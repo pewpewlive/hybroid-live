@@ -646,5 +646,10 @@
     "type": "Error",
     "message": "lists or maps with no values need to have their wrapped type explicitly given",
     "note": "this can be done like so: let exampleList = [<number>] or let exampleMap = {<number>}"
+  },
+  {
+    "name": "InvalidEntityForLoopType",
+    "type": "Error",
+    "message": "expected an entity type in the entity for loop"
   }
 ]

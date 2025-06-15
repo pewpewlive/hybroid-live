@@ -272,7 +272,7 @@ func (l *Lexer) handleNumber() (*tokens.Token, error) {
 				location := token.Location
 				location.Column.Start += i + 2
 				location.Column.End = location.Column.Start + 1
-				l.Alert(&alerts.InvalidDigitInLiteral{}, alerts.NewSingle(tokens.NewToken(tokens.Eof, "", "", location)), string(r), baseStr)
+				l.Alert(&alerts.InvalidDigitInLiteral{}, alerts.NewSingle(tokens.NewToken(tokens.Number, "", "", location)), string(r), baseStr)
 				return &token, nil
 			}
 		}

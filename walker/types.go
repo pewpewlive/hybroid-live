@@ -294,25 +294,16 @@ func (fp *FixedPoint) String() string {
 }
 
 type StructType struct {
-	Fields  map[string]Field
-	Lenient bool
+	Fields map[string]StructField
 }
 
-func NewStructType(fields []*VariableVal, lenient bool) *StructType {
-	mapfields := map[string]Field{}
+func NewStructType(fields []StructField) *StructType {
+	mapfields := map[string]StructField{}
 	for i := range fields {
-		mapfields[fields[i].Name] = Field{Var: fields[i], Index: i}
+		mapfields[fields[i].Var.Name] = fields[i]
 	}
 	return &StructType{
-		Fields:  mapfields,
-		Lenient: lenient,
-	}
-}
-
-func NewStructTypeWithFields(fields map[string]Field, lenient bool) *StructType {
-	return &StructType{
-		Fields:  fields,
-		Lenient: lenient,
+		Fields: mapfields,
 	}
 }
 
@@ -327,19 +318,10 @@ func (st *StructType) GetType() ValueType {
 func (st *StructType) _eq(other Type) bool {
 	map1 := st.Fields
 	map2 := other.(*StructType).Fields
-	if st.Lenient {
-		return other._eq(st)
-	}
 
 	for k, v := range map1 {
-		containsK := false
-		for k2, v2 := range map2 {
-			if k == k2 && TypeEquals(v.Var.GetType(), v2.Var.GetType()) {
-				containsK = true
-				break
-			}
-		}
-		if !containsK {
+		v2, containsK := map2[k]
+		if (containsK && !TypeEquals(v.Var.GetType(), v2.Var.GetType())) || (!v.Lenient && !containsK) {
 			return false
 		}
 	}
@@ -353,12 +335,13 @@ func (st *StructType) String() string {
 	length := len(st.Fields) - 1
 	index := 0
 	for k, v := range st.Fields {
-		if index == length {
-			_type := v.Var.Value.GetType()
-			src.Write(_type.String(), " ", k)
-		} else {
-			_type := v.Var.Value.GetType()
-			src.Write(_type.String(), " ", k, ", ")
+		if v.Lenient {
+			src.Write("(optional)")
+		}
+		_type := v.Var.Value.GetType()
+		src.Write(_type.String(), " ", k)
+		if index != length {
+			src.Write(", ")
 		}
 		index++
 	}

@@ -99,7 +99,7 @@ class Value:
             return f'NewEnumType("{lib_name}", "{self.enum}")'
 
         if len(self.map_entries) != 0:
-            MAP_TEMPLATE = "NewStructType([]*VariableVal{%s}, true)"
+            MAP_TEMPLATE = "NewStructType([]StructField{%s})"
 
             fields = []
             for entry in self.map_entries:
@@ -111,7 +111,9 @@ class Value:
                 fields.append((entry.name, entry_value))
 
             return MAP_TEMPLATE % (
-                ",".join(f'{{Name:"{name}",Value:{value}}}' for name, value in fields)
+                ",".join(
+                    f'NewStructField("{name}", {value}, true)' for name, value in fields
+                )
             )
 
         return self.type.generate(True, func_name)

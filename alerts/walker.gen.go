@@ -2021,3 +2021,28 @@ func (ulomc *UnknownListOrMapContents) ID() string {
 func (ulomc *UnknownListOrMapContents) AlertType() Type {
 	return Error
 }
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidEntityForLoopType struct {
+	Specifier Snippet
+}
+
+func (ieflt *InvalidEntityForLoopType) Message() string {
+	return "expected an entity type in the entity for loop"
+}
+
+func (ieflt *InvalidEntityForLoopType) SnippetSpecifier() Snippet {
+	return ieflt.Specifier
+}
+
+func (ieflt *InvalidEntityForLoopType) Note() string {
+	return ""
+}
+
+func (ieflt *InvalidEntityForLoopType) ID() string {
+	return "hyb078W"
+}
+
+func (ieflt *InvalidEntityForLoopType) AlertType() Type {
+	return Error
+}

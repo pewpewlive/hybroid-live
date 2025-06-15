@@ -88,6 +88,10 @@ type ForStmt struct {
 	Second           *IdentifierExpr
 	OrderedIteration bool
 	Token            tokens.Token
+
+	IsEntity   bool
+	EnvName    string
+	EntityName string
 }
 
 func (fs *ForStmt) GetType() NodeType      { return ForStatement }

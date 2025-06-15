@@ -186,7 +186,12 @@ func (gen *Generator) forStmt(node ast.ForStmt) {
 	if node.OrderedIteration {
 		pairs = "ipairs"
 	}
-	iterator := gen.GenerateExpr(node.Iterator)
+	iterator := ""
+	if node.IsEntity {
+		iterator = hyEntity + envMap[node.EnvName] + node.EntityName
+	} else {
+		iterator = gen.GenerateExpr(node.Iterator)
+	}
 	key := gen.GenerateExpr(node.First)
 	if node.Second == nil {
 		gen.Write(key, ", _ in  ", pairs, " (", iterator, ") do\n")

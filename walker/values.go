@@ -147,19 +147,20 @@ func (pv *PathVal) GetDefault() *ast.LiteralExpr {
 }
 
 type StructVal struct {
-	Fields  map[string]Field
+	Fields  map[string]StructField
 	Lenient bool
 }
 
-func NewStructVal(fields map[string]Field, lenient bool) *StructVal {
+func NewStructVal(fields map[string]StructField) *StructVal {
 	return &StructVal{
-		Fields:  fields,
-		Lenient: lenient,
+		Fields: fields,
 	}
 }
 
 func (sv *StructVal) GetType() Type {
-	return NewStructTypeWithFields(sv.Fields, sv.Lenient)
+	return &StructType{
+		Fields: sv.Fields,
+	}
 }
 
 func (sv *StructVal) GetDefault() *ast.LiteralExpr {
@@ -186,12 +187,12 @@ func (sv *StructVal) GetDefault() *ast.LiteralExpr {
 }
 
 func (sv *StructVal) AddField(variable *VariableVal) {
-	sv.Fields[variable.Name] = NewField(len(sv.Fields), variable)
+	sv.Fields[variable.Name] = StructField{Var: variable, Lenient: false}
 }
 
 func (sv *StructVal) ContainsField(name string) (*VariableVal, int, bool) {
 	if v, found := sv.Fields[name]; found {
-		return v.Var, v.Index + 1, true
+		return v.Var, -1, true
 	}
 
 	return nil, -1, false
@@ -238,13 +239,13 @@ func (ev *EnumVal) GetDefault() *ast.LiteralExpr {
 
 func (ev *EnumVal) AddField(variable *VariableVal) {
 	enumFieldVal := variable.Value.(*EnumFieldVal)
-	enumFieldVal.Index = len(ev.Fields)
+	enumFieldVal.Index = len(ev.Fields) + 1
 	ev.Fields[variable.Name] = variable
 }
 
 func (ev *EnumVal) ContainsField(name string) (*VariableVal, int, bool) {
 	if variable, found := ev.Fields[name]; found {
-		return variable, variable.Value.(*EnumFieldVal).Index + 1, true
+		return variable, variable.Value.(*EnumFieldVal).Index, true
 	}
 
 	return nil, -1, false
@@ -290,16 +291,26 @@ func (rev *RawEntityVal) GetDefault() *ast.LiteralExpr {
 	return &ast.LiteralExpr{Value: "nil"}
 }
 
+type StructField struct {
+	Lenient bool
+	Var     *VariableVal
+}
+
+func NewStructField(name string, val Value, lenient ...bool) StructField {
+	isLenient := false
+	if lenient != nil && len(lenient) == 1 {
+		isLenient = lenient[0]
+	}
+
+	return StructField{
+		Var:     &VariableVal{Name: name, Value: val},
+		Lenient: isLenient,
+	}
+}
+
 type Field struct {
 	Index int
 	Var   *VariableVal
-}
-
-func NewField(index int, val *VariableVal) Field {
-	return Field{
-		Index: index,
-		Var:   val,
-	}
 }
 
 type EntityVal struct {
@@ -349,7 +360,10 @@ func (ev *EntityVal) GetDefault() *ast.LiteralExpr {
 
 // Container
 func (ev *EntityVal) AddField(variable *VariableVal) {
-	ev.Fields[variable.Name] = NewField(len(ev.Fields), variable)
+	ev.Fields[variable.Name] = Field{
+		Var:   variable,
+		Index: len(ev.Fields) + 1,
+	}
 }
 
 func (ev *EntityVal) AddMethod(variable *VariableVal) {
@@ -358,7 +372,7 @@ func (ev *EntityVal) AddMethod(variable *VariableVal) {
 
 func (ev *EntityVal) ContainsField(name string) (*VariableVal, int, bool) {
 	if variable, found := ev.Fields[name]; found {
-		return variable.Var, variable.Index + 1, true
+		return variable.Var, variable.Index, true
 	}
 
 	return nil, -1, false
@@ -420,7 +434,10 @@ func (cv *ClassVal) GetDefault() *ast.LiteralExpr {
 
 // Container
 func (cv *ClassVal) AddField(variable *VariableVal) {
-	cv.Fields[variable.Name] = NewField(len(cv.Fields), variable)
+	cv.Fields[variable.Name] = Field{
+		Var:   variable,
+		Index: len(cv.Fields) + 1,
+	}
 }
 
 func (cv *ClassVal) AddMethod(variable *VariableVal) {
@@ -429,7 +446,7 @@ func (cv *ClassVal) AddMethod(variable *VariableVal) {
 
 func (cv *ClassVal) ContainsField(name string) (*VariableVal, int, bool) {
 	if variable, found := cv.Fields[name]; found {
-		return variable.Var, variable.Index + 1, true
+		return variable.Var, variable.Index, true
 	}
 
 	return nil, -1, false

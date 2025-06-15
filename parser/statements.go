@@ -337,15 +337,18 @@ func (p *Parser) forStatement() ast.Node {
 
 	p.consume(p.NewAlert(&alerts.ExpectedKeyword{}, alerts.NewSingle(p.peek()), tokens.In), tokens.In)
 
-	forStmt.Iterator = p.expression()
-	if ast.IsImproper(forStmt.Iterator, ast.NA) {
-		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(forStmt.Iterator.GetToken()))
+	if p.match(tokens.Every) {
+		forStmt.IsEntity = true
+		forStmt.Iterator = p.typeExpr("in for loop entity statement")
+		if forStmt.Iterator.GetType() == ast.NA {
+			return ast.NewImproper(forStmt.Token, ast.ForStatement)
+		}
+	} else {
+		forStmt.Iterator = p.expression()
+		if ast.IsImproper(forStmt.Iterator, ast.NA) {
+			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(forStmt.Iterator.GetToken()))
+		}
 	}
-
-	// if forStmt.Iterator == nil {
-	// 	p.Alert(&alerts.MissingIterator{}, alerts.NewSingle(forStmt.Token), "in for statement")
-	// 	forStmt.Iterator = &ast.LiteralExpr{Token: forStmt.Token, Value: "[1]", ValueType: ast.List}
-	// }
 
 	var success bool
 	forStmt.Body, success = p.body(true, true)

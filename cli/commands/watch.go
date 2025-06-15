@@ -2,8 +2,10 @@ package commands
 
 import (
 	"fmt"
+	"hybroid/core"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
@@ -40,12 +42,11 @@ func watch(ctx *cli.Context) error {
 				}
 				log.Println("event:", event)
 				if event.Has(fsnotify.Write) && !strings.Contains(event.Name, ".lua") {
-					// FIXME: Fix watcher. Move to serving soon
-					// directoryPath, _ := filepath.Rel(cwd, filepath.Dir(event.Name))
-					// fileName := strings.Split(filepath.Base(event.Name), ".")[0]
-					// fileExtension := filepath.Ext(event.Name)
+					directoryPath, _ := filepath.Rel(cwd, filepath.Dir(event.Name))
+					fileName := strings.Split(filepath.Base(event.Name), ".")[0]
+					fileExtension := filepath.Ext(event.Name)
 
-					// Build(ctx, FileInformation{directoryPath, fileName, fileExtension})
+					Build_(ctx, core.FileInformation{DirectoryPath: directoryPath, FileName: fileName, FileExtension: fileExtension})
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {

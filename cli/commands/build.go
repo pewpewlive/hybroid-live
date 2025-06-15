@@ -19,7 +19,7 @@ func Build() *cli.Command {
 		Usage:       "Builds a Hybroid Live project",
 		Description: "This will take the current project in the location the command was ran, and will transpile the project into its destination folder, based on the config file",
 		Action: func(ctx *cli.Context) error {
-			return build(ctx)
+			return Build_(ctx)
 		},
 	}
 }
@@ -54,7 +54,7 @@ func runEvaluator(config core.HybroidConfig, filesToBuild []core.FileInformation
 	err <- evaluator.Action(cwd, outputDir)
 }
 
-func build(ctx *cli.Context, filesToBuild ...core.FileInformation) error {
+func Build_(ctx *cli.Context, filesToBuild ...core.FileInformation) error {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("failed getting current working directory: %v", err)
