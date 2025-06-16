@@ -1,6 +1,7 @@
 env Grid as Level
 
 use Globals
+use MathHelpers
 
 pub number gridColor, activeGridColor = 0x2335ff48, 0x00ffff80
 fixed offsetX, offsetY, offsetZ
@@ -31,7 +32,6 @@ class Point {
         
         Pewpew:SetEntityMesh(id, GridMesh, 1)
         Pewpew:SetEntityPositionInterpolation(id, true)
-        Pewpew:SetEntityTag(id, ENTITY_TAG)
 
         Pewpew:SetEntityMeshZ(id, offsetZ)
         Pewpew:SpawnEntity(id, 0)
@@ -54,7 +54,6 @@ class Line {
         id = Pewpew:NewEntity(base.currentX, base.currentY)
         self.base, self.following = base, following
 
-        Pewpew:SetEntityTag(id, ENTITY_TAG)
         Pewpew:SetEntityMesh(id, GridMesh, 0)
         Pewpew:SetEntityPositionInterpolation(id, true)
         Pewpew:SetEntityAngleInterpolation(id, true)
@@ -90,41 +89,19 @@ pub class Grid {
         cellSize = _cellSize
         offsetX, offsetY, offsetZ = _offsetX, _offsetY, _offsetZ
 
-        repeat Fmath:ToFixed(gridSizeX) with x {
-            repeat Fmath:ToFixed(gridSizeY) with y {
+        repeat Fmath:ToFixed(gridSizeY) with y {
+            repeat Fmath:ToFixed(gridSizeX) with x {
                 let px = (x - 1f) * cellSize + offsetX
                 let py = (y - 1f) * cellSize + offsetY
                 
                 Table:Insert(gridContainer, new PointInfo(px, py, px, py, 0f, 0f, 0f))
-
-                // let debugId = Pewpew:NewEntity(px, py)
-                // Pewpew:SetEntityMeshScale(debugId, 0.1500fx)
-                // Pewpew:SetEntityString(debugId, "#ffffff55o")
             }
         }
 
         tick {
-            repeat gridCount with i {
-                let point = gridContainer[i]
+            for _, point in gridContainer {
                 let posX, posY = point.currentX, point.currentY
                 let velX, velY = point.velocityX, point.velocityY
-
-                // let leftExtent, bottomExtent = WorldToGridPos(x - radius, y - radius)
-                // let rightExtent, topExtent = WorldToGridPos(x + radius, y + radius)
-
-                // repeat from leftExtent to rightExtent with gx {
-                //     repeat from bottomExtent to topExtent with gy {
-                //         let point = GetPoint(gx, gy)
-
-                //         let dx, dy = point.anchorX - x, point.anchorY - y
-                //         let len = FmathHelpers:Length(dx, dy)
-
-                //         if len < radius {
-                //             let factor = (1f - (len / radius)) * power * (len ^ -1f)
-                //             point.velocityX, point.velocityY += dx * factor, dy * factor
-                //         }
-                //     }
-                // }
             
                 velX += point.anchorX - posX
                 velX *= 0.2248fx
@@ -140,30 +117,30 @@ pub class Grid {
             }
 
             if #lines > 0 {
-                for _, v in lines {
-                    v.Update()
+                for _, line in lines {
+                    line.Update()
                 }
-            }else if #points > 0 {
-                for _, v in points {
-                    v.Update()
+            } else if #points > 0 {
+                for _, point in points {
+                    point.Update()
                 }
             }
         }
     }
 
     fn GetPoint(number x, y) -> PointInfo 
-        => gridContainer[(x - 1) * gridSizeX + y]
+        => gridContainer[(y - 1) * gridSizeY + x]
     
     fn SetColors(number default, active) {
-        gridColor, activeGridColor = default, active        
-    }
+        gridColor, activeGridColor = default, active
+    } 
     
     fn WorldToGridPos(fixed x, y) -> (number, number)
         => MathHelpers:Clamp(Fmath:ToNumber((x + cellSize / 2f) / cellSize) + 1, 1, gridSizeX), MathHelpers:Clamp(Fmath:ToNumber((y + cellSize / 2f) / cellSize) + 1, 1, gridSizeY)
 
     fn CreateLineGrid() {
-        repeat gridSizeX with x {
-            repeat gridSizeY with y {
+        repeat gridSizeY with y {
+            repeat gridSizeX with x {
                 if x < gridSizeX {
                     Table:Insert(lines, new Line(GetPoint(x, y), GetPoint(x + 1, y)))
                 }
@@ -186,8 +163,8 @@ pub class Grid {
         let leftExtent, bottomExtent = WorldToGridPos(x - radius, y - radius)
         let rightExtent, topExtent = WorldToGridPos(x + radius, y + radius)
 
-        repeat from leftExtent to rightExtent with gx {
-            repeat from bottomExtent to topExtent with gy {
+        repeat from bottomExtent to topExtent with gy {
+            repeat from leftExtent to rightExtent with gx {
                 let point = GetPoint(gx, gy)
 
                 let dx, dy = point.anchorX - x, point.anchorY - y

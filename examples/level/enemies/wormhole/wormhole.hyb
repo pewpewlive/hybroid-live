@@ -3,6 +3,27 @@ env WormholeEntity as Level
 use Pewpew
 use ShipEntity
 
+pub entity WormholeDeath {
+    fixed radius, power
+    number lifeTime = 5
+
+    spawn(fixed x, y, radius, power) {
+        self.radius = radius
+        self.power = radius
+    }
+
+    Update() {
+        lifeTime -= 1
+        if lifeTime <= 0 {
+            destroy self()
+        }
+    }
+
+    destroy() {
+        DestroyEntity(self)
+    }
+}
+
 enum AttackState {
     NOTHING,
     CHARADE,
@@ -22,7 +43,7 @@ const BURST_BULLET_AMOUNT = 8
 const BURST_DURATION = 300
 const BURST_PREPARATION_TIME = 90
 
-entity Wormhole {
+pub entity Wormhole {
     AttackState state = AttackState.NOTHING
     fixed mx, my
     fixed radius
@@ -43,7 +64,6 @@ entity Wormhole {
     number burstBulletAmount = BURST_BULLET_AMOUNT
 
     spawn(fixed x, y, radius) {
-        SetEntityTag(self, Globals:WORMHOLE_PULL)
         SetEntityRadius(self, radius)
         self.radius = radius
         self.pullRadius = radius*4f
@@ -53,6 +73,8 @@ entity Wormhole {
 
     destroy() {
         PlayAmbientSound(WormholeSound, 1)
+        let ex, ey = GetEntityPosition(self)
+        spawn WormholeDeath(ex, ey, pullRadius, 1000f)
         DestroyEntity(self)
     }
 

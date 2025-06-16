@@ -22,9 +22,10 @@ pub class Ship {
       cannon = CannonType.Double,
       frequency = CannonFreq.Freq10,
     })
-    AddUpdateCallback(fn() {
+    
+    tick {
       cam.Update(id)
-    })
+    }
   }
 }
 

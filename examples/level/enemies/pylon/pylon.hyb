@@ -16,11 +16,10 @@ const BARRAGE_BULLET_FREQUENCY = 15
 const PYLON_SIGHT_RADIUS = 500f
 const DEATH_DURATION = 40f
 const HP_MAX = 40
-const COLOR = 0xf64400ff
 const HOVER_HEIGHT = 25f
 const PYLON_COLOR = 0xaa00faff
 
-entity Pylon {
+pub entity Pylon {
     AttackState state = AttackState.NOTHING
     entity topPrism
     fixed time
@@ -56,6 +55,12 @@ entity Pylon {
         CreateExplosion(x, y, PYLON_COLOR, 1.5f, 50)
         CreateExplosion(x, y, PYLON_COLOR, 1f, 30)
         PlaySound(PylonSound, 1, x, y)
+        if IsEntityAlive(ShipEntity:SHIP.id) {
+            let px, py = GetEntityPosition(ShipEntity:SHIP.id)
+            let dist = (px - x) ^ 2f + (py - y) ^ 2f
+            ShipEntity:SHIP.cam.Shake(FmathHelpers:Clamp(50f * (1f - dist / (150f ^ 2f)), 10f, 50f))
+        }
+        spawn Shockwave:Shockwave(x, y, struct{radius = 30f, speed = 10f, power = 60f, duration = 60, count = 32})
     }
 
     Update() {

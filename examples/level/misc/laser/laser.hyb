@@ -9,7 +9,7 @@ const LASER_DURATION = 16f
 const HIT_COOLDOWN_MAX = 4
 const LENGTH = 7000f
 
-entity Laser {
+pub entity Laser {
     fixed timer = LASER_DURATION
 
     bool isDead

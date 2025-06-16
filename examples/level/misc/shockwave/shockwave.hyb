@@ -1,0 +1,75 @@
+env Shockwave as Level
+
+use Pewpew
+
+alias Properties = struct{
+  fixed radius, speed, power,
+  number duration,
+  number count
+}
+
+pub entity Particle {
+  fixed speed, angle, radius, power, decay
+  number duration
+
+  spawn(fixed x, y, speed, angle, radius, power, number duration) {
+    self.speed, self.angle = speed, angle 
+    self.radius = radius
+    self.duration = duration
+    self.power = power
+
+    self.decay = power / Fmath:ToFixed(duration)
+  }
+
+  destroy() {
+    DestroyEntity(self)
+  }
+
+  Update() {
+    let my, mx = Fmath:Sincos(angle)
+    let px, py = GetEntityPosition(self)
+    SetEntityPosition(self, px + mx * speed, py + my * speed)
+
+    power -= decay
+    duration -= 1
+    if duration <= 0 {
+      destroy self()
+    }
+  }
+
+  WallCollision(fixed _, _) {
+    destroy self()
+  }
+}
+
+pub entity Shockwave {
+  list<Particle> particles
+  Properties properties
+
+  spawn(fixed x, y, Properties properties) {
+    self.properties = properties
+
+    let offset = Fmath:Tau() / Fmath:ToFixed(properties.count)
+    repeat properties.count with i {
+      let angle = offset * Fmath:ToFixed(i - 1)
+      Table:Insert(particles, spawn Particle(x, y, properties.speed, angle, properties.radius, properties.power, properties.duration))
+    }
+  }
+
+  destroy() {
+    DestroyEntity(self)
+  }
+
+  Update() {
+    repeat from #particles to 1 by -1 with i {
+      if !IsEntityAlive(particles[i]) {
+        Table:Remove(particles, i)
+      }
+    }
+
+    if #particles == 0 {
+      destroy self()
+      return
+    }
+  }
+}

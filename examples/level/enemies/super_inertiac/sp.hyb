@@ -60,17 +60,14 @@ pub entity SuperInertiac {
     //SetEntityColor(self, 0x00ffffff)
     SetEntityMesh(self, SPAnim, 0)
     SetEntityRadius(self, RADIUS)
-    SetEntityTag(self, Globals:NORMAL_PULL)
     
     predictionLine = NewEntity(x, y)
-    SetEntityTag(predictionLine, Grid:ENTITY_TAG)
     SetEntityMesh(predictionLine, SPPredLineMesh, 1)
     SetEntityPositionInterpolation(predictionLine, true)
 
     repeat 3 {
       let laserIndicator = NewEntity(x, y)
       Table:Insert(laserIndicators, laserIndicator)
-      SetEntityTag(laserIndicator, Grid:ENTITY_TAG)
       SetEntityPositionInterpolation(laserIndicator, true)
     }
 
@@ -100,11 +97,11 @@ pub entity SuperInertiac {
     CreateExplosion(x, y, 0x330077ff, 1.6f, 50)
     CreateExplosion(x, y, 0x00aaddff, 1.6f, 50)
 
-    for i in rings{
-      ExplodeEntity(rings[i], 20)
+    for _, ring in rings {
+      ExplodeEntity(ring, 20)
     }
-    for i in laserIndicators {
-      DestroyEntity(laserIndicators[i])
+    for _, laser in laserIndicators {
+      DestroyEntity(laser)
     }
     ExplodeEntity(predictionLine, 0)
   }
@@ -193,7 +190,12 @@ pub entity SuperInertiac {
           }
           if preparationTimer > 0
             break
-
+          
+          if IsEntityAlive(ShipEntity:SHIP.id) {
+            let px, py = GetEntityPosition(ShipEntity:SHIP.id)
+            let dist = (px - x) ^ 2f + (py - y) ^ 2f
+            ShipEntity:SHIP.cam.Shake(FmathHelpers:Clamp(30f * (1f - dist / 100f), 10f, 30f))
+          }
           state = State.FOLLOWING_PLAYER
           cooldown = COOLDOWN_MAX
           for i, v in laserIndicators {
@@ -303,7 +305,7 @@ pub entity SuperInertiac {
   }
 
   fn Bounce(SuperInertiac e, fixed intensity) {
-    if !IsEntityBeingDestroyed(e) {
+    if IsEntityAlive(e) and !IsEntityBeingDestroyed(e) {
       fixed sX, sY = GetEntityPosition(e)
       fixed dX, dY = Normalize(x - sX, y - sY)
       velX, velY += dX * intensity, dY * intensity

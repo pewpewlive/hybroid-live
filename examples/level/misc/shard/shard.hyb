@@ -5,18 +5,19 @@ use Pewpew
 const COLOR = 0x9058faff
 const SHARD_HP_MAX = 5
 
-entity Shard {
+pub entity Shard {
     fixed angle, speed, roll
     number hp = SHARD_HP_MAX
     number currentColor = COLOR
+    fixed mx, my
 
     spawn(fixed x, y, angle, speed) {
         self.angle = angle
         self.speed = speed
         SetEntityMesh(self, ShardMesh, 0)
         SetEntityMeshXYZScale(self, 5f, 9f, 5f)
-        let yy, xx = Fmath:Sincos(angle)
-        SetEntityMeshPosition(self, xx * -2f, yy * -2f, 0f)
+        my, mx = Fmath:Sincos(angle)
+        SetEntityMeshPosition(self, mx * -2f, my * -2f, 0f)
         SetEntityPositionInterpolation(self, true)
         SetEntityMeshColor(self, COLOR)
         SetEntityMeshAngle(self, roll, 1f, 0f, 0f)
@@ -29,7 +30,7 @@ entity Shard {
     destroy() {
         let x, y = GetEntityPosition(self)
         CreateExplosion(x, y, COLOR, 0.75f, 14)
-
+        PlaySound(ShardSound, 1, x, y)
         DestroyEntity(self)
     }
 
@@ -37,9 +38,18 @@ entity Shard {
         roll += speed*1d
         currentColor = ColorHelpers:LerpColors(currentColor, COLOR, 0.4f)
         SetEntityMeshColor(self, currentColor)
-        let moveY, moveX = Fmath:Sincos(angle)
         let x, y = GetEntityPosition(self)
-        SetEntityPosition(self, x + moveX * speed, y + moveY * speed)
+
+        if IsEntityAlive(ShipEntity:SHIP.id) {
+            let px, py = GetEntityPosition(ShipEntity:SHIP.id)
+            let dpx, dpy = FmathHelpers:Normalize(px - x, py - y)
+            dpx, dpy *= speed*0.9f, speed*0.9f
+            mx, my = FmathHelpers:Lerp(mx, dpx, 0.01f), FmathHelpers:Lerp(my, dpy, 0.01f)
+        }
+
+        angle = Fmath:Atan2(my, mx)
+
+        SetEntityPosition(self, x + mx * speed, y + my * speed)
         SetEntityMeshAngle(self, roll, 1f, 0f, 0f)
         AddRotationToEntityMesh(self, angle, 0f, 0f, 1f)
         SkipEntityMeshAttributesInterpolation(self)
@@ -52,6 +62,8 @@ entity Shard {
     PlayerCollision(number _, entity shipId) {
         DamageShip(shipId, 1)
         SetShipSpeed(shipId, 0.6f, 0f, 30)
+        let x, y = GetEntityPosition(self)
+        PlaySound(ShardSound, 0, x, y)
         destroy self()
     }
 
@@ -59,6 +71,8 @@ entity Shard {
         match weaponType {
             WeaponType.Bullet => {
                 hp -= 1
+                let x, y = GetEntityPosition(self)
+                PlaySound(ShardSound, 0, x, y)
                 currentColor = 0xffffffff
                 if hp <= 0 {
                     destroy self()

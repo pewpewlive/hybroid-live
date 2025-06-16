@@ -13,7 +13,7 @@ alias BulletSettings = struct{
 
 const scale2rad = 4f
 
-entity Bullet {
+pub entity Bullet {
     BulletSettings bs = struct{
         bounceWallCount = 0,
         homing = true,
@@ -48,7 +48,6 @@ entity Bullet {
         SetEntityRadius(self, radius)
         SetEntityMeshColor(self, color)
         SetEntityPositionInterpolation(self, true)
-        SetEntityTag(self, Globals:NORMAL_PULL)
         SetEntityMesh(self, BulletMesh, 0)
         SkipEntityMeshAttributesInterpolation(self)
         SpawnEntity(self, 0)

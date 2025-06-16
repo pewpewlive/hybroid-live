@@ -40,8 +40,8 @@ let sizeMap = [
     struct{v1 = SIZE*0.5, v2 = SIZE*0.5, t1 = 0.5, t2 = 0.75, type = ParamType.Linear},
     struct{v1 = SIZE*0.5, v2 = SIZE, t1 = 0.75, t2 = 1, type = ParamType.Squared},
 ]
-let color1 = 0x4000ffff
-let color2 = 0xff0000ff
+let color1 = 0x40ffffff
+let color2 = 0xffff00ff
 let colorMap = [
     struct{v1 = color1, v2 = color1, t1 = 0, t2 = 0.25, type = ParamType.Linear},
     struct{v1 = color1, v2 = color2, t1 = 0.25, t2 = 0.5, type = ParamType.Linear},

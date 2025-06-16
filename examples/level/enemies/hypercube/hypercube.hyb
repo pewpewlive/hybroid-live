@@ -1,17 +1,21 @@
 env HypercubeEntity as Level
 
 use Pewpew
+use ShipEntity
 
-const SHARD_HP_MAX = 5
 const INITIAL_RADIUS = 22f
+const MAX_SPEED = 2f
+pub const FAST_ENOUGH = 8f
 
-entity cubeToFollow = NewEntity(0f,0f)
-
-entity Hypercube {
-    number time, frames
+pub entity Hypercube {
+    number frames
     fixed mx, my
-    fixed speed = 2f
     fixed scale
+    fixed radius
+    fixed colorT
+
+    fixed xAxis, yAxis, zAxis
+    fixed growth = 0.01f
 
     spawn(fixed x, y, angle) {
         self.scale = 1f
@@ -20,9 +24,12 @@ entity Hypercube {
         SkipEntityMeshAttributesInterpolation(self)
         SpawnEntity(self, 0)
         SetEntityRadius(self, INITIAL_RADIUS)
-        if cubeToFollow isnt Hypercube {
-            DestroyEntity(cubeToFollow)
-            cubeToFollow = self
+
+        xAxis = Fmath:RandomFixed(0.5f, 1f)
+        yAxis = Fmath:RandomFixed(-0.5f, 1f)
+        zAxis = Fmath:RandomFixed(-1f, 1f)
+        if zAxis < 0.5f and zAxis > -0.5f {
+            zAxis = 0.5f
         }
 
         my, mx = Fmath:Sincos(angle)
@@ -30,64 +37,81 @@ entity Hypercube {
 
     destroy() {
         let x, y = GetEntityPosition(self)
-        CreateExplosion(x, y, 0xff0000ff, scale, 30)
-        CreateExplosion(x, y, 0x4000ffff, scale*0.5f, 30)
-        DestroyEntity(self)
-        if cubeToFollow == self {
-            cubeToFollow = NewEntity(0f,0f)
-        }
+        let color = ColorHelpers:LerpColors(0xff00ffff, 0xafffffff, colorT)
+        CreateExplosion(x, y, color, scale, 30)
+        CreateExplosion(x, y, color, scale * 0.5f, 30)
+        ExplodeEntity(self, 30)
+        SetEntityWallCollision(self, false, fn(entity _, fixed _, _) {})
+        PlaySound(HypercubeSound, 1, x, y)
     }
 
     Update() {
-        scale = FmathHelpers:Lerp(scale, 3f, 0.1f)
-        AddRotationToEntityMesh(self, 5d, 1f, -1f, 0.5f)
+        scale += growth
+        if scale < 1f {
+            scale = 1f
+        }
 
+        AddRotationToEntityMesh(self, 5d, xAxis, yAxis, zAxis)
         SetEntityMeshScale(self, scale)
-        SetEntityRadius(self, INITIAL_RADIUS*scale)
-        SetEntityFlippingMeshes(self, HypercubeMesh, frames, frames + 1)
-        let x, y = GetEntityPosition(self)
+        SetEntityRadius(self, INITIAL_RADIUS * scale)
         
-        for v in every Hypercube {
-            if v == cubeToFollow
-                continue
-            if cubeToFollow isnt Hypercube {
-                cubeToFollow = self
-                break
-            }
-            let maxRadius = v.scale*INITIAL_RADIUS*2f
+        if !IsEntityBeingDestroyed(self) {
+            SetEntityFlippingMeshes(self, HypercubeMesh, frames, frames + 1)
+            frames = (frames + 2) % 120
 
-            let cx, cy = GetEntityPosition(cubeToFollow)
-            let ex, ey = GetEntityPosition(v)
-            let dx, dy = cx-ex, cy-ey
-            let nx, ny = FmathHelpers:Normalize(dx, dy)
-            let dist = FmathHelpers:Length(dx, dy)
-            v.mx, v.my = v.mx+nx* (dist-maxRadius)/2f, v.my+ny* (dist-maxRadius)/2f
+            if scale > 3.5f {
+                let x, y = GetEntityPosition(self)
+                destroy self()
+                let angle = Fmath:RandomFixed(0d, 360d)
+                let hc = spawn Hypercube(x, y, angle)
+                hc.growth = growth / 2f
+                let hc2 = spawn Hypercube(x, y, angle + 180d)
+                hc2.growth = growth / 2f
+                return
+            }
+        } else {
+            SetEntityMesh(self, HypercubeMesh, frames)
         }
 
-        for v in every Hypercube {
-            if v == self
-                continue
-            let maxRadius = v.scale*INITIAL_RADIUS*2f
-
-            let ex, ey = GetEntityPosition(v)
-            let d2x, d2y = ex-x, ey-y
-            let dist = FmathHelpers:Length(d2x, d2y)
-            let nx, ny = FmathHelpers:Normalize(d2x, d2y)
-            if dist <= maxRadius {
-                v.mx, v.my = v.mx+nx* (dist-maxRadius)/2f, v.my+ny* (dist-maxRadius)/2f
-            }
-        }
-
-        let nx, ny = FmathHelpers:Normalize(mx, my)
-        mx, my = FmathHelpers:Lerp(mx, nx, 0.5f), FmathHelpers:Lerp(my, ny, 0.5f)
-
-        SetEntityPosition(self, x + mx * speed, y + my * speed)
-
-        frames = (frames + 2) % 60
+        UpdateMovement()
     }
 
-    WallCollision(fixed _, _) {
-        destroy self()
+    fn UpdateMovement() {
+        radius = INITIAL_RADIUS * scale
+        SetEntityRadius(self, radius)
+        colorT = FmathHelpers:Lerp(colorT, FmathHelpers:Clamp(Sum()/FAST_ENOUGH, 0.1f, 1.1f) - 0.1f, 0.3f)
+        SetEntityMeshColor(self, ColorHelpers:LerpColors(0xff00ffff, 0xafffffff, colorT))
+
+        let x, y = GetEntityPosition(self)
+        mx, my = FmathHelpers:Lerp(mx, 0f, 0.003f), FmathHelpers:Lerp(my, 0f, 0.003f)
+
+        x, y += mx * MAX_SPEED, my * MAX_SPEED
+        let entities = GetEntitiesInRadius(x, y, radius)
+        for _, v in entities {
+            if v == self or v isnt Hypercube
+                continue
+            if Sum() > FAST_ENOUGH * 0.7f continue
+            
+            let ex, ey = GetEntityPosition(v)
+            mx, my = FmathHelpers:Normalize(x - ex, y - ey)
+            mx, my *= 1.4f, 1.4f
+        }
+        SetEntityPosition(self, x, y)
+    }
+
+    fn Sum() -> fixed {
+        return Fmath:AbsFixed(mx) + Fmath:AbsFixed(my)
+    }
+
+    WallCollision(fixed wallNormalX, wallNormalY) {
+        if IsEntityBeingDestroyed(self) return
+        if Sum() > FAST_ENOUGH {
+            destroy self()
+            return
+        }
+        let wAngle = Fmath:Atan2(wallNormalY, wallNormalX)
+        let mAngle = Fmath:Atan2(-my, -mx)
+        my, mx = Fmath:Sincos(mAngle + wAngle - mAngle)
     }
 
     PlayerCollision(number _, entity shipId) {
@@ -96,9 +120,17 @@ entity Hypercube {
     }
 
     WeaponCollision(number _, WeaponType weaponType) -> bool {
+        if IsEntityBeingDestroyed(self) return false
         match weaponType {
             WeaponType.Bullet => {
-                scale *= 0.6f
+                scale *= 0.98f
+                let x, y = GetEntityPosition(self)
+                PlaySound(HypercubeSound, 0, x, y)
+                if IsEntityAlive(SHIP.id) {
+                    let px, py = GetEntityPosition(SHIP.id)
+                    let dx, dy = FmathHelpers:Normalize(px - x, py - y)
+                    mx, my += dx * 0.7f, dy * 0.7f
+                }
                 return true
             }
         }
