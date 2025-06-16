@@ -8,23 +8,23 @@ import (
 	"strconv"
 )
 
-func (gen *Generator) GenerateParams(params []ast.FunctionParam) {
+func (gen *Generator) GenerateParams(src *core.StringBuilder, params []ast.FunctionParam) {
 	var variadicParam string
 	for i, param := range params {
 		if param.Type.IsVariadic {
-			gen.Write("...")
+			src.Write("...")
 			variadicParam = gen.GenerateExpr(&ast.IdentifierExpr{Name: param.Name})
 		} else {
-			gen.Write(gen.GenerateExpr(&ast.IdentifierExpr{Name: param.Name}))
+			src.Write(gen.GenerateExpr(&ast.IdentifierExpr{Name: param.Name}))
 		}
 		if i != len(params)-1 {
-			gen.Write(", ")
+			src.Write(", ")
 		}
 	}
-	gen.Write(")\n")
+	src.Write(")\n")
 
 	if variadicParam != "" {
-		gen.Twrite("local ", variadicParam, " = {...}\n")
+		gen.Twrite(src, "local ", variadicParam, " = {...}\n")
 	}
 }
 
@@ -109,18 +109,6 @@ func (gen *Generator) breakDownVariableDeclaration(declaration ast.VariableDecl)
 	}
 
 	return decls
-}
-
-func (gen *Generator) GenerateBodyValue(body ast.Body) string {
-	gen.writeToBuffer = true
-	gen.tabCount++
-	for _, node := range body {
-		gen.GenerateStmt(node)
-	}
-	gen.tabCount--
-	gen.writeToBuffer = false
-	defer gen.buffer.Reset()
-	return gen.buffer.String()
 }
 
 func fixedToFx(floatstr string) string {

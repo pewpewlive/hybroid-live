@@ -50,7 +50,7 @@ let colorMap = [
 ]
 
 let time = 0
-repeat 60 with i {
+repeat 120 with i {
     Table:Insert(frames, NewMesh())
 
     AddPoly(frames[i], [LerpMap(time, posMap), 0, 0], 4, LerpMapColor(time, colorMap), LerpMap(time, sizeMap))
@@ -73,7 +73,7 @@ repeat 60 with i {
     }
     AddPoly(frames[i], [LerpMap(offset2, posMap), 0, 0], 4, LerpMapColor(offset2, colorMap), LerpMap(offset2, sizeMap))
 
-    time += 1/60
+    time += 1/120
 }
 for i in frames {
     repeat #frames[i].vertexes with j {

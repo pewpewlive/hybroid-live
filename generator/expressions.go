@@ -32,10 +32,7 @@ func (gen *Generator) entityExpr(node ast.EntityEvaluationExpr) string {
 	src.Write(hyEntity, envMap[node.EnvName], node.EntityName, "[", expr, "] ", op, " nil")
 
 	if node.ConvertedVarName != nil {
-		preSrc := core.StringBuilder{}
-
-		preSrc.Write("local ", gen.WriteVar(node.ConvertedVarName.Lexeme), " = ", expr, "\n")
-		gen.Twrite(preSrc.String())
+		gen.Twrite(gen.LatestSrc, "local ", gen.WriteVar(node.ConvertedVarName.Lexeme), " = ", expr, "\n")
 	}
 	return src.String()
 }
@@ -152,15 +149,7 @@ func (gen *Generator) unaryExpr(node ast.UnaryExpr) string {
 	return fmt.Sprintf("%s%s", op, gen.GenerateExpr(node.Value))
 }
 
-// Start: E_l
-// [1]: [1]
-// [2]: .o
-//
-//	E_l
-//  tableAccess[%s[2]]
-//  %s[1]
-
-func (gen *Generator) accessExpr(node ast.AccessExpr) string { // thing.Freq15
+func (gen *Generator) accessExpr(node ast.AccessExpr) string {
 	str := ""
 	if node.Start.GetType() == ast.SelfExpression && node.Start.(*ast.SelfExpr).Type == ast.EntityMethod {
 		str = "Self"
@@ -183,7 +172,7 @@ func (gen *Generator) accessExpr(node ast.AccessExpr) string { // thing.Freq15
 			tableAccess := hyEntity + envMap[expr.EnvName] + expr.EntityName
 			str = fmt.Sprintf("%s[%s%s]", tableAccess, str, gen.GenerateExpr(expr.Expr))
 		}
-	} // shio.thing.id ->  thignAcess[[2]][2]
+	}
 
 	return str
 }
@@ -223,7 +212,7 @@ func (gen *Generator) functionExpr(fn ast.FunctionExpr) string {
 	} else {
 		src.Write("\n")
 	}
-	src.Write(gen.GenerateBodyValue(fn.Body))
+	gen.GenerateBody(&src, fn.Body)
 	src.Write(gen.tabString(), "end")
 
 	return src.String()
@@ -296,6 +285,7 @@ func (gen *Generator) spawnExpr(spawn ast.SpawnExpr, stmt bool) string {
 }
 
 func (gen *Generator) matchExpr(match ast.MatchExpr) string {
+	src := core.StringBuilder{}
 	varsSrc := core.StringBuilder{}
 	vars := []string{}
 	gotoLabel := GenerateVar(hyGotoLabel)
@@ -303,22 +293,22 @@ func (gen *Generator) matchExpr(match ast.MatchExpr) string {
 	for i := 0; i < match.ReturnAmount; i++ {
 		helperVarName := GenerateVar(hyVar)
 		if i == 0 {
-			gen.Twrite("local ", helperVarName)
+			gen.Twrite(&src, "local ", helperVarName)
 			varsSrc.Write(helperVarName)
 		} else {
-			gen.Write(", ", helperVarName)
+			src.Write(", ", helperVarName)
 			varsSrc.Write(", ", helperVarName)
 		}
 		vars = append(vars, helperVarName)
 	}
 	ctx := NewYieldContext(vars, gotoLabel)
 
-	gen.Write("\n")
+	src.Write("\n")
 
 	node := match.MatchStmt
 	toMatch := gen.GenerateExpr(node.ExprToMatch)
 	hyVar := GenerateVar(hyVar)
-	gen.Twrite("local ", hyVar, " = ", toMatch, "\n")
+	gen.Twrite(&src, "local ", hyVar, " = ", toMatch, "\n")
 	for i, matchCase := range node.Cases {
 		conditionsSrc := core.StringBuilder{}
 		for j, expr := range matchCase.Expressions {
@@ -328,22 +318,23 @@ func (gen *Generator) matchExpr(match ast.MatchExpr) string {
 			}
 		}
 		if i == 0 {
-			gen.Twrite("if ", conditionsSrc.String(), " then\n")
+			gen.Twrite(&src, "if ", conditionsSrc.String(), " then\n")
 		} else if i == len(node.Cases)-1 {
-			gen.Twrite("else\n")
+			gen.Twrite(&src, "else\n")
 		} else {
-			gen.Twrite("elseif ", conditionsSrc.String(), " then\n")
+			gen.Twrite(&src, "elseif ", conditionsSrc.String(), " then\n")
 		}
 		gen.YieldContexts.Push("MatchExpr", ctx)
 
-		gen.GenerateBody(matchCase.Body)
+		gen.GenerateBody(&src, matchCase.Body)
 
 		gen.YieldContexts.Pop("MatchExpr")
 	}
 
-	gen.Twrite("end\n")
-	gen.Twrite(fmt.Sprintf("::%s::\n", gotoLabel))
+	gen.Twrite(&src, "end\n")
+	gen.Twrite(&src, "::", gotoLabel, "::\n")
 
+	gen.Twrite(gen.LatestSrc, src.String())
 	return varsSrc.String()
 }
 

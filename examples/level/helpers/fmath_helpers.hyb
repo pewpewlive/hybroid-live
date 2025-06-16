@@ -2,10 +2,10 @@ env FmathHelpers as Level
 
 use Fmath
 
-pub fn Length(fixed x, fixed y) -> fixed
+pub fn Length(fixed x, y) -> fixed
   => Sqrt(x * x + y * y)
 
-pub fn Normalize(fixed x, fixed y) -> (fixed, fixed) {
+pub fn Normalize(fixed x, y) -> (fixed, fixed) {
   if x == 0f and y == 0f {
     return 0f, 0f
   }
@@ -19,7 +19,7 @@ pub fn Normalize(fixed x, fixed y) -> (fixed, fixed) {
   return x / len, y / len
 }
 
-pub fn Clamp(fixed val, fixed min, fixed max) -> fixed {
+pub fn Clamp(fixed val, min, max) -> fixed {
   if val > max {
     return max
   }

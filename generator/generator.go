@@ -69,34 +69,23 @@ type Generator struct {
 	BreakLabels    core.Stack[string]
 	YieldContexts  core.Stack[YieldContext]
 
-	buffer        core.StringBuilder
-	writeToBuffer bool
+	LatestSrc *core.StringBuilder
 }
 
-func (gen *Generator) Twrite(chunks ...string) {
+func (gen *Generator) Twrite(src *core.StringBuilder, chunks ...string) {
 	chunks = append([]string{gen.tabString()}, chunks...)
-	if gen.writeToBuffer {
-		gen.buffer.Write(chunks...)
-	} else {
-		gen.src.Write(chunks...)
-	}
-}
-
-func (gen *Generator) Write(chunks ...string) {
-	if gen.writeToBuffer {
-		gen.buffer.Write(chunks...)
-	} else {
-		gen.src.Write(chunks...)
-	}
+	src.Write(chunks...)
 }
 
 func NewGenerator() Generator {
-	return Generator{
+	gen := Generator{
 		Collector:      alerts.NewCollector(),
 		ContinueLabels: core.NewStack[string]("ContinueLabels"),
 		BreakLabels:    core.NewStack[string]("BreakLabels"),
 		YieldContexts:  core.NewStack[YieldContext]("YieldContext"),
 	}
+	gen.LatestSrc = &gen.src
+	return gen
 }
 
 func (gen *Generator) tabString() string {
@@ -143,100 +132,105 @@ func (gen *Generator) GetSrc() string {
 func (gen *Generator) GenerateUsedLibaries(usedLibraries []ast.Library) {
 	for _, v := range usedLibraries {
 		str := v.String()
-		gen.Write("local ", str, " = ", str, "\n")
+		gen.src.Write("local ", str, " = ", str, "\n")
 	}
 }
 
 func (gen *Generator) Generate(program []ast.Node, builtins []string) {
 	for i := range builtins {
-		gen.Write(mapping.Functions[builtins[i]])
-		gen.Write("\n")
+		gen.src.Write(mapping.Functions[builtins[i]])
+		gen.src.Write("\n")
 	}
 	for _, node := range program {
-		gen.GenerateStmt(node)
+		gen.src.Write(gen.GenerateStmt(node), "\n")
 	}
 }
 
 func (gen *Generator) GenerateWithBuiltins(program []ast.Node) {
-	gen.Write(mapping.ParseSoundFunction, "\n", mapping.ToStringFunction, "\n")
+	gen.src.Write(mapping.ParseSoundFunction, "\n", mapping.ToStringFunction, "\n")
 	for _, node := range program {
-		gen.GenerateStmt(node)
+		gen.src.Write(gen.GenerateStmt(node), "\n")
 	}
 }
 
-func (gen *Generator) GenerateBody(body ast.Body) {
+func (gen *Generator) GenerateBody(src *core.StringBuilder, body ast.Body) {
 	gen.tabCount++
+	prevSrc := gen.LatestSrc
+	gen.LatestSrc = src
 	for _, node := range body {
-		gen.GenerateStmt(node)
+		src.Write(gen.GenerateStmt(node), "\n")
 	}
+	gen.LatestSrc = prevSrc
 	gen.tabCount--
 }
 
-func (gen *Generator) GenerateStmt(node ast.Node) {
+func (gen *Generator) GenerateStmt(node ast.Node) string {
+	stmt := ""
 	switch newNode := node.(type) {
 	case *ast.EnvironmentDecl:
-		gen.envStmt(*newNode)
+		stmt = gen.envStmt(*newNode)
 	case *ast.AssignmentStmt:
 		assignStmts := gen.breakDownAssignStmt(*newNode)
-		for _, assignStmt := range assignStmts {
-			gen.assignmentStmt(assignStmt)
-			gen.Write("\n")
+		src := core.StringBuilder{}
+		for i, assignStmt := range assignStmts {
+			if i != 0 {
+				src.Write("\n")
+			}
+			src.Write(gen.assignmentStmt(assignStmt))
 		}
-		return
+		return src.String()
 	case *ast.BreakStmt:
-		gen.breakStmt(*newNode)
+		stmt = gen.breakStmt(*newNode)
 	case *ast.ReturnStmt:
-		gen.returnStmt(*newNode)
+		stmt = gen.returnStmt(*newNode)
 	case *ast.YieldStmt:
-		gen.yieldStmt(*newNode)
+		stmt = gen.yieldStmt(*newNode)
 	case *ast.ContinueStmt:
-		gen.continueStmt(*newNode)
+		stmt = gen.continueStmt(*newNode)
 	case *ast.MatchStmt:
-		gen.matchStmt(*newNode)
+		stmt = gen.matchStmt(*newNode)
 	case *ast.IfStmt:
-		gen.ifStmt(*newNode)
+		stmt = gen.ifStmt(*newNode)
 	case *ast.RepeatStmt:
-		gen.repeatStmt(*newNode)
+		stmt = gen.repeatStmt(*newNode)
 	case *ast.WhileStmt:
-		gen.whileStmt(*newNode)
+		stmt = gen.whileStmt(*newNode)
 	case *ast.ForStmt:
-		gen.forStmt(*newNode)
+		stmt = gen.forStmt(*newNode)
 	case *ast.TickStmt:
-		gen.tickStmt(*newNode)
+		stmt = gen.tickStmt(*newNode)
 	case *ast.VariableDecl:
+		src := core.StringBuilder{}
 		varDecls := gen.breakDownVariableDeclaration(*newNode)
-		for _, varDecl := range varDecls {
-			gen.variableDeclaration(varDecl)
-			gen.Write("\n")
+		for i, varDecl := range varDecls {
+			if i != 0 {
+				src.Write("\n")
+			}
+			src.Write(gen.variableDeclaration(varDecl))
 		}
-		return
+		return src.String()
 	case *ast.CallExpr:
-		val := gen.callExpr(*newNode, true)
-		gen.Write(val)
+		stmt = gen.callExpr(*newNode, true)
 	case *ast.MethodCallExpr:
-		val := gen.methodCallExpr(*newNode, true)
-		gen.Write(val)
+		stmt = gen.methodCallExpr(*newNode, true)
 	case *ast.SpawnExpr:
-		val := gen.spawnExpr(*newNode, true)
-		gen.Write(val)
+		stmt = gen.spawnExpr(*newNode, true)
 	case *ast.NewExpr:
-		val := gen.newExpr(*newNode, true)
-		gen.Write(val)
+		stmt = gen.newExpr(*newNode, true)
 	case *ast.FunctionDecl:
-		gen.functionDeclaration(*newNode)
+		stmt = gen.functionDeclaration(*newNode)
 	case *ast.ClassDecl:
-		gen.classDeclaration(*newNode)
+		stmt = gen.classDeclaration(*newNode)
 	case *ast.EnvAccessExpr:
-		val := gen.envAccessExpr(*newNode)
-		gen.Write(val)
+		stmt = gen.envAccessExpr(*newNode)
 	case *ast.EntityDecl:
-		gen.entityDeclaration(*newNode)
+		stmt = gen.entityDeclaration(*newNode)
 	case *ast.DestroyStmt:
-		gen.destroyStmt(*newNode)
+		stmt = gen.destroyStmt(*newNode)
 	default:
-		return
+		return ""
 	}
-	gen.Write("\n")
+	return stmt
 }
 
 func (gen *Generator) GenerateExpr(node ast.Node) string {

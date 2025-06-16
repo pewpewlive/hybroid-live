@@ -3,6 +3,9 @@ env HypercubeEntity as Level
 use Pewpew
 
 const SHARD_HP_MAX = 5
+const INITIAL_RADIUS = 22f
+
+entity cubeToFollow = NewEntity(0f,0f)
 
 entity Hypercube {
     number time, frames
@@ -16,7 +19,11 @@ entity Hypercube {
         SetEntityPositionInterpolation(self, true)
         SkipEntityMeshAttributesInterpolation(self)
         SpawnEntity(self, 0)
-        SetEntityRadius(self, 20f)
+        SetEntityRadius(self, INITIAL_RADIUS)
+        if cubeToFollow isnt Hypercube {
+            DestroyEntity(cubeToFollow)
+            cubeToFollow = self
+        }
 
         my, mx = Fmath:Sincos(angle)
     }
@@ -26,23 +33,57 @@ entity Hypercube {
         CreateExplosion(x, y, 0xff0000ff, scale, 30)
         CreateExplosion(x, y, 0x4000ffff, scale*0.5f, 30)
         DestroyEntity(self)
+        if cubeToFollow == self {
+            cubeToFollow = NewEntity(0f,0f)
+        }
     }
 
     Update() {
         scale = FmathHelpers:Lerp(scale, 3f, 0.1f)
-        if frames > 59 {
-            frames = 0
-        }
-
         AddRotationToEntityMesh(self, 5d, 1f, -1f, 0.5f)
 
         SetEntityMeshScale(self, scale)
-        SetEntityRadius(self, 20f*scale)
-        SetEntityMesh(self, HypercubeMesh, frames)
+        SetEntityRadius(self, INITIAL_RADIUS*scale)
+        SetEntityFlippingMeshes(self, HypercubeMesh, frames, frames + 1)
         let x, y = GetEntityPosition(self)
+        
+        for v in every Hypercube {
+            if v == cubeToFollow
+                continue
+            if cubeToFollow isnt Hypercube {
+                cubeToFollow = self
+                break
+            }
+            let maxRadius = v.scale*INITIAL_RADIUS*2f
+
+            let cx, cy = GetEntityPosition(cubeToFollow)
+            let ex, ey = GetEntityPosition(v)
+            let dx, dy = cx-ex, cy-ey
+            let nx, ny = FmathHelpers:Normalize(dx, dy)
+            let dist = FmathHelpers:Length(dx, dy)
+            v.mx, v.my = v.mx+nx* (dist-maxRadius)/2f, v.my+ny* (dist-maxRadius)/2f
+        }
+
+        for v in every Hypercube {
+            if v == self
+                continue
+            let maxRadius = v.scale*INITIAL_RADIUS*2f
+
+            let ex, ey = GetEntityPosition(v)
+            let d2x, d2y = ex-x, ey-y
+            let dist = FmathHelpers:Length(d2x, d2y)
+            let nx, ny = FmathHelpers:Normalize(d2x, d2y)
+            if dist <= maxRadius {
+                v.mx, v.my = v.mx+nx* (dist-maxRadius)/2f, v.my+ny* (dist-maxRadius)/2f
+            }
+        }
+
+        let nx, ny = FmathHelpers:Normalize(mx, my)
+        mx, my = FmathHelpers:Lerp(mx, nx, 0.5f), FmathHelpers:Lerp(my, ny, 0.5f)
+
         SetEntityPosition(self, x + mx * speed, y + my * speed)
 
-        frames += 1
+        frames = (frames + 2) % 60
     }
 
     WallCollision(fixed _, _) {

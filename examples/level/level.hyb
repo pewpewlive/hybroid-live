@@ -19,7 +19,10 @@ SetEntityMesh(bg, MapMesh, 1)
 //spawn SuperInertiac(500f, 0f)
 //spawn Pylon(100f, 100f)
 //spawn WormholeEntity:Wormhole(WIDTH/2f, HEIGHT/2f, 40f)
-spawn Hypercube(400f, 500f, Fmath:RandomFixed(0d, 360d))
+spawn Hypercube(200f, 500f, Fmath:RandomFixed(0d, 360d))
+spawn Hypercube(200f, 500f, Fmath:RandomFixed(0d, 360d))
+spawn Hypercube(200f, 500f, Fmath:RandomFixed(0d, 360d))
+spawn Hypercube(200f, 300f, Fmath:RandomFixed(0d, 360d))
 
 //AddWall(750f, 250f, 500f, 500f)
 

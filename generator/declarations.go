@@ -6,9 +6,9 @@ import (
 	"hybroid/core"
 )
 
-func (gen *Generator) variableDeclaration(declaration ast.VariableDecl) {
+func (gen *Generator) variableDeclaration(declaration ast.VariableDecl) string {
 	if declaration.IsConst {
-		return
+		return ""
 	}
 	var values []string
 
@@ -41,13 +41,14 @@ func (gen *Generator) variableDeclaration(declaration ast.VariableDecl) {
 	}
 
 	src.Write(src2.String())
-	gen.Write(src.String())
+	return src.String()
 }
 
-func (gen *Generator) classDeclaration(node ast.ClassDecl) {
+func (gen *Generator) classDeclaration(node ast.ClassDecl) string {
+	src := core.StringBuilder{}
 	for _, nodebody := range node.Methods {
-		gen.methodDeclaration(nodebody, node)
-		gen.Write("\n")
+		src.Write(gen.methodDeclaration(nodebody, node))
+		src.Write("\n")
 	}
 
 	totalFieldDecls := make([]ast.VariableDecl, 0)
@@ -57,24 +58,26 @@ func (gen *Generator) classDeclaration(node ast.ClassDecl) {
 	}
 	node.Fields = totalFieldDecls
 
-	gen.constructorDeclaration(*node.Constructor, node)
+	src.Write(gen.constructorDeclaration(*node.Constructor, node))
+	return src.String()
 }
 
-func (gen *Generator) entityDeclaration(node ast.EntityDecl) {
+func (gen *Generator) entityDeclaration(node ast.EntityDecl) string {
+	src := core.StringBuilder{}
 	entityName := gen.WriteVarExtra(node.Name.Lexeme, hyEntity)
 
-	gen.Write(entityName, " = {}\n")
+	src.Write(entityName, " = {}\n")
 	for i, v := range node.Callbacks {
-		gen.Twrite(fmt.Sprintf("local function %sHCb%d", entityName, i), "(id")
+		gen.Twrite(&src, fmt.Sprintf("local function %sHCb%d", entityName, i), "(id")
 		if len(v.Params) != 0 {
-			gen.Write(", ")
+			src.Write(", ")
 		}
-		gen.GenerateParams(v.Params)
+		gen.GenerateParams(&src, v.Params)
 		gen.tabCount++
-		gen.Twrite("local Self = ", entityName, "[id]\n")
+		gen.Twrite(&src, "local Self = ", entityName, "[id]\n")
 		gen.tabCount--
-		gen.GenerateBody(v.Body)
-		gen.Twrite("end\n")
+		gen.GenerateBody(&src, v.Body)
+		gen.Twrite(&src, "end\n")
 	}
 
 	totalFieldDecls := make([]ast.VariableDecl, 0)
@@ -84,41 +87,43 @@ func (gen *Generator) entityDeclaration(node ast.EntityDecl) {
 	}
 	node.Fields = totalFieldDecls
 
-	gen.spawnDeclaration(*node.Spawner, node)
-	gen.Write("\n")
-	gen.destroyDeclaration(*node.Destroyer, node)
+	src.Write(gen.spawnDeclaration(*node.Spawner, node), "\n")
+	src.Write(gen.destroyDeclaration(*node.Destroyer, node))
 
 	for _, v := range node.Methods {
-		gen.Write("\n")
-		gen.entityFunctionDeclaration(v, node)
+		src.Write("\n", gen.entityFunctionDeclaration(v, node))
 	}
-	gen.Write("\n")
-	gen.Twrite("local function check() for k in pairs(", entityName, ") do if not pewpew.entity_get_is_alive(k) then ", entityName, "[k] = nil end end end\n")
-	gen.Twrite("pewpew.add_update_callback(check)")
+	src.Write("\n")
+	gen.Twrite(&src, "local function check() for k in pairs(", entityName, ") do if not pewpew.entity_get_is_alive(k) then ", entityName, "[k] = nil end end end\n")
+	gen.Twrite(&src, "pewpew.add_update_callback(check)")
+	return src.String()
 }
 
-func (gen *Generator) constructorDeclaration(node ast.ConstructorDecl, class ast.ClassDecl) {
-	gen.Write("function ", gen.WriteVarExtra(class.Name.Lexeme, hyClass), "_New(")
+func (gen *Generator) constructorDeclaration(node ast.ConstructorDecl, class ast.ClassDecl) string {
+	src := core.StringBuilder{}
 
-	gen.GenerateParams(node.Params)
+	src.Write("function ", gen.WriteVarExtra(class.Name.Lexeme, hyClass), "_New(")
+	gen.GenerateParams(&src, node.Params)
 
 	gen.tabCount++
-	gen.Twrite("local Self = {}\n")
+	gen.Twrite(&src, "local Self = {}\n")
 	counter := 1
 	for _, fieldDecl := range class.Fields {
-		gen.fieldDeclaration(fieldDecl, counter)
-		gen.Write("\n")
+		src.Write(gen.fieldDeclaration(fieldDecl, counter))
+		src.Write("\n")
 		counter += len(fieldDecl.Identifiers)
 	}
 	gen.tabCount--
-	gen.GenerateBody(node.Body)
+	gen.GenerateBody(&src, node.Body)
 	gen.tabCount++
-	gen.Twrite("return Self\n")
+	gen.Twrite(&src, "return Self\n")
 	gen.tabCount--
-	gen.Twrite("end")
+	gen.Twrite(&src, "end")
+
+	return src.String()
 }
 
-func (gen *Generator) fieldDeclaration(node ast.VariableDecl, index int) {
+func (gen *Generator) fieldDeclaration(node ast.VariableDecl, index int) string {
 	src := core.StringBuilder{}
 
 	src.Write(gen.tabString())
@@ -135,107 +140,120 @@ func (gen *Generator) fieldDeclaration(node ast.VariableDecl, index int) {
 			src.Write(", ")
 		}
 	}
-	gen.Write(src.String())
+	return src.String()
 }
 
-func (gen *Generator) methodDeclaration(node ast.MethodDecl, Struct ast.ClassDecl) {
-	gen.Write("function ", gen.WriteVarExtra(Struct.Name.Lexeme, hyClass), "_", node.Name.Lexeme, "(Self")
+func (gen *Generator) methodDeclaration(node ast.MethodDecl, Struct ast.ClassDecl) string {
+	src := core.StringBuilder{}
+	src.Write("function ", gen.WriteVarExtra(Struct.Name.Lexeme, hyClass), "_", node.Name.Lexeme, "(Self")
 	for _, param := range node.Params {
-		gen.Write(", ")
-		gen.Write(gen.WriteVar(param.Name.Lexeme))
+		src.Write(", ")
+		src.Write(gen.WriteVar(param.Name.Lexeme))
 	}
-	gen.Write(")\n")
+	src.Write(")\n")
 
-	gen.GenerateBody(node.Body)
+	gen.GenerateBody(&src, node.Body)
 
-	gen.Twrite("end")
+	gen.Twrite(&src, "end")
+	return src.String()
 }
 
-func (gen *Generator) entityFunctionDeclaration(node ast.MethodDecl, entity ast.EntityDecl) {
+func (gen *Generator) entityFunctionDeclaration(node ast.MethodDecl, entity ast.EntityDecl) string {
+	src := core.StringBuilder{}
 	entityName := gen.WriteVarExtra(entity.Name.Lexeme, hyEntity)
 
-	gen.Write("function ", entityName, "_", node.Name.Lexeme, "(id")
+	src.Write("function ", entityName, "_", node.Name.Lexeme, "(id")
 	for _, param := range node.Params {
-		gen.Write(", ")
-		gen.Write(gen.WriteVar(param.Name.Lexeme))
+		src.Write(", ")
+		src.Write(gen.WriteVar(param.Name.Lexeme))
 	}
-	gen.Write(")\n")
+	src.Write(")\n")
 	gen.tabCount++
-	gen.Twrite("local Self = ", entityName, "[id]\n")
+	gen.Twrite(&src, "local Self = ", entityName, "[id]\n")
 	gen.tabCount--
 
-	gen.GenerateBody(node.Body)
+	gen.GenerateBody(&src, node.Body)
 
-	gen.Twrite("end")
+	gen.Twrite(&src, "end")
+	return src.String()
 }
 
-func (gen *Generator) spawnDeclaration(node ast.EntityFunctionDecl, entity ast.EntityDecl) {
+func (gen *Generator) spawnDeclaration(node ast.EntityFunctionDecl, entity ast.EntityDecl) string {
+	src := core.StringBuilder{}
 	entityName := gen.WriteVarExtra(entity.Name.Lexeme, hyEntity)
 
-	gen.Write("function ", entityName, "_Spawn(")
+	src.Write("function ", entityName, "_Spawn(")
 
-	gen.GenerateParams(node.Params)
+	gen.GenerateParams(&src, node.Params)
 
 	gen.tabCount++
 
-	gen.Twrite("local id = pewpew.new_customizable_entity(", gen.WriteVar(node.Params[0].Name.Lexeme), ", ", gen.WriteVar(node.Params[1].Name.Lexeme), ")\n")
+	gen.Twrite(&src, "local id = pewpew.new_customizable_entity(", gen.WriteVar(node.Params[0].Name.Lexeme), ", ", gen.WriteVar(node.Params[1].Name.Lexeme), ")\n")
 	tableAccess := entityName + "[id]"
-	gen.Twrite(tableAccess, " = {}\n")
-	gen.Twrite("local Self = ", tableAccess, "\n")
+	gen.Twrite(&src, tableAccess, " = {}\n")
+	gen.Twrite(&src, "local Self = ", tableAccess, "\n")
 	counter := 1
 	for _, field := range entity.Fields {
-		gen.fieldDeclaration(field, counter)
-		gen.Write("\n")
+		src.Write(gen.fieldDeclaration(field, counter))
+		src.Write("\n")
 		counter += len(field.Identifiers)
 	}
 
 	gen.tabCount--
-	gen.GenerateBody(node.Body)
+	gen.GenerateBody(&src, node.Body)
 	gen.tabCount++
 
 	for i, v := range entity.Callbacks {
 		switch v.Type {
 		case ast.WallCollision:
-			gen.Twrite(fmt.Sprintf("pewpew.customizable_entity_configure_wall_collision(id, true, %sHCb%d)\n", entityName, i))
+			gen.Twrite(&src, fmt.Sprintf("pewpew.customizable_entity_configure_wall_collision(id, true, %sHCb%d)\n", entityName, i))
 		case ast.WeaponCollision:
-			gen.Twrite(fmt.Sprintf("pewpew.customizable_entity_set_weapon_collision_callback(id, %sHCb%d)\n", entityName, i))
+			gen.Twrite(&src, fmt.Sprintf("pewpew.customizable_entity_set_weapon_collision_callback(id, %sHCb%d)\n", entityName, i))
 		case ast.PlayerCollision:
-			gen.Twrite(fmt.Sprintf("pewpew.customizable_entity_set_player_collision_callback(id, %sHCb%d)\n", entityName, i))
+			gen.Twrite(&src, fmt.Sprintf("pewpew.customizable_entity_set_player_collision_callback(id, %sHCb%d)\n", entityName, i))
 		case ast.Update:
-			gen.Twrite(fmt.Sprintf("pewpew.entity_set_update_callback(id, %sHCb%d)\n", entityName, i))
+			gen.Twrite(&src, fmt.Sprintf("pewpew.entity_set_update_callback(id, %sHCb%d)\n", entityName, i))
 		}
 	}
-	gen.Twrite("return id\n")
+	gen.Twrite(&src, "return id\n")
 	gen.tabCount--
 
-	gen.Twrite("end")
+	gen.Twrite(&src, "end")
+	return src.String()
 }
 
-func (gen *Generator) destroyDeclaration(node ast.EntityFunctionDecl, entity ast.EntityDecl) {
+func (gen *Generator) destroyDeclaration(node ast.EntityFunctionDecl, entity ast.EntityDecl) string {
+	src := core.StringBuilder{}
+
 	entityName := gen.WriteVarExtra(entity.Name.Lexeme, hyEntity)
-	gen.Write("function ", entityName, "_Destroy(id")
+	src.Write("function ", entityName, "_Destroy(id")
 	if len(node.Params) != 0 {
-		gen.Write(", ")
+		src.Write(", ")
 	}
-	gen.GenerateParams(node.Params)
+	gen.GenerateParams(&src, node.Params)
 	gen.tabCount++
-	gen.Twrite("local Self = ", entityName, "[id]\n")
+	gen.Twrite(&src, "local Self = ", entityName, "[id]\n")
 	gen.tabCount--
 
-	gen.GenerateBody(node.Body)
+	gen.GenerateBody(&src, node.Body)
 
-	gen.Write("end")
+	src.Write("end")
+
+	return src.String()
 }
 
-func (gen *Generator) functionDeclaration(node ast.FunctionDecl) {
+func (gen *Generator) functionDeclaration(node ast.FunctionDecl) string {
+	src := core.StringBuilder{}
 	if !node.IsPub {
-		gen.Twrite("local ")
+		gen.Twrite(&src, "local ")
 	}
 
-	gen.Write("function ", gen.WriteVar(node.Name.Lexeme), "(")
-	gen.GenerateParams(node.Params)
+	src.Write("function ", gen.WriteVar(node.Name.Lexeme), "(")
+	gen.GenerateParams(&src, node.Params)
 
-	gen.GenerateBody(node.Body)
+	gen.GenerateBody(&src, node.Body)
 
-	gen.Twrite("end")
+	gen.Twrite(&src, "end")
+
+	return src.String()
 }
