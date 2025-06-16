@@ -113,6 +113,7 @@ func (p *Printer) StageAlerts(sourcePath string, alerts []Alert) {
 }
 
 func (p *Printer) PrintAlerts() error {
+	warningsCount, errorsCount := 0, 0
 	for sourcePath, alerts := range p.alertsByFile {
 		sourceFile, err := os.OpenFile(sourcePath, os.O_RDONLY, os.ModePerm)
 		if err != nil {
@@ -135,8 +136,10 @@ func (p *Printer) PrintAlerts() error {
 			var msg string
 			switch alert.AlertType() {
 			case Error:
+				errorsCount++
 				msg = "[light_red][bold]error[%s]: [reset]"
 			case Warning:
+				warningsCount++
 				msg = "[light_yellow][bold]warning[%s]: [default]"
 			}
 
@@ -155,6 +158,8 @@ func (p *Printer) PrintAlerts() error {
 			alertMsg.Reset()
 		}
 	}
+
+	color.Printf("Compilation finished with [light_yellow]%v warnings [white]and [light_red]%v errors", warningsCount, errorsCount)
 
 	return nil
 }
