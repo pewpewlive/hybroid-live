@@ -529,7 +529,7 @@
   {
     "name": "InvalidSpawnerParameters",
     "type": "Error",
-    "message": "the first two parameters of the spawner must be fixedpoints"
+    "message": "the first two parameters of the spawner must be fixedpoints (x and y)"
   },
   {
     "name": "InvalidPewpewVariable",
@@ -651,5 +651,15 @@
     "name": "InvalidEntityForLoopType",
     "type": "Error",
     "message": "expected an entity type in the entity for loop"
+  },
+  {
+    "name": "InvalidSpawnerParameter",
+    "type": "Error",
+    "fields": {
+      "Nth": "string",
+      "Name": "string"
+    },
+    "message": "the %s parameter has to be named '%s'",
+    "message_format": ["Nth", "Name"]
   }
 ]

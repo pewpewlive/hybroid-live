@@ -94,10 +94,12 @@ func (w *Walker) resolveVariable(s *Scope, token tokens.Token) *Scope {
 		if ok {
 			return &BuiltinEnv.Scope
 		}
-		for i := range s.Environment.importedWalkers {
-			_, ok := s.Environment.importedWalkers[i].environment.Scope.Variables[name]
-			if ok {
-				return &s.Environment.importedWalkers[i].environment.Scope
+		if &w.environment.Scope == s {
+			for i := range s.Environment.importedWalkers {
+				_, ok := s.Environment.importedWalkers[i].environment.Scope.Variables[name]
+				if ok {
+					return &s.Environment.importedWalkers[i].environment.Scope
+				}
 			}
 		}
 		for _, v := range s.Environment.UsedLibraries {
@@ -161,7 +163,7 @@ func (w *Walker) validateArguments(generics map[string]Type, args []Value, fn *F
 		}
 	}()
 
-	if len(args) > paramCount && fn.Params[paramCount-1].GetType() != Variadic {
+	if len(args) > paramCount && (paramCount == 0 || fn.Params[paramCount-1].GetType() != Variadic) {
 		extraAmount := len(args) - paramCount
 		w.AlertMulti(&alerts.TooManyElementsGiven{},
 			nodeArgs[len(nodeArgs)-extraAmount].GetToken(),

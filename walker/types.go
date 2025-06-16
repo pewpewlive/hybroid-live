@@ -91,14 +91,14 @@ type AliasType struct {
 	Name           string
 	UnderlyingType Type
 	IsUsed         bool
-	IsLocal        bool
+	IsPub          bool
 }
 
-func NewAliasType(name string, underlyingType Type, isLocal bool) *AliasType {
+func NewAliasType(name string, underlyingType Type, IsPub bool) *AliasType {
 	return &AliasType{
 		Name:           name,
 		UnderlyingType: underlyingType,
-		IsLocal:        isLocal,
+		IsPub:          IsPub,
 	}
 }
 

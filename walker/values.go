@@ -316,7 +316,7 @@ type Field struct {
 type EntityVal struct {
 	Token   tokens.Token
 	Type    NamedType
-	IsLocal bool
+	IsPub   bool
 	Fields  map[string]Field
 	Methods map[string]*VariableVal
 
@@ -342,7 +342,7 @@ func NewEntityVal(envName string, node *ast.EntityDecl) *EntityVal {
 	return &EntityVal{
 		Token:   node.Name,
 		Type:    *NewNamedType(envName, name, ast.Entity),
-		IsLocal: !node.IsPub,
+		IsPub:   node.IsPub,
 		Methods: make(map[string]*VariableVal),
 		Fields:  make(map[string]Field, 0),
 		Destroy: NewMethod(ast.NewMethodInfo(ast.EntityMethod, "destroy", name, envName)),
@@ -403,7 +403,7 @@ func (ev *EntityVal) Scopify(parent *Scope) *Scope {
 type ClassVal struct {
 	Token       tokens.Token
 	Type        NamedType
-	IsLocal     bool
+	IsPub       bool
 	Fields      map[string]Field
 	Methods     map[string]*VariableVal
 	GenericArgs []Type

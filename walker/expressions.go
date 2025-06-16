@@ -975,6 +975,7 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 			val := CopyEntityVal(entityVal)
 			typ = &val.Type
 			w.FillGenericsInNamedType(&val.Type, typee, scope)
+			w.checkAccessibility(scope, val.IsPub, typee.Name.GetToken())
 			break
 		}
 		if classVal, found := scope.Environment.Classes[typeName]; found {
@@ -982,11 +983,13 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 			val := CopyClassVal(classVal)
 			typ = &val.Type
 			w.FillGenericsInNamedType(&val.Type, typee, scope)
+			w.checkAccessibility(scope, val.IsPub, typee.Name.GetToken())
 			break
 		}
 		if aliasType, found := scope.resolveAlias(typeName); found {
 			aliasType.IsUsed = true
 			typ = aliasType.UnderlyingType
+			w.checkAccessibility(scope, aliasType.IsPub, typee.Name.GetToken())
 			break
 		}
 		if aliasType, found := BuiltinEnv.Scope.AliasTypes[typeName]; found {

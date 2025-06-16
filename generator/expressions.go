@@ -198,14 +198,8 @@ func (gen *Generator) fieldExpr(node ast.FieldExpr) string {
 
 func (gen *Generator) functionExpr(fn ast.FunctionExpr) string {
 	src := core.StringBuilder{}
-	src.Write("function (")
-	for i, param := range fn.Params {
-		src.Write(param.Name.Lexeme)
-		if i != len(fn.Params)-1 {
-			src.Write(", ")
-		}
-	}
-	src.Write(")")
+	src.Write("function(")
+	gen.GenerateParams(&src, fn.Params)
 	if len(fn.Body) == 0 {
 		src.Write(" end")
 		return src.String()

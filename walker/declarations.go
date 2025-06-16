@@ -44,7 +44,7 @@ func (w *Walker) aliasDeclaration(node *ast.AliasDecl, scope *Scope) {
 		w.AlertSingle(&alerts.Redeclaration{}, node.Token, node.Name, "alias")
 		return
 	}
-	alias := NewAliasType(node.Name.Lexeme, w.typeExpression(node.Type, scope), !node.IsPub)
+	alias := NewAliasType(node.Name.Lexeme, w.typeExpression(node.Type, scope), node.IsPub)
 	alias.Token = node.Token
 	scope.AliasTypes[node.Name.Lexeme] = alias
 }
@@ -66,7 +66,7 @@ func (w *Walker) classDeclaration(node *ast.ClassDecl, scope *Scope) {
 	classVal := &ClassVal{
 		Token:   node.Name,
 		Type:    *NewNamedType(w.environment.Name, node.Name.Lexeme, ast.Class),
-		IsLocal: node.IsPub,
+		IsPub:   node.IsPub,
 		Fields:  make(map[string]Field),
 		Methods: map[string]*VariableVal{},
 		New:     NewFunction(),
@@ -147,10 +147,14 @@ func (w *Walker) entityDeclaration(node *ast.EntityDecl, scope *Scope) {
 	for i := range node.Fields {
 		w.fieldDeclaration(&node.Fields[i], entityVal, entityScope, false)
 	}
-
 	for i := range node.Methods {
 		w.methodDeclaration(&node.Methods[i], entityVal, entityScope, true)
 	}
+
+	fn := w.entityFunctionDeclaration(node.Destroyer, entityScope)
+	entityVal.Destroy = fn
+	fn = w.entityFunctionDeclaration(node.Spawner, entityScope)
+	entityVal.Spawn = fn
 
 	//callbacks
 	found := map[ast.EntityFunctionType][]tokens.Token{}
@@ -166,11 +170,6 @@ func (w *Walker) entityDeclaration(node *ast.EntityDecl, scope *Scope) {
 			w.AlertSingle(&alerts.Redeclaration{}, found[k][1], k, "entity function")
 		}
 	}
-
-	fn := w.entityFunctionDeclaration(node.Destroyer, entityScope)
-	entityVal.Destroy = fn
-	fn = w.entityFunctionDeclaration(node.Spawner, entityScope)
-	entityVal.Spawn = fn
 
 	for _, v := range entityVal.Fields {
 		if !v.Var.IsInit {
@@ -202,13 +201,17 @@ func (w *Walker) entityFunctionDeclaration(node *ast.EntityFunctionDecl, scope *
 		}
 		if node.Params[0].Name.Lexeme == "_" {
 			w.AlertSingle(&alerts.EmptyIdentifierOnSpawnParameters{}, node.Params[0].Name)
+		} else if variable, ok := fnScope.Variables["x"]; !ok {
+			w.AlertSingle(&alerts.InvalidSpawnerParameter{}, node.Params[0].Name, "first", "x")
 		} else {
-			fnScope.Variables["x"].IsUsed = true // its used regardless of user input in the generator (to create the customizable entity)
+			variable.IsUsed = true
 		}
 		if node.Params[1].Name.Lexeme == "_" {
 			w.AlertSingle(&alerts.EmptyIdentifierOnSpawnParameters{}, node.Params[1].Name)
+		} else if variable, ok := fnScope.Variables["y"]; !ok {
+			w.AlertSingle(&alerts.InvalidSpawnerParameter{}, node.Params[0].Name, "second", "y")
 		} else {
-			fnScope.Variables["y"].IsUsed = true // its used regardless of user input in the generator (to create the customizable entity)
+			variable.IsUsed = true
 		}
 	case ast.WallCollision:
 		if !funcSign.Equals(WallCollisionSign) {

@@ -1615,7 +1615,7 @@ type InvalidSpawnerParameters struct {
 }
 
 func (isp *InvalidSpawnerParameters) Message() string {
-	return "the first two parameters of the spawner must be fixedpoints"
+	return "the first two parameters of the spawner must be fixedpoints (x and y)"
 }
 
 func (isp *InvalidSpawnerParameters) SnippetSpecifier() Snippet {
@@ -2044,5 +2044,32 @@ func (ieflt *InvalidEntityForLoopType) ID() string {
 }
 
 func (ieflt *InvalidEntityForLoopType) AlertType() Type {
+	return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type InvalidSpawnerParameter struct {
+	Specifier Snippet
+	Nth       string
+	Name      string
+}
+
+func (isp *InvalidSpawnerParameter) Message() string {
+	return fmt.Sprintf("the %s parameter has to be named '%s'", isp.Nth, isp.Name)
+}
+
+func (isp *InvalidSpawnerParameter) SnippetSpecifier() Snippet {
+	return isp.Specifier
+}
+
+func (isp *InvalidSpawnerParameter) Note() string {
+	return ""
+}
+
+func (isp *InvalidSpawnerParameter) ID() string {
+	return "hyb079W"
+}
+
+func (isp *InvalidSpawnerParameter) AlertType() Type {
 	return Error
 }
