@@ -1,9 +1,11 @@
+local pewpew = pewpew
 
 local _ = 1fx
 local _ = 0.409fx
 
 _ = 0.7fx
-local E_e, _, _ = function ()
+local E_e, _, _ = function()
+
 	return 2, 3
 end, 80247, 4294945535
 local _, _ = E_e()
@@ -13,7 +15,8 @@ function HEE_Entity_Spawn(E_x, E_y)
 	local id = pewpew.new_customizable_entity(E_x, E_y)
 	HEE_Entity[id] = {}
 	local Self = HEE_Entity[id]
-	Self[1] = function () end
+	Self[1] = function()
+ end
 	Self[2] = 2
 	Self[2] = 1
 	return id
@@ -36,7 +39,8 @@ local function check() for k in pairs(HEE_Entity) do if not pewpew.entity_get_is
 pewpew.add_update_callback(check)
 local E_k = HEE_Entity_Spawn(0fx, 0fx)
 HEE_Entity[E_k][1]()
-local E_mp = {HEE_Entity[E_k][1], function () end}
+local E_mp = {HEE_Entity[E_k][1], function()
+ end}
 E_mp[1]()
 local E_l = {E_k, HEE_Entity_Spawn(200fx, 200fx)}
 HEE_Entity[E_l[2]][1]()
