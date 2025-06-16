@@ -64,24 +64,14 @@ sidebar:
 
 ## Functions
 
-%s
+{functions}
 """
 
 
-# def _generate_function_docs(function: types.APIFunction) -> str:
-#     processed_name = mappings.get(function.name, helpers.pascal_case)
-#     function_template = f"### `{processed_name}`\n"
-#     function_template += f"```rs\n{processed_name}({', '.join([_TYPE_MAPPING.get(param.type, 'unknown') + ' ' +  mappings.get(param.name, helpers.camel_case) for param in function.parameters])}) { ('-> ' + ', '.join([_TYPE_MAPPING.get(return_type.type, 'unknown') for return_type in function.return_types])) if len(function.return_types) > 0 else ''}\n```\n"
-#     function_template += f"{function.description}"
-
-#     return function_template
-
-
 def generate_docs(fmath_lib: dict) -> str:
-    return ""
+    functions = [
+        api.Function("fmath", function).generate_docs("Fmath")
+        for function in fmath_lib["functions"]
+    ]
 
-
-#     functions = [types.APIFunction(function) for function in fmath_lib["functions"]]
-#     generated_functions = [_generate_function_docs(function) for function in functions]
-
-#     return _FMATH_DOCS_TEMPLATE % ("\n\n".join(generated_functions))
+    return _FMATH_DOCS_TEMPLATE.format_map({"functions": "\n\n".join(functions)})

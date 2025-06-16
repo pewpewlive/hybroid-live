@@ -94,68 +94,24 @@ sidebar:
 
 ## Enums
 
-%s
+{enums}
 
 ## Functions
 
-%s
+{functions}
 """
 
 
-def _generate_enum_docs(enum: api.Enum) -> str:
-    enum_template = f"### `{enum.name}`\n"
-    enum_template += "".join(
-        [
-            f"\n- `{mappings.get_function("pewpew", value, helpers.pascal_case)}`"
-            for value in enum.variants
-        ]
-    )
-
-    return enum_template
-
-
-def _handle_params(parameters: list[api.Value]):
-    params = []
-    for param in parameters:
-        if param.type == types.Type.MAP:
-            params.append(
-                "struct {\n  %s\n}" % "\n  ".join(_handle_params(param.map_entries))
-            )
-        else:
-            pass
-            # params.append(param.type.generate())
-
-    return params
-
-
-def _generate_function_docs(function: api.Function) -> str:
-    processed_name = mappings.get_function("pewpew", function.name, helpers.pascal_case)
-    # returns = (
-    #     (
-    #         "-> "
-    #         + ", ".join(
-    #             [return_type.generate() for return_type in function.returns]
-    #         )
-    #     )
-    #     if len(function.returns) > 0
-    #     else ""
-    # )
-    function_template = f"### `{processed_name}`\n"
-    # function_template += f"```rs\n{processed_name}({', '.join(_handle_params(function.parameters))}) {returns}\n```\n"
-    # function_template += f"{helpers.camel_case_all(function.description)}"
-
-    return function_template
-
-
 def generate_docs(pewpew_lib: dict) -> str:
-    enums = [api.Enum(enum) for enum in pewpew_lib["enums"]]
+    enums = [api.Enum(enum).generate_docs() for enum in pewpew_lib["enums"]]
     functions = [
-        api.Function("pewpew", function) for function in pewpew_lib["functions"]
+        api.Function("pewpew", function).generate_docs("Pewpew")
+        for function in pewpew_lib["functions"]
     ]
 
-    generated_enums = [_generate_enum_docs(enum) for enum in enums]
-    generated_functions = [_generate_function_docs(function) for function in functions]
-    return _PEWPEW_DOCS_TEMPLATE % (
-        "\n\n".join(generated_enums),
-        "\n\n".join(generated_functions),
+    return _PEWPEW_DOCS_TEMPLATE.format_map(
+        {
+            "enums": "\n\n".join(enums),
+            "functions": "\n\n".join(functions),
+        }
     )

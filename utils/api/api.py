@@ -12,6 +12,9 @@ class Type:
     def __eq__(self, other: types.Type) -> bool:
         return self.type == other
 
+    def __repr__(self):
+        return f"Type({self.type})"
+
     def generate(self, param: bool, name: str) -> str:
         # Type.generate cannot generate a map, call Parameter.generate instead
         assert self.type is not types.Type.MAP, "Cannot generate APIType.MAP"
@@ -94,6 +97,9 @@ class Value:
         if self.enum is not None:
             self.enum = mappings.get_enum(self.enum, None, helpers.pewpew_conversion)
 
+    def __repr__(self):
+        return f"Value({self.name}, {self.type}, {self.map_entries}, {self.enum})"
+
     def generate(self, lib_name: str, func_name: str) -> str:
         if self.enum is not None:
             return f'NewEnumType("{lib_name}", "{self.enum}")'
@@ -117,6 +123,15 @@ class Value:
             )
 
         return self.type.generate(True, func_name)
+
+    def generate_docs(self) -> str:
+        if self.enum is not None:
+            return f"{self.enum} {self.name}"
+        elif len(self.map_entries) != 0:
+            entries = ",\n  ".join(entry.generate_docs() for entry in self.map_entries)
+            return f"struct {{\n  {entries}\n}}"
+        else:
+            return f"{self.type.type.to_str()} {self.name}"
 
 
 class Function(types.Function):
@@ -151,6 +166,24 @@ class Function(types.Function):
             {"name": self.name, "value": VALUE_TEMPLATE.format_map(value_args)}
         )
 
+    def generate_docs(self, lib_name: str) -> str:
+        FUNCTION_TEMPLATE = (
+            "### `{name}`\n\n```rs\n{name}({params}){returns}\n```\n{description}\n"
+        )
+
+        return FUNCTION_TEMPLATE.format_map(
+            {
+                "name": self.name,
+                "params": ", ".join(param.generate_docs() for param in self.parameters),
+                "returns": (
+                    " -> " + ", ".join(ret.generate_docs() for ret in self.returns)
+                    if len(self.returns) != 0
+                    else ""
+                ),
+                "description": self.description,
+            }
+        )
+
 
 class Enum(types.Enum):
     def __init__(self, raw: dict):
@@ -168,5 +201,15 @@ class Enum(types.Enum):
             {
                 "name": self.name,
                 "variants": ",".join(f'"{variant}"' for variant in self.variants),
+            }
+        )
+
+    def generate_docs(self) -> str:
+        ENUM_TEMPLATE = "### `{name}`\n\n{variants}"
+
+        return ENUM_TEMPLATE.format_map(
+            {
+                "name": self.name,
+                "variants": "\n".join(f"- `{variant}`" for variant in self.variants),
             }
         )
