@@ -159,7 +159,22 @@ func (p *Printer) PrintAlerts() error {
 		}
 	}
 
-	color.Printf("Compilation finished with [light_yellow]%v warnings [white]and [light_red]%v errors", warningsCount, errorsCount)
+	extra := ""
+	if warningsCount != 0 {
+		extra = "[light_yellow]" + strconv.Itoa(warningsCount) + " warning(s)[white]"
+	}
+	if errorsCount != 0 {
+		if warningsCount != 0 {
+			extra += " and [light_red]" + strconv.Itoa(errorsCount) + " error(s)"
+		} else {
+			extra += "[light_red]" + strconv.Itoa(errorsCount) + " error(s)"
+		}
+	}
+	if warningsCount == 0 && errorsCount == 0 {
+		fmt.Printf("Compilation finished\n")
+	} else {
+		color.Printf(fmt.Sprintf("Compilation finished with %s\n", extra))
+	}
 
 	return nil
 }
