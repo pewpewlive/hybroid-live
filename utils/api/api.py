@@ -75,6 +75,31 @@ class Type:
                     "invalid combination of `self`, `param`, or `name`"
                 )  # Should not happen!
 
+    def generate_docs(self, name: str):
+        DOCS_CALLBACK_TYPES = {
+            "SetEntityUpdateCallback": "fn(entity entity)",
+            "SetEntityWallCollision": "fn(entity entity, number x, number y)",
+            "SetEntityPlayerCollision": "fn(entity entity, number x, entity other)",
+            "SetEntityWeaponCollision": "fn(entity entity, number x, WeaponType weapon) -> bool",
+        }
+
+        if self.type in (types.Type.LIST, types.Type.STRING):
+            match name:
+                case "GetEntitiesInRadius" | "GetAllEntities":
+                    return "list<entity>"
+                case "SetEntityFlippingMeshes" | "SetEntityMesh":
+                    return "MeshEnvironment"
+                case "PlaySound" | "PlayAmbientSound":
+                    return "SoundEnvironment"
+                case _:
+                    return self.type.to_str()
+        elif self.type is types.Type.CALLBACK and name in DOCS_CALLBACK_TYPES:
+            return DOCS_CALLBACK_TYPES[name]
+        elif self.type is types.Type.CALLBACK:
+            return "fn()"
+        else:
+            return self.type.to_str()
+
 
 class Value:
     name: str
@@ -124,14 +149,18 @@ class Value:
 
         return self.type.generate(True, func_name)
 
-    def generate_docs(self) -> str:
+    def generate_docs(self, func_name: str) -> str:
         if self.enum is not None:
             return f"{self.enum} {self.name}"
         elif len(self.map_entries) != 0:
-            entries = ",\n  ".join(entry.generate_docs() for entry in self.map_entries)
-            return f"struct {{\n  {entries}\n}}"
+            entries = ",\n    ".join(
+                entry.generate_docs(func_name) for entry in self.map_entries
+            )
+            return f"struct{{\n    {entries}\n}}"
+        elif self.name != "" and self.type.type is not types.Type.CALLBACK:
+            return f"{self.type.generate_docs(func_name)} {self.name}"
         else:
-            return f"{self.type.type.to_str()} {self.name}"
+            return self.type.generate_docs(func_name)
 
 
 class Function(types.Function):
@@ -174,11 +203,22 @@ class Function(types.Function):
         return FUNCTION_TEMPLATE.format_map(
             {
                 "name": self.name,
-                "params": ", ".join(param.generate_docs() for param in self.parameters),
+                "params": ", ".join(
+                    param.generate_docs(self.name) for param in self.parameters
+                ),
                 "returns": (
-                    " -> " + ", ".join(ret.generate_docs() for ret in self.returns)
-                    if len(self.returns) != 0
-                    else ""
+                    " -> "
+                    + ", ".join(ret.generate_docs(self.name) for ret in self.returns)
+                    if len(self.returns) == 1
+                    else (
+                        " -> ("
+                        + ", ".join(
+                            ret.generate_docs(self.name) for ret in self.returns
+                        )
+                        + ")"
+                        if len(self.returns) > 1
+                        else ""
+                    )
                 ),
                 "description": self.description,
             }
