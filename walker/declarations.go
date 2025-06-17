@@ -427,6 +427,10 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 		if declType == nil {
 			continue
 		}
+		if valType == UnknownTyp {
+			w.AlertSingle(&alerts.InvalidType{}, declaration.Expressions[values[i].Index].GetToken(), "unknown", "as a variable value")
+			continue
+		}
 		if declType.GetType() == RawEntity && valType.PVT() == ast.Number {
 			variable.Value = &RawEntityVal{}
 		} else if !TypeEquals(declType, valType) && declType != InvalidType && valType != InvalidType {

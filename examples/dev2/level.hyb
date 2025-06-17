@@ -1,37 +1,18 @@
-env Thing as Level 
+env Thing as Level
 
-// entity Yeah<T> {
-//     T a
-//     spawn(fixed x, y, T a) { self.a = a }
-//     destroy() {
-//         ExplodeEntity(self, 20)
-//     }
+let a = fn() -> number { return 8 }()
 
-//     fn method() -> T {
-//         return a
-//     }
-// }
+let a2 = fn() {}
 
-// fn TEST(bool i, fixed... a) -> fixed {
-//     fixed b
-//     for _, v in a {
-//         b += v
-//     }
-//     return b
-// }
+a += 1
 
-// TEST(true, 1f, 2f, 3f)
+let b = struct{name = struct{name2 = 2}}.name.name2
 
-// Table:Insert([1,2,3], 2)
+let c = [1,2,3][1]
 
-// fn name<T>(T a, b, c) {}
-// name(1, 2, 3)
+let d = {"key" = true}["key"]
 
-// Yeah<fixed> o = spawn Yeah<fixed>(1f, 1f, 2f)
-// Yeah o2 = spawn Yeah<number>(1f, 1f, 2)
-
-// number _ = o2.method()
-
-if [<list<number>>] {
-
+fn name(bool _, fn() _, number... b) -> bool {
+    return b[2] == b[1]
 }
+name(d, a2, a, b, c)

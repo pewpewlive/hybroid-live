@@ -473,6 +473,8 @@ func (w *Walker) callExpression(val Value, node *ast.Node, scope *Scope) Value {
 		return &Invalid{}
 	}
 
+	w.ConvertToGroupIf(&call.Caller, ast.FunctionExpression)
+
 	if variable, ok := val.(*VariableVal); ok {
 		val = variable.Value
 	}
@@ -511,7 +513,7 @@ func (w *Walker) callExpression(val Value, node *ast.Node, scope *Scope) Value {
 
 	switch returnLen {
 	case 0:
-		return &Invalid{}
+		return &Unknown{}
 	case 1:
 		return w.typeToValue(actualReturns[returnLen-1])
 	}
@@ -536,6 +538,8 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 	} else {
 		val = &Invalid{}
 	}
+
+	w.ConvertToGroupIf(&node.Start, ast.StructExpression, ast.MapExpression, ast.ListExpression)
 
 	prevNode := &node.Start
 	for i := range node.Accessed {

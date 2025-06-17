@@ -439,6 +439,18 @@ func (w *Walker) getReturns(returns []*ast.TypeExpr, scope *Scope) []Type {
 	return returnType
 }
 
+func (w *Walker) ConvertToGroupIf(node *ast.Node, conditions ...ast.NodeType) {
+	for _, v := range conditions {
+		if (*node).GetType() == v {
+			*node = &ast.GroupExpr{
+				Expr:  *node,
+				Token: (*node).GetToken(),
+			}
+			break
+		}
+	}
+}
+
 func (w *Walker) resolveGenericParam(name string, scope *Scope) (*GenericType, bool) {
 	if scope.Parent == nil {
 		return nil, false

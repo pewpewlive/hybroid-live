@@ -200,12 +200,6 @@ func (gen *Generator) functionExpr(fn ast.FunctionExpr) string {
 	src := core.StringBuilder{}
 	src.Write("function(")
 	gen.GenerateParams(&src, fn.Params)
-	if len(fn.Body) == 0 {
-		src.Write(" end")
-		return src.String()
-	} else {
-		src.Write("\n")
-	}
 	gen.GenerateBody(&src, fn.Body)
 	src.Write(gen.tabString(), "end")
 
