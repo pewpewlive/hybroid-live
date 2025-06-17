@@ -370,7 +370,7 @@ func (w *Walker) returnStatement(node *ast.ReturnStmt, scope *Scope) *[]Type {
 		return ret.Types()
 	}
 
-	w.validateReturnValues(node.Args, ret, (*funcTag).ReturnTypes, "in return arguments") // wait
+	w.validateReturnValues(node.Args, ret, (*funcTag).ReturnTypes, node.Token, "in return arguments") // wait
 
 	if returnable := scope.resolveReturnable(); returnable != nil {
 		(*returnable).SetExit(true, Return)
@@ -410,7 +410,7 @@ func (w *Walker) yieldStatement(node *ast.YieldStmt, scope *Scope) *[]Type {
 	if core.ListsAreSame(matchExprTag.YieldTypes, EmptyReturn) {
 		matchExprTag.YieldTypes = *ret.Types()
 	} else {
-		w.validateReturnValues(node.Args, ret, matchExprTag.YieldTypes, "in yield arguments")
+		w.validateReturnValues(node.Args, ret, matchExprTag.YieldTypes, node.Token, "in yield arguments")
 	}
 
 	if returnable := scope.resolveReturnable(); returnable != nil {

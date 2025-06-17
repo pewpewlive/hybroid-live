@@ -1,12 +1,12 @@
 env VithenMesh as Mesh
 
 use Graphix
+use VithenConstants
 
 pub meshes = [
     NewMesh()
 ]
 
-const SIZE = 65
 //Mesh mesh, Center center, number color, size
 repeat 10 with i {
     let size = MathHelpers:Remap(SIZE, 0, 1, 10, i)

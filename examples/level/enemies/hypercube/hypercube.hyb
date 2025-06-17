@@ -133,6 +133,9 @@ pub entity Hypercube {
                 }
                 return true
             }
+            WeaponType.AtomizeExplosion => {
+                destroy self()
+            }
         }
         return true
     }

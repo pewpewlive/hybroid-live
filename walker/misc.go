@@ -356,15 +356,19 @@ func (w *Walker) validateConditionalOperands(leftVal Value, rightVal Value, node
 	return &BoolVal{}
 }
 
-func (w *Walker) validateReturnValues(returnArgs []ast.Node, _return []Value2, expectReturn []Type, context string) {
+func (w *Walker) validateReturnValues(returnArgs []ast.Node, _return []Value2, expectReturn []Type, token tokens.Token, context string) {
 	retLen := len(_return)
 	expRetLen := len(expectReturn)
 	if retLen < expRetLen {
 		requiredAmount := expRetLen - retLen
-		w.AlertSingle(&alerts.TooFewElementsGiven{}, returnArgs[len(returnArgs)-1].GetToken(), requiredAmount, "return value", context)
+		if len(returnArgs) == 0 {
+			w.AlertSingle(&alerts.TooFewElementsGiven{}, token, requiredAmount, "return value", context)
+		} else {
+			w.AlertSingle(&alerts.TooFewElementsGiven{}, returnArgs[len(returnArgs)-1].GetToken(), requiredAmount, "return value", context)
+		}
 	} else if retLen > expRetLen {
 		extraAmount := retLen - expRetLen
-		w.AlertMulti(&alerts.TooFewElementsGiven{},
+		w.AlertMulti(&alerts.TooManyElementsGiven{},
 			returnArgs[len(returnArgs)-extraAmount].GetToken(),
 			returnArgs[len(returnArgs)-1].GetToken(),
 			extraAmount,

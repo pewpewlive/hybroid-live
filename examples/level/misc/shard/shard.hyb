@@ -15,7 +15,7 @@ pub entity Shard {
         self.angle = angle
         self.speed = speed
         SetEntityMesh(self, ShardMesh, 0)
-        SetEntityMeshXYZScale(self, 5f, 9f, 5f)
+        SetEntityMeshXYZScale(self, 1f, 2f, 1f)
         my, mx = Fmath:Sincos(angle)
         SetEntityMeshPosition(self, mx * -2f, my * -2f, 0f)
         SetEntityPositionInterpolation(self, true)
@@ -31,10 +31,13 @@ pub entity Shard {
         let x, y = GetEntityPosition(self)
         CreateExplosion(x, y, COLOR, 0.75f, 14)
         PlaySound(ShardSound, 1, x, y)
-        DestroyEntity(self)
+        ExplodeEntity(self, 15)
     }
 
     Update() {
+        if IsEntityBeingDestroyed(self) {
+            return
+        }
         roll += speed*1d
         currentColor = ColorHelpers:LerpColors(currentColor, COLOR, 0.4f)
         SetEntityMeshColor(self, currentColor)
@@ -56,10 +59,16 @@ pub entity Shard {
     }
 
     WallCollision(fixed _, _) {
+        if IsEntityBeingDestroyed(self) {
+            return
+        }
         destroy self()
     }
 
     PlayerCollision(number _, entity shipId) {
+        if IsEntityBeingDestroyed(self) {
+            return
+        }
         DamageShip(shipId, 1)
         SetShipSpeed(shipId, 0.6f, 0f, 30)
         let x, y = GetEntityPosition(self)
@@ -68,6 +77,9 @@ pub entity Shard {
     }
 
     WeaponCollision(number _, WeaponType weaponType) -> bool {
+        if IsEntityBeingDestroyed(self) {
+            return false
+        }
         match weaponType {
             WeaponType.Bullet => {
                 hp -= 1

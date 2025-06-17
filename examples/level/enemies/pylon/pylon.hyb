@@ -2,7 +2,6 @@ env Pylon as Level
 
 use Pewpew
 use PylonConstants
-use BulletEntity
 use ShipEntity
 use ShardEntity
 
@@ -139,15 +138,18 @@ pub entity Pylon {
         if isDying return false
 
         match weaponType {
-        WeaponType.Bullet => {
-            hp -= 1
-            reactionTime = 2
-            PlaySound(PylonSound, Fmath:RandomNumber(2,4), x, y)
-            if hp <= 0 {
-                InitiateDeath()
+            WeaponType.Bullet => {
+                hp -= 1
+                reactionTime = 2
+                PlaySound(PylonSound, Fmath:RandomNumber(2,4), x, y)
+                if hp <= 0 {
+                    InitiateDeath()
+                }
+                return true
             }
-            return true
-        }
+            WeaponType.AtomizeExplosion => {
+                destroy self()
+            }
         }
 
         return false

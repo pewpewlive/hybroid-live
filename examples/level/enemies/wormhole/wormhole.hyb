@@ -104,7 +104,7 @@ pub entity Wormhole {
             if dist < radius*3f {
                 let resistance = FmathHelpers:Remap(0f, 8f, radius*3f, radius, dist)
                 let vx, vy = FmathHelpers:Normalize(px-ex, py-ey)
-                SetEntityPosition(SHIP.id, px+vx*resistance, py+vy*resistance)
+                EntityMove(SHIP.id, vx*resistance, vy*resistance)
             }
         }
         

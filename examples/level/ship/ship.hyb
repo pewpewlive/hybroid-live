@@ -3,13 +3,25 @@ env ShipEntity as Level
 use Pewpew
 use Utils
 
+const DASH_DURATION = 10
+
 pub class Ship {
   let entity id
   let Camera cam = new Camera()
 
+  number dashTime
+  number onDashTime
+  list<number> moveStickReleases
+  bool doDash
+  bool added 
+  fixed dashAngle = -1f
+  number coolDown
+
+  entity coolDownMesh
+
   new(fixed x, y) {
     id = NewShip(x, y, 0)
-
+    coolDownMesh = NewEntity(x, y)
     let playerConfig = struct{
       shield = 5,
       camera_distance = -50f,
@@ -24,7 +36,107 @@ pub class Ship {
     })
     
     tick {
+      if !doDash {
+        DashUpdate()
+      }
+      if doDash {
+        OnDash()
+      }
       cam.Update(id)
+    }
+  }
+
+  fn DashUpdate() {
+    coolDown -= 1
+    if coolDown >= 0 {
+      let px, py = GetEntityPosition(id)
+      AddRotationToEntityMesh(coolDownMesh, 11d, 0f, 0f, 1f)
+      SetEntityPosition(coolDownMesh, px, py)
+      SetEntityMesh(coolDownMesh, DashCooldownMesh, 0)
+      return
+    }else if IsEntityAlive(coolDownMesh) {
+      DestroyEntity(coolDownMesh)
+    }
+    dashTime += 1
+    Print("dashUpdate:")
+
+    let ma, md, _, _ = GetPlayerInputs(0)
+    if md > 0.5f and !added {
+      Print("Add")
+      added = true
+      Table:Insert(moveStickReleases, dashTime)
+      if #moveStickReleases > 2 {
+        Table:Remove(moveStickReleases, 1)
+      }
+      if dashAngle != -1f and Fmath:AbsFixed(dashAngle-ma) > 90d {
+        moveStickReleases = list<number>[]
+        dashAngle = -1f
+      } else {
+        dashAngle = ma
+      }
+    }
+    if md < 0.7f {
+      added = false
+    }
+    if #moveStickReleases < 2 {
+      Print("Releases < 2")
+      return
+    }
+    let diff = moveStickReleases[2]-moveStickReleases[1]
+    if diff >= 15 {
+      Print("too late")
+      return
+    }
+
+    Print("dash!")
+    moveStickReleases = list<number>[]
+    dashTime = 0
+    doDash = true
+    MakeShipTransparent(id, DASH_DURATION)
+  }
+
+  fn OnDash() {
+    onDashTime += 1
+    SetShipSpeed(id, 0f, 0f, -1)
+    let px, py = GetEntityPosition(id)
+    let sin, cos = Fmath:Sincos(dashAngle)
+
+    let entities = GetEntitiesInRadius(px, py, 10f)
+    for _, v in entities {
+      if v == id continue
+
+      EntityReactToWeapon(v, struct{
+        type = WeaponType.AtomizeExplosion,
+        x = cos*35f,
+        y = sin*35f,
+        player_index = 0
+      })
+    }
+    
+    EntityMove(id, cos*35f, sin*35f)
+    
+    repeat 10f with i {
+      let angle = (i - 1fx) * 2fx * Fmath:Tau() / 2fx / 10fx
+      let pdy, pdx = Fmath:Sincos(angle)
+
+      AddParticle(px, py, 0f,
+        pdx * Fmath:RandomFixed(0.5f, 3f),
+        pdy * Fmath:RandomFixed(0.5f, 3f),
+        0f,
+        0xffff00ff,
+        10
+      )
+    }
+
+    if onDashTime >= DASH_DURATION {
+      onDashTime = 0
+      doDash = false
+      coolDown = 20
+      coolDownMesh = NewEntity(px, py)
+      SpawnEntity(coolDownMesh, 0)
+      SetEntityPositionInterpolation(coolDownMesh, true)
+      SetEntityAngleInterpolation(coolDownMesh, true)
+      SetShipSpeed(id, 1f, 2f, -1)
     }
   }
 }

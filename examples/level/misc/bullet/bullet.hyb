@@ -106,19 +106,29 @@ pub entity Bullet {
             mx, my = FmathHelpers:Lerp(mx, dpx, bs.homingPower), FmathHelpers:Lerp(my, dpy, bs.homingPower)
         }
 
-        if bs.bounceSelf and immunityFrames <= 0 {
+        if immunityFrames <= 0 {
             let entities = GetEntitiesInRadius(ex, ey, radius*3f)
             for _, v in entities {
                 if v == self {
                     continue
                 }
-                if let other = v is Bullet {
+                if let other = v is Bullet and bs.bounceSelf {
                     if !other.bs.bounceSelf {
                         continue
                     }
                     let x2, y2 = GetEntityPosition(other)
                     Bounce(x2, y2, 1.2f)
                     other.Bounce(ex, ey, 1.2f)
+                }
+                if v is VithenEntity:Vithen or v is Pylon:Pylon {
+                    if bs.bounceWallCount <= 0 {
+                        destroy self()
+                        return
+                    }
+                    bs.bounceWallCount -= 1
+                    let rx, ry = GetEntityPosition(v)
+                    Bounce(rx, ry, 1.2f)
+                    return
                 }
             }
         }

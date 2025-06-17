@@ -1,0 +1,15 @@
+env DashCooldownMesh as Mesh
+
+use Graphix
+
+pub meshes = [
+    NewMesh()
+]
+
+const POINTS = 8
+repeat POINTS with i {
+    let angle = i*2*Math:Pi/8
+    let sin, cos = Math:Sin(angle), Math:Cos(angle)
+
+    AddLine(meshes[1], [[cos*12, sin*12, 0], [cos*28, sin*28, 0]], [0xffff00f00, 0xffff00ff], false)
+}

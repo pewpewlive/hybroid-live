@@ -1,6 +1,7 @@
 env VithenEntity as Level
 
 use Pewpew
+use VithenConstants
 
 enum AttackState {
     NOTHING,
@@ -12,6 +13,7 @@ const LASER_PREPARE_TIME = 90f
 const PREPARATION_TIME = 100
 const LASER_THICKNESS = 1.5f
 const COLOR = 0xff6a00ff
+let size = Fmath:ToFixed(SIZE)
 
 pub entity Vithen {
     AttackState state = AttackState.NOTHING
@@ -29,7 +31,7 @@ pub entity Vithen {
         self.x, self.y = x, y
         SetEntityMesh(self, VithenMesh, 0)
         SetEntityMeshColor(self, COLOR)
-        SetEntityRadius(self, 30f)
+        SetEntityRadius(self, size/2f)
 
         repeat 4 with i {
             Table:Insert(laserIndicators, NewEntity(x, y))
@@ -41,9 +43,10 @@ pub entity Vithen {
             DestroyEntity(v)
         }
         SetEntityMeshColor(self, COLOR)
-        ExplodeEntity(self, 30)
+        ExplodeEntity(self, 40)
         CreateExplosion(x, y, COLOR, 1.4f, 50)
         SetEntityUpdateCallback(self, fn(entity _) {})
+        PlaySound(VithenSound, 1, x, y)
     }
 
     PlayerCollision(number _, entity ship) {
@@ -56,12 +59,16 @@ pub entity Vithen {
         match weaponType {
             WeaponType.Bullet => {
                 hp -= 1
+                PlaySound(VithenSound, 0, x, y)
                 if hp <= 0 {
                     destroy self()
                 }else {
                     hitReaction = 2
                 }
                 return true
+            }
+            WeaponType.AtomizeExplosion => {
+                destroy self()
             }
         }
         return true
@@ -98,7 +105,10 @@ pub entity Vithen {
             }
             AttackState.SIMPLE_FOUR => {
                 for i, v in laserIndicators {
-                    SetEntityMeshAngle(v, angle+90d*(Fmath:ToFixed(i)-1f), 0f, 0f, 1f)
+                    let ang = angle+90d*(Fmath:ToFixed(i)-1f)
+                    let sin, cos = Fmath:Sincos(ang)
+                    SetEntityPosition(v, x+cos*size/2f, y+sin*size/2f)
+                    SetEntityMeshAngle(v, ang, 0f, 0f, 1f)
                     let t = FmathHelpers:InvLerp(0f, LASER_PREPARE_TIME, time)
                     t = t*t
                     SetEntityMeshXYZScale(v, 1f, FmathHelpers:Lerp(0f, 1f, t)*LASER_THICKNESS, 1f)
@@ -108,7 +118,9 @@ pub entity Vithen {
 
                 if time >= LASER_PREPARE_TIME {
                     repeat 4 with i {
-                        spawn Laser:Laser(x, y, angle+90d*(Fmath:ToFixed(i)-1f), 0xffff00ff, LASER_THICKNESS)
+                        let lx, ly = GetEntityPosition(laserIndicators[i])
+                        let ang = angle+90d*(Fmath:ToFixed(i)-1f)
+                        spawn Laser:Laser(lx, ly, ang, 0xffff00ff, LASER_THICKNESS)
                     }
                     time = 0f
                     state = AttackState.NOTHING
@@ -131,7 +143,10 @@ pub entity Vithen {
                 SetEntityMeshAngle(self, angle, 0f, 0f, 1f)
 
                 for i, v in laserIndicators {
-                    SetEntityMeshAngle(v, angle+90d*(Fmath:ToFixed(i)-1f), 0f, 0f, 1f)
+                    let ang = angle+90d*(Fmath:ToFixed(i)-1f)
+                    let sin, cos = Fmath:Sincos(ang)
+                    SetEntityPosition(v, x+cos*size/2f, y+sin*size/2f)
+                    SetEntityMeshAngle(v, ang, 0f, 0f, 1f)
                     let t = FmathHelpers:InvLerp(0f, LASER_PREPARE_TIME, time)
                     t = t*t
                     SetEntityMeshXYZScale(v, 1f, FmathHelpers:Lerp(0f, 1f, t)*LASER_THICKNESS, 1f)
@@ -141,7 +156,9 @@ pub entity Vithen {
 
                 if time >= LASER_PREPARE_TIME {
                     repeat 4 with i {
-                        spawn Laser:Laser(x, y, angle+90d*(Fmath:ToFixed(i)-1f), 0xffff00ff, LASER_THICKNESS)
+                        let lx, ly = GetEntityPosition(laserIndicators[i])
+                        let ang = angle+90d*(Fmath:ToFixed(i)-1f)
+                        spawn Laser:Laser(lx, ly, ang, 0xffff00ff, LASER_THICKNESS)
                     }
                     time = 0f
                     state = AttackState.NOTHING
