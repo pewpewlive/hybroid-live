@@ -1,0 +1,21 @@
+env VithenMesh as Mesh
+
+use Graphix
+
+pub meshes = [
+    NewMesh()
+]
+
+const SIZE = 65
+//Mesh mesh, Center center, number color, size
+repeat 10 with i {
+    let size = MathHelpers:Remap(SIZE, 0, 1, 10, i)
+    AddSquare(meshes[1], struct{x = 0, y = 0, z = i*SIZE/10}, 0xffffff*256+(255-(i-1)*25), size)
+}
+//Mesh mesh, Vertex center, number sides, color, radius, startAngle
+let triSize = SIZE/6
+repeat 4 with i {
+    let angle = i*Math:Pi/2
+    let amount = (SIZE*0.5+triSize/4+1)
+    AddFlatPoly(meshes[1], [Math:Cos(angle)*amount, Math:Sin(angle)*amount, 0], 3, 0xffffffff, triSize, angle)
+}

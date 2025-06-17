@@ -298,7 +298,7 @@ type StructField struct {
 
 func NewStructField(name string, val Value, lenient ...bool) StructField {
 	isLenient := false
-	if lenient != nil && len(lenient) == 1 {
+	if len(lenient) == 1 {
 		isLenient = lenient[0]
 	}
 

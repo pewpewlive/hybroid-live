@@ -6,15 +6,13 @@ toolchain go1.24.3
 
 require (
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
+	github.com/mitchellh/copystructure v1.2.0
 	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/sourcegraph/jsonrpc2 v0.2.1
 	github.com/urfave/cli/v2 v2.27.6
 )
 
-require (
-	github.com/mitchellh/copystructure v1.2.0 // indirect
-	github.com/mitchellh/reflectwalk v1.0.2 // indirect
-)
+require github.com/mitchellh/reflectwalk v1.0.2 // indirect
 
 require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect

@@ -5,7 +5,7 @@ use MathHelpers
 
 pub number gridColor, activeGridColor = 0x2335ff48, 0x00ffff80
 fixed offsetX, offsetY, offsetZ
-fixed cellSize
+fixed cellSizeX, cellSizeY
 
 class PointInfo {
     fixed anchorX, anchorY
@@ -73,7 +73,7 @@ class Line {
 
         Pewpew:SetEntityMeshColor(id,
             ColorHelpers:LerpColors(gridColor, activeGridColor,
-            FmathHelpers:Clamp((base.power + following.power) + (mag - cellSize), 0f, 80f) / 80f))
+            FmathHelpers:Clamp((base.power + following.power) + (mag - (cellSizeX+cellSizeY)/2f), 0f, 80f) / 80f))
     }
 }
 
@@ -83,16 +83,16 @@ pub class Grid {
     list<Point> points
     number gridSizeX, gridSizeY, gridCount
    
-    new(number sizeX, sizeY, fixed _cellSize, _offsetX, _offsetY, _offsetZ) {
+    new(number sizeX, sizeY, fixed _cellSizeX, _cellSizeY, _offsetX, _offsetY, _offsetZ) {
         gridSizeX, gridSizeY = sizeX, sizeY
         gridCount = sizeX * sizeY
-        cellSize = _cellSize
+        cellSizeX, cellSizeY = _cellSizeX, _cellSizeY
         offsetX, offsetY, offsetZ = _offsetX, _offsetY, _offsetZ
 
         repeat Fmath:ToFixed(gridSizeY) with y {
             repeat Fmath:ToFixed(gridSizeX) with x {
-                let px = (x - 1f) * cellSize + offsetX
-                let py = (y - 1f) * cellSize + offsetY
+                let px = (x - 1f) * cellSizeX + offsetX
+                let py = (y - 1f) * cellSizeY + offsetY
                 
                 Table:Insert(gridContainer, new PointInfo(px, py, px, py, 0f, 0f, 0f))
             }
@@ -136,7 +136,7 @@ pub class Grid {
     } 
     
     fn WorldToGridPos(fixed x, y) -> (number, number)
-        => MathHelpers:Clamp(Fmath:ToNumber((x + cellSize / 2f) / cellSize) + 1, 1, gridSizeX), MathHelpers:Clamp(Fmath:ToNumber((y + cellSize / 2f) / cellSize) + 1, 1, gridSizeY)
+        => MathHelpers:Clamp(Fmath:ToNumber((x + cellSizeX / 2f) / cellSizeX) + 1, 1, gridSizeX), MathHelpers:Clamp(Fmath:ToNumber((y + cellSizeY / 2f) / cellSizeY) + 1, 1, gridSizeY)
 
     fn CreateLineGrid() {
         repeat gridSizeY with y {

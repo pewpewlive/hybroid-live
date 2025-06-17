@@ -20,8 +20,10 @@ pub entity Laser {
     fixed slope
     fixed x, y
     fixed b2
+    fixed scale 
 
-    spawn(fixed x, y, lookToAngle, number color) {
+    spawn(fixed x, y, lookToAngle, number color, fixed scale) {
+        self.scale = scale
         self.x, self.y = x, y
         self.color = color
         SetEntityMeshAngle(self, lookToAngle, 0f, 0f, 1f)
@@ -34,7 +36,7 @@ pub entity Laser {
             slope = ly/lx
             b2 = -slope*x+y
         }
-        SetEntityMeshXYZScale(self, LENGTH, 1f, 1f)
+        SetEntityMeshXYZScale(self, LENGTH, scale, 1f)
         SetEntityMesh(self, LaserMesh, 0)
         PlaySound(LaserSound, 0, x, y)
         SpawnEntity(self, 0)
@@ -50,7 +52,7 @@ pub entity Laser {
         hitCooldown -= 1
         timer -= 1f
         let t = FmathHelpers:Remap(1f, 0f, LASER_DURATION, 0f, timer)^2f
-        SetEntityMeshXYZScale(self, LENGTH, t, 1f)
+        SetEntityMeshXYZScale(self, LENGTH, t*scale, 1f)
         SetEntityMeshColor(self, ColorHelpers:LerpColors(0x00000000, self.color, t))
         if timer <= 0f {
             destroy self()
@@ -91,7 +93,7 @@ pub entity Laser {
             isInFront = true
         }
 
-        return dist < FmathHelpers:Remap(3f, 18f, 0f, LASER_DURATION, timer) and timer > 1f and isInFront
+        return dist < FmathHelpers:Remap(3f, 18f, 0f, LASER_DURATION, timer)*scale and timer > 3f and isInFront
     }
 
     fn CollideWithPlayer() {

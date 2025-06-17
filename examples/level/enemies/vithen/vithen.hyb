@@ -1,0 +1,159 @@
+env VithenEntity as Level
+
+use Pewpew
+
+enum AttackState {
+    NOTHING,
+    SIMPLE_FOUR,
+    ROTATION
+}
+
+const LASER_PREPARE_TIME = 90f
+const PREPARATION_TIME = 100
+const LASER_THICKNESS = 1.5f
+const COLOR = 0xff6a00ff
+
+pub entity Vithen {
+    AttackState state = AttackState.NOTHING
+    fixed time
+    number prepTime = PREPARATION_TIME
+    fixed x, y
+    number hp = 25
+    number hitReaction
+
+    list<entity> laserIndicators
+
+    fixed angle, accel
+
+    spawn(fixed x, y) {
+        self.x, self.y = x, y
+        SetEntityMesh(self, VithenMesh, 0)
+        SetEntityMeshColor(self, COLOR)
+        SetEntityRadius(self, 30f)
+
+        repeat 4 with i {
+            Table:Insert(laserIndicators, NewEntity(x, y))
+        }
+    }
+
+    destroy() {
+        for _, v in laserIndicators {
+            DestroyEntity(v)
+        }
+        SetEntityMeshColor(self, COLOR)
+        ExplodeEntity(self, 30)
+        CreateExplosion(x, y, COLOR, 1.4f, 50)
+        SetEntityUpdateCallback(self, fn(entity _) {})
+    }
+
+    PlayerCollision(number _, entity ship) {
+        DamageShip(ship, 2)
+        destroy self()
+    }
+
+    WeaponCollision(number _, WeaponType weaponType) -> bool {
+        if IsEntityBeingDestroyed(self) return false
+        match weaponType {
+            WeaponType.Bullet => {
+                hp -= 1
+                if hp <= 0 {
+                    destroy self()
+                }else {
+                    hitReaction = 2
+                }
+                return true
+            }
+        }
+        return true
+    }
+
+    Update() {      
+        if hitReaction >= 0 {
+            SetEntityMeshColor(self, 0xffffffff)
+        }else {
+            SetEntityMeshColor(self, COLOR)
+        }
+        hitReaction -= 1 
+        match state {
+            AttackState.NOTHING => {
+                accel -= 0.1d
+                if accel < 0d {
+                    accel = 0d
+                }
+                angle += accel
+
+                SetEntityMeshAngle(self, angle, 0f, 0f, 1f)
+                prepTime -= 1
+                if prepTime >= 0 break
+                let randomNum = Fmath:RandomNumber(0, 1)
+                match randomNum {
+                    0 => {
+                        state = AttackState.ROTATION
+                    }
+                    else => {
+                        state = AttackState.SIMPLE_FOUR
+                    }
+                }
+                time = 0f
+            }
+            AttackState.SIMPLE_FOUR => {
+                for i, v in laserIndicators {
+                    SetEntityMeshAngle(v, angle+90d*(Fmath:ToFixed(i)-1f), 0f, 0f, 1f)
+                    let t = FmathHelpers:InvLerp(0f, LASER_PREPARE_TIME, time)
+                    t = t*t
+                    SetEntityMeshXYZScale(v, 1f, FmathHelpers:Lerp(0f, 1f, t)*LASER_THICKNESS, 1f)
+                    SetEntityMeshColor(v, (0xffffff*256+Fmath:ToNumber(t*100f)/100*255)\1)
+                    SetEntityMesh(v, VithenLaserMesh, 1)
+                }
+
+                if time >= LASER_PREPARE_TIME {
+                    repeat 4 with i {
+                        spawn Laser:Laser(x, y, angle+90d*(Fmath:ToFixed(i)-1f), 0xffff00ff, LASER_THICKNESS)
+                    }
+                    time = 0f
+                    state = AttackState.NOTHING
+                    prepTime = PREPARATION_TIME
+                    for i, v in laserIndicators {
+                        SetEntityMesh(v, VithenLaserMesh, 0)
+                    }
+                    break
+                }
+
+                time += 1f
+            }
+            AttackState.ROTATION => {
+                accel += 0.2d
+                if accel > 2d {
+                    accel = 2d
+                }
+                angle += accel
+
+                SetEntityMeshAngle(self, angle, 0f, 0f, 1f)
+
+                for i, v in laserIndicators {
+                    SetEntityMeshAngle(v, angle+90d*(Fmath:ToFixed(i)-1f), 0f, 0f, 1f)
+                    let t = FmathHelpers:InvLerp(0f, LASER_PREPARE_TIME, time)
+                    t = t*t
+                    SetEntityMeshXYZScale(v, 1f, FmathHelpers:Lerp(0f, 1f, t)*LASER_THICKNESS, 1f)
+                    SetEntityMeshColor(v, (0xffffff*256+Fmath:ToNumber(t*100f)/100*255)\1)
+                    SetEntityMesh(v, VithenLaserMesh, 1)
+                }
+
+                if time >= LASER_PREPARE_TIME {
+                    repeat 4 with i {
+                        spawn Laser:Laser(x, y, angle+90d*(Fmath:ToFixed(i)-1f), 0xffff00ff, LASER_THICKNESS)
+                    }
+                    time = 0f
+                    state = AttackState.NOTHING
+                    prepTime = PREPARATION_TIME
+                    for i, v in laserIndicators {
+                        SetEntityMesh(v, VithenLaserMesh, 0)
+                    }
+                    break
+                }
+
+                time += 1f
+            }
+        }
+    }
+}

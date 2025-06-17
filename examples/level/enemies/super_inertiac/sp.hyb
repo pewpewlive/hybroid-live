@@ -200,7 +200,7 @@ pub entity SuperInertiac {
           cooldown = COOLDOWN_MAX
           for i, v in laserIndicators {
             SetEntityMesh(v, SPPredLineMesh, 1)
-            spawn Laser:Laser(x, y, lookToPlayerAngle+currentSpread*Fmath:ToFixed(i-2), LASER_COLOR)
+            spawn Laser:Laser(x, y, lookToPlayerAngle+currentSpread*Fmath:ToFixed(i-2), LASER_COLOR, 1f)
           }
           currentSpread = 0d
         }

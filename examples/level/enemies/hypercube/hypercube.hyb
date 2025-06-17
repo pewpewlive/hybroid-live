@@ -123,7 +123,7 @@ pub entity Hypercube {
         if IsEntityBeingDestroyed(self) return false
         match weaponType {
             WeaponType.Bullet => {
-                scale *= 0.98f
+                scale *= FmathHelpers:Remap(0.97f, 1f, 0.01f, 0f, growth)
                 let x, y = GetEntityPosition(self)
                 PlaySound(HypercubeSound, 0, x, y)
                 if IsEntityAlive(SHIP.id) {

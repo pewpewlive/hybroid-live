@@ -1,0 +1,10 @@
+env VithenLaserMesh as Mesh
+
+use Graphix
+
+pub meshes = [
+    NewMesh(),
+    NewMesh()
+]
+const color = 0x990000aa
+AddThickLine(meshes[2], color, color, 5, 1600)
