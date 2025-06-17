@@ -120,7 +120,7 @@ pub entity Bullet {
                     Bounce(x2, y2, 1.2f)
                     other.Bounce(ex, ey, 1.2f)
                 }
-                if v is VithenEntity:Vithen or v is Pylon:Pylon {
+                if v is CustomizableEntity and GetEntityTag(v) == Globals:BULLET_COLLIDABLE_TAG {
                     if bs.bounceWallCount <= 0 {
                         destroy self()
                         return

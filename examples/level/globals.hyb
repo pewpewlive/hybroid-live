@@ -6,3 +6,4 @@ pub const CELLCOUNT = 20
 pub const CELLSIZE_X = WIDTH/Fmath:ToFixed(CELLCOUNT)
 pub const CELLSIZE_Y = HEIGHT/Fmath:ToFixed(CELLCOUNT)
 pub const GRID_COLOR = 0x2335ff48
+pub const BULLET_COLLIDABLE_TAG = 100

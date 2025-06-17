@@ -11,6 +11,8 @@ pub entity Shard {
     number currentColor = COLOR
     fixed mx, my
 
+    number immunityFrames = 12
+
     spawn(fixed x, y, angle, speed) {
         self.angle = angle
         self.speed = speed
@@ -28,6 +30,10 @@ pub entity Shard {
     }
 
     destroy() {
+        if immunityFrames >= 0 return
+        if IsEntityBeingDestroyed(self) {
+            return
+        }
         let x, y = GetEntityPosition(self)
         CreateExplosion(x, y, COLOR, 0.75f, 14)
         PlaySound(ShardSound, 1, x, y)
@@ -35,6 +41,7 @@ pub entity Shard {
     }
 
     Update() {
+        immunityFrames -= 1
         if IsEntityBeingDestroyed(self) {
             return
         }
@@ -50,12 +57,20 @@ pub entity Shard {
             mx, my = FmathHelpers:Lerp(mx, dpx, 0.01f), FmathHelpers:Lerp(my, dpy, 0.01f)
         }
 
+
         angle = Fmath:Atan2(my, mx)
 
         SetEntityPosition(self, x + mx * speed, y + my * speed)
         SetEntityMeshAngle(self, roll, 1f, 0f, 0f)
         AddRotationToEntityMesh(self, angle, 0f, 0f, 1f)
-        SkipEntityMeshAttributesInterpolation(self)
+
+        let entities = GetEntitiesInRadius(x, y, 10f)
+        for _, v in entities {
+            if v is CustomizableEntity and GetEntityTag(v) == Globals:BULLET_COLLIDABLE_TAG {
+                destroy self()
+                break
+            }
+        }
     }
 
     WallCollision(fixed _, _) {

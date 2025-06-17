@@ -1,0 +1,81 @@
+env RoundManager as Level
+
+use VithenEntity
+use Globals
+
+enum Round {
+    One,
+    Two,
+    Three,
+    Boss,
+    Special
+}
+
+enum RoundVariant {
+    Normal,
+    Fast
+}
+
+const ROUND_DURATION = 700
+
+pub fn RandomSpawn() -> (fixed, fixed) {
+    return Fmath:RandomFixed(0f, WIDTH), Fmath:RandomFixed(0f, HEIGHT)
+}
+
+fn Chance(number percent) -> bool {
+    let a = Fmath:RandomNumber(0, 100)
+    return a <= percent 
+}
+
+pub class RoundManager {
+    Round round = Round.One
+    RoundVariant variant = RoundVariant.Normal
+    Round prevRound = Round.One
+    number time, bossTime
+
+    new() {}
+
+    fn Update() {
+
+        match round {
+            Round.One => {
+                time += 1
+
+                if time % 100 == 0 {
+                    let rx, ry = RandomSpawn()
+                    spawn Vithen(rx, ry)
+                }
+                
+                if time >= ROUND_DURATION {
+                    round = Round.Two
+                    RandomizeVariant()
+                    prevRound = Round.One
+                    time = 0
+                }
+            }
+            Round.Two => {
+                time += 1
+
+                if time == ROUND_DURATION\2 and Chance(20) {
+                    prevRound = round
+                    round = Round.Boss
+                    break
+                }
+                if time >= ROUND_DURATION {
+                    round = Round.Three
+                    RandomizeVariant()
+                    time = 0
+                    prevRound = Round.Two
+                }
+            }
+        }
+    }
+
+    fn RandomizeVariant() {
+        if Chance(30) {
+            variant = RoundVariant.Fast
+        }else {
+            variant = RoundVariant.Normal
+        }
+    }
+}

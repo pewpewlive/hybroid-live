@@ -58,37 +58,29 @@ pub class Ship {
       DestroyEntity(coolDownMesh)
     }
     dashTime += 1
-    Print("dashUpdate:")
 
     let ma, md, _, _ = GetPlayerInputs(0)
-    if md > 0.5f and !added {
-      Print("Add")
+    if md > 0.6f {
       added = true
       Table:Insert(moveStickReleases, dashTime)
       if #moveStickReleases > 2 {
         Table:Remove(moveStickReleases, 1)
       }
-      if dashAngle != -1f and Fmath:AbsFixed(dashAngle-ma) > 90d {
+      if dashAngle != -1f and Fmath:AbsFixed(dashAngle-ma) > 30d {
         moveStickReleases = list<number>[]
         dashAngle = -1f
       } else {
         dashAngle = ma
       }
     }
-    if md < 0.7f {
-      added = false
-    }
     if #moveStickReleases < 2 {
-      Print("Releases < 2")
       return
     }
     let diff = moveStickReleases[2]-moveStickReleases[1]
-    if diff >= 15 {
-      Print("too late")
+    if diff >= 6 or diff < 2 {
       return
     }
 
-    Print("dash!")
     moveStickReleases = list<number>[]
     dashTime = 0
     doDash = true

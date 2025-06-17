@@ -32,6 +32,7 @@ pub entity Vithen {
         SetEntityMesh(self, VithenMesh, 0)
         SetEntityMeshColor(self, COLOR)
         SetEntityRadius(self, size/2f)
+        SetEntityTag(self, Globals:BULLET_COLLIDABLE_TAG)
 
         repeat 4 with i {
             Table:Insert(laserIndicators, NewEntity(x, y))
@@ -83,7 +84,7 @@ pub entity Vithen {
         hitReaction -= 1 
         match state {
             AttackState.NOTHING => {
-                accel -= 0.1d
+                accel -= 0.05d
                 if accel < 0d {
                     accel = 0d
                 }

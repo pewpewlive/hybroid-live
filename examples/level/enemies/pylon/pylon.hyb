@@ -40,6 +40,7 @@ pub entity Pylon {
         SetEntityMeshColor(self, PYLON_COLOR)
         SetEntityMeshScale(self, 1.2f)
         SetEntityRadius(self, 20f)
+        SetEntityTag(self, Globals:BULLET_COLLIDABLE_TAG)
 
         topPrism = NewEntity(x,y)
         SetEntityMesh(topPrism, PylonMesh, 1)
@@ -107,7 +108,8 @@ pub entity Pylon {
 
             if attackTime % BARRAGE_BULLET_FREQUENCY == 0 {
                 repeat from -1f to 1f with i {
-                    let offset = 25d * i
+                    if i == 0f continue
+                    let offset = 12d * i
                     let offsetY, offsetX = Fmath:Sincos(offset)
                     spawn Shard(x + offsetX * 10f, y + offsetY * 10f, lookToAngle + offset, 5f)
                 }

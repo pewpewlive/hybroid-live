@@ -18,25 +18,31 @@ ConfigurePlayer(0, playerConfig)
 let bg = NewEntity(WIDTH/2f, HEIGHT/2f)
 SetEntityMesh(bg, MapMesh, 1)
 // spawn SuperInertiac(500f, 0f)
-spawn Pylon(100f, 100f)
-spawn WormholeEntity:Wormhole(WIDTH/2f, HEIGHT/2f, 40f)
-spawn Hypercube(200f, 500f, Fmath:RandomFixed(0d, 360d))
-spawn Hypercube(100f, 600f, Fmath:RandomFixed(0d, 360d))
+let rx, ry = RoundManager:RandomSpawn()
+spawn Pylon(rx, ry)
+rx, ry = RoundManager:RandomSpawn()
+spawn Hypercube(rx, ry, Fmath:RandomFixed(0d, 360d))
+rx, ry = RoundManager:RandomSpawn()
 spawn Hypercube(100f, 300f, Fmath:RandomFixed(0d, 360d))
 // spawn Hypercube(600f, 600f, Fmath:RandomFixed(0d, 360d))
 // spawn Hypercube(260f, 600f, Fmath:RandomFixed(0d, 360d))
 // spawn Hypercube(800f, 400f, Fmath:RandomFixed(0d, 360d))
-spawn Vithen(600f,100f)
+rx, ry = RoundManager:RandomSpawn()
+spawn Vithen(rx, ry)
 
 //AddWall(750f, 250f, 500f, 500f)
 
 let grid = new Grid:Grid(CELLCOUNT+1, CELLCOUNT+1, CELLSIZE_X, CELLSIZE_Y, 0f, 0f, 0f)
 grid.CreateLineGrid()
 
+let roundManager = new RoundManager:RoundManager()
+
 tick with time {
   if GetPlayerConfig(0).has_lost {
     StopGame()
   }
+
+  roundManager.Update()
 
   // Bullet grid pulse
   let entities = GetAllEntities()
@@ -48,7 +54,6 @@ tick with time {
     let ex, ey = GetEntityPosition(e)
     grid.Pulse(ex, ey, 15f, 70f)
   }
-
   // Custom enemy grid pulse
   for inertiac in every SuperInertiac {
     let ex, ey = GetEntityPosition(inertiac)
@@ -77,15 +82,9 @@ tick with time {
     let mod = hypercube.Sum()/HypercubeEntity:FAST_ENOUGH*1.5f
     grid.Pulse(ex, ey, -30f*mod, hypercube.radius*mod)
   }
-
   // Player ship grid pulse
   if IsEntityAlive(SHIP.id) {
     let px, py = GetEntityPosition(SHIP.id)
     grid.Pulse(px, py, 30f, 250f)
-  }
-
-  if time % 30 == 0 {
-    //Print(ToString(playerConfig))
-    //NewAsteroid(WIDTH/2f, HEIGHT/2f)
   }
 }
