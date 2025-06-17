@@ -489,19 +489,20 @@ func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 		return
 	}
 
-	if walker.environment.luaPath == "/dynamic/level.lua" {
-		w.environment.importedWalkers = append(w.environment.importedWalkers, walker)
-		return // we don't put level.hyb in requirements as that would break things
-	}
-
 	success := w.environment.AddRequirement(walker.environment.luaPath)
 
 	if !success {
 		w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
 		return
 	}
+	w.environment.imports = append(w.environment.imports, Import{
+		Walker:     walker,
+		ThroughUse: true,
+	})
 
-	w.environment.importedWalkers = append(w.environment.importedWalkers, walker)
+	if walker.environment.luaPath == "/dynamic/level.lua" {
+		return // we don't put level.hyb in requirements as that would break things
+	}
 
 	if !walker.Walked {
 		walker.Walk()

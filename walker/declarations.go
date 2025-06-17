@@ -372,7 +372,7 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 		ident := declaration.Identifiers[i]
 		variable := NewVariable(ident.GetToken(), &Invalid{})
 
-		if _, alreadyExists := scope.Variables[ident.Name.Lexeme]; alreadyExists {
+		if _, exists := scope.Variables[ident.Name.Lexeme]; exists {
 			w.AlertSingle(&alerts.Redeclaration{}, ident.Name, ident.Name.Lexeme, "variable")
 		} else {
 			variable.IsPub = declaration.IsPub
@@ -382,6 +382,7 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 
 		if i <= len(values)-1 {
 			variable.Value = values[i].Value
+			variable.IsInit = true
 		} else if exprCounter < len(declaration.Expressions) {
 			val := w.GetActualNodeValue(&declaration.Expressions[exprCounter], scope)
 			if vls, ok := val.(Values); ok {
@@ -393,6 +394,7 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 			}
 
 			variable.Value = values[i].Value
+			variable.IsInit = true
 			exprCounter++
 		} else if declaration.IsConst {
 			w.AlertSingle(&alerts.NoValueGivenForConstant{}, ident.Name)
@@ -410,10 +412,10 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 			}
 
 			variable.Value = val
+			variable.IsInit = true
 			declaration.Expressions = append(declaration.Expressions, defaultVal)
 			exprCounter++
 		}
-		variable.IsInit = true
 
 		valType := variable.GetType()
 		if declaration.IsConst {

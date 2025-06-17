@@ -17,7 +17,7 @@ var PewpewAPI = &Environment{{
 		AliasTypes: make(map[string]*AliasType),
 		ConstValues: make(map[string]ast.Node),
 	}},
-	importedWalkers: make([]*Walker, 0),
+	imports:       make([]Import, 0),
 	UsedLibraries:   make([]ast.Library, 0),
 	Classes: make(map[string]*ClassVal),
 	Entities: make(map[string]*EntityVal),

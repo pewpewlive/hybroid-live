@@ -8,6 +8,11 @@ import (
 	"slices"
 )
 
+type Import struct {
+	*Walker
+	ThroughUse bool
+}
+
 type Environment struct {
 	Name        string
 	luaPath     string // dynamic lua path
@@ -16,7 +21,7 @@ type Environment struct {
 
 	Scope Scope
 
-	importedWalkers []*Walker // the walkers imported through UseStmt
+	imports         []Import
 	UsedLibraries   []ast.Library
 	UsedBuiltinVars []string
 

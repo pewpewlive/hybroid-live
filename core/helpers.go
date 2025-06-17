@@ -7,6 +7,16 @@ import (
 	"strings"
 )
 
+func ListContains[T comparable](list []T, elem T) bool {
+	for _, v := range list {
+		if v == elem {
+			return true
+		}
+	}
+
+	return false
+}
+
 func MapsAreSame[T comparable, E comparable](map1 map[E]T, map2 map[E]T) bool {
 	if len(map1) != len(map2) {
 		return false

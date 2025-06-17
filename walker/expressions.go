@@ -124,7 +124,7 @@ func (w *Walker) entityEvaluationExpression(node *ast.EntityEvaluationExpr, scop
 			"Ufo", "Wary", "Crowder", "Ship", "Bomb", "BlueBaf",
 			"RedBaf", "WaryMissile", "UfoBullet", "PlayerBullet",
 			"BombExplosion", "PlayerExplosion", "Bonus", "FloatingMessage",
-			"Pointonium", "BonusImplosion", "Mace", "PlasmaField":
+			"Pointonium", "BonusImplosion", "Mace", "PlasmaField", "CustomizableEntity":
 			typ = &RawEntityType{}
 			node.OfficialEntityType = true
 		}
@@ -423,15 +423,12 @@ func (w *Walker) environmentAccessExpression(expr *ast.Node) Value {
 			return &Invalid{}
 		}
 
-		if walker.environment.luaPath == "/dynamic/level.lua" {
-			if !walker.Walked {
-				walker.Walk()
-			}
-			value := w.GetNodeValue(&accessed, &walker.environment.Scope)
-			return value
+		if w.environment.AddRequirement(walker.environment.luaPath) {
+			w.environment.imports = append(w.environment.imports, Import{
+				Walker:     walker,
+				ThroughUse: false,
+			})
 		}
-
-		w.environment.AddRequirement(walker.environment.luaPath)
 
 		if !walker.Walked {
 			walker.Walk()
@@ -830,8 +827,8 @@ func (w *Walker) ResolveImportCycle(walker *Walker) ([]string, bool) {
 		}
 	}
 
-	for _, v := range walker.environment.importedWalkers {
-		if path, isCycle := w.ResolveImportCycle(v); isCycle {
+	for _, v := range walker.environment.imports {
+		if path, isCycle := w.ResolveImportCycle(v.Walker); isCycle {
 			return append([]string{walker.environment.hybroidPath}, path...), true
 		}
 	}
@@ -895,7 +892,12 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 				return InvalidType
 			}
 
-			w.environment.AddRequirement(walker.environment.luaPath)
+			if w.environment.AddRequirement(walker.environment.luaPath) {
+				w.environment.imports = append(w.environment.imports, Import{
+					Walker:     walker,
+					ThroughUse: false,
+				})
+			}
 
 			if !walker.Walked {
 				walker.Walk()
@@ -1021,14 +1023,14 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 			}
 		}
 
-		for i := range scope.Environment.importedWalkers {
-			if !scope.Environment.importedWalkers[i].Walked {
-				scope.Environment.importedWalkers[i].Walk()
+		for i := range scope.Environment.imports {
+			if !scope.Environment.imports[i].Walked {
+				scope.Environment.imports[i].Walk()
 			}
-			typ := w.typeExpression(typee, &scope.Environment.importedWalkers[i].environment.Scope)
+			typ := w.typeExpression(typee, &scope.Environment.imports[i].environment.Scope)
 			if typ != InvalidType && typ != UnknownTyp {
 				types = append(types, typ)
-				envs = append(envs, scope.Environment.importedWalkers[i].environment.Name)
+				envs = append(envs, scope.Environment.imports[i].environment.Name)
 			}
 		}
 

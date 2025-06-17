@@ -95,10 +95,13 @@ func (w *Walker) resolveVariable(s *Scope, token tokens.Token) *Scope {
 			return &BuiltinEnv.Scope
 		}
 		if &w.environment.Scope == s {
-			for i := range s.Environment.importedWalkers {
-				_, ok := s.Environment.importedWalkers[i].environment.Scope.Variables[name]
+			for i := range s.Environment.imports {
+				if !s.Environment.imports[i].ThroughUse {
+					continue
+				}
+				_, ok := s.Environment.imports[i].environment.Scope.Variables[name]
 				if ok {
-					return &s.Environment.importedWalkers[i].environment.Scope
+					return &s.Environment.imports[i].environment.Scope
 				}
 			}
 		}
