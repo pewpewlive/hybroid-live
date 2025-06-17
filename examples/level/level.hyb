@@ -47,7 +47,7 @@ tick with time {
   // Bullet grid pulse
   let entities = GetAllEntities()
   for _, e in entities {
-    if GetEntityType(e) != EntityType.PlayerBullet {
+    if GetEntityType(e) == EntityType.CustomizableEntity {
       continue
     }
 

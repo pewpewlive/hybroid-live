@@ -3,7 +3,7 @@ env ShardEntity as Level
 use Pewpew
 
 const COLOR = 0x9058faff
-const SHARD_HP_MAX = 5
+const SHARD_HP_MAX = 4
 
 pub entity Shard {
     fixed angle, speed, roll

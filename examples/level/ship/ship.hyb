@@ -4,6 +4,7 @@ use Pewpew
 use Utils
 
 const DASH_DURATION = 10
+const INPUT_TIME = 6
 
 pub class Ship {
   let entity id
@@ -11,13 +12,16 @@ pub class Ship {
 
   number dashTime
   number onDashTime
-  list<number> moveStickReleases
   bool doDash
-  bool added 
   fixed dashAngle = -1f
   number coolDown
-
   entity coolDownMesh
+
+  number inputTimer = INPUT_TIME
+  bool firstInputDone
+  bool firstInputReleased
+  fixed previousDist
+  fixed change
 
   new(fixed x, y) {
     id = NewShip(x, y, 0)
@@ -25,7 +29,8 @@ pub class Ship {
     let playerConfig = struct{
       shield = 5,
       camera_distance = -50f,
-      camera_rotation_x_axis = -15d
+      camera_rotation_x_axis = -15d,
+      move_joystick_color = 0xffffffff
     }
 
     ConfigurePlayer(0, playerConfig)
@@ -34,6 +39,9 @@ pub class Ship {
       cannon = CannonType.Double,
       frequency = CannonFreq.Freq10,
     })
+
+    let _, md, _, _ = GetPlayerInputs(0)
+    self.previousDist = md
     
     tick {
       if !doDash {
@@ -57,34 +65,58 @@ pub class Ship {
     }else if IsEntityAlive(coolDownMesh) {
       DestroyEntity(coolDownMesh)
     }
-    dashTime += 1
-
     let ma, md, _, _ = GetPlayerInputs(0)
-    if md > 0.6f {
-      added = true
-      Table:Insert(moveStickReleases, dashTime)
-      if #moveStickReleases > 2 {
-        Table:Remove(moveStickReleases, 1)
-      }
-      if dashAngle != -1f and Fmath:AbsFixed(dashAngle-ma) > 30d {
-        moveStickReleases = list<number>[]
-        dashAngle = -1f
-      } else {
-        dashAngle = ma
-      }
+    let hardChange = Fmath:AbsFixed(md-previousDist)
+    change = FmathHelpers:Lerp(change, hardChange, 0.3f)
+    ConfigurePlayerHud(0, struct{
+      top_left_line = ToString(change)
+    })
+    previousDist = md
+
+    inputTimer -= 1
+    if inputTimer <= 0 {
+      inputTimer = 0
     }
-    if #moveStickReleases < 2 {
-      return
+
+    if md > 0.5f and !firstInputDone and inputTimer == 0 {
+      firstInputDone = true
+      inputTimer = INPUT_TIME
+      dashAngle = ma
     }
-    let diff = moveStickReleases[2]-moveStickReleases[1]
-    if diff >= 6 or diff < 2 {
+    if !firstInputDone {
       return
     }
 
-    moveStickReleases = list<number>[]
-    dashTime = 0
-    doDash = true
-    MakeShipTransparent(id, DASH_DURATION)
+    if md < 0.5f and inputTimer == 0  {
+      firstInputDone = false
+      return
+    }
+
+    if md < 0.5f and inputTimer != 0 and !firstInputReleased  {
+      firstInputReleased = true
+    }
+
+    if md < 0.5f and inputTimer == 0 and firstInputReleased {
+      firstInputDone = false
+      firstInputReleased = false
+    }
+
+    if firstInputReleased and inputTimer != 0 and md > 0.5f and hardChange > 0f {
+      Print("Ma: ".. ToString(ma) .. " | Angle: " .. ToString(dashAngle) .. " | " .. ToString(30d))
+      if Fmath:AbsFixed(dashAngle-ma) > 5d {
+        firstInputDone = false
+        firstInputReleased = false
+        inputTimer = 0
+        Print("here")
+        dashAngle = -1fx
+        return
+      }
+      doDash = true
+      firstInputReleased = false
+      firstInputDone = false
+      inputTimer = 0
+      MakeShipTransparent(id, DASH_DURATION)
+    }
   }
 
   fn OnDash() {

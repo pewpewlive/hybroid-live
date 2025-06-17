@@ -2,6 +2,7 @@ env RoundManager as Level
 
 use VithenEntity
 use Globals
+use Pewpew
 
 enum Round {
     One,
@@ -41,9 +42,24 @@ pub class RoundManager {
             Round.One => {
                 time += 1
 
-                if time % 100 == 0 {
+                if time % 110 == 0 {
                     let rx, ry = RandomSpawn()
                     spawn Vithen(rx, ry)
+                }
+                if time % 40 == 0 {
+                    let rx, ry = RandomSpawn()
+                    NewSpiny(rx, ry, Fmath:RandomFixed(0d, 360d), Fmath:RandomFixed(2f, 3f))
+                }
+
+                if time % 200 == 0 {
+                    let rx, ry = RandomSpawn()
+                    let angle = Fmath:RandomFixed(0d, 360d)
+                    let perp = angle+90d
+                    let sin, cos = Fmath:Sincos(perp)
+                    NewSpiny(rx, ry, angle, 3f)
+                    NewSpiny(rx+cos*2f, ry+sin*2f, angle, 2f)
+                    NewSpiny(rx+cos*3f, ry+sin*3f, angle, 1f)
+                    NewSpiny(rx+cos*4f, ry+sin*4f, angle, 0.5f)
                 }
                 
                 if time >= ROUND_DURATION {
