@@ -113,19 +113,7 @@ func (p *Parser) parseNode(syncFunc func()) (returnNode ast.Node) {
 		return
 	}
 
-	current := p.current
-	p.context.ignoreAlerts.Push("VariableDeclaration", true)
-	node := p.variableDeclaration(false)
-	p.context.ignoreAlerts.Pop("VariableDeclaration")
-	p.disadvance(p.current - current)
-	if !ast.IsImproper(node, ast.NA) {
-		returnNode = p.variableDeclaration(false)
-		return
-	}
-
 	switch {
-	case p.match(tokens.Let) || p.match(tokens.Const):
-		returnNode = p.variableDeclaration(true)
 	case p.match(tokens.Fn):
 		returnNode = p.functionDeclaration()
 	case p.match(tokens.Enum):
@@ -134,6 +122,8 @@ func (p *Parser) parseNode(syncFunc func()) (returnNode ast.Node) {
 		returnNode = p.classDeclaration()
 	case p.match(tokens.Alias):
 		returnNode = p.aliasDeclaration()
+	case p.match(tokens.Let) || p.match(tokens.Const) || p.context.isPub:
+		returnNode = p.simpleVariableDeclaration()
 	default:
 		if p.context.isPub {
 			p.Alert(&alerts.UnexpectedKeyword{}, alerts.NewSingle(p.peek(-1)), tokens.Pub, "before statement")
@@ -153,6 +143,8 @@ func (p *Parser) parseNode(syncFunc func()) (returnNode ast.Node) {
 		p.disadvance(p.current - current)
 		if !ast.IsImproper(node, ast.NA) {
 			returnNode = p.expressionStatement()
+		} else {
+			returnNode = p.typedVariableDeclaration()
 		}
 	}
 
@@ -160,15 +152,6 @@ func (p *Parser) parseNode(syncFunc func()) (returnNode ast.Node) {
 }
 
 func (p *Parser) auxiliaryNode() ast.Node {
-	current := p.current
-	p.context.ignoreAlerts.Push("FieldDeclaration", true)
-	node := p.fieldDeclaration(false)
-	p.context.ignoreAlerts.Pop("FieldDeclaration")
-	p.disadvance(p.current - current)
-	if !ast.IsImproper(node, ast.NA) {
-		return p.fieldDeclaration(false)
-	}
-
 	if p.match(tokens.Fn) {
 		fnDec := p.functionDeclaration()
 
@@ -232,6 +215,15 @@ func (p *Parser) auxiliaryNode() ast.Node {
 			return ast.NewImproper(entityFunction.GetToken(), ast.EntityFunctionDeclaration)
 		}
 		return entityFunction
+	}
+
+	current := p.current
+	p.context.ignoreAlerts.Push("FieldDeclaration", true)
+	node := p.fieldDeclaration(false)
+	p.context.ignoreAlerts.Pop("FieldDeclaration")
+	p.disadvance(p.current - current)
+	if !ast.IsImproper(node, ast.NA) {
+		return p.fieldDeclaration(false)
 	}
 
 	// No auxiliary node found, try parsing a node instead (for error handling)

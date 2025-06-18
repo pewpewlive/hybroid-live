@@ -26,60 +26,74 @@ func (p *Parser) environmentDeclaration() ast.Node {
 	return envDecl
 }
 
-func (p *Parser) variableDeclaration(matchedLetOrConst bool) ast.Node {
-	variableDecl := ast.VariableDecl{
-		IsPub:   p.context.isPub,
-		IsConst: false,
-	}
+// Yeah<fixed> a
+// pub number a
+// pub a = 1
+// [pub] let a = 1
+// [pub] const a = 1
+// pub const a = 1
 
-	// check if variableDecl started with let or const
-	if matchedLetOrConst {
-		variableDecl.Token = p.peek(-1)
-		variableDecl.IsConst = variableDecl.Token.Type == tokens.Const
-		if variableDecl.IsPub {
-			variableDecl.Token = p.peek(-2)
-		}
-		if variableDecl.IsPub && variableDecl.Token.Type == tokens.Let {
-			p.AlertSingle(&alerts.UnexpectedKeyword{}, variableDecl.Token, variableDecl.Token.Lexeme, "in variable declaration")
-		}
-	} else {
-		if variableDecl.IsPub {
-			variableDecl.Token = p.peek(-1)
-		} else {
-			variableDecl.Token = p.peek()
-		}
+func (p *Parser) simpleVariableDeclaration() ast.Node {
+	varDecl := &ast.VariableDecl{
+		Token: p.peek(-1),
+		IsPub: p.context.isPub,
 	}
+	varDecl.IsConst = varDecl.Token.Type == tokens.Const
+	if varDecl.IsPub && varDecl.Token.Type == tokens.Pub {
+		current := p.current
+		p.context.ignoreAlerts.Push("VariableDeclaration", true)
+		typeExpr := p.typeExpr("")
+		p.context.ignoreAlerts.Pop("VariableDeclaration")
+		next := p.peek()
+		p.disadvance(p.current - current)
 
-	typeCheckStart := p.current
-	typeExpr, ok := p.checkType("in variable declaration")
-	if ok {
-		variableDecl.Type = typeExpr
-		if !p.check(tokens.Identifier) {
-			p.disadvance(p.current - typeCheckStart)
-			variableDecl.Type = nil
-			if !matchedLetOrConst && !variableDecl.IsPub {
-				return ast.NewImproper(variableDecl.Token, ast.NA)
+		if typeExpr != nil && !ast.IsImproper(typeExpr.Name, ast.NA) {
+			if next.Type == tokens.Equal && typeExpr.Name.GetType() == ast.Identifier {
+			} else {
+				varDecl.Type = p.typeExpr("in variable declaration")
 			}
+		} else {
+			varDecl.Type = p.typeExpr("in variable declaration")
 		}
-	} else if !matchedLetOrConst {
-		return ast.NewImproper(variableDecl.Token, ast.NA)
+	}
+	if varDecl.IsPub && varDecl.Token.Type != tokens.Pub {
+		varDecl.Token = p.peek(-2)
+	}
+	if varDecl.IsPub && varDecl.Token.Type == tokens.Let { // pub let a
+		// cannot allow
 	}
 
-	idents, exprs, ok := p.identExprPairs("in variable declaration", variableDecl.Type != nil || variableDecl.IsConst)
+	idents, exprs, ok := p.identExprPairs("in variable declaration", false)
 	if !ok {
-		if matchedLetOrConst {
-			return ast.NewImproper(variableDecl.Token, ast.VariableDeclaration)
-		}
-		if p.peek(-1).Type == tokens.Equal {
-			return ast.NewImproper(variableDecl.Token, ast.VariableDeclaration)
-		}
-		return ast.NewImproper(variableDecl.Token, ast.NA)
+		return ast.NewImproper(varDecl.Token, ast.VariableDeclaration)
 	}
 
-	variableDecl.Identifiers = idents
-	variableDecl.Expressions = exprs
+	varDecl.Identifiers = idents
+	varDecl.Expressions = exprs
 
-	return &variableDecl
+	return varDecl
+}
+
+func (p *Parser) typedVariableDeclaration() ast.Node {
+	varDecl := &ast.VariableDecl{
+		Token: p.peek(-1),
+		IsPub: p.context.isPub,
+	}
+
+	typeExpr, ok := p.checkType("in variable declaration")
+	if !ok {
+		return ast.NewImproper(varDecl.Token, ast.NA)
+	}
+	varDecl.Type = typeExpr
+
+	idents, exprs, ok := p.identExprPairs("in variable declaration", true)
+	if !ok {
+		return ast.NewImproper(varDecl.Token, ast.NA)
+	}
+	varDecl.Identifiers = idents
+	varDecl.Expressions = exprs
+
+	return varDecl
 }
 
 func (p *Parser) functionDeclaration() ast.Node {

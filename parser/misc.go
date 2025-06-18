@@ -236,13 +236,15 @@ func (p *Parser) functionReturns() ([]*ast.TypeExpr, bool) {
 }
 
 func (p *Parser) identifier(typeContext string) *ast.IdentifierExpr {
-	expr := p.expression()
-	if expr.GetType() == ast.Identifier {
-		return expr.(*ast.IdentifierExpr)
+	if p.peek().Type != tokens.Identifier {
+		expr := p.expression()
+		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(expr.GetToken()), typeContext)
+		return nil
 	}
-	p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(expr.GetToken()), typeContext)
-
-	return nil
+	return &ast.IdentifierExpr{
+		Name: p.advance(),
+		Type: ast.Other,
+	}
 }
 
 // bool tells you if the parsing succeeded
@@ -468,6 +470,9 @@ func (p *Parser) sync(syncPoints ...tokens.TokenType) bool {
 }
 
 func (p *Parser) synchronizeBody() {
+	defer func() {
+		p.context.syncedToken = p.peek()
+	}()
 	expectedBlockCount := 0
 	for !p.isAtEnd() {
 		switch p.peek().Type {
@@ -475,7 +480,6 @@ func (p *Parser) synchronizeBody() {
 			p.advance()
 			if p.peek().Type != tokens.LeftParen {
 				p.disadvance()
-				p.context.syncedToken = p.peek()
 				return
 			}
 		case tokens.LeftBrace:
@@ -485,7 +489,6 @@ func (p *Parser) synchronizeBody() {
 				if p.context.syncedToken == p.peek() {
 					break
 				}
-				p.context.syncedToken = p.peek()
 				return
 			}
 
@@ -495,12 +498,18 @@ func (p *Parser) synchronizeBody() {
 				if p.context.syncedToken == p.peek() {
 					break
 				}
-				p.context.syncedToken = p.peek()
 				return
 			}
-		case tokens.Let, tokens.Pub, tokens.Const, tokens.Class, tokens.Alias:
-			p.context.syncedToken = p.peek()
+		case tokens.Let, tokens.Pub, tokens.Const, tokens.Class, tokens.Alias, tokens.Repeat, tokens.For, tokens.Destroy, tokens.Spawn, tokens.New:
 			return
+		case tokens.If:
+			if p.peek(-1).Type != tokens.Else {
+				return
+			}
+		case tokens.Match:
+			if p.peek(-1).Type != tokens.Comma && p.peek(-1).Type != tokens.Equal {
+				return
+			}
 		}
 
 		p.advance()
@@ -508,6 +517,9 @@ func (p *Parser) synchronizeBody() {
 }
 
 func (p *Parser) synchronizeDeclBody() {
+	defer func() {
+		p.context.syncedToken = p.peek()
+	}()
 	expectedBlockCount := 0
 	for !p.isAtEnd() {
 		switch p.peek().Type {
@@ -515,7 +527,6 @@ func (p *Parser) synchronizeDeclBody() {
 			p.advance()
 			if p.peek().Type != tokens.LeftParen {
 				p.disadvance()
-				p.context.syncedToken = p.peek()
 				return
 			}
 		case tokens.LeftBrace:
@@ -525,40 +536,26 @@ func (p *Parser) synchronizeDeclBody() {
 				if p.context.syncedToken == p.peek() {
 					break
 				}
-				p.context.syncedToken = p.peek()
 				return
 			}
 
 			expectedBlockCount--
-		case tokens.Entity:
-			if p.peek(1).Type == tokens.Identifier && p.peek(2).Type == tokens.LeftBrace {
-				if p.context.syncedToken == p.peek() {
-					break
-				}
-				p.context.syncedToken = p.peek()
+		case tokens.Let, tokens.Pub, tokens.Const, tokens.Class, tokens.Alias, tokens.Repeat, tokens.For, tokens.Destroy, tokens.Spawn, tokens.New:
+			return
+		case tokens.If:
+			if p.peek(-1).Type != tokens.Else {
+				return
+			}
+		case tokens.Match:
+			if p.peek(-1).Type != tokens.Comma && p.peek(-1).Type != tokens.Equal {
 				return
 			}
 		case tokens.Identifier:
-			current := p.current
-			p.advance()
-			p.context.ignoreAlerts.Push("SynchronizeDeclBody", true)
-			if _, ok := p.functionParams(tokens.LeftParen, tokens.RightParen); ok && p.check(tokens.LeftBrace) {
-				p.disadvance(p.current - current)
-				p.context.ignoreAlerts.Pop("SynchronizeDeclBody")
-				p.context.syncedToken = p.peek()
+			peek := p.peek().Lexeme
+			switch peek {
+			case "Update", "WeaponCollision", "PlayerCollision", "WallCollision":
 				return
 			}
-			p.disadvance(p.current - current)
-			node := p.variableDeclaration(false)
-			p.context.ignoreAlerts.Pop("SynchronizeDeclBody")
-			if !ast.IsImproper(node, ast.NA) {
-				p.disadvance(p.current - current)
-				p.context.syncedToken = p.peek()
-				return
-			}
-		case tokens.Let, tokens.Pub, tokens.Const, tokens.Class, tokens.Alias, tokens.New, tokens.Spawn, tokens.Destroy:
-			p.context.syncedToken = p.peek()
-			return
 		}
 
 		p.advance()
