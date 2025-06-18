@@ -17,6 +17,7 @@ const DEATH_DURATION = 40f
 const HP_MAX = 40
 const HOVER_HEIGHT = 25f
 const PYLON_COLOR = 0xaa00faff
+const PYLON_SCALE = 1.5f
 
 pub entity Pylon {
     AttackState state = AttackState.NOTHING
@@ -38,13 +39,13 @@ pub entity Pylon {
 
         SetEntityMesh(self, PylonMesh, 0)
         SetEntityMeshColor(self, PYLON_COLOR)
-        SetEntityMeshScale(self, 1.2f)
-        SetEntityRadius(self, 20f)
+        SetEntityMeshScale(self, PYLON_SCALE)
+        SetEntityRadius(self, 20f*PYLON_SCALE)
         SetEntityTag(self, Globals:BULLET_COLLIDABLE_TAG)
 
         topPrism = NewEntity(x,y)
         SetEntityMesh(topPrism, PylonMesh, 1)
-        SetEntityMeshScale(self, 1.2f)
+        SetEntityMeshScale(self, PYLON_SCALE)
         SetEntityMeshColor(topPrism, PYLON_COLOR)
         SetEntityMeshZ(topPrism, 10f)
     }

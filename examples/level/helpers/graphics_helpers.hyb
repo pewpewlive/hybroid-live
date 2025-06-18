@@ -33,7 +33,7 @@ pub fn AddLine(Mesh mesh, Vertexes vertexes, Colors colors, bool closeLoop) {
   let vertexCount = #mesh.vertexes
 
   let numberOfNewSegments = #vertexes - 1
-  let Segment segment
+  Segment segment
   
   repeat with i to #vertexes {
     Insert(mesh.vertexes, vertexes[i])
@@ -90,10 +90,10 @@ pub fn AddFlatPoly(Mesh mesh, Vertex center, number sides, color, radius, startA
   if sides <= 2
     return
 
-  let Vertexes vertexes 
-  let Colors colors
+  Vertexes vertexes 
+  Colors colors
 
-  let number z
+  number z
   if #center >= 3 {
     z = center[3]
   }

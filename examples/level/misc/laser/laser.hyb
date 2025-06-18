@@ -93,7 +93,7 @@ pub entity Laser {
             isInFront = true
         }
 
-        return dist < FmathHelpers:Remap(3f, 18f, 0f, LASER_DURATION, timer)*scale and scale > 0.2f and isInFront
+        return dist < FmathHelpers:Remap(3f, 18f, 0f, LASER_DURATION, timer)*scale and scale > 0.4f and isInFront
     }
 
     fn CollideWithPlayer() {

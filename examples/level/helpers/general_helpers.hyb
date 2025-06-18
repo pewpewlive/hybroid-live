@@ -7,7 +7,7 @@ use Pewpew
 pub fn AddPolyWall(struct{fixed x, y} center, fixed radius, number sides) {
     let x = center.x
     let y = center.y
-    let list<struct{fixed x, y}> vertices 
+    list<struct{fixed x, y}> vertices 
     let angle = Tau()/ToFixed(sides)
     let sin, cos = Sincos(angle)
     repeat sides {

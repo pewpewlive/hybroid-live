@@ -1,0 +1,17 @@
+env Gameplay as Level
+
+use Pewpew
+
+pub alias EntitySpawn = fn(number, number, fixed, fixed)
+
+fn Rangle() -> fixed {
+  return Fmath:RandomFixed(0d, 360d)
+}
+
+pub RoundOne = [fn(number time, diff, fixed x, y) {
+    if time == 2 or time % 350 == 0 {
+        repeat (3*diff)\1 {
+            NewMothership(x, y, MothershipType.Triangle, Rangle())
+        }
+    }
+}]

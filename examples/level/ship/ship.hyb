@@ -8,8 +8,8 @@ const INPUT_TIME = 12
 const MIN_REQUIRED_CHANGE = 0.4f
 
 pub class Ship {
-  let entity id
-  let Camera cam = new Camera()
+   entity id
+  Camera cam = new Camera()
 
   number dashTime
   number onDashTime
@@ -63,11 +63,12 @@ pub class Ship {
       SetEntityPosition(coolDownMesh, px, py)
       SetEntityMesh(coolDownMesh, DashCooldownMesh, 0)
       return
-    }else if IsEntityAlive(coolDownMesh) {
+    } else if IsEntityAlive(coolDownMesh) {
       DestroyEntity(coolDownMesh)
     }
+
     let ma, md, _, _ = GetPlayerInputs(0)
-    let hardChange = md-previousDist
+    let hardChange = md - previousDist
     change = FmathHelpers:Lerp(change, hardChange, 0.5f)
     ConfigurePlayerHud(0, struct{
       top_left_line = ToString(change)

@@ -3,6 +3,7 @@ env RoundManager as Level
 use VithenEntity
 use Globals
 use Pewpew
+use Gameplay
 
 enum Round {
     One,
@@ -19,17 +20,13 @@ enum RoundVariant {
 
 const ROUND_DURATION = 1000
 
-pub fn Rangle() -> fixed {
-    return Fmath:RandomFixed(0d, 360d)
-}
-
-pub fn RandomSpawn() -> (fixed, fixed) {
-    return Fmath:RandomFixed(0f, WIDTH), Fmath:RandomFixed(0f, HEIGHT)
-}
-
 fn Chance(number percent) -> bool {
     let a = Fmath:RandomNumber(0, 100)
     return a <= percent 
+}
+
+fn RandomSpawn() -> (fixed, fixed) {
+    return Fmath:RandomFixed(0f, WIDTH), Fmath:RandomFixed(0f, HEIGHT)
 }
 
 pub class RoundManager {
@@ -37,46 +34,19 @@ pub class RoundManager {
     RoundVariant variant = RoundVariant.Normal
     Round prevRound = Round.One
     number time, bossTime
+    number diff = 1
 
     new() {}
 
     fn Update() {
+        diff += 0.01
 
         match round {
             Round.One => {
                 time += 1
-                if time == 2 or time % 350 == 0 {
+                for _, enemySpawn in RoundOne {
                     let rx, ry = RandomSpawn()
-                    repeat 3 {
-                        NewMothership(rx, ry, MothershipType.Triangle, Rangle())
-                    }
-                }
-
-                if time % 160 == 0 {
-                    let rx, ry = RandomSpawn()
-                    spawn Vithen(rx, ry)
-                }
-                if time % 400 == 0 {
-                    let rx, ry = RandomSpawn() 
-                    NewInertiac(rx, ry, 1f, Rangle())
-                }
-                if time % 260 == 0 {
-                    let rx, ry = RandomSpawn()
-                    NewKamikaze(rx, ry, Rangle())
-                }
-                if time % 40 == 0 {
-                    let rx, ry = RandomSpawn()
-                    NewSpiny(rx, ry, Rangle(), Fmath:RandomFixed(2f, 3f))
-                }
-                if time % 200 == 0 {
-                    let rx, ry = RandomSpawn()
-                    let angle = Rangle()
-                    let perp = angle+90d
-                    let sin, cos = Fmath:Sincos(perp)
-                    NewSpiny(rx, ry, angle, 3f)
-                    NewSpiny(rx+cos*2f, ry+sin*2f, angle, 2f)
-                    NewSpiny(rx+cos*3f, ry+sin*3f, angle, 1f)
-                    NewSpiny(rx+cos*4f, ry+sin*4f, angle, 0.5f)
+                    enemySpawn(time, diff, rx, ry)
                 }
                 
                 if time >= ROUND_DURATION {
