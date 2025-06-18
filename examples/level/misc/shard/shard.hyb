@@ -12,8 +12,11 @@ pub entity Shard {
     fixed mx, my
 
     number immunityFrames = 12
+    fixed homingPower = 0.01f
+    number lifetime
 
-    spawn(fixed x, y, angle, speed) {
+    spawn(fixed x, y, angle, speed, number lifetime) {
+        self.lifetime = lifetime
         self.angle = angle
         self.speed = speed
         SetEntityMesh(self, ShardMesh, 0)
@@ -41,8 +44,13 @@ pub entity Shard {
     }
 
     Update() {
+        lifetime -= 1
         immunityFrames -= 1
         if IsEntityBeingDestroyed(self) {
+            return
+        }
+        if lifetime <= 0  {
+            destroy self()
             return
         }
         roll += speed*1d
@@ -53,10 +61,13 @@ pub entity Shard {
         if IsEntityAlive(ShipEntity:SHIP.id) {
             let px, py = GetEntityPosition(ShipEntity:SHIP.id)
             let dpx, dpy = FmathHelpers:Normalize(px - x, py - y)
-            dpx, dpy *= speed*0.9f, speed*0.9f
-            mx, my = FmathHelpers:Lerp(mx, dpx, 0.01f), FmathHelpers:Lerp(my, dpy, 0.01f)
+            let diff = Fmath:AbsFixed(dpx-mx)+Fmath:AbsFixed(dpy-my)
+            mx, my = FmathHelpers:Lerp(mx, dpx, homingPower*diff*2f), FmathHelpers:Lerp(my, dpy, homingPower*diff*2f)
         }
-
+        homingPower -= 0.0001f
+        if homingPower <= 0f {
+            homingPower = 0f
+        }
 
         angle = Fmath:Atan2(my, mx)
 

@@ -111,7 +111,7 @@ pub entity Pylon {
                     if i == 0f continue
                     let offset = 12d * i
                     let offsetY, offsetX = Fmath:Sincos(offset)
-                    spawn Shard(x + offsetX * 10f, y + offsetY * 10f, lookToAngle + offset, 5f)
+                    spawn Shard(x + offsetX * 10f, y + offsetY * 10f, lookToAngle + offset, 9f, 330)
                 }
 
                 prismRotation += 7d

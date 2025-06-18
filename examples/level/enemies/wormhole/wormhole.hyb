@@ -9,7 +9,7 @@ pub entity WormholeDeath {
 
     spawn(fixed x, y, radius, power) {
         self.radius = radius
-        self.power = radius
+        self.power = power
     }
 
     Update() {

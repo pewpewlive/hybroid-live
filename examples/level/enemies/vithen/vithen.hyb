@@ -10,7 +10,7 @@ enum AttackState {
 }
 
 const LASER_PREPARE_TIME = 90f
-const PREPARATION_TIME = 100
+const PREPARATION_TIME = 106
 const LASER_THICKNESS = 1.5f
 const COLOR = 0xff6a00ff
 let size = Fmath:ToFixed(SIZE)
@@ -163,8 +163,8 @@ pub entity Vithen {
                     }
                     time = 0f
                     state = AttackState.NOTHING
-                    prepTime = PREPARATION_TIME
-                    for i, v in laserIndicators {
+                    prepTime = Fmath:RandomNumber(PREPARATION_TIME, PREPARATION_TIME+10)
+                    for _, v in laserIndicators {
                         SetEntityMesh(v, VithenLaserMesh, 0)
                     }
                     break

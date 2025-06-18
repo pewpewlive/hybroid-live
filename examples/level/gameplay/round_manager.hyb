@@ -17,7 +17,11 @@ enum RoundVariant {
     Fast
 }
 
-const ROUND_DURATION = 700
+const ROUND_DURATION = 1000
+
+pub fn Rangle() -> fixed {
+    return Fmath:RandomFixed(0d, 360d)
+}
 
 pub fn RandomSpawn() -> (fixed, fixed) {
     return Fmath:RandomFixed(0f, WIDTH), Fmath:RandomFixed(0f, HEIGHT)
@@ -41,19 +45,32 @@ pub class RoundManager {
         match round {
             Round.One => {
                 time += 1
+                if time == 2 or time % 350 == 0 {
+                    let rx, ry = RandomSpawn()
+                    repeat 3 {
+                        NewMothership(rx, ry, MothershipType.Triangle, Rangle())
+                    }
+                }
 
-                if time % 110 == 0 {
+                if time % 160 == 0 {
                     let rx, ry = RandomSpawn()
                     spawn Vithen(rx, ry)
                 }
+                if time % 400 == 0 {
+                    let rx, ry = RandomSpawn() 
+                    NewInertiac(rx, ry, 1f, Rangle())
+                }
+                if time % 260 == 0 {
+                    let rx, ry = RandomSpawn()
+                    NewKamikaze(rx, ry, Rangle())
+                }
                 if time % 40 == 0 {
                     let rx, ry = RandomSpawn()
-                    NewSpiny(rx, ry, Fmath:RandomFixed(0d, 360d), Fmath:RandomFixed(2f, 3f))
+                    NewSpiny(rx, ry, Rangle(), Fmath:RandomFixed(2f, 3f))
                 }
-
                 if time % 200 == 0 {
                     let rx, ry = RandomSpawn()
-                    let angle = Fmath:RandomFixed(0d, 360d)
+                    let angle = Rangle()
                     let perp = angle+90d
                     let sin, cos = Fmath:Sincos(perp)
                     NewSpiny(rx, ry, angle, 3f)

@@ -4,7 +4,8 @@ use Pewpew
 use Utils
 
 const DASH_DURATION = 10
-const INPUT_TIME = 6
+const INPUT_TIME = 12
+const MIN_REQUIRED_CHANGE = 0.4f
 
 pub class Ship {
   let entity id
@@ -66,8 +67,8 @@ pub class Ship {
       DestroyEntity(coolDownMesh)
     }
     let ma, md, _, _ = GetPlayerInputs(0)
-    let hardChange = Fmath:AbsFixed(md-previousDist)
-    change = FmathHelpers:Lerp(change, hardChange, 0.3f)
+    let hardChange = md-previousDist
+    change = FmathHelpers:Lerp(change, hardChange, 0.5f)
     ConfigurePlayerHud(0, struct{
       top_left_line = ToString(change)
     })
@@ -78,7 +79,7 @@ pub class Ship {
       inputTimer = 0
     }
 
-    if md > 0.5f and !firstInputDone and inputTimer == 0 {
+    if hardChange > MIN_REQUIRED_CHANGE and !firstInputDone and inputTimer == 0 {
       firstInputDone = true
       inputTimer = INPUT_TIME
       dashAngle = ma
@@ -86,28 +87,21 @@ pub class Ship {
     if !firstInputDone {
       return
     }
-
-    if md < 0.5f and inputTimer == 0  {
+    if inputTimer == 0 {
       firstInputDone = false
+      firstInputReleased = false
       return
     }
 
-    if md < 0.5f and inputTimer != 0 and !firstInputReleased  {
+    if hardChange < -MIN_REQUIRED_CHANGE and inputTimer != 0 and !firstInputReleased {
       firstInputReleased = true
     }
 
-    if md < 0.5f and inputTimer == 0 and firstInputReleased {
-      firstInputDone = false
-      firstInputReleased = false
-    }
-
-    if firstInputReleased and inputTimer != 0 and md > 0.5f and hardChange > 0f {
-      Print("Ma: ".. ToString(ma) .. " | Angle: " .. ToString(dashAngle) .. " | " .. ToString(30d))
+    if firstInputReleased and inputTimer != 0 and hardChange > MIN_REQUIRED_CHANGE  {
       if Fmath:AbsFixed(dashAngle-ma) > 5d {
         firstInputDone = false
         firstInputReleased = false
         inputTimer = 0
-        Print("here")
         dashAngle = -1fx
         return
       }
