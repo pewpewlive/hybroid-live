@@ -11,9 +11,6 @@ import (
 	"hybroid/walker"
 	"os"
 	"path/filepath"
-	"time"
-
-	color "github.com/mitchellh/colorstring"
 )
 
 type Evaluator struct {
@@ -55,27 +52,27 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		}
 		defer sourceFile.Close()
 
-		color.Printf("[dark_gray]-->File: %s\n", sourcePath)
+		//color.Printf("[dark_gray]-->File: %s\n", sourcePath)
 
-		start := time.Now()
+		//start := time.Now()
 
 		lexer := lexer.NewLexer(sourceFile)
 		tokens, tokenizeErr := lexer.Tokenize()
 
-		fmt.Printf("Tokenizing time: %f seconds\n\n", time.Since(start).Seconds())
+		//fmt.Printf("Tokenizing time: %f seconds\n\n", time.Since(start).Seconds())
 		e.printer.StageAlerts(sourcePath, lexer.GetAlerts())
-		start = time.Now()
+		//start = time.Now()
 
 		if tokenizeErr != nil {
 			generate = false
 			continue
 		}
 
-		fmt.Printf("Parsing %d tokens\n", len(tokens))
+		//fmt.Printf("Parsing %d tokens\n", len(tokens))
 
 		parser := parser.NewParser(tokens)
 		program := parser.Parse()
-		fmt.Printf("Parsing time: %f seconds\n\n", time.Since(start).Seconds())
+		//fmt.Printf("Parsing time: %f seconds\n\n", time.Since(start).Seconds())
 		e.printer.StageAlerts(sourcePath, parser.GetAlerts())
 
 		for _, v := range parser.GetAlerts() {
@@ -87,27 +84,27 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 
 		// ast.DrawNodes(prog)
 
-		color.Printf("[dark_gray]-->File: %s\n", sourcePath)
+		//color.Printf("[dark_gray]-->File: %s\n", sourcePath)
 
-		start = time.Now()
+		//start = time.Now()
 
 		e.walkerList[i].SetProgram(program)
-		fmt.Println("Prewalking environments...")
+		//fmt.Println("Prewalking environments...")
 		e.walkerList[i].PreWalk(e.walkers)
-		fmt.Printf("Prewalking time: %f seconds\n\n", time.Since(start).Seconds())
+		//fmt.Printf("Prewalking time: %f seconds\n\n", time.Since(start).Seconds())
 	}
 
-	for i, walker := range e.walkerList {
-		sourcePath := e.files[i].Path()
-		color.Printf("[dark_gray]-->File: %s\n", sourcePath)
+	for _, walker := range e.walkerList {
+		//sourcePath := e.files[i].Path()
+		//color.Printf("[dark_gray]-->File: %s\n", sourcePath)
 
-		start := time.Now()
+		//start := time.Now()
 
-		fmt.Println("Walking through the nodes...")
+		//fmt.Println("Walking through the nodes...")
 		if !walker.Walked {
 			walker.Walk()
 		}
-		fmt.Printf("Walking time: %f seconds\n\n", time.Since(start).Seconds())
+		//fmt.Printf("Walking time: %f seconds\n\n", time.Since(start).Seconds())
 
 		for _, v := range walker.GetAlerts() {
 			if v.AlertType() == alerts.Error {
@@ -119,13 +116,13 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 
 	for i, walker := range e.walkerList {
 		sourcePath := e.files[i].Path()
-		color.Printf("[dark_gray]-->File: %s\n", sourcePath)
+		//color.Printf("[dark_gray]-->File: %s\n", sourcePath)
 
-		start := time.Now()
+		//start := time.Now()
 
-		fmt.Println("Postwalking...")
+		//fmt.Println("Postwalking...")
 		walker.PostWalk()
-		fmt.Printf("Postwalking time: %f seconds\n\n", time.Since(start).Seconds())
+		//fmt.Printf("Postwalking time: %f seconds\n\n", time.Since(start).Seconds())
 
 		e.printer.StageAlerts(sourcePath, walker.GetAlerts())
 	}
@@ -135,18 +132,18 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		return nil
 	}
 
-	fmt.Printf("-Preparing values for generation...\n")
+	//fmt.Printf("-Preparing values for generation...\n")
 	gen := generator.NewGenerator()
 	for _, walker := range e.walkerList {
 		gen.SetUniqueEnvName(walker.Env().Name)
 	}
 
 	for i, walker := range e.walkerList {
-		sourcePath := e.files[i].Path()
-		color.Printf("[dark_gray]-->File: %s\n", sourcePath)
+		//sourcePath := e.files[i].Path()
+		//color.Printf("[dark_gray]-->File: %s\n", sourcePath)
 
-		start := time.Now()
-		fmt.Println("Generating the lua code...")
+		//start := time.Now()
+		//fmt.Println("Generating the lua code...")
 
 		gen.SetEnv(walker.Env().Name, walker.Env().Type)
 		gen.GenerateUsedLibaries(walker.Env().UsedLibraries)
@@ -160,7 +157,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 
 		e.printer.StageAlerts(e.files[i].Path(), gen.GetAlerts())
 
-		fmt.Printf("Generating time: %f seconds\n\n", time.Since(start).Seconds())
+		//fmt.Printf("Generating time: %f seconds\n\n", time.Since(start).Seconds())
 
 		err := os.MkdirAll(filepath.Join(cwd, outputDir, e.files[i].DirectoryPath), os.ModePerm)
 		if err != nil {
