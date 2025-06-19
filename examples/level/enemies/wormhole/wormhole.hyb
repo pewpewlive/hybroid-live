@@ -2,6 +2,7 @@ env WormholeEntity as Level
 
 use Pewpew
 use ShipEntity
+use ScoreUtils
 
 pub entity WormholeDeath {
     fixed radius, power
@@ -74,8 +75,10 @@ pub entity Wormhole {
     destroy() {
         PlayAmbientSound(WormholeSound, 1)
         let ex, ey = GetEntityPosition(self)
-        spawn WormholeDeath(ex, ey, pullRadius, 1000f)
+        spawn WormholeDeath(ex, ey, pullRadius, 150f)
         DestroyEntity(self)
+
+        IncreaseScore(ex, ey, LevelScore.Score300, PointoniumScore.Score256)
     }
 
     Update() {
@@ -143,7 +146,8 @@ pub entity Wormhole {
             AttackState.CHARADE => {
                 attackTime += 1
                 if attackTime % CHARADE_BULLET_FREQUENCY == 0 {
-                    spawn BulletEntity:Bullet(ex, ey, 3f, shootAngle, 1f, 0xaaffffff, 1000)
+                    let bullet = spawn BulletEntity:Bullet(ex, ey, 3f, shootAngle, 1f, 0xaaffffff, 1000)
+                    bullet.bs.bounceWallCount = 1
                     shootAngle += shootAngleStep
                 }
                 if attackTime >= CHARADE_DURATION {
@@ -165,7 +169,8 @@ pub entity Wormhole {
                 if burstTime > 0 and attackTime % burstBulletFrequency == 0 {
                     let increment = 360d/Fmath:ToFixed(burstBulletAmount)
                     repeat burstBulletAmount {
-                        spawn BulletEntity:Bullet(ex, ey, 5f, shootAngle, 1f, 0xaaffffff, 1000)
+                        let bullet = spawn BulletEntity:Bullet(ex, ey, 5f, shootAngle, 1f, 0xaaffffff, 1000)
+                        bullet.bs.bounceWallCount = 1
                         shootAngle += increment
                     }
                 }
@@ -212,6 +217,7 @@ pub entity Wormhole {
             currentPullRadius *= 0.3f
             let ex, ey = GetEntityPosition(self)
             PlaySound(WormholeSound, 0, ex, ey)
+            IncreasePlayerScore(0, 2)
             if hp < 0 {
                 destroy self()
                 return true

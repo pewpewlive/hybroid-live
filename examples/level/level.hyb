@@ -18,7 +18,7 @@ ConfigurePlayer(0, playerConfig)
 let bg = NewEntity(WIDTH/2f, HEIGHT/2f)
 SetEntityMesh(bg, MapMesh, 1)
 
-let grid = new Grid:Grid(CELLCOUNT+1, CELLCOUNT+1, CELLSIZE_X, CELLSIZE_Y, 0f, 0f, 0f)
+let grid = new Grid:Grid(CELLCOUNT, CELLCOUNT, CELLSIZE_X, CELLSIZE_Y, 0f, 0f, 0f)
 grid.CreateLineGrid()
 
 let roundManager = new RoundManager:RoundManager()
@@ -33,12 +33,15 @@ tick with time {
   // Bullet grid pulse
   let entities = GetAllEntities()
   for _, e in entities {
-    if GetEntityType(e) == EntityType.CustomizableEntity {
-      continue
+    let entityType = GetEntityType(e)
+    
+    match entityType {
+      EntityType.CustomizableEntity, EntityType.Ship, EntityType.MothershipBullet => continue
+      else => {
+        let ex, ey = GetEntityPosition(e)
+        grid.Pulse(ex, ey, 15f, 70f)
+      }
     }
-
-    let ex, ey = GetEntityPosition(e)
-    grid.Pulse(ex, ey, 15f, 70f)
   }
   // Custom enemy grid pulse
   for inertiac in every SuperInertiac {

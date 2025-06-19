@@ -3,8 +3,8 @@ env ShipEntity as Level
 use Pewpew
 use Utils
 
-const DASH_DURATION = 10
-const INPUT_TIME = 12
+const DASH_DURATION = 12
+const INPUT_TIME = 10
 const MIN_REQUIRED_CHANGE = 0.4f
 
 pub class Ship {
@@ -21,8 +21,7 @@ pub class Ship {
   number inputTimer = INPUT_TIME
   bool firstInputDone
   bool firstInputReleased
-  fixed previousDist
-  fixed change
+  bool initialRelease
 
   new(fixed x, y) {
     id = NewShip(x, y, 0)
@@ -42,9 +41,9 @@ pub class Ship {
     })
 
     let _, md, _, _ = GetPlayerInputs(0)
-    self.previousDist = md
     
     tick {
+      if !IsEntityAlive(id) return
       if !doDash {
         DashUpdate()
       }
@@ -68,55 +67,58 @@ pub class Ship {
     }
 
     let ma, md, _, _ = GetPlayerInputs(0)
-    let hardChange = md - previousDist
-    change = FmathHelpers:Lerp(change, hardChange, 0.5f)
-    ConfigurePlayerHud(0, struct{
-      top_left_line = ToString(change)
-    })
-    previousDist = md
 
     inputTimer -= 1
     if inputTimer <= 0 {
       inputTimer = 0
     }
+    if md == 0f and !initialRelease {
+      Print("Initial Release")
+      initialRelease = true
+    }
 
-    if hardChange > MIN_REQUIRED_CHANGE and !firstInputDone and inputTimer == 0 {
+    if md > 0.5f and !firstInputDone and inputTimer == 0 and initialRelease {
+      Print("First input done")
       firstInputDone = true
       inputTimer = INPUT_TIME
       dashAngle = ma
     }
-    if !firstInputDone {
-      return
-    }
-    if inputTimer == 0 {
+    if inputTimer == 0 and firstInputDone {
+      Print("Too late after first input")
       firstInputDone = false
       firstInputReleased = false
+      initialRelease = false
       return
     }
 
-    if hardChange < -MIN_REQUIRED_CHANGE and inputTimer != 0 and !firstInputReleased {
+    if md == 0f and inputTimer != 0 and !firstInputReleased and firstInputDone {
+      Print("First input released")
       firstInputReleased = true
     }
 
-    if firstInputReleased and inputTimer != 0 and hardChange > MIN_REQUIRED_CHANGE  {
-      if Fmath:AbsFixed(dashAngle-ma) > 5d {
+    if firstInputReleased and inputTimer != 0 and md > 0.5f and firstInputDone {
+      if Fmath:AbsFixed(dashAngle-ma) > 20d {
+        Print("Dash Fail!")
         firstInputDone = false
         firstInputReleased = false
+        initialRelease = false
         inputTimer = 0
         dashAngle = -1fx
         return
       }
+      Print("Dash!")
       doDash = true
       firstInputReleased = false
+      initialRelease = false
       firstInputDone = false
       inputTimer = 0
-      MakeShipTransparent(id, DASH_DURATION)
+      MakeShipTransparent(id, DASH_DURATION + 15)
     }
   }
 
   fn OnDash() {
     onDashTime += 1
-    SetShipSpeed(id, 0f, 0f, -1)
+    SetShipSpeed(id, 0f, 0f, DASH_DURATION)
     let px, py = GetEntityPosition(id)
     let sin, cos = Fmath:Sincos(dashAngle)
 
@@ -126,13 +128,17 @@ pub class Ship {
 
       EntityReactToWeapon(v, struct{
         type = WeaponType.AtomizeExplosion,
-        x = cos*35f,
-        y = sin*35f,
+        x = px,
+        y = py,
         player_index = 0
       })
     }
-    
-    EntityMove(id, cos*35f, sin*35f)
+
+    let minSpeed = 10f
+    let maxSpeed = 35f
+    let t = 2.71f ^ (Fmath:FromFraction(onDashTime, DASH_DURATION) ^ 5f)
+    let speed = FmathHelpers:Clamp(t * maxSpeed, minSpeed, maxSpeed)
+    EntityMove(id, cos*speed, sin*speed)
     
     repeat 10f with i {
       let angle = (i - 1fx) * 2fx * Fmath:Tau() / 2fx / 10fx
@@ -155,7 +161,7 @@ pub class Ship {
       SpawnEntity(coolDownMesh, 0)
       SetEntityPositionInterpolation(coolDownMesh, true)
       SetEntityAngleInterpolation(coolDownMesh, true)
-      SetShipSpeed(id, 1f, 2f, -1)
+      SetShipSpeed(id, 1f, 0f, -1)
     }
   }
 }

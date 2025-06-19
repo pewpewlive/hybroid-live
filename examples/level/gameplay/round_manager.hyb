@@ -9,6 +9,7 @@ enum Round {
     One,
     Two,
     Three,
+    Four,
     Boss,
     Special
 }
@@ -19,14 +20,11 @@ enum RoundVariant {
 }
 
 const ROUND_DURATION = 1000
+const ROUND_PAUSE = 90
 
 fn Chance(number percent) -> bool {
     let a = Fmath:RandomNumber(0, 100)
     return a <= percent 
-}
-
-fn RandomSpawn() -> (fixed, fixed) {
-    return Fmath:RandomFixed(0f, WIDTH), Fmath:RandomFixed(0f, HEIGHT)
 }
 
 pub class RoundManager {
@@ -35,40 +33,92 @@ pub class RoundManager {
     Round prevRound = Round.One
     number time, bossTime
     number diff = 1
+    number progression = 1
+    bool pause 
 
     new() {}
 
+    fn ProgressRound() {
+        progression += 1
+        if progression % 4 == 0 {
+            diff += 1
+        }
+        time = 0
+        pause = true
+    }
+
     fn Update() {
-        diff += 0.01
+        if !IsEntityAlive(ShipEntity:SHIP.id) {
+            return
+        }
+
+        if pause {
+            time += 1
+            if time >= ROUND_PAUSE {
+                pause = false
+                time = 0
+            }
+            return
+        }
 
         match round {
             Round.One => {
                 time += 1
                 for _, enemySpawn in RoundOne {
-                    let rx, ry = RandomSpawn()
-                    enemySpawn(time, diff, rx, ry)
+                    enemySpawn(time, diff)
                 }
                 
                 if time >= ROUND_DURATION {
                     round = Round.Two
                     RandomizeVariant()
                     prevRound = Round.One
-                    time = 0
+                    ProgressRound()
                 }
             }
             Round.Two => {
                 time += 1
-
-                if time == ROUND_DURATION\2 and Chance(20) {
-                    prevRound = round
-                    round = Round.Boss
-                    break
+                for _, enemySpawn in RoundTwo {
+                    enemySpawn(time, diff)
                 }
+                // if time == ROUND_DURATION\2 and Chance(20) {
+                //     prevRound = round
+                //     round = Round.Boss
+                //     break
+                // }
                 if time >= ROUND_DURATION {
                     round = Round.Three
                     RandomizeVariant()
-                    time = 0
-                    prevRound = Round.Two
+                    prevRound = Round.Two  
+                    ProgressRound()
+                }
+            }
+            Round.Three => {
+                time += 1
+                for _, enemySpawn in RoundThree {
+                    enemySpawn(time, diff)
+                }
+                // if time == ROUND_DURATION\2 and Chance(20) {
+                //     prevRound = round
+                //     round = Round.Boss
+                //     break
+                // }
+                if time >= ROUND_DURATION {
+                    round = Round.Four
+                    RandomizeVariant()
+                    prevRound = Round.Three
+                    ProgressRound()
+                }
+            }
+            Round.Four => {
+                time += 1
+                for _, enemySpawn in RoundFour {
+                    enemySpawn(time, diff)
+                }
+                if time >= ROUND_DURATION {
+                    round = Round.One
+                    RandomizeVariant()
+                    prevRound = Round.Four
+                    ProgressRound()
                 }
             }
         }
@@ -77,7 +127,7 @@ pub class RoundManager {
     fn RandomizeVariant() {
         if Chance(30) {
             variant = RoundVariant.Fast
-        }else {
+        } else {
             variant = RoundVariant.Normal
         }
     }

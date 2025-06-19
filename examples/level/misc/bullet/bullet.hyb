@@ -71,9 +71,8 @@ pub entity Bullet {
             return
         }
         bs.bounceWallCount -= 1
-        let wAngle = Fmath:Atan2(wallNormalY, wallNormalX)
-        let mAngle = Fmath:Atan2(-my, -mx)
-        my, mx = Fmath:Sincos(mAngle+wAngle-mAngle)
+        
+        mx, my = FmathHelpers:Reflect(mx, my, wallNormalX, wallNormalY)
     }
 
     Update() {

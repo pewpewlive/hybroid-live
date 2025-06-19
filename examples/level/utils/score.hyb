@@ -1,0 +1,46 @@
+env ScoreUtils as Shared
+
+pub enum LevelScore {
+  Score10,
+  Score20,
+  Score40,
+  Score50,
+  Score100,
+  Score200,
+  Score300
+}
+
+pub enum PointoniumScore {
+  Score64,
+  Score128,
+  Score256,
+  Score512
+}
+
+pub fn IncreaseScore(fixed x, y, LevelScore score, PointoniumScore pointonium) {
+  let scoreValue, dz, scale, ticksBeforeFade = match score {
+    LevelScore.Score10 => 10, 30f, 0.4f, 4
+    LevelScore.Score20 => 20, 20f, 0.6f, 8
+    LevelScore.Score40 => 40, 20f, 0.6f, 8
+    LevelScore.Score50 => 50, 20f, 0.8f, 12
+    LevelScore.Score100 => 100, 10f, 1.1f, 20
+    LevelScore.Score200 => 200, 10f, 1.2f, 30
+    LevelScore.Score300 => 300, 10f, 1.3f, 30
+    else => 300, 10f, 1.3f, 30
+  }
+  
+  let pointoniumScore = match pointonium {
+    PointoniumScore.Score64 => 64
+    PointoniumScore.Score128 => 128
+    PointoniumScore.Score256 => 256
+    PointoniumScore.Score512 => 512
+    else => 512
+  }
+  
+  Pewpew:NewFloatingMessage(x, y, "#00ff00ff" .. ToString(scoreValue), struct{dz = dz, scale = scale, ticks_before_fade = ticksBeforeFade, is_optional = true})
+  Pewpew:IncreasePlayerScore(0, scoreValue)
+  repeat Pewpew:GetPlayerScoreStreak(0) {
+    Pewpew:NewPointonium(x, y, pointoniumScore)
+  }
+  Pewpew:IncreasePlayerScoreStreak(0, scoreValue)
+}

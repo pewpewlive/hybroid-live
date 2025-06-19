@@ -3,6 +3,7 @@ env SuperInertiacEntity as Level
 use Pewpew
 use FmathHelpers
 use ShipEntity
+use ScoreUtils
 
 enum State {
   FOLLOWING_PLAYER,
@@ -51,8 +52,8 @@ pub entity SuperInertiac {
   fixed currentSpread = 0d
   fixed lookToPlayerAngle
 
-  spawn(fixed x, fixed y) {
-    SpawnEntity(self, 60)
+  spawn(fixed x, y) {
+    SpawnEntity(self, 0)
     SetEntityPositionInterpolation(self, true)
 
     SetEntityPosition(self, x, y)
@@ -104,6 +105,8 @@ pub entity SuperInertiac {
       DestroyEntity(laser)
     }
     ExplodeEntity(predictionLine, 0)
+
+    IncreaseScore(x, y, LevelScore.Score200, PointoniumScore.Score256)
   }
 
   WallCollision(fixed normalX, fixed normalY) {
@@ -128,7 +131,9 @@ pub entity SuperInertiac {
       CreateExplosion(x, y, 0x00aaddff, 0.8f, 10)
     }
 
-    collisionCooldown = COLLISION_COOLDOWN_MAX
+    if collisionCooldown <= 0 {
+      collisionCooldown = COLLISION_COOLDOWN_MAX
+    }
   }
 
   WeaponCollision(number _, WeaponType weaponType) -> bool {
@@ -148,6 +153,8 @@ pub entity SuperInertiac {
         CreateExplosion(x, y, 0x1144aaff, 0.8f, 10)
         CreateExplosion(x, y, 0x330077ff, 0.8f, 10)
         CreateExplosion(x, y, 0x00aaddff, 0.8f, 10)
+
+        IncreasePlayerScore(0, 5)
       }
       WeaponType.AtomizeExplosion => {
         destroy self()
@@ -228,7 +235,6 @@ pub entity SuperInertiac {
     if !CanCollide() 
       collisionCooldown -= 1
 
-    x, y = GetEntityPosition(self)
     let entities = GetEntitiesInRadius(x, y, RADIUS*1.8f)
     for _, v in entities {
       if v == self {

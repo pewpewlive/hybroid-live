@@ -113,9 +113,9 @@ pub fn ParametricInvLerp(number a, b, v, Parameters parameters) -> number {
         if linearT <= v.x {
             linearT = Lerp(parameters[i-1].y, v.y, InvLerp(parameters[i-1].x, v.x, linearT))
             linearT = match v.pt {
-                ParamType.Squared => yield linearT*linearT
-                ParamType.Rooted => yield Sqrt(linearT)
-                else => yield linearT
+                ParamType.Squared => linearT*linearT
+                ParamType.Rooted => Sqrt(linearT)
+                else => linearT
             }
             break
         }

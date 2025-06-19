@@ -45,13 +45,8 @@ pub fn Dot(fixed x, y, nX, nY) -> fixed
   => x * nX + y * nY
 
 pub fn Reflect(fixed x, y, nX, nY) -> (fixed, fixed) {
-  fixed dot = Dot(x, y, nX, nY) * 2f // move_x = move_x - (wall_normal_x * dot_product_move)
-  //−(2(n · v) n − v)
-  //x = -2f * dot * nX
-  //y = -2f * dot * nY
+  fixed dot = Dot(x, y, nX, nY) * 2f
   x -= nX * dot
   y -= nY * dot
-  //x = -(2f * (nX * x) * (nX - x))
-  //y = -(2f * (nY * y) * (nY - y))
   return x, y 
 }

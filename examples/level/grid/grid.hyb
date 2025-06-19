@@ -84,6 +84,7 @@ pub class Grid {
     number gridSizeX, gridSizeY, gridCount
    
     new(number sizeX, sizeY, fixed _cellSizeX, _cellSizeY, _offsetX, _offsetY, _offsetZ) {
+        sizeX, sizeY += 1, 1
         gridSizeX, gridSizeY = sizeX, sizeY
         gridCount = sizeX * sizeY
         cellSizeX, cellSizeY = _cellSizeX, _cellSizeY
@@ -133,7 +134,7 @@ pub class Grid {
     
     fn SetColors(number default, active) {
         gridColor, activeGridColor = default, active
-    } 
+    }
     
     fn WorldToGridPos(fixed x, y) -> (number, number)
         => MathHelpers:Clamp(Fmath:ToNumber((x + cellSizeX / 2f) / cellSizeX) + 1, 1, gridSizeX), MathHelpers:Clamp(Fmath:ToNumber((y + cellSizeY / 2f) / cellSizeY) + 1, 1, gridSizeY)

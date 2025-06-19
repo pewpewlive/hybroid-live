@@ -17,12 +17,15 @@ pub entity Hypercube {
     fixed xAxis, yAxis, zAxis
     fixed growth = 0.01f
 
-    spawn(fixed x, y, angle) {
+    let spawningTime = 30
+    number scoreToGive = 200
+
+    spawn(fixed x, y) {
         self.scale = 1f
         SetEntityMesh(self, HypercubeMesh, 0)
         SetEntityPositionInterpolation(self, true)
         SkipEntityMeshAttributesInterpolation(self)
-        SpawnEntity(self, 0)
+        SpawnEntity(self, spawningTime)
         SetEntityRadius(self, INITIAL_RADIUS)
 
         xAxis = Fmath:RandomFixed(0.5f, 1f)
@@ -32,10 +35,10 @@ pub entity Hypercube {
             zAxis = 0.5f
         }
 
-        my, mx = Fmath:Sincos(angle)
+        my, mx = Fmath:Sincos(Fmath:RandomFixed(0d, 360d))
     }
 
-    destroy() {
+    destroy(bool duplicating) {
         let x, y = GetEntityPosition(self)
         let color = ColorHelpers:LerpColors(0xff00ffff, 0xafffffff, colorT)
         CreateExplosion(x, y, color, scale, 30)
@@ -43,9 +46,19 @@ pub entity Hypercube {
         ExplodeEntity(self, 30)
         SetEntityWallCollision(self, false, fn(entity _, fixed _, _) {})
         PlaySound(HypercubeSound, 1, x, y)
+
+        let score = match scoreToGive {
+            200 => ScoreUtils:LevelScore.Score200
+            100 => ScoreUtils:LevelScore.Score100
+            else => ScoreUtils:LevelScore.Score50
+        }
+        if !duplicating {
+            ScoreUtils:IncreaseScore(x, y, score, ScoreUtils:PointoniumScore.Score64)
+        }
     }
 
     Update() {
+        spawningTime -= 1
         scale += growth
         if scale < 1f {
             scale = 1f
@@ -55,18 +68,22 @@ pub entity Hypercube {
         SetEntityMeshScale(self, scale)
         SetEntityRadius(self, INITIAL_RADIUS * scale)
         
-        if !IsEntityBeingDestroyed(self) {
+        if !IsEntityBeingDestroyed(self) and spawningTime <= 0 {
             SetEntityFlippingMeshes(self, HypercubeMesh, frames, frames + 1)
             frames = (frames + 2) % 120
 
             if scale > 3.5f {
                 let x, y = GetEntityPosition(self)
-                destroy self()
+                destroy self(true)
                 let angle = Fmath:RandomFixed(0d, 360d)
-                let hc = spawn Hypercube(x, y, angle)
+                let hc = spawn Hypercube(x, y)
+                hc.my, hc.mx = Fmath:Sincos(angle)
                 hc.growth = growth / 2f
-                let hc2 = spawn Hypercube(x, y, angle + 180d)
+                hc.scoreToGive = scoreToGive \ 2
+                let hc2 = spawn Hypercube(x, y)
+                hc2.my, hc2.mx = Fmath:Sincos(angle+180d)
                 hc2.growth = growth / 2f
+                hc2.scoreToGive = scoreToGive \ 2
                 return
             }
         } else {
@@ -106,7 +123,7 @@ pub entity Hypercube {
     WallCollision(fixed wallNormalX, wallNormalY) {
         if IsEntityBeingDestroyed(self) return
         if Sum() > FAST_ENOUGH {
-            destroy self()
+            destroy self(false)
             return
         }
         let wAngle = Fmath:Atan2(wallNormalY, wallNormalX)
@@ -116,7 +133,7 @@ pub entity Hypercube {
 
     PlayerCollision(number _, entity shipId) {
         DamageShip(shipId, 1)
-        destroy self()
+        destroy self(false)
     }
 
     WeaponCollision(number _, WeaponType weaponType) -> bool {
@@ -134,7 +151,7 @@ pub entity Hypercube {
                 return true
             }
             WeaponType.AtomizeExplosion => {
-                destroy self()
+                destroy self(false)
             }
         }
         return true

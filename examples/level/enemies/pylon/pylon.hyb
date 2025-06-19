@@ -10,14 +10,16 @@ enum AttackState {
     BARRAGE
 }
 
-const BARRAGE_DURATION = 50
 const BARRAGE_BULLET_FREQUENCY = 15
-const PYLON_SIGHT_RADIUS = 500f
+const BARRAGE_BULLET_TIMES_MAX = 2
+const BARRAGE_DURATION = BARRAGE_BULLET_FREQUENCY*BARRAGE_BULLET_TIMES_MAX+2
+const PYLON_SIGHT_RADIUS = 400f
 const DEATH_DURATION = 40f
 const HP_MAX = 40
 const HOVER_HEIGHT = 25f
 const PYLON_COLOR = 0xaa00faff
 const PYLON_SCALE = 1.5f
+const PYLON_SCORE = 200
 
 pub entity Pylon {
     AttackState state = AttackState.NOTHING
@@ -62,6 +64,8 @@ pub entity Pylon {
             ShipEntity:SHIP.cam.Shake(FmathHelpers:Clamp(50f * (1f - dist / (150f ^ 2f)), 10f, 50f))
         }
         spawn Shockwave:Shockwave(x, y, struct{radius = 30f, speed = 10f, power = 60f, duration = 60, count = 32})
+
+        ScoreUtils:IncreaseScore(x, y, ScoreUtils:LevelScore.Score200, ScoreUtils:PointoniumScore.Score128)
     }
 
     Update() {
@@ -103,14 +107,14 @@ pub entity Pylon {
 
             if attackTime >= BARRAGE_DURATION or !IsEntityAlive(SHIP.id) {
                 state = AttackState.NOTHING
-                attackTime = 50
+                attackTime = 80
                 break
             }
 
             if attackTime % BARRAGE_BULLET_FREQUENCY == 0 {
                 repeat from -1f to 1f with i {
                     if i == 0f continue
-                    let offset = 12d * i
+                    let offset = 17d * i
                     let offsetY, offsetX = Fmath:Sincos(offset)
                     spawn Shard(x + offsetX * 10f, y + offsetY * 10f, lookToAngle + offset, 9f, 330)
                 }
@@ -123,7 +127,7 @@ pub entity Pylon {
         prismRotation = FmathHelpers:Lerp(prismRotation, 1d, 0.2f)
         Rotate()
         let sin, _ = Fmath:Sincos(time / 7f)
-        SetEntityMeshZ(topPrism, Fmath:ToFixed(HEIGHT) + HOVER_HEIGHT + HOVER_HEIGHT * sin)
+        SetEntityMeshZ(topPrism, Fmath:ToFixed(HEIGHT) + 2f * HOVER_HEIGHT + HOVER_HEIGHT * sin)
     }
 
     PlayerCollision(number _, entity shipId) {

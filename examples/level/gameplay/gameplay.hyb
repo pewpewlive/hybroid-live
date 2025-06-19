@@ -1,17 +1,133 @@
 env Gameplay as Level
 
 use Pewpew
+use Fmath
+use Globals
+use ShipEntity
 
-pub alias EntitySpawn = fn(number, number, fixed, fixed)
+pub alias EntitySpawn = fn(number, number)
 
 fn Rangle() -> fixed {
-  return Fmath:RandomFixed(0d, 360d)
+  return RandomFixed(0d, 360d)
 }
 
-pub RoundOne = [fn(number time, diff, fixed x, y) {
-    if time == 2 or time % 350 == 0 {
-        repeat (3*diff)\1 {
-            NewMothership(x, y, MothershipType.Triangle, Rangle())
+const SAFE_AREA = 50f
+
+fn PlayerSafeSpawn(fn() -> (fixed, fixed) f) -> (fixed, fixed) {
+    let x, y = f()
+    let px, py = GetEntityPosition(SHIP.id)
+    while AbsFixed(x - px) < SAFE_AREA and AbsFixed(y - py) < SAFE_AREA {
+        x, y = f()
+    } 
+    return x, y
+}
+
+fn RandomSpawn() -> (fixed, fixed) {
+    return RandomFixed(100f, WIDTH - 100f), RandomFixed(100f, HEIGHT - 100f)
+}
+
+fn RandomSpawnGridSafe() -> (fixed, fixed) {
+    let cellX = ToFixed(RandomNumber(2, CELLCOUNT-2))
+    let cellY = Fmath:ToFixed(RandomNumber(2, CELLCOUNT-2))
+
+    return cellX*CELLSIZE_X+CELLSIZE_X/2f, cellY*CELLSIZE_Y+CELLSIZE_Y/2f
+}
+
+pub RoundOne = [
+    fn(number time, diff) {
+        if time == 2 or time % 350 == 0 {
+            let x, y = PlayerSafeSpawn(RandomSpawn)
+            repeat (3*diff)\1 {
+                NewMothership(x, y, MothershipType.Triangle, Rangle())
+            }
+        }
+    },
+    fn(number time, diff) {
+        if time == 2 or time % 440 == 0 {
+            let x, y = PlayerSafeSpawn(RandomSpawnGridSafe)
+            spawn Pylon:Pylon(x, y)
+        }
+    },
+    fn(number time, diff) {
+        if time == 2 or time % 200 == 0 {
+            repeat 1+diff {
+                let x, y = PlayerSafeSpawn(RandomSpawn)
+                NewRollingCube(x, y)
+            }
         }
     }
-}]
+]
+
+pub RoundTwo = [
+    fn(number time, diff) {
+        if time == 2 or time % 440 == 0 {
+            repeat 2+diff {
+                let x, y = PlayerSafeSpawn(RandomSpawn)
+                spawn HypercubeEntity:Hypercube(x, y)
+            }
+        }
+    },
+    fn(number time, diff) {
+        if time == 2 or time % 300 == 0 {
+            let x, y = PlayerSafeSpawn(RandomSpawn)
+            NewInertiac(x, y, 1.5f, Rangle())
+        }
+    },
+    fn(number time, diff) {
+    }
+]
+
+pub RoundThree = [
+    fn(number time, diff) {
+        if time == 2 or time % 600 == 0 {
+            let x, y = PlayerSafeSpawn(RandomSpawn)
+            spawn SuperInertiacEntity:SuperInertiac(x, y)
+        }
+    },
+    fn(number time, diff) {
+        if time == 2 or time % 300 == 0 {
+            let bafAmount = 14+diff
+            let angleStep = 360d / ToFixed(bafAmount)
+            let x, y = PlayerSafeSpawn(RandomSpawn)
+            repeat bafAmount with i {
+                let angle = angleStep * ToFixed(i)
+                let dy, dx = Sincos(angle)
+                NewYellowBAF(x + dx * 80f, y + dy * 80f, angle, 10f, 500)
+            }
+        }
+    },
+    fn(number time, diff) {
+        if time == 100 or time % 450 == 0 {
+            let x, y = PlayerSafeSpawn(RandomSpawn)
+            let crowderAmount = Fmath:ToFixed(7+diff)
+            let r = 13f*crowderAmount
+            repeat crowderAmount {
+                let dy, dx = Sincos(Fmath:RandomFixed(0d, 360d))
+                NewCrowder(x + dx * r, y + dy * r)
+                r *= 0.8f
+            }
+        }
+    }
+]
+
+pub RoundFour = [
+    fn(number time, diff) {
+        if time == 2 {
+            repeat 3+diff {
+                let x, y = PlayerSafeSpawn(RandomSpawnGridSafe)
+                spawn VithenEntity:Vithen(x, y, diff)
+            }
+        } else if time % 400 == 0 {
+            repeat 1+diff {
+                let x, y = PlayerSafeSpawn(RandomSpawnGridSafe)
+                spawn VithenEntity:Vithen(x, y, diff)
+            }
+        }
+    },
+    fn(number time, diff) {
+        if time == 2 or time % 600 == 0 {
+            let x, y = PlayerSafeSpawn(RandomSpawn)
+            spawn WormholeEntity:Wormhole(x, y, 50f)
+        }
+    }
+]

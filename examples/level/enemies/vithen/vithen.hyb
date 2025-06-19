@@ -2,6 +2,7 @@ env VithenEntity as Level
 
 use Pewpew
 use VithenConstants
+use ScoreUtils
 
 enum AttackState {
     NOTHING,
@@ -25,9 +26,12 @@ pub entity Vithen {
 
     list<entity> laserIndicators
 
-    fixed angle, accel
+    fixed angle, accel, maxAccel 
+    number difficulty
+    fixed accelRate = 0.2f
 
-    spawn(fixed x, y) {
+    spawn(fixed x, y, number difficulty) {
+        self.difficulty = difficulty
         self.x, self.y = x, y
         SetEntityMesh(self, VithenMesh, 0)
         SetEntityMeshColor(self, COLOR)
@@ -48,6 +52,8 @@ pub entity Vithen {
         CreateExplosion(x, y, COLOR, 1.4f, 50)
         SetEntityUpdateCallback(self, fn(entity _) {})
         PlaySound(VithenSound, 1, x, y)
+
+        IncreaseScore(x, y, LevelScore.Score100, PointoniumScore.Score64)
     }
 
     PlayerCollision(number _, entity ship) {
@@ -63,40 +69,60 @@ pub entity Vithen {
                 PlaySound(VithenSound, 0, x, y)
                 if hp <= 0 {
                     destroy self()
-                }else {
+                } else {
                     hitReaction = 2
                 }
+                IncreasePlayerScore(0, 5)
                 return true
             }
             WeaponType.AtomizeExplosion => {
                 destroy self()
             }
-        }
+        } 
         return true
     }
 
     Update() {      
         if hitReaction >= 0 {
             SetEntityMeshColor(self, 0xffffffff)
-        }else {
+        } else {
             SetEntityMeshColor(self, COLOR)
         }
         hitReaction -= 1 
         match state {
             AttackState.NOTHING => {
-                accel -= 0.05d
-                if accel < 0d {
-                    accel = 0d
+                if accelRate < 0f {
+                    accel += accelRate / -4f
+                    if accel > 0f {
+                        accel = 0f
+                    }
+                } else if accelRate > 0f {
+                    accel -= accelRate / 4f
+                    if accel < 0f {
+                        accel = 0f
+                    }
                 }
                 angle += accel
 
                 SetEntityMeshAngle(self, angle, 0f, 0f, 1f)
                 prepTime -= 1
                 if prepTime >= 0 break
+                // if difficulty < 2 {
+                //     state = AttackState.SIMPLE_FOUR
+                //     time = 0f
+                //     return
+                // }
                 let randomNum = Fmath:RandomNumber(0, 1)
                 match randomNum {
                     0 => {
                         state = AttackState.ROTATION
+                        let random = Fmath:RandomFixed(0.1d, 0.3d)
+                        maxAccel = Fmath:RandomFixed(0.5d, 2.5d)
+                        accelRate = match Fmath:RandomNumber(0, 1) {
+                            0 => random
+                            1 => -random
+                            else => random
+                        }
                     }
                     else => {
                         state = AttackState.SIMPLE_FOUR
@@ -135,9 +161,11 @@ pub entity Vithen {
                 time += 1f
             }
             AttackState.ROTATION => {
-                accel += 0.2d
-                if accel > 2d {
-                    accel = 2d
+                accel += accelRate
+                if accel > maxAccel {
+                    accel = maxAccel
+                } else if accel < -maxAccel {
+                    accel = -maxAccel
                 }
                 angle += accel
 

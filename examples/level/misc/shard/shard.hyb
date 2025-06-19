@@ -14,6 +14,7 @@ pub entity Shard {
     number immunityFrames = 12
     fixed homingPower = 0.01f
     number lifetime
+    bool skippedInterpolation
 
     spawn(fixed x, y, angle, speed, number lifetime) {
         self.lifetime = lifetime
@@ -69,18 +70,29 @@ pub entity Shard {
             homingPower = 0f
         }
 
-        angle = Fmath:Atan2(my, mx)
-
-        SetEntityPosition(self, x + mx * speed, y + my * speed)
-        SetEntityMeshAngle(self, roll, 1f, 0f, 0f)
-        AddRotationToEntityMesh(self, angle, 0f, 0f, 1f)
-
         let entities = GetEntitiesInRadius(x, y, 10f)
         for _, v in entities {
+            if v == self continue
+            if let converted = v is Shard {
+                let ex, ey = GetEntityPosition(v)
+                let dx, dy = FmathHelpers:Normalize(x-ex, y-ey)
+                mx, my = dx, dy
+                converted.mx, converted.my = -dx, -dy
+                SkipInterpolation()
+                converted.SkipInterpolation()
+            }
             if v is CustomizableEntity and GetEntityTag(v) == Globals:BULLET_COLLIDABLE_TAG {
                 destroy self()
                 break
             }
+        }
+        angle = Fmath:Atan2(my, mx)
+        SetEntityPosition(self, x + mx * speed, y + my * speed)
+        SetEntityMeshAngle(self, roll, 1f, 0f, 0f)
+        AddRotationToEntityMesh(self, angle, 0f, 0f, 1f)
+        if skippedInterpolation {
+            SkipEntityMeshAttributesInterpolation(self)
+            skippedInterpolation = false
         }
     }
 
@@ -119,5 +131,9 @@ pub entity Shard {
             }
         }
         return true
+    }
+
+    fn SkipInterpolation() {
+        skippedInterpolation = true
     }
 }

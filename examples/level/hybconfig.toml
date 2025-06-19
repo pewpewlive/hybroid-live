@@ -1,9 +1,10 @@
 [level]
-name = "#131b29ffT#2e3745ffH#485260ffE #d1d70bffH#48a23bffy#3773d6ffb#15c4bdffr#c14f3fffo#cb5b32ffi#ca0e65ffd"
+name = "Hyperboreal Assault"
 descriptions = ["This is an example level created using Hybroid Live!"]
-information = "Hybroid Live - programming language, handcrafted for PewPew. https://hybroid.pewpew.live/hybroid-live"
+information = "The official example level for Hybroid Live https://hybroid.pewpew.live/hybroid-live"
 entry_point = "level.hyb"
-casual = true
+casual = false
+medal_requirements = { "gold" = 100, "silver" = 200, "bronze" = 100 }
 
 [project]
 name = "the-hybroid"
