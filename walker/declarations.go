@@ -78,7 +78,7 @@ func (w *Walker) classDeclaration(node *ast.ClassDecl, scope *Scope) {
 
 	// DECLARATIONS
 	w.declareClass(classVal)
-	classScope := NewScope(scope, &ClassTag{Val: classVal}, SelfAllowing)
+	classScope := w.NewScope(scope, &ClassTag{Val: classVal}, SelfAllowing)
 
 	for i := range node.Fields {
 		w.fieldDeclaration(&node.Fields[i], classVal, classScope, false)
@@ -118,7 +118,7 @@ func (w *Walker) classDeclaration(node *ast.ClassDecl, scope *Scope) {
 
 func (w *Walker) entityDeclaration(node *ast.EntityDecl, scope *Scope) {
 	et := &EntityTag{}
-	entityScope := NewScope(scope, et, SelfAllowing)
+	entityScope := w.NewScope(scope, et, SelfAllowing)
 	if scope.Parent != nil {
 		w.AlertSingle(&alerts.InvalidStmtInLocalBlock{}, node.Token, "entity declaration")
 		return
@@ -183,7 +183,7 @@ func (w *Walker) entityFunctionDeclaration(node *ast.EntityFunctionDecl, scope *
 	ft := &FuncTag{
 		Return: false,
 	}
-	fnScope := NewScope(scope, ft, ReturnAllowing)
+	fnScope := w.NewScope(scope, ft, ReturnAllowing)
 	ft.Generics = w.getGenericParams(node.Generics, scope)
 
 	ft.ReturnTypes = w.getReturns(node.Returns, fnScope)
@@ -292,7 +292,7 @@ func (w *Walker) methodDeclaration(node *ast.MethodDecl, container MethodContain
 			Generics:    fn.Generics,
 		}
 
-		fnScope := NewScope(scope, fnTag, ReturnAllowing)
+		fnScope := w.NewScope(scope, fnTag, ReturnAllowing)
 
 		for i := range node.Params {
 			param := &node.Params[i]
@@ -327,7 +327,7 @@ func (w *Walker) functionDeclaration(node *ast.FunctionDecl, scope *Scope, procT
 	ft := &FuncTag{
 		Return: false,
 	}
-	fnScope := NewScope(scope, ft, ReturnAllowing)
+	fnScope := w.NewScope(scope, ft, ReturnAllowing)
 	ft.Generics = w.getGenericParams(node.Generics, scope)
 
 	ft.ReturnTypes = w.getReturns(node.Returns, fnScope)

@@ -19,7 +19,7 @@ func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 	}
 
 	pt := NewPathTag()
-	ifScope := NewScope(scope, pt)
+	ifScope := w.NewScope(scope, pt)
 
 	w.walkBody(&node.Body, pt, ifScope)
 
@@ -27,7 +27,7 @@ func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 	for i := range node.Elseifs {
 		w.ifCondition(&node.Elseifs[i].BoolExpr, scope)
 		pt := NewPathTag()
-		ifScope := NewScope(scope, pt)
+		ifScope := w.NewScope(scope, pt)
 		for w.context.EntityCasts.Count() != 0 {
 			cast := w.context.EntityCasts.Pop()
 			w.declareVariable(scope, NewVariable(cast.Name, cast.Entity))
@@ -38,7 +38,7 @@ func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 
 	if node.Else != nil {
 		pt := NewPathTag()
-		elseScope := NewScope(scope, pt)
+		elseScope := w.NewScope(scope, pt)
 		w.walkBody(&node.Else.Body, pt, elseScope)
 		prevPathTag.SetAllExitAND(pt)
 	} else {
@@ -150,7 +150,7 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 }
 
 func (w *Walker) repeatStatement(node *ast.RepeatStmt, scope *Scope) {
-	repeatScope := NewScope(scope, &PathTag{}, BreakAllowing, ContinueAllowing)
+	repeatScope := w.NewScope(scope, &PathTag{}, BreakAllowing, ContinueAllowing)
 	lt := NewPathTag()
 	repeatScope.Tag = lt
 
@@ -197,7 +197,7 @@ func (w *Walker) repeatStatement(node *ast.RepeatStmt, scope *Scope) {
 }
 
 func (w *Walker) whileStatement(node *ast.WhileStmt, scope *Scope) {
-	whileScope := NewScope(scope, &PathTag{}, BreakAllowing, ContinueAllowing)
+	whileScope := w.NewScope(scope, &PathTag{}, BreakAllowing, ContinueAllowing)
 	lt := NewPathTag()
 	whileScope.Tag = lt
 	w.GetNodeValue(&node.Condition, scope)
@@ -207,7 +207,7 @@ func (w *Walker) whileStatement(node *ast.WhileStmt, scope *Scope) {
 }
 
 func (w *Walker) forStatement(node *ast.ForStmt, scope *Scope) {
-	forScope := NewScope(scope, &PathTag{}, BreakAllowing, ContinueAllowing)
+	forScope := w.NewScope(scope, &PathTag{}, BreakAllowing, ContinueAllowing)
 	lt := NewPathTag()
 	forScope.Tag = lt
 
@@ -262,7 +262,7 @@ func (w *Walker) forStatement(node *ast.ForStmt, scope *Scope) {
 }
 
 func (w *Walker) tickStatement(node *ast.TickStmt, scope *Scope) {
-	tickScope := NewScope(scope, &PathTag{}, ReturnAllowing)
+	tickScope := w.NewScope(scope, &PathTag{}, ReturnAllowing)
 	tt := NewPathTag()
 	tickScope.Tag = tt
 
@@ -289,7 +289,7 @@ func (w *Walker) matchStatement(node *ast.MatchStmt, scope *Scope) {
 	var prevPathTag PathTag
 	for i := range node.Cases {
 		pt := NewPathTag()
-		caseScope := NewScope(scope, pt, BreakAllowing)
+		caseScope := w.NewScope(scope, pt, BreakAllowing)
 		w.walkBody(&node.Cases[i].Body, pt, caseScope)
 		if i != 0 {
 			prevPathTag.SetAllExitAND(pt)

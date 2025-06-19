@@ -16,7 +16,7 @@ type Value interface {
 
 type ScopeableValue interface {
 	Value
-	Scopify(parent *Scope) *Scope
+	Scopify(w *Walker) *Scope
 }
 
 type FieldContainer interface {
@@ -198,8 +198,8 @@ func (sv *StructVal) ContainsField(name string) (*VariableVal, int, bool) {
 	return nil, -1, false
 }
 
-func (sv *StructVal) Scopify(parent *Scope) *Scope {
-	scope := NewScope(parent, &UntaggedTag{})
+func (sv *StructVal) Scopify(w *Walker) *Scope {
+	scope := w.NewScope(nil, &UntaggedTag{})
 
 	for k, v := range sv.Fields {
 		scope.Variables[k] = v.Var
@@ -251,8 +251,8 @@ func (ev *EnumVal) ContainsField(name string) (*VariableVal, int, bool) {
 	return nil, -1, false
 }
 
-func (ev *EnumVal) Scopify(parent *Scope) *Scope {
-	scope := NewScope(parent, &UntaggedTag{})
+func (ev *EnumVal) Scopify(w *Walker) *Scope {
+	scope := w.NewScope(nil, &UntaggedTag{})
 
 	scope.Variables = ev.Fields
 
@@ -386,8 +386,8 @@ func (ev *EntityVal) ContainsMethod(name string) (*VariableVal, bool) {
 	return nil, false
 }
 
-func (ev *EntityVal) Scopify(parent *Scope) *Scope {
-	scope := NewScope(parent, &UntaggedTag{})
+func (ev *EntityVal) Scopify(w *Walker) *Scope {
+	scope := w.NewScope(nil, &UntaggedTag{})
 
 	for _, v := range ev.Fields {
 		scope.Variables[v.Var.Name] = v.Var
@@ -460,8 +460,8 @@ func (cv *ClassVal) ContainsMethod(name string) (*VariableVal, bool) {
 	return nil, false
 }
 
-func (cv *ClassVal) Scopify(parent *Scope) *Scope {
-	scope := NewScope(parent, &UntaggedTag{})
+func (cv *ClassVal) Scopify(w *Walker) *Scope {
+	scope := w.NewScope(nil, &UntaggedTag{})
 
 	for _, v := range cv.Fields {
 		scope.Variables[v.Var.Name] = v.Var

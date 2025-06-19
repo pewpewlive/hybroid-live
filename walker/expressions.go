@@ -33,7 +33,7 @@ func (w *Walker) functionExpression(fn *ast.FunctionExpr, scope *Scope) Value {
 	generics := w.getGenericParams(fn.Generics, scope)
 	returnTypes := w.getReturns(fn.Returns, scope)
 	funcTag := &FuncTag{Generics: generics, ReturnTypes: returnTypes}
-	fnScope := NewScope(scope, funcTag, ReturnAllowing)
+	fnScope := w.NewScope(scope, funcTag, ReturnAllowing)
 	params := w.getParameters(fn.Params, fnScope)
 
 	w.walkFuncBody(fn, &fn.Body, funcTag, fnScope)
@@ -45,7 +45,7 @@ func (w *Walker) functionExpression(fn *ast.FunctionExpr, scope *Scope) Value {
 }
 
 func (w *Walker) matchExpression(node *ast.MatchExpr, scope *Scope) Value {
-	matchStmt := node.MatchStmt
+	matchStmt := &node.MatchStmt
 
 	cases := matchStmt.Cases
 	casesLength := len(cases)
@@ -57,14 +57,14 @@ func (w *Walker) matchExpression(node *ast.MatchExpr, scope *Scope) Value {
 	} else if casesLength < 2 {
 		w.AlertSingle(&alerts.InsufficientCases{}, matchStmt.Token)
 	}
-	matchScope := NewScope(scope, &MatchExprTag{YieldTypes: make([]Type, 0)}, YieldAllowing)
+	matchScope := w.NewScope(scope, &MatchExprTag{YieldTypes: make([]Type, 0)}, YieldAllowing)
 	valToMatch := w.GetActualNodeValue(&matchStmt.ExprToMatch, scope)
 	valType := valToMatch.GetType()
 
 	var prevPathTag PathTag
 	for i := range cases {
 		pt := NewPathTag()
-		caseScope := NewScope(matchScope, pt)
+		caseScope := w.NewScope(matchScope, pt)
 		w.walkBody(&matchStmt.Cases[i].Body, pt, caseScope)
 		if i != 0 {
 			prevPathTag.SetAllExitAND(pt)
@@ -96,7 +96,7 @@ func (w *Walker) matchExpression(node *ast.MatchExpr, scope *Scope) Value {
 	if !prevPathTag.GetIfExits(Yield) {
 		w.AlertSingle(&alerts.NotAllCodePathsExit{},
 			matchStmt.Token,
-			"yield",
+			"yield or return",
 		)
 	}
 	yieldTypes := matchScope.Tag.(*MatchExprTag).YieldTypes
@@ -602,7 +602,7 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 
 			field := node.Accessed[i].(*ast.FieldExpr)
 			w.ignoreAlerts = true
-			fieldVal := w.GetNodeValue(&field.Field, scopedVal.Scopify(scope))
+			fieldVal := w.GetNodeValue(&field.Field, scopedVal.Scopify(w))
 			w.ignoreAlerts = false
 
 			if _, found := fieldVal.(*VariableVal); !found {

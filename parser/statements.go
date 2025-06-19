@@ -399,10 +399,13 @@ func (p *Parser) useStatement() ast.Node {
 }
 
 func (p *Parser) matchStatement(isExpr bool) ast.Node {
+	context := ""
 	var matchType ast.NodeType
 	if isExpr {
+		context = "in match expression"
 		matchType = ast.MatchExpression
 	} else {
+		context = "in match statement"
 		matchType = ast.MatchStatement
 	}
 	matchStmt := ast.MatchStmt{
@@ -416,8 +419,8 @@ func (p *Parser) matchStatement(isExpr bool) ast.Node {
 		return ast.NewImproper(matchStmt.Token, matchType)
 	}
 
-	for p.consumeTill("in match statement", start, tokens.RightBrace) {
-		node, ok := p.caseStatement()
+	for p.consumeTill(context, start, tokens.RightBrace) {
+		node, ok := p.caseStatement(isExpr)
 		if !ok {
 			p.synchronizeMatchBody()
 			continue
@@ -436,7 +439,7 @@ func (p *Parser) matchStatement(isExpr bool) ast.Node {
 	return &matchStmt
 }
 
-func (p *Parser) caseStatement() (ast.Node, bool) {
+func (p *Parser) caseStatement(isExpr bool) (ast.Node, bool) {
 	token := p.peek()
 	caseStmt := &ast.CaseStmt{}
 
@@ -455,6 +458,20 @@ func (p *Parser) caseStatement() (ast.Node, bool) {
 	_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.FatArrow, "in match case")
 	if !ok {
 		return ast.NewImproper(token, ast.CaseStatement), false
+	}
+
+	if isExpr && !p.check(tokens.LeftBrace) {
+		exprs, ok := p.expressions("in match case expression", false)
+		if ok {
+			caseStmt.Body = []ast.Node{
+				&ast.YieldStmt{
+					Args:  exprs,
+					Token: exprs[0].GetToken(),
+				},
+			}
+			return caseStmt, true
+		}
+		return ast.NewImproper(caseStmt.GetToken(), ast.CaseStatement), false
 	}
 
 	body, ok := p.body(true, false)

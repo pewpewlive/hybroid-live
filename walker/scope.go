@@ -254,7 +254,7 @@ func (sc *Scope) Is(types ...ScopeAttribute) bool {
 	return true
 }
 
-func NewScope(parent *Scope, tag ScopeTag, extraAttrs ...ScopeAttribute) *Scope {
+func (w *Walker) NewScope(parent *Scope, tag ScopeTag, extraAttrs ...ScopeAttribute) *Scope {
 	var attrs ScopeAttributes
 	if parent == nil {
 		attrs = EmptyAttributes
@@ -265,7 +265,7 @@ func NewScope(parent *Scope, tag ScopeTag, extraAttrs ...ScopeAttribute) *Scope 
 		attrs.Add(v)
 	}
 	scope := Scope{
-		Environment: parent.Environment,
+		Environment: w.environment,
 		Parent:      parent,
 
 		Tag:        tag,
