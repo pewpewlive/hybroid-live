@@ -9,14 +9,14 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-const levelTemplate = `env %s as Level
+const levelTemplate = `env HelloWorld as Level
 
 // Hello, world!
 tick with i {
-  if i %% 2 == 0 {
-	  Pewpew:Print("Foo")
+	if i % 2 == 0 {
+		Pewpew:Print("Foo")
 	} else {
-	  Pewpew:Print("Bar")
+		Pewpew:Print("Bar")
 	}
 }
 `
@@ -34,8 +34,8 @@ func Initialize() *cli.Command {
 		Args:            true,
 		SkipFlagParsing: false,
 		Action: func(ctx *cli.Context) error {
-			if ctx.NumFlags() != 4 {
-				return fmt.Errorf("invalid amount of arguments (needed: 4, given: %v)", len(ctx.FlagNames()))
+			if ctx.NumFlags() != 3 {
+				return fmt.Errorf("invalid amount of arguments (needed: 3, given: %v)", len(ctx.FlagNames()))
 			}
 			return initialize(ctx)
 		},
@@ -70,7 +70,7 @@ func initialize(ctx *cli.Context) error {
 	if err = os.WriteFile("hybconfig.toml", configFile, os.ModePerm); err != nil {
 		return fmt.Errorf("failed to write the Hybroid Live config file to disk: %v", err)
 	}
-	if err = os.WriteFile("level.hyb", []byte(fmt.Sprintf(levelTemplate, levelName)), os.ModePerm); err != nil {
+	if err = os.WriteFile("level.hyb", []byte(levelTemplate), os.ModePerm); err != nil {
 		return fmt.Errorf("failed to write a level template to disk: %v", err)
 	}
 

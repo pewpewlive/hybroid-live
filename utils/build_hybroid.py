@@ -47,9 +47,6 @@ if __name__ == "__main__":
     print(f"[+] Starting threaded build of Hybroid")
 
     for config in _CONFIGS:
-        t = threading.Thread(
-            target=_build_platform, args=[config, os.environ, os.getcwd()]
-        )
-        t.start()
+        _build_platform(config, os.environ, os.getcwd())
 
     print("[+] Build job completed!")
