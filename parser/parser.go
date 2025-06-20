@@ -114,39 +114,43 @@ func (p *Parser) parseNode(syncFunc func()) (returnNode ast.Node) {
 	}
 
 	switch {
-	case p.match(tokens.Fn):
-		returnNode = p.functionDeclaration()
 	case p.match(tokens.Enum):
 		returnNode = p.enumDeclaration()
 	case p.match(tokens.Class):
 		returnNode = p.classDeclaration()
 	case p.match(tokens.Alias):
 		returnNode = p.aliasDeclaration()
-	case p.match(tokens.Let) || p.match(tokens.Const) || p.context.isPub:
+	case p.match(tokens.Let) || p.match(tokens.Const):
 		returnNode = p.simpleVariableDeclaration()
 	default:
-		if p.context.isPub {
+		returnNode = p.statement()
+		if !ast.IsImproper(returnNode, ast.NA) && p.context.isPub {
 			p.Alert(&alerts.UnexpectedKeyword{}, alerts.NewSingle(p.peek(-1)), tokens.Pub, "before statement")
 			p.context.isPub = false
 		}
-
-		returnNode = p.statement()
 	}
-
-	p.context.isPub = false
 
 	if ast.IsImproper(returnNode, ast.NA) {
 		current := p.current
-		p.context.ignoreAlerts.Push("ExpressionStatement", true)
-		node := p.expressionStatement()
-		p.context.ignoreAlerts.Pop("ExpressionStatement")
+		p.context.ignoreAlerts.Push("TypedVariableDeclaration", true)
+		node := p.typedVariableDeclaration()
+		p.context.ignoreAlerts.Pop("TypedVariableDeclaration")
 		p.disadvance(p.current - current)
 		if !ast.IsImproper(node, ast.NA) {
-			returnNode = p.expressionStatement()
-		} else {
 			returnNode = p.typedVariableDeclaration()
+		} else {
+			if p.match(tokens.Fn) {
+				returnNode = p.functionDeclaration()
+			}
+			if ast.IsImproper(returnNode, ast.NA) && p.context.isPub {
+				returnNode = p.simpleVariableDeclaration()
+			}
+			if ast.IsImproper(returnNode, ast.NA) {
+				returnNode = p.expressionStatement()
+			}
 		}
 	}
+	p.context.isPub = false
 
 	return
 }
