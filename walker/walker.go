@@ -351,7 +351,7 @@ func (w *Walker) walkBody(body *ast.Body, tag ExitableTag, scope *Scope) {
 	endIndex := -1
 	bodySlice := *body
 	for i := range bodySlice {
-		if tag.GetIfExits(ControlFlow) {
+		if tag.GetIfExits(ControlFlow) || tag.GetIfExits(Yield) {
 			w.AlertMulti(&alerts.UnreachableCode{}, bodySlice[i].GetToken(), bodySlice[body.Size()-1].GetToken())
 			endIndex = i
 			break

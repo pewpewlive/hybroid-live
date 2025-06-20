@@ -27,13 +27,39 @@ let ee = 2
 entity Thing {
     number a, b
     let c = 1
-    let number d = oOO()
 
     spawn(fixed x, y) {
 
     }
 
     destroy() {
+      
 
+        Pewpew:DestroyEntity(self)
     }
+
+    fn method() -> fixed {
+        number z = 1
+        repeat 30 {
+            repeat 10 {
+                z = match ee {
+                    2 => {
+                        continue
+                    }
+                    else => {
+                        yield 1
+                    }
+                }
+                z += 1
+            }
+
+   
+        }
+       
+        return Fmath:ToFixed(1)
+    }
+}
+
+fn A() {
+    
 }

@@ -45,7 +45,7 @@ func (w *Walker) functionExpression(fn *ast.FunctionExpr, scope *Scope) Value {
 }
 
 func (w *Walker) matchExpression(node *ast.MatchExpr, scope *Scope) Value {
-	matchStmt := &node.MatchStmt
+	matchStmt := node.MatchStmt
 
 	cases := matchStmt.Cases
 	casesLength := len(cases)
@@ -60,6 +60,7 @@ func (w *Walker) matchExpression(node *ast.MatchExpr, scope *Scope) Value {
 	matchScope := w.NewScope(scope, &MatchExprTag{YieldTypes: make([]Type, 0)}, YieldAllowing)
 	valToMatch := w.GetActualNodeValue(&matchStmt.ExprToMatch, scope)
 	valType := valToMatch.GetType()
+	exits := true
 
 	var prevPathTag PathTag
 	for i := range cases {
@@ -70,6 +71,9 @@ func (w *Walker) matchExpression(node *ast.MatchExpr, scope *Scope) Value {
 			prevPathTag.SetAllExitAND(pt)
 		} else {
 			prevPathTag = *pt
+		}
+		if !(pt.Exits[Yield] || pt.Exits[Return] || pt.Exits[ControlFlow]) {
+			exits = false
 		}
 
 		if matchStmt.Cases[i].Expressions[0].GetToken().Lexeme == "else" {
@@ -91,14 +95,22 @@ func (w *Walker) matchExpression(node *ast.MatchExpr, scope *Scope) Value {
 	}
 	if !matchStmt.HasDefault {
 		prevPathTag.SetAllFalse()
+		exits = false
 	}
 
-	if !prevPathTag.GetIfExits(Yield) {
+	if !exits {
 		w.AlertSingle(&alerts.NotAllCodePathsExit{},
 			matchStmt.Token,
-			"yield or return",
+			"yield/return/break/continue",
 		)
 	}
+	if receiver_ := scope.resolveReturnable(); receiver_ != nil {
+		receiver := *receiver_
+		receiver.SetExit(prevPathTag.GetIfExits(Return), Return)
+		receiver.SetExit(prevPathTag.GetIfExits(ControlFlow), ControlFlow)
+		receiver.SetExit(prevPathTag.GetIfExits(EntityDestruction), EntityDestruction)
+	}
+
 	yieldTypes := matchScope.Tag.(*MatchExprTag).YieldTypes
 	node.ReturnAmount = len(yieldTypes)
 

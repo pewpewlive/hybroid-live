@@ -415,7 +415,6 @@ func (w *Walker) yieldStatement(node *ast.YieldStmt, scope *Scope) *[]Type {
 
 	if returnable := scope.resolveReturnable(); returnable != nil {
 		(*returnable).SetExit(true, Yield)
-		(*returnable).SetExit(true, ControlFlow)
 	}
 
 	return ret.Types()
