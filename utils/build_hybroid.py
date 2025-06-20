@@ -1,7 +1,5 @@
 import os
 import subprocess
-import threading
-
 
 _CONFIGS = [
     {"env": {"GOOS": "windows", "GOARCH": "arm64"}, "name": "windows-arm64"},
@@ -44,7 +42,7 @@ if __name__ == "__main__":
     for file in os.listdir("build"):
         os.remove("build/" + file)
 
-    print(f"[+] Starting threaded build of Hybroid")
+    print(f"[+] Starting sequential build of Hybroid")
 
     for config in _CONFIGS:
         _build_platform(config, os.environ, os.getcwd())
