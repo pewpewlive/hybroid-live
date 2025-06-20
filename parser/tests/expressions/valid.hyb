@@ -121,6 +121,9 @@ match p {
     else => {}
 }
 
+pub map<bool> thing = map<bool>{"a" = true}
+pub thing2 = list<number>[1, 2]
+
 let b = match p {
     "a", 1 => 3,4
     "p" => {}

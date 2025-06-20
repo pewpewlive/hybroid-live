@@ -4,6 +4,7 @@ use VithenEntity
 use Globals
 use Pewpew
 use Gameplay
+use ShipEntity
 
 enum Round {
     One,
@@ -11,7 +12,7 @@ enum Round {
     Three,
     Four,
     Boss,
-    Special
+    Hypercube
 }
 
 enum RoundVariant {
@@ -20,7 +21,7 @@ enum RoundVariant {
 }
 
 const ROUND_DURATION = 1000
-const ROUND_PAUSE = 90
+const ROUND_PAUSE = 100
 
 fn Chance(number percent) -> bool {
     let a = Fmath:RandomNumber(0, 100)
@@ -30,15 +31,24 @@ fn Chance(number percent) -> bool {
 pub class RoundManager {
     Round round = Round.One
     RoundVariant variant = RoundVariant.Normal
-    Round prevRound = Round.One
+    Round nextRoundAfterSpecial = Round.One
     number time, bossTime
-    number diff = 1
+    number diff = 2
     number progression = 1
     bool pause 
 
     new() {}
 
     fn ProgressRound() {
+        if progression % 2 == 0 {
+            repeat 2 {
+                let x, y = PlayerSafeSpawn(RandomSpawn)
+                NewBonus(x, y, BonusType.Shield, struct{
+                    box_duration = 400,
+                    number_of_shields = 1
+                })
+            }
+        }
         progression += 1
         if progression % 4 == 0 {
             diff += 1
@@ -71,7 +81,6 @@ pub class RoundManager {
                 if time >= ROUND_DURATION {
                     round = Round.Two
                     RandomizeVariant()
-                    prevRound = Round.One
                     ProgressRound()
                 }
             }
@@ -81,14 +90,12 @@ pub class RoundManager {
                     enemySpawn(time, diff)
                 }
                 // if time == ROUND_DURATION\2 and Chance(20) {
-                //     prevRound = round
                 //     round = Round.Boss
                 //     break
                 // }
                 if time >= ROUND_DURATION {
                     round = Round.Three
                     RandomizeVariant()
-                    prevRound = Round.Two  
                     ProgressRound()
                 }
             }
@@ -97,15 +104,22 @@ pub class RoundManager {
                 for _, enemySpawn in RoundThree {
                     enemySpawn(time, diff)
                 }
-                // if time == ROUND_DURATION\2 and Chance(20) {
-                //     prevRound = round
-                //     round = Round.Boss
-                //     break
-                // }
+                if time == ROUND_DURATION\2 and Chance(100) {
+                    let entities = GetAllEntities()
+                    for _, v in entities {
+                        if v == SHIP.id or (GetEntityType(v) == EntityType.CustomizableEntity and GetEntityTag(v) == Globals:DONT_DESTROY) {
+                            continue
+                        }
+                        DestroyEntity(v)
+                    }
+                    nextRoundAfterSpecial = Round.Four
+                    round = Round.Hypercube
+                    time = 0
+                    break
+                }
                 if time >= ROUND_DURATION {
                     round = Round.Four
                     RandomizeVariant()
-                    prevRound = Round.Three
                     ProgressRound()
                 }
             }
@@ -117,7 +131,25 @@ pub class RoundManager {
                 if time >= ROUND_DURATION {
                     round = Round.One
                     RandomizeVariant()
-                    prevRound = Round.Four
+                    ProgressRound()
+                }
+            }
+            Round.Hypercube => {
+                time += 1
+                if time == 2 {
+                    repeat 12 {
+                        let x, y = PlayerSafeSpawn(RandomSpawn)
+                        spawn HypercubeEntity:Hypercube(x, y)
+                    }
+                }
+                if time % 450 == 0 {
+                    let x, y = PlayerSafeSpawn(RandomSpawn)
+                    spawn HypercubeEntity:Hypercube(x, y)
+                }
+                if time >= ROUND_DURATION*1.5\1 {
+                    round = nextRoundAfterSpecial
+                    time = 0
+                    RandomizeVariant()
                     ProgressRound()
                 }
             }

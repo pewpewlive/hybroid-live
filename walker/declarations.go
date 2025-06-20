@@ -448,6 +448,21 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 		w.declareVariable(scope, variables[i])
 	}
 	exprsLen := len(declaration.Expressions)
+
+	if exprCounter != exprsLen {
+		for range exprsLen - exprCounter {
+			val := w.GetActualNodeValue(&declaration.Expressions[exprCounter], scope)
+			if vls, ok := val.(Values); ok {
+				for _, v := range vls {
+					values = append(values, Value2{v, exprCounter})
+				}
+			} else {
+				values = append(values, Value2{val, exprCounter})
+			}
+			exprCounter++
+		}
+	}
+
 	varsLen, valsLen := len(variables), len(values)
 	if varsLen < valsLen {
 		extraAmount := valsLen - varsLen

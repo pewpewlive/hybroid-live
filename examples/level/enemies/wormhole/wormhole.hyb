@@ -212,20 +212,28 @@ pub entity Wormhole {
 
     WeaponCollision(number _, WeaponType weaponType) -> bool {
         match weaponType {
-        WeaponType.Bullet => {
-            hp -= 1
-            currentPullRadius *= 0.3f
-            let ex, ey = GetEntityPosition(self)
-            PlaySound(WormholeSound, 0, ex, ey)
-            IncreasePlayerScore(0, 2)
-            if hp < 0 {
-                destroy self()
-                return true
+            WeaponType.Bullet => {
+                hp -= 1
+                currentPullRadius *= 0.3f
+                let ex, ey = GetEntityPosition(self)
+                PlaySound(WormholeSound, 0, ex, ey)
+                IncreasePlayerScore(0, 2)
+                if hp < 0 {
+                    destroy self()
+                }
             }
-            return true
+            WeaponType.PlasmaField => {
+                hp -= 5
+                currentPullRadius *= 0.3f
+                let ex, ey = GetEntityPosition(self)
+                PlaySound(WormholeSound, 0, ex, ey)
+                IncreasePlayerScore(0, 2)
+                if hp < 0 {
+                    destroy self()
+                }
+            }
         }
-        }
-        return false
+        return true
     }
 }
 

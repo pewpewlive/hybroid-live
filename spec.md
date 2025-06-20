@@ -283,7 +283,7 @@ repeat #fruits with i {
 
 ### Adding elements to the list
 
-- [ ] Completed
+- [x] Completed (Use Table:Insert())
 
 Using `add` keyword.
 
@@ -341,7 +341,7 @@ Pewpew:Print(fruits["apples"]) // -> 5
 
 ### Adding elements to the map
 
-- [x] Completed
+- [x] Completed (Assignment)
 
 Using `add` keyword.
 
@@ -354,7 +354,7 @@ let inventory = {
   cherries = 12,
 }
 
-add 10 as "watermelon" to inventory
+inventory["watermelon"] = 10
 
 Pewpew:Print(ToString(fruits))
 

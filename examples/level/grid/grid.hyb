@@ -35,6 +35,7 @@ class Point {
 
         Pewpew:SetEntityMeshZ(id, offsetZ)
         Pewpew:SpawnEntity(id, 0)
+        Pewpew:SetEntityTag(id, Globals:DONT_DESTROY)
     }
 
     fn Update() {
@@ -60,6 +61,7 @@ class Line {
 
         Pewpew:SetEntityMeshZ(id, offsetZ)
         Pewpew:SpawnEntity(id, 0)
+        Pewpew:SetEntityTag(id, Globals:DONT_DESTROY)
     }
 
     fn Update() {

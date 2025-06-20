@@ -12,7 +12,7 @@ pub entity Shard {
     fixed mx, my
 
     number immunityFrames = 12
-    fixed homingPower = 0.01f
+    fixed homingPower = 0.0025f
     number lifetime
     bool skippedInterpolation
 
@@ -63,7 +63,8 @@ pub entity Shard {
             let px, py = GetEntityPosition(ShipEntity:SHIP.id)
             let dpx, dpy = FmathHelpers:Normalize(px - x, py - y)
             let diff = Fmath:AbsFixed(dpx-mx)+Fmath:AbsFixed(dpy-my)
-            mx, my = FmathHelpers:Lerp(mx, dpx, homingPower*diff*2f), FmathHelpers:Lerp(my, dpy, homingPower*diff*2f)
+            mx, my = FmathHelpers:Lerp(mx, dpx, homingPower*speed*diff*2f), FmathHelpers:Lerp(my, dpy, homingPower*speed*diff*2f)
+            mx, my = FmathHelpers:Normalize(mx, my)
         }
         homingPower -= 0.0001f
         if homingPower <= 0f {
@@ -73,7 +74,7 @@ pub entity Shard {
         let entities = GetEntitiesInRadius(x, y, 10f)
         for _, v in entities {
             if v == self continue
-            if let converted = v is Shard {
+            if let converted = v is Shard and !IsEntityBeingDestroyed(v) {
                 let ex, ey = GetEntityPosition(v)
                 let dx, dy = FmathHelpers:Normalize(x-ex, y-ey)
                 mx, my = dx, dy
@@ -128,6 +129,9 @@ pub entity Shard {
                     destroy self()
                 }
                 return true
+            }
+            WeaponType.PlasmaField => {
+                destroy self()
             }
         }
         return true

@@ -455,23 +455,11 @@ func (w *Walker) groupExpression(node *ast.GroupExpr, scope *Scope) Value {
 	return w.GetNodeValue(&node.Expr, scope)
 }
 
-func (w *Walker) listExpression(node *ast.ListExpr, scope *Scope) Value {
-	value := &ListVal{}
-	if len(node.List) == 0 {
-		if node.Type == nil {
-			w.AlertSingle(&alerts.UnknownListOrMapContents{}, node.Token)
-		} else {
-			value = w.typeToValue(w.typeExpression(node.Type, scope)).(*ListVal)
-			return value
-		}
-	}
-	value.ValueType = w.getContentsValueType(node.List, scope)
-	return value
-}
-
 // Before calling it is assumed that the value of the caller is already gotten
-func (w *Walker) callExpression(val Value, node *ast.Node, scope *Scope) Value {
+func (w *Walker) callExpression(node *ast.Node, scope *Scope) Value {
 	call := (*node).(*ast.CallExpr)
+
+	val := w.GetNodeValue(&call.Caller, scope)
 
 	valType := val.GetType()
 	if valType == InvalidType {
@@ -684,19 +672,35 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 	return val
 }
 
-// Rewrote
+func (w *Walker) listExpression(node *ast.ListExpr, scope *Scope) Value {
+	value := &ListVal{}
+	contentsType := w.getContentsValueType(node.List, scope)
+	var explicitType Type = UnknownTyp
+	if node.Type != nil {
+		explicitType = w.typeExpression(node.Type, scope).(*WrapperType).WrappedType
+	}
+	if explicitType == InvalidType || contentsType == InvalidType {
+		return &Invalid{}
+	}
+	if explicitType != UnknownTyp && !TypeEquals(explicitType, contentsType) {
+		w.AlertSingle(&alerts.TypesMismatch{}, node.Type.GetToken(), "explicit list element type", explicitType, "list contents", contentsType)
+		return &Invalid{}
+	}
+	if contentsType == UnknownTyp && explicitType == UnknownTyp {
+		w.AlertSingle(&alerts.UnknownListOrMapContents{}, node.Token)
+		return &Invalid{}
+	} else if contentsType == UnknownTyp {
+		value.ValueType = explicitType
+	} else {
+		value.ValueType = contentsType
+	}
+	return value
+}
+
 func (w *Walker) mapExpression(node *ast.MapExpr, scope *Scope) Value {
 	mapVal := MapVal{}
 
-	if len(node.KeyValueList) == 0 {
-		if node.Type == nil {
-			w.AlertSingle(&alerts.UnknownListOrMapContents{}, node.Token)
-		} else {
-			mapVal.MemberType = w.typeExpression(node.Type, scope)
-		}
-	}
-
-	var currentType Type = InvalidType
+	var contentsType Type = UnknownTyp
 	keymap := make(map[string]bool)
 	for i := range node.KeyValueList {
 		prop := node.KeyValueList[i]
@@ -711,19 +715,34 @@ func (w *Walker) mapExpression(node *ast.MapExpr, scope *Scope) Value {
 		memberVal := w.GetNodeValue(&prop.Expr, scope)
 		memberType := memberVal.GetType()
 
-		if i != 0 && !TypeEquals(currentType, memberType) {
+		if i != 0 && !TypeEquals(contentsType, memberType) {
 			w.AlertSingle(&alerts.MixedMapOrListContents{}, prop.Expr.GetToken(),
-				currentType.String(),
+				contentsType.String(),
 				memberType.String(),
 			)
-			currentType = InvalidType
+			contentsType = InvalidType
 			break
 		}
 
-		currentType = memberType
+		contentsType = memberType
 	}
-
-	mapVal.MemberType = currentType
+	var explicitType Type = UnknownTyp
+	if node.Type != nil {
+		explicitType = w.typeExpression(node.Type, scope).(*WrapperType).WrappedType
+	}
+	if explicitType == InvalidType || contentsType == InvalidType {
+		return &Invalid{}
+	}
+	if explicitType != UnknownTyp && !TypeEquals(explicitType, contentsType) {
+		w.AlertSingle(&alerts.TypesMismatch{}, node.Type.GetToken(), "explicit map member type", explicitType, "map contents", contentsType)
+	}
+	if explicitType == UnknownTyp && contentsType == UnknownTyp {
+		w.AlertSingle(&alerts.UnknownListOrMapContents{}, node.Token)
+	} else if contentsType == UnknownTyp {
+		mapVal.MemberType = explicitType
+	} else {
+		mapVal.MemberType = contentsType
+	}
 	return &mapVal
 }
 

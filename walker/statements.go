@@ -55,6 +55,7 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 	exprs := assignStmt.Values
 	identsLen := len(idents)
 	assignOp := assignStmt.AssignOp
+	exprCounter := 0
 	for i := range assignStmt.Identifiers {
 		w.context.DontSetToUsed = true
 		value := w.GetNodeValue(&idents[i], scope)
@@ -78,11 +79,11 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 		var valType Type
 		if i <= len(values)-1 {
 			valType = values[i].GetType()
-		} else if i <= len(assignStmt.Values)-1 {
-			exprValue := w.GetNodeValue(&assignStmt.Values[i], scope)
+		} else if exprCounter <= len(assignStmt.Values)-1 {
+			exprValue := w.GetNodeValue(&assignStmt.Values[exprCounter], scope)
 			if variable2, ok := exprValue.(*VariableVal); ok {
-				if variable2 == variable && assignStmt.Values[i].GetType() == ast.Identifier && assignOp.Type == tokens.Equal {
-					w.AlertSingle(&alerts.AssignmentToSelf{}, assignStmt.Values[i].GetToken(), variable.Name)
+				if variable2 == variable && assignStmt.Values[exprCounter].GetType() == ast.Identifier && assignOp.Type == tokens.Equal {
+					w.AlertSingle(&alerts.AssignmentToSelf{}, assignStmt.Values[exprCounter].GetToken(), variable.Name)
 				}
 				exprValue = variable2.Value
 			}
@@ -97,6 +98,7 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 				values = append(values, Value2{exprValue, i})
 			}
 			valType = values[i].GetType()
+			exprCounter++
 		} else {
 			requiredAmount := identsLen - len(values)
 			w.AlertSingle(&alerts.TooFewElementsGiven{}, exprs[len(exprs)-1].GetToken(), requiredAmount, "value", "in assignment")
@@ -135,12 +137,26 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 			continue
 		}
 	}
+	exprsLen := len(exprs)
+	if exprCounter != exprsLen {
+		for range exprsLen - exprCounter {
+			val := w.GetActualNodeValue(&assignStmt.Values[exprCounter], scope)
+			if vls, ok := val.(Values); ok {
+				for _, v := range vls {
+					values = append(values, Value2{v, exprCounter})
+				}
+			} else {
+				values = append(values, Value2{val, exprCounter})
+			}
+			exprCounter++
+		}
+	}
 	valuesLen := len(values)
 	if valuesLen > identsLen {
 		extraAmount := valuesLen - identsLen
 		w.AlertMulti(&alerts.TooManyElementsGiven{},
-			exprs[values[valuesLen-1].Index].GetToken(),
 			exprs[values[valuesLen-extraAmount].Index].GetToken(),
+			exprs[values[valuesLen-1].Index].GetToken(),
 			extraAmount,
 			"value",
 			"in assignment",

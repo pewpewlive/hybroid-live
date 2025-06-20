@@ -645,7 +645,7 @@
     "name": "UnknownListOrMapContents",
     "type": "Error",
     "message": "lists or maps with no values need to have their wrapped type explicitly given",
-    "note": "this can be done like so: let exampleList = [<number>] or let exampleMap = {<number>}"
+    "note": "this can be done like so: let exampleList = list<number>[] or let exampleMap = map<number>{}"
   },
   {
     "name": "InvalidEntityForLoopType",

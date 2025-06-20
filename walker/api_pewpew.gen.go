@@ -176,8 +176,8 @@ var PewpewAPI = &Environment{
 			"NewUFO": {
 				Name: "NewUFO", Value: NewFunction(NewFixedPointType(), NewFixedPointType(), NewFixedPointType()).WithReturns(&RawEntityType{}), IsPub: true,
 			},
-			"RollingCubeSetEnableCollisionsWithWalls": {
-				Name: "RollingCubeSetEnableCollisionsWithWalls", Value: NewFunction(&RawEntityType{}, NewBasicType(ast.Bool)), IsPub: true,
+			"SetRollingCubeWallCollision": {
+				Name: "SetRollingCubeWallCollision", Value: NewFunction(&RawEntityType{}, NewBasicType(ast.Bool)), IsPub: true,
 			},
 			"SetUFOWallCollision": {
 				Name: "SetUFOWallCollision", Value: NewFunction(&RawEntityType{}, NewBasicType(ast.Bool)), IsPub: true,

@@ -13,24 +13,43 @@ fn Rangle() -> fixed {
 
 const SAFE_AREA = 50f
 
-fn PlayerSafeSpawn(fn() -> (fixed, fixed) f) -> (fixed, fixed) {
+pub fn PlayerSafeSpawn(fn() -> (fixed, fixed) f) -> (fixed, fixed) {
     let x, y = f()
     let px, py = GetEntityPosition(SHIP.id)
+    let counter = 0
     while AbsFixed(x - px) < SAFE_AREA and AbsFixed(y - py) < SAFE_AREA {
+        counter += 1
         x, y = f()
+        if counter > 16 {
+            return x, y
+        }
     } 
     return x, y
 }
 
-fn RandomSpawn() -> (fixed, fixed) {
+pub fn RandomSpawn() -> (fixed, fixed) {
     return RandomFixed(100f, WIDTH - 100f), RandomFixed(100f, HEIGHT - 100f)
 }
 
-fn RandomSpawnGridSafe() -> (fixed, fixed) {
+pub fn RandomSpawnGridSafe() -> (fixed, fixed) {
     let cellX = ToFixed(RandomNumber(2, CELLCOUNT-2))
     let cellY = Fmath:ToFixed(RandomNumber(2, CELLCOUNT-2))
 
-    return cellX*CELLSIZE_X+CELLSIZE_X/2f, cellY*CELLSIZE_Y+CELLSIZE_Y/2f
+    let x, y = cellX*CELLSIZE_X+CELLSIZE_X/2f, cellY*CELLSIZE_Y+CELLSIZE_Y/2f
+
+    let counter = 0
+    while #GetEntitiesInRadius(x, y, 1f) > 0 {
+        counter += 1
+        let cellX = ToFixed(RandomNumber(2, CELLCOUNT-2))
+        let cellY = Fmath:ToFixed(RandomNumber(2, CELLCOUNT-2))
+
+        x, y = cellX*CELLSIZE_X+CELLSIZE_X/2f, cellY*CELLSIZE_Y+CELLSIZE_Y/2f
+        if counter > 16 {
+            return x, y
+        }
+    }
+
+    return x, y
 }
 
 pub RoundOne = [
@@ -43,14 +62,26 @@ pub RoundOne = [
         }
     },
     fn(number time, diff) {
-        if time == 2 or time % 440 == 0 {
+        if time == 2 {
             let x, y = PlayerSafeSpawn(RandomSpawnGridSafe)
             spawn Pylon:Pylon(x, y)
         }
+        if time % 440 == 0 {
+            repeat diff-1 {
+                let x, y = PlayerSafeSpawn(RandomSpawnGridSafe)
+                spawn Pylon:Pylon(x, y)
+            }
+        }
     },
     fn(number time, diff) {
-        if time == 2 or time % 200 == 0 {
-            repeat 1+diff {
+        if time == 2 {
+            repeat 5+diff*2 {
+                let x, y = PlayerSafeSpawn(RandomSpawn)
+                NewRollingCube(x, y)
+            }
+        }
+        if time % 200 == 0 {
+            repeat 2+diff*2 {
                 let x, y = PlayerSafeSpawn(RandomSpawn)
                 NewRollingCube(x, y)
             }
@@ -61,7 +92,7 @@ pub RoundOne = [
 pub RoundTwo = [
     fn(number time, diff) {
         if time == 2 or time % 440 == 0 {
-            repeat 2+diff {
+            repeat 1+diff {
                 let x, y = PlayerSafeSpawn(RandomSpawn)
                 spawn HypercubeEntity:Hypercube(x, y)
             }
@@ -74,6 +105,26 @@ pub RoundTwo = [
         }
     },
     fn(number time, diff) {
+        if time == 100 or (time-100) % 400 == 0 {
+            let dy, dx = Fmath:Sincos(Rangle())
+            dx, dy *= 20f, 20f
+            let x, y = PlayerSafeSpawn(RandomSpawn)
+            let id = NewUFO(x+dx, y+dy, 3f)
+            let id2 = NewUFO(x-dx, y-dy, 3f)
+            SetUFOWallCollision(id, true)
+            SetUFOWallCollision(id2, true)
+        }
+    },
+    fn (number time, diff) {
+        if time == 180 {
+            let x, y = PlayerSafeSpawn(RandomSpawn)
+            NewBonus(x, y, BonusType.Weapon, struct{
+                box_duration = 300, 
+                cannon = CannonType.Triple,
+                frequency = CannonFreq.Freq7_5,
+                weapon_duration = 160,
+            })
+        }
     }
 ]
 
@@ -128,6 +179,25 @@ pub RoundFour = [
         if time == 2 or time % 600 == 0 {
             let x, y = PlayerSafeSpawn(RandomSpawn)
             spawn WormholeEntity:Wormhole(x, y, 50f)
+        }
+    },
+    fn(number time, diff) {
+        if time % 200 == 0 {
+            repeat 1+diff {
+                let x, y = PlayerSafeSpawn(RandomSpawn)
+                NewMothership(x, y, MothershipType.Pentagon, Rangle())
+            }
+        }
+    },
+    fn (number time, diff) {
+        if time == 280 {
+            let x, y = PlayerSafeSpawn(RandomSpawn)
+            NewBonus(x, y, BonusType.Weapon, struct{
+                box_duration = 300, 
+                cannon = CannonType.Laser,
+                weapon_duration = 160,
+                frequency = CannonFreq.Freq15
+            })
         }
     }
 ]

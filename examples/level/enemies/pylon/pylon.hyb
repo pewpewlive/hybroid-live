@@ -15,7 +15,7 @@ const BARRAGE_BULLET_TIMES_MAX = 2
 const BARRAGE_DURATION = BARRAGE_BULLET_FREQUENCY*BARRAGE_BULLET_TIMES_MAX+2
 const PYLON_SIGHT_RADIUS = 400f
 const DEATH_DURATION = 40f
-const HP_MAX = 40
+const HP_MAX = 36
 const HOVER_HEIGHT = 25f
 const PYLON_COLOR = 0xaa00faff
 const PYLON_SCALE = 1.5f
@@ -116,7 +116,7 @@ pub entity Pylon {
                     if i == 0f continue
                     let offset = 17d * i
                     let offsetY, offsetX = Fmath:Sincos(offset)
-                    spawn Shard(x + offsetX * 10f, y + offsetY * 10f, lookToAngle + offset, 9f, 330)
+                    spawn Shard(x + offsetX * 10f, y + offsetY * 10f, lookToAngle + offset, 10f, 330)
                 }
 
                 prismRotation += 7d
@@ -149,12 +149,16 @@ pub entity Pylon {
                 hp -= 1
                 reactionTime = 2
                 PlaySound(PylonSound, Fmath:RandomNumber(2,4), x, y)
+                IncreasePlayerScore(0, 1)
                 if hp <= 0 {
                     InitiateDeath()
                 }
                 return true
             }
             WeaponType.AtomizeExplosion => {
+                destroy self()
+            }
+            WeaponType.PlasmaField => {
                 destroy self()
             }
         }

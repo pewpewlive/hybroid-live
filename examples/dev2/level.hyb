@@ -17,49 +17,49 @@ env Thing as Level
 // }
 // name(d, a2, a, b, c)
 
-let a = 1
-pub b = 1
-const c = 1
-number d = 1
-number e 
-let ee = 2
+// let a = 1
+// pub b = 1
+// const c = 1
+// number d = 1
+// number e 
+// let ee = 2
 
-entity Thing {
-    number a, b
-    let c = 1
+// entity Thing {
+//     number a, b
+//     let c = 1
 
-    spawn(fixed x, y) {
+//     spawn(fixed x, y) {
 
-    }
+//     }
 
-    destroy() {
+//     destroy() {
       
 
-        Pewpew:DestroyEntity(self)
-    }
+//         Pewpew:DestroyEntity(self)
+//     }
 
-    fn method() -> fixed {
-        number z = 1
-        repeat 30 {
-            repeat 10 {
-                z = match ee {
-                    2 => {
-                        continue
-                    }
-                    else => {
-                        yield 1
-                    }
-                }
-                z += 1
-            }
+//     fn method() -> fixed {
+//         number z = 1
+//         repeat 30 {
+//             repeat 10 {
+//                 z = match ee {
+//                     2 => {
+//                         continue
+//                     }
+//                     else => {
+//                         yield 1
+//                     }
+//                 }
+//                 z += 1
+//             }
 
    
-        }
+//         }
        
-        return Fmath:ToFixed(1)
-    }
-}
+//         return Fmath:ToFixed(1)
+//     }
+// }
 
-fn A() {
+// fn A() {
     
-}
+// }

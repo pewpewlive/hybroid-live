@@ -1,7 +1,7 @@
 [level]
 name = "Hyperboreal Assault"
 descriptions = ["This is an example level created using Hybroid Live!"]
-information = "The official example level for Hybroid Live https://hybroid.pewpew.live/hybroid-live"
+information = "The official example level for Hybroid Live"
 entry_point = "level.hyb"
 casual = false
 medal_requirements = { "gold" = 100, "silver" = 200, "bronze" = 100 }

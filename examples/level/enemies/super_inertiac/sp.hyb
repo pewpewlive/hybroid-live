@@ -57,6 +57,7 @@ pub entity SuperInertiac {
     SetEntityPositionInterpolation(self, true)
 
     SetEntityPosition(self, x, y)
+    self.x, self.y = x, y
 
     //SetEntityColor(self, 0x00ffffff)
     SetEntityMesh(self, SPAnim, 0)
@@ -143,6 +144,8 @@ pub entity SuperInertiac {
     match weaponType {
       WeaponType.Bullet => {
         health -= 1
+        if health <= 0
+          destroy self()
         if health > 0 {
           Bounce(SHIP.id, 1.1f)
 
@@ -160,10 +163,26 @@ pub entity SuperInertiac {
         destroy self()
         return true
       }
+      WeaponType.PlasmaField => {
+        health -= 30
+        if health <= 0
+          destroy self()
+        if health > 0 {
+          Bounce(SHIP.id, 1.4f)
+
+          hitCooldown = HIT_COOLDOWN_MAX
+          PlaySound(SPSound, MathHelpers:Remap(1, 10, 0, HP_MAX, health)\1, x, y)
+        }
+
+        CreateExplosion(x, y, 0x1144aaff, 0.8f, 10)
+        CreateExplosion(x, y, 0x330077ff, 0.8f, 10)
+        CreateExplosion(x, y, 0x00aaddff, 0.8f, 10)
+
+        IncreasePlayerScore(0, 30)
+      }
     }
     
-    if health <= 0
-      destroy self()
+ 
   
     return true
   }

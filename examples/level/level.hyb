@@ -10,13 +10,9 @@ use VithenEntity
 
 SetLevelSize(WIDTH, HEIGHT)
 
-let playerConfig = struct{
-  shield = 5, camera_distance = -150f
-}
-ConfigurePlayer(0, playerConfig)
-
 let bg = NewEntity(WIDTH/2f, HEIGHT/2f)
 SetEntityMesh(bg, MapMesh, 1)
+SetEntityTag(bg, DONT_DESTROY)
 
 let grid = new Grid:Grid(CELLCOUNT, CELLCOUNT, CELLSIZE_X, CELLSIZE_Y, 0f, 0f, 0f)
 grid.CreateLineGrid()

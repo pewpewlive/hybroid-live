@@ -365,6 +365,23 @@ func (p *Parser) list() ast.Node {
 		return p.parseList(nil)
 	}
 
+	return p.mapExpr()
+}
+
+func (p *Parser) mapExpr() ast.Node {
+	peek := p.peek()
+	if peek.Lexeme == "map" {
+		typ := p.typeExpr("in map expression")
+		_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.LeftBrace, "in map expression")
+		if !ok {
+			return ast.NewImproper(typ.GetToken(), ast.MapExpression)
+		}
+		return p.parseMap(typ)
+	} else if peek.Type == tokens.LeftBrace {
+		p.advance()
+		return p.parseMap(nil)
+	}
+
 	return p.primary()
 }
 
@@ -379,10 +396,6 @@ func (p *Parser) primary() ast.Node {
 	if p.match(tokens.Number, tokens.Fixed, tokens.FixedPoint, tokens.Degree, tokens.Radian, tokens.String) {
 		literal := p.peek(-1)
 		return &ast.LiteralExpr{Value: literal.Literal, Token: literal}
-	}
-
-	if p.match(tokens.LeftBrace) {
-		return p.parseMap()
 	}
 
 	if p.match(tokens.Struct) {
@@ -496,21 +509,11 @@ func (p *Parser) parseList(typ *ast.TypeExpr) ast.Node {
 	return listExpr
 }
 
-func (p *Parser) parseMap() ast.Node {
+func (p *Parser) parseMap(typExpr *ast.TypeExpr) ast.Node {
 	mapExpr := &ast.MapExpr{
 		Token:        p.peek(-1),
 		KeyValueList: make([]ast.Property, 0),
-	}
-
-	if p.match(tokens.Less) {
-		typeExpr := p.typeExpr("in map expression")
-		_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.Greater, "in map expression")
-		mapExpr.Type = typeExpr
-		if !ok {
-			return mapExpr
-		}
-		p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.RightBrace, "in map expression")
-		return mapExpr
+		Type:         typExpr,
 	}
 
 	if p.match(tokens.RightBrace) {

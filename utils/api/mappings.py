@@ -29,6 +29,7 @@ _FUNCTION_MAPPING: FunctionMap = {
         "customizable_entity_set_mesh_xyz_scale": "SetEntityMeshXYZScale",
         "customizable_entity_configure_wall_collision": "SetEntityWallCollision",
         "ufo_set_enable_collisions_with_walls": "SetUFOWallCollision",
+        "rolling_cube_set_enable_collisions_with_walls": "SetRollingCubeWallCollision",
         "entity_destroy": "DestroyEntity",
         "customizable_entity_start_spawning": "SpawnEntity",
         "customizable_entity_start_exploding": "ExplodeEntity",

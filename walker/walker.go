@@ -259,8 +259,7 @@ func (w *Walker) walkNode(node *ast.Node, scope *Scope) {
 	case *ast.TickStmt:
 		w.tickStatement(newNode, scope)
 	case *ast.CallExpr:
-		val := w.GetNodeValue(&newNode.Caller, scope)
-		w.callExpression(val, node, scope)
+		w.callExpression(node, scope)
 	case *ast.ClassDecl:
 		w.classDeclaration(newNode, scope)
 	case *ast.EnumDecl:
@@ -317,8 +316,7 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 	case *ast.UnaryExpr:
 		val = w.unaryExpression(newNode, scope)
 	case *ast.CallExpr:
-		callVal := w.GetNodeValue(&newNode.Caller, scope)
-		localVal := w.callExpression(callVal, node, scope)
+		localVal := w.callExpression(node, scope)
 		val = localVal
 	case *ast.MapExpr:
 		val = w.mapExpression(newNode, scope)

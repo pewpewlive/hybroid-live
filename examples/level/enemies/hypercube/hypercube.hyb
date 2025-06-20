@@ -15,7 +15,7 @@ pub entity Hypercube {
     fixed colorT
 
     fixed xAxis, yAxis, zAxis
-    fixed growth = 0.01f
+    fixed growth = 0.008f
 
     let spawningTime = 30
     number scoreToGive = 200
@@ -100,7 +100,7 @@ pub entity Hypercube {
         SetEntityMeshColor(self, ColorHelpers:LerpColors(0xff00ffff, 0xafffffff, colorT))
 
         let x, y = GetEntityPosition(self)
-        mx, my = FmathHelpers:Lerp(mx, 0f, 0.003f), FmathHelpers:Lerp(my, 0f, 0.003f)
+        mx, my = FmathHelpers:Lerp(mx, 0f, 0.002f), FmathHelpers:Lerp(my, 0f, 0.002f)
 
         x, y += mx * MAX_SPEED, my * MAX_SPEED
         let entities = GetEntitiesInRadius(x, y, radius)
@@ -122,7 +122,7 @@ pub entity Hypercube {
 
     WallCollision(fixed wallNormalX, wallNormalY) {
         if IsEntityBeingDestroyed(self) return
-        if Sum() > FAST_ENOUGH {
+        if Sum() >= FAST_ENOUGH {
             destroy self(false)
             return
         }
@@ -151,6 +151,9 @@ pub entity Hypercube {
                 return true
             }
             WeaponType.AtomizeExplosion => {
+                destroy self(false)
+            }
+            WeaponType.PlasmaField => {
                 destroy self(false)
             }
         }

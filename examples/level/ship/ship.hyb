@@ -3,7 +3,7 @@ env ShipEntity as Level
 use Pewpew
 use Utils
 
-const DASH_DURATION = 12
+const DASH_DURATION = 10
 const INPUT_TIME = 10
 const MIN_REQUIRED_CHANGE = 0.4f
 
@@ -15,6 +15,7 @@ pub class Ship {
   number onDashTime
   bool doDash
   fixed dashAngle = -1f
+  fixed shootJoystickAngle
   number coolDown
   entity coolDownMesh
 
@@ -23,11 +24,13 @@ pub class Ship {
   bool firstInputReleased
   bool initialRelease
 
+  number dashAmount = 3
+
   new(fixed x, y) {
     id = NewShip(x, y, 0)
     coolDownMesh = NewEntity(x, y)
     let playerConfig = struct{
-      shield = 5,
+      shield = 55,
       camera_distance = -50f,
       camera_rotation_x_axis = -15d,
       move_joystick_color = 0xffffffff
@@ -43,6 +46,9 @@ pub class Ship {
     let _, md, _, _ = GetPlayerInputs(0)
     
     tick {
+      ConfigurePlayerHud(0, struct{
+        top_left_line = "#00ffffffDashes Left: "..ToString(dashAmount)
+      })
       if !IsEntityAlive(id) return
       if !doDash {
         DashUpdate()
@@ -66,25 +72,25 @@ pub class Ship {
       DestroyEntity(coolDownMesh)
     }
 
-    let ma, md, _, _ = GetPlayerInputs(0)
+    let _, _, sa, md = GetPlayerInputs(0)
 
     inputTimer -= 1
     if inputTimer <= 0 {
       inputTimer = 0
     }
     if md == 0f and !initialRelease {
-      Print("Initial Release")
+      // Print("Initial Release")
       initialRelease = true
     }
 
-    if md > 0.5f and !firstInputDone and inputTimer == 0 and initialRelease {
-      Print("First input done")
+    if md != 0f and !firstInputDone and inputTimer == 0 and initialRelease {
+      // Print("First input done")
       firstInputDone = true
       inputTimer = INPUT_TIME
-      dashAngle = ma
+      shootJoystickAngle = sa
     }
     if inputTimer == 0 and firstInputDone {
-      Print("Too late after first input")
+      // Print("Too late after first input")
       firstInputDone = false
       firstInputReleased = false
       initialRelease = false
@@ -92,22 +98,23 @@ pub class Ship {
     }
 
     if md == 0f and inputTimer != 0 and !firstInputReleased and firstInputDone {
-      Print("First input released")
+      // Print("First input released")
       firstInputReleased = true
     }
 
-    if firstInputReleased and inputTimer != 0 and md > 0.5f and firstInputDone {
-      if Fmath:AbsFixed(dashAngle-ma) > 20d {
-        Print("Dash Fail!")
+    if firstInputReleased and inputTimer != 0 and md != 0f and firstInputDone and dashAmount > 0{
+      if Fmath:AbsFixed(shootJoystickAngle-sa) > 20d {
+        // Print("Dash Fail!")
         firstInputDone = false
         firstInputReleased = false
         initialRelease = false
         inputTimer = 0
-        dashAngle = -1fx
         return
       }
-      Print("Dash!")
+      dashAngle = sa
+      // Print("Dash!")
       doDash = true
+      dashAmount -= 1
       firstInputReleased = false
       initialRelease = false
       firstInputDone = false
@@ -122,7 +129,7 @@ pub class Ship {
     let px, py = GetEntityPosition(id)
     let sin, cos = Fmath:Sincos(dashAngle)
 
-    let entities = GetEntitiesInRadius(px, py, 10f)
+    let entities = GetEntitiesInRadius(px, py, 13f)
     for _, v in entities {
       if v == id continue
 
