@@ -104,19 +104,19 @@ pub class RoundManager {
                 for _, enemySpawn in RoundThree {
                     enemySpawn(time, diff)
                 }
-                if time == ROUND_DURATION\2 and Chance(100) {
-                    let entities = GetAllEntities()
-                    for _, v in entities {
-                        if v == SHIP.id or (GetEntityType(v) == EntityType.CustomizableEntity and GetEntityTag(v) == Globals:DONT_DESTROY) {
-                            continue
-                        }
-                        DestroyEntity(v)
-                    }
-                    nextRoundAfterSpecial = Round.Four
-                    round = Round.Hypercube
-                    time = 0
-                    break
-                }
+                // if time == ROUND_DURATION\2 and Chance(100) {
+                //     let entities = GetAllEntities()
+                //     for _, v in entities {
+                //         if v == SHIP.id or (GetEntityType(v) == EntityType.CustomizableEntity and GetEntityTag(v) == Globals:DONT_DESTROY) {
+                //             continue
+                //         }
+                //         DestroyEntity(v)
+                //     }
+                //     nextRoundAfterSpecial = Round.Four
+                //     round = Round.Hypercube
+                //     time = 0
+                //     break
+                // }
                 if time >= ROUND_DURATION {
                     round = Round.Four
                     RandomizeVariant()
