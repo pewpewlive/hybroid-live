@@ -36,6 +36,10 @@ The syntax for Hybroid Live can be found [here](spec.md). The syntax specificati
 
 An experimental VS Code extension is available [here](https://github.com/pewpewlive/hybroid-vscode).
 
+## Getting Started 
+
+Check out the "Getting Started" section of the hybroid documentation site [here](https://pewpewlive.github.io/hybroid-docs/get-started/quick-start/).
+
 ## Building for release
 
 Run `utils/build_hybroid.py`.
