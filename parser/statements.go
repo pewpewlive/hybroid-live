@@ -155,6 +155,10 @@ func (p *Parser) assignmentStatement(expr ast.Node) ast.Node {
 	}
 	if p.match(tokens.Equal) {
 		equal := p.peek(-1)
+		if p.peek().Line != equal.Line {
+			p.AlertSingle(&alerts.ExpectedExpression{}, equal, "in assignment declaration")
+			return ast.NewImproper(p.peek(-1), ast.AssignmentStatement)
+		}
 		exprs, ok := p.expressions("in assignment statement", false)
 		if !ok {
 			return ast.NewImproper(expr.GetToken(), ast.AssignmentStatement)

@@ -26,13 +26,6 @@ func (p *Parser) environmentDeclaration() ast.Node {
 	return envDecl
 }
 
-// Yeah<fixed> a
-// pub number a
-// pub a = 1
-// [pub] let a = 1
-// [pub] const a = 1
-// pub const a = 1
-
 func (p *Parser) simpleVariableDeclaration() ast.Node {
 	varDecl := &ast.VariableDecl{
 		Token: p.peek(-1),

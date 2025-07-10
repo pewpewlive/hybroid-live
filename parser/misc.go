@@ -24,7 +24,6 @@ func (p *Parser) getFunctionParam() (ast.FunctionParam, bool) {
 	}
 
 	p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(typeExpr.GetToken()), "in function parameters")
-
 	return functionParam, false
 }
 
@@ -306,6 +305,10 @@ func (p *Parser) expressions(typeContext string, allowTrailing bool) ([]ast.Node
 }
 
 func (p *Parser) identExprPairs(typeContext string, optional bool) ([]*ast.IdentifierExpr, []ast.Node, bool) {
+	if previous := p.peek(-1); previous.Line != p.peek().Line {
+		p.AlertSingle(&alerts.ExpectedIdentifier{}, previous, typeContext)
+		return nil, nil, false
+	}
 	idents, ok := p.identifiers(typeContext, false)
 	if !ok {
 		return nil, nil, ok
@@ -318,6 +321,11 @@ func (p *Parser) identExprPairs(typeContext string, optional bool) ([]*ast.Ident
 
 		p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Equal)
 		return nil, nil, false
+	}
+	equal := p.peek(-1)
+	if p.peek().Line != equal.Line {
+		p.AlertSingle(&alerts.ExpectedExpression{}, equal, typeContext)
+		return idents, []ast.Node{}, false
 	}
 
 	exprs, ok := p.expressions(typeContext, false)
@@ -340,7 +348,6 @@ func (p *Parser) keyValuePair(isMap bool, context string) (ast.Node, ast.Node, b
 		} else {
 			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(key.GetToken()), "as "+context)
 		}
-		p.advance()
 		return nil, nil, false
 	}
 	_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.Equal, "after "+context)
