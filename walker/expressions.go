@@ -394,9 +394,15 @@ func (w *Walker) environmentAccessExpression(expr *ast.Node) Value {
 	switch envName {
 	case "Pewpew":
 		w.AddLibrary(ast.Pewpew)
+		if w.environment.Type != ast.LevelEnv {
+			w.AlertSingle(&alerts.UnallowedLibraryUse{}, node.PathExpr.Path, "Pewpew", "non Level")
+		}
 		val = w.GetNodeValue(&accessed, &PewpewAPI.Scope)
 	case "Fmath":
 		w.AddLibrary(ast.Fmath)
+		if w.environment.Type == ast.MeshEnv || w.environment.Type == ast.SoundEnv {
+			w.AlertSingle(&alerts.UnallowedLibraryUse{}, node.PathExpr.Path, "Fmath", "Mesh or Sound")
+		}
 		val = w.GetNodeValue(&accessed, &FmathAPI.Scope)
 	case "Math":
 		w.AddLibrary(ast.Math)
@@ -565,8 +571,9 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 
 			member := node.Accessed[i].(*ast.MemberExpr).Member
 			memberVal := w.GetActualNodeValue(&member, scope)
-			if (memberVal.GetType().PVT() != ast.Number && valType.PVT() == ast.List) ||
-				(memberVal.GetType().PVT() != ast.Text && valType.PVT() == ast.Map) {
+			memberPVT := memberVal.GetType().PVT()
+			if ((memberPVT != ast.Number && valType.PVT() == ast.List) ||
+				(memberPVT != ast.Text && valType.PVT() == ast.Map)) && memberPVT != ast.Invalid {
 
 				w.AlertSingle(&alerts.InvalidMemberIndex{}, token,
 					valType,
@@ -738,6 +745,7 @@ func (w *Walker) mapExpression(node *ast.MapExpr, scope *Scope) Value {
 	}
 	if explicitType == UnknownTyp && contentsType == UnknownTyp {
 		w.AlertSingle(&alerts.UnknownListOrMapContents{}, node.Token)
+		return &Invalid{}
 	} else if contentsType == UnknownTyp {
 		mapVal.MemberType = explicitType
 	} else {

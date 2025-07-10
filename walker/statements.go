@@ -447,7 +447,7 @@ func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 	switch envName {
 	case "Pewpew":
 		if w.environment.Type != ast.LevelEnv {
-			w.AlertSingle(&alerts.UnallowedLibraryUse{}, node.PathExpr.Path, "Pewpew", "Mesh or Sound")
+			w.AlertSingle(&alerts.UnallowedLibraryUse{}, node.PathExpr.Path, "Pewpew", "Mesh/Sound/Shared")
 		}
 		if !w.AddLibrary(ast.Pewpew) {
 			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)

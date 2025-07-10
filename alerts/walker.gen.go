@@ -2011,7 +2011,7 @@ func (ulomc *UnknownListOrMapContents) SnippetSpecifier() Snippet {
 }
 
 func (ulomc *UnknownListOrMapContents) Note() string {
-	return "this can be done like so: let exampleList = [<number>] or let exampleMap = {<number>}"
+	return "this can be done like so: let exampleList = list<number>[] or let exampleMap = map<number>{}"
 }
 
 func (ulomc *UnknownListOrMapContents) ID() string {
@@ -2071,5 +2071,32 @@ func (isp *InvalidSpawnerParameter) ID() string {
 }
 
 func (isp *InvalidSpawnerParameter) AlertType() Type {
+	return Error
+}
+
+// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+type UnallowedNumberInEnvironment struct {
+	Specifier  Snippet
+	NumberType string
+	EnvType    string
+}
+
+func (unie *UnallowedNumberInEnvironment) Message() string {
+	return fmt.Sprintf("%s numbers are not allowed in a %s environment", unie.NumberType, unie.EnvType)
+}
+
+func (unie *UnallowedNumberInEnvironment) SnippetSpecifier() Snippet {
+	return unie.Specifier
+}
+
+func (unie *UnallowedNumberInEnvironment) Note() string {
+	return ""
+}
+
+func (unie *UnallowedNumberInEnvironment) ID() string {
+	return "hyb080W"
+}
+
+func (unie *UnallowedNumberInEnvironment) AlertType() Type {
 	return Error
 }

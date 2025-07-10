@@ -316,8 +316,7 @@ func (w *Walker) GetNodeValue(node *ast.Node, scope *Scope) Value {
 	case *ast.UnaryExpr:
 		val = w.unaryExpression(newNode, scope)
 	case *ast.CallExpr:
-		localVal := w.callExpression(node, scope)
-		val = localVal
+		val = w.callExpression(node, scope)
 	case *ast.MapExpr:
 		val = w.mapExpression(newNode, scope)
 	case *ast.FunctionExpr:

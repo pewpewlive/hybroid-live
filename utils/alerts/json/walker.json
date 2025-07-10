@@ -661,5 +661,15 @@
     },
     "message": "the %s parameter has to be named '%s'",
     "message_format": ["Nth", "Name"]
+  },
+  {
+    "name": "UnallowedNumberInEnvironment",
+    "type": "Error",
+    "fields": {
+      "NumberType": "string",
+      "EnvType": "string"
+    },
+    "message": "%s numbers are not allowed in a %s environment",
+    "message_format": ["NumberType", "EnvType"]
   }
 ]

@@ -40,7 +40,7 @@ func (e *Evaluator) GetAlerts(sourcePath string) []alerts.Alert {
 }
 
 func (e *Evaluator) Action(cwd, outputDir string) error {
-	generate := true
+	stop := false
 
 	walker.SetupLibraryEnvironments()
 
@@ -64,7 +64,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		//start = time.Now()
 
 		if tokenizeErr != nil {
-			generate = false
+			stop = true
 			continue
 		}
 
@@ -77,21 +77,21 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 
 		for _, v := range parser.GetAlerts() {
 			if v.AlertType() == alerts.Error {
-				generate = false
+				stop = true
 				break
 			}
 		}
 
-		// ast.DrawNodes(prog)
-
-		//color.Printf("[dark_gray]-->File: %s\n", sourcePath)
-
-		//start = time.Now()
-
 		e.walkerList[i].SetProgram(program)
-		//fmt.Println("Prewalking environments...")
+	}
+
+	if stop {
+		e.printer.PrintAlerts()
+		return nil
+	}
+
+	for i := range e.walkerList {
 		e.walkerList[i].PreWalk(e.walkers)
-		//fmt.Printf("Prewalking time: %f seconds\n\n", time.Since(start).Seconds())
 	}
 
 	for _, walker := range e.walkerList {
@@ -108,7 +108,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 
 		for _, v := range walker.GetAlerts() {
 			if v.AlertType() == alerts.Error {
-				generate = false
+				stop = true
 				break
 			}
 		}
@@ -127,9 +127,14 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		e.printer.StageAlerts(sourcePath, walker.GetAlerts())
 	}
 
-	if !generate {
+	if stop {
 		e.printer.PrintAlerts()
 		return nil
+	}
+
+	outputPath := filepath.Join(cwd, outputDir)
+	if stat, err := os.Lstat(outputPath); err == nil && stat.IsDir() {
+		os.RemoveAll(outputPath)
 	}
 
 	//fmt.Printf("-Preparing values for generation...\n")
@@ -159,11 +164,11 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 
 		//fmt.Printf("Generating time: %f seconds\n\n", time.Since(start).Seconds())
 
-		err := os.MkdirAll(filepath.Join(cwd, outputDir, e.files[i].DirectoryPath), os.ModePerm)
+		err := os.MkdirAll(filepath.Join(outputPath, e.files[i].DirectoryPath), os.ModePerm)
 		if err != nil {
 			return fmt.Errorf("failed to write transpiled file to destination: %v", err)
 		}
-		err = os.WriteFile(e.files[i].NewPath(filepath.Join(cwd, outputDir), ".lua"), []byte(gen.GetSrc()), os.ModePerm)
+		err = os.WriteFile(e.files[i].NewPath(outputPath, ".lua"), []byte(gen.GetSrc()), os.ModePerm)
 		if err != nil {
 			return fmt.Errorf("failed to write transpiled file to destination: %v", err)
 		}
