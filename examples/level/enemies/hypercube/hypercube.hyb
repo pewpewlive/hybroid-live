@@ -132,6 +132,7 @@ pub entity Hypercube {
     }
 
     PlayerCollision(number _, entity shipId) {
+        if Sum() > FAST_ENOUGH * 0.9f return
         DamageShip(shipId, 1)
         destroy self(false)
     }

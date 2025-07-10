@@ -21,7 +21,6 @@ enum RoundVariant {
 }
 
 const ROUND_DURATION = 1000
-const ROUND_PAUSE = 100
 
 fn Chance(number percent) -> bool {
     let a = Fmath:RandomNumber(0, 100)
@@ -62,8 +61,8 @@ pub class RoundManager {
     }
 
     fn NewAmbushTime() {
-        if Chance(100) {
-            randomAmbushTime = Fmath:RandomNumber(ROUND_DURATION/2, ROUND_DURATION-1)
+        if Chance(75) {
+            randomAmbushTime = Fmath:RandomNumber(ROUND_DURATION/2, ROUND_DURATION\1.4)
         }else {
             randomAmbushTime = -1
         }
@@ -91,10 +90,22 @@ pub class RoundManager {
 
         if pause {
             time += 1
-            if time >= ROUND_PAUSE {
-                pause = false
-                time = 0
+            let extraTime = MathHelpers:Clamp((diff-2)*30, 0, 60)
+            match round {
+                Round.Two, Round.One => {
+                    if time >= 160+extraTime{
+                        pause = false
+                        time = 0
+                    }
+                }
+                else => {
+                    if time >= 100+extraTime {
+                        pause = false
+                        time = 0
+                    }
+                }
             }
+            
             return
         }
 
