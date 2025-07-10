@@ -129,17 +129,17 @@ pub class Ship {
     let px, py = GetEntityPosition(id)
     let sin, cos = Fmath:Sincos(dashAngle)
 
-    let entities = GetEntitiesInRadius(px, py, 13f)
-    for _, v in entities {
-      if v == id continue
+    // let entities = GetEntitiesInRadius(px, py, 13f)
+    // for _, v in entities {
+    //   if v == id continue
 
-      EntityReactToWeapon(v, struct{
-        type = WeaponType.AtomizeExplosion,
-        x = px,
-        y = py,
-        player_index = 0
-      })
-    }
+    //   EntityReactToWeapon(v, struct{
+    //     type = WeaponType.AtomizeExplosion,
+    //     x = px,
+    //     y = py,
+    //     player_index = 0
+    //   })
+    // }
 
     let minSpeed = 10f
     let maxSpeed = 35f

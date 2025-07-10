@@ -36,8 +36,11 @@ pub class RoundManager {
     number diff = 2
     number progression = 1
     bool pause 
+    number randomAmbushTime = -1
 
-    new() {}
+    new() {
+       NewAmbushTime()
+    }
 
     fn ProgressRound() {
         if progression % 2 == 0 {
@@ -55,6 +58,30 @@ pub class RoundManager {
         }
         time = 0
         pause = true
+        NewAmbushTime()
+    }
+
+    fn NewAmbushTime() {
+        if Chance(100) {
+            randomAmbushTime = Fmath:RandomNumber(ROUND_DURATION/2, ROUND_DURATION-1)
+        }else {
+            randomAmbushTime = -1
+        }
+    }
+
+    fn AmbushCheck() {
+        if time == randomAmbushTime\2 {
+            let x, y = PlayerSafeSpawn(RandomSpawn)
+            NewBonus(x, y, BonusType.Weapon, struct{
+                box_duration = randomAmbushTime\2+30, 
+                cannon = CannonType.Double,
+                frequency = CannonFreq.Freq30,
+                weapon_duration = 160,
+            })
+        } else if time == randomAmbushTime {
+            let n = Fmath:RandomNumber(1, #Ambushes)
+            Ambushes[n](diff)
+        }
     }
 
     fn Update() {
@@ -89,6 +116,9 @@ pub class RoundManager {
                 for _, enemySpawn in RoundTwo {
                     enemySpawn(time, diff)
                 }
+
+                AmbushCheck()
+
                 // if time == ROUND_DURATION\2 and Chance(20) {
                 //     round = Round.Boss
                 //     break
@@ -104,19 +134,6 @@ pub class RoundManager {
                 for _, enemySpawn in RoundThree {
                     enemySpawn(time, diff)
                 }
-                // if time == ROUND_DURATION\2 and Chance(100) {
-                //     let entities = GetAllEntities()
-                //     for _, v in entities {
-                //         if v == SHIP.id or (GetEntityType(v) == EntityType.CustomizableEntity and GetEntityTag(v) == Globals:DONT_DESTROY) {
-                //             continue
-                //         }
-                //         DestroyEntity(v)
-                //     }
-                //     nextRoundAfterSpecial = Round.Four
-                //     round = Round.Hypercube
-                //     time = 0
-                //     break
-                // }
                 if time >= ROUND_DURATION {
                     round = Round.Four
                     RandomizeVariant()
@@ -128,6 +145,9 @@ pub class RoundManager {
                 for _, enemySpawn in RoundFour {
                     enemySpawn(time, diff)
                 }
+                
+                AmbushCheck()
+
                 if time >= ROUND_DURATION {
                     round = Round.One
                     RandomizeVariant()

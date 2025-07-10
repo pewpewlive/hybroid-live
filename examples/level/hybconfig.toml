@@ -1,5 +1,5 @@
 [level]
-name = "Hyperboreal Assault"
+name = "#{0ff4}H#{0ff4}y#{0ff6}p#{0ff6}e#{0ff9}r#{0ff9}b#{0ffa}o#{0ffa}r#{0ffe}e#{0fff}a#{0fff}l #{f00f}Ass#{f008}au#{f004}lt"
 descriptions = ["This is an example level created using Hybroid Live!"]
 information = "The official example level for Hybroid Live"
 entry_point = "level.hyb"

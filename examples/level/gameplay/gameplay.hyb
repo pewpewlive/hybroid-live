@@ -27,6 +27,11 @@ pub fn PlayerSafeSpawn(fn() -> (fixed, fixed) f) -> (fixed, fixed) {
     return x, y
 }
 
+pub fn RandomWallSpawn(fixed offset) -> (fixed, fixed) {
+    return FmathHelpers:Clamp(ToFixed(RandomNumber(0, 1))*WIDTH, offset, WIDTH-offset), 
+            FmathHelpers:Clamp(ToFixed(RandomNumber(0, 1))*HEIGHT, offset, HEIGHT-offset)
+}
+
 pub fn RandomSpawn() -> (fixed, fixed) {
     return RandomFixed(100f, WIDTH - 100f), RandomFixed(100f, HEIGHT - 100f)
 }
@@ -51,6 +56,17 @@ pub fn RandomSpawnGridSafe() -> (fixed, fixed) {
 
     return x, y
 }
+
+pub Ambushes = [
+    fn(number diff) {
+        let x, y = PlayerSafeSpawn(RandomSpawn)
+        repeat 1+diff*2 {
+            let mag = Fmath:RandomFixed(8f, 100f)
+            let my, mx = Fmath:Sincos(Rangle())
+            NewSuperMothership(x+mx*mag, y+my*mag, MothershipType.Pentagon, Rangle())
+        }
+    } 
+]
 
 pub RoundOne = [
     fn(number time, diff) {
@@ -115,13 +131,32 @@ pub RoundTwo = [
             SetUFOWallCollision(id2, true)
         }
     },
+    fn(number time, diff) {
+        let bafAmount = ToFixed(diff)+3fx
+        const BAF_SIZE = 10fx
+        
+        if time % 170 == 0 {
+            let x, y = RandomWallSpawn(bafAmount*BAF_SIZE)
+            fixed my, mx, py, px
+            if x == 0 or x == WIDTH {
+                my, mx, py, px = Sincos(90d), SIncos(270d)
+            }else {
+                my, mx, py, px = Sincos(0d), Sincos(180d)
+            }
+            NewBafBlue(x, y, direction, 7fx)
+            repeat from 1fx to bafAmount {
+                NewBafBlue(x+mx*BAF_SIZE, y+my*BAF_SIZE, direction, 7fx)
+                NewBafBlue(x+px*BAF_SIZE, y+py*BAF_SIZE, direction, 7fx)
+            }
+        }
+    },
     fn (number time, diff) {
         if time == 180 {
             let x, y = PlayerSafeSpawn(RandomSpawn)
             NewBonus(x, y, BonusType.Weapon, struct{
                 box_duration = 300, 
-                cannon = CannonType.Triple,
-                frequency = CannonFreq.Freq7_5,
+                cannon = CannonType.DoubleSwipe,
+                frequency = CannonFreq.Freq30,
                 weapon_duration = 160,
             })
         }

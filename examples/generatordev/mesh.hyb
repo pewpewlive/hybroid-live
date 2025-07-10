@@ -1,9 +1,0 @@
-env Mesh as Mesh
-
-pub meshes = [
-    struct{
-        vertexes = [],
-        segments = [],
-        colors = []
-    }
-]

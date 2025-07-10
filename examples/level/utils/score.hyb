@@ -1,4 +1,4 @@
-env ScoreUtils as Shared
+env ScoreUtils as Level
 
 pub enum LevelScore {
   Score10,
