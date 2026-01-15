@@ -121,7 +121,8 @@ func compileWrapper() js.Func {
 		code := args[0].String()
 		output, err := compile(code)
 		if err != nil {
-			fmt.Printf("unable to compile code: %s\n", err)
+			// Errors are returned instead of printed
+			// fmt.Printf("unable to compile code: %s\n", err)
 			return err.Error()
 		}
 		return output
