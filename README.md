@@ -44,7 +44,7 @@ Check out the "Getting Started" section of the [Hybroid documentation site](http
 
 ## Building for release
 
-Run `utils/build_hybroid.py`.
+Run `utils/build_hybroid.py [platform]`.
 
 ## License
 
