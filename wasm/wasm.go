@@ -6,9 +6,11 @@ import (
 	"bufio"
 	"fmt"
 	"hybroid/alerts"
+	"hybroid/ast"
 	"hybroid/generator"
 	"hybroid/lexer"
 	"hybroid/parser"
+	"hybroid/walker"
 	"strings"
 	"syscall/js"
 )
@@ -62,6 +64,8 @@ func formatAlerts(alertsList []alerts.Alert, source string) string {
 }
 
 func compile(code string) (string, error) {
+	var warnings strings.Builder
+
 	l := lexer.NewLexer(strings.NewReader(code))
 	tokensList, err := l.Tokenize()
 	if err != nil {
@@ -81,7 +85,7 @@ func compile(code string) (string, error) {
 		if hasError {
 			return "", fmt.Errorf("%s", msg)
 		}
-		fmt.Println(msg) // Log warnings
+		warnings.WriteString(msg)
 	}
 
 	p := parser.NewParser(tokensList)
@@ -100,14 +104,53 @@ func compile(code string) (string, error) {
 		if hasError {
 			return "", fmt.Errorf("%s", msg)
 		}
-		fmt.Println(msg)
+		warnings.WriteString(msg)
+	}
+
+	walker.SetupLibraryEnvironments()
+	w := walker.NewWalker("main.hyb", "main.lua")
+	w.SetProgram(program)
+
+	// Single file compilation, so no other walkers to share context with
+	walkers := make(map[string]*walker.Walker)
+	w.PreWalk(walkers)
+	w.Walk()
+	w.PostWalk()
+
+	if len(w.GetAlerts()) > 0 {
+		hasError := false
+		for _, a := range w.GetAlerts() {
+			if a.AlertType() == alerts.Error {
+				hasError = true
+				break
+			}
+		}
+
+		msg := formatAlerts(w.GetAlerts(), code)
+		if hasError {
+			return "", fmt.Errorf("%s", msg)
+		}
+		warnings.WriteString(msg)
 	}
 
 	gen := generator.NewGenerator()
 	generator.ResetGlobalGeneratorValues()
-	gen.Generate(program, nil)
 
-	return gen.GetSrc(), nil
+	gen.SetEnv(w.Env().Name, w.Env().Type)
+	gen.GenerateUsedLibaries(w.Env().UsedLibraries)
+
+	if w.Env().Type != ast.LevelEnv {
+		gen.Generate(w.Program(), w.Env().UsedBuiltinVars)
+	} else {
+		gen.Generate(w.Program(), []string{})
+	}
+
+	res := gen.GetSrc()
+	if warnings.Len() > 0 {
+		res = warnings.String() + "[default]============\n\n" + res
+	}
+
+	return res, nil
 }
 
 func compileWrapper() js.Func {
@@ -131,6 +174,6 @@ func compileWrapper() js.Func {
 }
 
 func init() {
-	fmt.Println("Hybroid Live for WebAssembly, v0.1.0")
+	fmt.Println("Hybroid Live for WebAssembly v0.1.0 has been initialized.")
 	js.Global().Set("hybroidCompile", compileWrapper())
 }
