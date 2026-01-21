@@ -29,6 +29,7 @@ func sourceToLines(source string) map[int][]byte {
 	return lines
 }
 
+// formatAlerts converts a list of alerts into a formatted string with ANSI color codes, including error locations and code snippets.
 func formatAlerts(alertsList []alerts.Alert, source string) string {
 	lines := sourceToLines(source)
 	var sb strings.Builder
