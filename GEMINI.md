@@ -73,7 +73,7 @@ go test ./...
 *   `generator/`: Lua code generation logic.
 *   `lexer/`: Source code tokenization.
 *   `lsp/`: Language Server Protocol implementation.
-*   `parser/`: recursive descent parser.
+*   `parser/`: Recursive descent parser.
 *   `tokens/`: Token type definitions.
 *   `utils/`: Python scripts for build, API generation, and maintenance.
 *   `walker/`: Semantic analysis and type checking.
