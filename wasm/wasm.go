@@ -4,6 +4,7 @@ package wasm
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"hybroid/alerts"
 	"hybroid/ast"
@@ -81,7 +82,7 @@ func processAlerts(alertsList []alerts.Alert, source string, warnings *strings.B
 
 	msg := formatAlerts(alertsList, source)
 	if hasError {
-		return fmt.Errorf(msg)
+		return errors.New(msg)
 	}
 	warnings.WriteString(msg)
 	return nil
