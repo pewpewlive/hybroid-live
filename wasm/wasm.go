@@ -138,7 +138,7 @@ func compile(code string) (string, error) {
 	generator.ResetGlobalGeneratorValues()
 
 	gen.SetEnv(w.Env().Name, w.Env().Type)
-	gen.GenerateUsedLibaries(w.Env().UsedLibraries)
+	gen.GenerateUsedLibraries(w.Env().UsedLibraries)
 
 	if w.Env().Type != ast.LevelEnv {
 		gen.Generate(w.Program(), w.Env().UsedBuiltinVars)
