@@ -3,6 +3,7 @@ package lsp
 import (
 	"context"
 	"encoding/json"
+	"log"
 
 	"github.com/sourcegraph/jsonrpc2"
 )
@@ -59,7 +60,11 @@ func (h *langHandler) handleTextDocumentDidChange(ctx context.Context, conn *jso
 }
 
 func (h *langHandler) analyzeAndPublish(ctx context.Context, conn *jsonrpc2.Conn, uri DocumentURI, text string) {
-	result := Analyze(text)
+	result := Analyze(uri, text)
+
+	if len(result.Tokens) > 0 {
+		log.Printf("First token: type=%v, lexeme=%q, line=%d, col=%d", result.Tokens[0].Type, result.Tokens[0].Lexeme, result.Tokens[0].Line, result.Tokens[0].Column.Start)
+	}
 
 	h.mu.Lock()
 	h.analyzedWalkers[uri] = result.Walker
