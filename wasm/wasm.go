@@ -81,7 +81,7 @@ func processAlerts(alertsList []alerts.Alert, source string, warnings *strings.B
 
 	msg := formatAlerts(alertsList, source)
 	if hasError {
-		return fmt.Errorf("%s", msg)
+		return fmt.Errorf(msg)
 	}
 	warnings.WriteString(msg)
 	return nil
