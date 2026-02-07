@@ -4,6 +4,7 @@ package wasm
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"hybroid/alerts"
 	"hybroid/ast"
@@ -64,6 +65,29 @@ func formatAlerts(alertsList []alerts.Alert, source string) string {
 	return sb.String()
 }
 
+// processAlerts processes a list of alerts, returning an error if any are errors,
+// or accumulating warnings in the provided strings.Builder.
+func processAlerts(alertsList []alerts.Alert, source string, warnings *strings.Builder) error {
+	if len(alertsList) == 0 {
+		return nil
+	}
+
+	hasError := false
+	for _, a := range alertsList {
+		if a.AlertType() == alerts.Error {
+			hasError = true
+			break
+		}
+	}
+
+	msg := formatAlerts(alertsList, source)
+	if hasError {
+		return errors.New(msg)
+	}
+	warnings.WriteString(msg)
+	return nil
+}
+
 func compile(code string) (string, error) {
 	var warnings strings.Builder
 
@@ -73,39 +97,15 @@ func compile(code string) (string, error) {
 		return "", err
 	}
 
-	if len(l.GetAlerts()) > 0 {
-		hasError := false
-		for _, a := range l.GetAlerts() {
-			if a.AlertType() == alerts.Error {
-				hasError = true
-				break
-			}
-		}
-
-		msg := formatAlerts(l.GetAlerts(), code)
-		if hasError {
-			return "", fmt.Errorf("%s", msg)
-		}
-		warnings.WriteString(msg)
+	if err := processAlerts(l.GetAlerts(), code, &warnings); err != nil {
+		return "", err
 	}
 
 	p := parser.NewParser(tokensList)
 	program := p.Parse()
 
-	if len(p.GetAlerts()) > 0 {
-		hasError := false
-		for _, a := range p.GetAlerts() {
-			if a.AlertType() == alerts.Error {
-				hasError = true
-				break
-			}
-		}
-
-		msg := formatAlerts(p.GetAlerts(), code)
-		if hasError {
-			return "", fmt.Errorf("%s", msg)
-		}
-		warnings.WriteString(msg)
+	if err := processAlerts(p.GetAlerts(), code, &warnings); err != nil {
+		return "", err
 	}
 
 	walker.SetupLibraryEnvironments()
@@ -118,20 +118,8 @@ func compile(code string) (string, error) {
 	w.Walk()
 	w.PostWalk()
 
-	if len(w.GetAlerts()) > 0 {
-		hasError := false
-		for _, a := range w.GetAlerts() {
-			if a.AlertType() == alerts.Error {
-				hasError = true
-				break
-			}
-		}
-
-		msg := formatAlerts(w.GetAlerts(), code)
-		if hasError {
-			return "", fmt.Errorf("%s", msg)
-		}
-		warnings.WriteString(msg)
+	if err := processAlerts(w.GetAlerts(), code, &warnings); err != nil {
+		return "", err
 	}
 
 	gen := generator.NewGenerator()
