@@ -129,7 +129,7 @@ func (gen *Generator) GetSrc() string {
 	return gen.src.String()
 }
 
-func (gen *Generator) GenerateUsedLibaries(usedLibraries []ast.Library) {
+func (gen *Generator) GenerateUsedLibraries(usedLibraries []ast.Library) {
 	for _, v := range usedLibraries {
 		str := v.String()
 		gen.src.Write("local ", str, " = ", str, "\n")
