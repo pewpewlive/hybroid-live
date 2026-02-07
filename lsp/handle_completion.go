@@ -3,6 +3,7 @@ package lsp
 import (
 	"context"
 	"encoding/json"
+	"hybroid/walker"
 
 	"github.com/sourcegraph/jsonrpc2"
 )
@@ -21,7 +22,7 @@ func (h *langHandler) handleTextDocumentCompletion(_ context.Context, _ *jsonrpc
 }
 
 func (h *langHandler) completion(uri DocumentURI, params *CompletionParams) ([]CompletionItem, error) {
-	return []CompletionItem{
+	items := []CompletionItem{
 		{
 			Label: "PewPew",
 			Kind:  ClassCompletion,
@@ -32,5 +33,48 @@ func (h *langHandler) completion(uri DocumentURI, params *CompletionParams) ([]C
 			Kind:  ClassCompletion,
 			Data:  2,
 		},
-	}, nil
+	}
+
+	h.mu.Lock()
+	w, ok := h.analyzedWalkers[uri]
+	h.mu.Unlock()
+
+	if !ok {
+		return items, nil
+	}
+
+	// LSP lines are 0-based, Hybroid tokens are 1-based.
+	line := params.Position.Line + 1
+	col := params.Position.Character + 1
+
+	scope := w.GetScopeAt(line, col)
+	if scope == nil {
+		return items, nil
+	}
+
+	// Traverse scope chain
+	seen := make(map[string]bool)
+	current := scope
+	for current != nil {
+		for name, variable := range current.Variables {
+			if !seen[name] {
+				seen[name] = true
+				kind := VariableCompletion
+				
+				// Attempt to deduce kind
+				if _, ok := variable.Value.(*walker.FunctionVal); ok {
+					kind = FunctionCompletion
+				}
+
+				items = append(items, CompletionItem{
+					Label:  name,
+					Kind:   kind,
+					Detail: variable.Value.GetType().String(),
+				})
+			}
+		}
+		current = current.Parent
+	}
+
+	return items, nil
 }
