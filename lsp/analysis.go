@@ -12,44 +12,42 @@ import (
 type AnalysisResult struct {
 	Diagnostics []Diagnostic
 	Walker      *walker.Walker
+	Tokens      []tokens.Token
 }
 
-func Analyze(text string) AnalysisResult {
+func Analyze(uri DocumentURI, text string) AnalysisResult {
 	diagnostics := make([]Diagnostic, 0)
 
 	// Lexer
 	lex := lexer.NewLexer(strings.NewReader(text))
 	toks, err := lex.Tokenize()
 	if err != nil {
-		// If critical error, return early
-		// But usually lexer accumulates alerts
+		// Log lexer error if needed
 	}
-	diagnostics = append(diagnostics, alertsToDiagnostics(lex.GetAlerts())...)
+	diagnostics = append(diagnostics, alertsToDiagnostics(uri, lex.GetAlerts())...)
 
 	// Parser
 	parse := parser.NewParser(toks)
-	ast := parse.Parse()
-	diagnostics = append(diagnostics, alertsToDiagnostics(parse.GetAlerts())...)
+	program := parse.Parse()
+	diagnostics = append(diagnostics, alertsToDiagnostics(uri, parse.GetAlerts())...)
 
 	// Walker
-	// Assuming "Shared" env for generic LSP analysis for now, or infer from context?
-	// For now, let's use a dummy path.
 	walk := walker.NewWalker("in-memory", "in-memory")
-	walk.SetProgram(ast)
-	// We might need to mock walkers map for imports if we want to support multi-file analysis later.
-	// For now, simple single-file.
+	walk.SetProgram(program)
+	
 	walk.PreWalk(nil)
 	walk.Walk()
 	walk.PostWalk()
-	diagnostics = append(diagnostics, alertsToDiagnostics(walk.GetAlerts())...)
+	diagnostics = append(diagnostics, alertsToDiagnostics(uri, walk.GetAlerts())...)
 
 	return AnalysisResult{
 		Diagnostics: diagnostics,
 		Walker:      walk,
+		Tokens:      toks,
 	}
 }
 
-func alertsToDiagnostics(alertsList []alerts.Alert) []Diagnostic {
+func alertsToDiagnostics(uri DocumentURI, alertsList []alerts.Alert) []Diagnostic {
 	diags := make([]Diagnostic, 0)
 	for _, alert := range alertsList {
 		snippet := alert.SnippetSpecifier()
@@ -85,6 +83,19 @@ func alertsToDiagnostics(alertsList []alerts.Alert) []Diagnostic {
 			}(),
 			Source: func() *string { s := "hybroid"; return &s }(),
 		}
+
+		if note := alert.Note(); note != "" {
+			d.RelatedInformation = []DiagnosticRelatedInformation{
+				{
+					Location: Location{
+						URI:   uri,
+						Range: d.Range,
+					},
+					Message: note,
+				},
+			}
+		}
+
 		diags = append(diags, d)
 	}
 	return diags

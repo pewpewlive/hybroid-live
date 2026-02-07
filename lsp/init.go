@@ -2,6 +2,7 @@ package lsp
 
 import (
 	"context"
+	"hybroid/walker"
 	"log"
 	"os"
 
@@ -27,13 +28,15 @@ func (c stdrwc) Close() error {
 
 func Init() {
 	//! Make sure to uncomment the file write operations if you want to have logs and operational LSP
-	// f, err := os.OpenFile("D:\\testlogfile.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	// if err != nil {
-	// 	log.Fatalf("error opening file: %v", err)
-	// }
-	// log.SetOutput(f)
+	f, err := os.OpenFile("D:\\testlogfile.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+	}
+	log.SetOutput(f)
 	log.Println("Starting Integrated Language Server for Hybroid")
 	log.Println("WARNING: THIS SERVER IS IN PRE-ALPHA STATE!!! USE WITH CAUTION!")
+
+	walker.SetupLibraryEnvironments()
 
 	log.Println("Preparing to communicate via stdio")
 
@@ -47,5 +50,5 @@ func Init() {
 		handler, connOpt...).DisconnectNotify()
 
 	log.Println("All Connections Closed")
-	// f.Close()
+	f.Close()
 }

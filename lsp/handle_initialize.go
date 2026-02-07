@@ -34,7 +34,6 @@ func (h *langHandler) handleInitialize(_ context.Context, conn *jsonrpc2.Conn, r
 
 	var completion *CompletionProvider
 	// var hasCompletionCommand bool
-	var hasHoverCommand bool
 	var hasCodeActionCommand bool
 	var hasSymbolCommand bool
 	var hasFormatCommand bool
@@ -43,7 +42,6 @@ func (h *langHandler) handleInitialize(_ context.Context, conn *jsonrpc2.Conn, r
 
 	if params.InitializationOptions != nil {
 		//hasCompletionCommand = params.InitializationOptions.Completion
-		hasHoverCommand = params.InitializationOptions.Hover
 		hasCodeActionCommand = params.InitializationOptions.CodeAction
 		hasSymbolCommand = params.InitializationOptions.DocumentSymbol
 		hasFormatCommand = params.InitializationOptions.DocumentFormatting
@@ -80,8 +78,11 @@ func (h *langHandler) handleInitialize(_ context.Context, conn *jsonrpc2.Conn, r
 			DocumentSymbolProvider:     hasSymbolCommand,
 			DefinitionProvider:         hasDefinitionCommand,
 			CompletionProvider:         completion,
-			HoverProvider:              hasHoverCommand,
-			CodeActionProvider:         hasCodeActionCommand,
+			SignatureHelpProvider: &SignatureHelpProvider{
+				TriggerCharacters: []string{"(", ","},
+			},
+			HoverProvider:      true,
+			CodeActionProvider: hasCodeActionCommand,
 			Workspace: &ServerCapabilitiesWorkspace{
 				WorkspaceFolders: WorkspaceFoldersServerCapabilities{
 					Supported:           true,

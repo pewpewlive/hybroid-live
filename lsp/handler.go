@@ -52,10 +52,15 @@ type langHandler struct {
 }
 
 func (h *langHandler) handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) (result any, err error) {
+	log.Printf("Incoming request: %s (notification: %v)", req.Method, req.Notif)
 	switch req.Method {
 	case "initialize":
 		return h.handleInitialize(ctx, conn, req)
 	case "initialized":
+		return
+	case "$/setTrace":
+		return
+	case "$/cancelRequest":
 		return
 	case "shutdown":
 		return h.handleShutdown(ctx, conn, req)
@@ -75,12 +80,14 @@ func (h *langHandler) handle(ctx context.Context, conn *jsonrpc2.Conn, req *json
 		return // h.handleTextDocumentSymbol(ctx, conn, req)
 	case "textDocument/completion":
 		return h.handleTextDocumentCompletion(ctx, conn, req)
+	case "textDocument/signatureHelp":
+		return h.handleTextDocumentSignatureHelp(ctx, conn, req)
 	case "completionItem/resolve":
 		return h.HandleCompletionItemResolve(ctx, conn, req)
 	case "textDocument/definition":
 		return // h.handleTextDocumentDefinition(ctx, conn, req)
 	case "textDocument/hover":
-		return // h.handleTextDocumentHover(ctx, conn, req)
+		return h.handleTextDocumentHover(ctx, conn, req)
 	case "textDocument/codeAction":
 		return // h.handleTextDocumentCodeAction(ctx, conn, req)
 	case "workspace/executeCommand":

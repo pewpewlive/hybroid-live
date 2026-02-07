@@ -21,22 +21,27 @@ func (h *langHandler) HandleCompletionItemResolve(_ context.Context, _ *jsonrpc2
 }
 
 func (h *langHandler) completionResolve(item *CompletionItem) (CompletionItem, error) {
-	// var detail string
-	// var documentation string
-	detail := "default detail"
-	documentation := "default documentation"
-	if item.Data == 1 {
-		detail = "PewPew API"
-		documentation = "API for PewPew levels"
-	} else if item.Data == 2 {
-		detail = "Fmath API"
-		documentation = "API for fixed-point math"
+	detail, documentation := getSymbolMetadata(item.Label)
+
+	if detail == "" {
+		detail = item.Detail
 	}
+	if documentation == "" {
+		documentation = item.Documentation
+	}
+
 	return CompletionItem{
 		Label:         item.Label,
 		Kind:          item.Kind,
-		Data:          item.Data,
+		Tags:          item.Tags,
 		Detail:        detail,
 		Documentation: documentation,
+		Deprecated:    item.Deprecated,
+		Preselect:     item.Preselect,
+		SortText:      item.SortText,
+		FilterText:    item.FilterText,
+		InsertText:    item.InsertText,
+		TextEdit:      item.TextEdit,
+		Data:          item.Data,
 	}, nil
 }

@@ -5,6 +5,7 @@ import (
 	"hybroid/ast"
 	"hybroid/core"
 	"hybroid/tokens"
+	"log"
 	"slices"
 )
 
@@ -136,6 +137,7 @@ func NewWalker(hybroidPath, luaPath string) *Walker {
 		},
 		Collector: alerts.NewCollector(),
 		ScopeMap:  make([]ScopeRange, 0),
+		walkers:   make(map[string]*Walker),
 	}
 }
 
@@ -157,29 +159,38 @@ func (w *Walker) GetScopeAt(line, column int) *Scope {
 	// Start with global scope as fallback
 	bestMatch = &w.environment.Scope
 
-	for _, scopeRange := range w.ScopeMap {
+	for i, scopeRange := range w.ScopeMap {
+		match := true
 		if line < scopeRange.StartLine || line > scopeRange.EndLine {
-			continue
-		}
-		if line == scopeRange.StartLine && column < scopeRange.StartColumn {
-			continue
-		}
-		if line == scopeRange.EndLine && column > scopeRange.EndColumn {
-			continue
+			match = false
+		} else if line == scopeRange.StartLine && column < scopeRange.StartColumn {
+			match = false
+		} else if line == scopeRange.EndLine && column > scopeRange.EndColumn {
+			match = false
 		}
 
-		if bestMatch == &w.environment.Scope {
-			bestMatch = scopeRange.Scope
-			bestRange = scopeRange
-			continue
+		if match {
+			if bestMatch == &w.environment.Scope {
+				bestMatch = scopeRange.Scope
+				bestRange = scopeRange
+			} else if scopeRange.StartLine >= bestRange.StartLine && scopeRange.EndLine <= bestRange.EndLine {
+				bestMatch = scopeRange.Scope
+				bestRange = scopeRange
+			}
 		}
-
-		// Check if scopeRange is inside bestRange
-		if scopeRange.StartLine >= bestRange.StartLine && scopeRange.EndLine <= bestRange.EndLine {
-			bestMatch = scopeRange.Scope
-			bestRange = scopeRange
-		}
+		// log.Printf("Range[%d]: %d:%d - %d:%d -> match=%v", i, scopeRange.StartLine, scopeRange.StartColumn, scopeRange.EndLine, scopeRange.EndColumn, match)
+		_ = i // keep index for potentially logging above
 	}
+	
+	if bestMatch == &w.environment.Scope {
+		log.Printf("GetScopeAt(%d, %d) returned global scope. Checked %d ranges.", line, column, len(w.ScopeMap))
+		for i, r := range w.ScopeMap {
+			log.Printf("  Range[%d]: %d:%d - %d:%d", i, r.StartLine, r.StartColumn, r.EndLine, r.EndColumn)
+		}
+	} else {
+		log.Printf("GetScopeAt(%d, %d) found scope at %d:%d - %d:%d", line, column, bestRange.StartLine, bestRange.StartColumn, bestRange.EndLine, bestRange.EndColumn)
+	}
+
 	return bestMatch
 }
 
@@ -537,6 +548,31 @@ func (w *Walker) GetNodeEndToken(node ast.Node) tokens.Token {
 	case *ast.EntityFunctionDecl:
 		if tok := w.GetBodyEndToken(&n.Body); (tok != tokens.Token{}) {
 			return tok
+		}
+	case *ast.BinaryExpr:
+		return w.GetNodeEndToken(n.Right)
+	case *ast.UnaryExpr:
+		return w.GetNodeEndToken(n.Value)
+	case *ast.AccessExpr:
+		if len(n.Accessed) > 0 {
+			return w.GetNodeEndToken(n.Accessed[len(n.Accessed)-1])
+		}
+		return w.GetNodeEndToken(n.Start)
+	case *ast.MemberExpr:
+		return w.GetNodeEndToken(n.Member)
+	case *ast.FieldExpr:
+		return w.GetNodeEndToken(n.Field)
+	case *ast.ListExpr:
+		if len(n.List) > 0 {
+			return w.GetNodeEndToken(n.List[len(n.List)-1])
+		}
+	case *ast.MapExpr:
+		if len(n.KeyValueList) > 0 {
+			return w.GetNodeEndToken(n.KeyValueList[len(n.KeyValueList)-1].Expr)
+		}
+	case *ast.StructExpr:
+		if len(n.Expressions) > 0 {
+			return w.GetNodeEndToken(n.Expressions[len(n.Expressions)-1])
 		}
 	}
 	// Fallback to the node's start token if we can't find a better end.
