@@ -10,6 +10,7 @@ end
 local function E_thing2(E_data)
 	local E_a = E_data["numbers"]
 	local E_b = function()
+
 		if #E_a < 3 then
 			return 1
 		else 
@@ -31,6 +32,7 @@ local function E_thing2(E_data)
 		::GL_::
 	end
 	return 0, function()
+
 		return -1
 	end
 end
