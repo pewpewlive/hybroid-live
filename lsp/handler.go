@@ -3,6 +3,7 @@ package lsp
 import (
 	"context"
 	"fmt"
+	"hybroid/walker"
 	"log"
 	"net/url"
 	"path/filepath"
@@ -32,6 +33,7 @@ type langHandler struct {
 	// commands          []Command
 	provideDefinition bool
 	files             map[DocumentURI]*File
+	analyzedWalkers   map[DocumentURI]*walker.Walker
 	lintDebounce      time.Duration
 	request           chan lintRequest
 	lintTimer         *time.Timer
@@ -58,9 +60,9 @@ func (h *langHandler) handle(ctx context.Context, conn *jsonrpc2.Conn, req *json
 	case "shutdown":
 		return h.handleShutdown(ctx, conn, req)
 	case "textDocument/didOpen":
-		return // h.handleTextDocumentDidOpen(ctx, conn, req)
+		return h.handleTextDocumentDidOpen(ctx, conn, req)
 	case "textDocument/didChange":
-		return // h.handleTextDocumentDidChange(ctx, conn, req)
+		return h.handleTextDocumentDidChange(ctx, conn, req)
 	case "textDocument/didSave":
 		return // h.handleTextDocumentDidSave(ctx, conn, req)
 	case "textDocument/didClose":
@@ -99,9 +101,10 @@ func NewHandler() jsonrpc2.Handler {
 
 	handler := &langHandler{
 		// provideDefinition: config.ProvideDefinition,
-		files:   make(map[DocumentURI]*File),
-		request: make(chan lintRequest),
-		conn:    nil,
+		files:           make(map[DocumentURI]*File),
+		analyzedWalkers: make(map[DocumentURI]*walker.Walker),
+		request:         make(chan lintRequest),
+		conn:            nil,
 		// filename:          config.Filename,
 		// rootMarkers:       *config.RootMarkers,
 		// triggerChars:      config.TriggerChars,
