@@ -297,7 +297,7 @@ func (w *Walker) methodDeclaration(node *ast.MethodDecl, container MethodContain
 		}
 
 		fnScope := w.NewScope(scope, fnTag, ReturnAllowing)
-		w.RegisterScope(fnScope, node.Token, w.GetNodeEndToken(node))
+		w.RegisterScope(fnScope, node.Name, w.GetNodeEndToken(node))
 
 		for i := range node.Params {
 			param := &node.Params[i]

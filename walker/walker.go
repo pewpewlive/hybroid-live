@@ -446,14 +446,18 @@ func (w *Walker) TypeifyNodeList(nodes *[]ast.Node, scope *Scope) []Type {
 	return arguments
 }
 
+func (w *Walker) GetBodyEndToken(body *ast.Body) tokens.Token {
+	if body.Size() > 0 {
+		return w.GetNodeEndToken(*body.Node(body.Size() - 1))
+	}
+	// Fallback to empty token
+	return tokens.Token{}
+}
+
 func (w *Walker) GetNodeEndToken(node ast.Node) tokens.Token {
 	// Crude implementation: recursively check common node types for the "last" token.
 	// This is not exhaustive but covers blocks.
 	switch n := node.(type) {
-	case *ast.Body:
-		if n.Size() > 0 {
-			return w.GetNodeEndToken(n.Node(n.Size() - 1))
-		}
 	case *ast.IfStmt:
 		if n.Else != nil {
 			return w.GetNodeEndToken(n.Else)
@@ -461,23 +465,41 @@ func (w *Walker) GetNodeEndToken(node ast.Node) tokens.Token {
 		if len(n.Elseifs) > 0 {
 			return w.GetNodeEndToken(n.Elseifs[len(n.Elseifs)-1])
 		}
-		return w.GetNodeEndToken(&n.Body)
+		if tok := w.GetBodyEndToken(&n.Body); (tok != tokens.Token{}) {
+			return tok
+		}
 	case *ast.FunctionDecl:
-		return w.GetNodeEndToken(&n.Body)
+		if tok := w.GetBodyEndToken(&n.Body); (tok != tokens.Token{}) {
+			return tok
+		}
 	case *ast.MethodDecl:
-		return w.GetNodeEndToken(&n.Body)
+		if tok := w.GetBodyEndToken(&n.Body); (tok != tokens.Token{}) {
+			return tok
+		}
 	case *ast.ForStmt:
-		return w.GetNodeEndToken(&n.Body)
+		if tok := w.GetBodyEndToken(&n.Body); (tok != tokens.Token{}) {
+			return tok
+		}
 	case *ast.WhileStmt:
-		return w.GetNodeEndToken(&n.Body)
+		if tok := w.GetBodyEndToken(&n.Body); (tok != tokens.Token{}) {
+			return tok
+		}
 	case *ast.RepeatStmt:
-		return w.GetNodeEndToken(&n.Body)
+		if tok := w.GetBodyEndToken(&n.Body); (tok != tokens.Token{}) {
+			return tok
+		}
+	case *ast.TickStmt:
+		if tok := w.GetBodyEndToken(&n.Body); (tok != tokens.Token{}) {
+			return tok
+		}
 	case *ast.MatchStmt:
 		if len(n.Cases) > 0 {
 			return w.GetNodeEndToken(n.Cases[len(n.Cases)-1])
 		}
 	case *ast.CaseStmt:
-		return w.GetNodeEndToken(&n.Body)
+		if tok := w.GetBodyEndToken(&n.Body); (tok != tokens.Token{}) {
+			return tok
+		}
 	case *ast.VariableDecl:
 		if len(n.Expressions) > 0 {
 			return w.GetNodeEndToken(n.Expressions[len(n.Expressions)-1])
@@ -490,7 +512,8 @@ func (w *Walker) GetNodeEndToken(node ast.Node) tokens.Token {
 		if len(n.Args) > 0 {
 			return w.GetNodeEndToken(n.Args[len(n.Args)-1])
 		}
-		return n.RightParen
+		// CallExpr doesn't store RightParen, so we fall back to Caller's token
+		return n.Caller.GetToken()
 	case *ast.ClassDecl:
 		if len(n.Methods) > 0 {
 			return w.GetNodeEndToken(&n.Methods[len(n.Methods)-1])
@@ -512,9 +535,10 @@ func (w *Walker) GetNodeEndToken(node ast.Node) tokens.Token {
 			return w.GetNodeEndToken(n.Spawner)
 		}
 	case *ast.EntityFunctionDecl:
-		return w.GetNodeEndToken(&n.Body)
+		if tok := w.GetBodyEndToken(&n.Body); (tok != tokens.Token{}) {
+			return tok
+		}
 	}
 	// Fallback to the node's start token if we can't find a better end.
-	// For expressions, this is often "good enough" if they are single tokens.
 	return node.GetToken()
 }
