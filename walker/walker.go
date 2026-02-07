@@ -13,6 +13,14 @@ type Import struct {
 	ThroughUse bool
 }
 
+type ScopeRange struct {
+	StartLine   int
+	StartColumn int
+	EndLine     int
+	EndColumn   int
+	Scope       *Scope
+}
+
 type Environment struct {
 	Name        string
 	luaPath     string // dynamic lua path
@@ -91,6 +99,8 @@ type Walker struct {
 	context      Context
 	Walked       bool
 	ignoreAlerts bool
+
+	ScopeMap []ScopeRange
 }
 
 func (w *Walker) Alert(alertType alerts.Alert, args ...any) {
@@ -125,7 +135,52 @@ func NewWalker(hybroidPath, luaPath string) *Walker {
 			EntityCasts: core.NewQueue[EntityCast]("EntityCasts"),
 		},
 		Collector: alerts.NewCollector(),
+		ScopeMap:  make([]ScopeRange, 0),
 	}
+}
+
+func (w *Walker) RegisterScope(scope *Scope, start, end tokens.Token) {
+	w.ScopeMap = append(w.ScopeMap, ScopeRange{
+		StartLine:   start.Line,
+		StartColumn: start.Column.Start,
+		EndLine:     end.Line,
+		EndColumn:   end.Column.End,
+		Scope:       scope,
+	})
+}
+
+func (w *Walker) GetScopeAt(line, column int) *Scope {
+	// Find the most specific scope (smallest range) that contains the position
+	var bestMatch *Scope
+	var bestRange ScopeRange
+
+	// Start with global scope as fallback
+	bestMatch = &w.environment.Scope
+
+	for _, scopeRange := range w.ScopeMap {
+		if line < scopeRange.StartLine || line > scopeRange.EndLine {
+			continue
+		}
+		if line == scopeRange.StartLine && column < scopeRange.StartColumn {
+			continue
+		}
+		if line == scopeRange.EndLine && column > scopeRange.EndColumn {
+			continue
+		}
+
+		if bestMatch == &w.environment.Scope {
+			bestMatch = scopeRange.Scope
+			bestRange = scopeRange
+			continue
+		}
+
+		// Check if scopeRange is inside bestRange
+		if scopeRange.StartLine >= bestRange.StartLine && scopeRange.EndLine <= bestRange.EndLine {
+			bestMatch = scopeRange.Scope
+			bestRange = scopeRange
+		}
+	}
+	return bestMatch
 }
 
 func (w *Walker) Env() Environment {
@@ -389,4 +444,77 @@ func (w *Walker) TypeifyNodeList(nodes *[]ast.Node, scope *Scope) []Type {
 		}
 	}
 	return arguments
+}
+
+func (w *Walker) GetNodeEndToken(node ast.Node) tokens.Token {
+	// Crude implementation: recursively check common node types for the "last" token.
+	// This is not exhaustive but covers blocks.
+	switch n := node.(type) {
+	case *ast.Body:
+		if n.Size() > 0 {
+			return w.GetNodeEndToken(n.Node(n.Size() - 1))
+		}
+	case *ast.IfStmt:
+		if n.Else != nil {
+			return w.GetNodeEndToken(n.Else)
+		}
+		if len(n.Elseifs) > 0 {
+			return w.GetNodeEndToken(n.Elseifs[len(n.Elseifs)-1])
+		}
+		return w.GetNodeEndToken(&n.Body)
+	case *ast.FunctionDecl:
+		return w.GetNodeEndToken(&n.Body)
+	case *ast.MethodDecl:
+		return w.GetNodeEndToken(&n.Body)
+	case *ast.ForStmt:
+		return w.GetNodeEndToken(&n.Body)
+	case *ast.WhileStmt:
+		return w.GetNodeEndToken(&n.Body)
+	case *ast.RepeatStmt:
+		return w.GetNodeEndToken(&n.Body)
+	case *ast.MatchStmt:
+		if len(n.Cases) > 0 {
+			return w.GetNodeEndToken(n.Cases[len(n.Cases)-1])
+		}
+	case *ast.CaseStmt:
+		return w.GetNodeEndToken(&n.Body)
+	case *ast.VariableDecl:
+		if len(n.Expressions) > 0 {
+			return w.GetNodeEndToken(n.Expressions[len(n.Expressions)-1])
+		}
+	case *ast.ReturnStmt:
+		if len(n.Args) > 0 {
+			return w.GetNodeEndToken(n.Args[len(n.Args)-1])
+		}
+	case *ast.CallExpr:
+		if len(n.Args) > 0 {
+			return w.GetNodeEndToken(n.Args[len(n.Args)-1])
+		}
+		return n.RightParen
+	case *ast.ClassDecl:
+		if len(n.Methods) > 0 {
+			return w.GetNodeEndToken(&n.Methods[len(n.Methods)-1])
+		}
+		if len(n.Fields) > 0 {
+			return w.GetNodeEndToken(&n.Fields[len(n.Fields)-1])
+		}
+	case *ast.EntityDecl:
+		if len(n.Methods) > 0 {
+			return w.GetNodeEndToken(&n.Methods[len(n.Methods)-1])
+		}
+		if len(n.Callbacks) > 0 {
+			return w.GetNodeEndToken(n.Callbacks[len(n.Callbacks)-1])
+		}
+		if n.Destroyer != nil {
+			return w.GetNodeEndToken(n.Destroyer)
+		}
+		if n.Spawner != nil {
+			return w.GetNodeEndToken(n.Spawner)
+		}
+	case *ast.EntityFunctionDecl:
+		return w.GetNodeEndToken(&n.Body)
+	}
+	// Fallback to the node's start token if we can't find a better end.
+	// For expressions, this is often "good enough" if they are single tokens.
+	return node.GetToken()
 }
