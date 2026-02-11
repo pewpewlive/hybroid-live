@@ -3,6 +3,7 @@ package lsp
 import (
 	"context"
 	"fmt"
+	"hybroid/core"
 	"hybroid/walker"
 	"log"
 	"net/url"
@@ -52,7 +53,7 @@ type langHandler struct {
 }
 
 func (h *langHandler) handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) (result any, err error) {
-	log.Printf("Incoming request: %s (notification: %v)", req.Method, req.Notif)
+	core.DebugLog("Incoming request: %s (notification: %v)", req.Method, req.Notif)
 	switch req.Method {
 	case "initialize":
 		return h.handleInitialize(ctx, conn, req)
