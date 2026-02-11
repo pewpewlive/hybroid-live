@@ -30,6 +30,10 @@ func (h *langHandler) handleTextDocumentHover(_ context.Context, _ *jsonrpc2.Con
 		return nil, nil
 	}
 
+	if isInCommentOrString(file.Text, params.Position.Line, params.Position.Character) {
+		return nil, nil
+	}
+
 	// 1. Get the word under the cursor
 	word := getWordAt(file.Text, params.Position.Line, params.Position.Character)
 	log.Printf("Hover word at line %d, char %d: %q", params.Position.Line, params.Position.Character, word)
