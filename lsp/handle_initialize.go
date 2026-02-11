@@ -48,24 +48,11 @@ func (h *langHandler) handleInitialize(_ context.Context, conn *jsonrpc2.Conn, r
 		hasRangeFormatCommand = params.InitializationOptions.RangeFormatting
 	}
 
-	// if len(h.commands) > 0 {
-	// 	hasCodeActionCommand = true
-	// }
 	if h.provideDefinition {
 		if _, err = exec.LookPath("ctags"); err == nil {
 			hasDefinitionCommand = true
 		}
 	}
-
-	// if hasCompletionCommand {
-	// 	chars := []string{"."}
-	// 	if len(h.triggerChars) > 0 {
-	// 		chars = h.triggerChars
-	// 	}
-	// 	completion = &CompletionProvider{
-	// 		TriggerCharacters: chars,
-	// 	}
-	// }
 
 	completion = &CompletionProvider{
 		ResolveProvider: true,

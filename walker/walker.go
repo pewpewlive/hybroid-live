@@ -181,7 +181,7 @@ func (w *Walker) GetScopeAt(line, column int) *Scope {
 		// log.Printf("Range[%d]: %d:%d - %d:%d -> match=%v", i, scopeRange.StartLine, scopeRange.StartColumn, scopeRange.EndLine, scopeRange.EndColumn, match)
 		_ = i // keep index for potentially logging above
 	}
-	
+
 	if bestMatch == &w.environment.Scope {
 		log.Printf("GetScopeAt(%d, %d) returned global scope. Checked %d ranges.", line, column, len(w.ScopeMap))
 		for i, r := range w.ScopeMap {
