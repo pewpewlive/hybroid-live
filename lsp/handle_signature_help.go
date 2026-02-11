@@ -29,6 +29,10 @@ func (h *langHandler) handleTextDocumentSignatureHelp(_ context.Context, _ *json
 		return nil, nil
 	}
 
+	if isInCommentOrString(file.Text, params.Position.Line, params.Position.Character) {
+		return nil, nil
+	}
+
 	funcName, activeParam := findCallContext(file.Text, params.Position.Line, params.Position.Character)
 	if funcName == "" {
 		return nil, nil
@@ -53,12 +57,35 @@ func (h *langHandler) handleTextDocumentSignatureHelp(_ context.Context, _ *json
 	}
 
 	if fnVal == nil {
-		if v, ok := walker.BuiltinEnv.Scope.Variables[funcName]; ok {
-			fnVal, _ = v.Value.(*walker.FunctionVal)
-		} else if v, ok := walker.PewpewAPI.Scope.Variables[funcName]; ok {
-			fnVal, _ = v.Value.(*walker.FunctionVal)
-		} else if v, ok := walker.FmathAPI.Scope.Variables[funcName]; ok {
-			fnVal, _ = v.Value.(*walker.FunctionVal)
+		lookupName := funcName
+		var env *walker.Environment
+
+		if strings.Contains(funcName, ":") || strings.Contains(funcName, ".") {
+			parts := strings.FieldsFunc(funcName, func(r rune) bool { return r == ':' || r == '.' })
+			if len(parts) == 2 {
+				ns := parts[0]
+				lookupName = parts[1]
+				switch ns {
+				case "Pewpew":
+					env = walker.PewpewAPI
+				case "Fmath":
+					env = walker.FmathAPI
+				}
+			}
+		}
+
+		if env != nil {
+			if v, ok := env.Scope.Variables[lookupName]; ok {
+				fnVal, _ = v.Value.(*walker.FunctionVal)
+			}
+		} else {
+			if v, ok := walker.BuiltinEnv.Scope.Variables[lookupName]; ok {
+				fnVal, _ = v.Value.(*walker.FunctionVal)
+			} else if v, ok := walker.PewpewAPI.Scope.Variables[lookupName]; ok {
+				fnVal, _ = v.Value.(*walker.FunctionVal)
+			} else if v, ok := walker.FmathAPI.Scope.Variables[lookupName]; ok {
+				fnVal, _ = v.Value.(*walker.FunctionVal)
+			}
 		}
 	}
 
