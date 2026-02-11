@@ -34,7 +34,7 @@ func Analyze(uri DocumentURI, text string) AnalysisResult {
 	// Walker
 	walk := walker.NewWalker("in-memory", "in-memory")
 	walk.SetProgram(program)
-	
+
 	walk.PreWalk(nil)
 	walk.Walk()
 	walk.PostWalk()
@@ -52,7 +52,7 @@ func alertsToDiagnostics(uri DocumentURI, alertsList []alerts.Alert) []Diagnosti
 	for _, alert := range alertsList {
 		snippet := alert.SnippetSpecifier()
 		toks := snippet.GetTokens()
-		
+
 		var startTok, endTok tokens.Token
 		if len(toks) > 0 {
 			startTok = toks[0]

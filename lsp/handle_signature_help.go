@@ -35,7 +35,7 @@ func (h *langHandler) handleTextDocumentSignatureHelp(_ context.Context, _ *json
 	}
 
 	var fnVal *walker.FunctionVal
-	
+
 	line := params.Position.Line + 1
 	col := params.Position.Character + 1
 	scope := w.GetScopeAt(line, col)
@@ -76,7 +76,7 @@ func (h *langHandler) handleTextDocumentSignatureHelp(_ context.Context, _ *json
 	}
 
 	signatureLabel := fmt.Sprintf("%s(%s)", funcName, strings.Join(labels, ", "))
-	
+
 	res := SignatureHelp{
 		Signatures: []SignatureInformation{
 			{
@@ -96,46 +96,36 @@ func findCallContext(text string, line, character int) (string, int) {
 	if line < 0 || line >= len(lines) {
 		return "", 0
 	}
-	
+
 	l := lines[line]
 	if character > len(l) {
 		character = len(l)
 	}
-	
+
 	contentBefore := l[:character]
-	
+
 	openParenIdx := strings.LastIndex(contentBefore, "(")
 	if openParenIdx == -1 {
 		return "", 0
 	}
-	
+
 	commas := strings.Count(contentBefore[openParenIdx:], ",")
 	activeParam := commas
-	
+
 	nameEnd := openParenIdx
 	for nameEnd > 0 && (l[nameEnd-1] == ' ' || l[nameEnd-1] == '\t') {
 		nameEnd--
 	}
-	
+
 	nameStart := nameEnd
-	for nameStart > 0 && isWordChar(rune(l[nameStart-1])) {
+	for nameStart > 0 && IsWordChar(rune(l[nameStart-1])) {
 		nameStart--
 	}
-	
+
 	if nameStart == nameEnd {
 		return "", 0
 	}
-	
-		return l[nameStart:nameEnd], activeParam
-	
-	}
-	
-	
-	
-	func isWordChar(r rune) bool {
-	
-		return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' || r == ':'
-	
-	}
-	
-	
+
+	return l[nameStart:nameEnd], activeParam
+
+}
