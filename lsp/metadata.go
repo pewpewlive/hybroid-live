@@ -2,6 +2,7 @@ package lsp
 
 import (
 	"hybroid/walker"
+	"strings"
 )
 
 var keywordDocs = map[string]string{
@@ -85,6 +86,29 @@ func getSymbolMetadata(label string) (detail string, doc string) {
 	}
 	if d, ok := keywordDocs[label]; ok {
 		return "Keyword", d
+	}
+
+	// Handle Namespace:Symbol or Namespace.Symbol
+	if strings.Contains(label, ":") || strings.Contains(label, ".") {
+		parts := strings.FieldsFunc(label, func(r rune) bool { return r == ':' || r == '.' })
+		if len(parts) == 2 {
+			ns := parts[0]
+			sym := parts[1]
+
+			var env *walker.Environment
+			switch ns {
+			case "Pewpew":
+				env = walker.PewpewAPI
+			case "Fmath":
+				env = walker.FmathAPI
+			}
+
+			if env != nil {
+				if v, ok := env.Scope.Variables[sym]; ok {
+					return ns, v.Value.GetType().String()
+				}
+			}
+		}
 	}
 
 	// Check Builtin
