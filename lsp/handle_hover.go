@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"hybroid/core"
 	"strings"
 
 	"github.com/sourcegraph/jsonrpc2"
@@ -26,7 +26,7 @@ func (h *langHandler) handleTextDocumentHover(_ context.Context, _ *jsonrpc2.Con
 	h.mu.Unlock()
 
 	if !ok || !fileOk {
-		log.Printf("Hover failed: walker_ok=%v, file_ok=%v for URI=%s", ok, fileOk, params.TextDocument.URI)
+		core.DebugLog("Hover failed: walker_ok=%v, file_ok=%v for URI=%s", ok, fileOk, params.TextDocument.URI)
 		return nil, nil
 	}
 
@@ -36,7 +36,7 @@ func (h *langHandler) handleTextDocumentHover(_ context.Context, _ *jsonrpc2.Con
 
 	// 1. Get the word under the cursor
 	word := getWordAt(file.Text, params.Position.Line, params.Position.Character)
-	log.Printf("Hover word at line %d, char %d: %q", params.Position.Line, params.Position.Character, word)
+	core.DebugLog("Hover word at line %d, char %d: %q", params.Position.Line, params.Position.Character, word)
 	if word == "" {
 		return nil, nil
 	}

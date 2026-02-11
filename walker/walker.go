@@ -5,7 +5,6 @@ import (
 	"hybroid/ast"
 	"hybroid/core"
 	"hybroid/tokens"
-	"log"
 	"slices"
 )
 
@@ -183,12 +182,12 @@ func (w *Walker) GetScopeAt(line, column int) *Scope {
 	}
 
 	if bestMatch == &w.environment.Scope {
-		log.Printf("GetScopeAt(%d, %d) returned global scope. Checked %d ranges.", line, column, len(w.ScopeMap))
-		for i, r := range w.ScopeMap {
-			log.Printf("  Range[%d]: %d:%d - %d:%d", i, r.StartLine, r.StartColumn, r.EndLine, r.EndColumn)
-		}
+		// core.DebugLog("GetScopeAt(%d, %d) returned global scope. Checked %d ranges.", line, column, len(w.ScopeMap))
+		// for i, r := range w.ScopeMap {
+		// 	core.DebugLog("  Range[%d]: %d:%d - %d:%d", i, r.StartLine, r.StartColumn, r.EndLine, r.EndColumn)
+		// }
 	} else {
-		log.Printf("GetScopeAt(%d, %d) found scope at %d:%d - %d:%d", line, column, bestRange.StartLine, bestRange.StartColumn, bestRange.EndLine, bestRange.EndColumn)
+		// core.DebugLog("GetScopeAt(%d, %d) found scope at %d:%d - %d:%d", line, column, bestRange.StartLine, bestRange.StartColumn, bestRange.EndLine, bestRange.EndColumn)
 	}
 
 	return bestMatch
