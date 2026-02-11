@@ -5,7 +5,7 @@ import (
 )
 
 var keywordDocs = map[string]string{
-// ... (rest of the map remains the same)
+	// ... (rest of the map remains the same)
 	"is":       "Checks if a value is of a certain entity type.",
 	"isnt":     "Checks if a value is NOT of a certain entity type.",
 	"alias":    "Creates a new name for an existing type.",
@@ -25,11 +25,11 @@ var keywordDocs = map[string]string{
 	"for":      "Starts a loop over a collection or range.",
 	"if":       "Starts a conditional block.",
 	"in":       "Used in for loops to specify the collection.",
-	"let":      "Declares a mutable variable.",
+	"let":      "Declares a local variable.",
 	"match":    "Starts a pattern-matching block or expression.",
 	"new":      "Instantiates a new class instance.",
 	"or":       "Logical OR operator.",
-	"pub":      "Makes a declaration accessible from other files.",
+	"pub":      "Declares a global variable.",
 	"repeat":   "Starts a loop that repeats a specific number of times.",
 	"return":   "Exits a function and optionally returns values.",
 	"self":     "Refers to the current class or entity instance.",
@@ -48,10 +48,10 @@ var keywordDocs = map[string]string{
 }
 
 var typeDocs = map[string]string{
-	"number": "A 64-bit floating-point number.",
-	"fixed":  "A 32-bit fixed-point number used for deterministic calculations.",
-	"text":   "A UTF-8 encoded string of characters.",
-	"bool":   "A boolean value: either 'true' or 'false'.",
+	"number": "An integer number.",
+	"fixed":  "A fixed-point number.",
+	"text":   "A string of characters.",
+	"bool":   "A boolean value.",
 	"list":   "A dynamic array-like collection of elements.",
 	"map":    "A collection of key-value pairs.",
 	"struct": "A user-defined collection of named fields.",
@@ -59,9 +59,9 @@ var typeDocs = map[string]string{
 }
 
 var namespaceDocs = map[string]string{
-	"Pewpew": "The main API for interacting with the PewPew Live game engine. Provides functions for entities, graphics, and game state.",
-	"Fmath":  "Fixed-point mathematics library. Essential for deterministic gameplay logic across different devices.",
-	"Math":   "Standard floating-point mathematics library.",
+	"Pewpew": "The main API for working with PewPew Live. Provides functions for entities, graphics, and game state.",
+	"Fmath":  "Fixed-point math library.",
+	"Math":   "Floating-point math library.",
 	"String": "Utilities for string manipulation and formatting.",
 	"Table":  "Utilities for manipulating lists and maps.",
 }

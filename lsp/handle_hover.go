@@ -84,16 +84,12 @@ func getWordAt(text string, line, character int) string {
 		return ""
 	}
 
-	isWordChar := func(r rune) bool {
-		return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_'
-	}
-
 	start := character
-	for start > 0 && isWordChar(rune(l[start-1])) {
+	for start > 0 && IsWordChar(rune(l[start-1])) {
 		start--
 	}
 	end := character
-	for end < len(l) && isWordChar(rune(l[end])) {
+	for end < len(l) && IsWordChar(rune(l[end])) {
 		end++
 	}
 
