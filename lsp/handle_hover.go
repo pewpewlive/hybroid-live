@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"hybroid/core"
 	"hybroid/walker"
+	"path/filepath"
 	"strings"
 
 	"github.com/sourcegraph/jsonrpc2"
@@ -22,16 +23,22 @@ func (h *langHandler) handleTextDocumentHover(_ context.Context, _ *jsonrpc2.Con
 	}
 
 	h.mu.Lock()
-	w, ok := h.analyzedWalkers[params.TextDocument.URI]
+	eval := h.eval
 	file, fileOk := h.files[params.TextDocument.URI]
 	h.mu.Unlock()
 
-	if !ok || !fileOk {
-		core.DebugLog("Hover failed: walker_ok=%v, file_ok=%v for URI=%s", ok, fileOk, params.TextDocument.URI)
+	if eval == nil || !fileOk {
 		return nil, nil
 	}
 
 	if isInCommentOrString(file.Text, params.Position.Line, params.Position.Character) {
+		return nil, nil
+	}
+
+	path, _ := fromURI(params.TextDocument.URI)
+	relPath, _ := filepath.Rel(h.rootPath, path)
+	w := eval.AnalyzeFile(relPath)
+	if w == nil {
 		return nil, nil
 	}
 

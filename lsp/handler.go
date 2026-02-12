@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"hybroid/core"
-	"hybroid/walker"
+	"hybroid/evaluator"
 	"log"
 	"net/url"
 	"os"
@@ -35,8 +35,7 @@ type langHandler struct {
 	// commands          []Command
 	provideDefinition bool
 	files             map[DocumentURI]*File
-	analyzedWalkers   map[DocumentURI]*walker.Walker
-	sharedWalkerMap   map[string]*walker.Walker
+	eval              *evaluator.Evaluator
 	lintDebounce      time.Duration
 	request           chan lintRequest
 	lintTimer         *time.Timer
@@ -112,11 +111,10 @@ func NewHandler() jsonrpc2.Handler {
 
 	handler := &langHandler{
 		// provideDefinition: config.ProvideDefinition,
-		files:           make(map[DocumentURI]*File),
-		analyzedWalkers: make(map[DocumentURI]*walker.Walker),
-		sharedWalkerMap: make(map[string]*walker.Walker),
-		request:         make(chan lintRequest),
-		conn:            nil,
+		files: make(map[DocumentURI]*File),
+		// evaluator will be initialized in handleInitialize
+		request: make(chan lintRequest),
+		conn:    nil,
 		// filename:          config.Filename,
 		// rootMarkers:       *config.RootMarkers,
 		// triggerChars:      config.TriggerChars,
@@ -184,63 +182,47 @@ func (h *langHandler) preAnalyzeWorkspace() {
 		return
 	}
 
-	hybFiles := make([]string, 0)
-	err := filepath.Walk(h.rootPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() && filepath.Ext(path) == ".hyb" {
-			hybFiles = append(hybFiles, path)
-		}
-		return nil
-	})
-
+	filesInfo, err := core.CollectFiles(h.rootPath)
 	if err != nil {
 		core.DebugLog("Workspace file discovery failed: %v", err)
 		return
 	}
 
-	// Pass 1: Pre-analyze all files to register environment names into sharedWalkerMap
-	for _, path := range hybFiles {
-		uri := toURI(path)
-		content, err := os.ReadFile(path)
-		if err != nil {
-			continue
-		}
+	h.mu.Lock()
+	h.eval = evaluator.NewEvaluator(filesInfo)
+	eval := h.eval
+	h.mu.Unlock()
 
-		h.mu.Lock()
-		result := Analyze(uri, string(content), h.sharedWalkerMap, true)
-		h.analyzedWalkers[uri] = result.Walker
-		h.files[uri] = &File{
-			LanguageID: "hybroid",
-			Text:       string(content),
-			Version:    0,
-		}
-		h.mu.Unlock()
+	// 1. Parse all files from disk
+	err = eval.ParseAll(h.rootPath)
+	if err != nil {
+		core.DebugLog("Initial parse failed: %v", err)
 	}
 
-	// Pass 2: Full analysis now that all environment names are known in sharedWalkerMap
-	for _, path := range hybFiles {
-		uri := toURI(path)
+	// 2. Run analysis
+	eval.RunAnalysis()
+
+	// 3. Store file contents and publish diagnostics
+	for _, info := range filesInfo {
+		path := info.Path()
+		uri := toURI(filepath.Join(h.rootPath, path))
 		
-		h.mu.Lock()
-		file, ok := h.files[uri]
-		if !ok {
+		content, err := os.ReadFile(filepath.Join(h.rootPath, path))
+		if err == nil {
+			h.mu.Lock()
+			h.files[uri] = &File{
+				LanguageID: "hybroid",
+				Text:       string(content),
+				Version:    0,
+			}
 			h.mu.Unlock()
-			continue
 		}
 
-		core.DebugLog("Full analyzing %s", path)
-		result := Analyze(uri, file.Text, h.sharedWalkerMap, false)
-		h.analyzedWalkers[uri] = result.Walker
-		h.mu.Unlock()
-
-		// Publish initial diagnostics
 		h.conn.Notify(context.Background(), "textDocument/publishDiagnostics", PublishDiagnosticsParams{
 			URI:         uri,
-			Diagnostics: result.Diagnostics,
+			Diagnostics: alertsToDiagnostics(uri, eval.GetAlerts(path)),
 		})
 	}
 
-	core.DebugLog("Workspace pre-analysis complete. Analyzed %d files.", len(hybFiles))
+	core.DebugLog("Workspace pre-analysis complete. Analyzed %d files.", len(filesInfo))
 }
