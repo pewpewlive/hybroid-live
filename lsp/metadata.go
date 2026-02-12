@@ -74,7 +74,7 @@ var environmentDocs = map[string]string{
 	"Shared": "Shared environment. Contains code that can be used by Level, Mesh, or Sound scripts.",
 }
 
-func getSymbolMetadata(w *walker.Walker, label string) (detail string, doc string) {
+func getSymbolMetadata(w *walker.Walker, walkers map[string]*walker.Walker, label string) (detail string, doc string) {
 	if d, ok := environmentDocs[label]; ok {
 		return "Environment", d
 	}
@@ -101,9 +101,23 @@ func getSymbolMetadata(w *walker.Walker, label string) (detail string, doc strin
 				env = walker.PewpewAPI
 			case "Fmath":
 				env = walker.FmathAPI
+			case "Math":
+				env = walker.MathAPI
+			case "String":
+				env = walker.StringAPI
+			case "Table":
+				env = walker.TableAPI
 			}
 
-			// If not a builtin namespace, check if it's an entity type in the current walker
+			// Check custom namespaces in walkers map
+			if env == nil && walkers != nil {
+				if w2, ok := walkers[ns]; ok {
+					envVal := w2.Env()
+					env = envVal
+				}
+			}
+
+			// If not a namespace, check if it's an entity/enum/class in the current walker
 			if env == nil && w != nil {
 				if ev, ok := w.Env().Enums[ns]; ok {
 					if field, _, found := ev.ContainsField(sym); found {
@@ -131,13 +145,17 @@ func getSymbolMetadata(w *walker.Walker, label string) (detail string, doc strin
 			if env != nil {
 				// Check variables
 				if v, ok := env.Scope.Variables[sym]; ok {
-					return ns, v.Value.GetType().String()
+					if v.IsPub {
+						return ns, v.Value.GetType().String()
+					}
 				}
-				// Check enums in this namespace (e.g. Pewpew:EntityType)
+				// Check enums in this namespace
 				if ev, ok := env.Enums[sym]; ok {
-					return ns, "enum " + ev.Type.Name
+					if ev.IsPub {
+						return ns, "enum " + ev.Type.Name
+					}
 				}
-				// Check if ns is an enum (e.g. EntityType:Asteroid)
+				// Check if ns is an enum
 				if ev, ok := env.Enums[ns]; ok {
 					if field, _, found := ev.ContainsField(sym); found {
 						return ns, field.Value.GetType().String()

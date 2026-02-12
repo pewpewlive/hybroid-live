@@ -237,3 +237,7 @@ func (e *Evaluator) AnalyzeFile(path string) *walker.Walker {
 	}
 	return e.walkers[path]
 }
+
+func (e *Evaluator) Walkers() map[string]*walker.Walker {
+	return e.walkers
+}

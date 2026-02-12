@@ -50,7 +50,7 @@ func (h *langHandler) handleTextDocumentHover(_ context.Context, _ *jsonrpc2.Con
 	}
 
 	// 2. Check for metadata (keywords, builtins, namespaces, entities)
-	detail, doc := getSymbolMetadata(w, word)
+	detail, doc := getSymbolMetadata(w, eval.Walkers(), word)
 	if detail != "" {
 		res := Hover{
 			Contents: MarkupContent{

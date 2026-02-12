@@ -40,6 +40,60 @@ func (h *langHandler) completion(file *File, w *walker.Walker, params *Completio
 	items := make([]CompletionItem, 0)
 	seen := make(map[string]bool)
 
+	h.mu.Lock()
+	eval := h.eval
+	h.mu.Unlock()
+
+	// 1. Cross-file symbols from other environments
+	if eval != nil {
+		for name, w2 := range eval.Walkers() {
+			// Skip absolute paths, only use environment names
+			if filepath.IsAbs(name) || strings.ContainsAny(name, "/\\") {
+				continue
+			}
+
+			// Add the namespace itself
+			if !seen[name] {
+				items = append(items, CompletionItem{
+					Label:         name,
+					Kind:          ModuleCompletion,
+					Detail:        "Environment",
+					Documentation: "Custom environment: " + name,
+				})
+				seen[name] = true
+			}
+
+			// Add public symbols from this environment
+			env := w2.Env()
+			for varName, variable := range env.Scope.Variables {
+				if variable.IsPub {
+					fullLabel := name + ":" + varName
+					if !seen[fullLabel] {
+						items = append(items, CompletionItem{
+							Label:  fullLabel,
+							Kind:   FunctionCompletion, // Could be more specific
+							Detail: name,
+						})
+						seen[fullLabel] = true
+					}
+				}
+			}
+			for enumName, ev := range env.Enums {
+				if ev.IsPub {
+					fullLabel := name + ":" + enumName
+					if !seen[fullLabel] {
+						items = append(items, CompletionItem{
+							Label:  fullLabel,
+							Kind:   EnumCompletion,
+							Detail: name,
+						})
+						seen[fullLabel] = true
+					}
+				}
+			}
+		}
+	}
+
 	// 1. Keywords
 	keywords := []string{
 		"is", "isnt", "alias", "and", "as", "break", "by", "const", "continue",
