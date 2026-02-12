@@ -58,6 +58,10 @@ func (e *Environment) Requirements() []string {
 	return e._envStmt.Requirements
 }
 
+func (e *Environment) HybroidPath() string {
+	return e.hybroidPath
+}
+
 func (e *Environment) AddBuiltinVar(name string) {
 	if slices.Contains(e.UsedBuiltinVars, name) {
 		return
@@ -193,8 +197,8 @@ func (w *Walker) GetScopeAt(line, column int) *Scope {
 	return bestMatch
 }
 
-func (w *Walker) Env() Environment {
-	return *w.environment
+func (w *Walker) Env() *Environment {
+	return w.environment
 }
 
 func (w *Walker) SetProgram(program []ast.Node) {
@@ -203,6 +207,27 @@ func (w *Walker) SetProgram(program []ast.Node) {
 
 func (w *Walker) Program() []ast.Node {
 	return w.program
+}
+
+func (w *Walker) Reset() {
+	w.Walked = false
+	w.Collector = alerts.NewCollector()
+	w.ScopeMap = make([]ScopeRange, 0)
+	w.environment.Name = ""
+	w.environment.Type = ast.InvalidEnv
+	w.environment.UsedBuiltinVars = make([]string, 0)
+	w.environment.UsedLibraries = make([]ast.Library, 0)
+	w.environment.imports = make([]Import, 0)
+	w.environment.Classes = map[string]*ClassVal{}
+	w.environment.Entities = map[string]*EntityVal{}
+	w.environment.Enums = map[string]*EnumVal{}
+	w.environment.Scope = Scope{
+		Tag:         &UntaggedTag{},
+		Variables:   map[string]*VariableVal{},
+		AliasTypes:  make(map[string]*AliasType),
+		ConstValues: make(map[string]ast.Node),
+		Environment: w.environment,
+	}
 }
 
 func (w *Walker) PreWalk(walkers map[string]*Walker) {

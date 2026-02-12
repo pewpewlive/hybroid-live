@@ -96,6 +96,10 @@ func (p *Printer) GetAlerts(sourcePath string) []Alert {
 	return p.alertsByFile[sourcePath]
 }
 
+func (p *Printer) AllAlerts() map[string][]Alert {
+	return p.alertsByFile
+}
+
 func (p *Printer) StageAlerts(sourcePath string, alerts []Alert) {
 	fileAlerts, existed := p.alertsByFile[sourcePath]
 	if !existed {
