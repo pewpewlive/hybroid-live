@@ -35,17 +35,18 @@ func Init(debug bool) {
 	}
 
 	if core.IsDebug {
-		f, err := os.OpenFile("D:\\testlogfile.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		f, err := os.OpenFile("hybroid_ls.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
 			log.Fatalf("error opening file: %v", err)
 		}
 		log.SetOutput(f)
+		log.Println("Debug mode enabled, logging to hybroid_ls.log")
 		// We can't defer f.Close() here because Init returns while server is running.
 		// However, for a CLI tool it's usually fine as OS will close it.
 	}
 
-	log.Println("Starting Integrated Language Server for Hybroid")
-	log.Println("WARNING: THIS SERVER IS IN PRE-ALPHA STATE!!! USE WITH CAUTION!")
+	log.Println("Starting HybroidLS")
+	log.Println("Warning: HybroidLS is experimental. Expect bugs or missing features!")
 
 	walker.SetupLibraryEnvironments()
 
