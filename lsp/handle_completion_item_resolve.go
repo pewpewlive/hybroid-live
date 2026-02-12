@@ -3,6 +3,7 @@ package lsp
 import (
 	"context"
 	"encoding/json"
+	"hybroid/walker"
 
 	"github.com/sourcegraph/jsonrpc2"
 )
@@ -21,9 +22,18 @@ func (h *langHandler) HandleCompletionItemResolve(_ context.Context, _ *jsonrpc2
 }
 
 func (h *langHandler) completionResolve(item *CompletionItem) (CompletionItem, error) {
+	h.mu.Lock()
+	eval := h.eval
+	h.mu.Unlock()
+
+	var walkers map[string]*walker.Walker
+	if eval != nil {
+		walkers = eval.Walkers()
+	}
+
 	// We don't easily have the walker here without URI in item.Data
-	// For now pass nil, it will still resolve keywords/builtins.
-	detail, documentation := getSymbolMetadata(nil, item.Label)
+	// For now pass nil, it will still resolve keywords/builtins/namespaces.
+	detail, documentation := getSymbolMetadata(nil, walkers, item.Label)
 
 	if detail == "" {
 		detail = item.Detail
