@@ -6,6 +6,7 @@ import (
 	"hybroid/parser"
 	"hybroid/tokens"
 	"hybroid/walker"
+	"path/filepath"
 	"strings"
 )
 
@@ -15,7 +16,7 @@ type AnalysisResult struct {
 	Tokens      []tokens.Token
 }
 
-func Analyze(uri DocumentURI, text string) AnalysisResult {
+func Analyze(uri DocumentURI, text string, walkerMap map[string]*walker.Walker, skipWalk bool) AnalysisResult {
 	diagnostics := make([]Diagnostic, 0)
 
 	// Lexer
@@ -32,13 +33,36 @@ func Analyze(uri DocumentURI, text string) AnalysisResult {
 	diagnostics = append(diagnostics, alertsToDiagnostics(uri, parse.GetAlerts())...)
 
 	// Walker
-	walk := walker.NewWalker("in-memory", "in-memory")
+	path, _ := fromURI(uri)
+	absPath, err := filepath.Abs(path)
+	if err == nil {
+		path = absPath
+	}
+
+	// We need to determine the lua path relative to the project.
+	luaPath := filepath.Base(path)
+	if strings.HasSuffix(luaPath, ".hyb") {
+		luaPath = strings.TrimSuffix(luaPath, ".lua") + ".lua" // wait, suffix is .hyb
+		luaPath = strings.TrimSuffix(filepath.Base(path), ".hyb") + ".lua"
+	}
+
+	walk := walker.NewWalker(path, luaPath)
 	walk.SetProgram(program)
 
-	walk.PreWalk(nil)
-	walk.Walk()
-	walk.PostWalk()
-	diagnostics = append(diagnostics, alertsToDiagnostics(uri, walk.GetAlerts())...)
+	// Ensure this walker is in the map by its path BEFORE PreWalk
+	walkerMap[path] = walk
+
+	walk.PreWalk(walkerMap)
+	if !skipWalk {
+		walk.Walk()
+		walk.PostWalk()
+		diagnostics = append(diagnostics, alertsToDiagnostics(uri, walk.GetAlerts())...)
+	}
+
+	// Ensure it's also indexed by its environment name if registered during PreWalk
+	if walk.Env().Name != "" {
+		walkerMap[walk.Env().Name] = walk
+	}
 
 	return AnalysisResult{
 		Diagnostics: diagnostics,

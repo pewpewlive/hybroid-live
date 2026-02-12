@@ -238,6 +238,17 @@ func (w *Walker) identifierExpression(node *ast.Node, scope *Scope) Value {
 	sc := w.resolveVariable(scope, ident.Name)
 check:
 	if sc == nil {
+		// Try to find if it's a known environment name (namespace)
+		for _, imp := range w.environment.imports {
+			if imp.environment.Name == ident.Name.Lexeme {
+				*node = &ast.LiteralExpr{
+					Value: "\"" + imp.environment.luaPath + "\"",
+					Token: ident.Name,
+				}
+				return NewPathVal(imp.environment.luaPath, imp.environment.Type, imp.environment.Name)
+			}
+		}
+
 		walker, found := w.walkers[ident.Name.Lexeme]
 		if found {
 			*node = &ast.LiteralExpr{

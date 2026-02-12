@@ -206,7 +206,7 @@ func (w *Walker) Program() []ast.Node {
 }
 
 func (w *Walker) PreWalk(walkers map[string]*Walker) {
-	if w.walkers == nil && walkers != nil {
+	if walkers != nil {
 		w.walkers = walkers
 	}
 

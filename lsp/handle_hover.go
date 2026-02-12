@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"hybroid/core"
+	"hybroid/walker"
 	"strings"
 
 	"github.com/sourcegraph/jsonrpc2"
@@ -41,8 +42,8 @@ func (h *langHandler) handleTextDocumentHover(_ context.Context, _ *jsonrpc2.Con
 		return nil, nil
 	}
 
-	// 2. Check for metadata (keywords, builtins, namespaces)
-	detail, doc := getSymbolMetadata(word)
+	// 2. Check for metadata (keywords, builtins, namespaces, entities)
+	detail, doc := getSymbolMetadata(w, word)
 	if detail != "" {
 		res := Hover{
 			Contents: MarkupContent{
@@ -53,24 +54,63 @@ func (h *langHandler) handleTextDocumentHover(_ context.Context, _ *jsonrpc2.Con
 		return res, nil
 	}
 
-	// 3. Check for variables in current scope
+	// 3. Check for variables or members in current scope
 	line := params.Position.Line + 1
 	col := params.Position.Character + 1
 	scope := w.GetScopeAt(line, col)
 	if scope != nil {
-		current := scope
-		for current != nil {
-			if variable, found := current.Variables[word]; found {
-				typStr := variable.Value.GetType().String()
-				res := Hover{
-					Contents: MarkupContent{
-						Kind:  Markdown,
-						Value: fmt.Sprintf("**%s**: `%s`", word, typStr),
-					},
+		// Handle member access hover (e.g. ship.x)
+		if strings.Contains(word, ".") || strings.Contains(word, ":") {
+			parts := strings.FieldsFunc(word, func(r rune) bool { return r == '.' || r == ':' })
+			if len(parts) >= 2 {
+				base := parts[0]
+				if variable, found := scope.GetVariable(base); found {
+					currentVal := variable.Value
+					for i := 1; i < len(parts); i++ {
+						member := parts[i]
+						if container, ok := currentVal.(walker.FieldContainer); ok {
+							if v, _, found := container.ContainsField(member); found {
+								currentVal = v.Value
+								if i == len(parts)-1 {
+									return &Hover{
+										Contents: MarkupContent{
+											Kind:  Markdown,
+											Value: fmt.Sprintf("**%s**: `%s`", word, currentVal.GetType().String()),
+										},
+									}, nil
+								}
+								continue
+							}
+						}
+						if container, ok := currentVal.(walker.MethodContainer); ok {
+							if v, found := container.ContainsMethod(member); found {
+								currentVal = v.Value
+								if i == len(parts)-1 {
+									return &Hover{
+										Contents: MarkupContent{
+											Kind:  Markdown,
+											Value: fmt.Sprintf("**%s**: `%s` (method)", word, currentVal.GetType().String()),
+										},
+									}, nil
+								}
+								continue
+							}
+						}
+						break
+					}
 				}
-				return res, nil
 			}
-			current = current.Parent
+		}
+
+		if variable, found := scope.GetVariable(word); found {
+			typStr := variable.Value.GetType().String()
+			res := Hover{
+				Contents: MarkupContent{
+					Kind:  Markdown,
+					Value: fmt.Sprintf("**%s**: `%s`", word, typStr),
+				},
+			}
+			return res, nil
 		}
 	}
 

@@ -24,12 +24,16 @@ func (h *langHandler) handleInitialize(_ context.Context, conn *jsonrpc2.Conn, r
 	// https://microsoft.github.io/language-server-protocol/specification#initialize
 	// The rootUri of the workspace. Is null if no folder is open.
 	if params.RootURI != "" {
+		h.rootURI = params.RootURI
 		rootPath, err := fromURI(params.RootURI)
 		if err != nil {
 			return nil, err
 		}
 		h.rootPath = filepath.Clean(rootPath)
 		h.addFolder(rootPath)
+
+		// Pre-analyze the workspace in a goroutine
+		go h.preAnalyzeWorkspace()
 	}
 
 	var completion *CompletionProvider
@@ -55,7 +59,8 @@ func (h *langHandler) handleInitialize(_ context.Context, conn *jsonrpc2.Conn, r
 	}
 
 	completion = &CompletionProvider{
-		ResolveProvider: true,
+		ResolveProvider:   true,
+		TriggerCharacters: []string{":", "."},
 	}
 	return InitializeResult{
 		Capabilities: ServerCapabilities{
