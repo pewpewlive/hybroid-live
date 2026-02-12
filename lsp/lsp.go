@@ -172,13 +172,13 @@ type TextDocumentPositionParams struct {
 // CompletionParams is
 type CompletionParams struct {
 	TextDocumentPositionParams
-	CompletionContext CompletionContext `json:"contentChanges"`
+	Context CompletionContext `json:"context,omitempty"`
 }
 
 // CompletionContext is
 type CompletionContext struct {
 	TriggerKind      int     `json:"triggerKind"`
-	TriggerCharacter *string `json:"triggerCharacter"`
+	TriggerCharacter *string `json:"triggerCharacter,omitempty"`
 }
 
 // HoverParams is

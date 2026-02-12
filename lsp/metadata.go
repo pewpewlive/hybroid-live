@@ -74,7 +74,7 @@ var environmentDocs = map[string]string{
 	"Shared": "Shared environment. Contains code that can be used by Level, Mesh, or Sound scripts.",
 }
 
-func getSymbolMetadata(label string) (detail string, doc string) {
+func getSymbolMetadata(w *walker.Walker, label string) (detail string, doc string) {
 	if d, ok := environmentDocs[label]; ok {
 		return "Environment", d
 	}
@@ -103,9 +103,45 @@ func getSymbolMetadata(label string) (detail string, doc string) {
 				env = walker.FmathAPI
 			}
 
+			// If not a builtin namespace, check if it's an entity type in the current walker
+			if env == nil && w != nil {
+				if ev, ok := w.Env().Enums[ns]; ok {
+					if field, _, found := ev.ContainsField(sym); found {
+						return ns, field.Value.GetType().String()
+					}
+				}
+				if ev, ok := w.Env().Entities[ns]; ok {
+					if v, _, found := ev.ContainsField(sym); found {
+						return ns, v.Value.GetType().String()
+					}
+					if v, found := ev.ContainsMethod(sym); found {
+						return ns, v.Value.GetType().String()
+					}
+				}
+				if cv, ok := w.Env().Classes[ns]; ok {
+					if v, _, found := cv.ContainsField(sym); found {
+						return ns, v.Value.GetType().String()
+					}
+					if v, found := cv.ContainsMethod(sym); found {
+						return ns, v.Value.GetType().String()
+					}
+				}
+			}
+
 			if env != nil {
+				// Check variables
 				if v, ok := env.Scope.Variables[sym]; ok {
 					return ns, v.Value.GetType().String()
+				}
+				// Check enums in this namespace (e.g. Pewpew:EntityType)
+				if ev, ok := env.Enums[sym]; ok {
+					return ns, "enum " + ev.Type.Name
+				}
+				// Check if ns is an enum (e.g. EntityType:Asteroid)
+				if ev, ok := env.Enums[ns]; ok {
+					if field, _, found := ev.ContainsField(sym); found {
+						return ns, field.Value.GetType().String()
+					}
 				}
 			}
 		}
@@ -120,10 +156,26 @@ func getSymbolMetadata(label string) (detail string, doc string) {
 	if v, ok := walker.PewpewAPI.Scope.Variables[label]; ok {
 		return "Pewpew", v.Value.GetType().String()
 	}
+	if ev, ok := walker.PewpewAPI.Enums[label]; ok {
+		return "Pewpew", "enum " + ev.Type.Name
+	}
 
 	// Check Fmath
 	if v, ok := walker.FmathAPI.Scope.Variables[label]; ok {
 		return "Fmath", v.Value.GetType().String()
+	}
+	if ev, ok := walker.FmathAPI.Enums[label]; ok {
+		return "Fmath", "enum " + ev.Type.Name
+	}
+
+	// Check current walker's entities/classes
+	if w != nil {
+		if ev, ok := w.Env().Entities[label]; ok {
+			return "Entity", "entity " + ev.Type.Name
+		}
+		if cv, ok := w.Env().Classes[label]; ok {
+			return "Class", "class " + cv.Type.Name
+		}
 	}
 
 	return "", ""
