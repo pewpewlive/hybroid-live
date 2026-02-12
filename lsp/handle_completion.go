@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"hybroid/walker"
+	"path/filepath"
 	"strings"
 
 	"github.com/sourcegraph/jsonrpc2"
@@ -19,10 +20,23 @@ func (h *langHandler) handleTextDocumentCompletion(_ context.Context, _ *jsonrpc
 		return nil, err
 	}
 
-	return h.completion(params.TextDocument.URI, &params)
+	h.mu.Lock()
+	eval := h.eval
+	file, fileOk := h.files[params.TextDocument.URI]
+	h.mu.Unlock()
+
+	if eval == nil || !fileOk {
+		return nil, nil
+	}
+
+	path, _ := fromURI(params.TextDocument.URI)
+	relPath, _ := filepath.Rel(h.rootPath, path)
+	w := eval.AnalyzeFile(relPath)
+
+	return h.completion(file, w, &params)
 }
 
-func (h *langHandler) completion(uri DocumentURI, params *CompletionParams) ([]CompletionItem, error) {
+func (h *langHandler) completion(file *File, w *walker.Walker, params *CompletionParams) ([]CompletionItem, error) {
 	items := make([]CompletionItem, 0)
 	seen := make(map[string]bool)
 
@@ -152,12 +166,7 @@ func (h *langHandler) completion(uri DocumentURI, params *CompletionParams) ([]C
 		}
 	}
 
-	h.mu.Lock()
-	w, ok := h.analyzedWalkers[uri]
-	file, fileOk := h.files[uri]
-	h.mu.Unlock()
-
-	if !ok || !fileOk {
+	if w == nil {
 		return items, nil
 	}
 

@@ -3,7 +3,7 @@ package lsp
 import (
 	"context"
 	"encoding/json"
-	"hybroid/core"
+	"path/filepath"
 
 	"github.com/sourcegraph/jsonrpc2"
 )
@@ -60,19 +60,30 @@ func (h *langHandler) handleTextDocumentDidChange(ctx context.Context, conn *jso
 }
 
 func (h *langHandler) analyzeAndPublish(ctx context.Context, conn *jsonrpc2.Conn, uri DocumentURI, text string) {
+	path, _ := fromURI(uri)
+
 	h.mu.Lock()
-	result := Analyze(uri, text, h.sharedWalkerMap, false)
-	h.analyzedWalkers[uri] = result.Walker
+	eval := h.eval
 	h.mu.Unlock()
 
-	if len(result.Tokens) > 0 {
-		core.DebugLog("First token: type=%v, lexeme=%q, line=%d, col=%d", result.Tokens[0].Type, result.Tokens[0].Lexeme, result.Tokens[0].Line, result.Tokens[0].Column.Start)
+	if eval == nil {
+		return
 	}
 
-	// Publish Diagnostics
+	// 1. Update content in memory
+	relPath, err := filepath.Rel(h.rootPath, path)
+	if err != nil {
+		relPath = path
+	}
+	eval.UpdateFileContent(relPath, text)
+
+	// 2. Run project-wide analysis
+	eval.RunAnalysis()
+
+	// 3. Publish Diagnostics
 	params := PublishDiagnosticsParams{
 		URI:         uri,
-		Diagnostics: result.Diagnostics,
+		Diagnostics: alertsToDiagnostics(uri, eval.GetAlerts(relPath)),
 	}
 
 	conn.Notify(ctx, "textDocument/publishDiagnostics", params)
