@@ -27,7 +27,7 @@ func (w *Walker) environmentDeclaration(node *ast.EnvironmentDecl) {
 	w.environment.Type = node.EnvType.Type
 	w.environment.Name = node.Env.Path.Lexeme
 	w.environment._envStmt = node
-	if w2, ok := w.walkers[w.environment.Name]; ok {
+	if w2, ok := w.walkers[w.environment.Name]; ok && w2.environment.hybroidPath != w.environment.hybroidPath {
 		w.AlertSingle(&alerts.DuplicateEnvironmentNames{}, node.GetToken(), w.environment.hybroidPath, w2.environment.hybroidPath)
 		return
 	}
