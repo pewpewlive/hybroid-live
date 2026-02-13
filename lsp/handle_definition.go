@@ -1,0 +1,185 @@
+package lsp
+
+import (
+	"context"
+	"encoding/json"
+	"hybroid/walker"
+	"path/filepath"
+	"strings"
+
+	"github.com/sourcegraph/jsonrpc2"
+)
+
+func (h *langHandler) handleTextDocumentDefinition(_ context.Context, _ *jsonrpc2.Conn, req *jsonrpc2.Request) (result any, err error) {
+	if req.Params == nil {
+		return nil, &jsonrpc2.Error{Code: jsonrpc2.CodeInvalidParams}
+	}
+
+	var params DocumentDefinitionParams
+	if err := json.Unmarshal(*req.Params, &params); err != nil {
+		return nil, err
+	}
+
+	h.mu.Lock()
+	eval := h.eval
+	file, fileOk := h.files[params.TextDocument.URI]
+	h.mu.Unlock()
+
+	if eval == nil || !fileOk {
+		return nil, nil
+	}
+
+	if isInCommentOrString(file.Text, params.Position.Line, params.Position.Character) {
+		return nil, nil
+	}
+
+	path, _ := fromURI(params.TextDocument.URI)
+	relPath, _ := filepath.Rel(h.rootPath, path)
+	w := eval.AnalyzeFile(relPath)
+	if w == nil {
+		return nil, nil
+	}
+
+	// 1. Get the word under the cursor
+	word := getWordAt(file.Text, params.Position.Line, params.Position.Character)
+	if word == "" {
+		return nil, nil
+	}
+
+	// 2. Resolve the definition
+	loc := h.resolveDefinition(w, eval.Walkers(), word, params.Position.Line+1, params.Position.Character+1)
+	if loc != (Location{}) {
+		return loc, nil
+	}
+
+	return nil, nil
+}
+
+func (h *langHandler) resolveDefinition(w *walker.Walker, walkers map[string]*walker.Walker, label string, line, col int) Location {
+	// Handle Namespace:Symbol or Namespace.Symbol
+	if strings.Contains(label, ":") || strings.Contains(label, ".") {
+		parts := strings.FieldsFunc(label, func(r rune) bool { return r == ':' || r == '.' })
+		if len(parts) == 2 {
+			ns := parts[0]
+			sym := parts[1]
+
+			var env *walker.Environment
+			switch ns {
+			case "Pewpew":
+				env = walker.PewpewAPI
+			case "Fmath":
+				env = walker.FmathAPI
+			case "Math":
+				env = walker.MathAPI
+			case "String":
+				env = walker.StringAPI
+			case "Table":
+				env = walker.TableAPI
+			}
+
+			if env == nil && walkers != nil {
+				if w2, ok := walkers[ns]; ok {
+					env = w2.Env()
+				}
+			}
+
+			// If not a namespace, check if it's an entity/enum/class in the current walker
+			if env == nil && w != nil {
+				if ev, ok := w.Env().Enums[ns]; ok {
+					if field, _, found := ev.ContainsField(sym); found {
+						return toLSPLocation(w.Env().HybroidPath(), field.Token)
+					}
+				}
+				if ev, ok := w.Env().Entities[ns]; ok {
+					if v, _, found := ev.ContainsField(sym); found {
+						return toLSPLocation(w.Env().HybroidPath(), v.Token)
+					}
+					if v, found := ev.ContainsMethod(sym); found {
+						return toLSPLocation(w.Env().HybroidPath(), v.Token)
+					}
+				}
+				if cv, ok := w.Env().Classes[ns]; ok {
+					if v, _, found := cv.ContainsField(sym); found {
+						return toLSPLocation(w.Env().HybroidPath(), v.Token)
+					}
+					if v, found := cv.ContainsMethod(sym); found {
+						return toLSPLocation(w.Env().HybroidPath(), v.Token)
+					}
+				}
+			}
+
+			if env != nil {
+				if v, ok := env.Scope.Variables[sym]; ok && (env.Name == "Pewpew" || v.IsPub) {
+					return toLSPLocation(env.HybroidPath(), v.Token)
+				}
+				if ev, ok := env.Enums[sym]; ok && (env.Name == "Pewpew" || ev.IsPub) {
+					return toLSPLocation(env.HybroidPath(), ev.Token)
+				}
+			}
+		}
+	}
+
+	// Check current scope variables
+	scope := w.GetScopeAt(line, col)
+	if scope != nil {
+		current := scope
+		for current != nil {
+			if v, ok := current.Variables[label]; ok {
+				// If it's a builtin, we might not have a meaningful hybroidPath
+				if current.Environment.Name == "Builtin" || current.Environment.Name == "Pewpew" {
+					return Location{}
+				}
+				return toLSPLocation(current.Environment.HybroidPath(), v.Token)
+			}
+			current = current.Parent
+		}
+	}
+
+	// Check current walker's top-level enums, entities, classes
+	if w != nil {
+		env := w.Env()
+		if ev, ok := env.Enums[label]; ok {
+			return toLSPLocation(env.HybroidPath(), ev.Token)
+		}
+		if ev, ok := env.Entities[label]; ok {
+			return toLSPLocation(env.HybroidPath(), ev.Token)
+		}
+		if cv, ok := env.Classes[label]; ok {
+			return toLSPLocation(env.HybroidPath(), cv.Token)
+		}
+
+		// Check imported namespaces via 'use'
+		for _, imp := range env.Imports() {
+			if imp.ThroughUse {
+				impEnv := imp.Env()
+				if v, ok := impEnv.Scope.Variables[label]; ok && v.IsPub {
+					return toLSPLocation(impEnv.HybroidPath(), v.Token)
+				}
+				if ev, ok := impEnv.Enums[label]; ok && ev.IsPub {
+					return toLSPLocation(impEnv.HybroidPath(), ev.Token)
+				}
+				if cv, ok := impEnv.Classes[label]; ok && cv.IsPub {
+					return toLSPLocation(impEnv.HybroidPath(), cv.Token)
+				}
+				if ev, ok := impEnv.Entities[label]; ok && ev.IsPub {
+					return toLSPLocation(impEnv.HybroidPath(), ev.Token)
+				}
+			}
+		}
+
+		// Check used libraries
+		for _, lib := range env.UsedLibraries {
+			libEnv := walker.BuiltinLibraries[lib]
+			if libEnv != nil {
+				if v, ok := libEnv.Scope.Variables[label]; ok {
+					return toLSPLocation(libEnv.HybroidPath(), v.Token)
+				}
+				if ev, ok := libEnv.Enums[label]; ok {
+					return toLSPLocation(libEnv.HybroidPath(), ev.Token)
+				}
+			}
+		}
+	}
+
+	return Location{}
+}

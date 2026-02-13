@@ -1,6 +1,7 @@
 package lsp
 
 import (
+	"hybroid/tokens"
 	"strings"
 )
 
@@ -96,4 +97,20 @@ func isInCommentOrString(text string, line, col int) bool {
 
 func IsWordChar(r rune) bool {
 	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' || r == ':'
+}
+
+func toLSPLocation(path string, token tokens.Token) Location {
+	return Location{
+		URI: toURI(path),
+		Range: Range{
+			Start: Position{
+				Line:      token.Line - 1,
+				Character: token.Column.Start - 1,
+			},
+			End: Position{
+				Line:      token.Line - 1,
+				Character: token.Column.End,
+			},
+		},
+	}
 }

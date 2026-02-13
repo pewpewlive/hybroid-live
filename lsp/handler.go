@@ -88,7 +88,7 @@ func (h *langHandler) handle(ctx context.Context, conn *jsonrpc2.Conn, req *json
 	case "completionItem/resolve":
 		return h.HandleCompletionItemResolve(ctx, conn, req)
 	case "textDocument/definition":
-		return // h.handleTextDocumentDefinition(ctx, conn, req)
+		return h.handleTextDocumentDefinition(ctx, conn, req)
 	case "textDocument/hover":
 		return h.handleTextDocumentHover(ctx, conn, req)
 	case "textDocument/codeAction":
@@ -110,8 +110,8 @@ func NewHandler() jsonrpc2.Handler {
 	// logger := log.New(os.Stderr, "", log.LstdFlags)
 
 	handler := &langHandler{
-		// provideDefinition: config.ProvideDefinition,
-		files: make(map[DocumentURI]*File),
+		provideDefinition: true,
+		files:             make(map[DocumentURI]*File),
 		// evaluator will be initialized in handleInitialize
 		request: make(chan lintRequest),
 		conn:    nil,
