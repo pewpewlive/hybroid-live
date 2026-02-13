@@ -233,6 +233,10 @@ func (w *Walker) Reset() {
 		ConstValues: make(map[string]ast.Node),
 		Environment: w.environment,
 	}
+	// Clear requirements on the AST node to avoid stale state on re-analysis
+	if w.environment._envStmt != nil {
+		w.environment._envStmt.Requirements = nil
+	}
 }
 
 func (w *Walker) PreWalk(walkers map[string]*Walker) {

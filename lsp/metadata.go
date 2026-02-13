@@ -175,7 +175,7 @@ func getSymbolMetadata(w *walker.Walker, walkers map[string]*walker.Walker, labe
 	// Check current walker's context (entities, classes, aliases, and imports)
 	if w != nil {
 		env := w.Env()
-		
+
 		// 1. Current file types
 		if ev, ok := env.Enums[label]; ok {
 			return "enum " + ev.Type.Name, "Enum"
