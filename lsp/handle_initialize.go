@@ -3,7 +3,6 @@ package lsp
 import (
 	"context"
 	"encoding/json"
-	"os/exec"
 	"path/filepath"
 
 	"github.com/sourcegraph/jsonrpc2"
@@ -42,7 +41,6 @@ func (h *langHandler) handleInitialize(_ context.Context, conn *jsonrpc2.Conn, r
 	var hasSymbolCommand bool
 	var hasFormatCommand bool
 	var hasRangeFormatCommand bool
-	var hasDefinitionCommand bool
 
 	if params.InitializationOptions != nil {
 		//hasCompletionCommand = params.InitializationOptions.Completion
@@ -50,12 +48,6 @@ func (h *langHandler) handleInitialize(_ context.Context, conn *jsonrpc2.Conn, r
 		hasSymbolCommand = params.InitializationOptions.DocumentSymbol
 		hasFormatCommand = params.InitializationOptions.DocumentFormatting
 		hasRangeFormatCommand = params.InitializationOptions.RangeFormatting
-	}
-
-	if h.provideDefinition {
-		if _, err = exec.LookPath("ctags"); err == nil {
-			hasDefinitionCommand = true
-		}
 	}
 
 	completion = &CompletionProvider{
@@ -68,7 +60,7 @@ func (h *langHandler) handleInitialize(_ context.Context, conn *jsonrpc2.Conn, r
 			DocumentFormattingProvider: hasFormatCommand,
 			RangeFormattingProvider:    hasRangeFormatCommand,
 			DocumentSymbolProvider:     hasSymbolCommand,
-			DefinitionProvider:         hasDefinitionCommand,
+			DefinitionProvider:         true,
 			CompletionProvider:         completion,
 			SignatureHelpProvider: &SignatureHelpProvider{
 				TriggerCharacters: []string{"(", ","},

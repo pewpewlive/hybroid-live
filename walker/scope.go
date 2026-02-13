@@ -254,11 +254,21 @@ func (sc *Scope) GetVariable(name string) (*VariableVal, bool) {
 		if v, ok := BuiltinEnv.Scope.Variables[name]; ok {
 			return v, true
 		}
-		if v, ok := PewpewAPI.Scope.Variables[name]; ok {
-			return v, true
+		// Check ThroughUse imports (custom environments like MyHelper)
+		for _, imp := range sc.Environment.imports {
+			if imp.ThroughUse {
+				if v, ok := imp.environment.Scope.Variables[name]; ok && v.IsPub {
+					return v, true
+				}
+			}
 		}
-		if v, ok := FmathAPI.Scope.Variables[name]; ok {
-			return v, true
+		// Check used libraries (Pewpew, Fmath, Math, String, Table)
+		for _, lib := range sc.Environment.UsedLibraries {
+			if libEnv, ok := BuiltinLibraries[lib]; ok {
+				if v, ok := libEnv.Scope.Variables[name]; ok {
+					return v, true
+				}
+			}
 		}
 	}
 
