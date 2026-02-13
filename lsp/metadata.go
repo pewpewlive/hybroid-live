@@ -121,44 +121,46 @@ func getSymbolMetadata(w *walker.Walker, walkers map[string]*walker.Walker, labe
 			if env == nil && w != nil {
 				if ev, ok := w.Env().Enums[ns]; ok {
 					if field, _, found := ev.ContainsField(sym); found {
-						return ns, field.Value.GetType().String()
+						return field.Value.GetType().String(), ""
 					}
 				}
 				if ev, ok := w.Env().Entities[ns]; ok {
 					if v, _, found := ev.ContainsField(sym); found {
-						return ns, v.Value.GetType().String()
+						return v.Value.GetType().String(), ""
 					}
 					if v, found := ev.ContainsMethod(sym); found {
-						return ns, v.Value.GetType().String()
+						return v.Value.GetType().String(), ""
 					}
 				}
 				if cv, ok := w.Env().Classes[ns]; ok {
 					if v, _, found := cv.ContainsField(sym); found {
-						return ns, v.Value.GetType().String()
+						return v.Value.GetType().String(), ""
 					}
 					if v, found := cv.ContainsMethod(sym); found {
-						return ns, v.Value.GetType().String()
+						return v.Value.GetType().String(), ""
 					}
 				}
 			}
 
+			isBuiltin := ns == "Pewpew" || ns == "Fmath" || ns == "Math" || ns == "String" || ns == "Table"
+
 			if env != nil {
 				// Check variables
 				if v, ok := env.Scope.Variables[sym]; ok {
-					if v.IsPub {
-						return ns, v.Value.GetType().String()
+					if isBuiltin || v.IsPub {
+						return v.Value.GetType().String(), ""
 					}
 				}
 				// Check enums in this namespace
 				if ev, ok := env.Enums[sym]; ok {
-					if ev.IsPub {
-						return ns, "enum " + ev.Type.Name
+					if isBuiltin || ev.IsPub {
+						return "enum " + ev.Type.Name, ""
 					}
 				}
 				// Check if ns is an enum
 				if ev, ok := env.Enums[ns]; ok {
 					if field, _, found := ev.ContainsField(sym); found {
-						return ns, field.Value.GetType().String()
+						return field.Value.GetType().String(), ""
 					}
 				}
 			}
@@ -167,32 +169,57 @@ func getSymbolMetadata(w *walker.Walker, walkers map[string]*walker.Walker, labe
 
 	// Check Builtin
 	if v, ok := walker.BuiltinEnv.Scope.Variables[label]; ok {
-		return "Builtin", v.Value.GetType().String()
+		return v.Value.GetType().String(), "Builtin"
 	}
 
-	// Check Pewpew
-	if v, ok := walker.PewpewAPI.Scope.Variables[label]; ok {
-		return "Pewpew", v.Value.GetType().String()
-	}
-	if ev, ok := walker.PewpewAPI.Enums[label]; ok {
-		return "Pewpew", "enum " + ev.Type.Name
-	}
-
-	// Check Fmath
-	if v, ok := walker.FmathAPI.Scope.Variables[label]; ok {
-		return "Fmath", v.Value.GetType().String()
-	}
-	if ev, ok := walker.FmathAPI.Enums[label]; ok {
-		return "Fmath", "enum " + ev.Type.Name
-	}
-
-	// Check current walker's entities/classes
+	// Check current walker's context (entities, classes, aliases, and imports)
 	if w != nil {
-		if ev, ok := w.Env().Entities[label]; ok {
-			return "Entity", "entity " + ev.Type.Name
+		env := w.Env()
+		
+		// 1. Current file types
+		if ev, ok := env.Enums[label]; ok {
+			return "enum " + ev.Type.Name, "Enum"
 		}
-		if cv, ok := w.Env().Classes[label]; ok {
-			return "Class", "class " + cv.Type.Name
+		if ev, ok := env.Entities[label]; ok {
+			return "entity " + ev.Type.Name, "Entity"
+		}
+		if cv, ok := env.Classes[label]; ok {
+			return "class " + cv.Type.Name, "Class"
+		}
+		if alias, ok := env.Scope.AliasTypes[label]; ok {
+			return alias.UnderlyingType.String(), "Alias"
+		}
+
+		// 2. Check imported namespaces via 'use'
+		for _, imp := range env.Imports() {
+			if imp.ThroughUse {
+				impEnv := imp.Env()
+				if v, ok := impEnv.Scope.Variables[label]; ok && v.IsPub {
+					return v.Value.GetType().String(), impEnv.Name
+				}
+				if ev, ok := impEnv.Enums[label]; ok && ev.IsPub {
+					return "enum " + ev.Type.Name, impEnv.Name
+				}
+				if cv, ok := impEnv.Classes[label]; ok && cv.IsPub {
+					return "class " + label, impEnv.Name
+				}
+				if ev, ok := impEnv.Entities[label]; ok && ev.IsPub {
+					return "entity " + label, impEnv.Name
+				}
+			}
+		}
+
+		// 3. Check used libraries (Pewpew, Fmath, etc.)
+		for _, lib := range env.UsedLibraries {
+			libEnv := walker.BuiltinLibraries[lib]
+			if libEnv != nil {
+				if v, ok := libEnv.Scope.Variables[label]; ok {
+					return v.Value.GetType().String(), libEnv.Name
+				}
+				if ev, ok := libEnv.Enums[label]; ok {
+					return "enum " + ev.Type.Name, libEnv.Name
+				}
+			}
 		}
 	}
 
