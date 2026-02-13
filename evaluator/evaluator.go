@@ -84,10 +84,9 @@ func (e *Evaluator) RunAnalysis() {
 	walker.SetupLibraryEnvironments()
 	e.printer = alerts.NewPrinter() // Clear previous alerts
 
-	// Pass 0: Reset all walkers and remove old environment names from the map
-	// We keep the absolute paths in e.walkers
+	// Pass 0: Reset all walkers and rebuild the mapping from absolute paths
+	// This clears any stale environment names from previous runs.
 	newWalkers := make(map[string]*walker.Walker)
-	
 	for _, w := range e.walkerList {
 		w.Reset()
 		abs, err := filepath.Abs(w.Env().HybroidPath())
@@ -102,6 +101,7 @@ func (e *Evaluator) RunAnalysis() {
 	// Pass 1: PreWalk (Registers environment names in e.walkers)
 	for _, w := range e.walkerList {
 		w.PreWalk(e.walkers)
+		// After PreWalk, the walker has its environment name set if it had an 'env' statement.
 		if w.Env().Name != "" {
 			e.walkers[w.Env().Name] = w
 		}

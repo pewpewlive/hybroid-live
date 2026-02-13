@@ -78,6 +78,18 @@ func (h *langHandler) handleTextDocumentSignatureHelp(_ context.Context, _ *json
 					env = walker.PewpewAPI
 				case "Fmath":
 					env = walker.FmathAPI
+				case "Math":
+					env = walker.MathAPI
+				case "String":
+					env = walker.StringAPI
+				case "Table":
+					env = walker.TableAPI
+				}
+
+				if env == nil && eval != nil {
+					if w2, ok := eval.Walkers()[ns]; ok {
+						env = w2.Env()
+					}
 				}
 			}
 		}
@@ -87,12 +99,39 @@ func (h *langHandler) handleTextDocumentSignatureHelp(_ context.Context, _ *json
 				fnVal, _ = v.Value.(*walker.FunctionVal)
 			}
 		} else {
+			// Check builtins
 			if v, ok := walker.BuiltinEnv.Scope.Variables[lookupName]; ok {
 				fnVal, _ = v.Value.(*walker.FunctionVal)
-			} else if v, ok := walker.PewpewAPI.Scope.Variables[lookupName]; ok {
-				fnVal, _ = v.Value.(*walker.FunctionVal)
-			} else if v, ok := walker.FmathAPI.Scope.Variables[lookupName]; ok {
-				fnVal, _ = v.Value.(*walker.FunctionVal)
+			}
+
+			// Check current walker's context if available
+			if fnVal == nil && w != nil {
+				env := w.Env()
+				
+				// 1. Check imports (ThroughUse)
+				for _, imp := range env.Imports() {
+					if imp.ThroughUse {
+						if v, ok := imp.Env().Scope.Variables[lookupName]; ok && v.IsPub {
+							if f, ok := v.Value.(*walker.FunctionVal); ok {
+								fnVal = f
+								break
+							}
+						}
+					}
+				}
+
+				// 2. Check libraries
+				if fnVal == nil {
+					for _, lib := range env.UsedLibraries {
+						libEnv := walker.BuiltinLibraries[lib]
+						if v, ok := libEnv.Scope.Variables[lookupName]; ok {
+							if f, ok := v.Value.(*walker.FunctionVal); ok {
+								fnVal = f
+								break
+							}
+						}
+					}
+				}
 			}
 		}
 	}

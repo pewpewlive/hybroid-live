@@ -62,6 +62,10 @@ func (e *Environment) HybroidPath() string {
 	return e.hybroidPath
 }
 
+func (e *Environment) Imports() []Import {
+	return e.imports
+}
+
 func (e *Environment) AddBuiltinVar(name string) {
 	if slices.Contains(e.UsedBuiltinVars, name) {
 		return
@@ -213,6 +217,7 @@ func (w *Walker) Reset() {
 	w.Walked = false
 	w.Collector = alerts.NewCollector()
 	w.ScopeMap = make([]ScopeRange, 0)
+	// Preserve hybroidPath and luaPath, but clear name and other state
 	w.environment.Name = ""
 	w.environment.Type = ast.InvalidEnv
 	w.environment.UsedBuiltinVars = make([]string, 0)

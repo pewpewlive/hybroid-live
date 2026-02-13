@@ -52,10 +52,26 @@ func (h *langHandler) handleTextDocumentHover(_ context.Context, _ *jsonrpc2.Con
 	// 2. Check for metadata (keywords, builtins, namespaces, entities)
 	detail, doc := getSymbolMetadata(w, eval.Walkers(), word)
 	if detail != "" {
+		display := fmt.Sprintf("**%s**", word)
+		if doc != "" {
+			// If doc is a namespace (single word, no spaces, starts with uppercase) 
+			// it's likely a namespace returned for non-prefixed symbols.
+			// This is a bit of a hack since we are reusing the doc field.
+			if !strings.Contains(doc, " ") && len(doc) > 0 && doc[0] >= 'A' && doc[0] <= 'Z' {
+				display = fmt.Sprintf("**%s** (%s)", word, doc)
+				doc = "" // Clear it so it doesn't show as description
+			}
+		}
+
+		value := display + " (" + detail + ")"
+		if doc != "" {
+			value += "\n\n" + doc
+		}
+
 		res := Hover{
 			Contents: MarkupContent{
 				Kind:  Markdown,
-				Value: fmt.Sprintf("**%s** (%s)\n\n%s", word, detail, doc),
+				Value: value,
 			},
 		}
 		return res, nil
