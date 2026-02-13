@@ -27,13 +27,19 @@ func (h *langHandler) completionResolve(item *CompletionItem) (CompletionItem, e
 	h.mu.Unlock()
 
 	var walkers map[string]*walker.Walker
+	var w *walker.Walker
 	if eval != nil {
 		walkers = eval.Walkers()
+		if item.Data != nil {
+			// Convert Data to string if it's a URI
+			if uri, ok := item.Data.(string); ok {
+				path, _ := fromURI(DocumentURI(uri))
+				w = eval.AnalyzeFile(path)
+			}
+		}
 	}
 
-	// We don't easily have the walker here without URI in item.Data
-	// For now pass nil, it will still resolve keywords/builtins/namespaces.
-	detail, documentation := getSymbolMetadata(nil, walkers, item.Label)
+	detail, documentation := getSymbolMetadata(w, walkers, item.Label)
 
 	if detail == "" {
 		detail = item.Detail
