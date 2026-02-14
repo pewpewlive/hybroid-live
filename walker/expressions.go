@@ -245,6 +245,7 @@ check:
 					Value: "\"" + imp.environment.luaPath + "\"",
 					Token: ident.Name,
 				}
+				w.AddReference("env", ident.Name.Lexeme, ident.Name)
 				return NewPathVal(imp.environment.luaPath, imp.environment.Type, imp.environment.Name)
 			}
 		}
@@ -255,6 +256,7 @@ check:
 				Value: "\"" + walker.environment.luaPath + "\"",
 				Token: ident.Name,
 			}
+			w.AddReference("env", ident.Name.Lexeme, ident.Name)
 			return NewPathVal(walker.environment.luaPath, walker.environment.Type, walker.environment.Name)
 		}
 		var context string
@@ -287,6 +289,7 @@ check:
 		}
 		if !w.context.DontSetToUsed {
 			w.SetVarToUsed(variable)
+			w.AddReference(sc.Environment.Name, variable.Name, identToken)
 			return variable
 		}
 		return variable
@@ -371,6 +374,7 @@ check:
 
 	if !w.context.DontSetToUsed {
 		w.SetVarToUsed(variable)
+		w.AddReference(sc.Environment.Name, variable.Name, ident.GetToken())
 		return variable
 	}
 
@@ -464,6 +468,11 @@ func (w *Walker) environmentAccessExpression(expr *ast.Node) Value {
 		}
 
 		val = w.GetNodeValue(&accessed, &walker.environment.Scope)
+	}
+	// Record reference for the accessed symbol and the environment name
+	if val != nil {
+		w.AddReference(envName, node.Accessed.Name.Lexeme, node.Accessed.Name)
+		w.AddReference("env", envName, node.PathExpr.Path)
 	}
 	return val
 }

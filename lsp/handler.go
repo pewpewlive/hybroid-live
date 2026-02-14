@@ -89,6 +89,8 @@ func (h *langHandler) handle(ctx context.Context, conn *jsonrpc2.Conn, req *json
 		return h.HandleCompletionItemResolve(ctx, conn, req)
 	case "textDocument/definition":
 		return h.handleTextDocumentDefinition(ctx, conn, req)
+	case "textDocument/references":
+		return h.handleTextDocumentReferences(ctx, conn, req)
 	case "textDocument/hover":
 		return h.handleTextDocumentHover(ctx, conn, req)
 	case "textDocument/codeAction":
@@ -206,7 +208,7 @@ func (h *langHandler) preAnalyzeWorkspace() {
 	for _, info := range filesInfo {
 		path := info.Path()
 		uri := toURI(filepath.Join(h.rootPath, path))
-		
+
 		content, err := os.ReadFile(filepath.Join(h.rootPath, path))
 		if err == nil {
 			h.mu.Lock()

@@ -63,6 +63,18 @@ func (h *langHandler) resolveDefinition(w *walker.Walker, walkers map[string]*wa
 		}
 		return filepath.Join(rootPath, hybPath)
 	}
+
+	// Check if the label is an environment name (for `use MyHelper`, or namespace prefix in `Pewpew:X`)
+	if walkers != nil {
+		if w2, ok := walkers[label]; ok {
+			// Navigate to the env declaration (first token of file, line 1)
+			envToken := w2.Env().GetEnvToken()
+			if envToken.Lexeme != "" {
+				return toLSPLocation(absHybPath(w2.Env().HybroidPath()), envToken)
+			}
+		}
+	}
+
 	// Handle Namespace:Symbol or Namespace.Symbol
 	if strings.Contains(label, ":") || strings.Contains(label, ".") {
 		parts := strings.FieldsFunc(label, func(r rune) bool { return r == ':' || r == '.' })
