@@ -61,6 +61,7 @@ func (h *langHandler) handleInitialize(_ context.Context, conn *jsonrpc2.Conn, r
 			RangeFormattingProvider:    hasRangeFormatCommand,
 			DocumentSymbolProvider:     hasSymbolCommand,
 			DefinitionProvider:         true,
+			ReferencesProvider:         true,
 			CompletionProvider:         completion,
 			SignatureHelpProvider: &SignatureHelpProvider{
 				TriggerCharacters: []string{"(", ","},

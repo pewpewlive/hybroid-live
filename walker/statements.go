@@ -461,6 +461,7 @@ func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
 		}
 		w.ImportLibrary(ast.Pewpew)
+		w.AddReference("env", envName, node.PathExpr.Path)
 		return
 	case "Fmath":
 		if w.environment.Type != ast.LevelEnv {
@@ -470,6 +471,7 @@ func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
 		}
 		w.ImportLibrary(ast.Fmath)
+		w.AddReference("env", envName, node.PathExpr.Path)
 		return
 	case "Math":
 		if w.environment.Type == ast.LevelEnv {
@@ -479,18 +481,21 @@ func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
 		}
 		w.ImportLibrary(ast.Math)
+		w.AddReference("env", envName, node.PathExpr.Path)
 		return
 	case "String":
 		if !w.AddLibrary(ast.String) {
 			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
 		}
 		w.ImportLibrary(ast.String)
+		w.AddReference("env", envName, node.PathExpr.Path)
 		return
 	case "Table":
 		if !w.AddLibrary(ast.Table) {
 			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
 		}
 		w.ImportLibrary(ast.Table)
+		w.AddReference("env", envName, node.PathExpr.Path)
 		return
 	}
 
@@ -527,6 +532,7 @@ func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 		Walker:     walker,
 		ThroughUse: true,
 	})
+	w.AddReference("env", envName, node.PathExpr.Path)
 
 	if walker.environment.luaPath == "/dynamic/level.lua" {
 		return // we don't put level.hyb in requirements as that would break things
