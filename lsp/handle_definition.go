@@ -47,7 +47,7 @@ func (h *langHandler) handleTextDocumentDefinition(_ context.Context, _ *jsonrpc
 	}
 
 	// 2. Resolve the definition
-	loc := h.resolveDefinition(w, eval.Walkers(), word, params.Position.Line+1, params.Position.Character+1)
+	loc := h.resolveDefinition(w, eval.Walkers(), word, params.Position.Line+1, params.Position.Character+1, h.rootPath)
 	if loc != (Location{}) {
 		return loc, nil
 	}
@@ -55,7 +55,14 @@ func (h *langHandler) handleTextDocumentDefinition(_ context.Context, _ *jsonrpc
 	return nil, nil
 }
 
-func (h *langHandler) resolveDefinition(w *walker.Walker, walkers map[string]*walker.Walker, label string, line, col int) Location {
+func (h *langHandler) resolveDefinition(w *walker.Walker, walkers map[string]*walker.Walker, label string, line, col int, rootPath string) Location {
+	// absHybPath resolves a relative HybroidPath to an absolute path for URI generation
+	absHybPath := func(hybPath string) string {
+		if filepath.IsAbs(hybPath) {
+			return hybPath
+		}
+		return filepath.Join(rootPath, hybPath)
+	}
 	// Handle Namespace:Symbol or Namespace.Symbol
 	if strings.Contains(label, ":") || strings.Contains(label, ".") {
 		parts := strings.FieldsFunc(label, func(r rune) bool { return r == ':' || r == '.' })
@@ -87,33 +94,33 @@ func (h *langHandler) resolveDefinition(w *walker.Walker, walkers map[string]*wa
 			if env == nil && w != nil {
 				if ev, ok := w.Env().Enums[ns]; ok {
 					if field, _, found := ev.ContainsField(sym); found {
-						return toLSPLocation(w.Env().HybroidPath(), field.Token)
+						return toLSPLocation(absHybPath(w.Env().HybroidPath()), field.Token)
 					}
 				}
 				if ev, ok := w.Env().Entities[ns]; ok {
 					if v, _, found := ev.ContainsField(sym); found {
-						return toLSPLocation(w.Env().HybroidPath(), v.Token)
+						return toLSPLocation(absHybPath(w.Env().HybroidPath()), v.Token)
 					}
 					if v, found := ev.ContainsMethod(sym); found {
-						return toLSPLocation(w.Env().HybroidPath(), v.Token)
+						return toLSPLocation(absHybPath(w.Env().HybroidPath()), v.Token)
 					}
 				}
 				if cv, ok := w.Env().Classes[ns]; ok {
 					if v, _, found := cv.ContainsField(sym); found {
-						return toLSPLocation(w.Env().HybroidPath(), v.Token)
+						return toLSPLocation(absHybPath(w.Env().HybroidPath()), v.Token)
 					}
 					if v, found := cv.ContainsMethod(sym); found {
-						return toLSPLocation(w.Env().HybroidPath(), v.Token)
+						return toLSPLocation(absHybPath(w.Env().HybroidPath()), v.Token)
 					}
 				}
 			}
 
 			if env != nil {
 				if v, ok := env.Scope.Variables[sym]; ok && (env.Name == "Pewpew" || v.IsPub) {
-					return toLSPLocation(env.HybroidPath(), v.Token)
+					return toLSPLocation(absHybPath(env.HybroidPath()), v.Token)
 				}
 				if ev, ok := env.Enums[sym]; ok && (env.Name == "Pewpew" || ev.IsPub) {
-					return toLSPLocation(env.HybroidPath(), ev.Token)
+					return toLSPLocation(absHybPath(env.HybroidPath()), ev.Token)
 				}
 			}
 		}
@@ -129,7 +136,7 @@ func (h *langHandler) resolveDefinition(w *walker.Walker, walkers map[string]*wa
 				if current.Environment.Name == "Builtin" || current.Environment.Name == "Pewpew" {
 					return Location{}
 				}
-				return toLSPLocation(current.Environment.HybroidPath(), v.Token)
+				return toLSPLocation(absHybPath(current.Environment.HybroidPath()), v.Token)
 			}
 			current = current.Parent
 		}
@@ -139,13 +146,13 @@ func (h *langHandler) resolveDefinition(w *walker.Walker, walkers map[string]*wa
 	if w != nil {
 		env := w.Env()
 		if ev, ok := env.Enums[label]; ok {
-			return toLSPLocation(env.HybroidPath(), ev.Token)
+			return toLSPLocation(absHybPath(env.HybroidPath()), ev.Token)
 		}
 		if ev, ok := env.Entities[label]; ok {
-			return toLSPLocation(env.HybroidPath(), ev.Token)
+			return toLSPLocation(absHybPath(env.HybroidPath()), ev.Token)
 		}
 		if cv, ok := env.Classes[label]; ok {
-			return toLSPLocation(env.HybroidPath(), cv.Token)
+			return toLSPLocation(absHybPath(env.HybroidPath()), cv.Token)
 		}
 
 		// Check imported namespaces via 'use'
@@ -153,29 +160,29 @@ func (h *langHandler) resolveDefinition(w *walker.Walker, walkers map[string]*wa
 			if imp.ThroughUse {
 				impEnv := imp.Env()
 				if v, ok := impEnv.Scope.Variables[label]; ok && v.IsPub {
-					return toLSPLocation(impEnv.HybroidPath(), v.Token)
+					return toLSPLocation(absHybPath(impEnv.HybroidPath()), v.Token)
 				}
 				if ev, ok := impEnv.Enums[label]; ok && ev.IsPub {
-					return toLSPLocation(impEnv.HybroidPath(), ev.Token)
+					return toLSPLocation(absHybPath(impEnv.HybroidPath()), ev.Token)
 				}
 				if cv, ok := impEnv.Classes[label]; ok && cv.IsPub {
-					return toLSPLocation(impEnv.HybroidPath(), cv.Token)
+					return toLSPLocation(absHybPath(impEnv.HybroidPath()), cv.Token)
 				}
 				if ev, ok := impEnv.Entities[label]; ok && ev.IsPub {
-					return toLSPLocation(impEnv.HybroidPath(), ev.Token)
+					return toLSPLocation(absHybPath(impEnv.HybroidPath()), ev.Token)
 				}
 			}
 		}
 
 		// Check used libraries
-		for _, lib := range env.UsedLibraries {
+		for _, lib := range env.ImportedLibraries {
 			libEnv := walker.BuiltinLibraries[lib]
 			if libEnv != nil {
 				if v, ok := libEnv.Scope.Variables[label]; ok {
-					return toLSPLocation(libEnv.HybroidPath(), v.Token)
+					return toLSPLocation(absHybPath(libEnv.HybroidPath()), v.Token)
 				}
 				if ev, ok := libEnv.Enums[label]; ok {
-					return toLSPLocation(libEnv.HybroidPath(), ev.Token)
+					return toLSPLocation(absHybPath(libEnv.HybroidPath()), ev.Token)
 				}
 			}
 		}

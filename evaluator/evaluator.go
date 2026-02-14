@@ -170,7 +170,7 @@ func (e *Evaluator) EmitLua(cwd, outputDir string) error {
 	for i, w := range e.walkerList {
 		gen.SetEnv(w.Env().Name, w.Env().Type)
 		gen.GenerateUsedLibraries(w.Env().UsedLibraries)
-		
+
 		if e.files[i].FileName == "level" {
 			gen.GenerateWithBuiltins(w.Program())
 		} else if w.Env().Type != ast.LevelEnv {
@@ -185,7 +185,7 @@ func (e *Evaluator) EmitLua(cwd, outputDir string) error {
 		if err != nil {
 			return fmt.Errorf("failed to write transpiled file to destination: %v", err)
 		}
-		
+
 		// Fix: .lua extension logic from original
 		luaPath := e.files[i].NewPath(outputPath, ".lua")
 		err = os.WriteFile(luaPath, []byte(gen.GetSrc()), os.ModePerm)
@@ -220,6 +220,15 @@ func (e *Evaluator) UpdateFileContent(path string, content string) error {
 		w.SetProgram(program)
 	} else if w, ok := e.walkers[path]; ok {
 		w.SetProgram(program)
+	} else {
+		// Fallback: try to match by hybroid path
+		for _, w := range e.walkerList {
+			wAbs, _ := filepath.Abs(w.Env().HybroidPath())
+			if wAbs == abs || w.Env().HybroidPath() == path {
+				w.SetProgram(program)
+				break
+			}
+		}
 	}
 	e.programs[path] = program
 	return nil
