@@ -262,8 +262,8 @@ func (sc *Scope) GetVariable(name string) (*VariableVal, bool) {
 				}
 			}
 		}
-		// Check used libraries (Pewpew, Fmath, Math, String, Table)
-		for _, lib := range sc.Environment.UsedLibraries {
+		// Check used libraries (Pewpew, Fmath, Math, String, Table) - only those explicitly imported via 'use'
+		for _, lib := range sc.Environment.ImportedLibraries {
 			if libEnv, ok := BuiltinLibraries[lib]; ok {
 				if v, ok := libEnv.Scope.Variables[name]; ok {
 					return v, true

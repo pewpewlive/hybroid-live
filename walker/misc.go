@@ -105,7 +105,7 @@ func (w *Walker) resolveVariable(s *Scope, token tokens.Token) *Scope {
 				}
 			}
 		}
-		for _, v := range s.Environment.UsedLibraries {
+		for _, v := range s.Environment.ImportedLibraries {
 			_, ok := BuiltinLibraries[v].Scope.Variables[name]
 			if ok {
 				return &BuiltinLibraries[v].Scope

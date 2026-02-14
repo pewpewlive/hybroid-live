@@ -209,8 +209,8 @@ func getSymbolMetadata(w *walker.Walker, walkers map[string]*walker.Walker, labe
 			}
 		}
 
-		// 3. Check used libraries (Pewpew, Fmath, etc.)
-		for _, lib := range env.UsedLibraries {
+		// 3. Check used libraries (Pewpew, Fmath, etc.) - only those explicitly imported via 'use'
+		for _, lib := range env.ImportedLibraries {
 			libEnv := walker.BuiltinLibraries[lib]
 			if libEnv != nil {
 				if v, ok := libEnv.Scope.Variables[label]; ok {
