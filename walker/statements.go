@@ -460,6 +460,7 @@ func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 		if !w.AddLibrary(ast.Pewpew) {
 			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
 		}
+		w.ImportLibrary(ast.Pewpew)
 		return
 	case "Fmath":
 		if w.environment.Type != ast.LevelEnv {
@@ -468,6 +469,7 @@ func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 		if !w.AddLibrary(ast.Fmath) {
 			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
 		}
+		w.ImportLibrary(ast.Fmath)
 		return
 	case "Math":
 		if w.environment.Type == ast.LevelEnv {
@@ -476,16 +478,19 @@ func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 		if !w.AddLibrary(ast.Math) {
 			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
 		}
+		w.ImportLibrary(ast.Math)
 		return
 	case "String":
 		if !w.AddLibrary(ast.String) {
 			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
 		}
+		w.ImportLibrary(ast.String)
 		return
 	case "Table":
 		if !w.AddLibrary(ast.Table) {
 			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
 		}
+		w.ImportLibrary(ast.Table)
 		return
 	}
 

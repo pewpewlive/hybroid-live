@@ -29,9 +29,10 @@ type Environment struct {
 
 	Scope Scope
 
-	imports         []Import
-	UsedLibraries   []ast.Library
-	UsedBuiltinVars []string
+	imports           []Import
+	UsedLibraries     []ast.Library
+	ImportedLibraries []ast.Library // Only libraries imported via 'use' statements
+	UsedBuiltinVars   []string
 
 	Classes  map[string]*ClassVal
 	Entities map[string]*EntityVal
@@ -48,6 +49,17 @@ func (w *Walker) AddLibrary(lib ast.Library) bool {
 	}
 	w.environment.UsedLibraries = append(w.environment.UsedLibraries, lib)
 	return true
+}
+
+// ImportLibrary marks a library as explicitly imported via a 'use' statement.
+// This is separate from AddLibrary which also tracks namespace-accessed libraries.
+func (w *Walker) ImportLibrary(lib ast.Library) {
+	for _, v := range w.environment.ImportedLibraries {
+		if v == lib {
+			return
+		}
+	}
+	w.environment.ImportedLibraries = append(w.environment.ImportedLibraries, lib)
 }
 
 func (e *Environment) AddRequirement(path string) bool {
@@ -82,14 +94,15 @@ func NewEnvironment(hybroidPath, luaPath string) *Environment {
 		ConstValues: make(map[string]ast.Node),
 	}
 	global := &Environment{
-		hybroidPath:   hybroidPath,
-		luaPath:       luaPath,
-		Type:          ast.InvalidEnv,
-		Scope:         scope,
-		UsedLibraries: make([]ast.Library, 0),
-		Classes:       map[string]*ClassVal{},
-		Entities:      map[string]*EntityVal{},
-		Enums:         map[string]*EnumVal{},
+		hybroidPath:       hybroidPath,
+		luaPath:           luaPath,
+		Type:              ast.InvalidEnv,
+		Scope:             scope,
+		UsedLibraries:     make([]ast.Library, 0),
+		ImportedLibraries: make([]ast.Library, 0),
+		Classes:           map[string]*ClassVal{},
+		Entities:          map[string]*EntityVal{},
+		Enums:             map[string]*EnumVal{},
 	}
 
 	global.Scope.Environment = global
@@ -222,6 +235,7 @@ func (w *Walker) Reset() {
 	w.environment.Type = ast.InvalidEnv
 	w.environment.UsedBuiltinVars = make([]string, 0)
 	w.environment.UsedLibraries = make([]ast.Library, 0)
+	w.environment.ImportedLibraries = make([]ast.Library, 0)
 	w.environment.imports = make([]Import, 0)
 	w.environment.Classes = map[string]*ClassVal{}
 	w.environment.Entities = map[string]*EntityVal{}

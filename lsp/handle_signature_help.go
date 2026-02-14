@@ -107,7 +107,7 @@ func (h *langHandler) handleTextDocumentSignatureHelp(_ context.Context, _ *json
 			// Check current walker's context if available
 			if fnVal == nil && w != nil {
 				env := w.Env()
-				
+
 				// 1. Check imports (ThroughUse)
 				for _, imp := range env.Imports() {
 					if imp.ThroughUse {
@@ -120,9 +120,9 @@ func (h *langHandler) handleTextDocumentSignatureHelp(_ context.Context, _ *json
 					}
 				}
 
-				// 2. Check libraries
+				// 2. Check libraries (only those explicitly imported via 'use')
 				if fnVal == nil {
-					for _, lib := range env.UsedLibraries {
+					for _, lib := range env.ImportedLibraries {
 						libEnv := walker.BuiltinLibraries[lib]
 						if v, ok := libEnv.Scope.Variables[lookupName]; ok {
 							if f, ok := v.Value.(*walker.FunctionVal); ok {

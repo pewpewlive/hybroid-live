@@ -152,8 +152,8 @@ func (h *langHandler) completion(file *File, w *walker.Walker, params *Completio
 			}
 		}
 
-		// 4. Builtin Libraries ONLY if used
-		for _, lib := range w.Env().UsedLibraries {
+		// 4. Builtin Libraries ONLY if explicitly imported via 'use'
+		for _, lib := range w.Env().ImportedLibraries {
 			var libEnv *walker.Environment
 			switch lib {
 			case ast.Pewpew:
@@ -278,7 +278,7 @@ func (h *langHandler) getNamespaceContext(text string, pos Position) (string, st
 		return "", ""
 	}
 	line := lines[pos.Line]
-	
+
 	// If at the very start of a line, no namespace
 	if pos.Character <= 0 {
 		return "", ""
@@ -406,8 +406,8 @@ func (h *langHandler) namespaceCompletion(namespace string, w *walker.Walker, ev
 }
 
 func getWordBefore(text string, line, character int) string {
-    // This is now redundant or can be refactored, but I'll keep it if needed elsewhere
-    // Actually, it was used in the previous version. I'll leave it for now.
+	// This is now redundant or can be refactored, but I'll keep it if needed elsewhere
+	// Actually, it was used in the previous version. I'll leave it for now.
 	text = strings.ReplaceAll(text, "\r\n", "\n")
 	lines := strings.Split(text, "\n")
 	if line < 0 || line >= len(lines) {
@@ -434,4 +434,3 @@ func getWordBefore(text string, line, character int) string {
 
 	return l[start:end]
 }
-
