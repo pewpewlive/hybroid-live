@@ -250,3 +250,7 @@ func (e *Evaluator) AnalyzeFile(path string) *walker.Walker {
 func (e *Evaluator) Walkers() map[string]*walker.Walker {
 	return e.walkers
 }
+
+func (e *Evaluator) WalkerList() []*walker.Walker {
+	return e.walkerList
+}

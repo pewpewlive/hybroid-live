@@ -21,6 +21,26 @@ type ScopeRange struct {
 	Scope       *Scope
 }
 
+// Reference records a usage location of a symbol.
+type Reference struct {
+	EnvName string       // environment where the reference occurs
+	Token   tokens.Token // location of the reference
+}
+
+// RefKey creates a unique key for the reference map from an environment name and variable name.
+func RefKey(envName, varName string) string {
+	return envName + ":" + varName
+}
+
+// AddReference records a reference to a variable at the given token location.
+func (w *Walker) AddReference(defEnvName, varName string, refToken tokens.Token) {
+	key := RefKey(defEnvName, varName)
+	w.ReferenceMap[key] = append(w.ReferenceMap[key], Reference{
+		EnvName: w.environment.Name,
+		Token:   refToken,
+	})
+}
+
 type Environment struct {
 	Name        string
 	luaPath     string // dynamic lua path
@@ -78,6 +98,14 @@ func (e *Environment) Imports() []Import {
 	return e.imports
 }
 
+// GetEnvToken returns the env name token from the environment declaration (e.g. "MyHelper" in "env MyHelper as Shared").
+func (e *Environment) GetEnvToken() tokens.Token {
+	if e._envStmt != nil && e._envStmt.Env != nil {
+		return e._envStmt.Env.Path
+	}
+	return tokens.Token{}
+}
+
 func (e *Environment) AddBuiltinVar(name string) {
 	if slices.Contains(e.UsedBuiltinVars, name) {
 		return
@@ -121,7 +149,8 @@ type Walker struct {
 	Walked       bool
 	ignoreAlerts bool
 
-	ScopeMap []ScopeRange
+	ScopeMap     []ScopeRange
+	ReferenceMap map[string][]Reference // key: "envName:varName", value: list of reference locations
 }
 
 func (w *Walker) Alert(alertType alerts.Alert, args ...any) {
@@ -155,9 +184,10 @@ func NewWalker(hybroidPath, luaPath string) *Walker {
 		context: Context{
 			EntityCasts: core.NewQueue[EntityCast]("EntityCasts"),
 		},
-		Collector: alerts.NewCollector(),
-		ScopeMap:  make([]ScopeRange, 0),
-		walkers:   make(map[string]*Walker),
+		Collector:    alerts.NewCollector(),
+		ScopeMap:     make([]ScopeRange, 0),
+		ReferenceMap: make(map[string][]Reference),
+		walkers:      make(map[string]*Walker),
 	}
 }
 
@@ -230,6 +260,7 @@ func (w *Walker) Reset() {
 	w.Walked = false
 	w.Collector = alerts.NewCollector()
 	w.ScopeMap = make([]ScopeRange, 0)
+	w.ReferenceMap = make(map[string][]Reference)
 	// Preserve hybroidPath and luaPath, but clear name and other state
 	w.environment.Name = ""
 	w.environment.Type = ast.InvalidEnv
