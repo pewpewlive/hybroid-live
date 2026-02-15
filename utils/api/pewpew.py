@@ -115,3 +115,16 @@ def generate_docs(pewpew_lib: dict) -> str:
             "functions": "\n\n".join(functions),
         }
     )
+
+
+def generate_lsp_docs(pewpew_lib: dict) -> str:
+    functions = [
+        api.Function("pewpew", function).generate_lsp_doc("Pewpew")
+        for function in pewpew_lib["functions"]
+    ]
+    enums = [
+        api.Enum(enum).generate_lsp_doc("Pewpew")
+        for enum in pewpew_lib["enums"]
+    ]
+
+    return ",\n".join(functions + enums)

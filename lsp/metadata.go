@@ -74,6 +74,23 @@ var environmentDocs = map[string]string{
 	"Shared": "Shared environment. Contains code that can be used by Level, Mesh, or Sound scripts.",
 }
 
+var builtinDocs = map[string]string{
+	"ToString":   "```hybroid\nToString(value) -> string\n```\nConverts any value to a string.",
+	"ParseSound": "```hybroid\nParseSound(string jfxrUrl) -> Sound\n```\nAllows you to parse a sound from a [JFXR](https://pewpew.live/jfxr/index.html) URL. Only available in sound environments.",
+}
+
+var aliasDocs = map[string]string{
+	"Mesh":     "A struct representing a 3D mesh with `vertexes`, `segments`, and optionally `colors`.",
+	"Meshes":   "A list of `Mesh` objects.",
+	"Vertex":   "A list of 3 numbers representing a point in 3D space.",
+	"Vertexes": "A list of `Vertex` objects.",
+	"Segment":  "A list of 2 numbers representing the indices of two vertexes forming a segment.",
+	"Segments": "A list of `Segment` objects.",
+	"Colors":   "A list of colors, where each color is a number.",
+	"Center":   "A struct with `x`, `y`, and `z` fields representing the center of an entity.",
+	"Sound":    "A struct representing a sound configuration for procedural generation.",
+}
+
 func getSymbolMetadata(w *walker.Walker, walkers map[string]*walker.Walker, label string) (detail string, doc string) {
 	if d, ok := environmentDocs[label]; ok {
 		return "Environment", d
@@ -145,6 +162,17 @@ func getSymbolMetadata(w *walker.Walker, walkers map[string]*walker.Walker, labe
 			isBuiltin := ns == "Pewpew" || ns == "Fmath" || ns == "Math" || ns == "String" || ns == "Table"
 
 			if env != nil {
+				// Check for auto-generated API docs
+				if d, ok := ApiDocs[ns+":"+sym]; ok {
+					// Also need to get the type detail
+					if v, ok := env.Scope.Variables[sym]; ok {
+						return v.Value.GetType().String(), d
+					}
+					if ev, ok := env.Enums[sym]; ok {
+						return "enum " + ev.Type.Name, d
+					}
+				}
+
 				// Check variables
 				if v, ok := env.Scope.Variables[sym]; ok {
 					if isBuiltin || v.IsPub {
@@ -168,6 +196,11 @@ func getSymbolMetadata(w *walker.Walker, walkers map[string]*walker.Walker, labe
 	}
 
 	// Check Builtin
+	if d, ok := builtinDocs[label]; ok {
+		if v, ok := walker.BuiltinEnv.Scope.Variables[label]; ok {
+			return v.Value.GetType().String(), d
+		}
+	}
 	if v, ok := walker.BuiltinEnv.Scope.Variables[label]; ok {
 		return v.Value.GetType().String(), "Builtin"
 	}
@@ -187,6 +220,9 @@ func getSymbolMetadata(w *walker.Walker, walkers map[string]*walker.Walker, labe
 			return "class " + cv.Type.Name, "Class"
 		}
 		if alias, ok := env.Scope.AliasTypes[label]; ok {
+			if d, ok := aliasDocs[label]; ok {
+				return alias.UnderlyingType.String(), d
+			}
 			return alias.UnderlyingType.String(), "Alias"
 		}
 
@@ -195,9 +231,15 @@ func getSymbolMetadata(w *walker.Walker, walkers map[string]*walker.Walker, labe
 			if imp.ThroughUse {
 				impEnv := imp.Env()
 				if v, ok := impEnv.Scope.Variables[label]; ok && v.IsPub {
+					if d, ok := ApiDocs[impEnv.Name+":"+label]; ok {
+						return v.Value.GetType().String(), d
+					}
 					return v.Value.GetType().String(), impEnv.Name
 				}
 				if ev, ok := impEnv.Enums[label]; ok && ev.IsPub {
+					if d, ok := ApiDocs[impEnv.Name+":"+label]; ok {
+						return "enum " + ev.Type.Name, d
+					}
 					return "enum " + ev.Type.Name, impEnv.Name
 				}
 				if cv, ok := impEnv.Classes[label]; ok && cv.IsPub {
@@ -214,9 +256,15 @@ func getSymbolMetadata(w *walker.Walker, walkers map[string]*walker.Walker, labe
 			libEnv := walker.BuiltinLibraries[lib]
 			if libEnv != nil {
 				if v, ok := libEnv.Scope.Variables[label]; ok {
+					if d, ok := ApiDocs[libEnv.Name+":"+label]; ok {
+						return v.Value.GetType().String(), d
+					}
 					return v.Value.GetType().String(), libEnv.Name
 				}
 				if ev, ok := libEnv.Enums[label]; ok {
+					if d, ok := ApiDocs[libEnv.Name+":"+label]; ok {
+						return "enum " + ev.Type.Name, d
+					}
 					return "enum " + ev.Type.Name, libEnv.Name
 				}
 			}
