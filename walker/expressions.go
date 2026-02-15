@@ -216,6 +216,22 @@ func (w *Walker) binaryExpression(node *ast.BinaryExpr, scope *Scope) Value {
 }
 
 func (w *Walker) literalExpression(node *ast.LiteralExpr) Value {
+	// Handle literals that were originally environment identifiers (mutated during a previous Walk)
+	if node.IsEnvPath {
+		envName := node.Token.Lexeme
+		if walker, ok := w.walkers[envName]; ok {
+			w.AddReference("env", envName, node.Token)
+			return NewPathVal(walker.environment.luaPath, walker.environment.Type, walker.environment.Name)
+		}
+		// Check imports as well
+		for _, imp := range w.environment.imports {
+			if imp.environment.Name == envName {
+				w.AddReference("env", envName, node.Token)
+				return NewPathVal(imp.environment.luaPath, imp.environment.Type, imp.environment.Name)
+			}
+		}
+	}
+
 	switch node.Token.Type {
 	case tokens.String:
 		return &StringVal{}
@@ -242,8 +258,9 @@ check:
 		for _, imp := range w.environment.imports {
 			if imp.environment.Name == ident.Name.Lexeme {
 				*node = &ast.LiteralExpr{
-					Value: "\"" + imp.environment.luaPath + "\"",
-					Token: ident.Name,
+					Value:     "\"" + imp.environment.luaPath + "\"",
+					Token:     ident.Name,
+					IsEnvPath: true,
 				}
 				w.AddReference("env", ident.Name.Lexeme, ident.Name)
 				return NewPathVal(imp.environment.luaPath, imp.environment.Type, imp.environment.Name)
@@ -253,8 +270,9 @@ check:
 		walker, found := w.walkers[ident.Name.Lexeme]
 		if found {
 			*node = &ast.LiteralExpr{
-				Value: "\"" + walker.environment.luaPath + "\"",
-				Token: ident.Name,
+				Value:     "\"" + walker.environment.luaPath + "\"",
+				Token:     ident.Name,
+				IsEnvPath: true,
 			}
 			w.AddReference("env", ident.Name.Lexeme, ident.Name)
 			return NewPathVal(walker.environment.luaPath, walker.environment.Type, walker.environment.Name)
