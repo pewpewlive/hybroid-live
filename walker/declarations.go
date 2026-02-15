@@ -69,7 +69,7 @@ func (w *Walker) classDeclaration(node *ast.ClassDecl, scope *Scope) {
 		IsPub:   node.IsPub,
 		Fields:  make(map[string]Field),
 		Methods: map[string]*VariableVal{},
-		New:     NewFunction(),
+		New:     NewFunction(nil),
 	}
 	for _, param := range node.GenericParams {
 		generic := NewGeneric(param.Name.Lexeme)
@@ -237,7 +237,12 @@ func (w *Walker) entityFunctionDeclaration(node *ast.EntityFunctionDecl, scope *
 		w.AlertSingle(&alerts.NotAllCodePathsExit{}, node.Token, "destroy the entity")
 	}
 
-	return NewFunction(params...).WithGenerics(ft.Generics...).WithReturns(ft.ReturnTypes...)
+	paramNames := make([]string, len(node.Params))
+	for i, param := range node.Params {
+		paramNames[i] = param.Name.Lexeme
+	}
+
+	return NewFunction(paramNames, params...).WithGenerics(ft.Generics...).WithReturns(ft.ReturnTypes...)
 }
 
 func (w *Walker) enumDeclaration(node *ast.EnumDecl, scope *Scope) {
@@ -339,9 +344,14 @@ func (w *Walker) functionDeclaration(node *ast.FunctionDecl, scope *Scope, procT
 	ft.ReturnTypes = w.getReturns(node.Returns, fnScope)
 	params := w.getParameters(node.Params, fnScope)
 
+	paramNames := make([]string, len(node.Params))
+	for i, param := range node.Params {
+		paramNames[i] = param.Name.Lexeme
+	}
+
 	variable := &VariableVal{
 		Name: node.Name.Lexeme,
-		Value: NewFunction(params...).
+		Value: NewFunction(paramNames, params...).
 			WithGenerics(ft.Generics...).
 			WithReturns(ft.ReturnTypes...),
 		Token: node.Name,

@@ -345,8 +345,8 @@ func NewEntityVal(envName string, node *ast.EntityDecl) *EntityVal {
 		IsPub:   node.IsPub,
 		Methods: make(map[string]*VariableVal),
 		Fields:  make(map[string]Field, 0),
-		Destroy: NewMethod(ast.NewMethodInfo(ast.EntityMethod, "destroy", name, envName)),
-		Spawn:   NewMethod(ast.NewMethodInfo(ast.EntityMethod, "spawn", name, envName)),
+		Destroy: NewMethod(ast.NewMethodInfo(ast.EntityMethod, "destroy", name, envName), nil),
+		Spawn:   NewMethod(ast.NewMethodInfo(ast.EntityMethod, "spawn", name, envName), nil),
 	}
 }
 
@@ -573,23 +573,26 @@ var EmptyReturn = []Type{}
 type FunctionVal struct {
 	Generics       []*GenericType
 	Params         []Type
+	ParamNames     []string
 	Returns        []Type
 	ProcType       ProcedureType
 	ast.MethodInfo // check if ProcType == Method before accessing this
 }
 
-func NewFunction(params ...Type) *FunctionVal {
+func NewFunction(names []string, params ...Type) *FunctionVal {
 	return &FunctionVal{
-		ProcType: Function,
-		Params:   params,
-		Returns:  EmptyReturn,
+		ProcType:   Function,
+		Params:     params,
+		ParamNames: names,
+		Returns:    EmptyReturn,
 	}
 }
 
-func NewMethod(mi ast.MethodInfo, params ...Type) *FunctionVal {
+func NewMethod(mi ast.MethodInfo, names []string, params ...Type) *FunctionVal {
 	return &FunctionVal{
 		ProcType:   Method,
 		Params:     params,
+		ParamNames: names,
 		Returns:    EmptyReturn,
 		MethodInfo: mi,
 	}
@@ -606,7 +609,7 @@ func (fn FunctionVal) WithGenerics(generics ...*GenericType) *FunctionVal {
 }
 
 func (f *FunctionVal) GetType() Type {
-	return NewFunctionType(f.Params, f.Returns, f.ProcType)
+	return NewFunctionType(f.Params, f.Returns, f.ParamNames, f.ProcType)
 }
 
 func (f *FunctionVal) GetReturns() []Type {
