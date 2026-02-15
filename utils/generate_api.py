@@ -66,3 +66,23 @@ if __name__ == "__main__":
     _generate("api_", "pewpew", "md", pewpew.generate_docs(pewpew_lib))
     _generate("api_", "fmath", "md", fmath.generate_docs(fmath_lib))
     print("[+] Docs generated!")
+
+    # Generation for LSP!
+    # Go to the lsp directory where the following steps will be executed
+    os.chdir(os.path.dirname(__file__) + "/../lsp")
+    _clean_gen_files("go")
+
+    LSP_DOCS_TEMPLATE = """// AUTO-GENERATED, DO NOT MANUALLY MODIFY!
+package lsp
+
+// ApiDocs maps a symbol (e.g. "Pewpew:SetLevelSize") to its documentation.
+var ApiDocs = map[string]string{{
+{documentation},
+}}
+"""
+    docs = []
+    docs.append(pewpew.generate_lsp_docs(pewpew_lib))
+    docs.append(fmath.generate_lsp_docs(fmath_lib))
+
+    _generate(None, "api_docs", "go", LSP_DOCS_TEMPLATE.format(documentation=",\n".join(docs)))
+    print("[+] LSP docs generated!")

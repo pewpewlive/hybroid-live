@@ -75,3 +75,12 @@ def generate_docs(fmath_lib: dict) -> str:
     ]
 
     return _FMATH_DOCS_TEMPLATE.format_map({"functions": "\n\n".join(functions)})
+
+
+def generate_lsp_docs(fmath_lib: dict) -> str:
+    functions = [
+        api.Function("fmath", function).generate_lsp_doc("Fmath")
+        for function in fmath_lib["functions"]
+    ]
+
+    return ",\n".join(functions)

@@ -224,6 +224,30 @@ class Function(types.Function):
             }
         )
 
+    def generate_lsp_doc(self, lib_name: str) -> str:
+        """Generates a Go map entry for LSP hover documentation."""
+        # Build signature: FuncName(params) -> returns
+        params = ", ".join(
+            param.generate_docs(self.name) for param in self.parameters
+        )
+        if len(self.returns) == 1:
+            returns = " -> " + ", ".join(
+                ret.generate_docs(self.name) for ret in self.returns
+            )
+        elif len(self.returns) > 1:
+            returns = " -> (" + ", ".join(
+                ret.generate_docs(self.name) for ret in self.returns
+            ) + ")"
+        else:
+            returns = ""
+
+        signature = f"{self.name}({params}){returns}"
+        # Escape Go string special chars
+        desc = self.description.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+        sig = signature.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+
+        return f'"{lib_name}:{self.name}": "```hybroid\\n{sig}\\n```\\n{desc}"'
+
 
 class Enum(types.Enum):
     def __init__(self, raw: dict):
@@ -253,3 +277,8 @@ class Enum(types.Enum):
                 "variants": "\n".join(f"- `{variant}`" for variant in self.variants),
             }
         )
+
+    def generate_lsp_doc(self, lib_name: str) -> str:
+        """Generates a Go map entry for LSP hover documentation."""
+        variants_str = ", ".join(f"`{v}`" for v in self.variants)
+        return f'"{lib_name}:{self.name}": "Enum with variants: {variants_str}"'
