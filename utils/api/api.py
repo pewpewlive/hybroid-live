@@ -47,11 +47,11 @@ class Type:
         # The mapping of callback types, not including the `taken_callback` exception,
         # which is a map entry, and not a parameter, so it is dealt with later
         CALLBACK_TYPES = {
-            "AddUpdateCallback": "NewFunctionType([]Type{},[]Type{})",
-            "SetEntityUpdateCallback": "NewFunctionType([]Type{&RawEntityType{}},[]Type{})",
-            "SetEntityWallCollision": "NewFunctionType([]Type{&RawEntityType{},NewFixedPointType(),NewFixedPointType()},[]Type{})",
-            "SetEntityPlayerCollision": "NewFunctionType([]Type{&RawEntityType{},NewBasicType(ast.Number),&RawEntityType{}}, []Type{})",
-            "SetEntityWeaponCollision": 'NewFunctionType([]Type{&RawEntityType{},NewBasicType(ast.Number),NewEnumType("Pewpew","WeaponType")},[]Type{NewBasicType(ast.Bool)})',
+            "AddUpdateCallback": "NewFunctionType([]Type{},[]Type{},[]string{})",
+            "SetEntityUpdateCallback": 'NewFunctionType([]Type{&RawEntityType{}},[]Type{},[]string{"entity"})',
+            "SetEntityWallCollision": 'NewFunctionType([]Type{&RawEntityType{},NewFixedPointType(),NewFixedPointType()},[]Type{},[]string{"entity","x","y"})',
+            "SetEntityPlayerCollision": 'NewFunctionType([]Type{&RawEntityType{},NewBasicType(ast.Number),&RawEntityType{}}, []Type{},[]string{"entity","x","other"})',
+            "SetEntityWeaponCollision": 'NewFunctionType([]Type{&RawEntityType{},NewBasicType(ast.Number),NewEnumType("Pewpew","WeaponType")},[]Type{NewBasicType(ast.Bool)},[]string{"entity","x","weapon"})',
         }
 
         if param and self.type is types.Type.CALLBACK:
@@ -173,9 +173,16 @@ class Function(types.Function):
         self.returns = [Value(type) for type in raw["return_types"]]
 
     def generate(self, lib_name: str) -> str:
-        VALUE_TEMPLATE = "NewFunction({params})"
+        VALUE_TEMPLATE = "NewFunction({names}, {params})"
+
+        names = []
+        for param in self.parameters:
+             names.append(f'"{param.name}"')
+        
+        names_str = "[]string{" + ",".join(names) + "}"
 
         value_args = {
+            "names": names_str,
             "params": ",".join(
                 param.generate(lib_name, self.name) for param in self.parameters
             ),
