@@ -14,4 +14,6 @@ var FmathVariables = map[string]string{
 	"Sincos":       "sincos",
 	"Atan2":        "atan2",
 	"Tau":          "tau",
+	"Exp":          "exp",
+	"Ln":           "ln",
 }

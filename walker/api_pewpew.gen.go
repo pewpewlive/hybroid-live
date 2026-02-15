@@ -176,6 +176,9 @@ var PewpewAPI = &Environment{
 			"NewUFO": {
 				Name: "NewUFO", Value: NewFunction(NewFixedPointType(), NewFixedPointType(), NewFixedPointType()).WithReturns(&RawEntityType{}), IsPub: true,
 			},
+			"NewWeaponZone": {
+				Name: "NewWeaponZone", Value: NewFunction(NewFixedPointType(), NewFixedPointType(), NewEnumType("Pewpew", "CannonType"), NewEnumType("Pewpew", "CannonFreq"), NewStructType([]StructField{NewStructField("radius", &FixedVal{}, true), NewStructField("number_of_sides", &NumberVal{}, true)})).WithReturns(&RawEntityType{}), IsPub: true,
+			},
 			"SetRollingCubeWallCollision": {
 				Name: "SetRollingCubeWallCollision", Value: NewFunction(&RawEntityType{}, NewBasicType(ast.Bool)), IsPub: true,
 			},
@@ -288,7 +291,7 @@ var PewpewAPI = &Environment{
 	Classes:       make(map[string]*ClassVal),
 	Entities:      make(map[string]*EntityVal),
 	Enums: map[string]*EnumVal{
-		"EntityType":     NewEnumVal("Pewpew", "EntityType", true, "Asteroid", "YellowBAF", "Inertiac", "Mothership", "MothershipBullet", "RollingCube", "RollingSphere", "UFO", "Wary", "Crowder", "CustomizableEntity", "Ship", "Bomb", "BlueBAF", "RedBAF", "WaryMissile", "UFOBullet", "Spiny", "SuperMothership", "PlayerBullet", "BombExplosion", "PlayerExplosion", "Bonus", "FloatingMessage", "Pointonium", "Kamikaze", "BonusImplosion", "Mace", "PlasmaField"),
+		"EntityType":     NewEnumVal("Pewpew", "EntityType", true, "Asteroid", "YellowBAF", "Inertiac", "Mothership", "MothershipBullet", "RollingCube", "RollingSphere", "UFO", "Wary", "Crowder", "CustomizableEntity", "Ship", "Bomb", "BlueBAF", "RedBAF", "WaryMissile", "UFOBullet", "Spiny", "SuperMothership", "PlayerBullet", "BombExplosion", "PlayerExplosion", "Bonus", "FloatingMessage", "Pointonium", "Kamikaze", "BonusImplosion", "Mace", "PlasmaField", "Laserbeam", "Exploder", "ExploderExplosion", "WeaponZone"),
 		"MothershipType": NewEnumVal("Pewpew", "MothershipType", true, "Triangle", "Square", "Pentagon", "Hexagon", "Heptagon"),
 		"CannonType":     NewEnumVal("Pewpew", "CannonType", true, "Single", "TicToc", "Double", "Triple", "FourDirections", "DoubleSwipe", "Hemisphere", "Shotgun", "Laser"),
 		"CannonFreq":     NewEnumVal("Pewpew", "CannonFreq", true, "Freq30", "Freq15", "Freq10", "Freq7_5", "Freq6", "Freq5", "Freq3", "Freq2", "Freq1"),
