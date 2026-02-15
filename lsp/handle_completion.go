@@ -54,6 +54,19 @@ func (h *langHandler) completion(file *File, w *walker.Walker, params *Completio
 		return h.namespaceCompletion(namespace, w, eval, params.TextDocument.URI)
 	}
 
+	// 1.5. Check for 'env <name> as ' context -> suggest environment types
+	if isEnvAsContext(file.Text, params.Position) {
+		envTypes := []string{"Level", "Shared", "Mesh", "Sound"}
+		for _, et := range envTypes {
+			items = append(items, CompletionItem{
+				Label:  et,
+				Kind:   KeywordCompletion,
+				Detail: "environment type",
+			})
+		}
+		return items, nil
+	}
+
 	// 2. Local Scope and Current File Symbols
 	if w != nil {
 		line := params.Position.Line + 1
@@ -433,4 +446,22 @@ func getWordBefore(text string, line, character int) string {
 	}
 
 	return l[start:end]
+}
+
+// isEnvAsContext checks if the cursor is positioned after 'env <name> as '
+// to provide environment type completions.
+func isEnvAsContext(text string, pos Position) bool {
+	text = strings.ReplaceAll(text, "\r\n", "\n")
+	lines := strings.Split(text, "\n")
+	if pos.Line < 0 || pos.Line >= len(lines) {
+		return false
+	}
+	line := lines[pos.Line]
+	before := strings.TrimSpace(line[:min(pos.Character, len(line))])
+	// Match pattern: "env <identifier> as" (with optional partial word after)
+	parts := strings.Fields(before)
+	if len(parts) >= 3 && parts[0] == "env" && parts[2] == "as" {
+		return true
+	}
+	return false
 }
