@@ -65,14 +65,14 @@ var BuiltinEnv = &Environment{
 		Variables: map[string]*VariableVal{
 			"ToString": {
 				Name:    "ToString",
-				Value:   NewFunction(NewBasicType(ast.Object)).WithReturns(NewBasicType(ast.Text)),
+				Value:   NewFunction([]string{"obj"}, NewBasicType(ast.Object)).WithReturns(NewBasicType(ast.Text)),
 				IsUsed:  false,
 				IsConst: true,
 				IsPub:   true,
 			},
 			"ParseSound": {
 				Name:    "ParseSound",
-				Value:   NewFunction(NewBasicType(ast.Text)).WithReturns(SoundType),
+				Value:   NewFunction([]string{"json"}, NewBasicType(ast.Text)).WithReturns(SoundType),
 				IsConst: true,
 				IsPub:   true,
 			},

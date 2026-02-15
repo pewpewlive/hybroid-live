@@ -772,6 +772,10 @@ func isNumerical(pvt ast.PrimitiveValueType) bool {
 	return pvt == ast.Number || pvt == ast.Fixed
 }
 
+func init() {
+	SetupLibraryEnvironments()
+}
+
 func SetupLibraryEnvironments() {
 	PewpewAPI.Scope.Environment = PewpewAPI
 	FmathAPI.Scope.Environment = FmathAPI

@@ -143,7 +143,11 @@ func (h *langHandler) handleTextDocumentSignatureHelp(_ context.Context, _ *json
 	labels := make([]string, len(fnVal.Params))
 	paramsInfo := make([]ParameterInformation, len(fnVal.Params))
 	for i, p := range fnVal.Params {
-		labels[i] = fmt.Sprintf("param%d: %s", i+1, p.String())
+		if i < len(fnVal.ParamNames) && fnVal.ParamNames[i] != "" {
+			labels[i] = fmt.Sprintf("%s %s", p.String(), fnVal.ParamNames[i])
+		} else {
+			labels[i] = fmt.Sprintf("param%d: %s", i+1, p.String())
+		}
 		paramsInfo[i] = ParameterInformation{
 			Label: labels[i],
 		}
