@@ -64,6 +64,7 @@ func (h *langHandler) analyzeAndPublish(ctx context.Context, conn *jsonrpc2.Conn
 
 	h.mu.Lock()
 	eval := h.eval
+	file := h.files[uri]
 	h.mu.Unlock()
 
 	if eval == nil {
@@ -75,6 +76,7 @@ func (h *langHandler) analyzeAndPublish(ctx context.Context, conn *jsonrpc2.Conn
 	if err != nil {
 		relPath = path
 	}
+	relPath = filepath.ToSlash(filepath.Clean(relPath))
 	eval.UpdateFileContent(relPath, text)
 
 	// 2. Run project-wide analysis
@@ -84,6 +86,10 @@ func (h *langHandler) analyzeAndPublish(ctx context.Context, conn *jsonrpc2.Conn
 	params := PublishDiagnosticsParams{
 		URI:         uri,
 		Diagnostics: alertsToDiagnostics(uri, eval.GetAlerts(relPath)),
+	}
+	if file != nil {
+		version := file.Version
+		params.Version = &version
 	}
 
 	conn.Notify(ctx, "textDocument/publishDiagnostics", params)
