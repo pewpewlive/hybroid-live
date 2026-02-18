@@ -20,6 +20,7 @@ type Evaluator struct {
 	walkerList []*walker.Walker
 	files      []core.FileInformation
 	programs   map[string][]ast.Node
+	parseAlerts map[string][]alerts.Alert
 	printer    alerts.Printer
 }
 
@@ -29,6 +30,7 @@ func NewEvaluator(files []core.FileInformation) *Evaluator {
 		walkerList: make([]*walker.Walker, 0),
 		files:      files,
 		programs:   make(map[string][]ast.Node),
+		parseAlerts: make(map[string][]alerts.Alert),
 		printer:    alerts.NewPrinter(),
 	}
 
@@ -48,7 +50,36 @@ func NewEvaluator(files []core.FileInformation) *Evaluator {
 }
 
 func (e *Evaluator) GetAlerts(sourcePath string) []alerts.Alert {
-	return e.printer.GetAlerts(sourcePath)
+	return e.printer.GetAlerts(e.canonicalPath(sourcePath))
+}
+
+func (e *Evaluator) canonicalPath(path string) string {
+	path = filepath.ToSlash(filepath.Clean(path))
+	for _, file := range e.files {
+		sourcePath := filepath.ToSlash(filepath.Clean(file.Path()))
+		if sourcePath == path {
+			return sourcePath
+		}
+	}
+
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return path
+	}
+	absPath = filepath.ToSlash(filepath.Clean(absPath))
+
+	for _, file := range e.files {
+		sourcePath := filepath.ToSlash(filepath.Clean(file.Path()))
+		fileAbs, err := filepath.Abs(sourcePath)
+		if err != nil {
+			continue
+		}
+		if filepath.ToSlash(filepath.Clean(fileAbs)) == absPath {
+			return sourcePath
+		}
+	}
+
+	return path
 }
 
 // ParseAll reads and parses all files in the evaluator's list from disk.
@@ -64,14 +95,19 @@ func (e *Evaluator) ParseAll(cwd string) error {
 		tokens, tokenizeErr := lex.Tokenize()
 		sourceFile.Close()
 
-		e.printer.StageAlerts(sourcePath, lex.GetAlerts())
+		fileAlerts := make([]alerts.Alert, 0)
+		fileAlerts = append(fileAlerts, lex.GetAlerts()...)
 		if tokenizeErr != nil {
+			e.parseAlerts[sourcePath] = fileAlerts
+			e.printer.StageAlerts(sourcePath, fileAlerts)
 			continue
 		}
 
 		p := parser.NewParser(tokens)
 		program := p.Parse()
-		e.printer.StageAlerts(sourcePath, p.GetAlerts())
+		fileAlerts = append(fileAlerts, p.GetAlerts()...)
+		e.parseAlerts[sourcePath] = fileAlerts
+		e.printer.StageAlerts(sourcePath, fileAlerts)
 
 		w.SetProgram(program)
 		e.programs[sourcePath] = program
@@ -83,6 +119,13 @@ func (e *Evaluator) ParseAll(cwd string) error {
 func (e *Evaluator) RunAnalysis() {
 	walker.SetupLibraryEnvironments()
 	e.printer = alerts.NewPrinter() // Clear previous alerts
+
+	for _, file := range e.files {
+		sourcePath := file.Path()
+		if parseAlerts, ok := e.parseAlerts[sourcePath]; ok {
+			e.printer.StageAlerts(sourcePath, parseAlerts)
+		}
+	}
 
 	// Pass 0: Reset all walkers and rebuild the mapping from absolute paths
 	// This clears any stale environment names from previous runs.
@@ -128,12 +171,6 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 		return err
 	}
 
-	// Check for errors before walking
-	if e.hasErrors() {
-		e.printer.PrintAlerts()
-		return nil
-	}
-
 	e.RunAnalysis()
 
 	if e.hasErrors() {
@@ -158,8 +195,10 @@ func (e *Evaluator) hasErrors() bool {
 // EmitLua handles the Lua code generation and file writing.
 func (e *Evaluator) EmitLua(cwd, outputDir string) error {
 	outputPath := filepath.Join(cwd, outputDir)
-	if stat, err := os.Lstat(outputPath); err == nil && stat.IsDir() {
-		os.RemoveAll(outputPath)
+	if outputDir != "" {
+		if stat, err := os.Lstat(outputPath); err == nil && stat.IsDir() {
+			os.RemoveAll(outputPath)
+		}
 	}
 
 	gen := generator.NewGenerator()
@@ -203,16 +242,22 @@ func (e *Evaluator) EmitLua(cwd, outputDir string) error {
 
 // UpdateFileContent parses a specific file from a string (in-memory) instead of disk.
 func (e *Evaluator) UpdateFileContent(path string, content string) error {
+	path = e.canonicalPath(path)
 	lex := lexer.NewLexer(strings.NewReader(content))
 	tokens, tokenizeErr := lex.Tokenize()
-	e.printer.StageAlerts(path, lex.GetAlerts())
+	fileAlerts := make([]alerts.Alert, 0)
+	fileAlerts = append(fileAlerts, lex.GetAlerts()...)
+	e.parseAlerts[path] = fileAlerts
+	e.printer.StageAlerts(path, fileAlerts)
 	if tokenizeErr != nil {
 		return tokenizeErr
 	}
 
 	p := parser.NewParser(tokens)
 	program := p.Parse()
-	e.printer.StageAlerts(path, p.GetAlerts())
+	fileAlerts = append(fileAlerts, p.GetAlerts()...)
+	e.parseAlerts[path] = fileAlerts
+	e.printer.StageAlerts(path, fileAlerts)
 
 	// Find the walker for this path
 	abs, _ := filepath.Abs(path)

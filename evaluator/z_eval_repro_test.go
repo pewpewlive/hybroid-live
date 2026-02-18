@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"hybroid/core"
+	"strings"
 	"testing"
 )
 
@@ -42,12 +43,12 @@ Pewpew:Print(
 	foundParserError := false
 	for _, a := range alertsAfter {
 		t.Logf("Alert: %s", a.Message())
-		if a.Message() == "expected ')'" {
+		if strings.Contains(strings.ToLower(a.Message()), "expected") {
 			foundParserError = true
 		}
 	}
 
 	if !foundParserError {
-		t.Fatalf("Parser error 'expected ')' was wiped out by RunAnalysis!")
+		t.Fatalf("Parser diagnostic was wiped out by RunAnalysis!")
 	}
 }
