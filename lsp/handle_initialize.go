@@ -62,6 +62,7 @@ func (h *langHandler) handleInitialize(_ context.Context, conn *jsonrpc2.Conn, r
 			DocumentSymbolProvider:     hasSymbolCommand,
 			DefinitionProvider:         true,
 			ReferencesProvider:         true,
+			RenameProvider:             true,
 			CompletionProvider:         completion,
 			SignatureHelpProvider: &SignatureHelpProvider{
 				TriggerCharacters: []string{"(", ","},

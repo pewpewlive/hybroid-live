@@ -86,7 +86,7 @@ func (h *langHandler) handleTextDocumentSignatureHelp(_ context.Context, _ *json
 					env = walker.TableAPI
 				}
 
-				if env == nil && eval != nil {
+				if env == nil {
 					if w2, ok := eval.Walkers()[ns]; ok {
 						env = w2.Env()
 					}
@@ -105,7 +105,7 @@ func (h *langHandler) handleTextDocumentSignatureHelp(_ context.Context, _ *json
 			}
 
 			// Check current walker's context if available
-			if fnVal == nil && w != nil {
+			if fnVal == nil {
 				env := w.Env()
 
 				// 1. Check imports (ThroughUse)
