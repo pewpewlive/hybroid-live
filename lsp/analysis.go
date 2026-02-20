@@ -1,6 +1,7 @@
 package lsp
 
 import (
+	"fmt"
 	"hybroid/alerts"
 	"hybroid/lexer"
 	"hybroid/parser"
@@ -98,7 +99,7 @@ func alertsToDiagnostics(uri DocumentURI, alertsList []alerts.Alert) []Diagnosti
 					Character: endTok.Location.Column.End - 1,
 				},
 			},
-			Message: alert.Message(),
+			Message: fmt.Sprintf("[%s] %s", alert.ID(), alert.Message()),
 			Severity: func() int {
 				if alert.AlertType() == alerts.Error {
 					return 1 // Error

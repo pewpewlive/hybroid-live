@@ -47,11 +47,11 @@ func (h *langHandler) completion(file *File, w *walker.Walker, params *Completio
 	h.mu.Unlock()
 
 	// 1. Get Context (Namespace and partial word)
-	namespace, _ := h.getNamespaceContext(file.Text, params.Position)
+	namespace, _, operator := h.getNamespaceContext(file.Text, params.Position)
 
 	if namespace != "" {
 		// Namespace-specific completion
-		return h.namespaceCompletion(namespace, w, eval, params.TextDocument.URI)
+		return h.namespaceCompletion(namespace, operator, w, eval, params.TextDocument.URI)
 	}
 
 	// 1.5. Check for 'env <name> as ' context -> suggest environment types
@@ -197,6 +197,39 @@ func (h *langHandler) completion(file *File, w *walker.Walker, params *Completio
 						seen[name] = true
 					}
 				}
+				for name, ev := range libEnv.Enums {
+					if !seen[name] {
+						items = append(items, CompletionItem{
+							Label:  name,
+							Kind:   EnumCompletion,
+							Detail: "enum " + ev.Type.Name,
+							Data:   params.TextDocument.URI,
+						})
+						seen[name] = true
+					}
+				}
+				for name, cv := range libEnv.Classes {
+					if !seen[name] {
+						items = append(items, CompletionItem{
+							Label:  name,
+							Kind:   ClassCompletion,
+							Detail: "class " + cv.Type.Name,
+							Data:   params.TextDocument.URI,
+						})
+						seen[name] = true
+					}
+				}
+				for name, εν := range libEnv.Entities {
+					if !seen[name] {
+						items = append(items, CompletionItem{
+							Label:  name,
+							Kind:   ClassCompletion,
+							Detail: "entity " + εν.Type.Name,
+							Data:   params.TextDocument.URI,
+						})
+						seen[name] = true
+					}
+				}
 			}
 		}
 	}
@@ -284,20 +317,20 @@ func (h *langHandler) completion(file *File, w *walker.Walker, params *Completio
 	return items, nil
 }
 
-func (h *langHandler) getNamespaceContext(text string, pos Position) (string, string) {
+func (h *langHandler) getNamespaceContext(text string, pos Position) (string, string, string) {
 	text = strings.ReplaceAll(text, "\r\n", "\n")
 	lines := strings.Split(text, "\n")
 	if pos.Line < 0 || pos.Line >= len(lines) {
-		return "", ""
+		return "", "", ""
 	}
 	line := lines[pos.Line]
 
 	// If at the very start of a line, no namespace
 	if pos.Character <= 0 {
-		return "", ""
+		return "", "", ""
 	}
 
-	// Search backwards for : starting from the character BEFORE the cursor
+	// Search backwards for : or . starting from the character BEFORE the cursor
 	// because at Namespace:| the character at pos.Character might be space or newline
 	curr := pos.Character
 	if curr > len(line) {
@@ -311,57 +344,133 @@ func (h *langHandler) getNamespaceContext(text string, pos Position) (string, st
 		wordStart--
 	}
 
-	// Now check if the character before wordStart is ':'
-	if wordStart > 0 && line[wordStart-1] == ':' {
+	// Now check if the character before wordStart is ':' or '.'
+	if wordStart > 0 && (line[wordStart-1] == ':' || line[wordStart-1] == '.') {
+		operator := string(line[wordStart-1])
 		nsEnd := wordStart - 1
 		nsStart := nsEnd
-		for nsStart > 0 && isWordChar(rune(line[nsStart-1])) {
+		for nsStart > 0 && (isWordChar(rune(line[nsStart-1])) || line[nsStart-1] == ':') {
 			nsStart--
 		}
 		if nsStart < nsEnd {
 			namespace := line[nsStart:nsEnd]
 			partial := line[wordStart:curr]
-			return namespace, partial
+			return namespace, partial, operator
 		}
 	}
 
-	return "", ""
+	return "", "", ""
 }
 
 func isWordChar(r rune) bool {
 	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_'
 }
 
-func (h *langHandler) namespaceCompletion(namespace string, w *walker.Walker, eval *evaluator.Evaluator, uri DocumentURI) ([]CompletionItem, error) {
+func (h *langHandler) namespaceCompletion(namespace string, operator string, w *walker.Walker, eval *evaluator.Evaluator, uri DocumentURI) ([]CompletionItem, error) {
 	items := make([]CompletionItem, 0)
 
 	var targetEnv *walker.Environment
+	envName := namespace
+	enumName := namespace
 
-	// Check builtins
-	switch namespace {
-	case "Pewpew":
-		targetEnv = walker.PewpewAPI
-	case "Fmath":
-		targetEnv = walker.FmathAPI
-	case "Math":
-		targetEnv = walker.MathAPI
-	case "String":
-		targetEnv = walker.StringAPI
-	case "Table":
-		targetEnv = walker.TableAPI
-	default:
-		// Check custom environments
-		if eval != nil {
-			if w2, ok := eval.Walkers()[namespace]; ok {
-				targetEnv = w2.Env()
+	if strings.Contains(namespace, ":") {
+		parts := strings.Split(namespace, ":")
+		envName = parts[0]
+		enumName = parts[len(parts)-1]
+	}
+
+	if operator == ":" || strings.Contains(namespace, ":") {
+		// Check builtins
+		switch envName {
+		case "Pewpew":
+			targetEnv = walker.PewpewAPI
+		case "Fmath":
+			targetEnv = walker.FmathAPI
+		case "Math":
+			targetEnv = walker.MathAPI
+		case "String":
+			targetEnv = walker.StringAPI
+		case "Table":
+			targetEnv = walker.TableAPI
+		default:
+			// Check custom environments
+			if eval != nil {
+				if w2, ok := eval.Walkers()[envName]; ok {
+					targetEnv = w2.Env()
+				}
 			}
 		}
 	}
 
-	if targetEnv == nil {
-		// Maybe it's a variable or enum in scope?
-		// But usually : is for namespaces or enums.
+	if targetEnv == nil && operator == "." {
+		var foundEnum *walker.EnumVal
+		// Search w.Env().Enums for it
+		if w != nil {
+			if ev, ok := w.Env().Enums[enumName]; ok {
+				foundEnum = ev
+			} else {
+				// Check imports via 'use'
+				for _, imp := range w.Env().Imports() {
+					if imp.ThroughUse {
+						if ev, ok := imp.Env().Enums[enumName]; ok && ev.IsPub {
+							foundEnum = ev
+							break
+						}
+					}
+				}
+				// Check explicitly imported builtin libraries if not found
+				if foundEnum == nil {
+					for _, lib := range w.Env().ImportedLibraries {
+						var libEnv *walker.Environment
+						switch lib {
+						case ast.Pewpew:
+							libEnv = walker.PewpewAPI
+						case ast.Fmath:
+							libEnv = walker.FmathAPI
+						case ast.Math:
+							libEnv = walker.MathAPI
+						case ast.String:
+							libEnv = walker.StringAPI
+						case ast.Table:
+							libEnv = walker.TableAPI
+						}
+						if libEnv != nil {
+							if ev, ok := libEnv.Enums[enumName]; ok { // Builtin enums act as pub
+								foundEnum = ev
+								break
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if foundEnum != nil {
+			for name := range foundEnum.Fields {
+				items = append(items, CompletionItem{
+					Label:  name,
+					Kind:   FieldCompletion,
+					Detail: "enum field",
+					Data:   uri,
+				})
+			}
+			return items, nil
+		}
 		return items, nil
+	}
+
+	if targetEnv != nil && operator == "." {
+		if ev, ok := targetEnv.Enums[enumName]; ok {
+			for name := range ev.Fields {
+				items = append(items, CompletionItem{
+					Label:  name,
+					Kind:   FieldCompletion,
+					Detail: "enum field",
+					Data:   uri,
+				})
+			}
+			return items, nil
+		}
 	}
 
 	// Add symbols from target environment

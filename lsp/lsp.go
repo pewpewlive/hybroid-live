@@ -79,6 +79,7 @@ type ServerCapabilities struct {
 	SignatureHelpProvider      *SignatureHelpProvider       `json:"signatureHelpProvider,omitempty"`
 	DefinitionProvider         bool                         `json:"definitionProvider,omitempty"`
 	ReferencesProvider         bool                         `json:"referencesProvider,omitempty"`
+	RenameProvider             bool                         `json:"renameProvider,omitempty"`
 	DocumentFormattingProvider bool                         `json:"documentFormattingProvider,omitempty"`
 	RangeFormattingProvider    bool                         `json:"documentRangeFormattingProvider,omitempty"`
 	HoverProvider              bool                         `json:"hoverProvider,omitempty"`
@@ -185,6 +186,12 @@ type CompletionContext struct {
 // HoverParams is
 type HoverParams struct {
 	TextDocumentPositionParams
+}
+
+// RenameParams is
+type RenameParams struct {
+	TextDocumentPositionParams
+	NewName string `json:"newName"`
 }
 
 // Location is
@@ -318,8 +325,8 @@ type Command struct {
 
 // WorkspaceEdit is
 type WorkspaceEdit struct {
-	Changes         any `json:"changes"`         // { [uri: DocumentUri]: TextEdit[]; };
-	DocumentChanges any `json:"documentChanges"` // (TextDocumentEdit[] | (TextDocumentEdit | CreateFile | RenameFile | DeleteFile)[]);
+	Changes         map[DocumentURI][]TextEdit `json:"changes,omitempty"`         // { [uri: DocumentUri]: TextEdit[]; };
+	DocumentChanges any                        `json:"documentChanges,omitempty"` // (TextDocumentEdit[] | (TextDocumentEdit | CreateFile | RenameFile | DeleteFile)[]);
 }
 
 // CodeAction is

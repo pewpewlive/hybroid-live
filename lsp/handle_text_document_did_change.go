@@ -64,7 +64,6 @@ func (h *langHandler) analyzeAndPublish(ctx context.Context, conn *jsonrpc2.Conn
 
 	h.mu.Lock()
 	eval := h.eval
-	file := h.files[uri]
 	h.mu.Unlock()
 
 	if eval == nil {
@@ -82,15 +81,35 @@ func (h *langHandler) analyzeAndPublish(ctx context.Context, conn *jsonrpc2.Conn
 	// 2. Run project-wide analysis
 	eval.RunAnalysis()
 
-	// 3. Publish Diagnostics
-	params := PublishDiagnosticsParams{
-		URI:         uri,
-		Diagnostics: alertsToDiagnostics(uri, eval.GetAlerts(relPath)),
+	// 3. Publish Diagnostics for all tracked files
+	h.mu.Lock()
+	var openFiles []struct {
+		URI     DocumentURI
+		Version int
 	}
-	if file != nil {
-		version := file.Version
-		params.Version = &version
+	for u, f := range h.files {
+		openFiles = append(openFiles, struct {
+			URI     DocumentURI
+			Version int
+		}{u, f.Version})
 	}
+	h.mu.Unlock()
 
-	conn.Notify(ctx, "textDocument/publishDiagnostics", params)
+	for _, info := range openFiles {
+		p, _ := fromURI(info.URI)
+		rPath, err := filepath.Rel(h.rootPath, p)
+		if err != nil {
+			rPath = p
+		}
+		rPath = filepath.ToSlash(filepath.Clean(rPath))
+
+		params := PublishDiagnosticsParams{
+			URI:         info.URI,
+			Diagnostics: alertsToDiagnostics(info.URI, eval.GetAlerts(rPath)),
+		}
+		version := info.Version
+		params.Version = &version
+
+		conn.Notify(ctx, "textDocument/publishDiagnostics", params)
+	}
 }

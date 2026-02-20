@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"hybroid/alerts"
 	"hybroid/ast"
-	"hybroid/generator/mapping"
 	"hybroid/tokens"
 	"reflect"
 	"strconv"
@@ -704,8 +703,8 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 	// check if we got an enum variant and convert that to its constant value
 	if enumVal, ok := val.(*VariableVal).Value.(*EnumFieldVal); ok && isEnum {
 		if enumVal.Type.EnvName == "Pewpew" {
-			ident := node.Accessed[0].(*ast.FieldExpr).Field.(*ast.IdentifierExpr)
-			ident.Name.Lexeme = mapping.PewpewEnums[enumVal.Type.Name][ident.Name.Lexeme]
+			// DO NOT mutate the AST Identifier so it survives LSP didChange validations.
+			// Generator will map to Lua's `pewpew.XYZ.ENUM_FIELD` properly.
 			return val
 		}
 		*_node = &ast.LiteralExpr{
