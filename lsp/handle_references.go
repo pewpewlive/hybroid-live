@@ -44,7 +44,7 @@ func (h *langHandler) handleTextDocumentReferences(_ context.Context, _ *jsonrpc
 	}
 
 	path, _ := fromURI(params.TextDocument.URI)
-	relPath, _ := filepath.Rel(h.rootPath, path)
+	relPath := getRelPath(h.rootPath, path)
 	w := eval.AnalyzeFile(relPath)
 	if w == nil {
 		return nil, nil
@@ -55,7 +55,12 @@ func (h *langHandler) handleTextDocumentReferences(_ context.Context, _ *jsonrpc
 		return nil, nil
 	}
 
-	locations := h.findReferences(w, eval.Walkers(), eval.WalkerList(), word, params.Position.Line+1, params.Position.Character+1, params.Context.IncludeDeclaration)
+	rootDir := h.rootPath
+	if rootDir == "" {
+		rootDir = filepath.Dir(path)
+	}
+
+	locations := h.findReferences(w, eval.Walkers(), eval.WalkerList(), word, params.Position.Line+1, params.Position.Character+1, params.Context.IncludeDeclaration, rootDir)
 	if len(locations) == 0 {
 		return nil, nil
 	}
@@ -63,7 +68,7 @@ func (h *langHandler) handleTextDocumentReferences(_ context.Context, _ *jsonrpc
 	return locations, nil
 }
 
-func (h *langHandler) findReferences(w *walker.Walker, walkers map[string]*walker.Walker, walkerList []*walker.Walker, label string, line, col int, includeDecl bool) []Location {
+func (h *langHandler) findReferences(w *walker.Walker, walkers map[string]*walker.Walker, walkerList []*walker.Walker, label string, line, col int, includeDecl bool, rootPath string) []Location {
 	var locations []Location
 
 	// absHybPath resolves a relative HybroidPath to an absolute path for URI generation
@@ -71,7 +76,7 @@ func (h *langHandler) findReferences(w *walker.Walker, walkers map[string]*walke
 		if filepath.IsAbs(hybPath) {
 			return hybPath
 		}
-		return filepath.Join(h.rootPath, hybPath)
+		return filepath.Join(rootPath, hybPath)
 	}
 
 	// Check if the label is an environment name first
@@ -87,7 +92,7 @@ func (h *langHandler) findReferences(w *walker.Walker, walkers map[string]*walke
 			}
 		}
 		if includeDecl {
-			declLoc := h.resolveDefinition(w, walkers, label, line, col, h.rootPath)
+			declLoc := h.resolveDefinition(w, walkers, label, line, col, rootPath)
 			if declLoc != (Location{}) {
 				locations = append([]Location{declLoc}, locations...)
 			}
@@ -127,11 +132,32 @@ func (h *langHandler) findReferences(w *walker.Walker, walkers map[string]*walke
 			}
 		}
 
+		// Check current walker's top-level enums, entities, classes
+		if defEnvName == "" && w != nil {
+			env := w.Env()
+			if _, ok := env.Enums[label]; ok {
+				defEnvName = env.Name
+			} else if _, ok := env.Entities[label]; ok {
+				defEnvName = env.Name
+			} else if _, ok := env.Classes[label]; ok {
+				defEnvName = env.Name
+			}
+		}
+
 		// Check ThroughUse imports
 		if defEnvName == "" && w != nil {
 			for _, imp := range w.Env().Imports() {
 				if imp.ThroughUse {
 					if v, ok := imp.Env().Scope.Variables[label]; ok && v.IsPub {
+						defEnvName = imp.Env().Name
+						break
+					} else if ev, ok := imp.Env().Enums[label]; ok && ev.IsPub {
+						defEnvName = imp.Env().Name
+						break
+					} else if ev, ok := imp.Env().Entities[label]; ok && ev.IsPub {
+						defEnvName = imp.Env().Name
+						break
+					} else if cv, ok := imp.Env().Classes[label]; ok && cv.IsPub {
 						defEnvName = imp.Env().Name
 						break
 					}
@@ -145,6 +171,15 @@ func (h *langHandler) findReferences(w *walker.Walker, walkers map[string]*walke
 				libEnv := walker.BuiltinLibraries[lib]
 				if libEnv != nil {
 					if _, ok := libEnv.Scope.Variables[label]; ok {
+						defEnvName = libEnv.Name
+						break
+					} else if _, ok := libEnv.Enums[label]; ok {
+						defEnvName = libEnv.Name
+						break
+					} else if _, ok := libEnv.Entities[label]; ok {
+						defEnvName = libEnv.Name
+						break
+					} else if _, ok := libEnv.Classes[label]; ok {
 						defEnvName = libEnv.Name
 						break
 					}
@@ -173,7 +208,7 @@ func (h *langHandler) findReferences(w *walker.Walker, walkers map[string]*walke
 
 	// Optionally include the declaration itself
 	if includeDecl {
-		declLoc := h.resolveDefinition(w, walkers, label, line, col, h.rootPath)
+		declLoc := h.resolveDefinition(w, walkers, label, line, col, rootPath)
 		if declLoc != (Location{}) {
 			locations = append([]Location{declLoc}, locations...)
 		}

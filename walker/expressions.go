@@ -1049,6 +1049,7 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 		if val, ok := scope.Environment.Enums[typeName]; ok {
 			val.Type.IsUsed = true
 			typ = val.Type
+			w.AddReference(scope.Environment.Name, typeName, typee.Name.GetToken())
 			w.checkAccessibility(scope, val.IsPub, typee.Name.GetToken())
 			break
 		}
@@ -1057,6 +1058,7 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 			val := CopyEntityVal(entityVal)
 			typ = &val.Type
 			w.FillGenericsInNamedType(&val.Type, typee, scope)
+			w.AddReference(scope.Environment.Name, typeName, typee.Name.GetToken())
 			w.checkAccessibility(scope, val.IsPub, typee.Name.GetToken())
 			break
 		}
@@ -1065,12 +1067,14 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 			val := CopyClassVal(classVal)
 			typ = &val.Type
 			w.FillGenericsInNamedType(&val.Type, typee, scope)
+			w.AddReference(scope.Environment.Name, typeName, typee.Name.GetToken())
 			w.checkAccessibility(scope, val.IsPub, typee.Name.GetToken())
 			break
 		}
 		if aliasType, found := scope.resolveAlias(typeName); found {
 			aliasType.IsUsed = true
 			typ = aliasType.UnderlyingType
+			w.AddReference(scope.Environment.Name, typeName, typee.Name.GetToken())
 			w.checkAccessibility(scope, aliasType.IsPub, typee.Name.GetToken())
 			break
 		}

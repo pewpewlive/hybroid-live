@@ -95,6 +95,9 @@ func getSymbolMetadata(w *walker.Walker, walkers map[string]*walker.Walker, labe
 	if d, ok := environmentDocs[label]; ok {
 		return "Environment", d
 	}
+	if w2, ok := walkers[label]; ok && w2.Env() != nil && w2.Env().Name == label {
+		return string(w2.Env().Type), ""
+	}
 	if d, ok := namespaceDocs[label]; ok {
 		return "Namespace", d
 	}

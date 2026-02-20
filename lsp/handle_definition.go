@@ -34,7 +34,7 @@ func (h *langHandler) handleTextDocumentDefinition(_ context.Context, _ *jsonrpc
 	}
 
 	path, _ := fromURI(params.TextDocument.URI)
-	relPath, _ := filepath.Rel(h.rootPath, path)
+	relPath := getRelPath(h.rootPath, path)
 	w := eval.AnalyzeFile(relPath)
 	if w == nil {
 		return nil, nil
@@ -47,7 +47,11 @@ func (h *langHandler) handleTextDocumentDefinition(_ context.Context, _ *jsonrpc
 	}
 
 	// 2. Resolve the definition
-	loc := h.resolveDefinition(w, eval.Walkers(), word, params.Position.Line+1, params.Position.Character+1, h.rootPath)
+	rootDir := h.rootPath
+	if rootDir == "" {
+		rootDir = filepath.Dir(path)
+	}
+	loc := h.resolveDefinition(w, eval.Walkers(), word, params.Position.Line+1, params.Position.Character+1, rootDir)
 	if loc != (Location{}) {
 		return loc, nil
 	}

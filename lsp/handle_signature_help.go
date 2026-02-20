@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"hybroid/walker"
-	"path/filepath"
 	"strings"
 
 	"github.com/sourcegraph/jsonrpc2"
@@ -35,7 +34,7 @@ func (h *langHandler) handleTextDocumentSignatureHelp(_ context.Context, _ *json
 	}
 
 	path, _ := fromURI(params.TextDocument.URI)
-	relPath, _ := filepath.Rel(h.rootPath, path)
+	relPath := getRelPath(h.rootPath, path)
 	w := eval.AnalyzeFile(relPath)
 	if w == nil {
 		return nil, nil
