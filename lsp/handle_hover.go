@@ -7,7 +7,6 @@ import (
 	"hybroid/core"
 	"hybroid/walker"
 	"math"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -38,7 +37,7 @@ func (h *langHandler) handleTextDocumentHover(_ context.Context, _ *jsonrpc2.Con
 	}
 
 	path, _ := fromURI(params.TextDocument.URI)
-	relPath, _ := filepath.Rel(h.rootPath, path)
+	relPath := getRelPath(h.rootPath, path)
 	w := eval.AnalyzeFile(relPath)
 	if w == nil {
 		return nil, nil

@@ -16,22 +16,22 @@ import (
 
 type Evaluator struct {
 	// walkers map environment names AND absolute paths to walker instances
-	walkers    map[string]*walker.Walker
-	walkerList []*walker.Walker
-	files      []core.FileInformation
-	programs   map[string][]ast.Node
+	walkers     map[string]*walker.Walker
+	walkerList  []*walker.Walker
+	files       []core.FileInformation
+	programs    map[string][]ast.Node
 	parseAlerts map[string][]alerts.Alert
-	printer    alerts.Printer
+	printer     alerts.Printer
 }
 
 func NewEvaluator(files []core.FileInformation) *Evaluator {
 	evaluator := &Evaluator{
-		walkers:    make(map[string]*walker.Walker),
-		walkerList: make([]*walker.Walker, 0),
-		files:      files,
-		programs:   make(map[string][]ast.Node),
+		walkers:     make(map[string]*walker.Walker),
+		walkerList:  make([]*walker.Walker, 0),
+		files:       files,
+		programs:    make(map[string][]ast.Node),
 		parseAlerts: make(map[string][]alerts.Alert),
-		printer:    alerts.NewPrinter(),
+		printer:     alerts.NewPrinter(),
 	}
 
 	for _, file := range evaluator.files {
@@ -41,9 +41,8 @@ func NewEvaluator(files []core.FileInformation) *Evaluator {
 		abs, err := filepath.Abs(file.Path())
 		if err == nil {
 			evaluator.walkers[abs] = w
-		} else {
-			evaluator.walkers[file.Path()] = w
 		}
+		evaluator.walkers[file.Path()] = w
 	}
 
 	return evaluator
@@ -75,6 +74,13 @@ func (e *Evaluator) canonicalPath(path string) string {
 			continue
 		}
 		if filepath.ToSlash(filepath.Clean(fileAbs)) == absPath {
+			return sourcePath
+		}
+	}
+
+	for _, file := range e.files {
+		sourcePath := filepath.ToSlash(filepath.Clean(file.Path()))
+		if filepath.Base(sourcePath) == filepath.Base(absPath) {
 			return sourcePath
 		}
 	}
@@ -135,9 +141,8 @@ func (e *Evaluator) RunAnalysis() {
 		abs, err := filepath.Abs(w.Env().HybroidPath())
 		if err == nil {
 			newWalkers[abs] = w
-		} else {
-			newWalkers[w.Env().HybroidPath()] = w
 		}
+		newWalkers[w.Env().HybroidPath()] = w
 	}
 	e.walkers = newWalkers
 
@@ -284,6 +289,11 @@ func (e *Evaluator) AnalyzeFile(path string) *walker.Walker {
 	// For now, we re-run full project analysis to ensure cross-file consistency.
 	// This can be optimized later to be incremental.
 	e.RunAnalysis()
+
+	canonical := e.canonicalPath(path)
+	if w, ok := e.walkers[canonical]; ok {
+		return w
+	}
 
 	abs, _ := filepath.Abs(path)
 	if w, ok := e.walkers[abs]; ok {

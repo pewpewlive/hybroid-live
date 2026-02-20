@@ -3,7 +3,10 @@ package lsp
 import (
 	"context"
 	"encoding/json"
+	"hybroid/core"
+	"hybroid/evaluator"
 	"path/filepath"
+	"strings"
 
 	"github.com/sourcegraph/jsonrpc2"
 )
@@ -23,6 +26,17 @@ func (h *langHandler) handleTextDocumentDidOpen(ctx context.Context, conn *jsonr
 		LanguageID: params.TextDocument.LanguageID,
 		Text:       params.TextDocument.Text,
 		Version:    params.TextDocument.Version,
+	}
+
+	if h.eval == nil {
+		path, _ := fromURI(params.TextDocument.URI)
+		// Convert to basic path, if no root path we use the raw filename loosely.
+		baseName := filepath.Base(path)
+		h.eval = evaluator.NewEvaluator([]core.FileInformation{{
+			FileName:      strings.TrimSuffix(baseName, filepath.Ext(baseName)),
+			DirectoryPath: ".",
+			FileExtension: filepath.Ext(baseName),
+		}})
 	}
 	h.mu.Unlock()
 
@@ -71,10 +85,7 @@ func (h *langHandler) analyzeAndPublish(ctx context.Context, conn *jsonrpc2.Conn
 	}
 
 	// 1. Update content in memory
-	relPath, err := filepath.Rel(h.rootPath, path)
-	if err != nil {
-		relPath = path
-	}
+	relPath := getRelPath(h.rootPath, path)
 	relPath = filepath.ToSlash(filepath.Clean(relPath))
 	eval.UpdateFileContent(relPath, text)
 
@@ -97,10 +108,7 @@ func (h *langHandler) analyzeAndPublish(ctx context.Context, conn *jsonrpc2.Conn
 
 	for _, info := range openFiles {
 		p, _ := fromURI(info.URI)
-		rPath, err := filepath.Rel(h.rootPath, p)
-		if err != nil {
-			rPath = p
-		}
+		rPath := getRelPath(h.rootPath, p)
 		rPath = filepath.ToSlash(filepath.Clean(rPath))
 
 		params := PublishDiagnosticsParams{
