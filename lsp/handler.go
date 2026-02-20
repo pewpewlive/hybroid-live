@@ -67,6 +67,9 @@ func (h *langHandler) handle(ctx context.Context, conn *jsonrpc2.Conn, req *json
 		return
 	case "shutdown":
 		return h.handleShutdown(ctx, conn, req)
+	case "exit":
+		os.Exit(0)
+		return nil, nil
 	case "textDocument/didOpen":
 		return h.handleTextDocumentDidOpen(ctx, conn, req)
 	case "textDocument/didChange":

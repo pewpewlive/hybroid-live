@@ -2,6 +2,7 @@ package lsp
 
 import (
 	"hybroid/tokens"
+	"path/filepath"
 	"strings"
 )
 
@@ -113,4 +114,18 @@ func toLSPLocation(path string, token tokens.Token) Location {
 			},
 		},
 	}
+}
+
+// getRelPath calculates the relative path from base to targ.
+// If base is empty, or if an error occurs during Rel evaluation,
+// the targ path is safely returned as a fallback to support single-file workspaces.
+func getRelPath(base, targ string) string {
+	if base == "" {
+		return targ
+	}
+	rel, err := filepath.Rel(base, targ)
+	if err != nil {
+		return targ
+	}
+	return rel
 }

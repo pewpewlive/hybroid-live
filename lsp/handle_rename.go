@@ -33,7 +33,7 @@ func (h *langHandler) handleTextDocumentRename(_ context.Context, _ *jsonrpc2.Co
 	}
 
 	path, _ := fromURI(params.TextDocument.URI)
-	relPath, _ := filepath.Rel(h.rootPath, path)
+	relPath := getRelPath(h.rootPath, path)
 	w := eval.AnalyzeFile(relPath)
 	if w == nil {
 		return nil, nil
@@ -49,7 +49,11 @@ func (h *langHandler) handleTextDocumentRename(_ context.Context, _ *jsonrpc2.Co
 		return nil, nil
 	}
 
-	locations := h.findReferences(w, eval.Walkers(), eval.WalkerList(), word, params.Position.Line+1, params.Position.Character+1, true)
+	rootDir := h.rootPath
+	if rootDir == "" {
+		rootDir = filepath.Dir(path)
+	}
+	locations := h.findReferences(w, eval.Walkers(), eval.WalkerList(), word, params.Position.Line+1, params.Position.Character+1, true, rootDir)
 	if len(locations) == 0 {
 		return nil, nil
 	}

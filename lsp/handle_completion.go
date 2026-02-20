@@ -32,7 +32,7 @@ func (h *langHandler) handleTextDocumentCompletion(_ context.Context, _ *jsonrpc
 	}
 
 	path, _ := fromURI(params.TextDocument.URI)
-	relPath, _ := filepath.Rel(h.rootPath, path)
+	relPath := getRelPath(h.rootPath, path)
 	w := eval.AnalyzeFile(relPath)
 
 	return h.completion(file, w, &params)
