@@ -11,9 +11,9 @@ This directory contains the implementation of the Language Server Protocol (LSP)
 
 ## Lifecycle Handlers (`handle_initialize.go`, `handle_shutdown.go`, `init.go`)
 
-- **`Init(debug bool)`**: Sets up the LSP server, configures logging (to `testlogfile.txt` if debug is enabled), and starts the JSON-RPC connection over stdio.
+- **`Init(debug bool)`**: Sets up the LSP server, configures logging (to `hybroid_ls.log.txt` if debug is enabled), and starts the JSON-RPC connection over stdio.
 - **`handleInitialize(ctx, conn, req)`**: Negotiates capabilities with the client (e.g., VS Code), enabling features like Hover, Completion, and Signature Help.
-- **`handleShutdown(ctx, conn, req)`**: Safely closes the server connection and cleans up resources.
+- **`handleShutdown(ctx, conn, req)`**: Gracefully accepts the `shutdown` signal (keeping the socket active via `nil, nil`) allowing the client to subsequently emit the protocol-mandated `exit` event for a safe OS termination.
 
 ## Document Syncing (`handle_text_document_did_change.go`)
 
@@ -24,15 +24,22 @@ This directory contains the implementation of the Language Server Protocol (LSP)
 ## Language Features
 
 ### Hover (`handle_hover.go`, `metadata.go`)
+
 - **`handleTextDocumentHover(ctx, conn, req)`**: Provides tooltips for symbols. It identifies the word under the cursor and looks up metadata from both static documentation and the semantic walker's scope.
 - **`getSymbolMetadata(label string)`**: Look up documentation/types for keywords, builtins, and namespace-qualified symbols (e.g., `Fmath:RandomFixed`).
 
 ### Completion (`handle_completion.go`, `handle_completion_item_resolve.go`)
+
 - **`handleTextDocumentCompletion(ctx, conn, req)`**: Generates a list of suggestions. Includes keywords, native types, namespaces, builtin functions, and variables currently in scope.
 - **`HandleCompletionItemResolve(ctx, conn, req)`**: provides additional details (like documentation) when a user selects a completion item from the list.
 
 ### Signature Help (`handle_signature_help.go`)
+
 - **`handleTextDocumentSignatureHelp(ctx, conn, req)`**: Displays function parameters while typing a call. It parses the context to find the function name and the active parameter index.
+
+### Rename (`handle_rename.go`)
+
+- **`handleTextDocumentRename(ctx, conn, req)`**: Executes workspace-wide identifier refactoring. Uses `findReferences` dynamically passing the `rootDir` override to verify target `DocumentURI` pathways. Generates `WorkspaceEdit` objects containing specific text substitutions. Seamlessly captures structural symbols like `class Rectangle {}` alongside all of their derived expressions like `new Rectangle()` and `spawn ExampleEntity()`, injecting semantic trace references mapping perfectly to both absolute workspace and relative stray-file namespaces.
 
 ## Helpers (`helpers.go`)
 
