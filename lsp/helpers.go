@@ -15,7 +15,7 @@ func isInCommentOrString(text string, line, col int) bool {
 
 	// For comments/strings we might need to look at previous lines for multiline comments.
 	// However, Hybroid multiline comments are /* */ and strings are single-line mostly (lexer alerts on multiline).
-	
+
 	// Check for single line comments and strings first
 	l := lines[line]
 	if col > len(l) {
@@ -24,10 +24,10 @@ func isInCommentOrString(text string, line, col int) bool {
 
 	inString := false
 	inComment := false
-	
+
 	// We need to scan from the start of the file for multiline comments
 	// or at least from a safe point. For now, let's scan the whole text up to the point.
-	
+
 	fullTextBefore := ""
 	for i := 0; i < line; i++ {
 		fullTextBefore += lines[i] + "\n"
@@ -38,18 +38,18 @@ func isInCommentOrString(text string, line, col int) bool {
 	isComment := false
 	isMultilineComment := false
 	isString := false
-	
+
 	runes := []rune(fullTextBefore)
 	for i := 0; i < len(runes); i++ {
 		c := runes[i]
-		
+
 		if isComment {
 			if c == '\n' {
 				isComment = false
 			}
 			continue
 		}
-		
+
 		if isMultilineComment {
 			if c == '*' && i+1 < len(runes) && runes[i+1] == '/' {
 				isMultilineComment = false
@@ -57,7 +57,7 @@ func isInCommentOrString(text string, line, col int) bool {
 			}
 			continue
 		}
-		
+
 		if isString {
 			if c == '\\' && i+1 < len(runes) && runes[i+1] == '"' {
 				i++
@@ -68,7 +68,7 @@ func isInCommentOrString(text string, line, col int) bool {
 			}
 			continue
 		}
-		
+
 		// Not in any special state
 		if c == '/' && i+1 < len(runes) {
 			if runes[i+1] == '/' {
@@ -82,16 +82,16 @@ func isInCommentOrString(text string, line, col int) bool {
 				continue
 			}
 		}
-		
+
 		if c == '"' {
 			isString = true
 			continue
 		}
 	}
-	
+
 	inComment = isComment || isMultilineComment
 	inString = isString
-	
+
 	return inComment || inString
 }
 
@@ -109,7 +109,7 @@ func toLSPLocation(path string, token tokens.Token) Location {
 			},
 			End: Position{
 				Line:      token.Line - 1,
-				Character: token.Column.End,
+				Character: token.Column.End - 1,
 			},
 		},
 	}
