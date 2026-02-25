@@ -76,12 +76,45 @@ type ServerCapabilities struct {
 	TextDocumentSync           TextDocumentSyncKind         `json:"textDocumentSync,omitempty"`
 	DocumentSymbolProvider     bool                         `json:"documentSymbolProvider,omitempty"`
 	CompletionProvider         *CompletionProvider          `json:"completionProvider,omitempty"`
+	SignatureHelpProvider      *SignatureHelpProvider       `json:"signatureHelpProvider,omitempty"`
 	DefinitionProvider         bool                         `json:"definitionProvider,omitempty"`
+	ReferencesProvider         bool                         `json:"referencesProvider,omitempty"`
+	RenameProvider             bool                         `json:"renameProvider,omitempty"`
 	DocumentFormattingProvider bool                         `json:"documentFormattingProvider,omitempty"`
 	RangeFormattingProvider    bool                         `json:"documentRangeFormattingProvider,omitempty"`
 	HoverProvider              bool                         `json:"hoverProvider,omitempty"`
 	CodeActionProvider         bool                         `json:"codeActionProvider,omitempty"`
 	Workspace                  *ServerCapabilitiesWorkspace `json:"workspace,omitempty"`
+}
+
+// SignatureHelpProvider is
+type SignatureHelpProvider struct {
+	TriggerCharacters []string `json:"triggerCharacters,omitempty"`
+}
+
+// SignatureHelp is
+type SignatureHelp struct {
+	Signatures      []SignatureInformation `json:"signatures"`
+	ActiveSignature int                    `json:"activeSignature"`
+	ActiveParameter int                    `json:"activeParameter"`
+}
+
+// SignatureInformation is
+type SignatureInformation struct {
+	Label         string                 `json:"label"`
+	Documentation string                 `json:"documentation,omitempty"`
+	Parameters    []ParameterInformation `json:"parameters,omitempty"`
+}
+
+// ParameterInformation is
+type ParameterInformation struct {
+	Label         string `json:"label"`
+	Documentation string `json:"documentation,omitempty"`
+}
+
+// SignatureHelpParams is
+type SignatureHelpParams struct {
+	TextDocumentPositionParams
 }
 
 // TextDocumentItem is
@@ -141,18 +174,24 @@ type TextDocumentPositionParams struct {
 // CompletionParams is
 type CompletionParams struct {
 	TextDocumentPositionParams
-	CompletionContext CompletionContext `json:"contentChanges"`
+	Context CompletionContext `json:"context,omitempty"`
 }
 
 // CompletionContext is
 type CompletionContext struct {
 	TriggerKind      int     `json:"triggerKind"`
-	TriggerCharacter *string `json:"triggerCharacter"`
+	TriggerCharacter *string `json:"triggerCharacter,omitempty"`
 }
 
 // HoverParams is
 type HoverParams struct {
 	TextDocumentPositionParams
+}
+
+// RenameParams is
+type RenameParams struct {
+	TextDocumentPositionParams
+	NewName string `json:"newName"`
 }
 
 // Location is
@@ -193,7 +232,7 @@ type Diagnostic struct {
 type PublishDiagnosticsParams struct {
 	URI         DocumentURI  `json:"uri"`
 	Diagnostics []Diagnostic `json:"diagnostics"`
-	Version     int          `json:"version"`
+	Version     *int         `json:"version,omitempty"`
 }
 
 // FormattingOptions is
@@ -286,8 +325,8 @@ type Command struct {
 
 // WorkspaceEdit is
 type WorkspaceEdit struct {
-	Changes         any `json:"changes"`         // { [uri: DocumentUri]: TextEdit[]; };
-	DocumentChanges any `json:"documentChanges"` // (TextDocumentEdit[] | (TextDocumentEdit | CreateFile | RenameFile | DeleteFile)[]);
+	Changes         map[DocumentURI][]TextEdit `json:"changes,omitempty"`         // { [uri: DocumentUri]: TextEdit[]; };
+	DocumentChanges any                        `json:"documentChanges,omitempty"` // (TextDocumentEdit[] | (TextDocumentEdit | CreateFile | RenameFile | DeleteFile)[]);
 }
 
 // CodeAction is

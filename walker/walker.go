@@ -13,6 +13,34 @@ type Import struct {
 	ThroughUse bool
 }
 
+type ScopeRange struct {
+	StartLine   int
+	StartColumn int
+	EndLine     int
+	EndColumn   int
+	Scope       *Scope
+}
+
+// Reference records a usage location of a symbol.
+type Reference struct {
+	EnvName string       // environment where the reference occurs
+	Token   tokens.Token // location of the reference
+}
+
+// RefKey creates a unique key for the reference map from an environment name and variable name.
+func RefKey(envName, varName string) string {
+	return envName + ":" + varName
+}
+
+// AddReference records a reference to a variable at the given token location.
+func (w *Walker) AddReference(defEnvName, varName string, refToken tokens.Token) {
+	key := RefKey(defEnvName, varName)
+	w.ReferenceMap[key] = append(w.ReferenceMap[key], Reference{
+		EnvName: w.environment.Name,
+		Token:   refToken,
+	})
+}
+
 type Environment struct {
 	Name        string
 	luaPath     string // dynamic lua path
@@ -21,9 +49,10 @@ type Environment struct {
 
 	Scope Scope
 
-	imports         []Import
-	UsedLibraries   []ast.Library
-	UsedBuiltinVars []string
+	imports           []Import
+	UsedLibraries     []ast.Library
+	ImportedLibraries []ast.Library // Only libraries imported via 'use' statements
+	UsedBuiltinVars   []string
 
 	Classes  map[string]*ClassVal
 	Entities map[string]*EntityVal
@@ -42,12 +71,39 @@ func (w *Walker) AddLibrary(lib ast.Library) bool {
 	return true
 }
 
+// ImportLibrary marks a library as explicitly imported via a 'use' statement.
+// This is separate from AddLibrary which also tracks namespace-accessed libraries.
+func (w *Walker) ImportLibrary(lib ast.Library) {
+	for _, v := range w.environment.ImportedLibraries {
+		if v == lib {
+			return
+		}
+	}
+	w.environment.ImportedLibraries = append(w.environment.ImportedLibraries, lib)
+}
+
 func (e *Environment) AddRequirement(path string) bool {
 	return e._envStmt.AddRequirement(path)
 }
 
 func (e *Environment) Requirements() []string {
 	return e._envStmt.Requirements
+}
+
+func (e *Environment) HybroidPath() string {
+	return e.hybroidPath
+}
+
+func (e *Environment) Imports() []Import {
+	return e.imports
+}
+
+// GetEnvToken returns the env name token from the environment declaration (e.g. "MyHelper" in "env MyHelper as Shared").
+func (e *Environment) GetEnvToken() tokens.Token {
+	if e._envStmt != nil && e._envStmt.Env != nil {
+		return e._envStmt.Env.Path
+	}
+	return tokens.Token{}
 }
 
 func (e *Environment) AddBuiltinVar(name string) {
@@ -66,14 +122,15 @@ func NewEnvironment(hybroidPath, luaPath string) *Environment {
 		ConstValues: make(map[string]ast.Node),
 	}
 	global := &Environment{
-		hybroidPath:   hybroidPath,
-		luaPath:       luaPath,
-		Type:          ast.InvalidEnv,
-		Scope:         scope,
-		UsedLibraries: make([]ast.Library, 0),
-		Classes:       map[string]*ClassVal{},
-		Entities:      map[string]*EntityVal{},
-		Enums:         map[string]*EnumVal{},
+		hybroidPath:       hybroidPath,
+		luaPath:           luaPath,
+		Type:              ast.InvalidEnv,
+		Scope:             scope,
+		UsedLibraries:     make([]ast.Library, 0),
+		ImportedLibraries: make([]ast.Library, 0),
+		Classes:           map[string]*ClassVal{},
+		Entities:          map[string]*EntityVal{},
+		Enums:             map[string]*EnumVal{},
 	}
 
 	global.Scope.Environment = global
@@ -91,6 +148,9 @@ type Walker struct {
 	context      Context
 	Walked       bool
 	ignoreAlerts bool
+
+	ScopeMap     []ScopeRange
+	ReferenceMap map[string][]Reference // key: "envName:varName", value: list of reference locations
 }
 
 func (w *Walker) Alert(alertType alerts.Alert, args ...any) {
@@ -124,12 +184,68 @@ func NewWalker(hybroidPath, luaPath string) *Walker {
 		context: Context{
 			EntityCasts: core.NewQueue[EntityCast]("EntityCasts"),
 		},
-		Collector: alerts.NewCollector(),
+		Collector:    alerts.NewCollector(),
+		ScopeMap:     make([]ScopeRange, 0),
+		ReferenceMap: make(map[string][]Reference),
+		walkers:      make(map[string]*Walker),
 	}
 }
 
-func (w *Walker) Env() Environment {
-	return *w.environment
+func (w *Walker) RegisterScope(scope *Scope, start, end tokens.Token) {
+	w.ScopeMap = append(w.ScopeMap, ScopeRange{
+		StartLine:   start.Line,
+		StartColumn: start.Column.Start,
+		EndLine:     end.Line,
+		EndColumn:   end.Column.End,
+		Scope:       scope,
+	})
+}
+
+func (w *Walker) GetScopeAt(line, column int) *Scope {
+	// Find the most specific scope (smallest range) that contains the position
+	var bestMatch *Scope
+	var bestRange ScopeRange
+
+	// Start with global scope as fallback
+	bestMatch = &w.environment.Scope
+
+	for i, scopeRange := range w.ScopeMap {
+		match := true
+		if line < scopeRange.StartLine || line > scopeRange.EndLine {
+			match = false
+		} else if line == scopeRange.StartLine && column < scopeRange.StartColumn {
+			match = false
+		} else if line == scopeRange.EndLine && column > scopeRange.EndColumn {
+			match = false
+		}
+
+		if match {
+			if bestMatch == &w.environment.Scope {
+				bestMatch = scopeRange.Scope
+				bestRange = scopeRange
+			} else if scopeRange.StartLine >= bestRange.StartLine && scopeRange.EndLine <= bestRange.EndLine {
+				bestMatch = scopeRange.Scope
+				bestRange = scopeRange
+			}
+		}
+		// log.Printf("Range[%d]: %d:%d - %d:%d -> match=%v", i, scopeRange.StartLine, scopeRange.StartColumn, scopeRange.EndLine, scopeRange.EndColumn, match)
+		_ = i // keep index for potentially logging above
+	}
+
+	if bestMatch == &w.environment.Scope {
+		// core.DebugLog("GetScopeAt(%d, %d) returned global scope. Checked %d ranges.", line, column, len(w.ScopeMap))
+		// for i, r := range w.ScopeMap {
+		// 	core.DebugLog("  Range[%d]: %d:%d - %d:%d", i, r.StartLine, r.StartColumn, r.EndLine, r.EndColumn)
+		// }
+	} else {
+		// core.DebugLog("GetScopeAt(%d, %d) found scope at %d:%d - %d:%d", line, column, bestRange.StartLine, bestRange.StartColumn, bestRange.EndLine, bestRange.EndColumn)
+	}
+
+	return bestMatch
+}
+
+func (w *Walker) Env() *Environment {
+	return w.environment
 }
 
 func (w *Walker) SetProgram(program []ast.Node) {
@@ -140,8 +256,36 @@ func (w *Walker) Program() []ast.Node {
 	return w.program
 }
 
+func (w *Walker) Reset() {
+	w.Walked = false
+	w.Collector = alerts.NewCollector()
+	w.ScopeMap = make([]ScopeRange, 0)
+	w.ReferenceMap = make(map[string][]Reference)
+	// Preserve hybroidPath and luaPath, but clear name and other state
+	w.environment.Name = ""
+	w.environment.Type = ast.InvalidEnv
+	w.environment.UsedBuiltinVars = make([]string, 0)
+	w.environment.UsedLibraries = make([]ast.Library, 0)
+	w.environment.ImportedLibraries = make([]ast.Library, 0)
+	w.environment.imports = make([]Import, 0)
+	w.environment.Classes = map[string]*ClassVal{}
+	w.environment.Entities = map[string]*EntityVal{}
+	w.environment.Enums = map[string]*EnumVal{}
+	w.environment.Scope = Scope{
+		Tag:         &UntaggedTag{},
+		Variables:   map[string]*VariableVal{},
+		AliasTypes:  make(map[string]*AliasType),
+		ConstValues: make(map[string]ast.Node),
+		Environment: w.environment,
+	}
+	// Clear requirements on the AST node to avoid stale state on re-analysis
+	if w.environment._envStmt != nil {
+		w.environment._envStmt.Requirements = nil
+	}
+}
+
 func (w *Walker) PreWalk(walkers map[string]*Walker) {
-	if w.walkers == nil && walkers != nil {
+	if walkers != nil {
 		w.walkers = walkers
 	}
 
@@ -365,7 +509,7 @@ func (w *Walker) walkBody(body *ast.Body, tag ExitableTag, scope *Scope) {
 	}
 	for k := range scope.AliasTypes {
 		if !scope.AliasTypes[k].IsUsed {
-			w.AlertSingle(&alerts.UnusedElement{}, scope.Variables[k].Token, "alias type")
+			w.AlertSingle(&alerts.UnusedElement{}, scope.AliasTypes[k].Token, "alias type")
 		}
 	}
 }
@@ -389,4 +533,126 @@ func (w *Walker) TypeifyNodeList(nodes *[]ast.Node, scope *Scope) []Type {
 		}
 	}
 	return arguments
+}
+
+func (w *Walker) GetBodyEndToken(body *ast.Body) tokens.Token {
+	if body.Size() > 0 {
+		return w.GetNodeEndToken(*body.Node(body.Size() - 1))
+	}
+	// Fallback to empty token
+	return tokens.Token{}
+}
+
+func (w *Walker) GetNodeEndToken(node ast.Node) tokens.Token {
+	// Crude implementation: recursively check common node types for the "last" token.
+	// This is not exhaustive but covers blocks.
+	switch n := node.(type) {
+	case *ast.IfStmt:
+		if n.Else != nil {
+			return w.GetNodeEndToken(n.Else)
+		}
+		if len(n.Elseifs) > 0 {
+			return w.GetNodeEndToken(n.Elseifs[len(n.Elseifs)-1])
+		}
+		if tok := w.GetBodyEndToken(&n.Body); (tok != tokens.Token{}) {
+			return tok
+		}
+	case *ast.FunctionDecl:
+		if tok := w.GetBodyEndToken(&n.Body); (tok != tokens.Token{}) {
+			return tok
+		}
+	case *ast.MethodDecl:
+		if tok := w.GetBodyEndToken(&n.Body); (tok != tokens.Token{}) {
+			return tok
+		}
+	case *ast.ForStmt:
+		if tok := w.GetBodyEndToken(&n.Body); (tok != tokens.Token{}) {
+			return tok
+		}
+	case *ast.WhileStmt:
+		if tok := w.GetBodyEndToken(&n.Body); (tok != tokens.Token{}) {
+			return tok
+		}
+	case *ast.RepeatStmt:
+		if tok := w.GetBodyEndToken(&n.Body); (tok != tokens.Token{}) {
+			return tok
+		}
+	case *ast.TickStmt:
+		if tok := w.GetBodyEndToken(&n.Body); (tok != tokens.Token{}) {
+			return tok
+		}
+	case *ast.MatchStmt:
+		if len(n.Cases) > 0 {
+			return w.GetNodeEndToken(n.Cases[len(n.Cases)-1])
+		}
+	case *ast.CaseStmt:
+		if tok := w.GetBodyEndToken(&n.Body); (tok != tokens.Token{}) {
+			return tok
+		}
+	case *ast.VariableDecl:
+		if len(n.Expressions) > 0 {
+			return w.GetNodeEndToken(n.Expressions[len(n.Expressions)-1])
+		}
+	case *ast.ReturnStmt:
+		if len(n.Args) > 0 {
+			return w.GetNodeEndToken(n.Args[len(n.Args)-1])
+		}
+	case *ast.CallExpr:
+		if len(n.Args) > 0 {
+			return w.GetNodeEndToken(n.Args[len(n.Args)-1])
+		}
+		// CallExpr doesn't store RightParen, so we fall back to Caller's token
+		return n.Caller.GetToken()
+	case *ast.ClassDecl:
+		if len(n.Methods) > 0 {
+			return w.GetNodeEndToken(&n.Methods[len(n.Methods)-1])
+		}
+		if len(n.Fields) > 0 {
+			return w.GetNodeEndToken(&n.Fields[len(n.Fields)-1])
+		}
+	case *ast.EntityDecl:
+		if len(n.Methods) > 0 {
+			return w.GetNodeEndToken(&n.Methods[len(n.Methods)-1])
+		}
+		if len(n.Callbacks) > 0 {
+			return w.GetNodeEndToken(n.Callbacks[len(n.Callbacks)-1])
+		}
+		if n.Destroyer != nil {
+			return w.GetNodeEndToken(n.Destroyer)
+		}
+		if n.Spawner != nil {
+			return w.GetNodeEndToken(n.Spawner)
+		}
+	case *ast.EntityFunctionDecl:
+		if tok := w.GetBodyEndToken(&n.Body); (tok != tokens.Token{}) {
+			return tok
+		}
+	case *ast.BinaryExpr:
+		return w.GetNodeEndToken(n.Right)
+	case *ast.UnaryExpr:
+		return w.GetNodeEndToken(n.Value)
+	case *ast.AccessExpr:
+		if len(n.Accessed) > 0 {
+			return w.GetNodeEndToken(n.Accessed[len(n.Accessed)-1])
+		}
+		return w.GetNodeEndToken(n.Start)
+	case *ast.MemberExpr:
+		return w.GetNodeEndToken(n.Member)
+	case *ast.FieldExpr:
+		return w.GetNodeEndToken(n.Field)
+	case *ast.ListExpr:
+		if len(n.List) > 0 {
+			return w.GetNodeEndToken(n.List[len(n.List)-1])
+		}
+	case *ast.MapExpr:
+		if len(n.KeyValueList) > 0 {
+			return w.GetNodeEndToken(n.KeyValueList[len(n.KeyValueList)-1].Expr)
+		}
+	case *ast.StructExpr:
+		if len(n.Expressions) > 0 {
+			return w.GetNodeEndToken(n.Expressions[len(n.Expressions)-1])
+		}
+	}
+	// Fallback to the node's start token if we can't find a better end.
+	return node.GetToken()
 }

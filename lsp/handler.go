@@ -3,8 +3,11 @@ package lsp
 import (
 	"context"
 	"fmt"
+	"hybroid/core"
+	"hybroid/evaluator"
 	"log"
 	"net/url"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -28,10 +31,12 @@ type File struct {
 
 type langHandler struct {
 	mu     sync.Mutex
+	evalMu sync.Mutex
 	logger *log.Logger
 	// commands          []Command
 	provideDefinition bool
 	files             map[DocumentURI]*File
+	eval              *evaluator.Evaluator
 	lintDebounce      time.Duration
 	request           chan lintRequest
 	lintTimer         *time.Timer
@@ -39,6 +44,7 @@ type langHandler struct {
 	formatTimer       *time.Timer
 	conn              *jsonrpc2.Conn
 	rootPath          string
+	rootURI           DocumentURI
 	filename          string
 	folders           []string
 	rootMarkers       []string
@@ -50,17 +56,25 @@ type langHandler struct {
 }
 
 func (h *langHandler) handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) (result any, err error) {
+	core.DebugLog("Incoming request: %s (notification: %v)", req.Method, req.Notif)
 	switch req.Method {
 	case "initialize":
 		return h.handleInitialize(ctx, conn, req)
 	case "initialized":
 		return
+	case "$/setTrace":
+		return
+	case "$/cancelRequest":
+		return
 	case "shutdown":
 		return h.handleShutdown(ctx, conn, req)
+	case "exit":
+		os.Exit(0)
+		return nil, nil
 	case "textDocument/didOpen":
-		return // h.handleTextDocumentDidOpen(ctx, conn, req)
+		return h.handleTextDocumentDidOpen(ctx, conn, req)
 	case "textDocument/didChange":
-		return // h.handleTextDocumentDidChange(ctx, conn, req)
+		return h.handleTextDocumentDidChange(ctx, conn, req)
 	case "textDocument/didSave":
 		return // h.handleTextDocumentDidSave(ctx, conn, req)
 	case "textDocument/didClose":
@@ -73,12 +87,18 @@ func (h *langHandler) handle(ctx context.Context, conn *jsonrpc2.Conn, req *json
 		return // h.handleTextDocumentSymbol(ctx, conn, req)
 	case "textDocument/completion":
 		return h.handleTextDocumentCompletion(ctx, conn, req)
+	case "textDocument/signatureHelp":
+		return h.handleTextDocumentSignatureHelp(ctx, conn, req)
 	case "completionItem/resolve":
 		return h.HandleCompletionItemResolve(ctx, conn, req)
 	case "textDocument/definition":
-		return // h.handleTextDocumentDefinition(ctx, conn, req)
+		return h.handleTextDocumentDefinition(ctx, conn, req)
+	case "textDocument/references":
+		return h.handleTextDocumentReferences(ctx, conn, req)
 	case "textDocument/hover":
-		return // h.handleTextDocumentHover(ctx, conn, req)
+		return h.handleTextDocumentHover(ctx, conn, req)
+	case "textDocument/rename":
+		return h.handleTextDocumentRename(ctx, conn, req)
 	case "textDocument/codeAction":
 		return // h.handleTextDocumentCodeAction(ctx, conn, req)
 	case "workspace/executeCommand":
@@ -98,8 +118,9 @@ func NewHandler() jsonrpc2.Handler {
 	// logger := log.New(os.Stderr, "", log.LstdFlags)
 
 	handler := &langHandler{
-		// provideDefinition: config.ProvideDefinition,
-		files:   make(map[DocumentURI]*File),
+		provideDefinition: true,
+		files:             make(map[DocumentURI]*File),
+		// evaluator will be initialized in handleInitialize
 		request: make(chan lintRequest),
 		conn:    nil,
 		// filename:          config.Filename,
@@ -162,4 +183,63 @@ func (h *langHandler) addFolder(folder string) {
 	if !found {
 		h.folders = append(h.folders, folder)
 	}
+}
+
+func (h *langHandler) preAnalyzeWorkspace() {
+	if h.rootPath == "" {
+		return
+	}
+
+	filesInfo, err := core.CollectFiles(h.rootPath)
+	if err != nil {
+		core.DebugLog("Workspace file discovery failed: %v", err)
+		return
+	}
+
+	h.mu.Lock()
+	h.eval = evaluator.NewEvaluator(filesInfo)
+	eval := h.eval
+	h.mu.Unlock()
+
+	// 1. Parse all files from disk
+	h.evalMu.Lock()
+	err = eval.ParseAll(h.rootPath)
+	if err != nil {
+		core.DebugLog("Initial parse failed: %v", err)
+	}
+
+	// 2. Run analysis
+	eval.RunAnalysis()
+
+	// 3. Collect diagnostics for publish
+	diagByPath := make(map[string][]Diagnostic, len(filesInfo))
+	for _, info := range filesInfo {
+		path := info.Path()
+		diagByPath[path] = alertsToDiagnostics(toURI(filepath.Join(h.rootPath, path)), eval.GetAlerts(path))
+	}
+	h.evalMu.Unlock()
+
+	// 4. Store file contents and publish diagnostics
+	for _, info := range filesInfo {
+		path := info.Path()
+		uri := toURI(filepath.Join(h.rootPath, path))
+
+		content, err := os.ReadFile(filepath.Join(h.rootPath, path))
+		if err == nil {
+			h.mu.Lock()
+			h.files[uri] = &File{
+				LanguageID: "hybroid",
+				Text:       string(content),
+				Version:    0,
+			}
+			h.mu.Unlock()
+		}
+
+		h.conn.Notify(context.Background(), "textDocument/publishDiagnostics", PublishDiagnosticsParams{
+			URI:         uri,
+			Diagnostics: diagByPath[path],
+		})
+	}
+
+	core.DebugLog("Workspace pre-analysis complete. Analyzed %d files.", len(filesInfo))
 }

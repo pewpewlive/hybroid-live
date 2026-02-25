@@ -119,20 +119,22 @@ func (at *AliasType) String() string {
 }
 
 type FunctionType struct {
-	Params   []Type
-	Returns  []Type
-	ProcType ProcedureType
+	ParamNames []string
+	Params     []Type
+	Returns    []Type
+	ProcType   ProcedureType
 }
 
-func NewFunctionType(params []Type, returns []Type, procType ...ProcedureType) *FunctionType {
+func NewFunctionType(params []Type, returns []Type, names []string, procType ...ProcedureType) *FunctionType {
 	pt := Function
 	if procType != nil {
 		pt = procType[0]
 	}
 	return &FunctionType{
-		Params:   params,
-		Returns:  returns,
-		ProcType: pt,
+		ParamNames: names,
+		Params:     params,
+		Returns:    returns,
+		ProcType:   pt,
 	}
 }
 
@@ -173,10 +175,13 @@ func (ft *FunctionType) String() string {
 
 	length := len(ft.Params)
 	for i := range ft.Params {
-		if i == length-1 {
-			src.Write(ft.Params[i].String())
+		if i < len(ft.ParamNames) && ft.ParamNames[i] != "" {
+			src.Write(ft.Params[i].String(), " ", ft.ParamNames[i])
 		} else {
-			src.Write(ft.Params[i].String(), ", ")
+			src.Write(ft.Params[i].String())
+		}
+		if i != length-1 {
+			src.Write(", ")
 		}
 	}
 	src.Write(")")

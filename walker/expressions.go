@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"hybroid/alerts"
 	"hybroid/ast"
-	"hybroid/generator/mapping"
 	"hybroid/tokens"
 	"reflect"
 	"strconv"
@@ -216,6 +215,22 @@ func (w *Walker) binaryExpression(node *ast.BinaryExpr, scope *Scope) Value {
 }
 
 func (w *Walker) literalExpression(node *ast.LiteralExpr) Value {
+	// Handle literals that were originally environment identifiers (mutated during a previous Walk)
+	if node.IsEnvPath {
+		envName := node.Token.Lexeme
+		if walker, ok := w.walkers[envName]; ok {
+			w.AddReference("env", envName, node.Token)
+			return NewPathVal(walker.environment.luaPath, walker.environment.Type, walker.environment.Name)
+		}
+		// Check imports as well
+		for _, imp := range w.environment.imports {
+			if imp.environment.Name == envName {
+				w.AddReference("env", envName, node.Token)
+				return NewPathVal(imp.environment.luaPath, imp.environment.Type, imp.environment.Name)
+			}
+		}
+	}
+
 	switch node.Token.Type {
 	case tokens.String:
 		return &StringVal{}
@@ -238,12 +253,27 @@ func (w *Walker) identifierExpression(node *ast.Node, scope *Scope) Value {
 	sc := w.resolveVariable(scope, ident.Name)
 check:
 	if sc == nil {
+		// Try to find if it's a known environment name (namespace)
+		for _, imp := range w.environment.imports {
+			if imp.environment.Name == ident.Name.Lexeme {
+				*node = &ast.LiteralExpr{
+					Value:     "\"" + imp.environment.luaPath + "\"",
+					Token:     ident.Name,
+					IsEnvPath: true,
+				}
+				w.AddReference("env", ident.Name.Lexeme, ident.Name)
+				return NewPathVal(imp.environment.luaPath, imp.environment.Type, imp.environment.Name)
+			}
+		}
+
 		walker, found := w.walkers[ident.Name.Lexeme]
 		if found {
 			*node = &ast.LiteralExpr{
-				Value: "\"" + walker.environment.luaPath + "\"",
-				Token: ident.Name,
+				Value:     "\"" + walker.environment.luaPath + "\"",
+				Token:     ident.Name,
+				IsEnvPath: true,
 			}
+			w.AddReference("env", ident.Name.Lexeme, ident.Name)
 			return NewPathVal(walker.environment.luaPath, walker.environment.Type, walker.environment.Name)
 		}
 		var context string
@@ -276,6 +306,7 @@ check:
 		}
 		if !w.context.DontSetToUsed {
 			w.SetVarToUsed(variable)
+			w.AddReference(sc.Environment.Name, variable.Name, identToken)
 			return variable
 		}
 		return variable
@@ -360,6 +391,7 @@ check:
 
 	if !w.context.DontSetToUsed {
 		w.SetVarToUsed(variable)
+		w.AddReference(sc.Environment.Name, variable.Name, ident.GetToken())
 		return variable
 	}
 
@@ -454,6 +486,11 @@ func (w *Walker) environmentAccessExpression(expr *ast.Node) Value {
 
 		val = w.GetNodeValue(&accessed, &walker.environment.Scope)
 	}
+	// Record reference for the accessed symbol and the environment name
+	if val != nil {
+		w.AddReference(envName, node.Accessed.Name.Lexeme, node.Accessed.Name)
+		w.AddReference("env", envName, node.PathExpr.Path)
+	}
 	return val
 }
 
@@ -529,6 +566,16 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 	w.context.DontSetToUsed = false
 	node := (*_node).(*ast.AccessExpr)
 	var val Value
+
+	// If the access starts from an identifier variable, mark it as used.
+	if ident, ok := node.Start.(*ast.IdentifierExpr); ok {
+		if sc := w.resolveVariable(scope, ident.Name); sc != nil {
+			if v := w.getVariable(sc, ident.Name); v != nil && !w.context.DontSetToUsed {
+				w.SetVarToUsed(v)
+				w.AddReference(sc.Environment.Name, v.Name, ident.GetToken())
+			}
+		}
+	}
 
 	typeExpr := &ast.TypeExpr{Name: node.Start}
 	typ := w.typeExpression(typeExpr, scope)
@@ -666,8 +713,8 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 	// check if we got an enum variant and convert that to its constant value
 	if enumVal, ok := val.(*VariableVal).Value.(*EnumFieldVal); ok && isEnum {
 		if enumVal.Type.EnvName == "Pewpew" {
-			ident := node.Accessed[0].(*ast.FieldExpr).Field.(*ast.IdentifierExpr)
-			ident.Name.Lexeme = mapping.PewpewEnums[enumVal.Type.Name][ident.Name.Lexeme]
+			// DO NOT mutate the AST Identifier so it survives LSP didChange validations.
+			// Generator will map to Lua's `pewpew.XYZ.ENUM_FIELD` properly.
 			return val
 		}
 		*_node = &ast.LiteralExpr{
@@ -1012,6 +1059,7 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 		if val, ok := scope.Environment.Enums[typeName]; ok {
 			val.Type.IsUsed = true
 			typ = val.Type
+			w.AddReference(scope.Environment.Name, typeName, typee.Name.GetToken())
 			w.checkAccessibility(scope, val.IsPub, typee.Name.GetToken())
 			break
 		}
@@ -1020,6 +1068,7 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 			val := CopyEntityVal(entityVal)
 			typ = &val.Type
 			w.FillGenericsInNamedType(&val.Type, typee, scope)
+			w.AddReference(scope.Environment.Name, typeName, typee.Name.GetToken())
 			w.checkAccessibility(scope, val.IsPub, typee.Name.GetToken())
 			break
 		}
@@ -1028,12 +1077,14 @@ func (w *Walker) typeExpression(typee *ast.TypeExpr, scope *Scope) Type {
 			val := CopyClassVal(classVal)
 			typ = &val.Type
 			w.FillGenericsInNamedType(&val.Type, typee, scope)
+			w.AddReference(scope.Environment.Name, typeName, typee.Name.GetToken())
 			w.checkAccessibility(scope, val.IsPub, typee.Name.GetToken())
 			break
 		}
 		if aliasType, found := scope.resolveAlias(typeName); found {
 			aliasType.IsUsed = true
 			typ = aliasType.UnderlyingType
+			w.AddReference(scope.Environment.Name, typeName, typee.Name.GetToken())
 			w.checkAccessibility(scope, aliasType.IsPub, typee.Name.GetToken())
 			break
 		}

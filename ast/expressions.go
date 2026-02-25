@@ -50,8 +50,9 @@ func (pe *EntityAccessExpr) GetType() NodeType      { return EntityAccessExpress
 func (pe *EntityAccessExpr) GetToken() tokens.Token { return pe.Expr.GetToken() }
 
 type LiteralExpr struct {
-	Value string
-	Token tokens.Token
+	Value     string
+	Token     tokens.Token
+	IsEnvPath bool // Set when this literal was generated from an environment identifier
 }
 
 func (le *LiteralExpr) GetType() NodeType      { return LiteralExpression }

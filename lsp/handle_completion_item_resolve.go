@@ -3,6 +3,7 @@ package lsp
 import (
 	"context"
 	"encoding/json"
+	"hybroid/walker"
 
 	"github.com/sourcegraph/jsonrpc2"
 )
@@ -21,22 +22,46 @@ func (h *langHandler) HandleCompletionItemResolve(_ context.Context, _ *jsonrpc2
 }
 
 func (h *langHandler) completionResolve(item *CompletionItem) (CompletionItem, error) {
-	// var detail string
-	// var documentation string
-	detail := "default detail"
-	documentation := "default documentation"
-	if item.Data == 1 {
-		detail = "PewPew API"
-		documentation = "API for PewPew levels"
-	} else if item.Data == 2 {
-		detail = "Fmath API"
-		documentation = "API for fixed-point math"
+	h.mu.Lock()
+	eval := h.eval
+	h.mu.Unlock()
+
+	var walkers map[string]*walker.Walker
+	var w *walker.Walker
+	if eval != nil {
+		h.evalMu.Lock()
+		defer h.evalMu.Unlock()
+		walkers = eval.Walkers()
+		if item.Data != nil {
+			// Convert Data to string if it's a URI
+			if uri, ok := item.Data.(string); ok {
+				path, _ := fromURI(DocumentURI(uri))
+				w = eval.AnalyzeFile(path)
+			}
+		}
 	}
+
+	detail, documentation := getSymbolMetadata(w, walkers, item.Label)
+
+	if detail == "" {
+		detail = item.Detail
+	}
+	if documentation == "" {
+		documentation = item.Documentation
+	}
+
 	return CompletionItem{
 		Label:         item.Label,
 		Kind:          item.Kind,
-		Data:          item.Data,
+		Tags:          item.Tags,
 		Detail:        detail,
 		Documentation: documentation,
+		Deprecated:    item.Deprecated,
+		Preselect:     item.Preselect,
+		SortText:      item.SortText,
+		FilterText:    item.FilterText,
+		InsertText:    item.InsertText,
+		TextEdit:      item.TextEdit,
+		Data:          item.Data,
 	}, nil
 }

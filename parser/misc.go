@@ -197,7 +197,14 @@ func (p *Parser) functionArgs() ([]ast.Node, bool) {
 	if !ok {
 		return args, false
 	}
-	p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.RightParen)
+
+	if p.match(tokens.RightParen) {
+		return args, true
+	}
+
+	// If ')' is missing, anchor the diagnostic at the most recent argument token
+	// instead of the next statement's first token.
+	p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek(-1)), tokens.RightParen)
 
 	return args, true
 }

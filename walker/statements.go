@@ -20,6 +20,7 @@ func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 
 	pt := NewPathTag()
 	ifScope := w.NewScope(scope, pt)
+	w.RegisterScope(ifScope, node.Token, w.GetBodyEndToken(&node.Body))
 
 	w.walkBody(&node.Body, pt, ifScope)
 
@@ -28,6 +29,7 @@ func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 		w.ifCondition(&node.Elseifs[i].BoolExpr, scope)
 		pt := NewPathTag()
 		ifScope := w.NewScope(scope, pt)
+		w.RegisterScope(ifScope, node.Elseifs[i].Token, w.GetBodyEndToken(&node.Elseifs[i].Body))
 		for w.context.EntityCasts.Count() != 0 {
 			cast := w.context.EntityCasts.Pop()
 			w.declareVariable(scope, NewVariable(cast.Name, cast.Entity))
@@ -39,6 +41,7 @@ func (w *Walker) ifStatement(node *ast.IfStmt, scope *Scope) {
 	if node.Else != nil {
 		pt := NewPathTag()
 		elseScope := w.NewScope(scope, pt)
+		w.RegisterScope(elseScope, node.Else.Token, w.GetBodyEndToken(&node.Else.Body))
 		w.walkBody(&node.Else.Body, pt, elseScope)
 		prevPathTag.SetAllExitAND(pt)
 	} else {
@@ -167,6 +170,7 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 
 func (w *Walker) repeatStatement(node *ast.RepeatStmt, scope *Scope) {
 	repeatScope := w.NewScope(scope, &PathTag{}, BreakAllowing, ContinueAllowing)
+	w.RegisterScope(repeatScope, node.Token, w.GetBodyEndToken(&node.Body))
 	lt := NewPathTag()
 	repeatScope.Tag = lt
 
@@ -214,6 +218,7 @@ func (w *Walker) repeatStatement(node *ast.RepeatStmt, scope *Scope) {
 
 func (w *Walker) whileStatement(node *ast.WhileStmt, scope *Scope) {
 	whileScope := w.NewScope(scope, &PathTag{}, BreakAllowing, ContinueAllowing)
+	w.RegisterScope(whileScope, node.Token, w.GetBodyEndToken(&node.Body))
 	lt := NewPathTag()
 	whileScope.Tag = lt
 	w.GetNodeValue(&node.Condition, scope)
@@ -224,6 +229,7 @@ func (w *Walker) whileStatement(node *ast.WhileStmt, scope *Scope) {
 
 func (w *Walker) forStatement(node *ast.ForStmt, scope *Scope) {
 	forScope := w.NewScope(scope, &PathTag{}, BreakAllowing, ContinueAllowing)
+	w.RegisterScope(forScope, node.Token, w.GetBodyEndToken(&node.Body))
 	lt := NewPathTag()
 	forScope.Tag = lt
 
@@ -279,6 +285,7 @@ func (w *Walker) forStatement(node *ast.ForStmt, scope *Scope) {
 
 func (w *Walker) tickStatement(node *ast.TickStmt, scope *Scope) {
 	tickScope := w.NewScope(scope, &PathTag{}, ReturnAllowing)
+	w.RegisterScope(tickScope, node.Token, w.GetBodyEndToken(&node.Body))
 	tt := NewPathTag()
 	tickScope.Tag = tt
 
@@ -306,6 +313,7 @@ func (w *Walker) matchStatement(node *ast.MatchStmt, scope *Scope) {
 	for i := range node.Cases {
 		pt := NewPathTag()
 		caseScope := w.NewScope(scope, pt, BreakAllowing)
+		w.RegisterScope(caseScope, node.Cases[i].GetToken(), w.GetBodyEndToken(&node.Cases[i].Body))
 		w.walkBody(&node.Cases[i].Body, pt, caseScope)
 		if i != 0 {
 			prevPathTag.SetAllExitAND(pt)
@@ -452,6 +460,8 @@ func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 		if !w.AddLibrary(ast.Pewpew) {
 			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
 		}
+		w.ImportLibrary(ast.Pewpew)
+		w.AddReference("env", envName, node.PathExpr.Path)
 		return
 	case "Fmath":
 		if w.environment.Type != ast.LevelEnv {
@@ -460,6 +470,8 @@ func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 		if !w.AddLibrary(ast.Fmath) {
 			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
 		}
+		w.ImportLibrary(ast.Fmath)
+		w.AddReference("env", envName, node.PathExpr.Path)
 		return
 	case "Math":
 		if w.environment.Type == ast.LevelEnv {
@@ -468,16 +480,22 @@ func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 		if !w.AddLibrary(ast.Math) {
 			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
 		}
+		w.ImportLibrary(ast.Math)
+		w.AddReference("env", envName, node.PathExpr.Path)
 		return
 	case "String":
 		if !w.AddLibrary(ast.String) {
 			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
 		}
+		w.ImportLibrary(ast.String)
+		w.AddReference("env", envName, node.PathExpr.Path)
 		return
 	case "Table":
 		if !w.AddLibrary(ast.Table) {
 			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
 		}
+		w.ImportLibrary(ast.Table)
+		w.AddReference("env", envName, node.PathExpr.Path)
 		return
 	}
 
@@ -514,6 +532,7 @@ func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 		Walker:     walker,
 		ThroughUse: true,
 	})
+	w.AddReference("env", envName, node.PathExpr.Path)
 
 	if walker.environment.luaPath == "/dynamic/level.lua" {
 		return // we don't put level.hyb in requirements as that would break things

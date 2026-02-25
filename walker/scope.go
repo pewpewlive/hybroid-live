@@ -240,6 +240,41 @@ func (sc *Scope) resolveAlias(typeName string) (*AliasType, bool) {
 	return sc.Parent.resolveAlias(typeName)
 }
 
+func (sc *Scope) GetVariable(name string) (*VariableVal, bool) {
+	if v, ok := sc.Variables[name]; ok {
+		return v, true
+	}
+
+	if sc.Parent != nil {
+		return sc.Parent.GetVariable(name)
+	}
+
+	// If global scope, check environments
+	if sc.Environment != nil {
+		if v, ok := BuiltinEnv.Scope.Variables[name]; ok {
+			return v, true
+		}
+		// Check ThroughUse imports (custom environments like MyHelper)
+		for _, imp := range sc.Environment.imports {
+			if imp.ThroughUse {
+				if v, ok := imp.environment.Scope.Variables[name]; ok && v.IsPub {
+					return v, true
+				}
+			}
+		}
+		// Check used libraries (Pewpew, Fmath, Math, String, Table) - only those explicitly imported via 'use'
+		for _, lib := range sc.Environment.ImportedLibraries {
+			if libEnv, ok := BuiltinLibraries[lib]; ok {
+				if v, ok := libEnv.Scope.Variables[name]; ok {
+					return v, true
+				}
+			}
+		}
+	}
+
+	return nil, false
+}
+
 func (sc *Scope) Is(types ...ScopeAttribute) bool {
 	if len(types) == 0 {
 		return false

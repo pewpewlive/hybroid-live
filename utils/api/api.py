@@ -47,11 +47,11 @@ class Type:
         # The mapping of callback types, not including the `taken_callback` exception,
         # which is a map entry, and not a parameter, so it is dealt with later
         CALLBACK_TYPES = {
-            "AddUpdateCallback": "NewFunctionType([]Type{},[]Type{})",
-            "SetEntityUpdateCallback": "NewFunctionType([]Type{&RawEntityType{}},[]Type{})",
-            "SetEntityWallCollision": "NewFunctionType([]Type{&RawEntityType{},NewFixedPointType(),NewFixedPointType()},[]Type{})",
-            "SetEntityPlayerCollision": "NewFunctionType([]Type{&RawEntityType{},NewBasicType(ast.Number),&RawEntityType{}}, []Type{})",
-            "SetEntityWeaponCollision": 'NewFunctionType([]Type{&RawEntityType{},NewBasicType(ast.Number),NewEnumType("Pewpew","WeaponType")},[]Type{NewBasicType(ast.Bool)})',
+            "AddUpdateCallback": "NewFunctionType([]Type{},[]Type{},[]string{})",
+            "SetEntityUpdateCallback": 'NewFunctionType([]Type{&RawEntityType{}},[]Type{},[]string{"entity"})',
+            "SetEntityWallCollision": 'NewFunctionType([]Type{&RawEntityType{},NewFixedPointType(),NewFixedPointType()},[]Type{},[]string{"entity","x","y"})',
+            "SetEntityPlayerCollision": 'NewFunctionType([]Type{&RawEntityType{},NewBasicType(ast.Number),&RawEntityType{}}, []Type{},[]string{"entity","x","other"})',
+            "SetEntityWeaponCollision": 'NewFunctionType([]Type{&RawEntityType{},NewBasicType(ast.Number),NewEnumType("Pewpew","WeaponType")},[]Type{NewBasicType(ast.Bool)},[]string{"entity","x","weapon"})',
         }
 
         if param and self.type is types.Type.CALLBACK:
@@ -173,9 +173,16 @@ class Function(types.Function):
         self.returns = [Value(type) for type in raw["return_types"]]
 
     def generate(self, lib_name: str) -> str:
-        VALUE_TEMPLATE = "NewFunction({params})"
+        VALUE_TEMPLATE = "NewFunction({names}, {params})"
+
+        names = []
+        for param in self.parameters:
+             names.append(f'"{param.name}"')
+        
+        names_str = "[]string{" + ",".join(names) + "}"
 
         value_args = {
+            "names": names_str,
             "params": ",".join(
                 param.generate(lib_name, self.name) for param in self.parameters
             ),
@@ -224,6 +231,30 @@ class Function(types.Function):
             }
         )
 
+    def generate_lsp_doc(self, lib_name: str) -> str:
+        """Generates a Go map entry for LSP hover documentation."""
+        # Build signature: FuncName(params) -> returns
+        params = ", ".join(
+            param.generate_docs(self.name) for param in self.parameters
+        )
+        if len(self.returns) == 1:
+            returns = " -> " + ", ".join(
+                ret.generate_docs(self.name) for ret in self.returns
+            )
+        elif len(self.returns) > 1:
+            returns = " -> (" + ", ".join(
+                ret.generate_docs(self.name) for ret in self.returns
+            ) + ")"
+        else:
+            returns = ""
+
+        signature = f"{self.name}({params}){returns}"
+        # Escape Go string special chars
+        desc = self.description.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+        sig = signature.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+
+        return f'"{lib_name}:{self.name}": "```hybroid\\n{sig}\\n```\\n{desc}"'
+
 
 class Enum(types.Enum):
     def __init__(self, raw: dict):
@@ -253,3 +284,8 @@ class Enum(types.Enum):
                 "variants": "\n".join(f"- `{variant}`" for variant in self.variants),
             }
         )
+
+    def generate_lsp_doc(self, lib_name: str) -> str:
+        """Generates a Go map entry for LSP hover documentation."""
+        variants_str = ", ".join(f"`{v}`" for v in self.variants)
+        return f'"{lib_name}:{self.name}": "Enum with variants: {variants_str}"'

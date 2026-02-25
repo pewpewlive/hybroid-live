@@ -4,7 +4,7 @@ package mapping
 // AUTO-GENERATED ENUMS, DO NOT MANUALLY MODIFY!
 var PewpewEnums = map[string]map[string]string{
 	"EntityType": {
-		"YellowBAF": "BAF", "BlueBAF": "BAF_BLUE", "RedBAF": "BAF_RED", "UFO": "UFO", "UFOBullet": "UFO_BULLET", "Asteroid": "ASTEROID", "Inertiac": "INERTIAC", "Mothership": "MOTHERSHIP", "MothershipBullet": "MOTHERSHIP_BULLET", "RollingCube": "ROLLING_CUBE", "RollingSphere": "ROLLING_SPHERE", "Wary": "WARY", "Crowder": "CROWDER", "CustomizableEntity": "CUSTOMIZABLE_ENTITY", "Ship": "SHIP", "Bomb": "BOMB", "WaryMissile": "WARY_MISSILE", "Spiny": "SPINY", "SuperMothership": "SUPER_MOTHERSHIP", "PlayerBullet": "PLAYER_BULLET", "BombExplosion": "BOMB_EXPLOSION", "PlayerExplosion": "PLAYER_EXPLOSION", "Bonus": "BONUS", "FloatingMessage": "FLOATING_MESSAGE", "Pointonium": "POINTONIUM", "Kamikaze": "KAMIKAZE", "BonusImplosion": "BONUS_IMPLOSION", "Mace": "MACE", "PlasmaField": "PLASMA_FIELD",
+		"YellowBAF": "BAF", "BlueBAF": "BAF_BLUE", "RedBAF": "BAF_RED", "UFO": "UFO", "UFOBullet": "UFO_BULLET", "Asteroid": "ASTEROID", "Inertiac": "INERTIAC", "Mothership": "MOTHERSHIP", "MothershipBullet": "MOTHERSHIP_BULLET", "RollingCube": "ROLLING_CUBE", "RollingSphere": "ROLLING_SPHERE", "Wary": "WARY", "Crowder": "CROWDER", "CustomizableEntity": "CUSTOMIZABLE_ENTITY", "Ship": "SHIP", "Bomb": "BOMB", "WaryMissile": "WARY_MISSILE", "Spiny": "SPINY", "SuperMothership": "SUPER_MOTHERSHIP", "PlayerBullet": "PLAYER_BULLET", "BombExplosion": "BOMB_EXPLOSION", "PlayerExplosion": "PLAYER_EXPLOSION", "Bonus": "BONUS", "FloatingMessage": "FLOATING_MESSAGE", "Pointonium": "POINTONIUM", "Kamikaze": "KAMIKAZE", "BonusImplosion": "BONUS_IMPLOSION", "Mace": "MACE", "PlasmaField": "PLASMA_FIELD", "Laserbeam": "LASERBEAM", "Exploder": "EXPLODER", "ExploderExplosion": "EXPLODER_EXPLOSION", "WeaponZone": "WEAPON_ZONE",
 	}, "MothershipType": {
 		"Triangle": "THREE_CORNERS", "Square": "FOUR_CORNERS", "Pentagon": "FIVE_CORNERS", "Hexagon": "SIX_CORNERS", "Heptagon": "SEVEN_CORNERS",
 	}, "CannonFreq": {
@@ -94,6 +94,7 @@ var PewpewVariables = map[string]string{
 	"NewSpiny":                              "new_spiny",
 	"NewSuperMothership":                    "new_super_mothership",
 	"NewWary":                               "new_wary",
+	"NewWeaponZone":                         "new_weapon_zone",
 	"GetEntityPosition":                     "entity_get_position",
 	"SetEntityPosition":                     "entity_set_position",
 	"EntityMove":                            "entity_move",

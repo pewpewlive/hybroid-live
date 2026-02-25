@@ -2,6 +2,9 @@ package lsp
 
 import (
 	"context"
+	"hybroid/core"
+	"hybroid/walker"
+	"io"
 	"log"
 	"os"
 
@@ -25,20 +28,34 @@ func (c stdrwc) Close() error {
 	return os.Stdout.Close()
 }
 
-func Init() {
-	//! Make sure to uncomment the file write operations if you want to have logs and operational LSP
-	// f, err := os.OpenFile("D:\\testlogfile.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	// if err != nil {
-	// 	log.Fatalf("error opening file: %v", err)
-	// }
-	// log.SetOutput(f)
-	log.Println("Starting Integrated Language Server for Hybroid")
-	log.Println("WARNING: THIS SERVER IS IN PRE-ALPHA STATE!!! USE WITH CAUTION!")
+func Init(debug bool) {
+	core.IsDebug = debug
+	if !core.IsDebug {
+		log.SetOutput(io.Discard)
+	}
+
+	if core.IsDebug {
+		f, err := os.OpenFile("hybroid_ls.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			log.Fatalf("error opening file: %v", err)
+		}
+		log.SetOutput(f)
+		log.Println("Debug mode enabled, logging to hybroid_ls.log")
+		// We can't defer f.Close() here because Init returns while server is running.
+		// However, for a CLI tool it's usually fine as OS will close it.
+	}
+
+	log.Println("Starting HybroidLS")
+	log.Println("Warning: HybroidLS is experimental. Expect bugs or missing features!")
+
+	walker.SetupLibraryEnvironments()
 
 	log.Println("Preparing to communicate via stdio")
 
 	var connOpt []jsonrpc2.ConnOpt
-	connOpt = append(connOpt, jsonrpc2.LogMessages(log.Default()))
+	if core.IsDebug {
+		connOpt = append(connOpt, jsonrpc2.LogMessages(log.Default()))
+	}
 
 	handler := NewHandler()
 	<-jsonrpc2.NewConn(
@@ -47,5 +64,4 @@ func Init() {
 		handler, connOpt...).DisconnectNotify()
 
 	log.Println("All Connections Closed")
-	// f.Close()
 }
