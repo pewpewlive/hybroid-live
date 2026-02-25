@@ -343,7 +343,7 @@ func (h *langHandler) getNamespaceContext(text string, pos Position) (string, st
 	// We might be at Namespace:Part|
 	// Scan back for the start of the current "word"
 	wordStart := curr
-	for wordStart > 0 && isWordChar(rune(line[wordStart-1])) {
+	for wordStart > 0 && isIdentChar(rune(line[wordStart-1])) {
 		wordStart--
 	}
 
@@ -352,7 +352,7 @@ func (h *langHandler) getNamespaceContext(text string, pos Position) (string, st
 		operator := string(line[wordStart-1])
 		nsEnd := wordStart - 1
 		nsStart := nsEnd
-		for nsStart > 0 && (isWordChar(rune(line[nsStart-1])) || line[nsStart-1] == ':') {
+		for nsStart > 0 && (isIdentChar(rune(line[nsStart-1])) || line[nsStart-1] == ':') {
 			nsStart--
 		}
 		if nsStart < nsEnd {
@@ -365,7 +365,7 @@ func (h *langHandler) getNamespaceContext(text string, pos Position) (string, st
 	return "", "", ""
 }
 
-func isWordChar(r rune) bool {
+func isIdentChar(r rune) bool {
 	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_'
 }
 
@@ -532,36 +532,6 @@ func (h *langHandler) namespaceCompletion(namespace string, operator string, w *
 	}
 
 	return items, nil
-}
-
-func getWordBefore(text string, line, character int) string {
-	// This is now redundant or can be refactored, but I'll keep it if needed elsewhere
-	// Actually, it was used in the previous version. I'll leave it for now.
-	text = strings.ReplaceAll(text, "\r\n", "\n")
-	lines := strings.Split(text, "\n")
-	if line < 0 || line >= len(lines) {
-		return ""
-	}
-	l := lines[line]
-	if character <= 0 || character > len(l) {
-		return ""
-	}
-
-	end := character - 1
-	for end > 0 && (l[end-1] == ' ' || l[end-1] == '\t') {
-		end--
-	}
-
-	start := end
-	for start > 0 && isWordChar(rune(l[start-1])) {
-		start--
-	}
-
-	if start == end {
-		return ""
-	}
-
-	return l[start:end]
 }
 
 // isEnvAsContext checks if the cursor is positioned after 'env <name> as '
