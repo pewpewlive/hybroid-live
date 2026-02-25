@@ -20,6 +20,10 @@ type AnalysisResult struct {
 func Analyze(uri DocumentURI, text string, walkerMap map[string]*walker.Walker, skipWalk bool) AnalysisResult {
 	diagnostics := make([]Diagnostic, 0)
 
+	if walkerMap == nil {
+		walkerMap = make(map[string]*walker.Walker)
+	}
+
 	// Lexer
 	lex := lexer.NewLexer(strings.NewReader(text))
 	toks, err := lex.Tokenize()
