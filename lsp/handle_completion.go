@@ -473,6 +473,10 @@ func (h *langHandler) namespaceCompletion(namespace string, operator string, w *
 		}
 	}
 
+	if targetEnv == nil {
+		return items, nil
+	}
+
 	// Add symbols from target environment
 	isBuiltin := targetEnv.Name == "Pewpew" || targetEnv.Name == "Fmath" || targetEnv.Name == "Math" || targetEnv.Name == "String" || targetEnv.Name == "Table"
 
