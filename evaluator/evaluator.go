@@ -9,6 +9,7 @@ import (
 	"hybroid/lexer"
 	"hybroid/parser"
 	"hybroid/walker"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -23,6 +24,7 @@ type Evaluator struct {
 	files       []core.FileInformation
 	programs    map[string][]ast.Node
 	parseAlerts map[string][]alerts.Alert
+	fileContents map[string]string
 	printer     alerts.Printer
 }
 
@@ -33,6 +35,7 @@ func NewEvaluator(files []core.FileInformation) *Evaluator {
 		files:       files,
 		programs:    make(map[string][]ast.Node),
 		parseAlerts: make(map[string][]alerts.Alert),
+		fileContents: make(map[string]string),
 		printer:     alerts.NewPrinter(),
 	}
 
@@ -99,6 +102,58 @@ func (e *Evaluator) canonicalPath(path string) string {
 	return path
 }
 
+func (e *Evaluator) ensureFile(path string) string {
+	path = filepath.ToSlash(filepath.Clean(path))
+	// Check if we already know this file (by raw, abs, or basename match)
+	for _, file := range e.files {
+		sourcePath := filepath.ToSlash(filepath.Clean(file.Path()))
+		if sourcePath == path {
+			return sourcePath
+		}
+	}
+
+	absPath, err := filepath.Abs(path)
+	if err == nil {
+		absPath = filepath.ToSlash(filepath.Clean(absPath))
+		for _, file := range e.files {
+			sourcePath := filepath.ToSlash(filepath.Clean(file.Path()))
+			fileAbs, err := filepath.Abs(sourcePath)
+			if err != nil {
+				continue
+			}
+			if filepath.ToSlash(filepath.Clean(fileAbs)) == absPath {
+				return sourcePath
+			}
+		}
+	}
+
+	dir := filepath.Dir(path)
+	base := filepath.Base(path)
+	ext := filepath.Ext(base)
+	name := strings.TrimSuffix(base, ext)
+	if dir == "" {
+		dir = "."
+	}
+
+	fi := core.FileInformation{
+		DirectoryPath: filepath.ToSlash(dir),
+		FileName:      name,
+		FileExtension: ext,
+	}
+	sourcePath := filepath.ToSlash(filepath.Clean(fi.Path()))
+
+	w := walker.NewWalker(sourcePath, fi.NewPath("/dynamic", ".lua"))
+	e.walkerList = append(e.walkerList, w)
+	e.files = append(e.files, fi)
+
+	if absPath != "" {
+		e.walkers[absPath] = w
+	}
+	e.walkers[sourcePath] = w
+
+	return sourcePath
+}
+
 // ParseAll reads and parses all files in the evaluator's list from disk.
 func (e *Evaluator) ParseAll(cwd string) error {
 	e.mu.Lock()
@@ -114,26 +169,14 @@ func (e *Evaluator) parseAll(cwd string) error {
 			return fmt.Errorf("failed to open source file: %v", err)
 		}
 
-		lex := lexer.NewLexer(sourceFile)
-		tokens, tokenizeErr := lex.Tokenize()
+		contentBytes, readErr := io.ReadAll(sourceFile)
 		sourceFile.Close()
-
-		fileAlerts := make([]alerts.Alert, 0)
-		fileAlerts = append(fileAlerts, lex.GetAlerts()...)
-		if tokenizeErr != nil {
-			e.parseAlerts[sourcePath] = fileAlerts
-			e.printer.StageAlerts(sourcePath, fileAlerts)
-			continue
+		if readErr != nil {
+			return fmt.Errorf("failed to read source file: %v", readErr)
 		}
-
-		p := parser.NewParser(tokens)
-		program := p.Parse()
-		fileAlerts = append(fileAlerts, p.GetAlerts()...)
-		e.parseAlerts[sourcePath] = fileAlerts
-		e.printer.StageAlerts(sourcePath, fileAlerts)
-
-		w.SetProgram(program)
-		e.programs[sourcePath] = program
+		content := string(contentBytes)
+		e.fileContents[sourcePath] = content
+		e.parseFromContent(sourcePath, content, w)
 	}
 	return nil
 }
@@ -147,6 +190,7 @@ func (e *Evaluator) RunAnalysis() {
 
 func (e *Evaluator) runAnalysis() {
 	walker.SetupLibraryEnvironments()
+	e.reparseCached()
 	e.printer = alerts.NewPrinter() // Clear previous alerts
 
 	for _, file := range e.files {
@@ -285,7 +329,19 @@ func (e *Evaluator) UpdateFileContent(path string, content string) error {
 }
 
 func (e *Evaluator) updateFileContent(path string, content string) error {
-	path = e.canonicalPath(path)
+	path = e.ensureFile(path)
+	e.fileContents[path] = content
+	e.parseFromContent(path, content, nil)
+	return nil
+}
+
+func (e *Evaluator) reparseCached() {
+	for path, content := range e.fileContents {
+		e.parseFromContent(path, content, nil)
+	}
+}
+
+func (e *Evaluator) parseFromContent(path, content string, w *walker.Walker) {
 	lex := lexer.NewLexer(strings.NewReader(content))
 	tokens, tokenizeErr := lex.Tokenize()
 	fileAlerts := make([]alerts.Alert, 0)
@@ -293,7 +349,7 @@ func (e *Evaluator) updateFileContent(path string, content string) error {
 	e.parseAlerts[path] = fileAlerts
 	e.printer.StageAlerts(path, fileAlerts)
 	if tokenizeErr != nil {
-		return tokenizeErr
+		return
 	}
 
 	p := parser.NewParser(tokens)
@@ -302,30 +358,33 @@ func (e *Evaluator) updateFileContent(path string, content string) error {
 	e.parseAlerts[path] = fileAlerts
 	e.printer.StageAlerts(path, fileAlerts)
 
-	// Find the walker for this path
-	abs, _ := filepath.Abs(path)
-	if w, ok := e.walkers[abs]; ok {
-		w.SetProgram(program)
-	} else if w, ok := e.walkers[path]; ok {
-		w.SetProgram(program)
-	} else {
-		// Fallback: try to match by hybroid path
-		for _, w := range e.walkerList {
-			wAbs, _ := filepath.Abs(w.Env().HybroidPath())
-			if wAbs == abs || w.Env().HybroidPath() == path {
-				w.SetProgram(program)
-				break
+	if w == nil {
+		abs, _ := filepath.Abs(path)
+		if ww, ok := e.walkers[abs]; ok {
+			w = ww
+		} else if ww, ok := e.walkers[path]; ok {
+			w = ww
+		} else {
+			for _, ww := range e.walkerList {
+				wAbs, _ := filepath.Abs(ww.Env().HybroidPath())
+				if wAbs == abs || ww.Env().HybroidPath() == path {
+					w = ww
+					break
+				}
 			}
 		}
 	}
+	if w != nil {
+		w.SetProgram(program)
+	}
 	e.programs[path] = program
-	return nil
 }
 
 // AnalyzeFile re-runs analysis for a specific file and returns its walker.
 func (e *Evaluator) AnalyzeFile(path string) *walker.Walker {
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	e.ensureFile(path)
 	// For now, we re-run full project analysis to ensure cross-file consistency.
 	// This can be optimized later to be incremental.
 	e.runAnalysis()
