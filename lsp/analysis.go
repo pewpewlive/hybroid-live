@@ -45,10 +45,10 @@ func Analyze(uri DocumentURI, text string, walkerMap map[string]*walker.Walker, 
 	}
 
 	// We need to determine the lua path relative to the project.
-	luaPath := filepath.Base(path)
+	// If we don't have a project root, preserve the directory structure to avoid collisions.
+	luaPath := path
 	if strings.HasSuffix(luaPath, ".hyb") {
-		luaPath = strings.TrimSuffix(luaPath, ".lua") + ".lua" // wait, suffix is .hyb
-		luaPath = strings.TrimSuffix(filepath.Base(path), ".hyb") + ".lua"
+		luaPath = strings.TrimSuffix(luaPath, ".hyb") + ".lua"
 	}
 
 	walk := walker.NewWalker(path, luaPath)

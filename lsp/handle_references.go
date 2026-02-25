@@ -45,10 +45,13 @@ func (h *langHandler) handleTextDocumentReferences(_ context.Context, _ *jsonrpc
 
 	path, _ := fromURI(params.TextDocument.URI)
 	relPath := getRelPath(h.rootPath, path)
+	h.evalMu.Lock()
 	w := eval.AnalyzeFile(relPath)
 	if w == nil {
+		h.evalMu.Unlock()
 		return nil, nil
 	}
+	defer h.evalMu.Unlock()
 
 	word := getWordAt(file.Text, params.Position.Line, params.Position.Character)
 	if word == "" {

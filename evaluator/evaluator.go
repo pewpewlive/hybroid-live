@@ -12,9 +12,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 type Evaluator struct {
+	mu sync.Mutex
 	// walkers map environment names AND absolute paths to walker instances
 	walkers     map[string]*walker.Walker
 	walkerList  []*walker.Walker
@@ -49,6 +51,8 @@ func NewEvaluator(files []core.FileInformation) *Evaluator {
 }
 
 func (e *Evaluator) GetAlerts(sourcePath string) []alerts.Alert {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	return e.printer.GetAlerts(e.canonicalPath(sourcePath))
 }
 
@@ -78,11 +82,18 @@ func (e *Evaluator) canonicalPath(path string) string {
 		}
 	}
 
+	matchCount := 0
+	matchPath := ""
 	for _, file := range e.files {
 		sourcePath := filepath.ToSlash(filepath.Clean(file.Path()))
 		if filepath.Base(sourcePath) == filepath.Base(absPath) {
-			return sourcePath
+			matchCount++
+			matchPath = sourcePath
 		}
+	}
+
+	if matchCount == 1 {
+		return matchPath
 	}
 
 	return path
@@ -90,6 +101,12 @@ func (e *Evaluator) canonicalPath(path string) string {
 
 // ParseAll reads and parses all files in the evaluator's list from disk.
 func (e *Evaluator) ParseAll(cwd string) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.parseAll(cwd)
+}
+
+func (e *Evaluator) parseAll(cwd string) error {
 	for i, w := range e.walkerList {
 		sourcePath := e.files[i].Path()
 		sourceFile, err := os.OpenFile(filepath.Join(cwd, sourcePath), os.O_RDONLY, os.ModePerm)
@@ -123,6 +140,12 @@ func (e *Evaluator) ParseAll(cwd string) error {
 
 // RunAnalysis performs the PreWalk and Walk phases across all files.
 func (e *Evaluator) RunAnalysis() {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.runAnalysis()
+}
+
+func (e *Evaluator) runAnalysis() {
 	walker.SetupLibraryEnvironments()
 	e.printer = alerts.NewPrinter() // Clear previous alerts
 
@@ -171,19 +194,22 @@ func (e *Evaluator) RunAnalysis() {
 
 // Action maintains the exact same build process as before, but uses the refactored phases.
 func (e *Evaluator) Action(cwd, outputDir string) error {
-	err := e.ParseAll(cwd)
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	err := e.parseAll(cwd)
 	if err != nil {
 		return err
 	}
 
-	e.RunAnalysis()
+	e.runAnalysis()
 
 	if e.hasErrors() {
 		e.printer.PrintAlerts()
 		return nil
 	}
 
-	return e.EmitLua(cwd, outputDir)
+	return e.emitLua(cwd, outputDir)
 }
 
 func (e *Evaluator) hasErrors() bool {
@@ -199,6 +225,12 @@ func (e *Evaluator) hasErrors() bool {
 
 // EmitLua handles the Lua code generation and file writing.
 func (e *Evaluator) EmitLua(cwd, outputDir string) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.emitLua(cwd, outputDir)
+}
+
+func (e *Evaluator) emitLua(cwd, outputDir string) error {
 	outputPath := filepath.Join(cwd, outputDir)
 	if outputDir != "" {
 		if stat, err := os.Lstat(outputPath); err == nil && stat.IsDir() {
@@ -247,6 +279,12 @@ func (e *Evaluator) EmitLua(cwd, outputDir string) error {
 
 // UpdateFileContent parses a specific file from a string (in-memory) instead of disk.
 func (e *Evaluator) UpdateFileContent(path string, content string) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.updateFileContent(path, content)
+}
+
+func (e *Evaluator) updateFileContent(path string, content string) error {
 	path = e.canonicalPath(path)
 	lex := lexer.NewLexer(strings.NewReader(content))
 	tokens, tokenizeErr := lex.Tokenize()
@@ -286,9 +324,11 @@ func (e *Evaluator) UpdateFileContent(path string, content string) error {
 
 // AnalyzeFile re-runs analysis for a specific file and returns its walker.
 func (e *Evaluator) AnalyzeFile(path string) *walker.Walker {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	// For now, we re-run full project analysis to ensure cross-file consistency.
 	// This can be optimized later to be incremental.
-	e.RunAnalysis()
+	e.runAnalysis()
 
 	canonical := e.canonicalPath(path)
 	if w, ok := e.walkers[canonical]; ok {
@@ -303,9 +343,17 @@ func (e *Evaluator) AnalyzeFile(path string) *walker.Walker {
 }
 
 func (e *Evaluator) Walkers() map[string]*walker.Walker {
-	return e.walkers
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	copyMap := make(map[string]*walker.Walker, len(e.walkers))
+	for k, v := range e.walkers {
+		copyMap[k] = v
+	}
+	return copyMap
 }
 
 func (e *Evaluator) WalkerList() []*walker.Walker {
-	return e.walkerList
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return append([]*walker.Walker{}, e.walkerList...)
 }
