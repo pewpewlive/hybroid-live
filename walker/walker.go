@@ -509,7 +509,7 @@ func (w *Walker) walkBody(body *ast.Body, tag ExitableTag, scope *Scope) {
 	}
 	for k := range scope.AliasTypes {
 		if !scope.AliasTypes[k].IsUsed {
-			w.AlertSingle(&alerts.UnusedElement{}, scope.Variables[k].Token, "alias type")
+			w.AlertSingle(&alerts.UnusedElement{}, scope.AliasTypes[k].Token, "alias type")
 		}
 	}
 }
