@@ -567,6 +567,16 @@ func (w *Walker) accessExpression(_node *ast.Node, scope *Scope) Value {
 	node := (*_node).(*ast.AccessExpr)
 	var val Value
 
+	// If the access starts from an identifier variable, mark it as used.
+	if ident, ok := node.Start.(*ast.IdentifierExpr); ok {
+		if sc := w.resolveVariable(scope, ident.Name); sc != nil {
+			if v := w.getVariable(sc, ident.Name); v != nil && !w.context.DontSetToUsed {
+				w.SetVarToUsed(v)
+				w.AddReference(sc.Environment.Name, v.Name, ident.GetToken())
+			}
+		}
+	}
+
 	typeExpr := &ast.TypeExpr{Name: node.Start}
 	typ := w.typeExpression(typeExpr, scope)
 	et, isEnum := typ.(*EnumType)
