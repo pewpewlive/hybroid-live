@@ -172,33 +172,6 @@ func (h *langHandler) handleTextDocumentHover(_ context.Context, _ *jsonrpc2.Con
 	return nil, nil
 }
 
-func getWordAt(text string, line, character int) string {
-	text = strings.ReplaceAll(text, "\r\n", "\n")
-	lines := strings.Split(text, "\n")
-	if line < 0 || line >= len(lines) {
-		return ""
-	}
-	l := lines[line]
-	if character < 0 || character >= len(l) {
-		return ""
-	}
-
-	start := character
-	for start > 0 && IsWordChar(rune(l[start-1])) {
-		start--
-	}
-	end := character
-	for end < len(l) && IsWordChar(rune(l[end])) {
-		end++
-	}
-
-	if start == end {
-		return ""
-	}
-
-	return l[start:end]
-}
-
 // getNumericLiteralAt extracts a numeric literal token at the given position,
 // including decimal points (e.g. "10.5f", "90d", "3.14r").
 func getNumericLiteralAt(text string, line, character int) string {
