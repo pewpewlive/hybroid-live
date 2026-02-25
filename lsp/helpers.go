@@ -14,90 +14,101 @@ func isInCommentOrString(text string, line, col int) bool {
 		return false
 	}
 
-	// For comments/strings we might need to look at previous lines for multiline comments.
-	// However, Hybroid multiline comments are /* */ and strings are single-line mostly (lexer alerts on multiline).
-
 	// Check for single line comments and strings first
 	l := lines[line]
 	if col > len(l) {
 		col = len(l)
 	}
 
-	inString := false
-	inComment := false
-
-	// We need to scan from the start of the file for multiline comments
-	// or at least from a safe point. For now, let's scan the whole text up to the point.
-
-	fullTextBefore := ""
-	for i := 0; i < line; i++ {
-		fullTextBefore += lines[i] + "\n"
-	}
-	fullTextBefore += l[:col]
-
 	// Simple state machine
 	isComment := false
 	isMultilineComment := false
 	isString := false
 
-	runes := []rune(fullTextBefore)
-	for i := 0; i < len(runes); i++ {
-		c := runes[i]
-
-		if isComment {
-			if c == '\n' {
-				isComment = false
-			}
-			continue
+	for i := 0; i <= line; i++ {
+		segment := lines[i]
+		if i == line {
+			segment = segment[:col]
 		}
+		runes := []rune(segment)
+		for j := 0; j < len(runes); j++ {
+			c := runes[j]
 
-		if isMultilineComment {
-			if c == '*' && i+1 < len(runes) && runes[i+1] == '/' {
-				isMultilineComment = false
-				i++
-			}
-			continue
-		}
-
-		if isString {
-			if c == '\\' && i+1 < len(runes) && runes[i+1] == '"' {
-				i++
+			if isComment {
 				continue
 			}
+
+			if isMultilineComment {
+				if c == '*' && j+1 < len(runes) && runes[j+1] == '/' {
+					isMultilineComment = false
+					j++
+				}
+				continue
+			}
+
+			if isString {
+				if c == '\\' && j+1 < len(runes) && runes[j+1] == '"' {
+					j++
+					continue
+				}
+				if c == '"' {
+					isString = false
+				}
+				continue
+			}
+
+			// Not in any special state
+			if c == '/' && j+1 < len(runes) {
+				if runes[j+1] == '/' {
+					isComment = true
+					break
+				}
+				if runes[j+1] == '*' {
+					isMultilineComment = true
+					j++
+					continue
+				}
+			}
+
 			if c == '"' {
-				isString = false
-			}
-			continue
-		}
-
-		// Not in any special state
-		if c == '/' && i+1 < len(runes) {
-			if runes[i+1] == '/' {
-				isComment = true
-				i++
-				continue
-			}
-			if runes[i+1] == '*' {
-				isMultilineComment = true
-				i++
+				isString = true
 				continue
 			}
 		}
-
-		if c == '"' {
-			isString = true
-			continue
-		}
+		isComment = false
 	}
-
-	inComment = isComment || isMultilineComment
-	inString = isString
-
-	return inComment || inString
+	return isComment || isMultilineComment || isString
 }
 
 func IsWordChar(r rune) bool {
 	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' || r == ':'
+}
+
+func getWordAt(text string, line, character int) string {
+	text = strings.ReplaceAll(text, "\r\n", "\n")
+	lines := strings.Split(text, "\n")
+	if line < 0 || line >= len(lines) {
+		return ""
+	}
+	l := lines[line]
+	if character < 0 || character >= len(l) {
+		return ""
+	}
+
+	start := character
+	for start > 0 && IsWordChar(rune(l[start-1])) {
+		start--
+	}
+	end := character
+	for end < len(l) && IsWordChar(rune(l[end])) {
+		end++
+	}
+
+	if start == end {
+		return ""
+	}
+
+	return l[start:end]
 }
 
 func toLSPLocation(path string, token tokens.Token) Location {
