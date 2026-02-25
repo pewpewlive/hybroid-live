@@ -29,6 +29,8 @@ func (h *langHandler) completionResolve(item *CompletionItem) (CompletionItem, e
 	var walkers map[string]*walker.Walker
 	var w *walker.Walker
 	if eval != nil {
+		h.evalMu.Lock()
+		defer h.evalMu.Unlock()
 		walkers = eval.Walkers()
 		if item.Data != nil {
 			// Convert Data to string if it's a URI

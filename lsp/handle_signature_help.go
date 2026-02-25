@@ -35,10 +35,13 @@ func (h *langHandler) handleTextDocumentSignatureHelp(_ context.Context, _ *json
 
 	path, _ := fromURI(params.TextDocument.URI)
 	relPath := getRelPath(h.rootPath, path)
+	h.evalMu.Lock()
 	w := eval.AnalyzeFile(relPath)
 	if w == nil {
+		h.evalMu.Unlock()
 		return nil, nil
 	}
+	defer h.evalMu.Unlock()
 
 	funcName, activeParam := findCallContext(file.Text, params.Position.Line, params.Position.Character)
 	if funcName == "" {
