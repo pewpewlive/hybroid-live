@@ -84,15 +84,15 @@ func (h *langHandler) analyzeAndPublish(ctx context.Context, conn *jsonrpc2.Conn
 		return
 	}
 
-	// 1. Update content in memory
+	// 1. Update content in memory + 2. Run project-wide analysis
 	relPath := getRelPath(h.rootPath, path)
 	relPath = filepath.ToSlash(filepath.Clean(relPath))
-	eval.UpdateFileContent(relPath, text)
 
-	// 2. Run project-wide analysis
+	h.evalMu.Lock()
+	eval.UpdateFileContent(relPath, text)
 	eval.RunAnalysis()
 
-	// 3. Publish Diagnostics for all tracked files
+	// 3. Collect diagnostics for all tracked files while holding eval lock
 	h.mu.Lock()
 	var openFiles []struct {
 		URI     DocumentURI
@@ -106,18 +106,31 @@ func (h *langHandler) analyzeAndPublish(ctx context.Context, conn *jsonrpc2.Conn
 	}
 	h.mu.Unlock()
 
+	type diagInfo struct {
+		uri      DocumentURI
+		version  int
+		diags    []Diagnostic
+	}
+	diagBatch := make([]diagInfo, 0, len(openFiles))
 	for _, info := range openFiles {
 		p, _ := fromURI(info.URI)
 		rPath := getRelPath(h.rootPath, p)
 		rPath = filepath.ToSlash(filepath.Clean(rPath))
+		diagBatch = append(diagBatch, diagInfo{
+			uri:     info.URI,
+			version: info.Version,
+			diags:   alertsToDiagnostics(info.URI, eval.GetAlerts(rPath)),
+		})
+	}
+	h.evalMu.Unlock()
 
+	for _, info := range diagBatch {
 		params := PublishDiagnosticsParams{
-			URI:         info.URI,
-			Diagnostics: alertsToDiagnostics(info.URI, eval.GetAlerts(rPath)),
+			URI:         info.uri,
+			Diagnostics: info.diags,
 		}
-		version := info.Version
+		version := info.version
 		params.Version = &version
-
 		conn.Notify(ctx, "textDocument/publishDiagnostics", params)
 	}
 }

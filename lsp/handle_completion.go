@@ -33,9 +33,12 @@ func (h *langHandler) handleTextDocumentCompletion(_ context.Context, _ *jsonrpc
 
 	path, _ := fromURI(params.TextDocument.URI)
 	relPath := getRelPath(h.rootPath, path)
+	h.evalMu.Lock()
 	w := eval.AnalyzeFile(relPath)
+	result, err = h.completion(file, w, &params)
+	h.evalMu.Unlock()
 
-	return h.completion(file, w, &params)
+	return result, err
 }
 
 func (h *langHandler) completion(file *File, w *walker.Walker, params *CompletionParams) ([]CompletionItem, error) {

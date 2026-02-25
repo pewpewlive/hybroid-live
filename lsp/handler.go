@@ -31,6 +31,7 @@ type File struct {
 
 type langHandler struct {
 	mu     sync.Mutex
+	evalMu sync.Mutex
 	logger *log.Logger
 	// commands          []Command
 	provideDefinition bool
@@ -201,6 +202,7 @@ func (h *langHandler) preAnalyzeWorkspace() {
 	h.mu.Unlock()
 
 	// 1. Parse all files from disk
+	h.evalMu.Lock()
 	err = eval.ParseAll(h.rootPath)
 	if err != nil {
 		core.DebugLog("Initial parse failed: %v", err)
@@ -209,7 +211,15 @@ func (h *langHandler) preAnalyzeWorkspace() {
 	// 2. Run analysis
 	eval.RunAnalysis()
 
-	// 3. Store file contents and publish diagnostics
+	// 3. Collect diagnostics for publish
+	diagByPath := make(map[string][]Diagnostic, len(filesInfo))
+	for _, info := range filesInfo {
+		path := info.Path()
+		diagByPath[path] = alertsToDiagnostics(toURI(filepath.Join(h.rootPath, path)), eval.GetAlerts(path))
+	}
+	h.evalMu.Unlock()
+
+	// 4. Store file contents and publish diagnostics
 	for _, info := range filesInfo {
 		path := info.Path()
 		uri := toURI(filepath.Join(h.rootPath, path))
@@ -227,7 +237,7 @@ func (h *langHandler) preAnalyzeWorkspace() {
 
 		h.conn.Notify(context.Background(), "textDocument/publishDiagnostics", PublishDiagnosticsParams{
 			URI:         uri,
-			Diagnostics: alertsToDiagnostics(uri, eval.GetAlerts(path)),
+			Diagnostics: diagByPath[path],
 		})
 	}
 
