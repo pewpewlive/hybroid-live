@@ -133,8 +133,10 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 	}
 
 	outputPath := filepath.Join(cwd, outputDir)
-	if stat, err := os.Lstat(outputPath); err == nil && stat.IsDir() {
-		os.RemoveAll(outputPath)
+	if outputDir != "" {
+		if stat, err := os.Lstat(outputPath); err == nil && stat.IsDir() {
+			os.RemoveAll(outputPath)
+		}
 	}
 
 	//fmt.Printf("-Preparing values for generation...\n")

@@ -41,6 +41,12 @@ var FmathAPI = &Environment{
 			"Tau": {
 				Name: "Tau", Value: NewFunction().WithReturns(NewFixedPointType()), IsPub: true,
 			},
+			"Exp": {
+				Name: "Exp", Value: NewFunction(NewFixedPointType()).WithReturns(NewFixedPointType()), IsPub: true,
+			},
+			"Ln": {
+				Name: "Ln", Value: NewFunction(NewFixedPointType()).WithReturns(NewFixedPointType()), IsPub: true,
+			},
 		},
 		Tag:         &UntaggedTag{},
 		AliasTypes:  make(map[string]*AliasType),
