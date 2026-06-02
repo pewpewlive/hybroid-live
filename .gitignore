@@ -26,4 +26,6 @@ __pycache__
 
 # Hybroid Live generated files 
 examples/*/out
+
+# DS_Store
 .DS_Store
