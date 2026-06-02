@@ -206,9 +206,12 @@ func (l *Lexer) next() (*tokens.Token, error) {
 }
 
 func (l *Lexer) handleString() (*tokens.Token, error) {
+	startLine := l.line
+	startColumn := l.column - 1
+
 	token := tokens.Token{
 		Type:     tokens.String,
-		Location: tokens.NewLocation(l.line, l.column-1, l.column),
+		Location: tokens.NewLocation(startLine, startColumn, l.column),
 	}
 
 	for !l.match('"') && !l.isEOF() {
@@ -217,14 +220,23 @@ func (l *Lexer) handleString() (*tokens.Token, error) {
 		}
 	}
 	token.Lexeme = l.bufferString()
-	token.Literal = token.Lexeme[1 : len(token.Lexeme)-1]
-	token.Line = l.line
-	token.Column.End = l.column
-
-	if token.Lexeme[len(token.Lexeme)-1] != '"' && l.isEOF() {
+	if len(token.Lexeme) == 0 {
+		return nil, nil
+	}
+	if token.Lexeme[len(token.Lexeme)-1] != '"' {
+		// String never terminated. Roll the token's reported location back
+		// to the opening quote so the snippet points at a real character
+		// (avoids End > line length and the resulting slice-out-of-range
+		// panic in alerts.writeTruncatedLine).
+		token.Line = startLine
+		token.Column.Start = startColumn
+		token.Column.End = startColumn + len(token.Lexeme)
 		l.Alert(&alerts.UnterminatedString{}, alerts.NewSingle(token))
-	} else if strings.Contains(token.Literal, "\n") {
-		l.Alert(&alerts.MultilineString{}, alerts.NewSingle(token))
+	} else {
+		token.Literal = token.Lexeme[1 : len(token.Lexeme)-1]
+		if strings.Contains(token.Literal, "\n") {
+			l.Alert(&alerts.MultilineString{}, alerts.NewSingle(token))
+		}
 	}
 
 	return &token, nil

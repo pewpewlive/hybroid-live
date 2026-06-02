@@ -24,6 +24,23 @@ func writeTruncatedLine(snippet *strings.Builder, loc tokens.Location, line []by
 	start, end := loc.Column.Start, loc.Column.End
 	lineSize := len(line)
 
+	// Clamp column values into the valid range for this line. A bad or
+	// stale column (e.g. from a multi-line token whose End points past the
+	// current line, or a single-line token whose End > line length) would
+	// otherwise cause slice-out-of-range panics below.
+	if start < 1 {
+		start = 1
+	}
+	if end < start {
+		end = start
+	}
+	if start-1 > lineSize {
+		start = lineSize + 1
+	}
+	if end-1 > lineSize {
+		end = lineSize + 1
+	}
+
 	leadingSpace := start - 1
 	markerSize := end - start
 
