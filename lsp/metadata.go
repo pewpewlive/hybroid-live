@@ -115,19 +115,7 @@ func getSymbolMetadata(w *walker.Walker, walkers map[string]*walker.Walker, labe
 			ns := parts[0]
 			sym := parts[1]
 
-			var env *walker.Environment
-			switch ns {
-			case "Pewpew":
-				env = walker.PewpewAPI
-			case "Fmath":
-				env = walker.FmathAPI
-			case "Math":
-				env = walker.MathAPI
-			case "String":
-				env = walker.StringAPI
-			case "Table":
-				env = walker.TableAPI
-			}
+			env := resolveBuiltinEnvByName(ns)
 
 			// Check custom namespaces in walkers map
 			if env == nil && walkers != nil {

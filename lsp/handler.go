@@ -50,6 +50,18 @@ type langHandler struct {
 	rootMarkers       []string
 	triggerChars      []string
 
+	// ready is closed once the initial pre-analysis has finished. Handlers
+	// that depend on h.eval should wait on it to avoid racing with initialization.
+	ready    chan struct{}
+	readySet bool
+
+	// pendingChange is the URI/text of the most recent didChange that has
+	// not yet been analyzed because the lint timer hasn't fired.
+	pendingChange struct {
+		uri  DocumentURI
+		text string
+	}
+
 	// lastPublishedURIs is mapping from LanguageID string to mapping of
 	// whether diagnostics are published in a DocumentURI or not.
 	lastPublishedURIs map[string]map[DocumentURI]struct{}
@@ -69,6 +81,9 @@ func (h *langHandler) handle(ctx context.Context, conn *jsonrpc2.Conn, req *json
 	case "shutdown":
 		return h.handleShutdown(ctx, conn, req)
 	case "exit":
+		if h.conn != nil {
+			_ = h.conn.Close()
+		}
 		os.Exit(0)
 		return nil, nil
 	case "textDocument/didOpen":
@@ -78,7 +93,7 @@ func (h *langHandler) handle(ctx context.Context, conn *jsonrpc2.Conn, req *json
 	case "textDocument/didSave":
 		return // h.handleTextDocumentDidSave(ctx, conn, req)
 	case "textDocument/didClose":
-		return // h.handleTextDocumentDidClose(ctx, conn, req)
+		return h.handleTextDocumentDidClose(ctx, conn, req)
 	case "textDocument/formatting":
 		return // h.handleTextDocumentFormatting(ctx, conn, req)
 	case "textDocument/rangeFormatting":
@@ -126,6 +141,9 @@ func NewHandler() jsonrpc2.Handler {
 		// filename:          config.Filename,
 		// rootMarkers:       *config.RootMarkers,
 		// triggerChars:      config.TriggerChars,
+
+		lintDebounce: 300 * time.Millisecond,
+		ready:        make(chan struct{}),
 
 		lastPublishedURIs: make(map[string]map[DocumentURI]struct{}),
 	}
@@ -185,6 +203,62 @@ func (h *langHandler) addFolder(folder string) {
 	}
 }
 
+// markReady closes the ready channel exactly once, signalling that h.eval is
+// initialized and safe to use. Safe to call from any goroutine.
+func (h *langHandler) markReady() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if !h.readySet {
+		close(h.ready)
+		h.readySet = true
+	}
+}
+
+// waitReady blocks until h.eval is ready or ctx is cancelled. Returns true
+// if the evaluator became ready, false if the context expired first.
+func (h *langHandler) waitReady(ctx context.Context) bool {
+	h.mu.Lock()
+	ch := h.ready
+	alreadyReady := h.readySet
+	h.mu.Unlock()
+	if alreadyReady {
+		return true
+	}
+	select {
+	case <-ch:
+		return true
+	case <-ctx.Done():
+		return false
+	}
+}
+
+// scheduleAnalysis records the most recent change and (re)starts the lint
+// debounce timer. When the timer fires, the pending change is analyzed
+// and diagnostics are published. Multiple rapid changes coalesce into a
+// single analysis run.
+func (h *langHandler) scheduleAnalysis(uri DocumentURI, text string) {
+	h.mu.Lock()
+	h.pendingChange.uri = uri
+	h.pendingChange.text = text
+	if h.lintTimer != nil {
+		h.lintTimer.Stop()
+	}
+	conn := h.conn
+	debounce := h.lintDebounce
+	h.lintTimer = time.AfterFunc(debounce, func() {
+		h.mu.Lock()
+		uri := h.pendingChange.uri
+		text := h.pendingChange.text
+		h.pendingChange.uri = ""
+		h.pendingChange.text = ""
+		h.mu.Unlock()
+		if uri == "" {
+			return
+		}
+		h.analyzeAndPublish(context.Background(), conn, uri, text)
+	})
+}
+
 func (h *langHandler) preAnalyzeWorkspace() {
 	if h.rootPath == "" {
 		return
@@ -241,5 +315,6 @@ func (h *langHandler) preAnalyzeWorkspace() {
 		})
 	}
 
+	h.markReady()
 	core.DebugLog("Workspace pre-analysis complete. Analyzed %d files.", len(filesInfo))
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/sourcegraph/jsonrpc2"
 )
 
-func (h *langHandler) handleTextDocumentDefinition(_ context.Context, _ *jsonrpc2.Conn, req *jsonrpc2.Request) (result any, err error) {
+func (h *langHandler) handleTextDocumentDefinition(ctx context.Context, _ *jsonrpc2.Conn, req *jsonrpc2.Request) (result any, err error) {
 	if req.Params == nil {
 		return nil, &jsonrpc2.Error{Code: jsonrpc2.CodeInvalidParams}
 	}
@@ -18,6 +18,10 @@ func (h *langHandler) handleTextDocumentDefinition(_ context.Context, _ *jsonrpc
 	var params DocumentDefinitionParams
 	if err := json.Unmarshal(*req.Params, &params); err != nil {
 		return nil, err
+	}
+
+	if !h.waitReady(ctx) {
+		return nil, nil
 	}
 
 	h.mu.Lock()
@@ -33,7 +37,10 @@ func (h *langHandler) handleTextDocumentDefinition(_ context.Context, _ *jsonrpc
 		return nil, nil
 	}
 
-	path, _ := fromURI(params.TextDocument.URI)
+	path, err := fromURI(params.TextDocument.URI)
+	if err != nil {
+		return nil, nil
+	}
 	relPath := getRelPath(h.rootPath, path)
 	h.evalMu.Lock()
 	w := eval.AnalyzeFile(relPath)
@@ -89,19 +96,7 @@ func (h *langHandler) resolveDefinition(w *walker.Walker, walkers map[string]*wa
 			ns := parts[0]
 			sym := parts[1]
 
-			var env *walker.Environment
-			switch ns {
-			case "Pewpew":
-				env = walker.PewpewAPI
-			case "Fmath":
-				env = walker.FmathAPI
-			case "Math":
-				env = walker.MathAPI
-			case "String":
-				env = walker.StringAPI
-			case "Table":
-				env = walker.TableAPI
-			}
+			env := resolveBuiltinEnvByName(ns)
 
 			if env == nil && walkers != nil {
 				if w2, ok := walkers[ns]; ok {

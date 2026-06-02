@@ -10,7 +10,7 @@ import (
 	"github.com/sourcegraph/jsonrpc2"
 )
 
-func (h *langHandler) handleTextDocumentSignatureHelp(_ context.Context, _ *jsonrpc2.Conn, req *jsonrpc2.Request) (result any, err error) {
+func (h *langHandler) handleTextDocumentSignatureHelp(ctx context.Context, _ *jsonrpc2.Conn, req *jsonrpc2.Request) (result any, err error) {
 	if req.Params == nil {
 		return nil, &jsonrpc2.Error{Code: jsonrpc2.CodeInvalidParams}
 	}
@@ -18,6 +18,10 @@ func (h *langHandler) handleTextDocumentSignatureHelp(_ context.Context, _ *json
 	var params SignatureHelpParams
 	if err := json.Unmarshal(*req.Params, &params); err != nil {
 		return nil, err
+	}
+
+	if !h.waitReady(ctx) {
+		return nil, nil
 	}
 
 	h.mu.Lock()
@@ -33,7 +37,10 @@ func (h *langHandler) handleTextDocumentSignatureHelp(_ context.Context, _ *json
 		return nil, nil
 	}
 
-	path, _ := fromURI(params.TextDocument.URI)
+	path, err := fromURI(params.TextDocument.URI)
+	if err != nil {
+		return nil, nil
+	}
 	relPath := getRelPath(h.rootPath, path)
 	h.evalMu.Lock()
 	w := eval.AnalyzeFile(relPath)
@@ -75,18 +82,7 @@ func (h *langHandler) handleTextDocumentSignatureHelp(_ context.Context, _ *json
 			if len(parts) == 2 {
 				ns := parts[0]
 				lookupName = parts[1]
-				switch ns {
-				case "Pewpew":
-					env = walker.PewpewAPI
-				case "Fmath":
-					env = walker.FmathAPI
-				case "Math":
-					env = walker.MathAPI
-				case "String":
-					env = walker.StringAPI
-				case "Table":
-					env = walker.TableAPI
-				}
+				env = resolveBuiltinEnvByName(ns)
 
 				if env == nil {
 					if w2, ok := eval.Walkers()[ns]; ok {
@@ -177,28 +173,53 @@ func findCallContext(text string, line, character int) (string, int) {
 		return "", 0
 	}
 
-	l := lines[line]
-	if character > len(l) {
-		character = len(l)
+	runes := []rune(lines[line])
+	if character > len(runes) {
+		character = len(runes)
 	}
 
-	contentBefore := l[:character]
-
-	openParenIdx := strings.LastIndex(contentBefore, "(")
+	// Scan backwards from the cursor, tracking paren depth, to find the
+	// opening paren of the call we are currently inside.
+	depth := 0
+	openParenIdx := -1
+	for i := character - 1; i >= 0; i-- {
+		c := runes[i]
+		if c == ')' {
+			depth++
+		} else if c == '(' {
+			if depth == 0 {
+				openParenIdx = i
+				break
+			}
+			depth--
+		}
+	}
 	if openParenIdx == -1 {
 		return "", 0
 	}
 
-	commas := strings.Count(contentBefore[openParenIdx:], ",")
-	activeParam := commas
+	// Count commas at depth 0 between the opening paren and the cursor to
+	// determine the active parameter.
+	activeParam := 0
+	d := 0
+	for i := openParenIdx; i < character; i++ {
+		c := runes[i]
+		if c == '(' {
+			d++
+		} else if c == ')' {
+			d--
+		} else if c == ',' && d == 1 {
+			activeParam++
+		}
+	}
 
 	nameEnd := openParenIdx
-	for nameEnd > 0 && (l[nameEnd-1] == ' ' || l[nameEnd-1] == '\t') {
+	for nameEnd > 0 && (runes[nameEnd-1] == ' ' || runes[nameEnd-1] == '\t') {
 		nameEnd--
 	}
 
 	nameStart := nameEnd
-	for nameStart > 0 && IsWordChar(rune(l[nameStart-1])) {
+	for nameStart > 0 && IsWordChar(runes[nameStart-1]) {
 		nameStart--
 	}
 
@@ -206,6 +227,5 @@ func findCallContext(text string, line, character int) (string, int) {
 		return "", 0
 	}
 
-	return l[nameStart:nameEnd], activeParam
-
+	return string(runes[nameStart:nameEnd]), activeParam
 }

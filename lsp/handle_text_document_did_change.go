@@ -29,17 +29,19 @@ func (h *langHandler) handleTextDocumentDidOpen(ctx context.Context, conn *jsonr
 	}
 
 	if h.eval == nil {
-		path, _ := fromURI(params.TextDocument.URI)
-		// Convert to basic path, if no root path we use the raw filename loosely.
-		baseName := filepath.Base(path)
-		h.eval = evaluator.NewEvaluator([]core.FileInformation{{
-			FileName:      strings.TrimSuffix(baseName, filepath.Ext(baseName)),
-			DirectoryPath: ".",
-			FileExtension: filepath.Ext(baseName),
-		}})
+		path, err := fromURI(params.TextDocument.URI)
+		if err == nil {
+			baseName := filepath.Base(path)
+			h.eval = evaluator.NewEvaluator([]core.FileInformation{{
+				FileName:      strings.TrimSuffix(baseName, filepath.Ext(baseName)),
+				DirectoryPath: ".",
+				FileExtension: filepath.Ext(baseName),
+			}})
+		}
 	}
 	h.mu.Unlock()
 
+	h.markReady()
 	h.analyzeAndPublish(ctx, conn, params.TextDocument.URI, params.TextDocument.Text)
 
 	return nil, nil
@@ -55,6 +57,7 @@ func (h *langHandler) handleTextDocumentDidChange(ctx context.Context, conn *jso
 		return nil, err
 	}
 
+	var fileText string
 	h.mu.Lock()
 	file, ok := h.files[params.TextDocument.URI]
 	if ok {
@@ -63,37 +66,25 @@ func (h *langHandler) handleTextDocumentDidChange(ctx context.Context, conn *jso
 			file.Text = params.ContentChanges[len(params.ContentChanges)-1].Text
 			file.Version = params.TextDocument.Version
 		}
+		fileText = file.Text
 	}
 	h.mu.Unlock()
 
-	if file != nil {
-		h.analyzeAndPublish(ctx, conn, params.TextDocument.URI, file.Text)
+	if ok {
+		h.scheduleAnalysis(params.TextDocument.URI, fileText)
 	}
 
 	return nil, nil
 }
 
 func (h *langHandler) analyzeAndPublish(ctx context.Context, conn *jsonrpc2.Conn, uri DocumentURI, text string) {
-	path, _ := fromURI(uri)
-
-	h.mu.Lock()
-	eval := h.eval
-	h.mu.Unlock()
-
-	if eval == nil {
+	path, err := fromURI(uri)
+	if err != nil {
 		return
 	}
 
-	// 1. Update content in memory + 2. Run project-wide analysis
-	relPath := getRelPath(h.rootPath, path)
-	relPath = filepath.ToSlash(filepath.Clean(relPath))
-
-	h.evalMu.Lock()
-	eval.UpdateFileContent(relPath, text)
-	eval.RunAnalysis()
-
-	// 3. Collect diagnostics for all tracked files while holding eval lock
 	h.mu.Lock()
+	eval := h.eval
 	var openFiles []struct {
 		URI     DocumentURI
 		Version int
@@ -106,14 +97,28 @@ func (h *langHandler) analyzeAndPublish(ctx context.Context, conn *jsonrpc2.Conn
 	}
 	h.mu.Unlock()
 
+	if eval == nil {
+		return
+	}
+
+	relPath := getRelPath(h.rootPath, path)
+	relPath = filepath.ToSlash(filepath.Clean(relPath))
+
+	h.evalMu.Lock()
+	eval.UpdateFileContent(relPath, text)
+	eval.RunAnalysis()
+
 	type diagInfo struct {
-		uri      DocumentURI
-		version  int
-		diags    []Diagnostic
+		uri     DocumentURI
+		version int
+		diags   []Diagnostic
 	}
 	diagBatch := make([]diagInfo, 0, len(openFiles))
 	for _, info := range openFiles {
-		p, _ := fromURI(info.URI)
+		p, ferr := fromURI(info.URI)
+		if ferr != nil {
+			continue
+		}
 		rPath := getRelPath(h.rootPath, p)
 		rPath = filepath.ToSlash(filepath.Clean(rPath))
 		diagBatch = append(diagBatch, diagInfo{

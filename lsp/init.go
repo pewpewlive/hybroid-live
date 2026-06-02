@@ -41,8 +41,9 @@ func Init(debug bool) {
 		}
 		log.SetOutput(f)
 		log.Println("Debug mode enabled, logging to hybroid_ls.log")
-		// We can't defer f.Close() here because Init returns while server is running.
-		// However, for a CLI tool it's usually fine as OS will close it.
+		// Note: we intentionally do not defer f.Close() — the file is closed
+		// by the OS on process exit. Closing earlier would prevent any
+		// post-disconnect logging from being flushed.
 	}
 
 	log.Println("Starting HybroidLS")
