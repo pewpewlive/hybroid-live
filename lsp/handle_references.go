@@ -20,7 +20,7 @@ type ReferenceContext struct {
 	IncludeDeclaration bool `json:"includeDeclaration"`
 }
 
-func (h *langHandler) handleTextDocumentReferences(_ context.Context, _ *jsonrpc2.Conn, req *jsonrpc2.Request) (result any, err error) {
+func (h *langHandler) handleTextDocumentReferences(ctx context.Context, _ *jsonrpc2.Conn, req *jsonrpc2.Request) (result any, err error) {
 	if req.Params == nil {
 		return nil, &jsonrpc2.Error{Code: jsonrpc2.CodeInvalidParams}
 	}
@@ -28,6 +28,10 @@ func (h *langHandler) handleTextDocumentReferences(_ context.Context, _ *jsonrpc
 	var params ReferenceParams
 	if err := json.Unmarshal(*req.Params, &params); err != nil {
 		return nil, err
+	}
+
+	if !h.waitReady(ctx) {
+		return nil, nil
 	}
 
 	h.mu.Lock()
@@ -43,7 +47,10 @@ func (h *langHandler) handleTextDocumentReferences(_ context.Context, _ *jsonrpc
 		return nil, nil
 	}
 
-	path, _ := fromURI(params.TextDocument.URI)
+	path, err := fromURI(params.TextDocument.URI)
+	if err != nil {
+		return nil, nil
+	}
 	relPath := getRelPath(h.rootPath, path)
 	h.evalMu.Lock()
 	w := eval.AnalyzeFile(relPath)

@@ -8,7 +8,7 @@ import (
 	"github.com/sourcegraph/jsonrpc2"
 )
 
-func (h *langHandler) HandleCompletionItemResolve(_ context.Context, _ *jsonrpc2.Conn, req *jsonrpc2.Request) (result any, err error) {
+func (h *langHandler) HandleCompletionItemResolve(ctx context.Context, _ *jsonrpc2.Conn, req *jsonrpc2.Request) (result any, err error) {
 	if req.Params == nil {
 		return nil, &jsonrpc2.Error{Code: jsonrpc2.CodeInvalidParams}
 	}
@@ -16,6 +16,10 @@ func (h *langHandler) HandleCompletionItemResolve(_ context.Context, _ *jsonrpc2
 	var params CompletionItem
 	if err := json.Unmarshal(*req.Params, &params); err != nil {
 		return nil, err
+	}
+
+	if !h.waitReady(ctx) {
+		return params, nil
 	}
 
 	return h.completionResolve(&params)
@@ -33,10 +37,12 @@ func (h *langHandler) completionResolve(item *CompletionItem) (CompletionItem, e
 		defer h.evalMu.Unlock()
 		walkers = eval.Walkers()
 		if item.Data != nil {
-			// Convert Data to string if it's a URI
 			if uri, ok := item.Data.(string); ok {
-				path, _ := fromURI(DocumentURI(uri))
-				w = eval.AnalyzeFile(path)
+				path, ferr := fromURI(DocumentURI(uri))
+				if ferr == nil {
+					relPath := getRelPath(h.rootPath, path)
+					w = eval.AnalyzeFile(relPath)
+				}
 			}
 		}
 	}

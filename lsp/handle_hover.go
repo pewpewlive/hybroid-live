@@ -13,7 +13,7 @@ import (
 	"github.com/sourcegraph/jsonrpc2"
 )
 
-func (h *langHandler) handleTextDocumentHover(_ context.Context, _ *jsonrpc2.Conn, req *jsonrpc2.Request) (result any, err error) {
+func (h *langHandler) handleTextDocumentHover(ctx context.Context, _ *jsonrpc2.Conn, req *jsonrpc2.Request) (result any, err error) {
 	if req.Params == nil {
 		return nil, &jsonrpc2.Error{Code: jsonrpc2.CodeInvalidParams}
 	}
@@ -21,6 +21,10 @@ func (h *langHandler) handleTextDocumentHover(_ context.Context, _ *jsonrpc2.Con
 	var params HoverParams
 	if err := json.Unmarshal(*req.Params, &params); err != nil {
 		return nil, err
+	}
+
+	if !h.waitReady(ctx) {
+		return nil, nil
 	}
 
 	h.mu.Lock()
@@ -36,7 +40,10 @@ func (h *langHandler) handleTextDocumentHover(_ context.Context, _ *jsonrpc2.Con
 		return nil, nil
 	}
 
-	path, _ := fromURI(params.TextDocument.URI)
+	path, err := fromURI(params.TextDocument.URI)
+	if err != nil {
+		return nil, nil
+	}
 	relPath := getRelPath(h.rootPath, path)
 	h.evalMu.Lock()
 	w := eval.AnalyzeFile(relPath)
@@ -174,14 +181,15 @@ func (h *langHandler) handleTextDocumentHover(_ context.Context, _ *jsonrpc2.Con
 
 // getNumericLiteralAt extracts a numeric literal token at the given position,
 // including decimal points (e.g. "10.5f", "90d", "3.14r").
+// `character` is treated as a rune index.
 func getNumericLiteralAt(text string, line, character int) string {
 	text = strings.ReplaceAll(text, "\r\n", "\n")
 	lines := strings.Split(text, "\n")
 	if line < 0 || line >= len(lines) {
 		return ""
 	}
-	l := lines[line]
-	if character < 0 || character >= len(l) {
+	runes := []rune(lines[line])
+	if character < 0 || character >= len(runes) {
 		return ""
 	}
 
@@ -189,18 +197,15 @@ func getNumericLiteralAt(text string, line, character int) string {
 		return (r >= '0' && r <= '9') || r == '.' || r == '_'
 	}
 
-	// Scan forward to find the suffix character (d, f, r)
 	end := character
-	for end < len(l) && (isNumLitChar(rune(l[end])) || (l[end] >= 'a' && l[end] <= 'z')) {
+	for end < len(runes) && (isNumLitChar(runes[end]) || (runes[end] >= 'a' && runes[end] <= 'z')) {
 		end++
 	}
-	// Scan backward over digits and dots
 	start := character
-	for start > 0 && isNumLitChar(rune(l[start-1])) {
+	for start > 0 && isNumLitChar(runes[start-1]) {
 		start--
 	}
-	// Include leading minus sign for negative literals
-	if start > 0 && l[start-1] == '-' {
+	if start > 0 && runes[start-1] == '-' {
 		start--
 	}
 
@@ -208,7 +213,7 @@ func getNumericLiteralAt(text string, line, character int) string {
 		return ""
 	}
 
-	return l[start:end]
+	return string(runes[start:end])
 }
 
 // fixedToFxStr converts a float64 to its fixed-point string representation.

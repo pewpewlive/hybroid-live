@@ -3,7 +3,6 @@ package lsp
 import (
 	"context"
 	"encoding/json"
-	"hybroid/ast"
 	"hybroid/evaluator"
 	"hybroid/walker"
 	"path/filepath"
@@ -12,7 +11,7 @@ import (
 	"github.com/sourcegraph/jsonrpc2"
 )
 
-func (h *langHandler) handleTextDocumentCompletion(_ context.Context, _ *jsonrpc2.Conn, req *jsonrpc2.Request) (result any, err error) {
+func (h *langHandler) handleTextDocumentCompletion(ctx context.Context, _ *jsonrpc2.Conn, req *jsonrpc2.Request) (result any, err error) {
 	if req.Params == nil {
 		return nil, &jsonrpc2.Error{Code: jsonrpc2.CodeInvalidParams}
 	}
@@ -20,6 +19,10 @@ func (h *langHandler) handleTextDocumentCompletion(_ context.Context, _ *jsonrpc
 	var params CompletionParams
 	if err := json.Unmarshal(*req.Params, &params); err != nil {
 		return nil, err
+	}
+
+	if !h.waitReady(ctx) {
+		return nil, nil
 	}
 
 	h.mu.Lock()
@@ -31,7 +34,10 @@ func (h *langHandler) handleTextDocumentCompletion(_ context.Context, _ *jsonrpc
 		return nil, nil
 	}
 
-	path, _ := fromURI(params.TextDocument.URI)
+	path, err := fromURI(params.TextDocument.URI)
+	if err != nil {
+		return nil, nil
+	}
 	relPath := getRelPath(h.rootPath, path)
 	h.evalMu.Lock()
 	w := eval.AnalyzeFile(relPath)
@@ -170,19 +176,7 @@ func (h *langHandler) completion(file *File, w *walker.Walker, params *Completio
 
 		// 4. Builtin Libraries ONLY if explicitly imported via 'use'
 		for _, lib := range w.Env().ImportedLibraries {
-			var libEnv *walker.Environment
-			switch lib {
-			case ast.Pewpew:
-				libEnv = walker.PewpewAPI
-			case ast.Fmath:
-				libEnv = walker.FmathAPI
-			case ast.Math:
-				libEnv = walker.MathAPI
-			case ast.String:
-				libEnv = walker.StringAPI
-			case ast.Table:
-				libEnv = walker.TableAPI
-			}
+			libEnv := resolveBuiltinEnv(lib)
 
 			if libEnv != nil {
 				for name, variable := range libEnv.Scope.Variables {
@@ -326,38 +320,32 @@ func (h *langHandler) getNamespaceContext(text string, pos Position) (string, st
 	if pos.Line < 0 || pos.Line >= len(lines) {
 		return "", "", ""
 	}
-	line := lines[pos.Line]
+	runes := []rune(lines[pos.Line])
 
-	// If at the very start of a line, no namespace
 	if pos.Character <= 0 {
 		return "", "", ""
 	}
 
-	// Search backwards for : or . starting from the character BEFORE the cursor
-	// because at Namespace:| the character at pos.Character might be space or newline
 	curr := pos.Character
-	if curr > len(line) {
-		curr = len(line)
+	if curr > len(runes) {
+		curr = len(runes)
 	}
 
-	// We might be at Namespace:Part|
-	// Scan back for the start of the current "word"
 	wordStart := curr
-	for wordStart > 0 && isIdentChar(rune(line[wordStart-1])) {
+	for wordStart > 0 && isIdentChar(runes[wordStart-1]) {
 		wordStart--
 	}
 
-	// Now check if the character before wordStart is ':' or '.'
-	if wordStart > 0 && (line[wordStart-1] == ':' || line[wordStart-1] == '.') {
-		operator := string(line[wordStart-1])
+	if wordStart > 0 && (runes[wordStart-1] == ':' || runes[wordStart-1] == '.') {
+		operator := string(runes[wordStart-1])
 		nsEnd := wordStart - 1
 		nsStart := nsEnd
-		for nsStart > 0 && (isIdentChar(rune(line[nsStart-1])) || line[nsStart-1] == ':') {
+		for nsStart > 0 && (isIdentChar(runes[nsStart-1]) || runes[nsStart-1] == ':') {
 			nsStart--
 		}
 		if nsStart < nsEnd {
-			namespace := line[nsStart:nsEnd]
-			partial := line[wordStart:curr]
+			namespace := string(runes[nsStart:nsEnd])
+			partial := string(runes[wordStart:curr])
 			return namespace, partial, operator
 		}
 	}
@@ -383,24 +371,10 @@ func (h *langHandler) namespaceCompletion(namespace string, operator string, w *
 	}
 
 	if operator == ":" || strings.Contains(namespace, ":") {
-		// Check builtins
-		switch envName {
-		case "Pewpew":
-			targetEnv = walker.PewpewAPI
-		case "Fmath":
-			targetEnv = walker.FmathAPI
-		case "Math":
-			targetEnv = walker.MathAPI
-		case "String":
-			targetEnv = walker.StringAPI
-		case "Table":
-			targetEnv = walker.TableAPI
-		default:
-			// Check custom environments
-			if eval != nil {
-				if w2, ok := eval.Walkers()[envName]; ok {
-					targetEnv = w2.Env()
-				}
+		targetEnv = resolveBuiltinEnvByName(envName)
+		if targetEnv == nil && eval != nil {
+			if w2, ok := eval.Walkers()[envName]; ok {
+				targetEnv = w2.Env()
 			}
 		}
 	}
@@ -424,19 +398,7 @@ func (h *langHandler) namespaceCompletion(namespace string, operator string, w *
 				// Check explicitly imported builtin libraries if not found
 				if foundEnum == nil {
 					for _, lib := range w.Env().ImportedLibraries {
-						var libEnv *walker.Environment
-						switch lib {
-						case ast.Pewpew:
-							libEnv = walker.PewpewAPI
-						case ast.Fmath:
-							libEnv = walker.FmathAPI
-						case ast.Math:
-							libEnv = walker.MathAPI
-						case ast.String:
-							libEnv = walker.StringAPI
-						case ast.Table:
-							libEnv = walker.TableAPI
-						}
+						libEnv := resolveBuiltinEnv(lib)
 						if libEnv != nil {
 							if ev, ok := libEnv.Enums[enumName]; ok { // Builtin enums act as pub
 								foundEnum = ev

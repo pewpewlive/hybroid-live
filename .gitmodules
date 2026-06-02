@@ -1,3 +1,6 @@
 [submodule "docs"]
 	path = docs
 	url = https://github.com/pewpewlive/hybroid-docs.git
+[submodule "vscode-ext"]
+	path = vscode-ext
+	url = https://github.com/pewpewlive/hybroid-vscode.git
