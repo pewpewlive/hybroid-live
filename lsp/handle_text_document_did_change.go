@@ -12,7 +12,7 @@ import (
 	"github.com/sourcegraph/jsonrpc2"
 )
 
-func (h *langHandler) handleTextDocumentDidOpen(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) (result any, err error) {
+func (h *langHandler) handleTextDocumentDidOpen(ctx context.Context, conn notifier, req *jsonrpc2.Request) (result any, err error) {
 	if req.Params == nil {
 		return nil, &jsonrpc2.Error{Code: jsonrpc2.CodeInvalidParams}
 	}
@@ -105,7 +105,7 @@ func (h *langHandler) handleTextDocumentDidOpen(ctx context.Context, conn *jsonr
 	return nil, nil
 }
 
-func (h *langHandler) handleTextDocumentDidChange(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) (result any, err error) {
+func (h *langHandler) handleTextDocumentDidChange(ctx context.Context, conn notifier, req *jsonrpc2.Request) (result any, err error) {
 	if req.Params == nil {
 		return nil, &jsonrpc2.Error{Code: jsonrpc2.CodeInvalidParams}
 	}
@@ -119,11 +119,16 @@ func (h *langHandler) handleTextDocumentDidChange(ctx context.Context, conn *jso
 	h.mu.Lock()
 	file, ok := h.files[params.TextDocument.URI]
 	if ok {
-		// Since we use TDSKFull in initialize, we assume the last change contains the full text
+		// Since we use TDSKFull in initialize, we assume the last change
+		// contains the full text. Version is updated unconditionally —
+		// a didChange with an empty ContentChanges list (which the LSP
+		// allows) must still advance the version, otherwise downstream
+		// publishDiagnostics carries the old version and editors treat
+		// the diagnostic as stale.
 		if len(params.ContentChanges) > 0 {
 			file.Text = params.ContentChanges[len(params.ContentChanges)-1].Text
-			file.Version = params.TextDocument.Version
 		}
+		file.Version = params.TextDocument.Version
 		fileText = file.Text
 	}
 	h.mu.Unlock()
@@ -135,7 +140,7 @@ func (h *langHandler) handleTextDocumentDidChange(ctx context.Context, conn *jso
 	return nil, nil
 }
 
-func (h *langHandler) analyzeAndPublish(ctx context.Context, conn *jsonrpc2.Conn, uri DocumentURI, text string) {
+func (h *langHandler) analyzeAndPublish(ctx context.Context, conn notifier, uri DocumentURI, text string) {
 	path, err := fromURI(uri)
 	if err != nil {
 		return
