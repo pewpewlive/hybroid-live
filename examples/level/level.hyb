@@ -19,7 +19,7 @@ grid.CreateLineGrid()
 
 let roundManager = new RoundManager:RoundManager()
 
-tick with time {
+tick {
   if GetPlayerConfig(0).has_lost {
     StopGame()
   }
