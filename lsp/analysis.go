@@ -92,16 +92,32 @@ func alertsToDiagnostics(uri DocumentURI, alertsList []alerts.Alert) []Diagnosti
 			endTok = startTok
 		}
 
+		// Clamp to non-negative LSP positions. Tokens are nominally
+		// 1-based, so the -1 conversion should always yield >= 0, but
+		// malformed tokens (e.g. from a hand-constructed test alert or
+		// a future generator bug) can produce line=0/col=0. Editors
+		// reject negative positions, so we floor them.
+		startLine := startTok.Location.Line - 1
+		if startLine < 0 {
+			startLine = 0
+		}
+		startCol := startTok.Location.Column.Start - 1
+		if startCol < 0 {
+			startCol = 0
+		}
+		endLine := endTok.Location.Line - 1
+		if endLine < 0 {
+			endLine = 0
+		}
+		endCol := endTok.Location.Column.End - 1
+		if endCol < 0 {
+			endCol = 0
+		}
+
 		d := Diagnostic{
 			Range: Range{
-				Start: Position{
-					Line:      startTok.Location.Line - 1,
-					Character: startTok.Location.Column.Start - 1,
-				},
-				End: Position{
-					Line:      endTok.Location.Line - 1,
-					Character: endTok.Location.Column.End - 1,
-				},
+				Start: Position{Line: startLine, Character: startCol},
+				End:   Position{Line: endLine, Character: endCol},
 			},
 			Message: fmt.Sprintf("[%s] %s", alert.ID(), alert.Message()),
 			Severity: func() int {

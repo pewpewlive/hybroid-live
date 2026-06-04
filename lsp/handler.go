@@ -23,6 +23,16 @@ type lintRequest struct {
 	EventType eventType
 }
 
+// notifier is the minimal surface that langHandler uses to push messages to
+// the LSP client. In production this is *jsonrpc2.Conn; in tests it is a fake
+// that records calls. The variadic CallOption must be preserved verbatim —
+// Go's method-set rules mean a fixed-arg interface cannot be satisfied by a
+// variadic concrete method.
+type notifier interface {
+	Notify(ctx context.Context, method string, params any, opts ...jsonrpc2.CallOption) error
+	Close() error
+}
+
 type File struct {
 	LanguageID string
 	Text       string
@@ -42,7 +52,7 @@ type langHandler struct {
 	lintTimer         *time.Timer
 	formatDebounce    time.Duration
 	formatTimer       *time.Timer
-	conn              *jsonrpc2.Conn
+	conn              notifier
 	rootPath          string
 	rootURI           DocumentURI
 	filename          string
@@ -331,7 +341,7 @@ func (h *langHandler) preAnalyzeWorkspace() {
 // calls for the same URI are a no-op. This is used to surface "your file is
 // open without a project context" hints exactly once per buffer, so the user
 // is informed without being re-pinged on every keystroke.
-func (h *langHandler) publishInfoOnce(ctx context.Context, conn *jsonrpc2.Conn, uri DocumentURI, message string) {
+func (h *langHandler) publishInfoOnce(ctx context.Context, conn notifier, uri DocumentURI, message string) {
 	h.mu.Lock()
 	if _, ok := h.infoNoticesPublished[uri]; ok {
 		h.mu.Unlock()

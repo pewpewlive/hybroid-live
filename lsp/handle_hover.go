@@ -13,7 +13,7 @@ import (
 	"github.com/sourcegraph/jsonrpc2"
 )
 
-func (h *langHandler) handleTextDocumentHover(ctx context.Context, _ *jsonrpc2.Conn, req *jsonrpc2.Request) (result any, err error) {
+func (h *langHandler) handleTextDocumentHover(ctx context.Context, _ notifier, req *jsonrpc2.Request) (result any, err error) {
 	if req.Params == nil {
 		return nil, &jsonrpc2.Error{Code: jsonrpc2.CodeInvalidParams}
 	}
@@ -30,13 +30,17 @@ func (h *langHandler) handleTextDocumentHover(ctx context.Context, _ *jsonrpc2.C
 	h.mu.Lock()
 	eval := h.eval
 	file, fileOk := h.files[params.TextDocument.URI]
+	var fileText string
+	if fileOk {
+		fileText = file.Text
+	}
 	h.mu.Unlock()
 
 	if eval == nil || !fileOk {
 		return nil, nil
 	}
 
-	if isInCommentOrString(file.Text, params.Position.Line, params.Position.Character) {
+	if isInCommentOrString(fileText, params.Position.Line, params.Position.Character) {
 		return nil, nil
 	}
 
@@ -54,14 +58,14 @@ func (h *langHandler) handleTextDocumentHover(ctx context.Context, _ *jsonrpc2.C
 	defer h.evalMu.Unlock()
 
 	// 1. Get the word under the cursor
-	word := getWordAt(file.Text, params.Position.Line, params.Position.Character)
+	word := getWordAt(fileText, params.Position.Line, params.Position.Character)
 	core.DebugLog("Hover word at line %d, char %d: %q", params.Position.Line, params.Position.Character, word)
 	if word == "" {
 		return nil, nil
 	}
 
 	// 1.5. Check for numeric literal hover (e.g. 90d, 10.5f -> show computed fixed-point value)
-	numLit := getNumericLiteralAt(file.Text, params.Position.Line, params.Position.Character)
+	numLit := getNumericLiteralAt(fileText, params.Position.Line, params.Position.Character)
 	if len(numLit) > 1 {
 		suffix := numLit[len(numLit)-1]
 		numStr := numLit[:len(numLit)-1]
