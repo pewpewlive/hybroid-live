@@ -257,6 +257,7 @@ func (h *langHandler) scheduleAnalysis(uri DocumentURI, text string) {
 		}
 		h.analyzeAndPublish(context.Background(), conn, uri, text)
 	})
+	h.mu.Unlock()
 }
 
 func (h *langHandler) preAnalyzeWorkspace() {
