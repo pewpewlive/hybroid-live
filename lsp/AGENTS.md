@@ -17,7 +17,7 @@ This directory contains the implementation of the Language Server Protocol (LSP)
 
 ## Document Syncing (`handle_text_document_did_change.go`)
 
-- **`handleTextDocumentDidOpen(ctx, conn, req)`**: triggered when a file is opened in the editor. It stores the file content and performs initial analysis.
+- **`handleTextDocumentDidOpen(ctx, conn, req)`**: triggered when a file is opened in the editor. It stores the file content and performs initial analysis. If no workspace root is set yet, it calls `findProjectRoot` to look for a `hybconfig.toml` upward; if none is found, the file is analyzed in isolation and a one-shot Information diagnostic is published via `publishInfoOnce` to tell the user to open the folder.
 - **`handleTextDocumentDidChange(ctx, conn, req)`**: Triggered as the user types. It updates the in-memory file content and re-runs analysis to provide live diagnostics.
 - **`analyzeAndPublish(ctx, conn, uri, text)`**: Helper that runs `Analyze` and pushes the resulting diagnostics back to the client.
 
@@ -46,6 +46,14 @@ This directory contains the implementation of the Language Server Protocol (LSP)
 - **`isInCommentOrString(text string, line, col int) bool`**: Scans the text to determine if a specific position is inside a comment or string literal, used to suppress features like Hover and Signature Help in those contexts.
 - **`IsWordChar(r rune) bool`**: Defines what constitutes a "word" for symbol lookup (alphanumeric, underscores, and colons for namespaces).
 - **`fromURI(uri DocumentURI)` / `toURI(path string)`**: Utilities for converting between LSP file URIs and local filesystem paths.
+
+## Project Root Discovery (`find_project_root.go`)
+
+- **`findProjectRoot(filePath string, markers []string) string`**: Walks up from the file's directory looking for any of the given marker filenames (default `["hybconfig.toml"]`). Returns the directory that contains the first marker, or `""` if none is found up to the filesystem root. Used as a fallback for single-file opens to locate a Hybroid project without an explicit `rootUri`.
+
+## One-shot Information Diagnostics (`handler.go`)
+
+- **`publishInfoOnce(ctx, conn, uri, message)`**: Sends an `Information`-severity `publishDiagnostics` notification for the given URI, but only the first time it is called for that URI. Subsequent calls are no-ops. The `infoNoticesPublished` map on `langHandler` tracks which URIs have already been notified, so the user is not re-pinged on every keystroke.
 
 ## Logging & Debugging
 

@@ -21,6 +21,10 @@ The project is written in **Go** and follows a standard compiler architecture:
 4.  **Generator (`generator/`)**: Transpiles the AST into Lua code.
 5.  **LSP (`lsp/`)**: Provides Language Server Protocol support for editors (VS Code).
 
+### LSP single-file fallback
+
+When the editor opens a `.hyb` file without a containing folder (no `rootUri` in the `initialize` request), the LSP walks the parent directories looking for `hybconfig.toml` — the same pattern that `tsserver` uses to discover a `tsconfig.json` for loose files. If a project root is found, full workspace analysis runs as if the folder had been opened. If no marker is found, the file is analyzed in isolation and a single Information diagnostic is published at the top of the buffer: *"This file is open without its Hybroid project. Open the folder containing `hybconfig.toml` to resolve all `use` references."* See `lsp/find_project_root.go` and `lsp/handle_text_document_did_change.go`.
+
 ## Development Environments
 
 Hybroid supports distinct "environments" that dictate available standard libraries and compilation behavior:
