@@ -19,24 +19,24 @@ import (
 type Evaluator struct {
 	mu sync.Mutex
 	// walkers map environment names AND absolute paths to walker instances
-	walkers     map[string]*walker.Walker
-	walkerList  []*walker.Walker
-	files       []core.FileInformation
-	programs    map[string][]ast.Node
-	parseAlerts map[string][]alerts.Alert
+	walkers      map[string]*walker.Walker
+	walkerList   []*walker.Walker
+	files        []core.FileInformation
+	programs     map[string][]ast.Node
+	parseAlerts  map[string][]alerts.Alert
 	fileContents map[string]string
-	printer     alerts.Printer
+	printer      alerts.Printer
 }
 
 func NewEvaluator(files []core.FileInformation) *Evaluator {
 	evaluator := &Evaluator{
-		walkers:     make(map[string]*walker.Walker),
-		walkerList:  make([]*walker.Walker, 0),
-		files:       files,
-		programs:    make(map[string][]ast.Node),
-		parseAlerts: make(map[string][]alerts.Alert),
+		walkers:      make(map[string]*walker.Walker),
+		walkerList:   make([]*walker.Walker, 0),
+		files:        files,
+		programs:     make(map[string][]ast.Node),
+		parseAlerts:  make(map[string][]alerts.Alert),
 		fileContents: make(map[string]string),
-		printer:     alerts.NewPrinter(),
+		printer:      alerts.NewPrinter(),
 	}
 
 	for _, file := range evaluator.files {
@@ -378,6 +378,109 @@ func (e *Evaluator) parseFromContent(path, content string, w *walker.Walker) {
 		w.SetProgram(program)
 	}
 	e.programs[path] = program
+}
+
+// RemoveFile drops all per-file state for the given path. It is
+// the inverse of UpdateFileContent: after a RemoveFile, the
+// evaluator no longer references the file's walker, AST, or alerts.
+// Returns true if a matching file was found and removed, false if
+// the path didn't match any known file.
+//
+// The path argument can be in any form (relative, absolute,
+// cleaned, or un-cleaned). RemoveFile resolves it the same way
+// ensureFile does — by basename. This handles a known quirk of
+// single-file mode: didOpen creates a walker via NewEvaluator with
+// one path representation, and analyzeAndPublish creates a second
+// walker via ensureFile with a different representation. Both
+// walkers refer to the same conceptual file and both must be
+// dropped on close.
+//
+// Note: basename matching is conservative in the case where two
+// files in the same workspace share a basename (e.g. src/foo.hyb
+// and test/foo.hyb) — both would be removed. In practice the LSP
+// never closes both at once, but if didOpen is ever changed to
+// use a consistent path representation, this function should be
+// tightened to match by full source path.
+func (e *Evaluator) RemoveFile(path string) bool {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	if path == "" {
+		return false
+	}
+
+	path = filepath.ToSlash(filepath.Clean(path))
+	baseName := filepath.Base(path)
+	if baseName == "" || baseName == "." || baseName == "/" {
+		return false
+	}
+
+	// Find every e.files entry whose basename matches. Each match
+	// contributes a sourcePath (and an abs path) that must be
+	// removed from e.walkers, plus a walker pointer that must be
+	// dropped from e.walkerList.
+	var matchedSources []string
+	var matchedAbs []string
+	var targetWalkers []*walker.Walker
+	for _, file := range e.files {
+		sp := filepath.ToSlash(filepath.Clean(file.Path()))
+		if filepath.Base(sp) != baseName {
+			continue
+		}
+		matchedSources = append(matchedSources, sp)
+		if abs, err := filepath.Abs(sp); err == nil {
+			matchedAbs = append(matchedAbs, filepath.ToSlash(filepath.Clean(abs)))
+		}
+		if w, ok := e.walkers[sp]; ok {
+			targetWalkers = append(targetWalkers, w)
+		}
+	}
+	if len(matchedSources) == 0 {
+		return false
+	}
+
+	// Drop target walkers from e.walkerList. Build a set so the
+	// O(n) filter is one pass.
+	targetSet := make(map[*walker.Walker]bool, len(targetWalkers))
+	for _, w := range targetWalkers {
+		targetSet[w] = true
+	}
+	newList := make([]*walker.Walker, 0, len(e.walkerList))
+	for _, w := range e.walkerList {
+		if !targetSet[w] {
+			newList = append(newList, w)
+		}
+	}
+	e.walkerList = newList
+
+	// Drop matched entries from e.files (preserve order of the rest).
+	matchedSourceSet := make(map[string]bool, len(matchedSources))
+	for _, sp := range matchedSources {
+		matchedSourceSet[sp] = true
+	}
+	newFiles := make([]core.FileInformation, 0, len(e.files))
+	for _, file := range e.files {
+		sp := filepath.ToSlash(filepath.Clean(file.Path()))
+		if matchedSourceSet[sp] {
+			continue
+		}
+		newFiles = append(newFiles, file)
+	}
+	e.files = newFiles
+
+	// Drop from the maps. e.walkers is keyed by both sourcePath and
+	// abs path; the other maps are keyed only by sourcePath.
+	for _, sp := range matchedSources {
+		delete(e.walkers, sp)
+		delete(e.programs, sp)
+		delete(e.parseAlerts, sp)
+		delete(e.fileContents, sp)
+	}
+	for _, abs := range matchedAbs {
+		delete(e.walkers, abs)
+	}
+
+	return true
 }
 
 // AnalyzeFile re-runs analysis for a specific file and returns its walker.
