@@ -1,0 +1,379 @@
+diff --git a/package.json b/package.json
+index e59cca5..fe7a4ec 100644
+--- a/package.json
++++ b/package.json
+@@ -81,6 +81,7 @@
+     "vscode:prepublish": "bun compile",
+     "compile": "tsc -b",
+     "watch": "tsc -b -w",
++    "test": "bun test src/test",
+     "lint": "eslint ./client/src ./server/src --ext .ts,.tsx"
+   },
+   "dependencies": {
+diff --git a/src/extension.ts b/src/extension.ts
+index 2c3501d..a301728 100644
+--- a/src/extension.ts
++++ b/src/extension.ts
+@@ -1,47 +1,17 @@
+-import { existsSync } from "fs"
+-import { homedir } from "os"
+-import { join } from "path"
+ import { workspace, ExtensionContext, commands, window } from "vscode"
+ 
+ import { LanguageClient, LanguageClientOptions, ServerOptions } from "vscode-languageclient/node"
+ 
+-let client: LanguageClient
+-
+-const DEV_FALLBACK_PATHS: Record<string, string> = {
+-  win32: "C:\\Users\\Dominykas\\Documents\\Development\\hybroid\\build\\hybroid-windows-x86_64.exe",
+-}
++import { homedir } from "os"
++import { resolveLanguageServerPath } from "./path-resolver"
+ 
+-function findBinaryInHome(name: string): string | undefined {
+-  const home = homedir()
+-  const candidates = [
+-    join(home, ".hybroid", name),
+-    join(home, ".local", "bin", name),
+-    join(home, ".local", "share", "hybroid", "bin", name),
+-    join("/usr/local/bin", name),
+-    join("/opt/homebrew/bin", name),
+-  ]
+-  for (const candidate of candidates) {
+-    if (existsSync(candidate)) {
+-      return candidate
+-    }
+-  }
+-  return undefined
+-}
++let client: LanguageClient
+ 
+ function getLanguageServerPath(): string {
+   const config = workspace.getConfiguration("hybroid")
+-  const path = config.get<string>("languageServerPath")
+-  if (path && path.trim() !== "") {
+-    return path
+-  }
++  const override = config.get<string>("languageServerPath") ?? ""
+   const exeName = process.platform === "win32" ? "hybroid.exe" : "hybroid"
+-  if (process.platform !== "win32") {
+-    const home = findBinaryInHome(exeName)
+-    if (home) {
+-      return home
+-    }
+-  }
+-  return DEV_FALLBACK_PATHS[process.platform] ?? exeName
++  return resolveLanguageServerPath(override, process.env.PATH ?? "", homedir(), exeName)
+ }
+ 
+ async function startLanguageServer() {
+diff --git a/src/path-resolver.ts b/src/path-resolver.ts
+new file mode 100644
+index 0000000..fca0066
+--- /dev/null
++++ b/src/path-resolver.ts
+@@ -0,0 +1,117 @@
++import { existsSync } from "fs"
++import { isAbsolute, join, resolve } from "path"
++
++// DEV_FALLBACK_PATHS holds a hardcoded path to a locally-built
++// binary for development. It's intentionally platform-specific:
++// on macOS/Linux we expect the binary to be on PATH or in
++// ~/.hybroid, so no fallback is needed. On Windows, where
++// neither is reliably true, contributors can set this to their
++// own checkout path.
++//
++// This list lives alongside the resolver (rather than in
++// extension.ts) so the resolver is fully unit-testable from a
++// plain `bun test` invocation, without needing the VS Code
++// runtime to be present.
++const DEV_FALLBACK_PATHS: Record<string, string> = {
++  win32: "C:\\Users\\Dominykas\\Documents\\Development\\hybroid\\build\\hybroid-windows-x86_64.exe",
++}
++
++// findBinaryInHome returns the absolute path of `name` if it
++// exists in one of the well-known install locations under `home`,
++// or undefined otherwise. The order is:
++//
++//   1. ~/.hybroid/<name>            — the documented install location
++//   2. ~/.local/bin/<name>          — XDG user bin
++//   3. ~/.local/share/hybroid/bin/  — XDG data dir
++//   4. /usr/local/bin/<name>        — system-wide Unix install
++//   5. /opt/homebrew/bin/<name>     — Homebrew on Apple Silicon
++//
++// The order matches the convention: documented install location
++// first, XDG second, system fallbacks last.
++export function findBinaryInHome(name: string, home: string): string | undefined {
++  const candidates = [
++    join(home, ".hybroid", name),
++    join(home, ".local", "bin", name),
++    join(home, ".local", "share", "hybroid", "bin", name),
++    join("/usr/local/bin", name),
++    join("/opt/homebrew/bin", name),
++  ]
++  for (const candidate of candidates) {
++    if (existsSync(candidate)) {
++      return candidate
++    }
++  }
++  return undefined
++}
++
++// findBinaryInPath returns the absolute path of `name` if it
++// appears in any directory listed in `pathEnv`, or undefined
++// otherwise. The PATH separator is `;` on Windows and `:` on
++// Unix (matching Go's PATH-walking convention in os/exec.LookPath).
++//
++// Empty entries (e.g. "::" on Unix or ";;" on Windows) are
++// skipped. Relative entries are resolved against the current
++// working directory so the returned path is always absolute
++// (matches the os/exec.LookPath contract).
++//
++// VS Code on macOS is launched with a sanitized PATH that does
++// not include shell-managed entries like ~/.hybroid. A bare-name
++// spawn would fail with ENOENT even when the shell can run the
++// command. The explicit walk below is the workaround: it makes
++// the search visible and testable, instead of relying on the
++// runtime's PATH inheritance.
++export function findBinaryInPath(name: string, pathEnv: string): string | undefined {
++  const sep = process.platform === "win32" ? ";" : ":"
++  for (const dir of pathEnv.split(sep)) {
++    if (!dir) {
++      continue
++    }
++    const candidate = isAbsolute(dir) ? join(dir, name) : resolve(dir, name)
++    if (existsSync(candidate)) {
++      return candidate
++    }
++  }
++  return undefined
++}
++
++// resolveLanguageServerPath picks the absolute path the
++// extension should spawn for the Hybroid language server. The
++// order of precedence is:
++//
++//   1. configOverride (the `hybroid.languageServerPath` user
++//      setting) — explicit user choice always wins.
++//   2. findBinaryInPath — an explicit PATH walk. Catches
++//      installs from Homebrew, Scoop, apt, brew, etc.
++//   3. findBinaryInHome — the documented ~/.hybroid/ location
++//      and other well-known dirs.
++//   4. DEV_FALLBACK_PATHS[platform] — for local development on
++//      Windows, where neither PATH nor ~/.hybroid is reliable.
++//   5. The bare `exeName` — last-resort spawn. The OS will
++//      re-walk PATH for us; this is the legacy behavior kept
++//      for safety.
++//
++// `home`, `pathEnv`, and `exeName` are passed in rather than
++// read from the environment so the function is fully testable
++// in isolation. Callers should pass the real values from the
++// Node runtime.
++export function resolveLanguageServerPath(
++  configOverride: string,
++  pathEnv: string,
++  home: string,
++  exeName: string,
++): string {
++  if (configOverride && configOverride.trim() !== "") {
++    return configOverride
++  }
++  const inPath = findBinaryInPath(exeName, pathEnv)
++  if (inPath) {
++    return inPath
++  }
++  if (process.platform !== "win32") {
++    const inHome = findBinaryInHome(exeName, home)
++    if (inHome) {
++      return inHome
++    }
++  }
++  return DEV_FALLBACK_PATHS[process.platform] ?? exeName
++}
+diff --git a/src/test/path-resolver.test.ts b/src/test/path-resolver.test.ts
+new file mode 100644
+index 0000000..5848374
+--- /dev/null
++++ b/src/test/path-resolver.test.ts
+@@ -0,0 +1,170 @@
++import { afterEach, beforeEach, describe, expect, test } from "bun:test"
++import { mkdirSync, realpathSync, rmSync, writeFileSync } from "fs"
++import { tmpdir } from "os"
++import { join } from "path"
++
++import { findBinaryInPath, resolveLanguageServerPath } from "../path-resolver"
++
++// Each test creates a fresh temp dir under os.tmpdir() and
++// stages fake binaries in it. We clean up after the suite so
++// successive `bun test` runs and the in-editor build don't
++// accumulate artifacts in the repo.
++
++let testDir: string
++
++beforeEach(() => {
++  testDir = mkdirSync(join(tmpdir(), `hybroid-resolver-${crypto.randomUUID()}`), {
++    recursive: true,
++  })
++})
++
++afterEach(() => {
++  rmSync(testDir, { recursive: true, force: true })
++})
++
++// stageBinary creates an empty file at <testDir>/<rel>/<name>
++// and returns the absolute path. `rel` is a path relative to
++// testDir (can be a nested directory like ".hybroid" or
++// "usr/bin") so tests can simulate well-known install layouts
++// without each test having to mkdir every ancestor.
++function stageBinary(rel: string, name: string): string {
++  const dir = join(testDir, rel)
++  mkdirSync(dir, { recursive: true })
++  const full = join(dir, name)
++  writeFileSync(full, "")
++  return full
++}
++
++describe("findBinaryInPath", () => {
++  test("finds binary in a single PATH entry", () => {
++    const expected = stageBinary("bin", "hybroid")
++    const got = findBinaryInPath("hybroid", testDir + "/bin")
++    expect(got).toBe(expected)
++  })
++
++  test("skips empty PATH entries", () => {
++    const expected = stageBinary("bin", "hybroid")
++    const got = findBinaryInPath("hybroid", `::${testDir}/bin::`)
++    expect(got).toBe(expected)
++  })
++
++  test("resolves relative PATH entries against cwd", () => {
++    // Stage the binary directly in a temp dir, then chdir
++    // there and put "." on PATH. The resolver must produce
++    // an absolute path, not "./hybroid".
++    const cwd = join(testDir, "cwd")
++    mkdirSync(cwd, { recursive: true })
++    const staged = stageBinary("cwd", "hybroid")
++    // On macOS, /tmp is a symlink to /private/tmp, and so is
++    // /var/folders. process.cwd() returns the symlink form
++    // (as the OS exposes it), but path.resolve() canonicalizes
++    // to the real path. Use realpathSync to compare apples
++    // to apples.
++    const expected = realpathSync(staged)
++    const prevCwd = process.cwd()
++    process.chdir(cwd)
++    try {
++      const got = findBinaryInPath("hybroid", ".")
++      expect(got).toBe(expected)
++      expect(got).not.toMatch(/^\.\//)
++    } finally {
++      process.chdir(prevCwd)
++    }
++  })
++
++  test("returns undefined when no entry matches", () => {
++    const got = findBinaryInPath("hybroid", "/nonexistent/a:/nonexistent/b")
++    expect(got).toBeUndefined()
++  })
++
++  test("returns the first match when multiple dirs contain the binary", () => {
++    const first = stageBinary("dir1", "hybroid")
++    stageBinary("dir2", "hybroid")
++    const got = findBinaryInPath(
++      "hybroid",
++      `${testDir}/dir1${pathSep()}${testDir}/dir2`,
++    )
++    expect(got).toBe(first)
++  })
++})
++
++describe("resolveLanguageServerPath", () => {
++  test("config override wins over PATH and home", () => {
++    const override = "/my/custom/hybroid"
++    const got = resolveLanguageServerPath(
++      override,
++      "/nonexistent",
++      "/nonexistent",
++      "hybroid",
++    )
++    expect(got).toBe(override)
++  })
++
++  test("config override with surrounding whitespace is honored verbatim", () => {
++    // A user typing a space into the setting by accident
++    // should still see their override honored, because the
++    // setting text is preserved.
++    const override = "  /my/custom/hybroid  "
++    const got = resolveLanguageServerPath(
++      override,
++      "/nonexistent",
++      "/nonexistent",
++      "hybroid",
++    )
++    expect(got).toBe(override)
++  })
++
++  test("PATH is searched before ~/.hybroid", () => {
++    const onPath = stageBinary("path-bin", "hybroid")
++    stageBinary(".hybroid", "hybroid")
++    const got = resolveLanguageServerPath(
++      "",
++      testDir + "/path-bin",
++      testDir,
++      "hybroid",
++    )
++    expect(got).toBe(onPath)
++  })
++
++  test("~/.hybroid is used when PATH misses", () => {
++    const expected = stageBinary(".hybroid", "hybroid")
++    const got = resolveLanguageServerPath(
++      "",
++      "/nonexistent",
++      testDir,
++      "hybroid",
++    )
++    expect(got).toBe(expected)
++  })
++
++  test("falls through to bare exeName when nothing matches", () => {
++    const got = resolveLanguageServerPath(
++      "",
++      "/nonexistent",
++      "/nonexistent",
++      "hybroid",
++    )
++    expect(got).toBe("hybroid")
++  })
++
++  test("whitespace-only config override falls through to PATH", () => {
++    // " " alone is treated as no override and the resolver
++    // continues with PATH → home → bare name.
++    const expected = stageBinary("path-bin", "hybroid")
++    const got = resolveLanguageServerPath(
++      " ",
++      testDir + "/path-bin",
++      "/nonexistent",
++      "hybroid",
++    )
++    expect(got).toBe(expected)
++  })
++})
++
++// pathSep returns the platform PATH separator. We use a helper
++// so the test file reads identically on every host — bun test
++// runs all files unconditionally, so writing `;` or `:`
++// inline would be platform-fragile.
++function pathSep(): string {
++  return process.platform === "win32" ? ";" : ":"
++}
+diff --git a/tsconfig.json b/tsconfig.json
+index 23e35e1..d645e1c 100644
+--- a/tsconfig.json
++++ b/tsconfig.json
+@@ -8,5 +8,5 @@
+ 		"sourceMap": true
+ 	},
+ 	"include": ["src"],
+-	"exclude": ["node_modules", ".vscode-test"]
++	"exclude": ["node_modules", ".vscode-test", "src/test/**"]
+ }
