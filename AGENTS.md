@@ -65,6 +65,23 @@ Run standard Go tests:
 go test ./...
 ```
 
+### Releasing the LSP alpha
+
+1.  Tag the merge commit on `master` as `v0.1.0-lsp-alpha`.
+2.  Run `python utils/build_hybroid.py` to produce binaries for all platforms in `./build/`. Upload each to the GitHub Release with the name `hybroid-<platform><.exe>`.
+3.  The `install.sh` / `install.ps1` scripts at hybroid.pewpew.live fetch the matching asset and copy it to `~/.hybroid/hybroid`.
+4.  The VS Code extension is packaged and published separately in the `hybroid-vscode` repo. Bump its `version` in `package.json` to `0.1.0` and run `vsce package`.
+5.  No new CI workflow is added in this repo — the existing `.github/workflows/go.yml` validates builds and tests on push to master, which is sufficient for the alpha.
+
+### Install location and logs
+
+The Hybroid CLI/LSP binary and the LSP debug log both live under `~/.hybroid/`:
+
+*   Binary: `~/.hybroid/hybroid` (or `~/.hybroid/hybroid.exe` on Windows)
+*   LSP log (debug mode only): `~/.hybroid/logs/lsp.log`
+
+The `HYBROID_LS_LOG` environment variable overrides the log path. On macOS, VS Code has a sanitized PATH that does not include `~/.hybroid`, so the extension searches there explicitly. The `hybroid.languageServerPath` user setting is the override if both mechanisms fail. See `lsp/logpath.go` for the resolution contract and `vscode-ext/src/path-resolver.ts` (in the submodule) for the binary search chain.
+
 ## Directory Structure
 
 *   `alerts/`: Error reporting system (diagnostics, pretty printing).

@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"path/filepath"
 
 	"github.com/sourcegraph/jsonrpc2"
 )
@@ -36,31 +35,12 @@ func Init(debug bool) {
 	}
 
 	if core.IsDebug {
-		// Pick a log destination that is always writable. The cwd of the
-		// spawned server process is not under our control (e.g. an
-		// extension host may launch us with a read-only cwd), so prefer
-		// an explicit path from HYBROID_LS_LOG, then the user's home
-		// directory, and only fall back to a relative path if both fail.
-		logPath := os.Getenv("HYBROID_LS_LOG")
-		if logPath == "" {
-			if home, err := os.UserHomeDir(); err == nil {
-				logPath = filepath.Join(home, "hybroid_ls.log")
-			} else {
-				logPath = "hybroid_ls.log"
-			}
-		}
-		if f, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666); err == nil {
-			log.SetOutput(f)
-			log.Println("Debug mode enabled, logging to", logPath)
-			// Note: we intentionally do not defer f.Close() — the file is closed
-			// by the OS on process exit. Closing earlier would prevent any
-			// post-disconnect logging from being flushed.
-		} else {
-			// Could not open the log file (e.g. read-only home dir).
-			// Fall back to discarding log output rather than crashing the
-			// server with log.Fatalf — the JSON-RPC stream is more important.
-			log.SetOutput(io.Discard)
-		}
+		// Resolve where the debug log should go. The full
+		// precedence and fallback chain lives in logpath.go;
+		// see the resolveLogPath docstring for the contract.
+		home, _ := os.UserHomeDir()
+		cfg := resolveLogPath(os.Getenv("HYBROID_LS_LOG"), home)
+		configureLog(cfg)
 	}
 
 	log.Println("Starting HybroidLS")
