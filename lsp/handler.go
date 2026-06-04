@@ -65,6 +65,11 @@ type langHandler struct {
 	// lastPublishedURIs is mapping from LanguageID string to mapping of
 	// whether diagnostics are published in a DocumentURI or not.
 	lastPublishedURIs map[string]map[DocumentURI]struct{}
+
+	// infoNoticesPublished tracks URIs that have already received a one-shot
+	// "workspace context missing" Information diagnostic, so we don't republish
+	// it on every didChange or didOpen of the same buffer.
+	infoNoticesPublished map[DocumentURI]struct{}
 }
 
 func (h *langHandler) handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) (result any, err error) {
@@ -139,13 +144,14 @@ func NewHandler() jsonrpc2.Handler {
 		request: make(chan lintRequest),
 		conn:    nil,
 		// filename:          config.Filename,
-		// rootMarkers:       *config.RootMarkers,
+		rootMarkers:       []string{"hybconfig.toml"},
 		// triggerChars:      config.TriggerChars,
 
 		lintDebounce: 300 * time.Millisecond,
 		ready:        make(chan struct{}),
 
-		lastPublishedURIs: make(map[string]map[DocumentURI]struct{}),
+		lastPublishedURIs:    make(map[string]map[DocumentURI]struct{}),
+		infoNoticesPublished: make(map[DocumentURI]struct{}),
 	}
 	// handler
 	return jsonrpc2.HandlerWithError(handler.handle)
@@ -318,4 +324,40 @@ func (h *langHandler) preAnalyzeWorkspace() {
 
 	h.markReady()
 	core.DebugLog("Workspace pre-analysis complete. Analyzed %d files.", len(filesInfo))
+}
+
+// publishInfoOnce sends a single Information-severity diagnostic to the client
+// for the given URI, the first time it is called for that URI. Subsequent
+// calls for the same URI are a no-op. This is used to surface "your file is
+// open without a project context" hints exactly once per buffer, so the user
+// is informed without being re-pinged on every keystroke.
+func (h *langHandler) publishInfoOnce(ctx context.Context, conn *jsonrpc2.Conn, uri DocumentURI, message string) {
+	h.mu.Lock()
+	if _, ok := h.infoNoticesPublished[uri]; ok {
+		h.mu.Unlock()
+		return
+	}
+	h.infoNoticesPublished[uri] = struct{}{}
+	connRef := h.conn
+	h.mu.Unlock()
+
+	if connRef == nil {
+		return
+	}
+
+	severity := 3 // LSP DiagnosticSeverity.Information
+	connRef.Notify(ctx, "textDocument/publishDiagnostics", PublishDiagnosticsParams{
+		URI: uri,
+		Diagnostics: []Diagnostic{
+			{
+				Range: Range{
+					Start: Position{Line: 0, Character: 0},
+					End:   Position{Line: 0, Character: 0},
+				},
+				Severity: severity,
+				Message:  message,
+				Source:   func() *string { s := "hybroid"; return &s }(),
+			},
+		},
+	})
 }

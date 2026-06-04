@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"hybroid/core"
 	"hybroid/evaluator"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -21,6 +22,14 @@ func (h *langHandler) handleTextDocumentDidOpen(ctx context.Context, conn *jsonr
 		return nil, err
 	}
 
+	// Tracks whether the opened file is a "stray" single-file open (no
+	// workspace root and no discoverable hybconfig.toml above it). In that
+	// case we publish a one-shot Information diagnostic so the user knows
+	// that any unresolved `use` references are because the rest of the
+	// project is not in scope — the same hint tsserver shows for files
+	// outside a tsconfig.
+	singleFileMode := false
+
 	h.mu.Lock()
 	h.files[params.TextDocument.URI] = &File{
 		LanguageID: params.TextDocument.LanguageID,
@@ -28,21 +37,70 @@ func (h *langHandler) handleTextDocumentDidOpen(ctx context.Context, conn *jsonr
 		Version:    params.TextDocument.Version,
 	}
 
+	// Try to discover a Hybroid project root (hybconfig.toml) above this
+	// file. This is the fallback for single-file opens: the client did not
+	// give us a workspace root, so we look for one ourselves, matching the
+	// behavior of tsserver (tsconfig.json), Pylance (extraPaths), and
+	// clangd (compile_commands.json).
+	if h.rootPath == "" {
+		if path, perr := fromURI(params.TextDocument.URI); perr == nil {
+			if absPath, aerr := filepath.Abs(path); aerr == nil {
+				if root := findProjectRoot(absPath, h.rootMarkers); root != "" {
+					h.rootPath = filepath.Clean(root)
+					h.addFolder(h.rootPath)
+				}
+			}
+		}
+	}
+
 	if h.eval == nil {
-		path, err := fromURI(params.TextDocument.URI)
-		if err == nil {
+		if h.rootPath != "" {
+			// We found a project root via the parent-directory walk. Run
+			// the pre-analysis synchronously so the first didOpen gets
+			// full-workspace diagnostics immediately. The same code path
+			// is used by handleInitialize for folder opens, just without
+			// the goroutine.
+			if filesInfo, ferr := core.CollectFiles(h.rootPath); ferr == nil {
+				ev := evaluator.NewEvaluator(filesInfo)
+				ev.ParseAll(h.rootPath)
+				ev.RunAnalysis()
+				h.eval = ev
+				for _, info := range filesInfo {
+					p := info.Path()
+					uri := toURI(filepath.Join(h.rootPath, p))
+					if content, rerr := os.ReadFile(filepath.Join(h.rootPath, p)); rerr == nil {
+						h.files[uri] = &File{
+							LanguageID: "hybroid",
+							Text:       string(content),
+							Version:    0,
+						}
+					}
+				}
+			}
+		} else if path, perr := fromURI(params.TextDocument.URI); perr == nil {
+			// True single-file mode: no workspace, no project marker.
+			// Build an ad-hoc evaluator that only knows about the opened
+			// file. Unresolved `use` statements will surface as
+			// hyb035W warnings (truthful), and we publish a one-shot
+			// Information diagnostic to explain why.
 			baseName := filepath.Base(path)
 			h.eval = evaluator.NewEvaluator([]core.FileInformation{{
 				FileName:      strings.TrimSuffix(baseName, filepath.Ext(baseName)),
 				DirectoryPath: ".",
 				FileExtension: filepath.Ext(baseName),
 			}})
+			singleFileMode = true
 		}
 	}
 	h.mu.Unlock()
 
 	h.markReady()
 	h.analyzeAndPublish(ctx, conn, params.TextDocument.URI, params.TextDocument.Text)
+
+	if singleFileMode {
+		h.publishInfoOnce(ctx, conn, params.TextDocument.URI,
+			"This file is open without its Hybroid project. Open the folder containing hybconfig.toml to resolve all `use` references.")
+	}
 
 	return nil, nil
 }
