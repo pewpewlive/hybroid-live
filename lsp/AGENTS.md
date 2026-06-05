@@ -11,7 +11,7 @@ This directory contains the implementation of the Language Server Protocol (LSP)
 
 ## Lifecycle Handlers (`handle_initialize.go`, `handle_shutdown.go`, `init.go`)
 
-- **`Init(debug bool)`**: Sets up the LSP server, configures logging (to `hybroid_ls.log.txt` if debug is enabled), and starts the JSON-RPC connection over stdio.
+- **`Init(debug bool)`**: Sets up the LSP server, configures logging (to `~/.hybroid/logs/lsp.log` when debug is enabled; overridable via `HYBROID_LS_LOG`), and starts the JSON-RPC connection over stdio.
 - **`handleInitialize(ctx, conn, req)`**: Negotiates capabilities with the client (e.g., VS Code), enabling features like Hover, Completion, and Signature Help.
 - **`handleShutdown(ctx, conn, req)`**: Gracefully accepts the `shutdown` signal (keeping the socket active via `nil, nil`) allowing the client to subsequently emit the protocol-mandated `exit` event for a safe OS termination.
 
