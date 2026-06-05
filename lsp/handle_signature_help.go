@@ -153,6 +153,14 @@ func (h *langHandler) handleTextDocumentSignatureHelp(ctx context.Context, _ *js
 
 	signatureLabel := fmt.Sprintf("%s(%s)", funcName, strings.Join(labels, ", "))
 
+	// Clamp ActiveParameter to the available parameter list length. Some clients
+	// treat out-of-range values as invalid and drop signature help entirely.
+	if activeParam < 0 {
+		activeParam = 0
+	} else if len(fnVal.Params) > 0 && activeParam >= len(fnVal.Params) {
+		activeParam = len(fnVal.Params) - 1
+	}
+
 	res := SignatureHelp{
 		Signatures: []SignatureInformation{
 			{
