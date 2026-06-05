@@ -33,10 +33,10 @@ Pewpew:PlaySound(MySound, 0, 100f, 100f)
 Pewpew:PlaySound(MySound, 0, 100f, 100f)
 `
 
-	// Test Analyze function directly
+	// Test Analyze function directly (use a platform-neutral file URI)
 	walkerMap := make(map[string]*walker.Walker)
-	result := lsp.Analyze("file:///c:/Users/Dominykas/Documents/Development/hybroid projects/hello-world/level.hyb", code, walkerMap, false)
-
+	uri := lsp.DocumentURI("file:///tmp/level.hyb")
+	result := lsp.Analyze(uri, code, walkerMap, false)
 	t.Logf("Analyze returned %d diagnostics", len(result.Diagnostics))
 	for _, d := range result.Diagnostics {
 		t.Logf("Diagnostic: %s (Line: %d)", d.Message, d.Range.Start.Line)
