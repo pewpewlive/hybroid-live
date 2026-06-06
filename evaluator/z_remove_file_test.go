@@ -10,7 +10,7 @@ import (
 // source path AND abs path), walkerList, files, programs,
 // parseAlerts, and fileContents.
 func TestRemoveFile_DropsAllPerFileState(t *testing.T) {
-	ev := NewEvaluator([]core.FileInformation{
+	ev := NewEvaluator([]core.File{
 		{DirectoryPath: "src", FileName: "foo", FileExtension: ".hyb"},
 		{DirectoryPath: "src", FileName: "bar", FileExtension: ".hyb"},
 	})
@@ -79,7 +79,7 @@ func TestRemoveFile_DropsAllPerFileState(t *testing.T) {
 // RemoveFile with a path that doesn't match any known file is a
 // no-op (returns false) and doesn't mutate the evaluator.
 func TestRemoveFile_UnknownPathReturnsFalse(t *testing.T) {
-	ev := NewEvaluator([]core.FileInformation{
+	ev := NewEvaluator([]core.File{
 		{DirectoryPath: "src", FileName: "foo", FileExtension: ".hyb"},
 	})
 	if err := ev.UpdateFileContent("src/foo.hyb", "env Foo as Level\n\ntick {}\n"); err != nil {
@@ -117,7 +117,7 @@ func TestRemoveFile_UnknownPathReturnsFalse(t *testing.T) {
 // with ".." segments, or paths with extra slashes — all should
 // hit the same file.
 func TestRemoveFile_HandlesPathVariants(t *testing.T) {
-	ev := NewEvaluator([]core.FileInformation{
+	ev := NewEvaluator([]core.File{
 		{DirectoryPath: "src", FileName: "foo", FileExtension: ".hyb"},
 	})
 	if err := ev.UpdateFileContent("src/foo.hyb", "env Foo as Level\n\ntick {}\n"); err != nil {

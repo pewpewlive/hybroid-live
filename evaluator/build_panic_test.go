@@ -44,7 +44,7 @@ func TestEvaluator_Action_UnterminatedString_NoPanic(t *testing.T) {
 		}
 	}()
 
-	files := []core.FileInformation{{
+	files := []core.File{{
 		DirectoryPath: ".",
 		FileName:      "level",
 		FileExtension: ".hyb",
@@ -104,7 +104,7 @@ func TestEvaluator_Action_TokenEndPastLineEnd_NoPanic(t *testing.T) {
 	// (no trailing newline) — the column-clamp path in the alerts
 	// package must keep the action from panicking.
 	bodyBad := "env TestLevel as Level\n\nlet x = \"abc"
-	files := []core.FileInformation{{
+	files := []core.File{{
 		DirectoryPath: ".",
 		FileName:      "level",
 		FileExtension: ".hyb",

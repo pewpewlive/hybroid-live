@@ -3,8 +3,8 @@ package walker
 import (
 	"hybroid/alerts"
 	"hybroid/ast"
-	"hybroid/core"
 	"hybroid/tokens"
+	"slices"
 	"strings"
 )
 
@@ -431,7 +431,7 @@ func (w *Walker) yieldStatement(node *ast.YieldStmt, scope *Scope) *[]Type {
 
 	matchExprTag := *matchExprT
 
-	if core.ListsAreSame(matchExprTag.YieldTypes, EmptyReturn) {
+	if slices.Equal(matchExprTag.YieldTypes, EmptyReturn) {
 		matchExprTag.YieldTypes = *ret.Types()
 	} else {
 		w.validateReturnValues(node.Args, ret, matchExprTag.YieldTypes, node.Token, "in yield arguments")

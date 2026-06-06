@@ -8,7 +8,7 @@ import (
 
 func TestParserAlertsPersistence(t *testing.T) {
 	// Setup a minimal evaluator
-	files := []core.FileInformation{
+	files := []core.File{
 		{
 			DirectoryPath: ".",
 			FileName:      "test",

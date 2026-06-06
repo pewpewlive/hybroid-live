@@ -8,8 +8,9 @@ import (
 
 func Lsp() *cli.Command {
 	return &cli.Command{
-		Name:  "language-server",
-		Usage: "Starts HybroidLS, an integrated Language Server for Hybroid Live",
+		Name:    "language-server",
+		Aliases: []string{"server", "lsp"},
+		Usage:   "Starts HybroidLS, an integrated Language Server for Hybroid Live",
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:  "debug",

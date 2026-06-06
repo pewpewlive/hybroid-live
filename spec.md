@@ -74,7 +74,7 @@ name = "blade"
 Types allow you to explicitly describe a variable's type. In Hybroid Live, types are not always necessary. Types might be necessary when you want to describe a complex type variable, or if the variable is left undefined. Types are what allows Hybroid Live to make sure you can write valid code without much headache and without the need to debug a lot.
 
 ```rs
-let number a  // variable uninitialized, type required
+number a  // variable uninitialized, type required
 let num = 1 // variable initialized, type inferred
 list<number> numbers = [] // list is empty, list value type required
 pub fn(text, bool) callback // function uninitialized, type required
@@ -86,6 +86,17 @@ pub fn(text, bool) callback // function uninitialized, type required
 
 ```rs
 const PI = 3.14f
+```
+
+## Type Aliases
+
+- [x] Completed
+
+Type aliases allow you to create named shortcuts for complex or reusable types.
+
+```rs
+alias ID = number
+pub alias Config = struct{ number hp, fixed speed }
 ```
 
 ## Entities and spawning syntax
@@ -121,6 +132,14 @@ entity Quadro {
     entity.Damage(self.damage)
   }
 }
+
+### Predefined Entity Callbacks
+
+Entities natively support several predefined callbacks defined without the `fn` prefix. Their parameter/return signatures are strictly validated by the compiler:
+- `Update()`
+- `WeaponCollision(number weaponId, WeaponType weaponType) -> bool`
+- `WallCollision(fixed x, fixed y)`
+- `PlayerCollision(number playerId, entity playerShip)`
 ```
 
 ### Creating an entity
@@ -256,6 +275,16 @@ let fruits = ["banana", "kiwi", "apple", "pear", "cherry"]
 
 for index, item in fruits {
   Pewpew:Print(index)
+}
+```
+
+### Entity Iteration (every)
+
+You can iterate through all active instances of a specific entity type using the `every` keyword inside a `for` loop:
+
+```rs
+for enemy in every Quadro {
+  enemy.Damage(2)
 }
 ```
 
@@ -526,6 +555,40 @@ let check = match a {
 }
 
 Pewpew:Print(check)
+```
+
+In match expressions, if a case is written as a multi-line block enclosed in curly braces `{ ... }`, the `yield` keyword must be used to yield a value back from that case:
+
+```rs
+let check = match a {
+  10 => {
+    Pewpew:Print("Matched 10!")
+    yield "It's 10!"
+  }
+  else => {
+    yield "Something else"
+  }
+}
+```
+
+## Type Casting and Smart-Casting
+
+- [x] Completed
+
+Use `is` and `isnt` to check types of entities:
+
+```rs
+if target is Asteroid {
+  // ...
+}
+```
+
+You can also use smart-casting to check and cast a custom entity within a conditional scope:
+
+```rs
+if let targetEntity = collided is ShieldPowerUp {
+  targetEntity.strength = 100fx
+}
 ```
 
 ## Enums

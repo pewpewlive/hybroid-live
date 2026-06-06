@@ -12,8 +12,8 @@ func RunApp() {
 	app := &cli.App{
 		Name:      "hybroid-live",
 		Usage:     "The Hybroid Live transpiler CLI",
-		Version:   "0.1.0",
-		Copyright: "© Hybroid Team, 2026\nLicensed under Apache-2.0",
+		Version:   "0.2.0-alpha",
+		Copyright: "Copyright (C) Hybroid Team, 2026\nLicensed under Apache-2.0",
 		Commands: []*cli.Command{
 			commands.Add(),
 			commands.Build(),

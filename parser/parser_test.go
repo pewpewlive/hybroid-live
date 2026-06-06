@@ -30,7 +30,7 @@ func performParsing(t *testing.T, path, subtest string) (parseResults, error) {
 	if len(files) == 0 {
 		return results, fmt.Errorf("found no files in '%s'", path)
 	}
-	file := slices.IndexFunc(files, func(file core.FileInformation) bool {
+	file := slices.IndexFunc(files, func(file core.File) bool {
 		return file.FileName == subtest
 	})
 	if file == -1 {
@@ -117,7 +117,7 @@ func performTest(t *testing.T, testName string, expectedAlerts []reflect.Type) {
 		for _, alert := range results.alerts {
 			alertTypes = append(alertTypes, reflect.ValueOf(alert).Elem().Type())
 		}
-		if !core.ListsAreSame(alertTypes, expectedAlerts) {
+		if !slices.Equal(alertTypes, expectedAlerts) {
 			t.Errorf("[Invalid] Mismatch in *expected* and *received* alerts")
 
 			alerts.PrintAlerts(t, "Expected", expectedAlerts...)
