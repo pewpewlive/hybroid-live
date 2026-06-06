@@ -25,7 +25,7 @@ func Build() *cli.Command {
 	}
 }
 
-func runEvaluator(config core.HybroidConfig, filesToBuild []core.FileInformation, cwd string) error {
+func runEvaluator(config core.HybroidConfig, filesToBuild []core.File, cwd string) error {
 	outputDir := config.Project.OutputDirectory
 
 	if outputDir != "" {
@@ -87,7 +87,7 @@ func runEvaluator(config core.HybroidConfig, filesToBuild []core.FileInformation
 	return nil
 }
 
-func Build_(filesToBuild ...core.FileInformation) error {
+func Build_(filesToBuild ...core.File) error {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("failed getting current working directory: %v", err)

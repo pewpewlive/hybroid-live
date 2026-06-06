@@ -47,8 +47,8 @@ func Analyze(uri DocumentURI, text string, walkerMap map[string]*walker.Walker, 
 	// We need to determine the lua path relative to the project.
 	// If we don't have a project root, preserve the directory structure to avoid collisions.
 	luaPath := path
-	if strings.HasSuffix(luaPath, ".hyb") {
-		luaPath = strings.TrimSuffix(luaPath, ".hyb") + ".lua"
+	if before, ok := strings.CutSuffix(luaPath, ".hyb"); ok {
+		luaPath = before + ".lua"
 	}
 
 	walk := walker.NewWalker(path, luaPath)
@@ -97,22 +97,10 @@ func alertsToDiagnostics(uri DocumentURI, alertsList []alerts.Alert) []Diagnosti
 		// malformed tokens (e.g. from a hand-constructed test alert or
 		// a future generator bug) can produce line=0/col=0. Editors
 		// reject negative positions, so we floor them.
-		startLine := startTok.Location.Line - 1
-		if startLine < 0 {
-			startLine = 0
-		}
-		startCol := startTok.Location.Column.Start - 1
-		if startCol < 0 {
-			startCol = 0
-		}
-		endLine := endTok.Location.Line - 1
-		if endLine < 0 {
-			endLine = 0
-		}
-		endCol := endTok.Location.Column.End - 1
-		if endCol < 0 {
-			endCol = 0
-		}
+		startLine := max(startTok.Location.Line-1, 0)
+		startCol := max(startTok.Location.Column.Start-1, 0)
+		endLine := max(endTok.Location.Line-1, 0)
+		endCol := max(endTok.Location.Column.End-1, 0)
 
 		d := Diagnostic{
 			Range: Range{

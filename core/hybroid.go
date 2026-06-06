@@ -22,13 +22,13 @@ type HybroidConfig struct {
 	//Packages        []PackageConfig `toml:"packages"`
 }
 
-type FileInformation struct {
+type File struct {
 	DirectoryPath string // The directory the file is located at (relative)
 	FileName      string // The name of the file (without an extension)
 	FileExtension string // The extension of the file
 }
 
-func (fi *FileInformation) Path() string {
+func (fi *File) Path() string {
 	if fi.DirectoryPath == "." {
 		return fmt.Sprintf("%s%s", fi.FileName, fi.FileExtension)
 	}
@@ -36,7 +36,7 @@ func (fi *FileInformation) Path() string {
 	return fmt.Sprintf("%s/%s%s", fi.DirectoryPath, fi.FileName, fi.FileExtension)
 }
 
-func (fi *FileInformation) NewPath(start string, end string) string {
+func (fi *File) NewPath(start string, end string) string {
 	if fi.DirectoryPath == "." {
 		return fmt.Sprintf("%s/%s%s", start, fi.FileName, end)
 	}

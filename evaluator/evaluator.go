@@ -21,14 +21,14 @@ type Evaluator struct {
 	// walkers map environment names AND absolute paths to walker instances
 	walkers      map[string]*walker.Walker
 	walkerList   []*walker.Walker
-	files        []core.FileInformation
+	files        []core.File
 	programs     map[string][]ast.Node
 	parseAlerts  map[string][]alerts.Alert
 	fileContents map[string]string
 	printer      alerts.Printer
 }
 
-func NewEvaluator(files []core.FileInformation) *Evaluator {
+func NewEvaluator(files []core.File) *Evaluator {
 	evaluator := &Evaluator{
 		walkers:      make(map[string]*walker.Walker),
 		walkerList:   make([]*walker.Walker, 0),
@@ -135,7 +135,7 @@ func (e *Evaluator) ensureFile(path string) string {
 		dir = "."
 	}
 
-	fi := core.FileInformation{
+	fi := core.File{
 		DirectoryPath: filepath.ToSlash(dir),
 		FileName:      name,
 		FileExtension: ext,
@@ -458,7 +458,7 @@ func (e *Evaluator) RemoveFile(path string) bool {
 	for _, sp := range matchedSources {
 		matchedSourceSet[sp] = true
 	}
-	newFiles := make([]core.FileInformation, 0, len(e.files))
+	newFiles := make([]core.File, 0, len(e.files))
 	for _, file := range e.files {
 		sp := filepath.ToSlash(filepath.Clean(file.Path()))
 		if matchedSourceSet[sp] {

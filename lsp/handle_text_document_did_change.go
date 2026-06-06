@@ -84,7 +84,7 @@ func (h *langHandler) handleTextDocumentDidOpen(ctx context.Context, conn notifi
 			// hyb035W warnings (truthful), and we publish a one-shot
 			// Information diagnostic to explain why.
 			baseName := filepath.Base(path)
-			h.eval = evaluator.NewEvaluator([]core.FileInformation{{
+			h.eval = evaluator.NewEvaluator([]core.File{{
 				FileName:      strings.TrimSuffix(baseName, filepath.Ext(baseName)),
 				DirectoryPath: ".",
 				FileExtension: filepath.Ext(baseName),

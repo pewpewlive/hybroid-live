@@ -7,5 +7,5 @@ import (
 )
 
 func (h *langHandler) handleShutdown(_ context.Context, conn notifier, _ *jsonrpc2.Request) (result any, err error) {
-	return nil, nil
+	return nil, conn.Close()
 }
