@@ -17,13 +17,13 @@ SetEntityTag(bg, DONT_DESTROY)
 let grid = new Grid:Grid(CELLCOUNT, CELLCOUNT, CELLSIZE_X, CELLSIZE_Y, 0f, 0f, 0f)
 grid.CreateLineGrid()
 
+spawn DashBonusEntity:DashBonus(0fx, 0fx, 400)
 let roundManager = new RoundManager:RoundManager()
 
 tick {
   if GetPlayerConfig(0).has_lost {
     StopGame()
   }
-
   roundManager.Update()
 
   // Bullet grid pulse
@@ -32,7 +32,7 @@ tick {
     let entityType = GetEntityType(e)
     
     match entityType {
-      EntityType.CustomizableEntity, EntityType.Ship, EntityType.MothershipBullet => continue
+        EntityType.CustomizableEntity, EntityType.Ship, EntityType.MothershipBullet => continue
       else => {
         let ex, ey = GetEntityPosition(e)
         grid.Pulse(ex, ey, 15f, 70f)

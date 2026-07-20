@@ -160,7 +160,13 @@ pub entity SuperInertiac {
         IncreasePlayerScore(0, 5)
       }
       WeaponType.AtomizeExplosion => {
-        destroy self()
+        health -= 5
+        if health <= 0 destroy self()
+        if health > 0 {
+          hitCooldown = HIT_COOLDOWN_MAX
+          PlaySound(SPSound, MathHelpers:Remap(1, 10, 0, HP_MAX, health)\1, x, y)
+        }
+        IncreasePlayerScore(0, 5)
         return true
       }
       WeaponType.PlasmaField => {

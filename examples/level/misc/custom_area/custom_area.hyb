@@ -1,0 +1,89 @@
+env CustomArea as Level
+
+use Pewpew
+
+alias AreaCallback = fn(list<entity>)
+
+pub enum AreaType {
+    Simple,
+    Advanced
+}
+
+pub entity CustomArea {
+    fixed x_angle = 30d
+    fixed y_angle = 0d
+
+    fixed expansion_duration
+    fixed expansion_time
+    fixed time = 0d
+
+    bool backwards = false
+
+    fixed radius
+    number frame = 0
+
+    fixed x, y
+    number color
+    AreaType t
+    
+    bool die_on_expansion = false
+    AreaCallback on_expanded_callback
+    bool did_callback = false
+
+    spawn(fixed x, y, number expansion_duration, fixed radius, number color, AreaType t) {
+        match t {
+            AreaType.Simple => SetEntityMesh(self, AreaMesh, 120)
+            AreaType.Advanced => SetEntityMesh(self, AreaMesh, 0)
+        }
+        self.t = t
+        SetEntityAngleInterpolation(self, true)
+        SetEntityPositionInterpolation(self, true)
+        SetEntityMeshColor(self, color)
+        SpawnEntity(self, 0)
+
+        self.expansion_duration = Fmath:ToFixed(expansion_duration)
+        self.radius = radius
+        self.x, self.y = x, y
+        self.color = color
+
+    }
+
+    destroy() {
+        repeat from 0d to 360d by 360d/18fx with i {
+            let dy, dx = Fmath:Sincos(i)
+            CreateExplosion(x+dx*radius, y+dy*radius, color, 0.2f, 12)
+        }
+        DestroyEntity(self)
+    }
+
+    Update() {
+        expansion_time += 1fx
+        let t = FmathHelpers:InvLerp(1fx, expansion_duration, expansion_time)
+        frame += 2
+        match self.t {
+            AreaType.Simple => SetEntityMesh(self, AreaMesh, 120)
+            AreaType.Advanced => SetEntityFlippingMeshes(self, AreaMesh, MathHelpers:Clamp(frame % 120 - 1, 0, 119), frame % 120)
+        }
+        let r = self.radius
+        if expansion_time < expansion_duration {
+            r = -(self.radius/expansion_duration)*((expansion_time^2fx) / expansion_duration - 2fx*expansion_time)
+        }
+        SetEntityMeshXYZScale(self, r, r, 100fx+t*50fx)
+
+        if expansion_time >= expansion_duration and !did_callback {
+            self.on_expanded_callback(GetEntitiesInRadius(x, y, radius))
+            did_callback = true
+        }
+        if expansion_time >= expansion_duration and self.die_on_expansion {
+            destroy self()
+        }
+    }
+
+    fn SetDieOnExpansion(bool value) {
+        self.die_on_expansion = value
+    }
+
+    fn SetOnExpandedCallback(AreaCallback func) {
+        self.on_expanded_callback = func
+    }
+}

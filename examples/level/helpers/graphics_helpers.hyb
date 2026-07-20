@@ -67,10 +67,9 @@ pub fn AddThickLine(Mesh mesh, number colorStart, number colorEnd, thickness, le
   }
 }
 
-pub fn AddSphere(Mesh mesh, Vertex center, number color, radius) {
+pub fn AddSphere(Mesh mesh, Vertex center, number color, radius, divisions) {
   let x, y, z = center[1], center[2], center[3]
-  let divisions = 8
-  let segments = 16
+  let segments = (divisions*2.5)\1
 
   repeat from 0 to divisions with t {
     let circleRadius = Math:Sin(Math:Pi * (t/divisions)) * radius

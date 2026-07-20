@@ -3,7 +3,7 @@ env Grid as Level
 use Globals
 use MathHelpers
 
-pub number gridColor, activeGridColor = 0x2335ff48, 0x00ffff80
+pub number gridColor, activeGridColor = 0x2335ff30, 0x00ffff80
 fixed offsetX, offsetY, offsetZ
 fixed cellSizeX, cellSizeY
 

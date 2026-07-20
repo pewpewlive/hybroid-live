@@ -16,6 +16,8 @@ pub entity Shard {
     number lifetime
     bool skippedInterpolation
 
+    number frozen_time = -1
+
     spawn(fixed x, y, angle, speed, number lifetime) {
         self.lifetime = lifetime
         self.angle = angle
@@ -45,6 +47,12 @@ pub entity Shard {
     }
 
     Update() {
+        currentColor = ColorHelpers:LerpColors(currentColor, COLOR, 0.4f)
+        SetEntityMeshColor(self, currentColor)
+        if frozen_time >= 0 {
+            frozen_time -= 1
+            return
+        }
         lifetime -= 1
         immunityFrames -= 1
         if IsEntityBeingDestroyed(self) {
@@ -55,8 +63,6 @@ pub entity Shard {
             return
         }
         roll += speed*1d
-        currentColor = ColorHelpers:LerpColors(currentColor, COLOR, 0.4f)
-        SetEntityMeshColor(self, currentColor)
         let x, y = GetEntityPosition(self)
 
         if IsEntityAlive(ShipEntity:SHIP.id) {
@@ -74,7 +80,8 @@ pub entity Shard {
         let entities = GetEntitiesInRadius(x, y, 10f)
         for _, v in entities {
             if v == self continue
-            if let converted = v is Shard and !IsEntityBeingDestroyed(v) {
+            if IsEntityBeingDestroyed(v) continue
+            if let converted = v is Shard {
                 let ex, ey = GetEntityPosition(v)
                 let dx, dy = FmathHelpers:Normalize(x-ex, y-ey)
                 mx, my = dx, dy
@@ -132,6 +139,9 @@ pub entity Shard {
             }
             WeaponType.PlasmaField => {
                 destroy self()
+            }
+            WeaponType.FreezeExplosion => {
+                frozen_time = 120
             }
         }
         return true

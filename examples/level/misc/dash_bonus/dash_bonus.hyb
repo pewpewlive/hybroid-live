@@ -1,0 +1,51 @@
+env DashBonusEntity as Level 
+
+use Pewpew
+use ShipEntity
+
+pub entity DashBonus {
+    entity decoration
+
+    fixed angle = 0d
+    fixed ax, ay, az 
+    number duration
+    fixed x, y
+
+    spawn(fixed x, y, number duration) {
+        self.duration = duration+1
+        self.x, self.y = x, y
+        SetEntityMesh(self, DashBonusMesh, 0)
+        SetEntityRadius(self, 15fx)
+
+        decoration = NewEntity(x, y)
+        SetEntityMesh(decoration, DashBonusMesh, 1)
+
+        ax, ay, az = Fmath:RandomFixed(0.5fx, 1fx), Fmath:RandomFixed(0.5fx, 1fx), Fmath:RandomFixed(0fx, 1fx)
+    }
+
+    destroy() {
+        SetEntityPlayerCollision(self, fn(entity _, number _, entity _) {})
+        DestroyEntity(decoration)
+        ExplodeEntity(self, 30)
+    }
+
+    Update() {
+        angle += 1.3d
+        SetEntityMeshAngle(decoration, angle, ax, ay, az)
+        duration -= 1
+        let t = MathHelpers:InvLerp(0, 400, duration)
+        t ^= (1-t) // the secret ingredient
+        let c = ColorHelpers:MakeColor(255, 255, 255, (255*t)\1)
+        SetEntityMeshColor(self, c)
+        SetEntityMeshColor(decoration, c)
+        if duration <= 1 {
+            destroy self()
+        }
+    }
+
+    PlayerCollision(number _, entity _) {
+        SHIP.dashAmount += 1
+        PlaySound(DashBonusSound, 0, x, y)
+        destroy self()
+    }
+}

@@ -7,43 +7,172 @@ use Gameplay
 use ShipEntity
 
 enum Round {
+    // A
     One,
     Two,
+
+    // B
     Three,
     Four,
-    Boss,
-    Hypercube
+    
+    // C
+    Baf,
+    Hypercube,
+
+    // D
+    None
 }
 
-enum RoundVariant {
-    Normal,
-    Fast
+let rounds = [
+    RoundOne,
+    RoundTwo,
+    RoundThree,
+    RoundFour,
+    RoundBaf,
+    RoundHypercube,
+]
+
+fn empty(number _, _) -> bool { return false }
+
+let round_special_funcs = list<fn(number, number) -> bool>[
+    empty,
+    empty,
+    empty,
+    empty,
+    RoundBafSpecial,
+    RoundHypercubeSpecial,
+]
+
+let A = [
+    Round.One,
+    Round.Two,
+]
+let B = [
+    Round.Three,
+    Round.Four,
+    ]
+let C = [
+    Round.Baf,
+    Round.Hypercube,
+]
+
+fn isRoundA(Round r) -> bool => r == Round.Two or r == Round.One
+fn isRoundB(Round r) -> bool => r == Round.Three or r == Round.Four
+fn isRoundC(Round r) -> bool => r == Round.Baf or r == Round.Hypercube
+
+fn randomRoundFromPool(list<Round> pool, Round prev_r) -> Round {
+    let i = Fmath:RandomNumber(1, #pool)
+    let random = pool[i]
+    if random == prev_r {
+        return pool[MathHelpers:Wrap(i+1, 1, #pool)]
+    }
+    return random
+}
+
+fn randomNumFromPool(list<number> pool, number prev_r) -> number {
+    let i = Fmath:RandomNumber(1, #pool)
+    let random = pool[i]
+    if random == prev_r {
+        return pool[MathHelpers:Wrap(i+1, 1, #pool)]
+    }
+    return random
+}
+
+fn round_to_num(Round round) -> number {
+    return match round {
+        Round.One =>  1
+        Round.Two =>  2
+        Round.Three =>  3
+        Round.Four =>  4
+        Round.Baf =>  5
+        Round.Hypercube =>  6
+        else => 1
+    }
 }
 
 const ROUND_DURATION = 1000
+const BONUS_FREQUENCY = 920
 
 fn Chance(number percent) -> bool {
-    let a = Fmath:RandomNumber(0, 100)
+    let a = Fmath:RandomNumber(1, 100)
     return a <= percent 
 }
 
 pub class RoundManager {
-    Round round = Round.One
-    RoundVariant variant = RoundVariant.Normal
-    Round nextRoundAfterSpecial = Round.One
-    number time, bossTime
+    number time
+    number pause_time
     number diff = 2
     number progression = 1
     bool pause 
     number randomAmbushTime = -1
 
+    list<Round> rounds_ctx = [Round.One, Round.None, Round.None, Round.None, Round.None]
+    number c_round_chance = 0
+
+    list<entity> freeze_bombs 
+    list<entity> small_atomize_bombs 
+
+    list<BonusWeaponSettings> bonus_weapons = [Hemisphere, DoubleSwipe, Triple, Laser]
+    number b_weapon_index = 1
+    number weapon_option_chance = 25
+
+    list<struct{entity first, entity second, entity string}> bonus_pairs
+
     new() {
-       NewAmbushTime()
+        NextRound()
+
+        Table:Insert(bonus_weapons, Hemisphere)
+        let len = #bonus_weapons
+        let i = Fmath:RandomNumber(2, len - 1)
+        bonus_weapons[len] = bonus_weapons[1]
+        bonus_weapons[1] = bonus_weapons[i]
+        bonus_weapons[i] = bonus_weapons[len]
+
+        i = Fmath:RandomNumber(1, len - 2)
+        bonus_weapons[len] = bonus_weapons[len - 1]
+        bonus_weapons[len - 1] = bonus_weapons[i]
+        bonus_weapons[i] = bonus_weapons[len]
+        Table:Remove(bonus_weapons, len)
+    }
+    
+    fn NewFreezeBomb(fixed rx, ry) {
+        Table:Insert(freeze_bombs, NewBomb(rx, ry, BombType.Freeze))
+    }
+    
+    fn NewSmallAtomizeBomb(fixed rx, ry) {
+        Table:Insert(small_atomize_bombs, NewBomb(rx, ry, BombType.SmallAtomize))
+    }
+
+    fn CheckBombs() {
+        repeat from #freeze_bombs to 1 by -1 with i {
+            if !IsEntityAlive(freeze_bombs[i]) {
+                Table:Remove(freeze_bombs, i)
+            }
+        }
+        repeat from #small_atomize_bombs to 1 by -1 with i {
+            if !IsEntityAlive(small_atomize_bombs[i]) {
+                Table:Remove(small_atomize_bombs, i)
+            }
+        }
+    }
+
+    fn CheckBonusPairs() {
+        repeat from #bonus_pairs to 1 by -1 with i {
+            if IsEntityBeingDestroyed(bonus_pairs[i].first) {
+                DestroyEntity(bonus_pairs[i].second)
+                DestroyEntity(bonus_pairs[i].string)
+                Table:Remove(bonus_pairs, i)
+            }else if IsEntityBeingDestroyed(bonus_pairs[i].second) {
+                DestroyEntity(bonus_pairs[i].first)
+                DestroyEntity(bonus_pairs[i].string)
+                Table:Remove(bonus_pairs, i)
+            }
+        }
     }
 
     fn ProgressRound() {
         if progression % 2 == 0 {
-            repeat 2 {
+            repeat diff {
                 let x, y = PlayerSafeSpawn(RandomSpawn)
                 NewBonus(x, y, BonusType.Shield, struct{
                     box_duration = 400,
@@ -51,147 +180,222 @@ pub class RoundManager {
                 })
             }
         }
+        if progression % 3 == 0 {
+            let rx, ry = RandomSpawn()
+            if #freeze_bombs > #small_atomize_bombs {
+                NewSmallAtomizeBomb(rx, ry)
+            }else if #freeze_bombs < #small_atomize_bombs {
+                NewFreezeBomb(rx, ry)
+            }else {
+                NewSmallAtomizeBomb(rx, ry)
+                NewFreezeBomb(rx, ry)
+            }
+        }
         progression += 1
         if progression % 4 == 0 {
             diff += 1
         }
-        time = 0
+        pause_time = 34
         pause = true
-        NewAmbushTime()
+        //NewAmbushTime()
     }
 
-    fn NewAmbushTime() {
-        if Chance(75) {
-            randomAmbushTime = Fmath:RandomNumber(ROUND_DURATION/2, ROUND_DURATION\1.4)
-        }else {
-            randomAmbushTime = -1
-        }
-    }
+    // fn NewAmbushTime() {
+    //     if Chance(75) {
+    //         randomAmbushTime = Fmath:RandomNumber(ROUND_DURATION/2, ROUND_DURATION\1.4)
+    //     }else {
+    //         randomAmbushTime = -1
+    //     }
+    // }
 
-    fn AmbushCheck() {
-        if time == randomAmbushTime\2 {
-            let x, y = PlayerSafeSpawn(RandomSpawn)
-            NewBonus(x, y, BonusType.Weapon, struct{
-                box_duration = randomAmbushTime\2+30, 
-                cannon = CannonType.Double,
-                frequency = CannonFreq.Freq30,
-                weapon_duration = 160,
-            })
-        } else if time == randomAmbushTime {
-            let n = Fmath:RandomNumber(1, #Ambushes)
-            Ambushes[n](diff)
-        }
-    }
+    // fn AmbushCheck() {
+    //     if time == randomAmbushTime\2 {
+    //         let x, y = PlayerSafeSpawn(RandomSpawn)
+    //         NewBonus(x, y, BonusType.Weapon, struct{
+    //             box_duration = randomAmbushTime\2+30, 
+    //             cannon = CannonType.Double,
+    //             frequency = CannonFreq.Freq30,
+    //             weapon_duration = 160,
+    //         })
+    //     } else if time == randomAmbushTime {
+    //         let n = Fmath:RandomNumber(1, #Ambushes)
+    //         Ambushes[n](diff)
+    //     }
+    // }
 
     fn Update() {
         if !IsEntityAlive(ShipEntity:SHIP.id) {
             return
         }
 
+        CheckBombs()
+        CheckBonusPairs()
+        
         if pause {
-            time += 1
-            let extraTime = MathHelpers:Clamp((diff-2)*30, 0, 60)
-            match round {
-                Round.Two, Round.One => {
-                    if time >= 160+extraTime{
-                        pause = false
-                        time = 0
-                    }
-                }
-                else => {
-                    if time >= 100+extraTime {
-                        pause = false
-                        time = 0
-                    }
-                }
+            pause_time -= 1
+            if pause_time <= 0 {
+                pause = false
             }
             
             return
         }
 
-        match round {
-            Round.One => {
-                time += 1
-                for _, enemySpawn in RoundOne {
-                    enemySpawn(time, diff)
-                }
-                
-                if time >= ROUND_DURATION {
-                    round = Round.Two
-                    RandomizeVariant()
-                    ProgressRound()
-                }
-            }
-            Round.Two => {
-                time += 1
-                for _, enemySpawn in RoundTwo {
-                    enemySpawn(time, diff)
-                }
+        time += 1
+        let n = round_to_num(rounds_ctx[2])
+        
+        for _, enemySpawn in rounds[n] {
+            enemySpawn(time, MathHelpers:Round(diff^0.5))
+        }
+        if progression >= 2 and time % BONUS_FREQUENCY == 0 {
+            SpawnWeaponBonus()
+        }
 
-                AmbushCheck()
-
-                // if time == ROUND_DURATION\2 and Chance(20) {
-                //     round = Round.Boss
-                //     break
-                // }
-                if time >= ROUND_DURATION {
-                    round = Round.Three
-                    RandomizeVariant()
-                    ProgressRound()
-                }
-            }
-            Round.Three => {
-                time += 1
-                for _, enemySpawn in RoundThree {
-                    enemySpawn(time, diff)
-                }
-                if time >= ROUND_DURATION {
-                    round = Round.Four
-                    RandomizeVariant()
-                    ProgressRound()
-                }
-            }
-            Round.Four => {
-                time += 1
-                for _, enemySpawn in RoundFour {
-                    enemySpawn(time, diff)
-                }
-                
-                AmbushCheck()
-
-                if time >= ROUND_DURATION {
-                    round = Round.One
-                    RandomizeVariant()
-                    ProgressRound()
-                }
-            }
-            Round.Hypercube => {
-                time += 1
-                if time == 2 {
-                    repeat 12 {
-                        let x, y = PlayerSafeSpawn(RandomSpawn)
-                        spawn HypercubeEntity:Hypercube(x, y)
-                    }
-                }
-                if time % 450 == 0 {
-                    let x, y = PlayerSafeSpawn(RandomSpawn)
-                    spawn HypercubeEntity:Hypercube(x, y)
-                }
-                if time >= ROUND_DURATION*1.5\1 {
-                    round = nextRoundAfterSpecial
-                    time = 0
-                    RandomizeVariant()
-                    ProgressRound()
-                }
-            }
+        if time % ROUND_DURATION == 0 or round_special_funcs[n](time, diff) {
+            RandomizeVariant()
+            ProgressRound()
+            NextRound()
         }
     }
 
-    fn RandomizeVariant() {
-        if Chance(30) {
-            variant = RoundVariant.Fast
-        } else {
-            variant = RoundVariant.Normal
+    fn SpawnWeaponBonus() {
+        let rx, ry = RandomSpawn()
+        // bug! 'bonus_weapons[b_weapon_index]` produces a bug, because
+        // the walker doesnt convert the expression `b_weapon_index` into `self.b_weapon_index` internally
+        let settings = bonus_weapons[self.b_weapon_index] 
+        if Chance(weapon_option_chance) {
+            weapon_option_chance = 25
+            let other_settings = bonus_weapons[randomNumFromPool([1,2,3,4], self.b_weapon_index)]
+
+            let first = NewBonus(rx-30fx, ry, BonusType.Weapon, settings)
+            let second = NewBonus(rx+30fx, ry, BonusType.Weapon,  other_settings)
+            let string = NewEntity(rx, ry-35fx)
+            SetEntityString(string, "Choose wisely")
+            SetEntityMeshScale(string, 0.5f)
+
+            Table:Insert(bonus_pairs, struct{
+                first = first,
+                second = second,
+                string = string
+            })
+
+            return
         }
+        Print(ToString(settings))
+        NewBonus(rx, ry, BonusType.Weapon, struct{
+            cannon = settings.cannon,
+            frequency = settings.frequency,
+            box_duration = settings.box_duration,
+            weapon_duration = settings.weapon_duration,
+            taken_callback = fn(entity _, number _, entity _) {
+                weapon_option_chance -= 7
+            }
+        })
+        weapon_option_chance += 25
+        b_weapon_index += 1
+        if b_weapon_index > #bonus_weapons {
+            b_weapon_index = 1
+        }
+    }
+
+    fn NextRound() {
+        rounds_ctx[5] = rounds_ctx[4]
+        rounds_ctx[4] = rounds_ctx[3]
+        rounds_ctx[3] = rounds_ctx[2]
+        rounds_ctx[2] = rounds_ctx[1]
+        rounds_ctx[1] = DecideNextRound(rounds_ctx)
+        let out = "| "
+        for _, v in rounds_ctx {
+            match v {
+                Round.One => out = out .. "one | "
+                Round.Two => out = out .. "two | "
+                Round.Three => out = out .. "three | "
+                Round.Four => out = out .. "four | "
+                Round.Hypercube => out = out .. "hypercube | "
+                Round.Baf => out = out .. "baf | "
+                Round.None => out = out .. "none | "
+            }
+        }
+        Print(out)
+        if isRoundC(rounds_ctx[2]) {
+            time = 0
+        }
+    }
+
+    fn DecideNextRound(list<Round> rounds) -> Round {
+        // Rule #1
+        // NA => A
+        if rounds[2] == Round.None {
+            Print("Rule 1")
+            let next_round = Round.None
+            if Chance(50) {
+                next_round = randomRoundFromPool(A, rounds_ctx[2])
+            }else {
+                next_round = randomRoundFromPool(B, rounds_ctx[2])
+            }
+            return next_round
+        }
+
+        // Rule #2
+        // !C => chance of C round increases
+        if !isRoundC(rounds[2]) {
+            Print("Rule 2")
+            if Chance(c_round_chance) {
+                c_round_chance = 0
+                return randomRoundFromPool(C, Round.None)
+            }
+            c_round_chance += 25
+        }
+
+        // Rule #3
+        // A -> A => B
+        if isRoundA(rounds[2]) and isRoundA(rounds[3]) {
+            Print("Rule 3")
+            return randomRoundFromPool(B, rounds[4])
+        }
+
+        // Rule #4
+        // B -> B => A
+        if isRoundB(rounds[2]) and isRoundB(rounds[3]) {
+            Print("Rule 4")
+            return randomRoundFromPool(B, rounds[4])
+        }
+
+        // Rule #5.1
+        // A => 50% A / 50% B
+        if isRoundA(rounds[2]) {
+            Print("Rule 5.1")
+            if Chance(50) {
+                return randomRoundFromPool(A, rounds[2])
+            }else {
+                return randomRoundFromPool(B, rounds[3])
+            }
+        }    
+        
+        // Rule #5.2
+        // B => 50% A / 50% B
+        if isRoundB(rounds[2]) {
+            Print("Rule 5.2")
+            if Chance(50) {
+                return randomRoundFromPool(A, rounds[3])
+            }else {
+                return randomRoundFromPool(B, rounds[2])
+            }
+        }
+
+        // Rule #5.3
+        // C => 50% A / 50% B
+        if isRoundC(rounds[2]) {
+            Print("Rule 5.3")
+            if Chance(50) {
+                return randomRoundFromPool(A, rounds[3])
+            }else {
+                return randomRoundFromPool(B, Round.Four)
+            }
+        }
+        Print("No rule")
+        return Round.One
+    }
+
+    fn RandomizeVariant() {
     }
 }

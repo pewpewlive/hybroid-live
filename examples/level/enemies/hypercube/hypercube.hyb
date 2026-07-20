@@ -20,6 +20,9 @@ pub entity Hypercube {
     let spawningTime = 30
     number scoreToGive = 200
 
+    number frozen_cooldown = -1
+    fixed pull_strength = 0.7f
+
     spawn(fixed x, y) {
         self.scale = 1f
         SetEntityMesh(self, HypercubeMesh, 0)
@@ -58,17 +61,22 @@ pub entity Hypercube {
     }
 
     Update() {
-        spawningTime -= 1
-        scale += growth
-        if scale < 1f {
-            scale = 1f
+        if frozen_cooldown >= 0 {
+            frozen_cooldown -= 1
+        }else {
+            spawningTime -= 1
+            scale += growth
+            if scale < 1f {
+                scale = 1f
+            }
+            AddRotationToEntityMesh(self, 5d, xAxis, yAxis, zAxis)
         }
-
-        AddRotationToEntityMesh(self, 5d, xAxis, yAxis, zAxis)
-        SetEntityMeshScale(self, scale)
-        SetEntityRadius(self, INITIAL_RADIUS * scale)
         
-        if !IsEntityBeingDestroyed(self) and spawningTime <= 0 {
+        SetEntityRadius(self, INITIAL_RADIUS * scale)
+        SetEntityMeshScale(self, scale)
+        UpdateMovement()
+        
+        if !IsEntityBeingDestroyed(self) and spawningTime <= 0 and frozen_cooldown < 0 {
             SetEntityFlippingMeshes(self, HypercubeMesh, frames, frames + 1)
             frames = (frames + 2) % 120
 
@@ -80,17 +88,18 @@ pub entity Hypercube {
                 hc.my, hc.mx = Fmath:Sincos(angle)
                 hc.growth = growth / 2f
                 hc.scoreToGive = scoreToGive \ 2
+                hc.pull_strength += 0.1f
                 let hc2 = spawn Hypercube(x, y)
                 hc2.my, hc2.mx = Fmath:Sincos(angle+180d)
                 hc2.growth = growth / 2f
                 hc2.scoreToGive = scoreToGive \ 2
+                hc.pull_strength += 0.1f
                 return
             }
         } else {
-            SetEntityMesh(self, HypercubeMesh, frames)
+            SetEntityFlippingMeshes(self, HypercubeMesh, frames, frames)
         }
 
-        UpdateMovement()
     }
 
     fn UpdateMovement() {
@@ -147,12 +156,16 @@ pub entity Hypercube {
                 if IsEntityAlive(SHIP.id) {
                     let px, py = GetEntityPosition(SHIP.id)
                     let dx, dy = FmathHelpers:Normalize(px - x, py - y)
-                    mx, my += dx * 0.7f, dy * 0.7f
+                    mx, my += dx * pull_strength, dy * pull_strength
                 }
                 return true
             }
             WeaponType.AtomizeExplosion => {
                 destroy self(false)
+            }
+            WeaponType.FreezeExplosion => {
+                frozen_cooldown = 130
+                mx, my = 0fx, 0fx
             }
             WeaponType.PlasmaField => {
                 destroy self(false)

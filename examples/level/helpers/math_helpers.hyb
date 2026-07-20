@@ -2,6 +2,15 @@ env MathHelpers as Shared
 
 use Math
 
+pub fn Round(number n) -> number {
+    let decimals = n % 1
+    if decimals > 0.5 {
+        return 1+n\1
+    }else {
+        return n\1
+    }
+}
+
 pub fn Clamp(number n, min, max) -> number {
     if n < min {
         return min

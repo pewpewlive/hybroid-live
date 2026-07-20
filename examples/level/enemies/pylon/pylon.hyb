@@ -7,22 +7,24 @@ use ShardEntity
 
 enum AttackState {
     NOTHING,
-    BARRAGE
+    BARRAGE,
+    SINGLE
 }
 
+const SINGLE_DURATION = 15
 const BARRAGE_BULLET_FREQUENCY = 15
-const BARRAGE_BULLET_TIMES_MAX = 2
+const BARRAGE_BULLET_TIMES_MAX = 1
 const BARRAGE_DURATION = BARRAGE_BULLET_FREQUENCY*BARRAGE_BULLET_TIMES_MAX+2
 const PYLON_SIGHT_RADIUS = 400f
 const DEATH_DURATION = 40f
-const HP_MAX = 36
+const HP_MAX = 30
 const HOVER_HEIGHT = 25f
 const PYLON_COLOR = 0xaa00faff
 const PYLON_SCALE = 1.5f
-const PYLON_SCORE = 200
 
 pub entity Pylon {
     AttackState state = AttackState.NOTHING
+    AttackState prev_state = AttackState.SINGLE
     entity topPrism
     fixed time
     number attackTime = Fmath:RandomNumber(40, 60)
@@ -35,6 +37,10 @@ pub entity Pylon {
 
     fixed collisionCooldown
     number reactionTime
+    fixed explode_area_cooldown = 50fx
+    CustomArea:CustomArea shoot_area 
+
+    number frozen_cooldown = -1
 
     spawn(fixed x, y) {
         self.x, self.y = x, y
@@ -50,6 +56,7 @@ pub entity Pylon {
         SetEntityMeshScale(self, PYLON_SCALE)
         SetEntityMeshColor(topPrism, PYLON_COLOR)
         SetEntityMeshZ(topPrism, 10f)
+        shoot_area = spawn CustomArea:CustomArea(x, y, 30, PYLON_SIGHT_RADIUS, 0xaa00fa75, AreaType.Simple)
     }
 
     destroy() {
@@ -66,11 +73,12 @@ pub entity Pylon {
         spawn Shockwave:Shockwave(x, y, struct{radius = 30f, speed = 10f, power = 60f, duration = 60, count = 32})
 
         ScoreUtils:IncreaseScore(x, y, ScoreUtils:LevelScore.Score200, ScoreUtils:PointoniumScore.Score128)
+        destroy shoot_area()
     }
 
     Update() {
-        time += 1f
         collisionCooldown -= 1f
+        explode_area_cooldown -= 1f
         reactionTime -= 1
         if reactionTime >= 0 {
             SetEntityMeshColor(self, 0xfa4000ff)
@@ -80,36 +88,48 @@ pub entity Pylon {
             SetEntityMeshColor(topPrism, PYLON_COLOR)
         }
 
-        if IsEntityAlive(SHIP.id) {
+        if IsEntityAlive(SHIP.id) and frozen_cooldown < 0 {
             let px, py = GetEntityPosition(SHIP.id)
             let dx, dy = px - x, py - y
-            if dx * dx + dy * dy <= PYLON_SIGHT_RADIUS ^ 2f {
+            let dist_squared = dx*dx+dy*dy
+            if dist_squared <= PYLON_SIGHT_RADIUS ^ 2f {
                 forceIdle = false
                 lookToAngle = Fmath:Atan2(dy, dx)
             } else {
                 forceIdle = true
             }
+            if dist_squared < 90fx^2fx and explode_area_cooldown < 0fx {
+                let a = spawn CustomArea(x, y, 40, 100fx, 0x6600ffff, AreaType.Advanced)
+                a.SetDieOnExpansion(true)
+                a.SetOnExpandedCallback(fn(list<entity> entities) {
+                    for _, e in entities {
+                        if e == SHIP.id {
+                            DamageShip(e, 1)
+                        }
+                    }
+                })
+                explode_area_cooldown = 50fx
+            }
+        
         } else {
             forceIdle = true
         }
-    
-
+        
+        
         match state {
-        AttackState.NOTHING => {
-            attackTime -= 1
-            if attackTime <= 0 and !forceIdle {
-                state = AttackState.BARRAGE
+            AttackState.NOTHING => {
+                attackTime -= 1
+                if attackTime <= 0 and !forceIdle {
+                    if prev_state == AttackState.SINGLE {
+                    state = AttackState.BARRAGE
+                }else if prev_state == AttackState.BARRAGE{
+                    state = AttackState.SINGLE
+                }
                 attackTime = 0
             }
         }
         AttackState.BARRAGE => {
             attackTime += 1
-
-            if attackTime >= BARRAGE_DURATION or !IsEntityAlive(SHIP.id) {
-                state = AttackState.NOTHING
-                attackTime = 80
-                break
-            }
 
             if attackTime % BARRAGE_BULLET_FREQUENCY == 0 {
                 repeat from -1f to 1f with i {
@@ -121,13 +141,36 @@ pub entity Pylon {
 
                 prismRotation += 7d
             }
+
+            if attackTime >= BARRAGE_DURATION or !IsEntityAlive(SHIP.id) {
+                prev_state = state
+                state = AttackState.NOTHING
+                attackTime = 60
+                break
+            }
+        }
+        AttackState.SINGLE => {
+            attackTime += 1
+            if attackTime >= SINGLE_DURATION {
+                prev_state = state
+                state = AttackState.NOTHING
+                attackTime = 60
+                spawn Shard(x, y, lookToAngle, 14f, 330)
+            }
         }
         }
-        
-        prismRotation = FmathHelpers:Lerp(prismRotation, 1d, 0.2f)
+        let rot_target = 1d
+        if frozen_cooldown >= 0 {
+            frozen_cooldown -= 1
+            rot_target = 0d
+        }
+        prismRotation = FmathHelpers:Lerp(prismRotation, rot_target, 0.2f)
         Rotate()
-        let sin, _ = Fmath:Sincos(time / 7f)
-        SetEntityMeshZ(topPrism, Fmath:ToFixed(HEIGHT) + 2f * HOVER_HEIGHT + HOVER_HEIGHT * sin)
+        if frozen_cooldown < 0 {
+            time += 1f
+            let sin, _ = Fmath:Sincos(time / 7f)
+            SetEntityMeshZ(topPrism, Fmath:ToFixed(HEIGHT) + 2f * HOVER_HEIGHT + HOVER_HEIGHT * sin)
+        }
     }
 
     PlayerCollision(number _, entity shipId) {
@@ -157,6 +200,9 @@ pub entity Pylon {
             }
             WeaponType.AtomizeExplosion => {
                 destroy self()
+            }
+            WeaponType.FreezeExplosion => {
+                frozen_cooldown = 100
             }
             WeaponType.PlasmaField => {
                 destroy self()

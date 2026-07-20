@@ -7,4 +7,4 @@ pub meshes = [
     NewMesh()
 ]
 
-AddSphere(meshes[2], [0,0,0], 0xffffffff, 53)
+AddSphere(meshes[2], [0,0,0], 0xffffffff, 53, 4)

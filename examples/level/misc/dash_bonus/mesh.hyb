@@ -1,0 +1,32 @@
+env DashBonusMesh as Mesh
+
+use Graphix
+
+let dash_color = 0x00ddffff
+let size = 9
+let off = 6
+pub meshes = [
+    NewMesh(),
+    struct{
+        vertexes = [
+            [-size-off, -size, 0], [-off, 0, 0], [-size-off, size, 0],
+            [-size, -size, 0], [0, 0, 0], [-size, size, 0],
+            [-size+off, -size, 0], [off, 0, 0], [-size+off, size, 0],
+        ],
+        segments = [[0,1,2], [3,4,5], [6,7,8]],
+        colors = [dash_color, dash_color, dash_color, dash_color, dash_color, dash_color, dash_color, dash_color, dash_color]
+    }
+]
+repeat #meshes[2].vertexes with i {
+    let v = meshes[2].vertexes[i]
+    v[1] += size/2
+    meshes[2].vertexes[i] = v
+}
+
+let sides = 7
+AddFlatPoly(meshes[1], [0,0,0], sides, 0x00ffffff, 22, 0)
+AddFlatPoly(meshes[1], [0,0,15], sides, 0x00ffffff, 22, 0)
+repeat #meshes[1].vertexes/2 with i {
+    AddLine(meshes[1], [meshes[1].vertexes[i], meshes[1].vertexes[i+sides]], [0x00ffffff, 0x00ffffff], false)
+}
+
