@@ -2,6 +2,12 @@ env MathHelpers as Shared
 
 use Math
 
+pub fn Ceil(number n) -> number {
+    let d = n % 1
+    if d == 0 return n
+    else return 1+n-d    
+}
+
 pub fn Round(number n) -> number {
     let decimals = n % 1
     if decimals > 0.5 {

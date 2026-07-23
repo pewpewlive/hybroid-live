@@ -23,13 +23,32 @@ enum Round {
     None
 }
 
-let rounds = [
-    RoundOne,
-    RoundTwo,
-    RoundThree,
-    RoundFour,
-    RoundBaf,
-    RoundHypercube,
+let roundsOnUpdate = [
+    RoundOneOnUpdate,
+    RoundTwoOnUpdate,
+    RoundThreeOnUpdate,
+    RoundFourOnUpdate,
+    RoundBafOnUpdate,
+    RoundHypercubeOnUpdate,
+]
+
+let roundsOnStart = [
+    RoundOneOnStart,
+    RoundTwoOnStart,
+    RoundThreeOnStart,
+    RoundFourOnStart,
+    RoundBafOnStart,
+    RoundHypercubeOnStart,
+]
+
+let roundGridColors = [
+    [0x23350935, 0x35a83584],//Round One
+    [0x6818fa30, 0xff000080],//Round Two
+    [0x1030a730, 0x00ffff80],//Round Three
+    [0x53204330, 0xffff0070],//Round Four
+    [0x2335ff30, 0x00ffff80],//Round Baf
+    [0x2335ff30, 0x00ffff80],//Round Hypercube
+    
 ]
 
 fn empty(number _, _) -> bool { return false }
@@ -101,12 +120,12 @@ fn Chance(number percent) -> bool {
 pub class RoundManager {
     number time
     number pause_time
-    number diff = 2
+    number diff = 1
     number progression = 1
     bool pause 
     number randomAmbushTime = -1
 
-    list<Round> rounds_ctx = [Round.One, Round.None, Round.None, Round.None, Round.None]
+    list<Round> roundsOnUpdate_ctx = [Round.One, Round.None, Round.None, Round.None, Round.None]
     number c_round_chance = 0
 
     list<entity> freeze_bombs 
@@ -115,10 +134,16 @@ pub class RoundManager {
     list<BonusWeaponSettings> bonus_weapons = [Hemisphere, DoubleSwipe, Triple, Laser]
     number b_weapon_index = 1
     number weapon_option_chance = 25
+    number weapon_option_chance_inc = 25
 
     list<struct{entity first, entity second, entity string}> bonus_pairs
+    number time_since_too_many_rps = 0
+    bool got_rps_kaboom_pickup = false 
 
     new() {
+        fixed rx, ry = RandomSpawn()
+        NewSmallAtomizeBomb(rx, ry)
+        NewFreezeBomb(rx, ry)
         NextRound()
 
         Table:Insert(bonus_weapons, Hemisphere)
@@ -137,10 +162,12 @@ pub class RoundManager {
     
     fn NewFreezeBomb(fixed rx, ry) {
         Table:Insert(freeze_bombs, NewBomb(rx, ry, BombType.Freeze))
+        AddArrowToShip(SHIP.id, freeze_bombs[#freeze_bombs], 0x00aaffaa)
     }
     
     fn NewSmallAtomizeBomb(fixed rx, ry) {
         Table:Insert(small_atomize_bombs, NewBomb(rx, ry, BombType.SmallAtomize))
+        AddArrowToShip(SHIP.id, small_atomize_bombs[#small_atomize_bombs], 0x9900ffbb)
     }
 
     fn CheckBombs() {
@@ -194,6 +221,7 @@ pub class RoundManager {
         progression += 1
         if progression % 4 == 0 {
             diff += 1
+            Print("diff: "..ToString(diff))
         }
         pause_time = 34
         pause = true
@@ -228,24 +256,61 @@ pub class RoundManager {
             return
         }
 
+        PrintDebugInfo()
+
         CheckBombs()
         CheckBonusPairs()
         
+        let actual_diff = MathHelpers:Ceil(0.5+diff^0.5)
         if pause {
             pause_time -= 1
             if pause_time <= 0 {
                 pause = false
+                let n = round_to_num(roundsOnUpdate_ctx[2])
+                roundsOnStart[n](actual_diff)
             }
             
             return
         }
 
-        time += 1
-        let n = round_to_num(rounds_ctx[2])
         
-        for _, enemySpawn in rounds[n] {
-            enemySpawn(time, MathHelpers:Round(diff^0.5))
+        time += 1
+        let n = round_to_num(roundsOnUpdate_ctx[2])
+        
+        Grid:gridColor = ColorHelpers:LerpColors2(Grid:gridColor, roundGridColors[n][1], 0.12)
+        Grid:activeGridColor = ColorHelpers:LerpColors2(Grid:activeGridColor, roundGridColors[n][2], 0.12)
+
+        if GetEntityCount(EntityType.RollingSphere) > 3 and !got_rps_kaboom_pickup {
+            time_since_too_many_rps += 1
+            if time_since_too_many_rps > 1100 {
+                time_since_too_many_rps = 0
+                got_rps_kaboom_pickup = true
+                let pickup = PickupEntity:RollingSphereKaboom(WIDTH/2fx, HEIGHT/2fx)
+                pickup.SetOnDestroyedCallback(fn(fixed x, y, bool picked_up) {
+                    got_rps_kaboom_pickup = false
+                    if !picked_up return
+                    NewFloatingMessage(x, y, "#ff0000ff MAGIC! ", struct{
+                        scale = 1.8f
+                    })
+
+                    let spawned_mships = 0
+                    for _, v in GetAllEntities() {
+                        if v isnt RollingSphere {
+                            continue
+                        }
+                        let ex, ey = GetEntityPosition(v)
+                        DestroyEntity(v)
+                        if spawned_mships > diff+3 {
+                            continue
+                        }
+                        spawned_mships += 1
+                        NewMothership(ex, ey, MothershipType.Square, Rangle())
+                    }
+                })
+            }
         }
+
+        roundsOnUpdate[n](time, actual_diff)
         if progression >= 2 and time % BONUS_FREQUENCY == 0 {
             SpawnWeaponBonus()
         }
@@ -280,17 +345,18 @@ pub class RoundManager {
 
             return
         }
-        Print(ToString(settings))
+        //Print(ToString(settings))
         NewBonus(rx, ry, BonusType.Weapon, struct{
             cannon = settings.cannon,
             frequency = settings.frequency,
             box_duration = settings.box_duration,
             weapon_duration = settings.weapon_duration,
             taken_callback = fn(entity _, number _, entity _) {
-                weapon_option_chance -= 7
+                weapon_option_chance_inc -= 4
             }
         })
-        weapon_option_chance += 25
+        weapon_option_chance += weapon_option_chance_inc
+        weapon_option_chance_inc += 4
         b_weapon_index += 1
         if b_weapon_index > #bonus_weapons {
             b_weapon_index = 1
@@ -298,13 +364,13 @@ pub class RoundManager {
     }
 
     fn NextRound() {
-        rounds_ctx[5] = rounds_ctx[4]
-        rounds_ctx[4] = rounds_ctx[3]
-        rounds_ctx[3] = rounds_ctx[2]
-        rounds_ctx[2] = rounds_ctx[1]
-        rounds_ctx[1] = DecideNextRound(rounds_ctx)
+        roundsOnUpdate_ctx[5] = roundsOnUpdate_ctx[4]
+        roundsOnUpdate_ctx[4] = roundsOnUpdate_ctx[3]
+        roundsOnUpdate_ctx[3] = roundsOnUpdate_ctx[2]
+        roundsOnUpdate_ctx[2] = roundsOnUpdate_ctx[1]
+        roundsOnUpdate_ctx[1] = DecideNextRound(roundsOnUpdate_ctx)
         let out = "| "
-        for _, v in rounds_ctx {
+        for _, v in roundsOnUpdate_ctx {
             match v {
                 Round.One => out = out .. "one | "
                 Round.Two => out = out .. "two | "
@@ -316,7 +382,7 @@ pub class RoundManager {
             }
         }
         Print(out)
-        if isRoundC(rounds_ctx[2]) {
+        if isRoundC(roundsOnUpdate_ctx[2]) {
             time = 0
         }
     }
@@ -328,9 +394,9 @@ pub class RoundManager {
             Print("Rule 1")
             let next_round = Round.None
             if Chance(50) {
-                next_round = randomRoundFromPool(A, rounds_ctx[2])
+                next_round = randomRoundFromPool(A, roundsOnUpdate_ctx[2])
             }else {
-                next_round = randomRoundFromPool(B, rounds_ctx[2])
+                next_round = randomRoundFromPool(B, roundsOnUpdate_ctx[2])
             }
             return next_round
         }

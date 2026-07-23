@@ -1,4 +1,4 @@
-env DashBonusMesh as Mesh
+env PickupMesh as Mesh
 
 use Graphix
 
@@ -15,7 +15,8 @@ pub meshes = [
         ],
         segments = [[0,1,2], [3,4,5], [6,7,8]],
         colors = [dash_color, dash_color, dash_color, dash_color, dash_color, dash_color, dash_color, dash_color, dash_color]
-    }
+    },
+    NewMesh()
 ]
 repeat #meshes[2].vertexes with i {
     let v = meshes[2].vertexes[i]
@@ -24,9 +25,10 @@ repeat #meshes[2].vertexes with i {
 }
 
 let sides = 7
-AddFlatPoly(meshes[1], [0,0,0], sides, 0x00ffffff, 22, 0)
-AddFlatPoly(meshes[1], [0,0,15], sides, 0x00ffffff, 22, 0)
+AddFlatPoly(meshes[1], [0,0,0], sides, 0xffffffff, 22, 0)
+AddFlatPoly(meshes[1], [0,0,15], sides, 0xffffffff, 22, 0)
 repeat #meshes[1].vertexes/2 with i {
-    AddLine(meshes[1], [meshes[1].vertexes[i], meshes[1].vertexes[i+sides]], [0x00ffffff, 0x00ffffff], false)
+    AddLine(meshes[1], [meshes[1].vertexes[i], meshes[1].vertexes[i+sides]], [0xffffffff, 0xffffffff], false)
 }
 
+AddSphere(meshes[3], [0,0,0], 0xff0000cc, 11, 6)

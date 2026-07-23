@@ -17,7 +17,7 @@ SetEntityTag(bg, DONT_DESTROY)
 let grid = new Grid:Grid(CELLCOUNT, CELLCOUNT, CELLSIZE_X, CELLSIZE_Y, 0f, 0f, 0f)
 grid.CreateLineGrid()
 
-spawn DashBonusEntity:DashBonus(0fx, 0fx, 400)
+PickupEntity:DashBonus(WIDTH/2fx, HEIGHT/2fx)
 let roundManager = new RoundManager:RoundManager()
 
 tick {

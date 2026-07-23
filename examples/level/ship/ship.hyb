@@ -30,7 +30,7 @@ pub class Ship {
     id = NewShip(x, y, 0)
     coolDownMesh = NewEntity(x, y)
     let playerConfig = struct{
-      shield = 5,
+      shield = 555,
       camera_distance = -50f,
       camera_rotation_x_axis = -15d,
       move_joystick_color = 0xffffffff

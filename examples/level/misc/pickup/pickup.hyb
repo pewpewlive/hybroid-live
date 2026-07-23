@@ -1,0 +1,92 @@
+env PickupEntity as Level 
+
+use Pewpew
+use ShipEntity
+
+alias Callback = fn(fixed, fixed, bool)
+
+pub entity Pickup {
+    entity decoration
+
+    fixed angle = 0d
+    fixed ax, ay, az 
+    number duration
+    number max_dur
+    fixed x, y
+    number color
+
+    Callback onDestroyedCallback
+
+    spawn(fixed x, y, number duration, number color, MeshEnvironment decor_path, number index) {
+        self.duration = duration+1
+        self.max_dur = duration
+        self.x, self.y = x, y
+        self.color = color
+        SetEntityMesh(self, PickupMesh, 0)
+        SetEntityRadius(self, 15fx)
+
+        decoration = NewEntity(x, y)
+        SetEntityMesh(decoration, decor_path, index)
+
+        ax, ay, az = Fmath:RandomFixed(0.5fx, 1fx), Fmath:RandomFixed(0.5fx, 1fx), Fmath:RandomFixed(0fx, 1fx)
+    }
+
+    destroy(bool player_picked_up) {
+        onDestroyedCallback(x, y, player_picked_up)
+        
+        SetEntityPlayerCollision(self, fn(entity _, number _, entity _) {})
+        SetEntityUpdateCallback(self, fn(entity _) {})
+        DestroyEntity(decoration)
+        ExplodeEntity(self, 30)
+    }
+
+    Update() {
+        angle += 1.3d
+        SetEntityMeshAngle(decoration, angle, ax, ay, az)
+        duration -= 1
+        let t = MathHelpers:InvLerp(0, max_dur, duration)
+        t ^= (1-t) // the secret ingredient
+        let c = self.color * 256 + (255*t)\1
+        SetEntityMeshColor(self, c)
+        SetEntityMeshColor(decoration, c)
+        if duration <= 1 {
+            destroy self(false)
+        }
+    }
+
+    PlayerCollision(number _, entity _) {
+        PlaySound(DashBonusSound, 0, x, y)
+        destroy self(true)
+    }
+
+    fn SetOnDestroyedCallback(Callback callback) {
+        self.onDestroyedCallback = callback
+    }
+}
+
+pub fn DashBonus(fixed x, y) -> Pickup {
+    let color = 0
+    color = color*256 + 255
+    color = color*256 + 255
+    let pickup = spawn Pickup(x, y, 400, color, PickupMesh, 1)
+    pickup.SetOnDestroyedCallback(fn(fixed x, y, bool player_picked_up) {
+        if !player_picked_up return
+
+        NewFloatingMessage(x, y, "#00ffffff Dash +1", struct{
+            scale = 1.4f
+        })
+
+        SHIP.dashAmount += 1
+    })
+    AddArrowToShip(SHIP.id, pickup, 0x00ffffff)
+    return pickup
+}
+
+pub fn RollingSphereKaboom(fixed x, y) -> Pickup {
+    let color = 255
+    color = color*256 + 0
+    color = color*256 + 0
+    let p = spawn Pickup(x, y, 500, color, PickupMesh, 2)
+    AddArrowToShip(SHIP.id, p, 0xff0000ff)
+    return p
+}
