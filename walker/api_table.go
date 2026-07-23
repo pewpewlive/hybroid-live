@@ -27,13 +27,13 @@ var TableAPI = &Environment{
 			},
 			"Remove": {
 				Name:    "Remove",
-				Value:   NewFunction([]string{"list", "pos"}, NewWrapperType(NewBasicType(ast.List), NewGeneric("T")), NewBasicType(ast.Number)),
+				Value:   NewFunction([]string{"list", "pos"}, NewWrapperType(NewBasicType(ast.List), NewGeneric("T")), NewBasicType(ast.Number)).WithReturns(NewGeneric("T")).WithGenerics(NewGeneric("T")),
 				IsPub:   true,
 				IsConst: true,
 			},
 			"Sort": {
 				Name:    "Sort",
-				Value:   NewFunction([]string{"list"}, NewWrapperType(NewBasicType(ast.List), NewGeneric("T"))),
+				Value:   NewFunction([]string{"list"}, NewWrapperType(NewBasicType(ast.List), NewGeneric("T"))).WithGenerics(NewGeneric("T")),
 				IsPub:   true,
 				IsConst: true,
 			},
