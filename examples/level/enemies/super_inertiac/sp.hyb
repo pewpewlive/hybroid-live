@@ -23,13 +23,13 @@ const COLLISION_COOLDOWN_MAX = 10
 const HIT_COOLDOWN_MAX = 4
 const COOLDOWN_MAX = 90
 const LASER_COLOR = 0x00ffffff
-const HP_MAX = 70
+const HP_MAX = 65
 
 pub entity SuperInertiac {
   fixed x, y = 0f, 0f
   fixed velX, velY = 0f, 0f
   fixed lvx, lvy
-  
+
   number health = HP_MAX
 
   number cooldown = COOLDOWN_MAX
@@ -65,7 +65,7 @@ pub entity SuperInertiac {
     //SetEntityColor(self, 0x00ffffff)
     SetEntityMesh(self, SPAnim, 0)
     SetEntityRadius(self, RADIUS)
-    
+
     predictionLine = NewEntity(x, y)
     SetEntityMesh(predictionLine, SPPredLineMesh, 1)
     SetEntityPositionInterpolation(predictionLine, true)
@@ -114,15 +114,15 @@ pub entity SuperInertiac {
   }
 
   WallCollision(fixed normalX, fixed normalY) {
-    if IsDead() 
-      return 
-    
-    if !IsEntityAlive(SHIP.id) 
+    if IsDead()
+      return
+
+    if !IsEntityAlive(SHIP.id)
       velX, velY *= 0.7f, 0.7f
 
     velX, velY = Reflect(velX, velY, normalX, normalY)
   }
-  
+
   PlayerCollision(number _, entity shipId) {
     if IsEntityAlive(shipId) and CanCollide() {
         if !Is(State.FROZEN) {
@@ -143,7 +143,7 @@ pub entity SuperInertiac {
   }
 
   WeaponCollision(number _, WeaponType weaponType) -> bool {
-    if IsDead() 
+    if IsDead()
       return false
 
     match weaponType {
@@ -165,7 +165,7 @@ pub entity SuperInertiac {
         IncreasePlayerScore(0, 5)
       }
       WeaponType.AtomizeExplosion => {
-        health -= 5
+        health -= HP_MAX \ 2
         if health <= 0 destroy self()
         if health > 0 {
           hitCooldown = HIT_COOLDOWN_MAX
@@ -200,9 +200,7 @@ pub entity SuperInertiac {
         frozen_cooldown = 90
       }
     }
-    
- 
-  
+
     return true
   }
 
@@ -222,7 +220,7 @@ pub entity SuperInertiac {
                 frameOffset = 0
             }
         }
-        
+
         SetEntityFlippingMeshes(self, SPAnim, frames[1] % maxFrames + frameOffset, MathHelpers:Wrap(frames[1] % maxFrames + 1 + frameOffset, frameOffset, 59+frameOffset))
         for i in rings {
             SetEntityFlippingMeshes(rings[i], SPAnim, frames[i+1] % maxFrames + frameOffset, MathHelpers:Wrap(frames[i+1] % maxFrames + 1 + frameOffset, frameOffset, 59+frameOffset))
@@ -231,7 +229,7 @@ pub entity SuperInertiac {
         }
         return
     }
-    
+
     Move()
     UpdatePredicitonLine()
     UpdateIndicators()
@@ -263,7 +261,7 @@ pub entity SuperInertiac {
           }
           if preparationTimer > 0
             break
-          
+
           if IsEntityAlive(ShipEntity:SHIP.id) {
             let px, py = GetEntityPosition(ShipEntity:SHIP.id)
             let dist = (px - x) ^ 2f + (py - y) ^ 2f
@@ -283,7 +281,7 @@ pub entity SuperInertiac {
 
           if preparationTimer > 0
             break
-            
+
           state = State.FOLLOWING_PLAYER
           SetEntityMesh(predictionLine, SPPredLineMesh, 1)
           cooldown = COOLDOWN_MAX
@@ -291,8 +289,8 @@ pub entity SuperInertiac {
         }
       }
     }
-    
-    if !CanCollide() 
+
+    if !CanCollide()
       collisionCooldown -= 1
 
     let entities = GetEntitiesInRadius(x, y, RADIUS*1.8f)
@@ -318,7 +316,7 @@ pub entity SuperInertiac {
 
   fn Move() {
     if Is(State.FOLLOWING_PLAYER) and IsEntityAlive(SHIP.id) {
-      fixed sX, sY = GetEntityPosition(SHIP.id) 
+      fixed sX, sY = GetEntityPosition(SHIP.id)
       fixed dX, dY = Normalize(sX - x, sY - y)
 
       velX += dX * 1.3f
@@ -344,8 +342,8 @@ pub entity SuperInertiac {
   }
 
   fn Dash() {
-    if IsDead() or !IsEntityAlive(SHIP.id) 
-      return 
+    if IsDead() or !IsEntityAlive(SHIP.id)
+      return
 
     velX = pdX * 40f
     velY = pdY * 40f
@@ -388,9 +386,9 @@ pub entity SuperInertiac {
     fixed magnitude = Length(velX, velY) * 0.02f
 
     AddRotationToEntityMesh(self, magnitude*magnitude + 0.1f, Fmath:RandomFixed(0f, 1f), Fmath:RandomFixed(0f, 1f), 0f)
-    
+
     if !IsDead() {
-      frames[1] += 1 
+      frames[1] += 1
       frames[1] = MathHelpers:Wrap(frames[1], 0, 59)
     }
 
@@ -401,7 +399,7 @@ pub entity SuperInertiac {
         frameOffset = 0
       }
     }
-    
+
     SetEntityFlippingMeshes(self, SPAnim, frames[1] % maxFrames + frameOffset, MathHelpers:Wrap(frames[1] % maxFrames + 1 + frameOffset, frameOffset, 59+frameOffset))
     for i in rings {
       SetEntityFlippingMeshes(rings[i], SPAnim, frames[i+1] % maxFrames + frameOffset, MathHelpers:Wrap(frames[i+1] % maxFrames + 1 + frameOffset, frameOffset, 59+frameOffset))
@@ -414,18 +412,18 @@ pub entity SuperInertiac {
   }
 
   fn UpdatePredicitonLine() {
-    if IsDead() or !IsEntityAlive(SHIP.id) 
-      return 
+    if IsDead() or !IsEntityAlive(SHIP.id)
+      return
 
     fixed sX, sY = GetEntityPosition(SHIP.id)
     fixed dX, dY = sX - x, sY - y
-    fixed sMovAngle, sMovDist, _, _ = GetPlayerInputs(0) 
+    fixed sMovAngle, sMovDist, _, _ = GetPlayerInputs(0)
 
     fixed sMovDY, sMovDX = Fmath:Sincos(sMovAngle)
     fixed predMovX, predMovY = sMovDX * sMovDist * 100f, sMovDY * sMovDist * 100f
     predMovX, predMovY = -predMovX, -predMovY
 
-    fixed pDX, pDY = Normalize((dX - predMovX - velX), (dY - predMovY - velY)) 
+    fixed pDX, pDY = Normalize((dX - predMovX - velX), (dY - predMovY - velY))
     pdX = Lerp(pdX, pDX, PREDICTION_SPEED)
     pdY = Lerp(pdY, pDY, PREDICTION_SPEED)
 

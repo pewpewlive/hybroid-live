@@ -27,9 +27,9 @@ class Point {
 
     new(PointInfo base) {
         id = Pewpew:NewEntity(base.currentX, base.currentY)
-        
+
         self.base = base
-        
+
         Pewpew:SetEntityMesh(id, GridMesh, 1)
         Pewpew:SetEntityPositionInterpolation(id, true)
 
@@ -40,7 +40,7 @@ class Point {
 
     fn Update() {
         Pewpew:SetEntityPosition(id, base.currentX, base.currentY)
-        
+
         Pewpew:SetEntityMeshColor(id,
             ColorHelpers:LerpColors(gridColor, activeGridColor,
                 FmathHelpers:Clamp(base.power * 2f, 0f, 80f) / 80f))
@@ -84,7 +84,8 @@ pub class Grid {
     list<Line> lines
     list<Point> points
     number gridSizeX, gridSizeY, gridCount
-   
+    entity outline
+
     new(number sizeX, sizeY, fixed _cellSizeX, _cellSizeY, _offsetX, _offsetY, _offsetZ) {
         sizeX, sizeY += 1, 1
         gridSizeX, gridSizeY = sizeX, sizeY
@@ -92,28 +93,32 @@ pub class Grid {
         cellSizeX, cellSizeY = _cellSizeX, _cellSizeY
         offsetX, offsetY, offsetZ = _offsetX, _offsetY, _offsetZ
 
+        outline = Pewpew:NewEntity(WIDTH/2fx, HEIGHT/2fx)
+        Pewpew:SetEntityMesh(outline, MapMesh, 2)
+
         repeat Fmath:ToFixed(gridSizeY) with y {
             repeat Fmath:ToFixed(gridSizeX) with x {
                 let px = (x - 1f) * cellSizeX + offsetX
                 let py = (y - 1f) * cellSizeY + offsetY
-                
+
                 Table:Insert(gridContainer, new PointInfo(px, py, px, py, 0f, 0f, 0f))
             }
         }
 
         tick {
+            Pewpew:SetEntityMeshColor(outline, gridColor)
             for _, point in gridContainer {
                 let posX, posY = point.currentX, point.currentY
                 let velX, velY = point.velocityX, point.velocityY
-            
+
                 velX += point.anchorX - posX
                 velX *= 0.2248fx
                 velY += point.anchorY - posY
                 velY *= 0.2248fx
-            
+
                 posX += velX
                 posY += velY
-            
+
                 point.velocityX, point.velocityY = velX, velY
                 point.currentX, point.currentY = posX, posY
                 point.power = FmathHelpers:Length(point.anchorX - posX, point.anchorY - posY)
@@ -131,13 +136,13 @@ pub class Grid {
         }
     }
 
-    fn GetPoint(number x, y) -> PointInfo 
+    fn GetPoint(number x, y) -> PointInfo
         => gridContainer[(y - 1) * gridSizeY + x]
-    
+
     fn SetColors(number default, active) {
         gridColor, activeGridColor = default, active
     }
-    
+
     fn WorldToGridPos(fixed x, y) -> (number, number)
         => MathHelpers:Clamp(Fmath:ToNumber((x + cellSizeX / 2f) / cellSizeX) + 1, 1, gridSizeX), MathHelpers:Clamp(Fmath:ToNumber((y + cellSizeY / 2f) / cellSizeY) + 1, 1, gridSizeY)
 

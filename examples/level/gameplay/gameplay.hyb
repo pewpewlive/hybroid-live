@@ -13,11 +13,11 @@ fn baf_wall_x_custom(fixed baf_count, bafs_per_part, speed, number lifetime) {
             NewRedBAF(WIDTH, ((ifx-jfx+1fx)/baf_count)*HEIGHT, 180d, speed, lifetime)
 
         }
-        
+
         repeat bafs_per_part with jfx {
             NewRedBAF(0fx, ((baf_count-ifx-jfx+1fx)/baf_count)*HEIGHT, 0d, speed, lifetime)
         }
-    } 
+    }
 }
 
 fn baf_wall_y_custom(fixed baf_count, bafs_per_part, speed, number lifetime) {
@@ -29,7 +29,7 @@ fn baf_wall_y_custom(fixed baf_count, bafs_per_part, speed, number lifetime) {
         repeat bafs_per_part with jfx {
             NewRedBAF(((baf_count-ifx-jfx+1fx)/baf_count)*WIDTH, HEIGHT, 270d, speed, lifetime)
         }
-    } 
+    }
 }
 
 fn vithen_ensemble(fixed y_count) {
@@ -63,7 +63,7 @@ pub fn PlayerSafeSpawn(fn() -> (fixed, fixed) f) -> (fixed, fixed) {
         if counter > 16 {
             return x, y
         }
-    } 
+    }
     return x, y
 }
 
@@ -177,7 +177,7 @@ pub fn RoundTwoOnUpdate(number time, diff) {
             spawn HypercubeEntity:Hypercube(x, y)
         }
     }
-    if (time == 2 or time % 300 == 0) and diff < 4 {
+    if (time == 2 or time % 300 == 0) and diff < 3 {
         let x, y = PlayerSafeSpawn(RandomSpawn)
         NewInertiac(x, y, 1.4f, Rangle())
     }
@@ -194,7 +194,7 @@ pub fn RoundTwoOnUpdate(number time, diff) {
     }
     let bafAmount = ToFixed(diff)+2fx
     const BAF_SPEED = 10f
-    
+
     if time == 2 or time % 170 == 0 {
         let x, y = RandomWallSpawn(bafAmount*BAF_SIZE)
         fixed my, mx, py, px
@@ -309,13 +309,13 @@ pub fn RoundFourOnStart(number diff) {
     let rx, ry = RandomSpawn()
     NewSuperMothership(rx, ry, MothershipType.Triangle, Rangle())
 }
-    
+
 pub fn RoundHypercubeOnUpdate(number time, diff) {
     if time == 20 {
-        NewFloatingMessage(WIDTH/2fx, HEIGHT/2fx, "Whoops! You moved in the 4th dimension a lil tooo much!", struct{scale = 2fx})
+        NewFloatingMessage(WIDTH/2fx, HEIGHT/2fx, "#ffff00ff!! THE FOURTH DIMENSION !!", struct{scale = 1.75f})
     }
     if time == 70 {
-        repeat 13 {
+        repeat 10 {
             let rx, ry = RandomSpawn()
             spawn HypercubeEntity:Hypercube(rx, ry)
         }
@@ -327,7 +327,6 @@ pub fn RoundHypercubeOnStart(number diff) {
 
 pub fn RoundHypercubeSpecial(number time, _) -> bool  {
     if time >= 500 {
-        PickupEntity:DashBonus(WIDTH/2fx, HEIGHT/2fx)
         return true
     }
     return false
@@ -335,34 +334,28 @@ pub fn RoundHypercubeSpecial(number time, _) -> bool  {
 
 pub fn RoundBafOnUpdate(number time, diff) {
     if time == 10 {
-        NewFloatingMessage(WIDTH/2fx, HEIGHT/2fx, "Prepare...", struct{scale = 2fx})
+        NewFloatingMessage(WIDTH/2fx, HEIGHT/2fx, "#ffff00...PREPARE...", struct{scale = 2.5fx})
     }
     if time == 40 {
-        baf_wall_x_custom(32fx, 2fx, 10fx, 10)
+        baf_wall_x_custom(32fx, 2fx, 8.5f, 10)
     }
     if time == 80 {
-        baf_wall_y_custom(36fx, 2fx, 10fx, 10)
+        baf_wall_y_custom(36fx, 2fx, 8.5f, 10)
     }
     if time == 120 {
-        baf_wall_x_custom(32fx, 3fx, 11fx, 10)
+        baf_wall_x_custom(32fx, 3fx, 8.5f, 10)
     }
     if time == 140 {
-        baf_wall_y_custom(36fx, 3fx, 11fx, 10)
+        baf_wall_y_custom(36fx, 3fx, 8.5f, 10)
     }
     if time == 170 {
-        baf_wall_x_custom(35fx, 5fx, 12fx, 10)
+        baf_wall_x_custom(35fx, 5fx, 8.5f, 10)
     }
     if time == 200 {
-        baf_wall_y_custom(40fx, 5fx, 12fx, 10)
+        baf_wall_y_custom(40fx, 5fx, 8.5f, 10)
     }
-    if time == 280 {
-        baf_wall_x_custom(22fx, 1fx, 4fx, 10)
-    }
-    if time == 280 {
-        baf_wall_y_custom(27fx, 1fx, 4fx, 10)
-    }
-    if time == 300 {
-        vithen_ensemble(4fx)
+    if time == 400 {
+        vithen_ensemble(3fx)
     }
 }
 
@@ -370,8 +363,7 @@ pub fn RoundBafOnStart(number diff) {
 }
 
 pub fn RoundBafSpecial(number time, _) -> bool {
-    if time >= 380 {
-        PickupEntity:DashBonus(WIDTH/2fx, HEIGHT/2fx)
+    if time >= 600 {
         return true
     }
     return false

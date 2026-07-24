@@ -4,7 +4,7 @@ use Pewpew
 use ShipEntity
 
 const INITIAL_RADIUS = 22f
-const MAX_SPEED = 2f
+const MAX_SPEED = 2.2f
 pub const FAST_ENOUGH = 8f
 
 pub entity Hypercube {
@@ -15,13 +15,13 @@ pub entity Hypercube {
     fixed colorT
 
     fixed xAxis, yAxis, zAxis
-    fixed growth = 0.008f
+    fixed growth = 0.005f
 
     let spawningTime = 30
     number scoreToGive = 200
 
     number frozen_cooldown = -1
-    fixed pull_strength = 0.7f
+    fixed pull_strength = 0.8f
 
     spawn(fixed x, y) {
         self.scale = 1f
@@ -71,11 +71,11 @@ pub entity Hypercube {
             }
             AddRotationToEntityMesh(self, 5d, xAxis, yAxis, zAxis)
         }
-        
+
         SetEntityRadius(self, INITIAL_RADIUS * scale)
         SetEntityMeshScale(self, scale)
         UpdateMovement()
-        
+
         if !IsEntityBeingDestroyed(self) and spawningTime <= 0 and frozen_cooldown < 0 {
             SetEntityFlippingMeshes(self, HypercubeMesh, frames, frames + 1)
             frames = (frames + 2) % 120
@@ -117,7 +117,7 @@ pub entity Hypercube {
             if v == self or v isnt Hypercube
                 continue
             if Sum() > FAST_ENOUGH * 0.7f continue
-            
+
             let ex, ey = GetEntityPosition(v)
             mx, my = FmathHelpers:Normalize(x - ex, y - ey)
             mx, my *= 1.4f, 1.4f

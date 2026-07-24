@@ -5,7 +5,7 @@ use Math
 pub fn Ceil(number n) -> number {
     let d = n % 1
     if d == 0 return n
-    else return 1+n-d    
+    else return 1+n\1
 }
 
 pub fn Round(number n) -> number {
@@ -43,7 +43,7 @@ pub fn Lerp(number a, b, t) -> number {
     return a+(b-a)*t
 }
 
-pub fn InvLerp(number a, b, v) -> number 
+pub fn InvLerp(number a, b, v) -> number
     => Wrap((v-a)/(b-a), 0, 1)
 
 pub fn Remap(number a, b, c, d, v) -> number {
@@ -62,15 +62,15 @@ alias Parameters = list<Parameter>
 
 pub SineWave = [
     struct{
-        x = 0, y = 0, 
+        x = 0, y = 0,
         pt = ParamType.Linear
     },
     struct{
-        x = 0.25, y = 0.5, 
+        x = 0.25, y = 0.5,
         pt = ParamType.Linear
     },
     struct{
-        x = 0.5, y = 1, 
+        x = 0.5, y = 1,
         pt = ParamType.Rooted
     },
     struct{
@@ -122,9 +122,9 @@ pub fn ParametricInvLerp(number a, b, v, Parameters parameters) -> number {
     let linearT = InvLerp(a, b, v)
 
     for i, v in parameters {
-        if i == 1 
+        if i == 1
             continue
-        
+
         if linearT <= v.x {
             linearT = Lerp(parameters[i-1].y, v.y, InvLerp(parameters[i-1].x, v.x, linearT))
             linearT = match v.pt {
@@ -134,7 +134,7 @@ pub fn ParametricInvLerp(number a, b, v, Parameters parameters) -> number {
             }
             break
         }
-    }    
+    }
 
     return linearT
 }

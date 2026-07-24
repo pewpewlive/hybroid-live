@@ -44,7 +44,7 @@ pub class Ship {
     })
 
     let _, md, _, _ = GetPlayerInputs(0)
-    
+
     tick {
       ConfigurePlayerHud(0, struct{
         top_left_line = "#00ffffffDashes Left: "..ToString(dashAmount)
@@ -146,7 +146,7 @@ pub class Ship {
     let t = 2.71f ^ (Fmath:FromFraction(onDashTime, DASH_DURATION) ^ 5f)
     let speed = FmathHelpers:Clamp(t * maxSpeed, minSpeed, maxSpeed)
     EntityMove(id, cos*speed, sin*speed)
-    
+
     repeat 10f with i {
       let angle = (i - 1fx) * 2fx * Fmath:Tau() / 2fx / 10fx
       let pdy, pdx = Fmath:Sincos(angle)

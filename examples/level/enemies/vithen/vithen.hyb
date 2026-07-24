@@ -21,12 +21,12 @@ pub entity Vithen {
     fixed time
     number prepTime = PREPARATION_TIME
     fixed x, y
-    number hp = 22
+    number hp = 17
     number hitReaction
 
     list<entity> laserIndicators
 
-    fixed angle, accel, maxAccel 
+    fixed angle, accel, maxAccel
     fixed accelRate = 0.2f
     bool locked = false
 
@@ -90,11 +90,11 @@ pub entity Vithen {
             WeaponType.PlasmaField => {
                 destroy self()
             }
-        } 
+        }
         return true
     }
 
-    Update() {      
+    Update() {
         if hitReaction >= 0 {
             SetEntityMeshColor(self, 0xffffffff)
         } else {
@@ -112,7 +112,7 @@ pub entity Vithen {
                 destroy conv()
             }
         }
-        hitReaction -= 1 
+        hitReaction -= 1
         match state {
             AttackState.NOTHING => {
                 if accelRate < 0f {

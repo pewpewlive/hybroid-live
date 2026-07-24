@@ -14,7 +14,7 @@ enum Round {
     // B
     Three,
     Four,
-    
+
     // C
     Baf,
     Hypercube,
@@ -48,7 +48,7 @@ let roundGridColors = [
     [0x53204330, 0xffff0070],//Round Four
     [0x2335ff30, 0x00ffff80],//Round Baf
     [0x2335ff30, 0x00ffff80],//Round Hypercube
-    
+
 ]
 
 fn empty(number _, _) -> bool { return false }
@@ -114,7 +114,7 @@ const BONUS_FREQUENCY = 920
 
 fn Chance(number percent) -> bool {
     let a = Fmath:RandomNumber(1, 100)
-    return a <= percent 
+    return a <= percent
 }
 
 pub class RoundManager {
@@ -122,14 +122,14 @@ pub class RoundManager {
     number pause_time
     number diff = 1
     number progression = 1
-    bool pause 
+    bool pause
     number randomAmbushTime = -1
 
-    list<Round> roundsOnUpdate_ctx = [Round.One, Round.None, Round.None, Round.None, Round.None]
+    list<Round> roundsOnUpdate_ctx = [Round.Two, Round.None, Round.None, Round.None, Round.None]
     number c_round_chance = 0
 
-    list<entity> freeze_bombs 
-    list<entity> small_atomize_bombs 
+    list<entity> freeze_bombs
+    list<entity> small_atomize_bombs
 
     list<BonusWeaponSettings> bonus_weapons = [Hemisphere, DoubleSwipe, Triple, Laser]
     number b_weapon_index = 1
@@ -138,7 +138,7 @@ pub class RoundManager {
 
     list<struct{entity first, entity second, entity string}> bonus_pairs
     number time_since_too_many_rps = 0
-    bool got_rps_kaboom_pickup = false 
+    bool got_rps_kaboom_pickup = false
 
     new() {
         fixed rx, ry = RandomSpawn()
@@ -159,12 +159,14 @@ pub class RoundManager {
         bonus_weapons[i] = bonus_weapons[len]
         Table:Remove(bonus_weapons, len)
     }
-    
+
+    fn actual_diff() -> number => MathHelpers:Ceil(0.5+diff^0.5)\1
+
     fn NewFreezeBomb(fixed rx, ry) {
         Table:Insert(freeze_bombs, NewBomb(rx, ry, BombType.Freeze))
         AddArrowToShip(SHIP.id, freeze_bombs[#freeze_bombs], 0x00aaffaa)
     }
-    
+
     fn NewSmallAtomizeBomb(fixed rx, ry) {
         Table:Insert(small_atomize_bombs, NewBomb(rx, ry, BombType.SmallAtomize))
         AddArrowToShip(SHIP.id, small_atomize_bombs[#small_atomize_bombs], 0x9900ffbb)
@@ -185,6 +187,10 @@ pub class RoundManager {
 
     fn CheckBonusPairs() {
         repeat from #bonus_pairs to 1 by -1 with i {
+            if !IsEntityAlive(bonus_pairs[i].first) {
+                Table:Remove(bonus_pairs, i)
+                continue
+            }
             if IsEntityBeingDestroyed(bonus_pairs[i].first) {
                 DestroyEntity(bonus_pairs[i].second)
                 DestroyEntity(bonus_pairs[i].string)
@@ -206,6 +212,9 @@ pub class RoundManager {
                     number_of_shields = 1
                 })
             }
+            if diff >= 2 {
+                PickupEntity:DashBonus(WIDTH/2fx, HEIGHT/2fx)
+            }
         }
         if progression % 3 == 0 {
             let rx, ry = RandomSpawn()
@@ -217,6 +226,12 @@ pub class RoundManager {
                 NewSmallAtomizeBomb(rx, ry)
                 NewFreezeBomb(rx, ry)
             }
+
+            let ad = self.actual_diff()
+            for i in bonus_weapons {
+                bonus_weapons[i].box_duration += 30\ad
+                bonus_weapons[i].weapon_duration += 45\ad
+            }
         }
         progression += 1
         if progression % 4 == 0 {
@@ -225,62 +240,36 @@ pub class RoundManager {
         }
         pause_time = 34
         pause = true
-        //NewAmbushTime()
     }
-
-    // fn NewAmbushTime() {
-    //     if Chance(75) {
-    //         randomAmbushTime = Fmath:RandomNumber(ROUND_DURATION/2, ROUND_DURATION\1.4)
-    //     }else {
-    //         randomAmbushTime = -1
-    //     }
-    // }
-
-    // fn AmbushCheck() {
-    //     if time == randomAmbushTime\2 {
-    //         let x, y = PlayerSafeSpawn(RandomSpawn)
-    //         NewBonus(x, y, BonusType.Weapon, struct{
-    //             box_duration = randomAmbushTime\2+30, 
-    //             cannon = CannonType.Double,
-    //             frequency = CannonFreq.Freq30,
-    //             weapon_duration = 160,
-    //         })
-    //     } else if time == randomAmbushTime {
-    //         let n = Fmath:RandomNumber(1, #Ambushes)
-    //         Ambushes[n](diff)
-    //     }
-    // }
 
     fn Update() {
         if !IsEntityAlive(ShipEntity:SHIP.id) {
             return
         }
 
-        PrintDebugInfo()
-
         CheckBombs()
         CheckBonusPairs()
-        
-        let actual_diff = MathHelpers:Ceil(0.5+diff^0.5)
+
+        let ad = self.actual_diff()
         if pause {
             pause_time -= 1
             if pause_time <= 0 {
                 pause = false
                 let n = round_to_num(roundsOnUpdate_ctx[2])
-                roundsOnStart[n](actual_diff)
+                roundsOnStart[n](ad)
             }
-            
+
             return
         }
 
-        
+
         time += 1
         let n = round_to_num(roundsOnUpdate_ctx[2])
-        
+
         Grid:gridColor = ColorHelpers:LerpColors2(Grid:gridColor, roundGridColors[n][1], 0.12)
         Grid:activeGridColor = ColorHelpers:LerpColors2(Grid:activeGridColor, roundGridColors[n][2], 0.12)
 
-        if GetEntityCount(EntityType.RollingSphere) > 3 and !got_rps_kaboom_pickup {
+        if GetEntityCount(EntityType.RollingSphere) > 5 and !got_rps_kaboom_pickup {
             time_since_too_many_rps += 1
             if time_since_too_many_rps > 1100 {
                 time_since_too_many_rps = 0
@@ -308,9 +297,10 @@ pub class RoundManager {
                     }
                 })
             }
+        }else {
+            time_since_too_many_rps = 0
         }
-
-        roundsOnUpdate[n](time, actual_diff)
+        roundsOnUpdate[n](time, ad)
         if progression >= 2 and time % BONUS_FREQUENCY == 0 {
             SpawnWeaponBonus()
         }
@@ -326,7 +316,7 @@ pub class RoundManager {
         let rx, ry = RandomSpawn()
         // bug! 'bonus_weapons[b_weapon_index]` produces a bug, because
         // the walker doesnt convert the expression `b_weapon_index` into `self.b_weapon_index` internally
-        let settings = bonus_weapons[self.b_weapon_index] 
+        let settings = bonus_weapons[self.b_weapon_index]
         if Chance(weapon_option_chance) {
             weapon_option_chance = 25
             let other_settings = bonus_weapons[randomNumFromPool([1,2,3,4], self.b_weapon_index)]
@@ -336,6 +326,12 @@ pub class RoundManager {
             let string = NewEntity(rx, ry-35fx)
             SetEntityString(string, "Choose wisely")
             SetEntityMeshScale(string, 0.5f)
+
+            if settings.box_duration < other_settings.box_duration {
+                let temp = first
+                first = second
+                second = temp
+            }
 
             Table:Insert(bonus_pairs, struct{
                 first = first,
@@ -427,21 +423,21 @@ pub class RoundManager {
         }
 
         // Rule #5.1
-        // A => 50% A / 50% B
+        // A => 30% A / 70% B
         if isRoundA(rounds[2]) {
             Print("Rule 5.1")
-            if Chance(50) {
+            if Chance(30) {
                 return randomRoundFromPool(A, rounds[2])
             }else {
                 return randomRoundFromPool(B, rounds[3])
             }
-        }    
-        
+        }
+
         // Rule #5.2
-        // B => 50% A / 50% B
+        // B => 70% A / 20% B
         if isRoundB(rounds[2]) {
             Print("Rule 5.2")
-            if Chance(50) {
+            if Chance(70) {
                 return randomRoundFromPool(A, rounds[3])
             }else {
                 return randomRoundFromPool(B, rounds[2])

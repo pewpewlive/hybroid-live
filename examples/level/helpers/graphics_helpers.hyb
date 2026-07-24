@@ -58,6 +58,13 @@ pub fn AddSquare(Mesh mesh, Center center, number color, size) {
   AddLine(mesh, vertexes, colors, true)
 }
 
+pub fn AddRect(Mesh mesh, Center center, number color, size_x, size_y) {
+  let x, y, z = center.x, center.y, center.z
+  let vertexes = [[x-size_x/2, y-size_y/2, z], [x+size_x/2, y-size_y/2, z], [x+size_x/2, y+size_y/2, z], [x-size_x/2, y+size_y/2, z]]
+  let colors = [color,color,color,color]
+  AddLine(mesh, vertexes, colors, true)
+}
+
 pub fn AddThickLine(Mesh mesh, number colorStart, number colorEnd, thickness, length) {
   AddLine(mesh, [[0,0], [length,0]], [colorStart, colorEnd], false)
 

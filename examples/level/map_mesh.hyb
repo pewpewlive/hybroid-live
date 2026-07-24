@@ -9,7 +9,13 @@ pub meshes = [
     segments = [[0,1,2,3,0]],
     colors = [Globals:GRID_COLOR, Globals:GRID_COLOR, Globals:GRID_COLOR,Globals:GRID_COLOR],
   },
+  NewMesh(),
   NewMesh()
 ]
 
-AddGridMap(meshes[2], 0xaa2a0000, 0x1000aaaa, NWIDTH, 15, -1000, 0)
+AddGridMap(meshes[2], 0xaa2a0022, 0x1000aaaa, NWIDTH, 15, -400, -100)
+
+let space, z_thing = 30, -15
+repeat 2 with i {
+    AddRect(meshes[3], struct{x = 0, y = 0, z = z_thing*i}, 0xffffffff, NWIDTH+space*i, NHEIGHT+space*i)
+}
