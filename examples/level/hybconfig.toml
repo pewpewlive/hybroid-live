@@ -1,10 +1,10 @@
 [level]
 name = "#{0ff4}H#{0ff4}y#{0ff6}b#{0ff6}r#{0ff9}o#{0ff9}i#{0ffa}d"
 descriptions = ["Stay alive... Hybroid Alive."]
-information = "The official example level for Hybroid Live"
+information = "Credits: #00ffffffM#0080ffffu#0000fffft#8000ffffo#ff00ffffX #ffffffff- #0000ffffSKPG-TECH #ffffffff- #ff7800ffMnHs #ffffffff- #00ff00aaTasty Kiwi"
 entry_point = "level.hyb"
 casual = false
-medal_requirements = { "gold" = 90000, "silver" = 60000, "bronze" = 40000 }
+medal_requirements = { "gold" = 110000, "silver" = 60000, "bronze" = 40000 }
 
 [project]
 name = "the-hybroid"

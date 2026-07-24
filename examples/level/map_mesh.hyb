@@ -13,7 +13,7 @@ pub meshes = [
   NewMesh()
 ]
 
-AddGridMap(meshes[2], 0xaa2a0022, 0x1000aaaa, NWIDTH, 15, -400, -100)
+AddGridMap(meshes[2], 0xaa2a0003, 0x33336989, NWIDTH, 15, -1000, -10)
 
 let space, z_thing = 30, -15
 repeat 2 with i {
