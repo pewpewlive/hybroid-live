@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hybroid/ast"
 	"hybroid/core"
+	"hybroid/tokens"
 	"math"
 	"strconv"
 )
@@ -136,4 +137,17 @@ func degToRad(floatstr string) string {
 	float, _ := strconv.ParseFloat(floatstr, 64)
 	radians := float * math.Pi / 180
 	return fixedToFx(fmt.Sprintf("%v", radians))
+}
+
+func opToString(op tokens.Token) string {
+	switch op.Type {
+	case tokens.BangEqual:
+		return "~="
+	case tokens.BackSlash:
+		return "//"
+	case tokens.BackSlashEqual:
+		return "//="
+	default:
+		return op.Lexeme
+	}
 }

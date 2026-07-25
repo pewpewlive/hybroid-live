@@ -39,15 +39,7 @@ func (gen *Generator) entityExpr(node ast.EntityEvaluationExpr) string {
 
 func (gen *Generator) binaryExpr(node ast.BinaryExpr) string {
 	left, right := gen.GenerateExpr(node.Left), gen.GenerateExpr(node.Right)
-	var op string
-	switch node.Operator.Type {
-	case tokens.BangEqual:
-		op = "~="
-	case tokens.BackSlash:
-		op = "//"
-	default:
-		op = node.Operator.Lexeme
-	}
+	op := opToString(node.Operator)
 	return fmt.Sprintf("%s %s %s", left, op, right)
 }
 

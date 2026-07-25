@@ -2,6 +2,9 @@ env FmathHelpers as Level
 
 use Fmath
 
+pub fn Ceil(fixed x) -> fixed 
+    => 1fx+x\1fx
+
 pub fn Length(fixed x, y) -> fixed
   => Sqrt(x * x + y * y)
 

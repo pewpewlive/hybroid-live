@@ -120,7 +120,7 @@ fn Chance(number percent) -> bool {
 pub class RoundManager {
     number time
     number pause_time
-    number diff = 1
+    fixed diff = 1f
     number progression = 1
     bool pause
     number randomAmbushTime = -1
@@ -160,7 +160,7 @@ pub class RoundManager {
         Table:Remove(bonus_weapons, len)
     }
 
-    fn actual_diff() -> number => MathHelpers:Ceil(0.5+diff^0.5)\1
+    fn actual_diff() -> fixed => FmathHelpers:Ceil(0.5f+diff^0.5f)
 
     fn NewFreezeBomb(fixed rx, ry) {
         Table:Insert(freeze_bombs, NewBomb(rx, ry, BombType.Freeze))
@@ -212,7 +212,7 @@ pub class RoundManager {
                     number_of_shields = 1
                 })
             }
-            if diff >= 2 {
+            if diff >= 2f {
                 PickupEntity:DashBonus(WIDTH/2fx, HEIGHT/2fx)
             }
         }
@@ -229,13 +229,13 @@ pub class RoundManager {
 
             let ad = self.actual_diff()
             for i in bonus_weapons {
-                bonus_weapons[i].box_duration += 30\ad
-                bonus_weapons[i].weapon_duration += 45\ad
+                bonus_weapons[i].box_duration += Fmath:ToNumber(30f/ad)
+                bonus_weapons[i].weapon_duration += Fmath:ToNumber(45f/ad)
             }
         }
         progression += 1
         if progression % 4 == 0 {
-            diff += 1
+            diff += 1f
             Print("diff: "..ToString(diff))
         }
         pause_time = 34
@@ -256,7 +256,7 @@ pub class RoundManager {
             if pause_time <= 0 {
                 pause = false
                 let n = round_to_num(roundsOnUpdate_ctx[2])
-                roundsOnStart[n](ad)
+                roundsOnStart[n](Fmath:ToNumber(ad))
             }
 
             return
@@ -282,17 +282,17 @@ pub class RoundManager {
                         scale = 1.8f
                     })
 
-                    let spawned_mships = 0
+                    let spawned_mships = 0f
                     for _, v in GetAllEntities() {
                         if v isnt RollingSphere {
                             continue
                         }
                         let ex, ey = GetEntityPosition(v)
                         DestroyEntity(v)
-                        if spawned_mships > diff+3 {
+                        if spawned_mships > diff+3f {
                             continue
                         }
-                        spawned_mships += 1
+                        spawned_mships += 1f
                         NewMothership(ex, ey, MothershipType.Square, Rangle())
                     }
                 })
@@ -300,12 +300,12 @@ pub class RoundManager {
         }else {
             time_since_too_many_rps = 0
         }
-        roundsOnUpdate[n](time, ad)
-        if progression >= 2 and time % BONUS_FREQUENCY == 0 {
+        roundsOnUpdate[n](time, Fmath:ToNumber(ad))
+        if /*progression >= 2 and*/ time % BONUS_FREQUENCY == 0 {
             SpawnWeaponBonus()
         }
 
-        if time % ROUND_DURATION == 0 or round_special_funcs[n](time, diff) {
+        if time % ROUND_DURATION == 0 or round_special_funcs[n](time, Fmath:ToNumber(diff)) {
             RandomizeVariant()
             ProgressRound()
             NextRound()

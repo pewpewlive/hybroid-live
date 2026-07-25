@@ -68,8 +68,8 @@ func (gen *Generator) assignmentStmt(assignStmt ast.AssignmentStmt) string {
 	}
 	for i := range values {
 		if assignStmt.AssignOp.Type != tokens.Equal {
-			op := tokens.TokenType(int(assignStmt.AssignOp.Type) - 1)
-			src.Writef("%s %s (%s)", gen.GenerateExpr(assignStmt.Identifiers[i]), op, values[i])
+			str := opToString(assignStmt.AssignOp)
+			src.Writef("%s %s (%s)", gen.GenerateExpr(assignStmt.Identifiers[i]), str[0:len(str)-1], values[i])
 		} else {
 			src.Write(values[i])
 		}

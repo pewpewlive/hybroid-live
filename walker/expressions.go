@@ -8,6 +8,7 @@ import (
 	"hybroid/tokens"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 func (w *Walker) structExpression(node *ast.StructExpr, scope *Scope) *StructVal {
@@ -240,6 +241,9 @@ func (w *Walker) literalExpression(node *ast.LiteralExpr) Value {
 	case tokens.True, tokens.False:
 		return NewBoolVal(node.Value)
 	case tokens.Number:
+		if strings.ContainsRune(node.Value, '.') && w.environment.Type == ast.LevelEnv {
+			// alert: float in level
+		}
 		return NewNumberVal(node.Value)
 	default:
 		return &Invalid{}
