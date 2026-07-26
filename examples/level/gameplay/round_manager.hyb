@@ -230,8 +230,8 @@ pub class RoundManager {
 
             let ad = self.actual_diff()
             for i in bonus_weapons {
-                bonus_weapons[i].box_duration += Fmath:ToNumber(30f/ad)
-                bonus_weapons[i].weapon_duration += Fmath:ToNumber(45f/ad)
+                bonus_weapons[i].box_duration += Fmath:ToNumber(20f/ad)
+                bonus_weapons[i].weapon_duration += Fmath:ToNumber(18f/ad)
             }
         }
         progression += 1
@@ -366,19 +366,19 @@ pub class RoundManager {
         roundsOnUpdate_ctx[3] = roundsOnUpdate_ctx[2]
         roundsOnUpdate_ctx[2] = roundsOnUpdate_ctx[1]
         roundsOnUpdate_ctx[1] = DecideNextRound(roundsOnUpdate_ctx)
-        let out = "| "
-        for _, v in roundsOnUpdate_ctx {
-            match v {
-                Round.One => out = out .. "one | "
-                Round.Two => out = out .. "two | "
-                Round.Three => out = out .. "three | "
-                Round.Four => out = out .. "four | "
-                Round.Hypercube => out = out .. "hypercube | "
-                Round.Baf => out = out .. "baf | "
-                Round.None => out = out .. "none | "
-            }
-        }
-        Print(out)
+        // let out = "| "
+        // for _, v in roundsOnUpdate_ctx {
+        //     match v {
+        //         Round.One => out = out .. "one | "
+        //         Round.Two => out = out .. "two | "
+        //         Round.Three => out = out .. "three | "
+        //         Round.Four => out = out .. "four | "
+        //         Round.Hypercube => out = out .. "hypercube | "
+        //         Round.Baf => out = out .. "baf | "
+        //         Round.None => out = out .. "none | "
+        //     }
+        // }
+        // Print(out)
         if isRoundC(roundsOnUpdate_ctx[2]) {
             time = 0
         }

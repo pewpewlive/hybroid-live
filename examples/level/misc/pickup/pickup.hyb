@@ -84,9 +84,9 @@ pub fn DashBonus(fixed x, y) -> Pickup {
 
 pub fn RollingSphereKaboom(fixed x, y) -> Pickup {
     let color = 255
-    color = color*256 + 0
-    color = color*256 + 0
+    color = color*256 + 80
+    color = color*256 + 80
     let p = spawn Pickup(x, y, 500, color, PickupMesh, 2)
-    AddArrowToShip(SHIP.id, p, 0xff0000ff)
+    AddArrowToShip(SHIP.id, p, 0xff8080ff)
     return p
 }

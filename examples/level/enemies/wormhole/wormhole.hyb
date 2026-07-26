@@ -33,7 +33,7 @@ enum AttackState {
 }
 
 const MOVE_SPEED = 1f
-const HP_MAX = 80
+const HP_MAX = 76
 
 const CHARADE_PREPARATION_TIME = 120
 const CHARADE_DURATION = 300

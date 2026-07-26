@@ -192,9 +192,12 @@ pub fn RoundTwoOnUpdate(number time, diff) {
             spawn HypercubeEntity:Hypercube(x, y)
         }
     }
-    if (time == 2 or time % 300 == 0) and diff < 3 {
+    if diff < 3 and (time == 2 or time % 300 == 0) {
         let x, y = PlayerSafeSpawn(RandomSpawn)
-        NewInertiac(x, y, 1.4f, Rangle())
+        NewInertiac(x, y, 1.3f, Rangle())
+    }else if time % 400 == 0 {
+        let x, y = PlayerSafeSpawn(RandomSpawn)
+        NewMothership(x, y, MothershipType.Square, Rangle())
     }
     if time == 100 or (time-100) % 400 == 0 {
         let x, y = PlayerSafeSpawn(RandomSpawn)
@@ -313,7 +316,14 @@ pub fn RoundFourOnUpdate(number time, diff) {
     if time == 2 {
         repeat 3+diff {
             let x, y = PlayerSafeSpawn(RandomSpawnGridSafe)
-            spawn VithenEntity:Vithen(x, y, false)
+            let id = spawn VithenEntity:Vithen(x, y, false)
+            if diff > 5 {
+                EntityAddMace(id, struct{
+                    distance = 75fx,
+                    angle = Rangle(),
+                    rotation_speed = 8d
+                })
+            }
         }
     } else if time % 400 == 0 {
         let amount = 1+diff
