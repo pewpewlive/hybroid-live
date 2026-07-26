@@ -42,11 +42,11 @@ let roundsOnStart = [
 ]
 
 let roundGridColors = [
-    [0x23350935, 0x35a83584],//Round One
-    [0x6818fa30, 0xff000080],//Round Two
-    [0x1030a730, 0x00ffff80],//Round Three
-    [0x53204330, 0xffff0070],//Round Four
-    [0x2335ff30, 0x00ffff80],//Round Baf
+    [0x13284249, 0x35a83584],//Round One
+    [0x28009130, 0xff000080],//Round Two
+    [0x1030a727, 0x00ffff80],//Round Three
+    [0x53204333, 0xff990070],//Round Four
+    [0xff000053, 0x00000000],//Round Baf
     [0x2335ff30, 0x00ffff80],//Round Hypercube
 
 ]
@@ -125,7 +125,7 @@ pub class RoundManager {
     bool pause
     number randomAmbushTime = -1
 
-    list<Round> roundsOnUpdate_ctx = [Round.Two, Round.None, Round.None, Round.None, Round.None]
+    list<Round> roundsOnUpdate_ctx = [Round.Four, Round.None, Round.None, Round.None, Round.None]
     number c_round_chance = 0
 
     list<entity> freeze_bombs
@@ -141,7 +141,7 @@ pub class RoundManager {
     bool got_rps_kaboom_pickup = false
 
     new() {
-        fixed rx, ry = RandomSpawn()
+        fixed rx, ry = PlayerSafeSpawn(RandomSpawn)
         NewSmallAtomizeBomb(rx, ry)
         NewFreezeBomb(rx, ry)
         NextRound()
@@ -160,7 +160,7 @@ pub class RoundManager {
         Table:Remove(bonus_weapons, len)
     }
 
-    fn actual_diff() -> fixed => FmathHelpers:Ceil(0.5f+diff^0.5f)
+    fn actual_diff() -> fixed => diff
 
     fn NewFreezeBomb(fixed rx, ry) {
         Table:Insert(freeze_bombs, NewBomb(rx, ry, BombType.Freeze))
@@ -188,6 +188,7 @@ pub class RoundManager {
     fn CheckBonusPairs() {
         repeat from #bonus_pairs to 1 by -1 with i {
             if !IsEntityAlive(bonus_pairs[i].first) {
+                DestroyEntity(bonus_pairs[i].string)
                 Table:Remove(bonus_pairs, i)
                 continue
             }
@@ -217,7 +218,7 @@ pub class RoundManager {
             }
         }
         if progression % 3 == 0 {
-            let rx, ry = RandomSpawn()
+            let rx, ry = PlayerSafeSpawn(RandomSpawn)
             if #freeze_bombs > #small_atomize_bombs {
                 NewSmallAtomizeBomb(rx, ry)
             }else if #freeze_bombs < #small_atomize_bombs {
@@ -313,7 +314,7 @@ pub class RoundManager {
     }
 
     fn SpawnWeaponBonus() {
-        let rx, ry = RandomSpawn()
+        let rx, ry = PlayerSafeSpawn(RandomSpawn)
         // bug! 'bonus_weapons[b_weapon_index]` produces a bug, because
         // the walker doesnt convert the expression `b_weapon_index` into `self.b_weapon_index` internally
         let settings = bonus_weapons[self.b_weapon_index]
@@ -419,7 +420,7 @@ pub class RoundManager {
         // B -> B => A
         if isRoundB(rounds[2]) and isRoundB(rounds[3]) {
             Print("Rule 4")
-            return randomRoundFromPool(B, rounds[4])
+            return randomRoundFromPool(A, rounds[4])
         }
 
         // Rule #5.1

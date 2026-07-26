@@ -12,6 +12,7 @@ alias BulletSettings = struct{
 }
 
 const scale2rad = 4f
+const MAX_FROZEN_TIME = 180fx
 
 pub entity Bullet {
     BulletSettings bs = struct{
@@ -31,6 +32,7 @@ pub entity Bullet {
 
     fixed roll
     number immunityFrames = 15
+    fixed frozen_cooldown = 0fx
 
     spawn(fixed x, y, speed, angle, size, number color, lifetime) {
         if lifetime == -1 {
@@ -65,6 +67,18 @@ pub entity Bullet {
         destroy self()
     }
 
+    WeaponCollision(number _, WeaponType wt) -> bool {
+        match wt {
+            WeaponType.FreezeExplosion => {
+                frozen_cooldown = MAX_FROZEN_TIME
+            }
+            WeaponType.AtomizeExplosion => {
+                destroy self()
+            }
+        }
+        return false
+    }
+
     WallCollision(fixed wallNormalX, wallNormalY) {
         if bs.bounceWallCount <= 0 {
             destroy self()
@@ -79,6 +93,13 @@ pub entity Bullet {
         if IsEntityBeingDestroyed(self) {
             return
         }
+        let mod, other_mod = 1fx, 1fx
+        if frozen_cooldown >= 0fx {
+            let a = (frozen_cooldown/MAX_FROZEN_TIME)
+            mod = 1fx-0.3f*a
+            other_mod = 1fx-a
+            frozen_cooldown -= 1fx
+        }
         self.immunityFrames -= 1
         self.lifetime -= 1
         if self.lifetime <= 0 {
@@ -88,8 +109,8 @@ pub entity Bullet {
 
         scale = FmathHelpers:Clamp(scale+bs.scaleRate, 0.4f, 3.5f)
         radius = FmathHelpers:Clamp(radius+bs.scaleRate*3f*scale2rad, 0f, 3.5f*3f*scale2rad)
-        SetEntityRadius(self, radius)
-        SetEntityMeshScale(self, scale)
+        SetEntityRadius(self, radius*mod)
+        SetEntityMeshScale(self, scale*mod)
 
         if scale == 0.4f {
             destroy self()
@@ -134,13 +155,13 @@ pub entity Bullet {
 
         let nx, ny = FmathHelpers:Normalize(mx, my)
         mx, my = FmathHelpers:Lerp(mx, nx, 0.4f), FmathHelpers:Lerp(my, ny, 0.4f)
-
-        roll += speed*3d
+        roll += speed*3d*other_mod
         angle = Fmath:Atan2(my, mx)
         SetEntityMeshAngle(self, roll, 0f,1f,0f)
         AddRotationToEntityMesh(self, angle, 0f,0f,1f)
 
-        ex, ey += mx*speed, my*speed
+        
+        ex, ey += mx*speed*other_mod, my*speed*other_mod
         SetEntityPosition(self, ex, ey)
     }
 

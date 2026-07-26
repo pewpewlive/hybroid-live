@@ -3,7 +3,7 @@ env Grid as Level
 use Globals
 use MathHelpers
 
-pub number gridColor, activeGridColor = 0x2335ff30, 0x00ffff80
+pub number gridColor, activeGridColor = 0x00000000, 0x00000000
 fixed offsetX, offsetY, offsetZ
 fixed cellSizeX, cellSizeY
 
@@ -106,7 +106,10 @@ pub class Grid {
         }
 
         tick {
-            Pewpew:SetEntityMeshColor(outline, gridColor)
+            Pewpew:SetEntityMusicResponse(outline, struct{
+                color_start = gridColor,
+                color_end = activeGridColor
+            })
             for _, point in gridContainer {
                 let posX, posY = point.currentX, point.currentY
                 let velX, velY = point.velocityX, point.velocityY

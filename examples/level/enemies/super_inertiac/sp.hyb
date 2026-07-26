@@ -24,6 +24,7 @@ const HIT_COOLDOWN_MAX = 4
 const COOLDOWN_MAX = 90
 const LASER_COLOR = 0x00ffffff
 const HP_MAX = 65
+const SPAWN_TIME = 25
 
 pub entity SuperInertiac {
   fixed x, y = 0f, 0f
@@ -54,9 +55,10 @@ pub entity SuperInertiac {
   fixed lookToPlayerAngle
 
   number frozen_cooldown = 0
+  number spawn_time = SPAWN_TIME+5
 
   spawn(fixed x, y) {
-    SpawnEntity(self, 0)
+    SpawnEntity(self, spawn_time)
     SetEntityPositionInterpolation(self, true)
 
     SetEntityPosition(self, x, y)
@@ -124,6 +126,7 @@ pub entity SuperInertiac {
   }
 
   PlayerCollision(number _, entity shipId) {
+    if spawn_time >= 0 return
     if IsEntityAlive(shipId) and CanCollide() {
         if !Is(State.FROZEN) {
             velX, velY = -velX * 1.5f, -velY * 1.5f
@@ -145,6 +148,7 @@ pub entity SuperInertiac {
   WeaponCollision(number _, WeaponType weaponType) -> bool {
     if IsDead()
       return false
+    if spawn_time >= 0 return false
 
     match weaponType {
       WeaponType.Bullet => {
@@ -207,6 +211,19 @@ pub entity SuperInertiac {
   Update() {
     if IsDead()
       return
+    if spawn_time >= 0 {
+        spawn_time -= 1
+        fixed magnitude = Length(velX, velY) * 0.02f
+
+        AddRotationToEntityMesh(self, magnitude*magnitude + 0.1f, Fmath:RandomFixed(0f, 1f), Fmath:RandomFixed(0f, 1f), 0f)
+
+        SetEntityFlippingMeshes(self, SPAnim, frames[1] % maxFrames + frameOffset, frames[1] % maxFrames + frameOffset)
+        for i in rings {
+            SetEntityFlippingMeshes(rings[i], SPAnim, frames[i+1] % maxFrames + frameOffset, frames[i+1] % maxFrames + frameOffset)
+            AddRotationToEntityMesh(rings[i], magnitude*magnitude + 0.1f, axes[i].x, axes[i].y, 0f)
+        }
+        return
+    }
 
     if state == State.FROZEN {
         frozen_cooldown -= 1

@@ -53,6 +53,7 @@ pub entity Vithen {
             DestroyEntity(v)
         }
         SetEntityMeshColor(self, COLOR)
+        SetEntityRadius(self, 0fx)
         ExplodeEntity(self, 40)
         CreateExplosion(x, y, COLOR, 1.4f, 50)
         SetEntityUpdateCallback(self, fn(entity _) {})

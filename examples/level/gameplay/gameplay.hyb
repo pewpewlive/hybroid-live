@@ -35,9 +35,12 @@ fn baf_wall_y_custom(fixed baf_count, bafs_per_part, speed, number lifetime) {
 fn vithen_ensemble(fixed y_count) {
     let x_count = y_count
     let inner_offset = 50fx
-    let step = (WIDTH-inner_offset*2fx)/x_count
-    let step_y = (HEIGHT-inner_offset*2fx)/y_count
+    Print(ToString(WIDTH))
+    let step = (WIDTH-inner_offset*2fx)/(x_count-1fx)
+    Print(ToString(step))
+    let step_y = (HEIGHT-inner_offset*2fx)/(y_count-1fx)
     repeat from 1fx to x_count with i {
+        
         spawn VithenEntity:Vithen(inner_offset+(i-1fx)*step, inner_offset, true)
         spawn VithenEntity:Vithen(inner_offset+(i-1fx)*step, HEIGHT-inner_offset, true)
     }
@@ -51,19 +54,31 @@ pub fn Rangle() -> fixed {
   return RandomFixed(0d, 360d)
 }
 
-const SAFE_AREA = 50f
+const SAFE_AREA = 60f
 
 pub fn PlayerSafeSpawn(fn() -> (fixed, fixed) f) -> (fixed, fixed) {
     let x, y = f()
     let px, py = GetEntityPosition(SHIP.id)
-    let counter = 0
-    while AbsFixed(x - px) < SAFE_AREA and AbsFixed(y - py) < SAFE_AREA {
-        counter += 1
-        x, y = f()
-        if counter > 16 {
-            return x, y
+    let dx, dy = x-px, y-py 
+    let mag = Fmath:Sqrt(dx^2fx+dy^2fx)
+    let ndx, ndy = dx/mag, dy/mag
+    if mag < SAFE_AREA {
+        let x_push = SAFE_AREA-Fmath:AbsFixed(dx)
+        let y_push = SAFE_AREA-Fmath:AbsFixed(dy)
+        let new_x = x+ndx*x_push
+        if new_x < 0fx or new_x > WIDTH {
+            ndx *= -1fx
+            x_push += SAFE_AREA
+            new_x = x+ndx*x_push
         }
-    }
+        let new_y = y+ndx*y_push
+        if new_y < 0fx or new_y > HEIGHT {
+            ndy *= -1fx
+            y_push += SAFE_AREA
+            new_y = y+ndy*y_push
+        }
+        return new_x, new_y
+    }   
     return x, y
 }
 
@@ -182,15 +197,19 @@ pub fn RoundTwoOnUpdate(number time, diff) {
         NewInertiac(x, y, 1.4f, Rangle())
     }
     if time == 100 or (time-100) % 400 == 0 {
-        let dy, dx = Fmath:Sincos(Rangle())
-        dx, dy *= 20f, 20f
         let x, y = PlayerSafeSpawn(RandomSpawn)
-        let id = NewUFO(x+dx, y+dy, 3f)
-        let id2 = NewUFO(x-dx, y-dy, 3f)
-        let id3 = NewUFO(x, y-dy, 3f)
-        SetUFOWallCollision(id, true)
-        SetUFOWallCollision(id2, true)
-        SetUFOWallCollision(id3, true)
+        let amount = 3
+        if diff-5 > 0 {
+            amount += diff-5
+        }
+        let r = Rangle()
+        let step = 360d/Fmath:ToFixed(amount)
+        repeat Fmath:ToFixed(amount) with i {
+            let dy, dx = Fmath:Sincos(r+step*i)
+            dx, dy *= 20f, 20f
+            let id = NewUFO(x+dx, y+dy, 3f)
+            SetUFOWallCollision(id, true)
+        }
     }
     let bafAmount = ToFixed(diff)+2fx
     const BAF_SPEED = 10f
@@ -226,7 +245,11 @@ pub fn RoundTwoOnUpdate(number time, diff) {
         let angle = Atan2(dy, dx)
         let right_y, right_x = Fmath:Sincos(angle-120d)
         let left_y, left_x = Fmath:Sincos(angle+120d)
-        repeat diff\2 with i {
+        let amount = diff\2
+        if amount > 3 {
+            amount = 3
+        }
+        repeat amount with i {
             let ifx = Fmath:ToFixed(i)
             NewKamikaze(rx+right_x*30fx*ifx, ry+right_y*30fx*ifx, angle)
             NewKamikaze(rx+left_x*30fx*ifx, ry+left_y*30fx*ifx, angle)
@@ -242,7 +265,7 @@ pub fn RoundTwoOnStart(number diff) {
 }
 
 pub fn RoundThreeOnUpdate(number time, diff) {
-    if time == 2 or time % 600 == 0 {
+    if time == 55 or time % 600 == 0 {
         let x, y = PlayerSafeSpawn(RandomSpawn)
         spawn SuperInertiacEntity:SuperInertiac(x, y)
     }
@@ -277,7 +300,13 @@ pub fn RoundThreeOnUpdate(number time, diff) {
 pub fn RoundThreeOnStart(number diff) {
     if diff < 3 return
     let rx, ry = RandomSpawn()
-    NewSuperMothership(rx, ry, MothershipType.Pentagon, Rangle())
+    let amount = diff-2
+    if amount > 3 {
+        amount = 3
+    }
+    repeat amount {
+        NewSuperMothership(rx, ry, MothershipType.Pentagon, Rangle())
+    }
 }
 
 pub fn RoundFourOnUpdate(number time, diff) {
@@ -287,14 +316,23 @@ pub fn RoundFourOnUpdate(number time, diff) {
             spawn VithenEntity:Vithen(x, y, false)
         }
     } else if time % 400 == 0 {
-        repeat 1+diff {
+        let amount = 1+diff
+        if amount > 8 {
+            amount = 8
+        }
+        repeat amount {
             let x, y = PlayerSafeSpawn(RandomSpawnGridSafe)
             spawn VithenEntity:Vithen(x, y, false)
         }
     }
-    if time == 2 or time % 600 == 0 {
+    if time == 2  {
+        repeat 1 {
+            let x, y = PlayerSafeSpawn(RandomSpawn)
+            spawn WormholeEntity:Wormhole(x, y, 50f)
+        }
+    }else if time % 600 == 0 {
         let x, y = PlayerSafeSpawn(RandomSpawn)
-        spawn WormholeEntity:Wormhole(x, y, 50f)
+        spawn WormholeEntity:Wormhole(x, y, 50f)  
     }
     if time % 200 == 0 {
         repeat 1+diff {
@@ -326,6 +364,12 @@ pub fn RoundHypercubeOnStart(number diff) {
 }
 
 pub fn RoundHypercubeSpecial(number time, _) -> bool  {
+    if time == 499 {
+        let px, py = GetEntityPosition(SHIP.id)
+        NewFloatingMessage(px, py, "#00ff00ff+1000", struct{scale = 2f})
+        IncreasePlayerScore(0, 1000)
+        return true
+    }
     if time >= 500 {
         return true
     }
@@ -334,7 +378,7 @@ pub fn RoundHypercubeSpecial(number time, _) -> bool  {
 
 pub fn RoundBafOnUpdate(number time, diff) {
     if time == 10 {
-        NewFloatingMessage(WIDTH/2fx, HEIGHT/2fx, "#ffff00...PREPARE...", struct{scale = 2.5fx})
+        NewFloatingMessage(WIDTH/2fx, HEIGHT/2fx, "#ffff00ff...PREPARE...", struct{scale = 2.5f})
     }
     if time == 40 {
         baf_wall_x_custom(32fx, 2fx, 8.5f, 10)

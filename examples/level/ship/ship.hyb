@@ -30,7 +30,7 @@ pub class Ship {
     id = NewShip(x, y, 0)
     coolDownMesh = NewEntity(x, y)
     let playerConfig = struct{
-      shield = 555,
+      shield = 5,
       camera_distance = -50f,
       camera_rotation_x_axis = -15d,
       move_joystick_color = 0xffffffff
@@ -129,7 +129,7 @@ pub class Ship {
     let px, py = GetEntityPosition(id)
     let sin, cos = Fmath:Sincos(dashAngle)
 
-    let entities = GetEntitiesInRadius(px, py, 25f)
+    let entities = GetEntitiesInRadius(px, py, 29f)
     for _, v in entities {
       if v == id continue
 
@@ -163,7 +163,7 @@ pub class Ship {
     if onDashTime >= DASH_DURATION {
       onDashTime = 0
       doDash = false
-      coolDown = 20
+      coolDown = 30
       coolDownMesh = NewEntity(px, py)
       SpawnEntity(coolDownMesh, 0)
       SetEntityPositionInterpolation(coolDownMesh, true)
