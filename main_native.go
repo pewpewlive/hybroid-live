@@ -7,5 +7,6 @@ import (
 )
 
 func main() {
+	// os.Chdir("examples/test")
 	cli.RunApp()
 }

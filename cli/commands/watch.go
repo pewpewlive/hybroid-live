@@ -7,8 +7,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/pelletier/go-toml/v2"
 	"github.com/urfave/cli/v2"
 )
 
@@ -26,6 +28,17 @@ func Watch() *cli.Command {
 
 func watch(ctx *cli.Context) error {
 	cwd, _ := os.Getwd()
+
+	configFile, err := os.ReadFile(cwd + "/hybconfig.toml")
+	if err != nil {
+		return fmt.Errorf("failed reading Hybroid Live config file: %v", err)
+	}
+	config := core.HybroidConfig{}
+	if err := toml.Unmarshal(configFile, &config); err != nil {
+		return fmt.Errorf("failed parsing Hybroid Live config file: %v", err)
+	}
+	outputDirAbs, _ := filepath.Abs(filepath.Join(cwd, config.Project.OutputDirectory))
+
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return fmt.Errorf("failed to start a watcher process: %s", err)
@@ -34,6 +47,7 @@ func watch(ctx *cli.Context) error {
 
 	// Start listening for events.
 	go func() {
+		var pending *time.Timer
 		for {
 			select {
 			case event, ok := <-watcher.Events:
@@ -41,13 +55,16 @@ func watch(ctx *cli.Context) error {
 					return
 				}
 				log.Println("event:", event)
-				if event.Has(fsnotify.Write) && !strings.Contains(event.Name, ".lua") {
-					directoryPath, _ := filepath.Rel(cwd, filepath.Dir(event.Name))
-					fileName := strings.Split(filepath.Base(event.Name), ".")[0]
-					fileExtension := filepath.Ext(event.Name)
-
-					Build_(core.File{DirectoryPath: directoryPath, FileName: fileName, FileExtension: fileExtension})
+				abs, _ := filepath.Abs(event.Name)
+				if strings.HasPrefix(abs, outputDirAbs) || strings.Contains(event.Name, ".lua") {
+					continue
 				}
+				if pending != nil {
+					pending.Stop()
+				}
+				pending = time.AfterFunc(150*time.Millisecond, func() {
+					Build_()
+				})
 			case err, ok := <-watcher.Errors:
 				if !ok {
 					return
