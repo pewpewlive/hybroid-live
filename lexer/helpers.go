@@ -2,6 +2,7 @@ package lexer
 
 import (
 	"io"
+	"unicode/utf8"
 )
 
 func (l *Lexer) advance() (byte, error) {
@@ -110,4 +111,8 @@ func isAlphanumeric(b byte) bool {
 
 func isWhitespace(b byte) bool {
 	return b == ' ' || b == '\n' || b == '\r' || b == '\t'
+}
+
+func isUtf8NonAscii(b byte) bool {
+	return b >= utf8.RuneSelf
 }

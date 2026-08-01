@@ -191,10 +191,16 @@ func (l *Lexer) next() (*tokens.Token, error) {
 	case '"':
 		return l.handleString()
 	default:
+		char := string(c)
 		token.Lexeme = token.Type.String()
 		token.Line = l.line
+		if isUtf8NonAscii(c) {
+			l.source.UnreadByte()
+			r, _, _ := l.source.ReadRune()
+			char = string(r)
+		}
 		token.Column.End = l.column
-		l.Alert(&alerts.UnsupportedCharacter{}, alerts.NewSingle(token), string(c))
+		l.Alert(&alerts.UnsupportedCharacter{}, alerts.NewSingle(token), char)
 		return nil, nil
 	}
 
