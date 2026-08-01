@@ -12,7 +12,7 @@ import (
 type Lexer struct {
 	alerts.Collector
 
-	buffer []rune
+	buffer []byte
 	source *bufio.Reader
 
 	line   int
@@ -22,7 +22,7 @@ type Lexer struct {
 func NewLexer(reader io.Reader) Lexer {
 	return Lexer{
 		Collector: alerts.NewCollector(),
-		buffer:    make([]rune, 0),
+		buffer:    make([]byte, 0),
 		source:    bufio.NewReader(reader),
 		line:      1,
 		column:    1,
@@ -59,7 +59,7 @@ func (l *Lexer) next() (*tokens.Token, error) {
 		return nil, err
 	}
 
-	l.buffer = make([]rune, 0)
+	l.buffer = l.buffer[:0]
 
 	token := tokens.Token{}
 	token.Line = l.line
@@ -277,10 +277,10 @@ func (l *Lexer) handleNumber() (*tokens.Token, error) {
 			isInRange = isOctal
 			baseStr = "octal"
 		}
-		isValidDigit := func(r rune) bool { return isInRange(r) || r == '_' }
+		isValidDigit := func(b byte) bool { return isInRange(b) || b == '_' }
 
 		for i, r := range token.Lexeme[2:] {
-			if !isValidDigit(r) {
+			if !isValidDigit(byte(r)) {
 				location := token.Location
 				location.Column.Start += i + 2
 				location.Column.End = location.Column.Start + 1
@@ -299,7 +299,7 @@ func (l *Lexer) handleNumber() (*tokens.Token, error) {
 		return &token, nil
 	}
 
-	isDigitOrUnderscore := func(r rune) bool { return isDigit(r) || r == '_' }
+	isDigitOrUnderscore := func(b byte) bool { return isDigit(b) || b == '_' }
 	err = l.consumeWhile(isDigitOrUnderscore)
 	if err != nil {
 		return nil, err
