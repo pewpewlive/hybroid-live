@@ -1,4 +1,4 @@
-_POSSIBLE_PACKAGES = ["strings", "hybroid/ast"]
+_POSSIBLE_PACKAGES = ["fmt", "strings", "hybroid/ast"]
 _imports = set()
 
 

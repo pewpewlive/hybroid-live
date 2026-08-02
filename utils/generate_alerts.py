@@ -12,7 +12,6 @@ def _generate(raw: dict, stage: str) -> str:
 package alerts
 
 import (
-  "fmt"
   {imports}
 )
 

@@ -77,6 +77,8 @@ class Alert:
         for type in self.fields.values():
             imports.update_imports(type)
 
+        imports.update_imports("fmt")
+
         functions = [
             Function(
                 name="Message",
