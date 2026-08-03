@@ -2,6 +2,7 @@ package lsp
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -62,6 +63,168 @@ func TestHandleDidOpen_EmptyProjectNoFiles(t *testing.T) {
 	// markReady should have been called; a subsequent waitReady must not block.
 	if !h.waitReady(context.Background()) {
 		t.Errorf("expected waitReady to return true immediately")
+	}
+}
+
+// TestHandleDidOpen_WorkspaceParentDiscoversNestedProject verifies that a
+// broad editor workspace is not treated as one Hybroid project. Repositories
+// can contain multiple projects and parser/evaluator fixtures; analyzing all
+// of them in one evaluator can resolve types against the wrong environment
+// and panic the language server.
+func TestHandleDidOpen_WorkspaceParentDiscoversNestedProject(t *testing.T) {
+	workspaceDir := t.TempDir()
+	projectDir := filepath.Join(workspaceDir, "examples", "level")
+	if err := os.MkdirAll(projectDir, 0o755); err != nil {
+		t.Fatalf("mkdir project: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(projectDir, "hybconfig.toml"), []byte(minimalHybConfig), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+	levelPath := filepath.Join(projectDir, "level.hyb")
+	if err := os.WriteFile(levelPath, []byte(minimalLevelSource), 0o644); err != nil {
+		t.Fatalf("write level: %v", err)
+	}
+
+	h, _ := newTestHandler(t)
+	initializeReq := newTestRequest("initialize", InitializeParams{
+		ProcessID: 1234,
+		RootURI:   toURI(workspaceDir),
+	})
+	if _, err := h.handleInitialize(context.Background(), h.conn, initializeReq); err != nil {
+		t.Fatalf("initialize: %v", err)
+	}
+	if h.rootPath != "" {
+		t.Fatalf("initialize selected workspace root %q without a hybconfig.toml", h.rootPath)
+	}
+	if h.eval != nil {
+		t.Fatal("initialize created an evaluator before a nested project was selected")
+	}
+
+	openReq := newTestRequest("textDocument/didOpen", DidOpenTextDocumentParams{
+		TextDocument: TextDocumentItem{
+			URI:        toURI(levelPath),
+			LanguageID: "hybroid",
+			Version:    1,
+			Text:       minimalLevelSource,
+		},
+	})
+	if _, err := h.handleTextDocumentDidOpen(context.Background(), h.conn, openReq); err != nil {
+		t.Fatalf("didOpen: %v", err)
+	}
+	if got, want := filepath.Clean(h.rootPath), filepath.Clean(projectDir); got != want {
+		t.Fatalf("project root = %q, want %q", got, want)
+	}
+	if h.eval == nil {
+		t.Fatal("didOpen did not create the nested project's evaluator")
+	}
+}
+
+// TestHandleDidOpen_WaitsForWorkspacePreAnalysis covers the startup ordering
+// used by VS Code: initialize starts project discovery and didOpen follows
+// immediately. The opened file must not be analyzed until every environment
+// from disk has been registered.
+func TestHandleDidOpen_WaitsForWorkspacePreAnalysis(t *testing.T) {
+	levelSource := "env Main as Level\n\nuse Globals\n\nSetLevelSize(WIDTH, WIDTH)\n"
+	projectDir := writeProject(t, map[string]string{
+		"hybconfig.toml": minimalHybConfig,
+		"globals.hyb":    "env Globals as Shared\n\npub const WIDTH = 1100f\n",
+		"level.hyb":      levelSource,
+	})
+	levelURI := toURI(filepath.Join(projectDir, "level.hyb"))
+
+	h, conn := newTestHandler(t)
+	initializeReq := newTestRequest("initialize", InitializeParams{
+		ProcessID: 1234,
+		RootURI:   toURI(projectDir),
+	})
+	if _, err := h.handleInitialize(context.Background(), h.conn, initializeReq); err != nil {
+		t.Fatalf("initialize: %v", err)
+	}
+
+	openReq := newTestRequest("textDocument/didOpen", DidOpenTextDocumentParams{
+		TextDocument: TextDocumentItem{
+			URI:        levelURI,
+			LanguageID: "hybroid",
+			Version:    1,
+			Text:       levelSource,
+		},
+	})
+	if _, err := h.handleTextDocumentDidOpen(context.Background(), h.conn, openReq); err != nil {
+		t.Fatalf("didOpen: %v", err)
+	}
+
+	var latest *PublishDiagnosticsParams
+	for _, notification := range conn.Notifies() {
+		if notification.Method != "textDocument/publishDiagnostics" {
+			continue
+		}
+		params, ok := notification.Params.(PublishDiagnosticsParams)
+		if ok && params.URI == levelURI {
+			copy := params
+			latest = &copy
+		}
+	}
+	if latest == nil {
+		t.Fatalf("expected diagnostics for %q", levelURI)
+	}
+	if latest.Version == nil || *latest.Version != 1 {
+		t.Fatalf("latest diagnostics version = %v, want 1", latest.Version)
+	}
+	for _, diagnostic := range latest.Diagnostics {
+		if strings.Contains(diagnostic.Message, "environment named 'Globals' does not exist") {
+			t.Fatalf("Globals was analyzed before project pre-analysis completed: %s", diagnostic.Message)
+		}
+	}
+}
+
+// TestDidClose_ProjectFileKeepsEnvironment verifies VS Code's preview-tab
+// sequence: opening a second file closes the first document, but that must not
+// delete the first file's environment from the project evaluator.
+func TestDidClose_ProjectFileKeepsEnvironment(t *testing.T) {
+	constantsSource := "env VithenConstants as Shared\n\npub const SIZE = 10\n"
+	meshSource := "env VithenMesh as Mesh\n\nuse VithenConstants\n\npub value = SIZE\n"
+	projectDir := writeProject(t, map[string]string{
+		"hybconfig.toml":                 minimalHybConfig,
+		"level.hyb":                      minimalLevelSource,
+		"enemies/vithen/constants.hyb":   constantsSource,
+		"enemies/vithen/vithen_mesh.hyb": meshSource,
+	})
+	constantsURI := toURI(filepath.Join(projectDir, "enemies", "vithen", "constants.hyb"))
+	meshURI := toURI(filepath.Join(projectDir, "enemies", "vithen", "vithen_mesh.hyb"))
+
+	h, conn := newTestHandler(t)
+	initializeReq := newTestRequest("initialize", InitializeParams{
+		ProcessID: 1234,
+		RootURI:   toURI(projectDir),
+	})
+	if _, err := h.handleInitialize(context.Background(), h.conn, initializeReq); err != nil {
+		t.Fatalf("initialize: %v", err)
+	}
+
+	openForTest(t, h, conn, constantsURI, constantsSource)
+	closeForTest(t, h, constantsURI)
+	openForTest(t, h, conn, meshURI, meshSource)
+
+	h.evalMu.Lock()
+	_, environmentExists := h.eval.Walkers()["VithenConstants"]
+	h.evalMu.Unlock()
+	if !environmentExists {
+		t.Fatal("didClose removed VithenConstants from the project evaluator")
+	}
+
+	for _, notification := range conn.Notifies() {
+		if notification.Method != "textDocument/publishDiagnostics" {
+			continue
+		}
+		params, ok := notification.Params.(PublishDiagnosticsParams)
+		if !ok || params.URI != meshURI || params.Version == nil || *params.Version != 0 {
+			continue
+		}
+		for _, diagnostic := range params.Diagnostics {
+			if strings.Contains(diagnostic.Message, "environment named 'VithenConstants' does not exist") {
+				t.Fatalf("mesh lost the closed file's environment: %s", diagnostic.Message)
+			}
+		}
 	}
 }
 
@@ -222,8 +385,8 @@ func TestHandleDidOpen_SingleFileNoProject_PublishesInfo(t *testing.T) {
 // notice.
 func TestHandleDidOpen_SingleFileInProject_DiscoversRoot(t *testing.T) {
 	root := writeProject(t, map[string]string{
-		"hybconfig.toml":  minimalHybConfig,
-		"level.hyb":      minimalLevelSource,
+		"hybconfig.toml":   minimalHybConfig,
+		"level.hyb":        minimalLevelSource,
 		"helpers/util.hyb": "env Helpers as Level\n",
 	})
 	uri := toURI(filepath.Join(root, "level.hyb"))
