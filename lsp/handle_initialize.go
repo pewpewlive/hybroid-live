@@ -24,15 +24,24 @@ func (h *langHandler) handleInitialize(_ context.Context, conn notifier, req *js
 	// The rootUri of the workspace. Is null if no folder is open.
 	if params.RootURI != "" {
 		h.rootURI = params.RootURI
-		rootPath, err := fromURI(params.RootURI)
+		workspacePath, err := fromURI(params.RootURI)
 		if err != nil {
 			return nil, err
 		}
-		h.rootPath = filepath.Clean(rootPath)
-		h.addFolder(rootPath)
+		workspacePath = filepath.Clean(workspacePath)
+		h.addFolder(workspacePath)
 
-		// Pre-analyze the workspace in a goroutine
-		go h.preAnalyzeWorkspace()
+		// A VS Code workspace can be broader than a Hybroid project (for
+		// example, this repository contains projects under examples/). Only
+		// pre-analyze here when the workspace itself is inside a project. If
+		// it is a parent of one or more projects, didOpen will select the
+		// nearest hybconfig.toml for the opened file instead of combining all
+		// nested projects and test fixtures into one evaluator.
+		projectRoot := findProjectRootFromDir(workspacePath, h.rootMarkers)
+		if projectRoot != "" {
+			h.rootPath = filepath.Clean(projectRoot)
+			h.startPreAnalysis()
+		}
 	}
 
 	var completion *CompletionProvider

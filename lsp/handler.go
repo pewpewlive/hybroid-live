@@ -62,8 +62,9 @@ type langHandler struct {
 
 	// ready is closed once the initial pre-analysis has finished. Handlers
 	// that depend on h.eval should wait on it to avoid racing with initialization.
-	ready    chan struct{}
-	readySet bool
+	ready              chan struct{}
+	readySet           bool
+	preAnalysisStarted bool
 
 	// pendingChange is the URI/text of the most recent didChange that has
 	// not yet been analyzed because the lint timer hasn't fired.
@@ -154,7 +155,7 @@ func NewHandler() jsonrpc2.Handler {
 		request: make(chan lintRequest),
 		conn:    nil,
 		// filename:          config.Filename,
-		rootMarkers:       []string{"hybconfig.toml"},
+		rootMarkers: []string{"hybconfig.toml"},
 		// triggerChars:      config.TriggerChars,
 
 		lintDebounce: 300 * time.Millisecond,
@@ -248,6 +249,28 @@ func (h *langHandler) waitReady(ctx context.Context) bool {
 	}
 }
 
+// startPreAnalysis starts exactly one project-wide analysis. initialize and
+// didOpen can arrive close together, so both call this helper rather than
+// constructing competing evaluators.
+func (h *langHandler) startPreAnalysis() {
+	h.mu.Lock()
+	if h.preAnalysisStarted || h.rootPath == "" {
+		h.mu.Unlock()
+		return
+	}
+	// Test handlers and a failed earlier single-file setup may already have a
+	// closed readiness channel without a project evaluator. Starting a real
+	// project load establishes a fresh readiness boundary.
+	if h.readySet && h.eval == nil {
+		h.ready = make(chan struct{})
+		h.readySet = false
+	}
+	h.preAnalysisStarted = true
+	h.mu.Unlock()
+
+	go h.preAnalyzeWorkspace()
+}
+
 // scheduleAnalysis records the most recent change and (re)starts the lint
 // debounce timer. When the timer fires, the pending change is analyzed
 // and diagnostics are published. Multiple rapid changes coalesce into a
@@ -277,11 +300,18 @@ func (h *langHandler) scheduleAnalysis(uri DocumentURI, text string) {
 }
 
 func (h *langHandler) preAnalyzeWorkspace() {
-	if h.rootPath == "" {
+	h.mu.Lock()
+	rootPath := h.rootPath
+	h.mu.Unlock()
+
+	// Every exit path must release requests waiting for project readiness.
+	defer h.markReady()
+
+	if rootPath == "" {
 		return
 	}
 
-	filesInfo, err := core.CollectFiles(h.rootPath)
+	filesInfo, err := core.CollectFiles(rootPath)
 	if err != nil {
 		core.DebugLog("Workspace file discovery failed: %v", err)
 		return
@@ -294,7 +324,7 @@ func (h *langHandler) preAnalyzeWorkspace() {
 
 	// 1. Parse all files from disk
 	h.evalMu.Lock()
-	err = eval.ParseAll(h.rootPath)
+	err = eval.ParseAll(rootPath)
 	if err != nil {
 		core.DebugLog("Initial parse failed: %v", err)
 	}
@@ -306,22 +336,26 @@ func (h *langHandler) preAnalyzeWorkspace() {
 	diagByPath := make(map[string][]Diagnostic, len(filesInfo))
 	for _, info := range filesInfo {
 		path := info.Path()
-		diagByPath[path] = alertsToDiagnostics(toURI(filepath.Join(h.rootPath, path)), eval.GetAlerts(path))
+		diagByPath[path] = alertsToDiagnostics(toURI(filepath.Join(rootPath, path)), eval.GetAlerts(path))
 	}
 	h.evalMu.Unlock()
 
 	// 4. Store file contents and publish diagnostics
 	for _, info := range filesInfo {
 		path := info.Path()
-		uri := toURI(filepath.Join(h.rootPath, path))
+		uri := toURI(filepath.Join(rootPath, path))
 
-		content, err := os.ReadFile(filepath.Join(h.rootPath, path))
+		content, err := os.ReadFile(filepath.Join(rootPath, path))
 		if err == nil {
 			h.mu.Lock()
-			h.files[uri] = &File{
-				LanguageID: "hybroid",
-				Text:       string(content),
-				Version:    0,
+			// Do not replace an editor buffer that arrived while pre-analysis
+			// was reading the project from disk; it may contain unsaved text.
+			if _, open := h.files[uri]; !open {
+				h.files[uri] = &File{
+					LanguageID: "hybroid",
+					Text:       string(content),
+					Version:    0,
+				}
 			}
 			h.mu.Unlock()
 		}
@@ -332,7 +366,6 @@ func (h *langHandler) preAnalyzeWorkspace() {
 		})
 	}
 
-	h.markReady()
 	core.DebugLog("Workspace pre-analysis complete. Analyzed %d files.", len(filesInfo))
 }
 

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"hybroid/core"
 	"hybroid/evaluator"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -53,31 +52,9 @@ func (h *langHandler) handleTextDocumentDidOpen(ctx context.Context, conn notifi
 		}
 	}
 
-	if h.eval == nil {
-		if h.rootPath != "" {
-			// We found a project root via the parent-directory walk. Run
-			// the pre-analysis synchronously so the first didOpen gets
-			// full-workspace diagnostics immediately. The same code path
-			// is used by handleInitialize for folder opens, just without
-			// the goroutine.
-			if filesInfo, ferr := core.CollectFiles(h.rootPath); ferr == nil {
-				ev := evaluator.NewEvaluator(filesInfo)
-				ev.ParseAll(h.rootPath)
-				ev.RunAnalysis()
-				h.eval = ev
-				for _, info := range filesInfo {
-					p := info.Path()
-					uri := toURI(filepath.Join(h.rootPath, p))
-					if content, rerr := os.ReadFile(filepath.Join(h.rootPath, p)); rerr == nil {
-						h.files[uri] = &File{
-							LanguageID: "hybroid",
-							Text:       string(content),
-							Version:    0,
-						}
-					}
-				}
-			}
-		} else if path, perr := fromURI(params.TextDocument.URI); perr == nil {
+	projectRoot := h.rootPath
+	if h.eval == nil && projectRoot == "" {
+		if path, perr := fromURI(params.TextDocument.URI); perr == nil {
 			// True single-file mode: no workspace, no project marker.
 			// Build an ad-hoc evaluator that only knows about the opened
 			// file. Unresolved `use` statements will surface as
@@ -94,7 +71,14 @@ func (h *langHandler) handleTextDocumentDidOpen(ctx context.Context, conn notifi
 	}
 	h.mu.Unlock()
 
-	h.markReady()
+	if projectRoot != "" {
+		h.startPreAnalysis()
+		if !h.waitReady(ctx) {
+			return nil, nil
+		}
+	} else {
+		h.markReady()
+	}
 	h.analyzeAndPublish(ctx, conn, params.TextDocument.URI, params.TextDocument.Text)
 
 	if singleFileMode {

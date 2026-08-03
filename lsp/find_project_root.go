@@ -20,8 +20,15 @@ func findProjectRoot(filePath string, markers []string) string {
 	if filePath == "" || len(markers) == 0 {
 		return ""
 	}
+	return findProjectRootFromDir(filepath.Dir(filePath), markers)
+}
 
-	dir := filepath.Dir(filePath)
+// findProjectRootFromDir is the directory-oriented form used when the LSP
+// receives a workspace folder rather than a document path.
+func findProjectRootFromDir(dir string, markers []string) string {
+	if dir == "" || len(markers) == 0 {
+		return ""
+	}
 	dir = filepath.Clean(dir)
 
 	for {
