@@ -589,10 +589,9 @@ func (p *Parser) structExpr() ast.Node {
 }
 
 func (p *Parser) wrappedTypeExpr(typeContext string) *ast.TypeExpr {
-	typeExpr := ast.TypeExpr{}
 	if p.check(tokens.Greater) {
 		p.AlertSingle(&alerts.EmptyWrappedType{}, p.peek())
-		return &typeExpr
+		return &ast.TypeExpr{Name: ast.NewImproper(p.peek(), ast.TypeExpression)}
 	}
 
 	return p.typeExpr(typeContext)
