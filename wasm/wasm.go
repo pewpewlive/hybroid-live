@@ -47,14 +47,16 @@ func formatAlerts(alertsList []alerts.Alert, source string) string {
 		sb.WriteString(fmt.Sprintf("[bold]%s[reset]\n", alert.Message()))
 
 		// Location
-		tokensList := alert.SnippetSpecifier().GetTokens()
-		if len(tokensList) > 0 {
-			sb.WriteString(fmt.Sprintf("  at line %d:%d\n", tokensList[0].Line, tokensList[0].Column.Start))
-		}
+		span := alert.Span()
+		sb.WriteString(fmt.Sprintf("  at line %d:%d\n", span.Line, span.Column))
 
 		// Snippet
-		snippet := alert.SnippetSpecifier().GetSnippet(lines, alert)
-		sb.WriteString(snippet)
+		if line, ok := lines[span.Line]; ok {
+			start := min(max(span.Column-1, 0), len(line))
+			size := min(max(span.Length, 1), max(len(line)-start, 0))
+			sb.WriteString(fmt.Sprintf("  %s\n", line))
+			sb.WriteString(fmt.Sprintf("  %s%s\n", strings.Repeat(" ", start), strings.Repeat("^", size)))
+		}
 
 		// Note
 		if alert.Note() != "" {
@@ -74,7 +76,7 @@ func processAlerts(alertsList []alerts.Alert, source string, warnings *strings.B
 
 	hasError := false
 	for _, a := range alertsList {
-		if a.AlertType() == alerts.Error {
+		if a.Type() == alerts.Error {
 			hasError = true
 			break
 		}

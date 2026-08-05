@@ -2,17 +2,18 @@ package lsp
 
 import (
 	"hybroid/alerts"
+	"hybroid/core"
 	"hybroid/tokens"
 	"testing"
 )
 
-// makeTokenAt builds a Token with a 1-based Location suitable for feeding
-// into a SingleLine snippet. line, colStart, colEnd are all 1-based; the LSP
+// makeTokenAt builds a Token with a 1-based Span suitable for feeding
+// into an alert. line, colStart, colEnd are all 1-based; the LSP
 // conversion subtracts 1 when emitting positions.
 func makeTokenAt(line, colStart, colEnd int) tokens.Token {
 	return tokens.Token{
-		Location: tokens.NewLocation(line, colStart, colEnd),
-		Type:     tokens.String,
+		Span: core.Span{Line: line, Column: colStart, Length: colEnd - colStart},
+		Type: tokens.String,
 	}
 }
 
@@ -22,7 +23,7 @@ func makeTokenAt(line, colStart, colEnd int) tokens.Token {
 // red) — a silent UX break.
 func TestAlertsToDiagnostics_ErrorSeverity(t *testing.T) {
 	tok := makeTokenAt(3, 5, 10)
-	alert := &alerts.UnterminatedString{Specifier: alerts.NewSingle(tok)}
+	alert := alerts.NewUnterminatedString(tok.Span)
 
 	diags := alertsToDiagnostics("file:///x.hyb", []alerts.Alert{alert})
 	if len(diags) != 1 {
@@ -38,7 +39,7 @@ func TestAlertsToDiagnostics_ErrorSeverity(t *testing.T) {
 // most common diagnostic in the wild: hyb073W "variable is not used".
 func TestAlertsToDiagnostics_WarningSeverity(t *testing.T) {
 	tok := makeTokenAt(7, 2, 4)
-	alert := &alerts.UnusedElement{Specifier: alerts.NewSingle(tok)}
+	alert := alerts.NewUnusedElement(tok.Span, "")
 
 	diags := alertsToDiagnostics("file:///x.hyb", []alerts.Alert{alert})
 	if len(diags) != 1 {
@@ -52,16 +53,15 @@ func TestAlertsToDiagnostics_WarningSeverity(t *testing.T) {
 // TestAlertsToDiagnostics_MalformedTokenLocation verifies that the
 // conversion is defensive against pathological token locations. The
 // production code path in alertsToDiagnostics falls back to {0,0} when the
-// snippet has no tokens; here we exercise the equivalent path with a
-// zero-width token. The contract is "no panic, no NaN, both ends equal".
+// span is zero-width. The contract is "no panic, no NaN, both ends equal".
 func TestAlertsToDiagnostics_MalformedTokenLocation(t *testing.T) {
-	// Token at line=0 col=0 col=0 — pathological but possible from a
+	// Span at line=0 col=0 length=0 — pathological but possible from a
 	// hand-constructed alert in a test or a future refactor.
 	tok := tokens.Token{
-		Location: tokens.Location{Line: 0, Column: struct{ Start, End int }{0, 0}},
-		Type:     tokens.String,
+		Span: core.Span{Line: 0, Column: 0, Length: 0},
+		Type: tokens.String,
 	}
-	alert := &alerts.UnterminatedString{Specifier: alerts.NewSingle(tok)}
+	alert := alerts.NewUnterminatedString(tok.Span)
 
 	diags := alertsToDiagnostics("file:///x.hyb", []alerts.Alert{alert})
 	if len(diags) != 1 {
@@ -85,11 +85,11 @@ func TestAlertsToDiagnostics_NotePopulatesRelated(t *testing.T) {
 	tok := makeTokenAt(2, 1, 4)
 	uri := DocumentURI("file:///example.hyb")
 	alert := &notedAlert{
-		id:      "hyb999T",
-		typ:     alerts.Warning,
-		msg:     "test message",
-		note:    "see also here",
-		snippet: alerts.NewSingle(tok),
+		id:   "hyb999T",
+		typ:  alerts.Warning,
+		msg:  "test message",
+		note: "see also here",
+		span: tok.Span,
 	}
 
 	diags := alertsToDiagnostics(uri, []alerts.Alert{alert})
@@ -115,7 +115,7 @@ func TestAlertsToDiagnostics_NotePopulatesRelated(t *testing.T) {
 // every existing user-configured warning filter breaks silently.
 func TestAlertsToDiagnostics_MessageFormat(t *testing.T) {
 	tok := makeTokenAt(1, 1, 1)
-	alert := &alerts.UnusedElement{Specifier: alerts.NewSingle(tok)}
+	alert := alerts.NewUnusedElement(tok.Span, "")
 
 	diags := alertsToDiagnostics("file:///x.hyb", []alerts.Alert{alert})
 	if len(diags) != 1 {
@@ -135,15 +135,15 @@ func TestAlertsToDiagnostics_MessageFormat(t *testing.T) {
 // non-empty Note() — none of the alerts in alerts/*.gen.go provide a way
 // to do that without a generator round-trip.
 type notedAlert struct {
-	id      string
-	typ     alerts.Type
-	msg     string
-	note    string
-	snippet alerts.Snippet
+	id   string
+	typ  alerts.Type
+	msg  string
+	note string
+	span core.Span
 }
 
-func (n *notedAlert) ID() string                    { return n.id }
-func (n *notedAlert) Message() string               { return n.msg }
-func (n *notedAlert) Note() string                  { return n.note }
-func (n *notedAlert) AlertType() alerts.Type        { return n.typ }
-func (n *notedAlert) SnippetSpecifier() alerts.Snippet { return n.snippet }
+func (n *notedAlert) ID() string        { return n.id }
+func (n *notedAlert) Message() string   { return n.msg }
+func (n *notedAlert) Note() string      { return n.note }
+func (n *notedAlert) Type() alerts.Type { return n.typ }
+func (n *notedAlert) Span() core.Span   { return n.span }
