@@ -22,7 +22,8 @@ func (epe *EnvPathExpr) GetToken() tokens.Token { return epe.Path }
 
 func (epe *EnvPathExpr) Combine(token tokens.Token) {
 	epe.Path.Lexeme += ":" + token.Lexeme
-	epe.Path.Column.SetEnd(token.Column.End)
+	epe.Path.Span.EndByte = token.Span.EndByte
+	epe.Path.Span.Length = epe.Path.Span.EndByte - epe.Path.Span.StartByte
 }
 
 type EnvAccessExpr struct {

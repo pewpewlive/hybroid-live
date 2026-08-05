@@ -3,13 +3,14 @@ package walker
 import (
 	"hybroid/alerts"
 	"hybroid/ast"
+	"hybroid/core"
 	"hybroid/tokens"
 )
 
 // Rewrote
 func (w *Walker) environmentDeclaration(node *ast.EnvironmentDecl) {
 	if w.environment.Name != "" {
-		w.AlertSingle(&alerts.EnvironmentRedaclaration{}, node.GetToken())
+		w.Report(alerts.NewEnvironmentRedaclaration(node.GetToken().Span))
 		return
 	}
 	switch node.EnvType.Token.Lexeme {
@@ -22,13 +23,13 @@ func (w *Walker) environmentDeclaration(node *ast.EnvironmentDecl) {
 	case "Shared":
 		node.EnvType.Type = ast.SharedEnv
 	default:
-		w.AlertSingle(&alerts.InvalidEnvironmentType{}, node.EnvType.Token, node.EnvType.Token.Lexeme)
+		w.Report(alerts.NewInvalidEnvironmentType(node.EnvType.Token.Span, node.EnvType.Token.Lexeme))
 	}
 	w.environment.Type = node.EnvType.Type
 	w.environment.Name = node.Env.Path.Lexeme
 	w.environment._envStmt = node
 	if w2, ok := w.walkers[w.environment.Name]; ok && w2.environment.hybroidPath != w.environment.hybroidPath {
-		w.AlertSingle(&alerts.DuplicateEnvironmentNames{}, node.GetToken(), w.environment.hybroidPath, w2.environment.hybroidPath)
+		w.Report(alerts.NewDuplicateEnvironmentNames(node.GetToken().Span, w.environment.hybroidPath, w2.environment.hybroidPath))
 		return
 	}
 
@@ -38,10 +39,10 @@ func (w *Walker) environmentDeclaration(node *ast.EnvironmentDecl) {
 // Rewrote
 func (w *Walker) aliasDeclaration(node *ast.AliasDecl, scope *Scope) {
 	if scope.Parent != nil && node.IsPub {
-		w.AlertSingle(&alerts.PublicDeclarationInLocalScope{}, node.Token)
+		w.Report(alerts.NewPublicDeclarationInLocalScope(node.Token.Span))
 	}
 	if _, ok := scope.AliasTypes[node.Name.Lexeme]; ok {
-		w.AlertSingle(&alerts.Redeclaration{}, node.Token, node.Name, "alias")
+		w.Report(alerts.NewRedeclaration(node.Token.Span, node.Name.Lexeme, "alias"))
 		return
 	}
 	alias := NewAliasType(node.Name.Lexeme, w.typeExpression(node.Type, scope), node.IsPub)
@@ -51,16 +52,16 @@ func (w *Walker) aliasDeclaration(node *ast.AliasDecl, scope *Scope) {
 
 func (w *Walker) classDeclaration(node *ast.ClassDecl, scope *Scope) {
 	if scope.Parent != nil {
-		w.AlertSingle(&alerts.InvalidStmtInLocalBlock{}, node.Token, "class declaration")
+		w.Report(alerts.NewInvalidStmtInLocalBlock(node.Token.Span, "class declaration"))
 		return
 	}
 
 	if node.Constructor == nil {
-		w.AlertSingle(&alerts.MissingConstructor{}, node.Token, "new", "in class declaration")
+		w.Report(alerts.NewMissingConstructor(node.Token.Span, "new", "in class declaration"))
 	}
 
 	if w.typeExists(node.Name.Lexeme) {
-		w.AlertSingle(&alerts.TypeRedeclaration{}, node.Name, node.Name.Lexeme)
+		w.Report(alerts.NewTypeRedeclaration(node.Name.Span, node.Name.Lexeme))
 	}
 
 	classVal := &ClassVal{
@@ -107,7 +108,7 @@ func (w *Walker) classDeclaration(node *ast.ClassDecl, scope *Scope) {
 	// WALKING
 	for _, v := range classVal.Fields {
 		if !v.Var.IsInit {
-			w.AlertSingle(&alerts.UninitializedFieldInConstructor{}, v.Var.Token, v.Var.Name, "in class declaration")
+			w.Report(alerts.NewUninitializedFieldInConstructor(v.Var.Token.Span, v.Var.Name, "in class declaration"))
 			break
 		}
 	}
@@ -121,17 +122,17 @@ func (w *Walker) entityDeclaration(node *ast.EntityDecl, scope *Scope) {
 	et := &EntityTag{}
 	entityScope := w.NewScope(scope, et, SelfAllowing)
 	if scope.Parent != nil {
-		w.AlertSingle(&alerts.InvalidStmtInLocalBlock{}, node.Token, "entity declaration")
+		w.Report(alerts.NewInvalidStmtInLocalBlock(node.Token.Span, "entity declaration"))
 		return
 	}
 	if w.typeExists(node.Name.Lexeme) {
-		w.AlertSingle(&alerts.TypeRedeclaration{}, node.Name, node.Name.Lexeme)
+		w.Report(alerts.NewTypeRedeclaration(node.Name.Span, node.Name.Lexeme))
 	}
 	if node.Destroyer == nil {
-		w.AlertSingle(&alerts.MissingDestroy{}, node.Token)
+		w.Report(alerts.NewMissingDestroy(node.Token.Span))
 		return
 	} else if node.Spawner == nil {
-		w.AlertSingle(&alerts.MissingConstructor{}, node.Token, "spawn", "in entity declaration")
+		w.Report(alerts.NewMissingConstructor(node.Token.Span, "spawn", "in entity declaration"))
 		return
 	}
 
@@ -170,13 +171,13 @@ func (w *Walker) entityDeclaration(node *ast.EntityDecl, scope *Scope) {
 	}
 	for k := range found {
 		if len(found[k]) > 1 {
-			w.AlertSingle(&alerts.Redeclaration{}, found[k][1], k, "entity function")
+			w.Report(alerts.NewRedeclaration(found[k][1].Span, string(k), "entity function"))
 		}
 	}
 
 	for _, v := range entityVal.Fields {
 		if !v.Var.IsInit {
-			w.AlertSingle(&alerts.UninitializedFieldInConstructor{}, v.Var.Token, v.Var.Name, "in entity declaration")
+			w.Report(alerts.NewUninitializedFieldInConstructor(v.Var.Token.Span, v.Var.Name, "in entity declaration"))
 			break
 		}
 	}
@@ -200,41 +201,41 @@ func (w *Walker) entityFunctionDeclaration(node *ast.EntityFunctionDecl, scope *
 	switch node.Type {
 	case ast.Spawn:
 		if len(params) < 2 || !(params[0].GetType() == Fixed && params[1].GetType() == Fixed) {
-			w.AlertSingle(&alerts.InvalidSpawnerParameters{}, node.GetToken())
+			w.Report(alerts.NewInvalidSpawnerParameters(node.GetToken().Span))
 			break
 		}
 		if node.Params[0].Name.Lexeme == "_" {
-			w.AlertSingle(&alerts.EmptyIdentifierOnSpawnParameters{}, node.Params[0].Name)
+			w.Report(alerts.NewEmptyIdentifierOnSpawnParameters(node.Params[0].Name.Span))
 		} else if variable, ok := fnScope.Variables["x"]; !ok {
-			w.AlertSingle(&alerts.InvalidSpawnerParameter{}, node.Params[0].Name, "first", "x")
+			w.Report(alerts.NewInvalidSpawnerParameter(node.Params[0].Name.Span, "first", "x"))
 		} else {
 			variable.IsUsed = true
 		}
 		if node.Params[1].Name.Lexeme == "_" {
-			w.AlertSingle(&alerts.EmptyIdentifierOnSpawnParameters{}, node.Params[1].Name)
+			w.Report(alerts.NewEmptyIdentifierOnSpawnParameters(node.Params[1].Name.Span))
 		} else if variable, ok := fnScope.Variables["y"]; !ok {
-			w.AlertSingle(&alerts.InvalidSpawnerParameter{}, node.Params[0].Name, "second", "y")
+			w.Report(alerts.NewInvalidSpawnerParameter(node.Params[0].Name.Span, "second", "y"))
 		} else {
 			variable.IsUsed = true
 		}
 	case ast.WallCollision:
 		if !funcSign.Equals(WallCollisionSign) {
-			w.AlertSingle(&alerts.InvalidEntityFunctionSignature{}, node.GetToken(), funcSign, WallCollisionSign, node.Type)
+			w.Report(alerts.NewInvalidEntityFunctionSignature(node.GetToken().Span, funcSign.String(), WallCollisionSign.String(), string(node.Type)))
 		}
 	case ast.PlayerCollision:
 		if !funcSign.Equals(PlayerCollisionSign) {
-			w.AlertSingle(&alerts.InvalidEntityFunctionSignature{}, node.GetToken(), funcSign, PlayerCollisionSign, node.Type)
+			w.Report(alerts.NewInvalidEntityFunctionSignature(node.GetToken().Span, funcSign.String(), PlayerCollisionSign.String(), string(node.Type)))
 		}
 	case ast.WeaponCollision:
 		if !funcSign.Equals(WeaponCollisionSign) {
-			w.AlertSingle(&alerts.InvalidEntityFunctionSignature{}, node.GetToken(), funcSign, WeaponCollisionSign, node.Type)
+			w.Report(alerts.NewInvalidEntityFunctionSignature(node.GetToken().Span, funcSign.String(), WeaponCollisionSign.String(), string(node.Type)))
 		}
 	}
 
 	w.walkFuncBody(node, &node.Body, ft, fnScope)
 
 	if node.Type == ast.Destroy && !ft.GetIfExits(EntityDestruction) {
-		w.AlertSingle(&alerts.NotAllCodePathsExit{}, node.Token, "destroy the entity")
+		w.Report(alerts.NewNotAllCodePathsExit(node.Token.Span, "destroy the entity"))
 	}
 
 	paramNames := make([]string, len(node.Params))
@@ -254,7 +255,7 @@ func (w *Walker) enumDeclaration(node *ast.EnumDecl, scope *Scope) {
 
 	for _, v := range node.Fields {
 		if _, _, found := enumVal.ContainsField(v.Name.Lexeme); found {
-			w.AlertSingle(&alerts.DuplicateElement{}, v.GetToken(), "enum field", v.Name.Lexeme)
+			w.Report(alerts.NewDuplicateElement(v.GetToken().Span, "enum field", v.Name.Lexeme))
 			continue
 		}
 		variable := NewVariable(v.Name, &EnumFieldVal{Type: enumVal.Type}, node.IsPub)
@@ -262,7 +263,7 @@ func (w *Walker) enumDeclaration(node *ast.EnumDecl, scope *Scope) {
 	}
 
 	if w.typeExists(node.Name.Lexeme) {
-		w.AlertSingle(&alerts.TypeRedeclaration{}, node.Name, node.Name.Lexeme)
+		w.Report(alerts.NewTypeRedeclaration(node.Name.Span, node.Name.Lexeme))
 		return
 	}
 
@@ -359,7 +360,7 @@ func (w *Walker) functionDeclaration(node *ast.FunctionDecl, scope *Scope, procT
 	}
 
 	if _, success := w.declareVariable(scope, variable); !success {
-		w.AlertSingle(&alerts.Redeclaration{}, node.Name, node.Name.Lexeme, "variable")
+		w.Report(alerts.NewRedeclaration(node.Name.Span, node.Name.Lexeme, "variable"))
 	}
 
 	if procType == Function {
@@ -373,7 +374,7 @@ func (w *Walker) functionDeclaration(node *ast.FunctionDecl, scope *Scope, procT
 func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope, allowUnitialized bool) {
 	//check if it's a public declaration in a local scope
 	if declaration.IsPub && scope.Parent != nil {
-		w.AlertSingle(&alerts.PublicDeclarationInLocalScope{}, declaration.Token)
+		w.Report(alerts.NewPublicDeclarationInLocalScope(declaration.Token.Span))
 		declaration.IsPub = false
 	}
 
@@ -389,7 +390,7 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 		variable := NewVariable(ident.GetToken(), &Invalid{})
 
 		if _, exists := scope.Variables[ident.Name.Lexeme]; exists {
-			w.AlertSingle(&alerts.Redeclaration{}, ident.Name, ident.Name.Lexeme, "variable")
+			w.Report(alerts.NewRedeclaration(ident.Name.Span, ident.Name.Lexeme, "variable"))
 		} else {
 			variable.IsPub = declaration.IsPub
 			variable.IsConst = declaration.IsConst
@@ -413,17 +414,17 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 			variable.IsInit = true
 			exprCounter++
 		} else if declaration.IsConst {
-			w.AlertSingle(&alerts.NoValueGivenForConstant{}, ident.Name)
+			w.Report(alerts.NewNoValueGivenForConstant(ident.Name.Span))
 			continue
 		} else if declaration.Type == nil {
-			w.AlertSingle(&alerts.ExplicitTypeRequiredInDeclaration{}, ident.Name, "to infer the value")
+			w.Report(alerts.NewExplicitTypeRequiredInDeclaration(ident.Name.Span, "to infer the value"))
 			continue
 		} else {
 			val := w.typeToValue(declType)
 			defaultVal := val.GetDefault()
 
 			if defaultVal.Value == "nil" && !allowUnitialized {
-				w.AlertSingle(&alerts.ExplicitTypeNotAllowed{}, declaration.Type.GetToken(), declType.String())
+				w.Report(alerts.NewExplicitTypeNotAllowed(declaration.Type.GetToken().Span, declType.String()))
 				continue
 			}
 
@@ -446,17 +447,13 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 			continue
 		}
 		if valType == UnknownTyp {
-			w.AlertSingle(&alerts.InvalidType{}, declaration.Expressions[values[i].Index].GetToken(), "unknown", "as a variable value")
+			w.Report(alerts.NewInvalidType(declaration.Expressions[values[i].Index].GetToken().Span, "unknown", "as a variable value"))
 			continue
 		}
 		if declType.GetType() == RawEntity && valType.PVT() == ast.Number {
 			variable.Value = &RawEntityVal{}
 		} else if !TypeEquals(declType, valType) && declType != InvalidType && valType != InvalidType {
-			w.AlertSingle(&alerts.ExplicitTypeMismatch{},
-				variable.Token,
-				declType.String(),
-				valType.String(),
-			)
+			w.Report(alerts.NewExplicitTypeMismatch(variable.Token.Span, declType.String(), valType.String()))
 		}
 	}
 
@@ -483,20 +480,9 @@ func (w *Walker) variableDeclaration(declaration *ast.VariableDecl, scope *Scope
 	if varsLen < valsLen {
 		extraAmount := valsLen - varsLen
 		if extraAmount == 1 {
-			w.AlertSingle(&alerts.TooManyElementsGiven{},
-				declaration.Expressions[exprsLen-1].GetToken(),
-				extraAmount,
-				"value",
-				"in variable declaration",
-			)
+			w.Report(alerts.NewTooManyElementsGiven(declaration.Expressions[exprsLen-1].GetToken().Span, extraAmount, "value", "in variable declaration"))
 		} else {
-			w.AlertMulti(&alerts.TooManyElementsGiven{},
-				declaration.Expressions[values[valsLen-extraAmount].Index].GetToken(),
-				declaration.Expressions[values[valsLen-1].Index].GetToken(),
-				extraAmount,
-				"value",
-				"in variable declaration",
-			)
+			w.Report(alerts.NewTooManyElementsGiven(core.MergeSpans(declaration.Expressions[values[valsLen-extraAmount].Index].GetToken().Span, declaration.Expressions[values[valsLen-1].Index].GetToken().Span), extraAmount, "value", "in variable declaration"))
 		}
 	}
 }

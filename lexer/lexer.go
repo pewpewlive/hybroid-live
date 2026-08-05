@@ -3,6 +3,7 @@ package lexer
 import (
 	"bufio"
 	"hybroid/alerts"
+	"hybroid/core"
 	"hybroid/tokens"
 	"io"
 	"strconv"
@@ -15,8 +16,9 @@ type Lexer struct {
 	buffer []byte
 	source *bufio.Reader
 
-	line   int
-	column int
+	line    int
+	column  int
+	srcByte int
 }
 
 func NewLexer(reader io.Reader) Lexer {
@@ -26,11 +28,8 @@ func NewLexer(reader io.Reader) Lexer {
 		source:    bufio.NewReader(reader),
 		line:      1,
 		column:    1,
+		srcByte:   0,
 	}
-}
-
-func (l *Lexer) Alert(alertType alerts.Alert, args ...any) {
-	l.Alert_(alertType, args...)
 }
 
 func (l *Lexer) Tokenize() ([]tokens.Token, error) {
@@ -39,7 +38,7 @@ func (l *Lexer) Tokenize() ([]tokens.Token, error) {
 	for {
 		token, err := l.next()
 		if err == io.EOF {
-			newToken := tokens.NewToken(tokens.Eof, "eof", "", tokens.NewLocation(l.line, l.column, l.column))
+			newToken := tokens.NewToken(tokens.Eof, "eof", "", l.span())
 			lexerTokens = append(lexerTokens, newToken)
 			break
 		} else if err != nil && token == nil {
@@ -61,12 +60,7 @@ func (l *Lexer) next() (*tokens.Token, error) {
 
 	l.buffer = l.buffer[:0]
 
-	token := tokens.Token{}
-	token.Line = l.line
-	token.Column.Start = l.column
-
 	c, err := l.advance()
-
 	if err != nil {
 		return nil, err
 	}
@@ -74,11 +68,12 @@ func (l *Lexer) next() (*tokens.Token, error) {
 	if isAlphabetical(c) {
 		return l.handleIdentifier()
 	}
-
 	if isDigit(c) {
 		return l.handleNumber()
 	}
 
+	token := tokens.Token{}
+	token.Span = l.span()
 	switch c {
 	case '{':
 		token.Type = tokens.LeftBrace
@@ -193,20 +188,18 @@ func (l *Lexer) next() (*tokens.Token, error) {
 	default:
 		char := string(c)
 		token.Lexeme = token.Type.String()
-		token.Line = l.line
 		if isUtf8NonAscii(c) {
 			l.source.UnreadByte()
 			r, _, _ := l.source.ReadRune()
 			char = string(r)
 		}
-		token.Column.End = l.column
-		l.Alert(&alerts.UnsupportedCharacter{}, alerts.NewSingle(token), char)
+		token.Span.UpdateEnd(l.srcByte)
+		l.Report(alerts.NewUnsupportedCharacter(token.Span, char))
 		return nil, nil
 	}
 
 	token.Lexeme = token.Type.String()
-	token.Line = l.line
-	token.Column.End = l.column
+	token.Span.UpdateEnd(l.srcByte)
 
 	return &token, nil
 }
@@ -216,8 +209,8 @@ func (l *Lexer) handleString() (*tokens.Token, error) {
 	startColumn := l.column - 1
 
 	token := tokens.Token{
-		Type:     tokens.String,
-		Location: tokens.NewLocation(startLine, startColumn, l.column),
+		Type: tokens.String,
+		Span: core.NewSpan(l.srcByte, l.srcByte, startLine, startColumn),
 	}
 
 	for !l.match('"') && !l.isEOF() {
@@ -230,18 +223,12 @@ func (l *Lexer) handleString() (*tokens.Token, error) {
 		return nil, nil
 	}
 	if token.Lexeme[len(token.Lexeme)-1] != '"' {
-		// String never terminated. Roll the token's reported location back
-		// to the opening quote so the snippet points at a real character
-		// (avoids End > line length and the resulting slice-out-of-range
-		// panic in alerts.writeTruncatedLine).
-		token.Line = startLine
-		token.Column.Start = startColumn
-		token.Column.End = startColumn + len(token.Lexeme)
-		l.Alert(&alerts.UnterminatedString{}, alerts.NewSingle(token))
+		token.Span.UpdateEnd(l.srcByte)
+		l.Report(alerts.NewUnterminatedString(token.Span))
 	} else {
 		token.Literal = token.Lexeme[1 : len(token.Lexeme)-1]
 		if strings.Contains(token.Literal, "\n") {
-			l.Alert(&alerts.MultilineString{}, alerts.NewSingle(token))
+			l.Report(alerts.NewMultilineString(token.Span))
 		}
 	}
 
@@ -250,8 +237,8 @@ func (l *Lexer) handleString() (*tokens.Token, error) {
 
 func (l *Lexer) handleNumber() (*tokens.Token, error) {
 	token := tokens.Token{
-		Type:     tokens.Number,
-		Location: tokens.NewLocation(l.line, l.column-1, l.column),
+		Type: tokens.Number,
+		Span: core.NewSpan(l.srcByte, l.srcByte, l.line, l.column-1),
 	}
 
 	base, err := l.peek()
@@ -266,8 +253,7 @@ func (l *Lexer) handleNumber() (*tokens.Token, error) {
 			return nil, err
 		}
 
-		token.Line = l.line
-		token.Column.End = l.column
+		token.Span.UpdateEnd(l.srcByte)
 		token.Lexeme = l.bufferString()
 
 		isInRange := isDigit
@@ -287,17 +273,17 @@ func (l *Lexer) handleNumber() (*tokens.Token, error) {
 
 		for i, r := range token.Lexeme[2:] {
 			if !isValidDigit(byte(r)) {
-				location := token.Location
-				location.Column.Start += i + 2
-				location.Column.End = location.Column.Start + 1
-				l.Alert(&alerts.InvalidDigitInLiteral{}, alerts.NewSingle(tokens.NewToken(tokens.Number, "", "", location)), string(r), baseStr)
+				span := token.Span
+				span.StartByte += i + 2
+				span.UpdateEnd(span.StartByte + 1)
+				l.Report(alerts.NewInvalidDigitInLiteral(span, string(r), baseStr))
 				return &token, nil
 			}
 		}
 
 		literal, err := strconv.ParseInt(token.Lexeme, 0, 0)
 		if err != nil {
-			l.Alert(&alerts.MalformedNumber{}, alerts.NewSingle(token), token.Lexeme)
+			l.Report(alerts.NewMalformedNumber(token.Span, token.Lexeme))
 			return &token, nil
 		}
 		token.Literal = strconv.Itoa(int(literal))
@@ -322,24 +308,22 @@ func (l *Lexer) handleNumber() (*tokens.Token, error) {
 		}
 	}
 
-	token.Line = l.line
-	token.Column.End = l.column
+	token.Span.UpdateEnd(l.srcByte)
 	token.Lexeme = l.bufferString()
 
 	var literal float64
 	if literal, err = strconv.ParseFloat(token.Lexeme, 64); err != nil {
-		l.Alert(&alerts.MalformedNumber{}, alerts.NewSingle(token), token.Lexeme)
+		l.Report(alerts.NewMalformedNumber(token.Span, token.Lexeme))
 		return nil, err
 	}
 	token.Literal = strconv.FormatFloat(literal, 'f', -1, 64)
 
-	postixLocation := tokens.NewLocation(l.line, l.column, l.column)
+	postixLocation := l.span()
 	err = l.consumeWhile(isAlphabetical)
 	if err != nil {
 		return nil, err
 	}
-	postixLocation.Line = l.line
-	postixLocation.Column.End = l.column
+	postixLocation.UpdateEnd(l.srcByte)
 
 	postfix := l.bufferString()
 	switch postfix {
@@ -355,26 +339,25 @@ func (l *Lexer) handleNumber() (*tokens.Token, error) {
 		break
 	default:
 		tokenCopy := token
-		tokenCopy.Location = postixLocation
-		l.Alert(&alerts.InvalidNumberPostfix{}, alerts.NewSingle(tokenCopy), postfix)
+		tokenCopy.Span = postixLocation
+		l.Report(alerts.NewInvalidNumberPostfix(tokenCopy.Span, postfix))
 	}
 
-	token.Column.End = postixLocation.Column.End
+	token.Span.UpdateEnd(l.srcByte)
 
 	return &token, nil
 }
 
 func (l *Lexer) handleIdentifier() (*tokens.Token, error) {
 	token := tokens.Token{
-		Type:     tokens.Identifier,
-		Location: tokens.NewLocation(l.line, l.column-1, l.column),
+		Type: tokens.Identifier,
+		Span: core.NewSpan(l.srcByte, l.srcByte, l.line, l.column-1),
 	}
 	err := l.consumeWhile(isAlphanumeric)
 	if err != nil {
 		return nil, err
 	}
-	token.Line = l.line
-	token.Column.End = l.column
+	token.Span.UpdateEnd(l.srcByte)
 	token.Lexeme = l.bufferString()
 
 	if keyword, found := tokens.KeywordToToken(token.Lexeme); found {

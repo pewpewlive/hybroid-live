@@ -1,5 +1,6 @@
-_POSSIBLE_PACKAGES = ["fmt", "strings", "hybroid/ast"]
-_imports = set()
+_POSSIBLE_PACKAGES = ["strings", "hybroid/ast"]
+_DEFAULT = ['"fmt"', '"hybroid/core"']
+_imports = set(_DEFAULT)
 
 
 def update_imports(string: str):
@@ -14,4 +15,4 @@ def get_imports() -> str:
 
 
 def clear():
-    _imports.clear()
+    _imports = set(_DEFAULT)

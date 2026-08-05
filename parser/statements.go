@@ -3,6 +3,7 @@ package parser
 import (
 	"hybroid/alerts"
 	"hybroid/ast"
+	"hybroid/core"
 	"hybroid/tokens"
 )
 
@@ -80,9 +81,9 @@ func (p *Parser) destroyStatement() ast.Node {
 	expr := p.AccessorExpr()
 	if expr.GetType() != ast.CallExpression {
 		if expr.GetType() != ast.NA {
-			p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), "in destroy statement")
+			p.Report(alerts.NewExpectedSymbol(p.peek().Span, "").WithContext("in destroy statement"))
 		} else if ast.IsImproper(expr, ast.NA) {
-			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), "in destroy statement")
+			p.Report(alerts.NewExpectedExpression(expr.GetToken().Span).WithContext("in destroy statement"))
 		}
 		return ast.NewImproper(destroyStmt.Token, ast.DestroyStatement)
 	}
@@ -120,7 +121,7 @@ func (p *Parser) ifStatement(else_exists bool, is_else bool, is_elseif bool) ast
 		var ifStmt2 ast.Node
 		if p.match(tokens.If) {
 			if else_exists {
-				p.Alert(&alerts.ElseIfBlockAfterElseBlock{}, alerts.NewSingle(p.peek(-1)))
+				p.Report(alerts.NewElseIfBlockAfterElseBlock(p.peek(-1).Span))
 			}
 			ifStmt2 = p.ifStatement(else_exists, false, true)
 			if ifStmt2.GetType() == ast.NA {
@@ -129,7 +130,7 @@ func (p *Parser) ifStatement(else_exists bool, is_else bool, is_elseif bool) ast
 			ifStmt.Elseifs = append(ifStmt.Elseifs, ifStmt2.(*ast.IfStmt))
 		} else {
 			if else_exists {
-				p.Alert(&alerts.MoreThanOneElseBlock{}, alerts.NewSingle(p.peek(-1)))
+				p.Report(alerts.NewMoreThanOneElseBlock(p.peek(-1).Span))
 			}
 			else_exists = true
 			ifStmt2 = p.ifStatement(else_exists, true, false)
@@ -156,7 +157,7 @@ func (p *Parser) assignmentStatement(expr ast.Node) ast.Node {
 	if p.match(tokens.Equal) {
 		equal := p.peek(-1)
 		if p.peek().Line != equal.Line {
-			p.AlertSingle(&alerts.ExpectedExpression{}, equal, "in assignment declaration")
+			p.Report(alerts.NewExpectedExpression(equal.Span).WithContext("in assignment declaration"))
 			return ast.NewImproper(p.peek(-1), ast.AssignmentStatement)
 		}
 		exprs, ok := p.expressions("in assignment statement", false)
@@ -239,11 +240,11 @@ outer:
 			p.advance()
 			identExpr := p.expression()
 			if identExpr.GetType() != ast.Identifier {
-				p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(identExpr.GetToken()), "after keyword 'with'")
+				p.Report(alerts.NewExpectedIdentifier(identExpr.GetToken().Span).WithContext("after keyword 'with'"))
 				continue
 			}
 			if repeatStmt.Variable != nil {
-				p.Alert(&alerts.DuplicateKeyword{}, alerts.NewSingle(p.peek(-1)), tokens.With)
+				p.Report(alerts.NewDuplicateKeyword(p.peek(-1).Span, tokens.With.String()))
 				continue
 			}
 			repeatStmt.Variable = identExpr.(*ast.IdentifierExpr)
@@ -251,7 +252,7 @@ outer:
 			p.advance()
 			it := p.limitedExpression("as iterator in repeat statement", allowedExprTypes...)
 			if repeatStmt.Iterator != nil {
-				p.Alert(&alerts.IteratorRedefinition{}, alerts.NewSingle(p.peek(-1)), "in repeat statement")
+				p.Report(alerts.NewIteratorRedefinition(p.peek(-1).Span).WithContext("in repeat statement"))
 				continue
 			}
 			repeatStmt.Iterator = it
@@ -259,7 +260,7 @@ outer:
 			p.advance()
 			skip := p.limitedExpression("as skip expression in repeat statement", allowedExprTypes...)
 			if repeatStmt.Skip != nil {
-				p.Alert(&alerts.DuplicateKeyword{}, alerts.NewSingle(p.peek(-1)), tokens.By)
+				p.Report(alerts.NewDuplicateKeyword(p.peek(-1).Span, tokens.By.String()))
 				continue
 			}
 			repeatStmt.Skip = skip
@@ -267,7 +268,7 @@ outer:
 			p.advance()
 			start := p.limitedExpression("as from expression in repeat statement", allowedExprTypes...)
 			if repeatStmt.Start != nil {
-				p.Alert(&alerts.DuplicateKeyword{}, alerts.NewSingle(p.peek(-1)), tokens.From)
+				p.Report(alerts.NewDuplicateKeyword(p.peek(-1).Span, tokens.From.String()))
 			}
 			repeatStmt.Start = start
 		case tokens.LeftBrace:
@@ -282,7 +283,7 @@ outer:
 	}
 
 	if repeatStmt.Iterator == nil {
-		p.Alert(&alerts.MissingIterator{}, alerts.NewSingle(repeatStmt.Token), "in repeat statement")
+		p.Report(alerts.NewMissingIterator(repeatStmt.Token.Span).WithContext("in repeat statement"))
 		repeatStmt.Iterator = &ast.LiteralExpr{Token: repeatStmt.Token, Value: "1"}
 	}
 
@@ -303,7 +304,7 @@ func (p *Parser) whileStatement() ast.Node {
 	condition := p.multiComparison()
 
 	if ast.IsImproper(condition, ast.NA) {
-		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(condition.GetToken()))
+		p.Report(alerts.NewExpectedExpression(condition.GetToken().Span))
 		return ast.NewImproper(condition.GetToken(), ast.WhileStatement)
 	}
 
@@ -325,7 +326,7 @@ func (p *Parser) forStatement() ast.Node {
 
 	identExpr := p.expression()
 	if identExpr.GetType() != ast.Identifier {
-		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(identExpr.GetToken()), "after keyword 'for' in for loop statement")
+		p.Report(alerts.NewExpectedIdentifier(identExpr.GetToken().Span).WithContext("after keyword 'for' in for loop statement"))
 	} else {
 		forStmt.First = identExpr.(*ast.IdentifierExpr)
 	}
@@ -333,13 +334,13 @@ func (p *Parser) forStatement() ast.Node {
 	if p.match(tokens.Comma) {
 		identExpr = p.expression()
 		if identExpr.GetType() != ast.Identifier {
-			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(identExpr.GetToken()))
+			p.Report(alerts.NewExpectedIdentifier(identExpr.GetToken().Span))
 		} else {
 			forStmt.Second = identExpr.(*ast.IdentifierExpr)
 		}
 	}
 
-	p.consume(p.NewAlert(&alerts.ExpectedKeyword{}, alerts.NewSingle(p.peek()), tokens.In), tokens.In)
+	p.consume(alerts.NewExpectedKeyword(p.peek().Span, tokens.In.String()), tokens.In)
 
 	if p.match(tokens.Every) {
 		forStmt.IsEntity = true
@@ -350,7 +351,7 @@ func (p *Parser) forStatement() ast.Node {
 	} else {
 		forStmt.Iterator = p.expression()
 		if ast.IsImproper(forStmt.Iterator, ast.NA) {
-			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(forStmt.Iterator.GetToken()))
+			p.Report(alerts.NewExpectedExpression(forStmt.Iterator.GetToken().Span))
 		}
 	}
 
@@ -371,7 +372,7 @@ func (p *Parser) tickStatement() ast.Node {
 	if p.match(tokens.With) {
 		identExpr := p.expression()
 		if identExpr.GetType() != ast.Identifier {
-			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(identExpr.GetToken()), "after keyword 'with'")
+			p.Report(alerts.NewExpectedIdentifier(identExpr.GetToken().Span).WithContext("after keyword 'with'"))
 			return ast.NewImproper(tickStmt.Token, ast.TickStatement)
 		} else {
 			tickStmt.Variable = identExpr.(*ast.IdentifierExpr)
@@ -394,7 +395,7 @@ func (p *Parser) useStatement() ast.Node {
 
 	filepath := p.envPathExpr()
 	if filepath.GetType() != ast.EnvironmentPathExpression {
-		p.AlertMulti(&alerts.ExpectedEnvironmentPathExpression{}, filepath.GetToken(), p.peek())
+		p.Report(alerts.NewExpectedEnvironmentPathExpression(core.MergeSpans(filepath.GetToken().Span, p.peek().Span)))
 		return ast.NewImproper(p.peek(), ast.UseStatement)
 	}
 	useStmt.PathExpr = filepath.(*ast.EnvPathExpr)
@@ -418,7 +419,7 @@ func (p *Parser) matchStatement(isExpr bool) ast.Node {
 
 	matchStmt.ExprToMatch = p.expression()
 
-	start, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.LeftBrace)
+	start, ok := p.consume(alerts.NewExpectedSymbol(p.peek().Span, tokens.LeftBrace.String()), tokens.LeftBrace)
 	if !ok {
 		return ast.NewImproper(matchStmt.Token, matchType)
 	}
@@ -432,7 +433,7 @@ func (p *Parser) matchStatement(isExpr bool) ast.Node {
 		caseStmt := node.(*ast.CaseStmt)
 		if caseStmt.Expressions[0].GetToken().Lexeme == "else" {
 			if matchStmt.HasDefault {
-				p.Alert(&alerts.MoreThanOneDefaultCase{}, alerts.NewSingle(caseStmt.Expressions[0].GetToken()))
+				p.Report(alerts.NewMoreThanOneDefaultCase(caseStmt.Expressions[0].GetToken().Span))
 				continue
 			}
 			matchStmt.HasDefault = true
@@ -459,7 +460,7 @@ func (p *Parser) caseStatement(isExpr bool) (ast.Node, bool) {
 	}
 
 	caseStmt.Expressions = exprs
-	_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.FatArrow, "in match case")
+	_, ok := p.consume(alerts.NewExpectedSymbol(p.peek().Span, tokens.FatArrow.String()).WithContext("in match case"), tokens.FatArrow)
 	if !ok {
 		return ast.NewImproper(token, ast.CaseStatement), false
 	}

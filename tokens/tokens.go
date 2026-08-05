@@ -165,31 +165,19 @@ func KeywordToToken(keyword string) (TokenType, bool) {
 	return v, found
 }
 
-type Location struct {
-	Line   int
-	Column core.Span[int]
-}
-
-func NewLocation(line, columnStart, columnEnd int) Location {
-	return Location{
-		Line:   line,
-		Column: core.NewSpan(columnStart, columnEnd),
-	}
-}
-
 type Token struct {
-	Location
+	core.Span
 
 	Type    TokenType
 	Lexeme  string
 	Literal string
 }
 
-func NewToken(tokenType TokenType, lexeme, literal string, location Location) Token {
+func NewToken(tokenType TokenType, lexeme, literal string, span core.Span) Token {
 	return Token{
-		Type:     tokenType,
-		Lexeme:   lexeme,
-		Literal:  literal,
-		Location: location,
+		Type:    tokenType,
+		Lexeme:  lexeme,
+		Literal: literal,
+		Span:    span,
 	}
 }

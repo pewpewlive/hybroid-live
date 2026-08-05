@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"hybroid/core"
 	"io"
 	"unicode/utf8"
 )
@@ -10,6 +11,7 @@ func (l *Lexer) advance() (byte, error) {
 	if err != nil {
 		return 0, err
 	}
+	l.srcByte++
 	l.buffer = append(l.buffer, b)
 	if b == '\n' {
 		l.line++
@@ -79,6 +81,10 @@ func (l *Lexer) match(bytes ...byte) bool {
 	}
 
 	return true
+}
+
+func (l *Lexer) span() core.Span {
+	return core.NewSpan(l.srcByte, l.srcByte, l.line, l.column)
 }
 
 func isDigit(b byte) bool {

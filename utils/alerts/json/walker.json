@@ -3,20 +3,20 @@
     "name": "ForbiddenTypeInEnvironment",
     "type": "Error",
     "fields": {
-      "Type": "string",
-      "Envs": "[]string"
+      "envType": "string",
+      "envs": "[]string"
     },
     "message": "cannot have a %s in the following environments: %s",
-    "message_format": ["Type", { "Envs": "strings.Join({}, \", \")" }]
+    "message_format": ["envType", { "envs": "strings.Join({}, \", \")" }]
   },
   {
     "name": "InvalidEnvironmentType",
     "type": "Error",
     "fields": {
-      "Type": "string"
+      "envType": "string"
     },
     "message": "'%s' is not a valid environment type",
-    "message_format": ["Type"],
+    "message_format": ["envType"],
     "note": "environment type can be 'Level', 'Mesh', 'Sound' or 'Shared'"
   },
   {
@@ -34,113 +34,113 @@
     "name": "DuplicateEnvironmentNames",
     "type": "Error",
     "fields": {
-      "Path1": "string",
-      "Path2": "string"
+      "path1": "string",
+      "path2": "string"
     },
     "message": "duplicate environment names found between '%s' and '%s'",
-    "message_format": ["Path1", "Path2"]
+    "message_format": ["path1", "path2"]
   },
   {
     "name": "InvalidAccessValue",
     "type": "Error",
     "fields": {
-      "Type": "string"
+      "valueType": "string"
     },
     "message": "value is of type '%s', so it cannot be accessed from",
-    "message_format": ["Type"],
+    "message_format": ["valueType"],
     "note": "only lists, maps, classes, entities, structs and enums can be used to access values from"
   },
   {
     "name": "FieldAccessOnListOrMap",
     "type": "Error",
     "fields": {
-      "Field": "string",
-      "AccessType": "string"
+      "field": "string",
+      "accessType": "string"
     },
     "message": "cannot access field '%s' from the %s",
-    "message_format": ["Field", "AccessType"],
+    "message_format": ["field", "accessType"],
     "note": "to access a value from a %s you use brackets, e.g. example[\\\"%s\\\"]",
-    "note_format": ["AccessType", "Field"]
+    "note_format": ["accessType", "field"]
   },
   {
     "name": "MemberAccessOnNonListOrMap",
     "type": "Error",
     "fields": {
-      "Member": "string",
-      "AccessType": "string"
+      "member": "string",
+      "accessType": "string"
     },
     "message": "cannot access member '[%s]' from the %s",
-    "message_format": ["Member", "AccessType"],
+    "message_format": ["member", "accessType"],
     "note": "to access a value you use a dot and then an identifier, e.g. example.identifier"
   },
   {
     "name": "InvalidMemberIndex",
     "type": "Error",
     "fields": {
-      "AccessType": "string",
-      "Index": "string"
+      "accessType": "string",
+      "index": "string"
     },
     "message": "'%s' is not of type number to be an index for the %s",
-    "message_format": ["Index", "AccessType"],
+    "message_format": ["index", "accessType"],
     "note": "for lists, an index (number) is used to access values, for maps, a key (text) is used"
   },
   {
     "name": "InvalidField",
     "type": "Error",
     "fields": {
-      "AccessType": "string",
-      "FieldName": "string"
+      "accessType": "string",
+      "fieldName": "string"
     },
     "message": "field '%s' does not belong to '%s'",
-    "message_format": ["FieldName", "AccessType"]
+    "message_format": ["fieldName", "accessType"]
   },
   {
     "name": "MixedMapOrListContents",
     "type": "Error",
     "fields": {
-      "ContainerType": "string",
-      "Type1": "string",
-      "Type2": "string"
+      "containerType": "string",
+      "type1": "string",
+      "type2": "string"
     },
     "message": "%s member is of type '%s', but the previous one was '%s'",
-    "message_format": ["ContainerType", "Type1", "Type2"]
+    "message_format": ["containerType", "type1", "type2"]
   },
   {
     "name": "InvalidCallerType",
     "type": "Error",
     "fields": {
-      "Type": "string"
+      "callerType": "string"
     },
     "message": "cannot call value of type '%s' as a function",
-    "message_format": ["Type"]
+    "message_format": ["callerType"]
   },
   {
     "name": "MethodOrFieldNotFound",
     "type": "Error",
     "fields": {
-      "Name": "string"
+      "name": "string"
     },
     "message": "no method or field named '%s'",
-    "message_format": ["Name"]
+    "message_format": ["name"]
   },
   {
     "name": "ForeignLocalVariableAccess",
     "type": "Error",
     "fields": {
-      "Name": "string"
+      "name": "string"
     },
     "message": "cannot access local variable '%s' belonging to a different environment",
-    "message_format": ["Name"]
+    "message_format": ["name"]
   },
   {
     "name": "InvalidArgumentType",
     "type": "Error",
     "fields": {
-      "GivenType": "string",
-      "ExpectedType": "string"
+      "givenType": "string",
+      "expectedType": "string"
     },
     "message": "argument was of type %s, but should be %s",
-    "message_format": ["GivenType", "ExpectedType"]
+    "message_format": ["givenType", "expectedType"]
   },
   {
     "name": "PublicDeclarationInLocalScope",
@@ -151,11 +151,11 @@
     "name": "Redeclaration",
     "type": "Error",
     "fields": {
-      "VarName": "string",
-      "DeclType": "string"
+      "varName": "string",
+      "declType": "string"
     },
     "message": "a %s named '%s' already exists",
-    "message_format": ["DeclType", "VarName"]
+    "message_format": ["declType", "varName"]
   },
   {
     "name": "NoValueGivenForConstant",
@@ -166,71 +166,71 @@
     "name": "TooFewElementsGiven",
     "type": "Error",
     "fields": {
-      "RequiredAmount": "int",
-      "Elem": "string",
-      "Context": "string"
+      "requiredAmount": "int",
+      "elem": "string",
+      "context": "string"
     },
     "message": "%d more %s(s) required %s",
-    "message_format": ["RequiredAmount", "Elem", "Context"]
+    "message_format": ["requiredAmount", "elem", "context"]
   },
   {
     "name": "TooManyElementsGiven",
     "type": "Error",
     "fields": {
-      "ExtraAmount": "int",
-      "Elem": "string",
-      "Context": "string"
+      "extraAmount": "int",
+      "elem": "string",
+      "context": "string"
     },
     "message": "%d less %s(s) required %s",
-    "message_format": ["ExtraAmount", "Elem", "Context"]
+    "message_format": ["extraAmount", "elem", "context"]
   },
   {
     "name": "ExplicitTypeRequiredInDeclaration",
     "type": "Error",
     "fields": {
-      "Context": "string"
+      "context": "string"
     },
     "message": "an explicit type is required %s",
-    "message_format": ["Context"]
+    "message_format": ["context"]
   },
   {
     "name": "ExplicitTypeMismatch",
     "type": "Error",
     "fields": {
-      "ExplicitType": "string",
-      "ValueType": "string"
+      "explicitType": "string",
+      "valueType": "string"
     },
     "message": "variable was given explicit type '%s', but its value is a '%s'",
-    "message_format": ["ExplicitType", "ValueType"]
+    "message_format": ["explicitType", "valueType"]
   },
   {
     "name": "ExplicitTypeNotAllowed",
     "type": "Error",
     "fields": {
-      "ExplicitType": "string"
+      "explicitType": "string"
     },
     "message": "cannot create a default value from the explicit type '%s'",
-    "message_format": ["ExplicitType"],
+    "message_format": ["explicitType"],
     "note": "some types don't have default values, like entities and classes"
   },
   {
     "name": "ImportCycle",
     "type": "Error",
     "fields": {
-      "HybPaths": "[]string"
+      "paths": "[]string"
     },
     "message": "import cycle detected: %s",
-    "message_format": [{ "HybPaths": "strings.Join({}, \" -> \")" }]
+    "message_format": [{ "paths": "strings.Join({}, \" -> \")" }]
   },
   {
     "name": "UndeclaredVariableAccess",
     "type": "Error",
     "fields": {
-      "Var": "string",
-      "Context": "string"
+      "variable": "string",
+      "context": "string"
     },
     "message": "'%s' is not a declared variable %s",
-    "message_format": ["Var", "Context"]
+    "message_format": ["variable", "context"]
   },
   {
     "name": "ConstValueAssignment",
@@ -241,20 +241,20 @@
     "name": "AssignmentTypeMismatch",
     "type": "Error",
     "fields": {
-      "VarType": "string",
-      "ValType": "string"
+      "varType": "string",
+      "valType": "string"
     },
     "message": "variable is of type '%s', but a value of '%s' was assigned to it",
-    "message_format": ["VarType", "ValType"]
+    "message_format": ["varType", "valType"]
   },
   {
     "name": "InvalidTypeInCompoundAssignment",
     "type": "Error",
     "fields": {
-      "Type": "string"
+      "valueType": "string"
     },
     "message": "the type '%s' is not allowed in compound assignment",
-    "message_format": ["Type"],
+    "message_format": ["valueType"],
     "note": "only numerical types are allowed, like number or fixed"
   },
   {
@@ -272,77 +272,77 @@
     "name": "InvalidUseOfExitStmt",
     "type": "Error",
     "fields": {
-      "ExitNode": "string",
-      "Context": "string"
+      "exitNode": "string",
+      "context": "string"
     },
     "message": "cannot use '%s' outside of %s",
-    "message_format": ["ExitNode", "Context"]
+    "message_format": ["exitNode", "context"]
   },
   {
     "name": "TypeMismatch",
     "type": "Error",
     "fields": {
-      "Type1": "string",
-      "Type2": "string",
-      "Context": "string"
+      "type1": "string",
+      "type2": "string",
+      "context": "string"
     },
     "message": "expected %s, got '%s' %s",
-    "message_format": ["Type1", "Type2", "Context"]
+    "message_format": ["type1", "type2", "context"]
   },
   {
     "name": "InvalidStmtInLocalBlock",
     "type": "Error",
     "fields": {
-      "StmtType": "string"
+      "stmt": "string"
     },
     "message": "%s must be in the global scope",
-    "message_format": ["StmtType"]
+    "message_format": ["stmt"]
   },
   {
     "name": "UnallowedLibraryUse",
     "type": "Error",
     "fields": {
-      "Library": "string",
-      "UnallowedEnvs": "string"
+      "library": "string",
+      "unallowedEnvs": "string"
     },
     "message": "cannot use the %s library in a %s environment",
-    "message_format": ["Library", "UnallowedEnvs"]
+    "message_format": ["library", "unallowedEnvs"]
   },
   {
     "name": "InvalidEnvironmentAccess",
     "type": "Error",
     "fields": {
-      "EnvName": "string"
+      "envName": "string"
     },
     "message": "environment named '%s' does not exist",
-    "message_format": ["EnvName"]
+    "message_format": ["envName"]
   },
   {
     "name": "EnvironmentReuse",
     "type": "Error",
     "fields": {
-      "EnvName": "string"
+      "envName": "string"
     },
     "message": "environment named '%s' is already imported through use statement",
-    "message_format": ["EnvName"]
+    "message_format": ["envName"]
   },
   {
     "name": "InvalidIteratorType",
     "type": "Error",
     "fields": {
-      "Type": "string"
+      "value": "string"
     },
     "message": "a for loop iterator must be a map or a list (found: '%s')",
-    "message_format": ["Type"]
+    "message_format": ["value"]
   },
   {
     "name": "UnnecessaryEmptyIdentifier",
     "type": "Warning",
     "fields": {
-      "Context": "string"
+      "context": "string"
     },
     "message": "unnecessary use of empty identifier ('_') %s",
-    "message_format": ["Context"]
+    "message_format": ["context"]
   },
   {
     "name": "EnvironmentUsesItself",
@@ -358,32 +358,32 @@
     "name": "InvalidCondition",
     "type": "Error",
     "fields": {
-      "Context": "string"
+      "context": "string"
     },
     "message": "invalid condition %s",
-    "message_format": ["Context"],
+    "message_format": ["context"],
     "note": "conditions always have to evaluate to either true or false"
   },
   {
     "name": "InvalidRepeatIterator",
     "type": "Error",
     "fields": {
-      "Type": "string"
+      "valueType": "string"
     },
     "message": "invalid repeat iterator of type '%s'",
-    "message_format": ["Type"],
+    "message_format": ["valueType"],
     "note": "repeat iterator must be a numerical type"
   },
   {
     "name": "InconsistentRepeatTypes",
     "type": "Error",
     "fields": {
-      "From": "string",
-      "Skip": "string",
-      "Iterator": "string"
+      "from": "string",
+      "skip": "string",
+      "iterator": "string"
     },
     "message": "repeat types are inconsistent (from:'%s', by:'%s', to:'%s')",
-    "message_format": ["From", "Skip", "Iterator"]
+    "message_format": ["from", "skip", "iterator"]
   },
   {
     "name": "OfficialEntityConversion",
@@ -399,20 +399,20 @@
     "name": "EnvironmentAccessAmbiguity",
     "type": "Error",
     "fields": {
-      "Envs": "[]string",
-      "Context": "string"
+      "envs": "[]string",
+      "context": "string"
     },
     "message": "the type '%s' can be found on multiple environments: %s",
-    "message_format": ["Context", { "Envs": "strings.Join({}, \", \")" }]
+    "message_format": ["context", { "envs": "strings.Join({}, \", \")" }]
   },
   {
     "name": "NotAllCodePathsExit",
     "type": "Error",
     "fields": {
-      "ExitType": "string"
+      "exitType": "string"
     },
     "message": "not all code paths %s",
-    "message_format": ["ExitType"]
+    "message_format": ["exitType"]
   },
   {
     "name": "InsufficientCases",
@@ -429,42 +429,42 @@
     "name": "InvalidCaseType",
     "type": "Error",
     "fields": {
-      "MatchValueType": "string",
-      "CaseValueType": "string"
+      "matchValueType": "string",
+      "caseValueType": "string"
     },
     "message": "match value is of type '%s', but case value is of type '%s'",
-    "message_format": ["MatchValueType", "CaseValueType"]
+    "message_format": ["matchValueType", "caseValueType"]
   },
   {
     "name": "LiteralCondition",
     "type": "Warning",
     "fields": {
-      "ConditionValue": "string"
+      "conditionValue": "string"
     },
     "message": "condition is always %s",
-    "message_format": ["ConditionValue"]
+    "message_format": ["conditionValue"]
   },
   {
     "name": "TypesMismatch",
     "type": "Error",
     "fields": {
-      "Value1": "string",
-      "Type1": "string",
-      "Value2": "string",
-      "Type2": "string"
+      "value1": "string",
+      "type1": "string",
+      "value2": "string",
+      "type2": "string"
     },
     "message": "%s is of type '%s', but %s is of type '%s'",
-    "message_format": ["Value1", "Type1", "Value2", "Type2"]
+    "message_format": ["value1", "type1", "value2", "type2"]
   },
   {
     "name": "MissingConstructor",
     "type": "Error",
     "fields": {
-      "ConstructorType": "string",
-      "Context": "string"
+      "constructorType": "string",
+      "context": "string"
     },
     "message": "missing '%s' constructor %s",
-    "message_format": ["ConstructorType", "Context"]
+    "message_format": ["constructorType", "context"]
   },
   {
     "name": "MissingDestroy",
@@ -475,20 +475,20 @@
     "name": "UninitializedFieldInConstructor",
     "type": "Error",
     "fields": {
-      "VarName": "string",
-      "Context": "string"
+      "varName": "string",
+      "context": "string"
     },
     "message": "variable '%s' was not initialized in the constructor %s",
-    "message_format": ["VarName", "Context"]
+    "message_format": ["varName", "context"]
   },
   {
     "name": "TypeRedeclaration",
     "type": "Error",
     "fields": {
-      "TypeName": "string"
+      "typeName": "string"
     },
     "message": "type '%s' already exists",
-    "message_format": ["TypeName"]
+    "message_format": ["typeName"]
   },
   {
     "name": "InvalidCallAsArgument",
@@ -509,22 +509,22 @@
     "name": "DuplicateElement",
     "type": "Error",
     "fields": {
-      "Element": "string",
-      "ElemName": "string"
+      "element": "string",
+      "elemName": "string"
     },
     "message": "the %s '%s' already exists",
-    "message_format": ["Element", "ElemName"]
+    "message_format": ["element", "elemName"]
   },
   {
     "name": "InvalidEntityFunctionSignature",
     "type": "Error",
     "fields": {
-      "Got": "string",
-      "Expected": "string",
-      "EntityFuncType": "string"
+      "got": "string",
+      "expected": "string",
+      "entityFuncType": "string"
     },
     "message": "expected '%s' for %s, got '%s'",
-    "message_format": ["Expected", "EntityFuncType", "Got"]
+    "message_format": ["expected", "entityFuncType", "got"]
   },
   {
     "name": "InvalidSpawnerParameters",
@@ -535,50 +535,50 @@
     "name": "InvalidPewpewVariable",
     "type": "Error",
     "fields": {
-      "PewpewVar": "string",
-      "Type": "string"
+      "pewpewVar": "string",
+      "varType": "string"
     },
     "message": "'%s' variable should be global and of type 'list<%s>'",
-    "message_format": ["PewpewVar", "Type"]
+    "message_format": ["pewpewVar", "varType"]
   },
   {
     "name": "MissingPewpewVariable",
     "type": "Error",
     "fields": {
-      "PewpewVar": "string",
-      "EnvType": "string"
+      "pewpewVar": "string",
+      "envType": "string"
     },
     "message": "A %s environment must have a '%s' variable",
-    "message_format": ["EnvType", "PewpewVar"]
+    "message_format": ["envType", "pewpewVar"]
   },
   {
     "name": "UnallowedEnvironmentAccess",
     "type": "Error",
     "fields": {
-      "Unallowed": "string",
-      "From": "string"
+      "unallowed": "string",
+      "from": "string"
     },
     "message": "cannot access a %s environment from a %s environment",
-    "message_format": ["Unallowed", "From"]
+    "message_format": ["unallowed", "from"]
   },
   {
     "name": "InvalidDefaultCasePlacement",
     "type": "Error",
     "fields": {
-      "Context": "string"
+      "context": "string"
     },
     "message": "the default case must always be at the end %s",
-    "message_format": ["Context"]
+    "message_format": ["context"]
   },
   {
     "name": "InvalidType",
     "type": "Error",
     "fields": {
-      "Type": "string",
-      "Context": "string"
+      "varType": "string",
+      "context": "string"
     },
     "message": "cannot have a type '%s' %s",
-    "message_format": ["Type", "Context"]
+    "message_format": ["varType", "context"]
   },
   {
     "name": "ListIndexOutOfBounds",
@@ -594,10 +594,10 @@
     "name": "MissingGenericArgument",
     "type": "Error",
     "fields": {
-      "Type": "string"
+      "genericType": "string"
     },
     "message": "generic type '%s' could not be inferred",
-    "message_format": ["Type"]
+    "message_format": ["genericType"]
   },
   {
     "name": "InvalidAssignment",
@@ -608,19 +608,19 @@
     "name": "ConflictingVariableNameWithType",
     "type": "Error",
     "fields": {
-      "Type": "string"
+      "name": "string"
     },
     "message": "variable name conflicts with type '%s'",
-    "message_format": ["Type"]
+    "message_format": ["name"]
   },
   {
     "name": "UnusedElement",
     "type": "Warning",
     "fields": {
-      "Elem": "string"
+      "elem": "string"
     },
     "message": "%s is not used",
-    "message_format": ["Elem"]
+    "message_format": ["elem"]
   },
   {
     "name": "EmptyIdentifierOnSpawnParameters",
@@ -636,10 +636,10 @@
     "name": "AssignmentToSelf",
     "type": "Warning",
     "fields": {
-      "VarName": "string"
+      "varName": "string"
     },
     "message": "the variable '%s' is assigned to itself",
-    "message_format": ["VarName"]
+    "message_format": ["varName"]
   },
   {
     "name": "UnknownListOrMapContents",
@@ -656,20 +656,20 @@
     "name": "InvalidSpawnerParameter",
     "type": "Error",
     "fields": {
-      "Nth": "string",
-      "Name": "string"
+      "nth": "string",
+      "name": "string"
     },
     "message": "the %s parameter has to be named '%s'",
-    "message_format": ["Nth", "Name"]
+    "message_format": ["nth", "name"]
   },
   {
     "name": "UnallowedNumberInEnvironment",
     "type": "Error",
     "fields": {
-      "NumberType": "string",
-      "EnvType": "string"
+      "numberType": "string",
+      "envType": "string"
     },
     "message": "%s numbers are not allowed in a %s environment",
-    "message_format": ["NumberType", "EnvType"]
+    "message_format": ["numberType", "envType"]
   }
 ]

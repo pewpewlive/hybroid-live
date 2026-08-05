@@ -3,6 +3,7 @@ package walker
 import (
 	"hybroid/alerts"
 	"hybroid/ast"
+	"hybroid/core"
 	"hybroid/tokens"
 	"slices"
 	"strings"
@@ -66,12 +67,12 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 		variable, ok := value.(*VariableVal)
 		if !ok {
 			if value.GetType() != InvalidType {
-				w.AlertSingle(&alerts.InvalidAssignment{}, idents[i].GetToken())
+				w.Report(alerts.NewInvalidAssignment(idents[i].GetToken().Span))
 			}
 			continue
 		}
 		if variable.IsConst {
-			w.AlertSingle(&alerts.ConstValueAssignment{}, idents[i].GetToken())
+			w.Report(alerts.NewConstValueAssignment(idents[i].GetToken().Span))
 			continue
 		}
 		if !variable.IsInit {
@@ -86,7 +87,7 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 			exprValue := w.GetNodeValue(&assignStmt.Values[exprCounter], scope)
 			if variable2, ok := exprValue.(*VariableVal); ok {
 				if variable2 == variable && assignStmt.Values[exprCounter].GetType() == ast.Identifier && assignOp.Type == tokens.Equal {
-					w.AlertSingle(&alerts.AssignmentToSelf{}, assignStmt.Values[exprCounter].GetToken(), variable.Name)
+					w.Report(alerts.NewAssignmentToSelf(assignStmt.Values[exprCounter].GetToken().Span, variable.Name))
 				}
 				exprValue = variable2.Value
 			}
@@ -104,7 +105,7 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 			exprCounter++
 		} else {
 			requiredAmount := identsLen - len(values)
-			w.AlertSingle(&alerts.TooFewElementsGiven{}, exprs[len(exprs)-1].GetToken(), requiredAmount, "value", "in assignment")
+			w.Report(alerts.NewTooFewElementsGiven(exprs[len(exprs)-1].GetToken().Span, requiredAmount, "value", "in assignment"))
 			return
 		}
 
@@ -114,29 +115,26 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 
 		if assignOp.Type == tokens.PipeEqual || assignOp.Type == tokens.AmpersandEqual || assignOp.Type == tokens.LeftShiftEqual || assignOp.Type == tokens.RightShiftEqual || assignOp.Type == tokens.TildeEqual {
 			if valType.PVT() != ast.Number {
-				w.AlertSingle(&alerts.InvalidType{}, exprs[values[i].Index].GetToken(), valType, "in bitwise compound assignment")
+				w.Report(alerts.NewInvalidType(exprs[values[i].Index].GetToken().Span, valType.String(), "in bitwise compound assignment"))
 				continue
 			}
 			if variableType.PVT() != ast.Number {
-				w.AlertSingle(&alerts.InvalidType{}, idents[i].GetToken(), variableType, "in bitwise compound assignment")
+				w.Report(alerts.NewInvalidType(idents[i].GetToken().Span, variableType.String(), "in bitwise compound assignment"))
 				continue
 			}
 		} else if assignOp.Type != tokens.Equal {
 			if !isNumerical(valType.PVT()) {
-				w.AlertSingle(&alerts.InvalidTypeInCompoundAssignment{}, exprs[values[i].Index].GetToken(), valType)
+				w.Report(alerts.NewInvalidTypeInCompoundAssignment(exprs[values[i].Index].GetToken().Span, valType.String()))
 				continue
 			}
 			if !isNumerical(variableType.PVT()) {
-				w.AlertSingle(&alerts.InvalidTypeInCompoundAssignment{}, idents[i].GetToken(), variableType)
+				w.Report(alerts.NewInvalidTypeInCompoundAssignment(idents[i].GetToken().Span, variableType.String()))
 				continue
 			}
 		}
 
 		if !TypeEquals(variableType, valType) {
-			w.AlertSingle(&alerts.AssignmentTypeMismatch{}, exprs[values[i].Index].GetToken(),
-				variableType.String(),
-				valType.String(),
-			)
+			w.Report(alerts.NewAssignmentTypeMismatch(exprs[values[i].Index].GetToken().Span, variableType.String(), valType.String()))
 			continue
 		}
 	}
@@ -157,13 +155,7 @@ func (w *Walker) assignmentStatement(assignStmt *ast.AssignmentStmt, scope *Scop
 	valuesLen := len(values)
 	if valuesLen > identsLen {
 		extraAmount := valuesLen - identsLen
-		w.AlertMulti(&alerts.TooManyElementsGiven{},
-			exprs[values[valuesLen-extraAmount].Index].GetToken(),
-			exprs[values[valuesLen-1].Index].GetToken(),
-			extraAmount,
-			"value",
-			"in assignment",
-		)
+		w.Report(alerts.NewTooManyElementsGiven(core.MergeSpans(exprs[values[valuesLen-extraAmount].Index].GetToken().Span, exprs[values[valuesLen-1].Index].GetToken().Span), extraAmount, "value", "in assignment"))
 		return
 	}
 }
@@ -177,7 +169,7 @@ func (w *Walker) repeatStatement(node *ast.RepeatStmt, scope *Scope) {
 	end := w.GetActualNodeValue(&node.Iterator, scope)
 	endType := end.GetType()
 	if endType != InvalidType && !isNumerical(endType.PVT()) {
-		w.AlertSingle(&alerts.InvalidRepeatIterator{}, node.Iterator.GetToken(), endType)
+		w.Report(alerts.NewInvalidRepeatIterator(node.Iterator.GetToken().Span, endType.String()))
 	}
 	var start Value
 	if node.Start == nil {
@@ -201,11 +193,7 @@ func (w *Walker) repeatStatement(node *ast.RepeatStmt, scope *Scope) {
 	startType := start.GetType()
 	skipType := skip.GetType()
 	if !(TypeEquals(endType, startType) && TypeEquals(startType, skipType)) {
-		w.AlertSingle(&alerts.InconsistentRepeatTypes{}, node.Token,
-			startType.String(),
-			skipType.String(),
-			endType.String(),
-		)
+		w.Report(alerts.NewInconsistentRepeatTypes(node.Token.Span, startType.String(), skipType.String(), endType.String()))
 	}
 
 	if node.Variable != nil {
@@ -239,7 +227,7 @@ func (w *Walker) forStatement(node *ast.ForStmt, scope *Scope) {
 			node.EnvName = nt.EnvName
 			node.EntityName = nt.Name
 			if node.Second != nil {
-				w.AlertSingle(&alerts.TooManyElementsGiven{}, node.Second.Name, 1, "for loop variable", "")
+				w.Report(alerts.NewTooManyElementsGiven(node.Second.Name.Span, 1, "for loop variable", ""))
 			}
 			if node.First.Name.Lexeme != "_" {
 				w.declareVariable(forScope, NewVariable(node.First.Name, w.typeToValue(valType)))
@@ -248,14 +236,14 @@ func (w *Walker) forStatement(node *ast.ForStmt, scope *Scope) {
 			w.reportExits(lt, scope)
 			return
 		} else {
-			w.AlertSingle(&alerts.InvalidEntityForLoopType{}, node.Iterator.GetToken())
+			w.Report(alerts.NewInvalidEntityForLoopType(node.Iterator.GetToken().Span))
 		}
 	}
 
 	valType := w.GetActualNodeValue(&node.Iterator, scope).GetType()
 	wrapper, ok := valType.(*WrapperType)
 	if !ok {
-		w.AlertSingle(&alerts.InvalidIteratorType{}, node.Iterator.GetToken(), valType.String())
+		w.Report(alerts.NewInvalidIteratorType(node.Iterator.GetToken().Span, valType.String()))
 		return
 	}
 	node.OrderedIteration = wrapper.PVT() == ast.List
@@ -272,7 +260,7 @@ func (w *Walker) forStatement(node *ast.ForStmt, scope *Scope) {
 
 	if node.Second != nil && ok {
 		if node.Second.Name.Lexeme == "_" && node.First.Name.Lexeme != "_" {
-			w.AlertSingle(&alerts.UnnecessaryEmptyIdentifier{}, node.Second.Name, "in for loop statement")
+			w.Report(alerts.NewUnnecessaryEmptyIdentifier(node.Second.Name.Span, "in for loop statement"))
 		}
 		if node.Second.Name.Lexeme != "_" {
 			w.declareVariable(forScope, NewVariable(node.Second.Name, w.typeToValue(wrapper.WrappedType)))
@@ -303,10 +291,10 @@ func (w *Walker) matchStatement(node *ast.MatchStmt, scope *Scope) {
 	casesLength := len(node.Cases)
 	if !node.HasDefault {
 		if casesLength < 1 {
-			w.AlertSingle(&alerts.InsufficientCases{}, node.Token)
+			w.Report(alerts.NewInsufficientCases(node.Token.Span))
 		}
 	} else if casesLength < 2 {
-		w.AlertSingle(&alerts.InsufficientCases{}, node.Token)
+		w.Report(alerts.NewInsufficientCases(node.Token.Span))
 	}
 
 	var prevPathTag PathTag
@@ -323,7 +311,7 @@ func (w *Walker) matchStatement(node *ast.MatchStmt, scope *Scope) {
 
 		if node.Cases[i].Expressions[0].GetToken().Lexeme == "else" {
 			if i != len(node.Cases)-1 {
-				w.AlertSingle(&alerts.InvalidDefaultCasePlacement{}, node.Cases[i].Expressions[0].GetToken(), "in match statement")
+				w.Report(alerts.NewInvalidDefaultCasePlacement(node.Cases[i].Expressions[0].GetToken().Span, "in match statement"))
 			}
 			continue
 		}
@@ -334,7 +322,7 @@ func (w *Walker) matchStatement(node *ast.MatchStmt, scope *Scope) {
 				continue
 			}
 			if !TypeEquals(valType, caseValType) {
-				w.AlertSingle(&alerts.InvalidCaseType{}, node.Cases[i].Expressions[j].GetToken(), valType, caseValType)
+				w.Report(alerts.NewInvalidCaseType(node.Cases[i].Expressions[j].GetToken().Span, valType.String(), caseValType.String()))
 			}
 		}
 	}
@@ -346,10 +334,7 @@ func (w *Walker) matchStatement(node *ast.MatchStmt, scope *Scope) {
 
 func (w *Walker) breakStatement(node *ast.BreakStmt, scope *Scope) {
 	if !scope.Is(BreakAllowing) {
-		w.AlertSingle(&alerts.InvalidUseOfExitStmt{}, node.Token,
-			"break",
-			"for loops or match statement",
-		)
+		w.Report(alerts.NewInvalidUseOfExitStmt(node.Token.Span, "break", "for loops or match statement"))
 	}
 
 	if returnable := scope.resolveReturnable(); returnable != nil {
@@ -359,10 +344,7 @@ func (w *Walker) breakStatement(node *ast.BreakStmt, scope *Scope) {
 
 func (w *Walker) continueStatement(node *ast.ContinueStmt, scope *Scope) {
 	if !scope.Is(ContinueAllowing) {
-		w.AlertSingle(&alerts.InvalidUseOfExitStmt{}, node.Token,
-			"continue",
-			"for loops",
-		)
+		w.Report(alerts.NewInvalidUseOfExitStmt(node.Token.Span, "continue", "for loops"))
 	}
 
 	if returnable := scope.resolveReturnable(); returnable != nil {
@@ -372,10 +354,7 @@ func (w *Walker) continueStatement(node *ast.ContinueStmt, scope *Scope) {
 
 func (w *Walker) returnStatement(node *ast.ReturnStmt, scope *Scope) *[]Type {
 	if !scope.Is(ReturnAllowing) {
-		w.AlertSingle(&alerts.InvalidUseOfExitStmt{}, node.Token,
-			"return",
-			"a function or method",
-		)
+		w.Report(alerts.NewInvalidUseOfExitStmt(node.Token.Span, "return", "a function or method"))
 	}
 
 	ret := make(Values2, 0)
@@ -406,10 +385,7 @@ func (w *Walker) returnStatement(node *ast.ReturnStmt, scope *Scope) *[]Type {
 
 func (w *Walker) yieldStatement(node *ast.YieldStmt, scope *Scope) *[]Type {
 	if !scope.Is(YieldAllowing) {
-		w.AlertSingle(&alerts.InvalidUseOfExitStmt{}, node.Token,
-			"yield",
-			"a match expression",
-		)
+		w.Report(alerts.NewInvalidUseOfExitStmt(node.Token.Span, "yield", "a match expression"))
 	}
 
 	ret := make(Values2, 0)
@@ -446,7 +422,7 @@ func (w *Walker) yieldStatement(node *ast.YieldStmt, scope *Scope) *[]Type {
 
 func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 	if scope.Parent != nil {
-		w.AlertSingle(&alerts.InvalidStmtInLocalBlock{}, node.Token, "use statement")
+		w.Report(alerts.NewInvalidStmtInLocalBlock(node.Token.Span, "use statement"))
 		return
 	}
 
@@ -455,44 +431,44 @@ func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 	switch envName {
 	case "Pewpew":
 		if w.environment.Type != ast.LevelEnv {
-			w.AlertSingle(&alerts.UnallowedLibraryUse{}, node.PathExpr.Path, "Pewpew", "Mesh/Sound/Shared")
+			w.Report(alerts.NewUnallowedLibraryUse(node.PathExpr.Path.Span, "Pewpew", "Mesh/Sound/Shared"))
 		}
 		if !w.AddLibrary(ast.Pewpew) {
-			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
+			w.Report(alerts.NewEnvironmentReuse(node.PathExpr.Path.Span, envName))
 		}
 		w.ImportLibrary(ast.Pewpew)
 		w.AddReference("env", envName, node.PathExpr.Path)
 		return
 	case "Fmath":
 		if w.environment.Type != ast.LevelEnv {
-			w.AlertSingle(&alerts.UnallowedLibraryUse{}, node.PathExpr.Path, "Fmath", "Mesh or Sound")
+			w.Report(alerts.NewUnallowedLibraryUse(node.PathExpr.Path.Span, "Fmath", "Mesh or Sound"))
 		}
 		if !w.AddLibrary(ast.Fmath) {
-			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
+			w.Report(alerts.NewEnvironmentReuse(node.PathExpr.Path.Span, envName))
 		}
 		w.ImportLibrary(ast.Fmath)
 		w.AddReference("env", envName, node.PathExpr.Path)
 		return
 	case "Math":
 		if w.environment.Type == ast.LevelEnv {
-			w.AlertSingle(&alerts.UnallowedLibraryUse{}, node.PathExpr.Path, "Math", "Level")
+			w.Report(alerts.NewUnallowedLibraryUse(node.PathExpr.Path.Span, "Math", "Level"))
 		}
 		if !w.AddLibrary(ast.Math) {
-			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
+			w.Report(alerts.NewEnvironmentReuse(node.PathExpr.Path.Span, envName))
 		}
 		w.ImportLibrary(ast.Math)
 		w.AddReference("env", envName, node.PathExpr.Path)
 		return
 	case "String":
 		if !w.AddLibrary(ast.String) {
-			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
+			w.Report(alerts.NewEnvironmentReuse(node.PathExpr.Path.Span, envName))
 		}
 		w.ImportLibrary(ast.String)
 		w.AddReference("env", envName, node.PathExpr.Path)
 		return
 	case "Table":
 		if !w.AddLibrary(ast.Table) {
-			w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
+			w.Report(alerts.NewEnvironmentReuse(node.PathExpr.Path.Span, envName))
 		}
 		w.ImportLibrary(ast.Table)
 		w.AddReference("env", envName, node.PathExpr.Path)
@@ -501,31 +477,31 @@ func (w *Walker) useStatement(node *ast.UseStmt, scope *Scope) {
 
 	walker, found := w.walkers[envName]
 	if !found {
-		w.AlertSingle(&alerts.InvalidEnvironmentAccess{}, node.PathExpr.Path, envName)
+		w.Report(alerts.NewInvalidEnvironmentAccess(node.PathExpr.Path.Span, envName))
 		return
 	}
 
 	if walker.environment.Name == w.environment.Name {
-		w.AlertSingle(&alerts.EnvironmentUsesItself{}, node.PathExpr.GetToken())
+		w.Report(alerts.NewEnvironmentUsesItself(node.PathExpr.GetToken().Span))
 		return
 	}
 
 	if walker.environment.Type != ast.SharedEnv && (w.environment.Type == ast.MeshEnv || w.environment.Type == ast.SoundEnv) {
-		w.AlertSingle(&alerts.UnallowedEnvironmentAccess{}, node.PathExpr.GetToken(), "non Shared", "Mesh or Sound")
+		w.Report(alerts.NewUnallowedEnvironmentAccess(node.PathExpr.GetToken().Span, "non Shared", "Mesh or Sound"))
 	} else if w.environment.Type == ast.LevelEnv && (walker.environment.Type == ast.MeshEnv || walker.environment.Type == ast.SoundEnv) {
-		w.AlertSingle(&alerts.UnallowedEnvironmentAccess{}, node.PathExpr.GetToken(), "Mesh or Sound", "Level")
+		w.Report(alerts.NewUnallowedEnvironmentAccess(node.PathExpr.GetToken().Span, "Mesh or Sound", "Level"))
 	}
 
 	if paths, isCycle := w.ResolveImportCycle(walker); isCycle {
 		paths = append([]string{w.environment.hybroidPath}, paths...)
-		w.AlertSingle(&alerts.ImportCycle{}, node.PathExpr.Path, paths)
+		w.Report(alerts.NewImportCycle(node.PathExpr.Path.Span, paths))
 		return
 	}
 
 	success := w.environment.AddRequirement(walker.environment.luaPath)
 
 	if !success {
-		w.AlertSingle(&alerts.EnvironmentReuse{}, node.PathExpr.Path, envName)
+		w.Report(alerts.NewEnvironmentReuse(node.PathExpr.Path.Span, envName))
 		return
 	}
 	w.environment.imports = append(w.environment.imports, Import{
@@ -551,7 +527,7 @@ func (w *Walker) destroyStatement(node *ast.DestroyStmt, scope *Scope) {
 		return
 	}
 	if valType.PVT() != ast.Entity {
-		w.AlertSingle(&alerts.TypeMismatch{}, node.Identifier.GetToken(), "entity", valType.String(), "in destroy statement")
+		w.Report(alerts.NewTypeMismatch(node.Identifier.GetToken().Span, "entity", valType.String(), "in destroy statement"))
 		return
 	}
 

@@ -1,6 +1,7 @@
 package alerts
 
 import (
+	"hybroid/core"
 	"reflect"
 	"strings"
 	"testing"
@@ -20,10 +21,24 @@ func PrintAlerts[A any](t *testing.T, kind string, alertsToPrint ...A) {
 		}
 
 		actualAlert := any(alert).(Alert)
-		token := actualAlert.SnippetSpecifier().GetTokens()[0]
-		loc := token.Location
+		span := actualAlert.Span()
 		name := reflect.ValueOf(alert).Elem().Type().Name()
 		msg := strings.TrimSpace(actualAlert.Message())
-		t.Logf("%d. %s (%s) at line %d, column %d on token '%s'", i+1, name, msg, loc.Line, loc.Column.Start, token.Lexeme)
+		t.Logf("%d. %s (%s) at line %d, column %d", i+1, name, msg, span.Line, span.Column)
 	}
+}
+
+type Snippet interface {
+	//GetSnippet(lines map[int][]byte, alert Alert) string
+	Span() core.Span
+}
+
+type SnippetProvider struct {
+	span core.Span
+}
+
+func (sp *SnippetProvider) Span() core.Span { return sp.span }
+
+type ContextProvider struct {
+	context string
 }

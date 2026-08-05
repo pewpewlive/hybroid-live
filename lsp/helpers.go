@@ -121,11 +121,11 @@ func toLSPLocation(path string, token tokens.Token) Location {
 		Range: Range{
 			Start: Position{
 				Line:      token.Line - 1,
-				Character: token.Column.Start - 1,
+				Character: token.Column - 1,
 			},
 			End: Position{
 				Line:      token.Line - 1,
-				Character: token.Column.End - 1,
+				Character: token.Column - 1 + token.Length,
 			},
 		},
 	}

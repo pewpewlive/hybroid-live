@@ -1,6 +1,8 @@
 package alerts
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Type int
 
@@ -22,16 +24,17 @@ func (t Type) GetColor() string {
 
 /*
 TODO: add fix snippet
-"fix": {
-      "insert": "number",
-      "where": "before"
-    }
-*/
 
+	"fix": {
+	      "insert": "number",
+	      "where": "before"
+	    }
+*/
 type Alert interface {
+	Snippet
+
 	Message() string
-	SnippetSpecifier() Snippet
 	Note() string
+	Type() Type
 	ID() string
-	AlertType() Type
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hybroid/alerts"
 	"hybroid/ast"
+	"hybroid/core"
 	"hybroid/tokens"
 	"math"
 	"strconv"
@@ -11,7 +12,7 @@ import (
 
 func (w *Walker) checkAccessibility(s *Scope, isPub bool, token tokens.Token) {
 	if s.Environment.Name != w.environment.Name && !isPub {
-		w.AlertSingle(&alerts.ForeignLocalVariableAccess{}, token, token.Lexeme)
+		w.Report(alerts.NewForeignLocalVariableAccess(token.Span, token.Lexeme))
 	}
 }
 
@@ -54,7 +55,7 @@ func (w *Walker) declareVariable(s *Scope, value *VariableVal) (*VariableVal, bo
 		return value, false
 	}
 	if w.typeExists(value.Name) {
-		w.AlertSingle(&alerts.ConflictingVariableNameWithType{}, value.Token, value.Name)
+		w.Report(alerts.NewConflictingVariableNameWithType(value.Token.Span, value.Name))
 		return value, false
 	}
 	if varFound, found := s.Variables[value.Name]; found {
@@ -161,20 +162,14 @@ func (w *Walker) validateArguments(generics map[string]Type, args []Value, fn *F
 		for k := range generics {
 			generic := generics[k]
 			if generic == UnknownTyp {
-				w.AlertSingle(&alerts.MissingGenericArgument{}, call.GetToken(), k)
+				w.Report(alerts.NewMissingGenericArgument(call.GetToken().Span, k))
 			}
 		}
 	}()
 
 	if len(args) > paramCount && (paramCount == 0 || fn.Params[paramCount-1].GetType() != Variadic) {
 		extraAmount := len(args) - paramCount
-		w.AlertMulti(&alerts.TooManyElementsGiven{},
-			nodeArgs[len(nodeArgs)-extraAmount].GetToken(),
-			nodeArgs[len(nodeArgs)-1].GetToken(),
-			extraAmount,
-			"value",
-			"in call arguments",
-		)
+		w.Report(alerts.NewTooManyElementsGiven(core.MergeSpans(nodeArgs[len(nodeArgs)-extraAmount].GetToken().Span, nodeArgs[len(nodeArgs)-1].GetToken().Span), extraAmount, "value", "in call arguments"))
 		return
 	}
 
@@ -191,7 +186,7 @@ func (w *Walker) validateArguments(generics map[string]Type, args []Value, fn *F
 		}
 
 		if _, ok := arg.(Values); ok {
-			w.AlertSingle(&alerts.InvalidCallAsArgument{}, nodeArgs[i].GetToken())
+			w.Report(alerts.NewInvalidCallAsArgument(nodeArgs[i].GetToken().Span))
 			continue
 		}
 
@@ -204,10 +199,7 @@ func (w *Walker) validateArguments(generics map[string]Type, args []Value, fn *F
 				generics[typFound.Name] = genericArg
 				param = argType
 			} else if !TypeEquals(genericArg, argType) {
-				w.AlertSingle(&alerts.TypesMismatch{}, nodeArgs[i].GetToken(),
-					"generic argument", genericArg,
-					"function argument", argType,
-				)
+				w.Report(alerts.NewTypesMismatch(nodeArgs[i].GetToken().Span, "generic argument", genericArg.String(), "function argument", argType.String()))
 			}
 			continue
 		}
@@ -217,7 +209,7 @@ func (w *Walker) validateArguments(generics map[string]Type, args []Value, fn *F
 		}
 
 		if !TypeEquals(param, argType) {
-			w.AlertSingle(&alerts.InvalidArgumentType{}, nodeArgs[i].GetToken(), argType.String(), param.String())
+			w.Report(alerts.NewInvalidArgumentType(nodeArgs[i].GetToken().Span, argType.String(), param.String()))
 			return
 		}
 	}
@@ -226,7 +218,7 @@ func (w *Walker) validateArguments(generics map[string]Type, args []Value, fn *F
 		if retArg.GetType() == Generic {
 			generic := retArg.(*GenericType)
 			if generics[generic.Name] == UnknownTyp {
-				w.AlertSingle(&alerts.MissingGenericArgument{}, call.GetToken(), generic.Name)
+				w.Report(alerts.NewMissingGenericArgument(call.GetToken().Span, generic.Name))
 				continue
 			}
 			fn.Returns[i] = generics[generic.Name]
@@ -235,9 +227,9 @@ func (w *Walker) validateArguments(generics map[string]Type, args []Value, fn *F
 
 	if paramCount > len(args) {
 		if len(nodeArgs) == 0 {
-			w.AlertSingle(&alerts.TooFewElementsGiven{}, call.GetToken(), paramCount-len(args), "value", "in call arguments")
+			w.Report(alerts.NewTooFewElementsGiven(call.GetToken().Span, paramCount-len(args), "value", "in call arguments"))
 		} else {
-			w.AlertSingle(&alerts.TooFewElementsGiven{}, nodeArgs[len(nodeArgs)-1].GetToken(), paramCount-len(args), "value", "in call arguments")
+			w.Report(alerts.NewTooFewElementsGiven(nodeArgs[len(nodeArgs)-1].GetToken().Span, paramCount-len(args), "value", "in call arguments"))
 		}
 	}
 
@@ -289,15 +281,15 @@ func (w *Walker) validateArithmeticOperands(leftVal Value, rightVal Value, node 
 		return &Invalid{}
 	}
 	if !isNumerical(left.PVT()) {
-		w.AlertSingle(&alerts.TypeMismatch{}, node.Left.GetToken(), "a numerical type", left, context)
+		w.Report(alerts.NewTypeMismatch(node.Left.GetToken().Span, "a numerical type", left.String(), context))
 		return &Invalid{}
 	}
 	if !isNumerical(right.PVT()) {
-		w.AlertSingle(&alerts.TypeMismatch{}, node.Right.GetToken(), "a numerical type", right, context)
+		w.Report(alerts.NewTypeMismatch(node.Right.GetToken().Span, "a numerical type", right.String(), context))
 		return &Invalid{}
 	}
 	if !TypeEquals(left, right) {
-		w.AlertMulti(&alerts.TypesMismatch{}, node.Left.GetToken(), node.Right.GetToken(), "left value", left, "right value", right)
+		w.Report(alerts.NewTypesMismatch(core.MergeSpans(node.Left.GetToken().Span, node.Right.GetToken().Span), "left value", left.String(), "right value", right.String()))
 		return &Invalid{}
 	}
 	if left.PVT() != ast.Number {
@@ -332,11 +324,11 @@ func (w *Walker) validateConditionalOperands(leftVal Value, rightVal Value, node
 		return &Invalid{}
 	}
 	if left.PVT() != ast.Bool {
-		w.AlertSingle(&alerts.TypeMismatch{}, node.Left.GetToken(), "a boolean", left, "in logical comparison expression")
+		w.Report(alerts.NewTypeMismatch(node.Left.GetToken().Span, "a boolean", left.String(), "in logical comparison expression"))
 		return &BoolVal{}
 	}
 	if right.PVT() != ast.Bool {
-		w.AlertSingle(&alerts.TypeMismatch{}, node.Right.GetToken(), "a boolean", right, "in logical comparison expression")
+		w.Report(alerts.NewTypeMismatch(node.Right.GetToken().Span, "a boolean", right.String(), "in logical comparison expression"))
 		return &BoolVal{}
 	}
 	leftBool, rightBool := leftVal.(*BoolVal), rightVal.(*BoolVal)
@@ -365,19 +357,13 @@ func (w *Walker) validateReturnValues(returnArgs []ast.Node, _return []Value2, e
 	if retLen < expRetLen {
 		requiredAmount := expRetLen - retLen
 		if len(returnArgs) == 0 {
-			w.AlertSingle(&alerts.TooFewElementsGiven{}, token, requiredAmount, "return value", context)
+			w.Report(alerts.NewTooFewElementsGiven(token.Span, requiredAmount, "return value", context))
 		} else {
-			w.AlertSingle(&alerts.TooFewElementsGiven{}, returnArgs[len(returnArgs)-1].GetToken(), requiredAmount, "return value", context)
+			w.Report(alerts.NewTooFewElementsGiven(returnArgs[len(returnArgs)-1].GetToken().Span, requiredAmount, "return value", context))
 		}
 	} else if retLen > expRetLen {
 		extraAmount := retLen - expRetLen
-		w.AlertMulti(&alerts.TooManyElementsGiven{},
-			returnArgs[len(returnArgs)-extraAmount].GetToken(),
-			returnArgs[len(returnArgs)-1].GetToken(),
-			extraAmount,
-			"return value",
-			context,
-		)
+		w.Report(alerts.NewTooManyElementsGiven(core.MergeSpans(returnArgs[len(returnArgs)-extraAmount].GetToken().Span, returnArgs[len(returnArgs)-1].GetToken().Span), extraAmount, "return value", context))
 	}
 	for i := range _return {
 		if i >= expRetLen {
@@ -387,11 +373,7 @@ func (w *Walker) validateReturnValues(returnArgs []ast.Node, _return []Value2, e
 			continue
 		}
 		if !TypeEquals(_return[i].GetType(), expectReturn[i]) {
-			w.AlertSingle(&alerts.TypeMismatch{}, returnArgs[_return[i].Index].GetToken(),
-				expectReturn[i],
-				_return[i].GetType(),
-				fmt.Sprintf(context+" (arg %d)", i+1),
-			)
+			w.Report(alerts.NewTypeMismatch(returnArgs[_return[i].Index].GetToken().Span, expectReturn[i].String(), _return[i].GetType().String(), fmt.Sprintf(context+" (arg %d)", i+1)))
 		}
 	}
 }
@@ -402,9 +384,9 @@ func (w *Walker) ifCondition(node *ast.Node, scope *Scope) {
 		return
 	}
 	if condition.GetType().PVT() != ast.Bool {
-		w.AlertSingle(&alerts.InvalidCondition{}, (*node).GetToken(), "in if statement")
+		w.Report(alerts.NewInvalidCondition((*node).GetToken().Span, "in if statement"))
 	} else if conditionValue := condition.(*BoolVal).Value; conditionValue != "" {
-		w.AlertSingle(&alerts.LiteralCondition{}, (*node).GetToken(), conditionValue)
+		w.Report(alerts.NewLiteralCondition((*node).GetToken().Span, conditionValue))
 	}
 }
 
@@ -423,13 +405,13 @@ func (w *Walker) getParameters(parameters []ast.FunctionParam, scope *Scope) []T
 
 	if len(variadicParams) > 1 {
 		for k := range variadicParams {
-			w.AlertSingle(&alerts.MoreThanOneVariadicParameter{}, k)
+			w.Report(alerts.NewMoreThanOneVariadicParameter(k.Span))
 			break
 		}
 	} else if len(variadicParams) == 1 {
 		for k, v := range variadicParams {
 			if v != len(parameters)-1 {
-				w.AlertSingle(&alerts.VariadicParameterNotAtEnd{}, k)
+				w.Report(alerts.NewVariadicParameterNotAtEnd(k.Span))
 			}
 		}
 	}
@@ -491,12 +473,12 @@ func (w *Walker) getGenericParams(genericParams []*ast.IdentifierExpr, scope *Sc
 
 	for _, generic := range genericParams {
 		if _, found := w.resolveGenericParam(generic.Name.Lexeme, scope); found {
-			w.AlertSingle(&alerts.DuplicateElement{}, generic.GetToken(), "generic parameter", generic.Name.Lexeme)
+			w.Report(alerts.NewDuplicateElement(generic.GetToken().Span, "generic parameter", generic.Name.Lexeme))
 			break
 		}
 		for i := range generics {
 			if generics[i].Name == generic.Name.Lexeme {
-				w.AlertSingle(&alerts.DuplicateElement{}, generic.GetToken(), "generic parameter", generic.Name.Lexeme)
+				w.Report(alerts.NewDuplicateElement(generic.GetToken().Span, "generic parameter", generic.Name.Lexeme))
 				break
 			}
 
@@ -514,13 +496,7 @@ func (w *Walker) getGenerics(genericArgs []*ast.TypeExpr, expectedGenerics []*Ge
 	suppliedGenerics := map[string]Type{}
 	if receivedGenericsLength > expectedGenericsLength {
 		extraAmount := receivedGenericsLength - expectedGenericsLength
-		w.AlertMulti(&alerts.TooManyElementsGiven{},
-			genericArgs[receivedGenericsLength-extraAmount].GetToken(),
-			genericArgs[receivedGenericsLength-1].GetToken(),
-			extraAmount,
-			"value",
-			"in generic arguments",
-		)
+		w.Report(alerts.NewTooManyElementsGiven(core.MergeSpans(genericArgs[receivedGenericsLength-extraAmount].GetToken().Span, genericArgs[receivedGenericsLength-1].GetToken().Span), extraAmount, "value", "in generic arguments"))
 	} else {
 		for i := range expectedGenerics {
 			if i > len(genericArgs)-1 {
@@ -701,11 +677,7 @@ func (w *Walker) getContentsValueType(elems []ast.Node, scope *Scope) Type {
 		val = w.GetActualNodeValue(&elems[i], scope)
 		valTypes = append(valTypes, val.GetType())
 		if !TypeEquals(valTypes[i-1], valTypes[i]) {
-			w.AlertSingle(&alerts.MixedMapOrListContents{}, elems[i].GetToken(),
-				"list",
-				valTypes[i].String(),
-				valTypes[i-1].String(),
-			)
+			w.Report(alerts.NewMixedMapOrListContents(elems[i].GetToken().Span, "list", valTypes[i].String(), valTypes[i-1].String()))
 			return InvalidType
 		}
 	}

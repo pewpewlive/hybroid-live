@@ -79,28 +79,17 @@ func Analyze(uri DocumentURI, text string, walkerMap map[string]*walker.Walker, 
 func alertsToDiagnostics(uri DocumentURI, alertsList []alerts.Alert) []Diagnostic {
 	diags := make([]Diagnostic, 0)
 	for _, alert := range alertsList {
-		snippet := alert.SnippetSpecifier()
-		toks := snippet.GetTokens()
+		span := alert.Span()
 
-		var startTok, endTok tokens.Token
-		if len(toks) > 0 {
-			startTok = toks[0]
-			endTok = toks[len(toks)-1]
-		} else {
-			// No tokens? Default to 0,0
-			startTok = tokens.Token{Location: tokens.NewLocation(1, 1, 1)}
-			endTok = startTok
-		}
-
-		// Clamp to non-negative LSP positions. Tokens are nominally
+		// Clamp to non-negative LSP positions. Spans are nominally
 		// 1-based, so the -1 conversion should always yield >= 0, but
-		// malformed tokens (e.g. from a hand-constructed test alert or
+		// malformed spans (e.g. from a hand-constructed test alert or
 		// a future generator bug) can produce line=0/col=0. Editors
 		// reject negative positions, so we floor them.
-		startLine := max(startTok.Location.Line-1, 0)
-		startCol := max(startTok.Location.Column.Start-1, 0)
-		endLine := max(endTok.Location.Line-1, 0)
-		endCol := max(endTok.Location.Column.End-1, 0)
+		startLine := max(span.Line-1, 0)
+		startCol := max(span.Column-1, 0)
+		endLine := startLine
+		endCol := max(span.Column-1+max(span.Length, 1), 0)
 
 		d := Diagnostic{
 			Range: Range{
@@ -109,7 +98,7 @@ func alertsToDiagnostics(uri DocumentURI, alertsList []alerts.Alert) []Diagnosti
 			},
 			Message: fmt.Sprintf("[%s] %s", alert.ID(), alert.Message()),
 			Severity: func() int {
-				if alert.AlertType() == alerts.Error {
+				if alert.Type() == alerts.Error {
 					return 1 // Error
 				}
 				return 2 // Warning

@@ -3,6 +3,7 @@ package parser
 import (
 	"hybroid/alerts"
 	"hybroid/ast"
+	"hybroid/core"
 	"hybroid/tokens"
 	"strings"
 )
@@ -23,13 +24,13 @@ func (p *Parser) getFunctionParam() (ast.FunctionParam, bool) {
 		return functionParam, true
 	}
 
-	p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(typeExpr.GetToken()), "in function parameters")
+	p.Report(alerts.NewExpectedIdentifier(typeExpr.GetToken().Span).WithContext("in function parameters"))
 	return functionParam, false
 }
 
 func (p *Parser) functionParams(opening tokens.TokenType, closing tokens.TokenType) ([]ast.FunctionParam, bool) {
 	if !p.match(opening) {
-		p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), opening, "in function parameters")
+		p.Report(alerts.NewExpectedSymbol(p.peek().Span, opening.String()).WithContext("in function parameters"))
 		return []ast.FunctionParam{}, false
 	}
 
@@ -43,7 +44,7 @@ func (p *Parser) functionParams(opening tokens.TokenType, closing tokens.TokenTy
 	success := ok
 	if param.Type == nil {
 		success = false
-		p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(param.Name))
+		p.Report(alerts.NewExpectedType(param.Name.Span))
 	} else {
 		previous = param.Type
 	}
@@ -55,7 +56,7 @@ func (p *Parser) functionParams(opening tokens.TokenType, closing tokens.TokenTy
 		if param.Type == nil {
 			if len(args) == 0 {
 				success = false
-				p.Alert(&alerts.ExpectedType{}, alerts.NewSingle(p.peek(-1)))
+				p.Report(alerts.NewExpectedType(p.peek(-1).Span))
 			} else {
 				param.Type = previous
 			}
@@ -65,7 +66,7 @@ func (p *Parser) functionParams(opening tokens.TokenType, closing tokens.TokenTy
 
 		args = append(args, param)
 	}
-	_, ok = p.alertSingleConsume(&alerts.ExpectedSymbol{}, closing, "in function parameters")
+	_, ok = p.consume(alerts.NewExpectedSymbol(p.peek().Span, closing.String()).WithContext("in function parameters"), closing)
 	success = success && ok
 
 	return args, success
@@ -88,10 +89,10 @@ func (p *Parser) tryGenericParams(offset ...int) bool {
 		return false
 	}
 
-	p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in generic parameters"), tokens.Identifier)
+	p.consume(alerts.NewExpectedIdentifier(p.peek().Span).WithContext("in generic parameters"), tokens.Identifier)
 
 	for p.match(tokens.Comma) {
-		p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in generic parameters"), tokens.Identifier)
+		p.consume(alerts.NewExpectedIdentifier(p.peek().Span).WithContext("in generic parameters"), tokens.Identifier)
 	}
 
 	next := p.peek()
@@ -109,21 +110,21 @@ func (p *Parser) genericParams() ([]*ast.IdentifierExpr, bool) {
 		return params, true
 	}
 
-	token, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in generic parameters"), tokens.Identifier)
+	token, ok := p.consume(alerts.NewExpectedIdentifier(p.peek().Span).WithContext("in generic parameters"), tokens.Identifier)
 	success := ok
 	if ok {
 		params = append(params, &ast.IdentifierExpr{Name: token})
 	}
 
 	for p.match(tokens.Comma) {
-		token, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in generic parameters"), tokens.Identifier)
+		token, ok := p.consume(alerts.NewExpectedIdentifier(p.peek().Span).WithContext("in generic parameters"), tokens.Identifier)
 		success = success && ok
 		if ok {
 			params = append(params, &ast.IdentifierExpr{Name: token})
 		}
 	}
 
-	_, ok = p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.Greater, "in generic parameters")
+	_, ok = p.consume(alerts.NewExpectedSymbol(p.peek().Span, tokens.Greater.String()).WithContext("in generic parameters"), tokens.Greater)
 	success = success && ok
 
 	return params, success
@@ -159,7 +160,7 @@ func (p *Parser) genericArgs() ([]*ast.TypeExpr, bool) {
 
 	expr := p.typeExpr("in generic arguments")
 	if ast.IsImproper(expr.Name, ast.NA) {
-		p.AlertSingle(&alerts.ExpectedCallArgs{}, expr.GetToken())
+		p.Report(alerts.NewExpectedCallArgs(expr.GetToken().Span))
 		success = false
 	} else {
 		params = append(params, expr)
@@ -168,7 +169,7 @@ func (p *Parser) genericArgs() ([]*ast.TypeExpr, bool) {
 	for p.match(tokens.Comma) {
 		expr := p.typeExpr("in generic arguments")
 		if ast.IsImproper(expr.Name, ast.NA) {
-			p.AlertSingle(&alerts.ExpectedCallArgs{}, expr.GetToken())
+			p.Report(alerts.NewExpectedCallArgs(expr.GetToken().Span))
 			success = false
 		} else {
 			params = append(params, expr)
@@ -179,13 +180,13 @@ func (p *Parser) genericArgs() ([]*ast.TypeExpr, bool) {
 		return params, true
 	}
 
-	p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Greater)
+	p.Report(alerts.NewExpectedSymbol(p.peek().Span, tokens.Greater.String()))
 
 	return params, success
 }
 
 func (p *Parser) functionArgs() ([]ast.Node, bool) {
-	if _, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.LeftParen, "in function arguments"); !ok {
+	if _, ok := p.consume(alerts.NewExpectedSymbol(p.peek().Span, tokens.LeftParen.String()).WithContext("in function arguments"), tokens.LeftParen); !ok {
 		return nil, false
 	}
 
@@ -204,7 +205,7 @@ func (p *Parser) functionArgs() ([]ast.Node, bool) {
 
 	// If ')' is missing, anchor the diagnostic at the most recent argument token
 	// instead of the next statement's first token.
-	p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek(-1)), tokens.RightParen)
+	p.Report(alerts.NewExpectedSymbol(p.peek(-1).Span, tokens.RightParen.String()))
 
 	return args, true
 }
@@ -233,7 +234,7 @@ func (p *Parser) functionReturns() ([]*ast.TypeExpr, bool) {
 			}
 		}
 
-		p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.RightParen, "in function return types")
+		p.consume(alerts.NewExpectedSymbol(p.peek().Span, tokens.RightParen.String()).WithContext("in function return types"), tokens.RightParen)
 		return returns, success
 	}
 
@@ -244,7 +245,7 @@ func (p *Parser) functionReturns() ([]*ast.TypeExpr, bool) {
 func (p *Parser) identifier(typeContext string) *ast.IdentifierExpr {
 	if p.peek().Type != tokens.Identifier {
 		expr := p.expression()
-		p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(expr.GetToken()), typeContext)
+		p.Report(alerts.NewExpectedIdentifier(expr.GetToken().Span).WithContext(typeContext))
 		return nil
 	}
 	return &ast.IdentifierExpr{
@@ -288,7 +289,7 @@ func (p *Parser) expressions(typeContext string, allowTrailing bool) ([]ast.Node
 	expr := p.expression()
 	success := expr.GetType() != ast.NA
 	if ast.IsImproper(expr, ast.NA) {
-		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), typeContext)
+		p.Report(alerts.NewExpectedExpression(expr.GetToken().Span).WithContext(typeContext))
 	} else if expr.GetType() != ast.NA {
 		exprs = append(exprs, expr)
 	}
@@ -300,7 +301,7 @@ func (p *Parser) expressions(typeContext string, allowTrailing bool) ([]ast.Node
 			p.disadvance(p.current - exprStart)
 			return exprs, success
 		} else if ast.IsImproper(expr, ast.NA) {
-			p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), typeContext)
+			p.Report(alerts.NewExpectedExpression(expr.GetToken().Span).WithContext(typeContext))
 			continue
 		}
 		if expr.GetType() != ast.NA {
@@ -313,7 +314,7 @@ func (p *Parser) expressions(typeContext string, allowTrailing bool) ([]ast.Node
 
 func (p *Parser) identExprPairs(typeContext string, optional bool) ([]*ast.IdentifierExpr, []ast.Node, bool) {
 	if previous := p.peek(-1); previous.Line != p.peek().Line {
-		p.AlertSingle(&alerts.ExpectedIdentifier{}, previous, typeContext)
+		p.Report(alerts.NewExpectedIdentifier(previous.Span).WithContext(typeContext))
 		return nil, nil, false
 	}
 	idents, ok := p.identifiers(typeContext, false)
@@ -326,12 +327,12 @@ func (p *Parser) identExprPairs(typeContext string, optional bool) ([]*ast.Ident
 			return idents, nil, ok
 		}
 
-		p.Alert(&alerts.ExpectedSymbol{}, alerts.NewSingle(p.peek()), tokens.Equal)
+		p.Report(alerts.NewExpectedSymbol(p.peek().Span, tokens.Equal.String()))
 		return nil, nil, false
 	}
 	equal := p.peek(-1)
 	if p.peek().Line != equal.Line {
-		p.AlertSingle(&alerts.ExpectedExpression{}, equal, typeContext)
+		p.Report(alerts.NewExpectedExpression(equal.Span).WithContext(typeContext))
 		return idents, []ast.Node{}, false
 	}
 
@@ -351,20 +352,20 @@ func (p *Parser) keyValuePair(isMap bool, context string) (ast.Node, ast.Node, b
 	}
 	if condition {
 		if isMap {
-			p.Alert(&alerts.InvalidMapKey{}, alerts.NewSingle(key.GetToken()))
+			p.Report(alerts.NewInvalidMapKey(key.GetToken().Span))
 		} else {
-			p.Alert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(key.GetToken()), "as "+context)
+			p.Report(alerts.NewExpectedIdentifier(key.GetToken().Span).WithContext("as " + context))
 		}
 		return nil, nil, false
 	}
-	_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.Equal, "after "+context)
+	_, ok := p.consume(alerts.NewExpectedSymbol(p.peek().Span, tokens.Equal.String()).WithContext("after "+context), tokens.Equal)
 	if !ok {
 		return nil, nil, false
 	}
 
 	expr := p.expression()
 	if ast.IsImproper(expr, ast.NA) {
-		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(p.peek()), "as "+context+" value")
+		p.Report(alerts.NewExpectedExpression(p.peek().Span).WithContext("as " + context + " value"))
 	}
 
 	return key, expr, expr.GetType() != ast.NA
@@ -397,7 +398,7 @@ func (p *Parser) body(allowSingleSatement, allowArrow bool) (ast.Body, bool) {
 	if p.match(tokens.FatArrow) && allowArrow {
 		args, ok := p.expressions("in fat arrow return arguments", false)
 		if !ok {
-			p.Alert(&alerts.ExpectedReturnArgs{}, alerts.NewSingle(p.peek()))
+			p.Report(alerts.NewExpectedReturnArgs(p.peek().Span))
 			return ast.Body{}, false
 		}
 		body.Append(&ast.ReturnStmt{
@@ -408,13 +409,13 @@ func (p *Parser) body(allowSingleSatement, allowArrow bool) (ast.Body, bool) {
 	} else if !p.check(tokens.LeftBrace) && allowSingleSatement {
 		stmt := p.parseNode(p.synchronizeBody)
 		if ast.IsImproperNotStatement(stmt) {
-			p.Alert(&alerts.UnknownStatement{}, alerts.NewSingle(stmt.GetToken()))
+			p.Report(alerts.NewUnknownStatement(stmt.GetToken().Span))
 			return body, false
 		}
 		body.Append(stmt)
 		return body, true
 	}
-	if _, success := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.LeftBrace); !success {
+	if _, success := p.consume(alerts.NewExpectedSymbol(p.peek().Span, tokens.LeftBrace.String()), tokens.LeftBrace); !success {
 		return body, false
 	}
 	start := p.peek(-1)
@@ -422,7 +423,7 @@ func (p *Parser) body(allowSingleSatement, allowArrow bool) (ast.Body, bool) {
 	for p.consumeTill("in body", start, tokens.RightBrace) {
 		declaration := p.parseNode(p.synchronizeBody)
 		if ast.IsImproperNotStatement(declaration) {
-			p.Alert(&alerts.UnknownStatement{}, alerts.NewSingle(declaration.GetToken()))
+			p.Report(alerts.NewUnknownStatement(declaration.GetToken().Span))
 			continue
 		}
 		body.Append(declaration)
@@ -435,7 +436,7 @@ func (p *Parser) limitedExpression(context string, types ...ast.NodeType) ast.No
 	expr := p.expression()
 	exprType := expr.GetType()
 	if ast.IsImproper(expr, ast.NA) {
-		p.Alert(&alerts.ExpectedExpression{}, alerts.NewSingle(expr.GetToken()), context)
+		p.Report(alerts.NewExpectedExpression(expr.GetToken().Span).WithContext(context))
 		return expr
 	}
 	ok := false
@@ -445,7 +446,7 @@ func (p *Parser) limitedExpression(context string, types ...ast.NodeType) ast.No
 		}
 	}
 	if !ok {
-		p.Alert(&alerts.InvalidExpression{}, alerts.NewSingle(expr.GetToken()), string(exprType), context)
+		p.Report(alerts.NewInvalidExpression(expr.GetToken().Span, string(exprType)).WithContext(context))
 	}
 
 	return expr
@@ -620,8 +621,10 @@ func (p *Parser) combineTokens(tokenType tokens.TokenType, n int) (tokens.Token,
 			p.disadvance(i + 1)
 			return newToken, false
 		}
-		newToken.Column.Start = min(newToken.Column.Start, next.Column.Start)
-		newToken.Column.End = max(newToken.Column.End, next.Column.End)
+		newToken.Span.StartByte = min(newToken.Span.StartByte, next.Span.StartByte)
+		newToken.Span.EndByte = max(newToken.Span.EndByte, next.Span.EndByte)
+		newToken.Span.Column = min(newToken.Span.Column, next.Span.Column)
+		newToken.Span.Length = newToken.Span.EndByte - newToken.Span.StartByte
 		newToken.Lexeme = strings.Join([]string{newToken.Lexeme, next.Lexeme}, "")
 		i++
 	}
@@ -638,7 +641,7 @@ func (p *Parser) coherencyCheck(tokenStart, tokenEnd tokens.Token, allowNewLine 
 		diffTolerance = 1
 	}
 	if tokenEnd.Line-tokenStart.Line > diffTolerance {
-		p.AlertMulti(&alerts.SyntaxIncoherency{}, tokenStart, tokenEnd, tokenEnd.Lexeme, tokenStart.Lexeme, diffTolerance == 1)
+		p.Report(alerts.NewSyntaxIncoherency(core.MergeSpans(tokenStart.Span, tokenEnd.Span), tokenEnd.Lexeme, tokenStart.Lexeme, diffTolerance == 1))
 		return false
 	}
 
