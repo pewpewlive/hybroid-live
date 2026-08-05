@@ -153,28 +153,12 @@ type Walker struct {
 	ReferenceMap map[string][]Reference // key: "envName:varName", value: list of reference locations
 }
 
-func (w *Walker) Alert(alertType alerts.Alert, args ...any) {
-	w.Alert_(alertType, args...)
-}
-
-func (w *Walker) AlertI(alert alerts.Alert) {
-	w.AlertI_(alert)
-}
-
-func (w *Walker) AlertSingle(alert alerts.Alert, token tokens.Token, args ...any) {
+func (w *Walker) Report(alert alerts.Alert) {
 	if w.ignoreAlerts {
 		return
 	}
-	args = append([]any{alerts.NewSingle(token)}, args...)
-	w.Alert(alert, args...)
-}
 
-func (w *Walker) AlertMulti(alert alerts.Alert, start, end tokens.Token, args ...any) {
-	if w.ignoreAlerts {
-		return
-	}
-	args = append([]any{alerts.NewMulti(start, end)}, args...)
-	w.Alert(alert, args...)
+	w.Collector.Report(alert)
 }
 
 func NewWalker(hybroidPath, luaPath string) *Walker {
@@ -194,9 +178,9 @@ func NewWalker(hybroidPath, luaPath string) *Walker {
 func (w *Walker) RegisterScope(scope *Scope, start, end tokens.Token) {
 	w.ScopeMap = append(w.ScopeMap, ScopeRange{
 		StartLine:   start.Line,
-		StartColumn: start.Column.Start,
+		StartColumn: start.Column,
 		EndLine:     end.Line,
-		EndColumn:   end.Column.End,
+		EndColumn:   end.Column + end.Length,
 		Scope:       scope,
 	})
 }
@@ -294,7 +278,7 @@ func (w *Walker) PreWalk(walkers map[string]*Walker) {
 	}
 
 	if w.program[0].GetType() != ast.EnvironmentDeclaration {
-		w.AlertSingle(&alerts.ExpectedEnvironment{}, w.program[0].GetToken())
+		w.Report(alerts.NewExpectedEnvironment(w.program[0].GetToken().Span))
 		return
 	}
 
@@ -326,27 +310,27 @@ func (w *Walker) Walk() {
 func (w *Walker) PostWalk() {
 	for _, v := range w.environment.Scope.Variables {
 		if !v.IsUsed {
-			w.AlertSingle(&alerts.UnusedElement{}, v.Token, "variable")
+			w.Report(alerts.NewUnusedElement(v.Token.Span, "variable"))
 		}
 	}
 	for _, v := range w.environment.Entities {
 		if !v.Type.IsUsed {
-			w.AlertSingle(&alerts.UnusedElement{}, v.Token, "entity type")
+			w.Report(alerts.NewUnusedElement(v.Token.Span, "entity type"))
 		}
 	}
 	for _, v := range w.environment.Classes {
 		if !v.Type.IsUsed {
-			w.AlertSingle(&alerts.UnusedElement{}, v.Token, "class type")
+			w.Report(alerts.NewUnusedElement(v.Token.Span, "class type"))
 		}
 	}
 	for _, v := range w.environment.Enums {
 		if !v.Type.IsUsed {
-			w.AlertSingle(&alerts.UnusedElement{}, v.Token, "enum type")
+			w.Report(alerts.NewUnusedElement(v.Token.Span, "enum type"))
 		}
 	}
 	for _, v := range w.environment.Scope.AliasTypes {
 		if !v.IsUsed {
-			w.AlertSingle(&alerts.UnusedElement{}, v.Token, "alias type")
+			w.Report(alerts.NewUnusedElement(v.Token.Span, "alias type"))
 		}
 	}
 }
@@ -355,24 +339,24 @@ func (w *Walker) CheckUniqueVariables() {
 	if w.environment.Type == ast.MeshEnv {
 		variable, ok := w.environment.Scope.Variables["meshes"]
 		if !ok {
-			w.AlertSingle(&alerts.MissingPewpewVariable{}, w.environment._envStmt.GetToken(), "meshes", "Mesh")
+			w.Report(alerts.NewMissingPewpewVariable(w.environment._envStmt.GetToken().Span, "meshes", "Mesh"))
 			return
 		}
 		variable.IsUsed = true
 		if !variable.IsPub || !TypeEquals(variable.Value.GetType(), MeshesType) {
-			w.AlertSingle(&alerts.InvalidPewpewVariable{}, variable.Token, "meshes", MeshType)
+			w.Report(alerts.NewInvalidPewpewVariable(variable.Token.Span, "meshes", MeshType.String()))
 		}
 		return
 	}
 	if w.environment.Type == ast.SoundEnv {
 		variable, ok := w.environment.Scope.Variables["sounds"]
 		if !ok {
-			w.AlertSingle(&alerts.MissingPewpewVariable{}, w.environment._envStmt.GetToken(), "sounds", "Sound")
+			w.Report(alerts.NewMissingPewpewVariable(w.environment._envStmt.GetToken().Span, "sounds", "Sound"))
 			return
 		}
 		variable.IsUsed = true
 		if !variable.IsPub || !TypeEquals(variable.Value.GetType(), SoundsType) {
-			w.AlertSingle(&alerts.InvalidPewpewVariable{}, variable.Token, "sounds", SoundType)
+			w.Report(alerts.NewInvalidPewpewVariable(variable.Token.Span, "sounds", SoundType.String()))
 		}
 	}
 }
@@ -493,7 +477,7 @@ func (w *Walker) walkBody(body *ast.Body, tag ExitableTag, scope *Scope) {
 	bodySlice := *body
 	for i := range bodySlice {
 		if tag.GetIfExits(ControlFlow) || tag.GetIfExits(Yield) {
-			w.AlertMulti(&alerts.UnreachableCode{}, bodySlice[i].GetToken(), bodySlice[body.Size()-1].GetToken())
+			w.Report(alerts.NewUnreachableCode(core.MergeSpans(bodySlice[i].GetToken().Span, bodySlice[body.Size()-1].GetToken().Span)))
 			endIndex = i
 			break
 		}
@@ -504,12 +488,12 @@ func (w *Walker) walkBody(body *ast.Body, tag ExitableTag, scope *Scope) {
 	}
 	for k := range scope.Variables {
 		if !scope.Variables[k].IsUsed {
-			w.AlertSingle(&alerts.UnusedElement{}, scope.Variables[k].Token, "variable")
+			w.Report(alerts.NewUnusedElement(scope.Variables[k].Token.Span, "variable"))
 		}
 	}
 	for k := range scope.AliasTypes {
 		if !scope.AliasTypes[k].IsUsed {
-			w.AlertSingle(&alerts.UnusedElement{}, scope.AliasTypes[k].Token, "alias type")
+			w.Report(alerts.NewUnusedElement(scope.AliasTypes[k].Token.Span, "alias type"))
 		}
 	}
 }
@@ -518,7 +502,7 @@ func (w *Walker) walkFuncBody(node ast.Node, body *ast.Body, tag *FuncTag, scope
 	w.walkBody(body, tag, scope)
 
 	if !tag.GetIfExits(Return) && len(tag.ReturnTypes) != 0 {
-		w.AlertSingle(&alerts.NotAllCodePathsExit{}, node.GetToken(), "return")
+		w.Report(alerts.NewNotAllCodePathsExit(node.GetToken().Span, "return"))
 	}
 }
 
