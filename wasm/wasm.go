@@ -37,7 +37,7 @@ func formatAlerts(alertsList []alerts.Alert, source string) string {
 
 	for _, alert := range alertsList {
 		msg := ""
-		switch alert.AlertType() {
+		switch alert.Type() {
 		case alerts.Error:
 			msg = fmt.Sprintf("[light_red][bold]error[%s]: [reset]", alert.ID())
 		case alerts.Warning:

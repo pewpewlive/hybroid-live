@@ -259,7 +259,7 @@ func (e *Evaluator) Action(cwd, outputDir string) error {
 func (e *Evaluator) hasErrors() bool {
 	for _, fileAlerts := range e.printer.AllAlerts() {
 		for _, a := range fileAlerts {
-			if a.AlertType() == alerts.Error {
+			if a.Type() == alerts.Error {
 				return true
 			}
 		}

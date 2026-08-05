@@ -136,7 +136,7 @@ func alertIDs(list []alerts.Alert) []string {
 
 func anyErrorAlert(list []alerts.Alert) bool {
 	for _, a := range list {
-		if a.AlertType() == alerts.Error {
+		if a.Type() == alerts.Error {
 			return true
 		}
 	}
@@ -145,7 +145,7 @@ func anyErrorAlert(list []alerts.Alert) bool {
 
 func anyWarningAlert(list []alerts.Alert) bool {
 	for _, a := range list {
-		if a.AlertType() == alerts.Warning {
+		if a.Type() == alerts.Warning {
 			return true
 		}
 	}
