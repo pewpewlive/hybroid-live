@@ -4,159 +4,113 @@ package alerts
 
 import (
 	"fmt"
+	"hybroid/core"
 )
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type MultilineString struct {
-	Specifier Snippet
+	SnippetProvider
 }
 
-func (ms *MultilineString) Message() string {
-	return "multiline strings are not allowed"
+func NewMultilineString(span core.Span) *MultilineString {
+	return &MultilineString{
+		SnippetProvider: SnippetProvider{span: span},
+	}
 }
-
-func (ms *MultilineString) SnippetSpecifier() Snippet {
-	return ms.Specifier
-}
-
-func (ms *MultilineString) Note() string {
-	return ""
-}
-
-func (ms *MultilineString) ID() string {
-	return "hyb001L"
-}
-
-func (ms *MultilineString) AlertType() Type {
-	return Error
-}
+func (ms *MultilineString) Message() string { return "multiline strings are not allowed" }
+func (ms *MultilineString) Note() string    { return "" }
+func (ms *MultilineString) Type() Type      { return Error }
+func (ms *MultilineString) ID() string      { return "hyb001L" }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type UnterminatedString struct {
-	Specifier Snippet
+	SnippetProvider
 }
 
-func (us *UnterminatedString) Message() string {
-	return "unterminated string"
+func NewUnterminatedString(span core.Span) *UnterminatedString {
+	return &UnterminatedString{
+		SnippetProvider: SnippetProvider{span: span},
+	}
 }
-
-func (us *UnterminatedString) SnippetSpecifier() Snippet {
-	return us.Specifier
-}
-
-func (us *UnterminatedString) Note() string {
-	return ""
-}
-
-func (us *UnterminatedString) ID() string {
-	return "hyb002L"
-}
-
-func (us *UnterminatedString) AlertType() Type {
-	return Error
-}
+func (us *UnterminatedString) Message() string { return "unterminated string" }
+func (us *UnterminatedString) Note() string    { return "" }
+func (us *UnterminatedString) Type() Type      { return Error }
+func (us *UnterminatedString) ID() string      { return "hyb002L" }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type MalformedNumber struct {
-	Specifier Snippet
-	Number    string
+	SnippetProvider
+	number string
 }
 
-func (mn *MalformedNumber) Message() string {
-	return fmt.Sprintf("malformed number: '%s'", mn.Number)
+func NewMalformedNumber(span core.Span, number string) *MalformedNumber {
+	return &MalformedNumber{
+		SnippetProvider: SnippetProvider{span: span},
+		number:          number,
+	}
 }
-
-func (mn *MalformedNumber) SnippetSpecifier() Snippet {
-	return mn.Specifier
-}
-
-func (mn *MalformedNumber) Note() string {
-	return ""
-}
-
-func (mn *MalformedNumber) ID() string {
-	return "hyb003L"
-}
-
-func (mn *MalformedNumber) AlertType() Type {
-	return Error
-}
+func (mn *MalformedNumber) Message() string { return fmt.Sprintf("malformed number: '%s'", mn.number) }
+func (mn *MalformedNumber) Note() string    { return "" }
+func (mn *MalformedNumber) Type() Type      { return Error }
+func (mn *MalformedNumber) ID() string      { return "hyb003L" }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidDigitInLiteral struct {
-	Specifier Snippet
-	Digit     string
-	Literal   string
+	SnippetProvider
+	digit   string
+	literal string
 }
 
+func NewInvalidDigitInLiteral(span core.Span, digit string, literal string) *InvalidDigitInLiteral {
+	return &InvalidDigitInLiteral{
+		SnippetProvider: SnippetProvider{span: span},
+		digit:           digit,
+		literal:         literal,
+	}
+}
 func (idil *InvalidDigitInLiteral) Message() string {
-	return fmt.Sprintf("invalid digit '%s' in %s literal", idil.Digit, idil.Literal)
+	return fmt.Sprintf("invalid digit '%s' in %s literal", idil.digit, idil.literal)
 }
-
-func (idil *InvalidDigitInLiteral) SnippetSpecifier() Snippet {
-	return idil.Specifier
-}
-
-func (idil *InvalidDigitInLiteral) Note() string {
-	return ""
-}
-
-func (idil *InvalidDigitInLiteral) ID() string {
-	return "hyb004L"
-}
-
-func (idil *InvalidDigitInLiteral) AlertType() Type {
-	return Error
-}
+func (idil *InvalidDigitInLiteral) Note() string { return "" }
+func (idil *InvalidDigitInLiteral) Type() Type   { return Error }
+func (idil *InvalidDigitInLiteral) ID() string   { return "hyb004L" }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type InvalidNumberPostfix struct {
-	Specifier Snippet
-	Postfix   string
+	SnippetProvider
+	postfix string
 }
 
+func NewInvalidNumberPostfix(span core.Span, postfix string) *InvalidNumberPostfix {
+	return &InvalidNumberPostfix{
+		SnippetProvider: SnippetProvider{span: span},
+		postfix:         postfix,
+	}
+}
 func (inp *InvalidNumberPostfix) Message() string {
-	return fmt.Sprintf("invalid number postfix: '%s'", inp.Postfix)
+	return fmt.Sprintf("invalid number postfix: '%s'", inp.postfix)
 }
-
-func (inp *InvalidNumberPostfix) SnippetSpecifier() Snippet {
-	return inp.Specifier
-}
-
 func (inp *InvalidNumberPostfix) Note() string {
 	return "a valid postfix is either 'f', 'fx', 'r' or 'd'"
 }
-
-func (inp *InvalidNumberPostfix) ID() string {
-	return "hyb005L"
-}
-
-func (inp *InvalidNumberPostfix) AlertType() Type {
-	return Error
-}
+func (inp *InvalidNumberPostfix) Type() Type { return Error }
+func (inp *InvalidNumberPostfix) ID() string { return "hyb005L" }
 
 // AUTO-GENERATED, DO NOT MANUALLY MODIFY!
 type UnsupportedCharacter struct {
-	Specifier Snippet
-	Character string
+	SnippetProvider
+	character string
 }
 
+func NewUnsupportedCharacter(span core.Span, character string) *UnsupportedCharacter {
+	return &UnsupportedCharacter{
+		SnippetProvider: SnippetProvider{span: span},
+		character:       character,
+	}
+}
 func (uc *UnsupportedCharacter) Message() string {
-	return fmt.Sprintf("unsupported character: '%s'", uc.Character)
+	return fmt.Sprintf("unsupported character: '%s'", uc.character)
 }
-
-func (uc *UnsupportedCharacter) SnippetSpecifier() Snippet {
-	return uc.Specifier
-}
-
-func (uc *UnsupportedCharacter) Note() string {
-	return ""
-}
-
-func (uc *UnsupportedCharacter) ID() string {
-	return "hyb006L"
-}
-
-func (uc *UnsupportedCharacter) AlertType() Type {
-	return Error
-}
+func (uc *UnsupportedCharacter) Note() string { return "" }
+func (uc *UnsupportedCharacter) Type() Type   { return Error }
+func (uc *UnsupportedCharacter) ID() string   { return "hyb006L" }
