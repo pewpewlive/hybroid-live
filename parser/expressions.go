@@ -3,6 +3,7 @@ package parser
 import (
 	"hybroid/alerts"
 	"hybroid/ast"
+	"hybroid/core"
 	"hybroid/tokens"
 )
 
@@ -20,7 +21,7 @@ func (p *Parser) multiComparison() ast.Node {
 		operator := p.peek(-1)
 		right := p.multiComparison()
 		if ast.IsImproper(right, ast.NA) {
-			p.AlertSingle(&alerts.ExpectedExpression{}, right.GetToken(), "as right value in binary expression")
+			p.Report(alerts.NewExpectedExpression(right.GetToken().Span).WithContext("as right value in binary expression"))
 		}
 		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right}
 	}
@@ -37,7 +38,7 @@ func (p *Parser) comparison() ast.Node {
 	if op, ok := p.isComparison(); ok {
 		right := p.term()
 		if ast.IsImproper(right, ast.NA) {
-			p.AlertSingle(&alerts.ExpectedExpression{}, right.GetToken(), "as right value in binary expression")
+			p.Report(alerts.NewExpectedExpression(right.GetToken().Span).WithContext("as right value in binary expression"))
 		}
 		expr = &ast.BinaryExpr{Left: expr, Operator: op, Right: right}
 	}
@@ -75,7 +76,7 @@ func (p *Parser) term() ast.Node {
 	if isNormalOp || isLeftShift || isRightShift {
 		right := p.term()
 		if ast.IsImproper(right, ast.NA) {
-			p.AlertSingle(&alerts.ExpectedExpression{}, right.GetToken(), "as right value in binary expression")
+			p.Report(alerts.NewExpectedExpression(right.GetToken().Span).WithContext("as right value in binary expression"))
 		}
 		expr = &ast.BinaryExpr{Left: expr, Operator: op, Right: right}
 	}
@@ -93,7 +94,7 @@ func (p *Parser) factor() ast.Node {
 		operator := p.peek(-1)
 		right := p.factor()
 		if ast.IsImproper(right, ast.NA) {
-			p.AlertSingle(&alerts.ExpectedExpression{}, right.GetToken(), "as right value in binary expression")
+			p.Report(alerts.NewExpectedExpression(right.GetToken().Span).WithContext("as right value in binary expression"))
 		}
 		expr = &ast.BinaryExpr{Left: expr, Operator: operator, Right: right}
 	}
@@ -111,7 +112,7 @@ func (p *Parser) concat() ast.Node {
 		operator := p.peek(-1)
 		right := p.concat()
 		if ast.IsImproper(right, ast.NA) {
-			p.AlertSingle(&alerts.ExpectedExpression{}, right.GetToken(), "as right value in concat expression")
+			p.Report(alerts.NewExpectedExpression(right.GetToken().Span).WithContext("as right value in concat expression"))
 		}
 		return &ast.BinaryExpr{Left: expr, Operator: operator, Right: right}
 	}
@@ -124,7 +125,7 @@ func (p *Parser) unary() ast.Node {
 		operator := p.peek(-1)
 		right := p.unary()
 		if ast.IsImproper(right, ast.NA) {
-			p.AlertSingle(&alerts.ExpectedExpression{}, right.GetToken(), "in unary expression")
+			p.Report(alerts.NewExpectedExpression(right.GetToken().Span).WithContext("in unary expression"))
 		}
 		return &ast.UnaryExpr{Operator: operator, Value: right}
 	}
@@ -149,7 +150,7 @@ func (p *Parser) entity() ast.Node {
 
 			expr = p.AccessorExpr()
 		} else {
-			p.AlertSingle(&alerts.ExpectedSymbol{}, p.peek(), tokens.Equal, "in entity expression")
+			p.Report(alerts.NewExpectedSymbol(p.peek().Span, tokens.Equal.String()).WithContext("in entity expression"))
 		}
 	} else {
 		expr = variable
@@ -158,7 +159,7 @@ func (p *Parser) entity() ast.Node {
 	if p.match(tokens.Is, tokens.Isnt) {
 		if conv != nil {
 			if variable.GetType() != ast.Identifier {
-				p.AlertSingle(&alerts.ExpectedIdentifier{}, variable.GetToken())
+				p.Report(alerts.NewExpectedIdentifier(variable.GetToken().Span))
 			}
 		}
 		op := p.peek(-1)
@@ -174,7 +175,7 @@ func (p *Parser) entity() ast.Node {
 	}
 
 	if letMatched {
-		p.AlertSingle(&alerts.ExpectedKeyword{}, p.peek(), "is/isnt")
+		p.Report(alerts.NewExpectedKeyword(p.peek().Span, "is/isnt"))
 		return ast.NewImproper(token, ast.EntityEvaluationExpression)
 	}
 
@@ -202,7 +203,7 @@ accessCheck:
 			})
 		} else {
 			expr2 := p.expression()
-			p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.RightBracket, "in member expression")
+			p.consume(alerts.NewExpectedSymbol(p.peek().Span, tokens.RightBracket.String()).WithContext("in member expression"), tokens.RightBracket)
 			access.Accessed = append(access.Accessed, &ast.MemberExpr{
 				Member: expr2,
 			})
@@ -355,7 +356,7 @@ func (p *Parser) list() ast.Node {
 	peek := p.peek()
 	if peek.Lexeme == "list" {
 		typ := p.typeExpr("in list expression")
-		_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.LeftBracket, "in list expression")
+		_, ok := p.consume(alerts.NewExpectedSymbol(p.peek().Span, tokens.LeftBracket.String()).WithContext("in list expression"), tokens.LeftBracket)
 		if !ok {
 			return ast.NewImproper(typ.GetToken(), ast.ListExpression)
 		}
@@ -372,7 +373,7 @@ func (p *Parser) mapExpr() ast.Node {
 	peek := p.peek()
 	if peek.Lexeme == "map" {
 		typ := p.typeExpr("in map expression")
-		_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.LeftBrace, "in map expression")
+		_, ok := p.consume(alerts.NewExpectedSymbol(p.peek().Span, tokens.LeftBrace.String()).WithContext("in map expression"), tokens.LeftBrace)
 		if !ok {
 			return ast.NewImproper(typ.GetToken(), ast.MapExpression)
 		}
@@ -420,7 +421,7 @@ func (p *Parser) primary() ast.Node {
 		for p.match(tokens.Colon) {
 			envPath.Combine(next)
 			if next.Type != tokens.Identifier {
-				p.AlertSingle(&alerts.ExpectedIdentifier{}, next)
+				p.Report(alerts.NewExpectedIdentifier(next.Span))
 				return ast.NewImproper(next, ast.EnvironmentPathExpression)
 			}
 			next = p.advance()
@@ -439,10 +440,10 @@ func (p *Parser) primary() ast.Node {
 		token := p.peek(-1)
 		expr := p.expression()
 		if ast.IsImproper(expr, ast.NA) {
-			p.AlertSingle(&alerts.ExpectedExpression{}, p.peek(), "in group expression")
+			p.Report(alerts.NewExpectedExpression(p.peek().Span).WithContext("in group expression"))
 			return ast.NewImproper(token, ast.GroupExpression)
 		}
-		_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.RightParen, "in group expression")
+		_, ok := p.consume(alerts.NewExpectedSymbol(p.peek().Span, tokens.RightParen.String()).WithContext("in group expression"), tokens.RightParen)
 		if !ok {
 			return ast.NewImproper(token, ast.GroupExpression)
 		}
@@ -501,7 +502,7 @@ func (p *Parser) parseList(typ *ast.TypeExpr) ast.Node {
 	}
 	listExpr.List = list
 
-	_, ok = p.alertMultiConsume(&alerts.ExpectedSymbol{}, listExpr.Token, p.peek(), tokens.RightBracket, "in list expression")
+	_, ok = p.consume(alerts.NewExpectedSymbol(core.MergeSpans(listExpr.Token.Span, p.peek().Span), tokens.RightBracket.String()).WithContext("in list expression"), tokens.RightBracket)
 	if !ok && p.sync(tokens.RightBracket) {
 		p.advance()
 	}
@@ -536,7 +537,7 @@ func (p *Parser) parseMap(typExpr *ast.TypeExpr) ast.Node {
 		}
 	}
 
-	_, ok = p.alertMultiConsume(&alerts.ExpectedSymbol{}, mapExpr.Token, p.peek(), tokens.RightBrace, "in map expression")
+	_, ok = p.consume(alerts.NewExpectedSymbol(core.MergeSpans(mapExpr.Token.Span, p.peek().Span), tokens.RightBrace.String()).WithContext("in map expression"), tokens.RightBrace)
 	if !ok && p.sync(tokens.RightBrace) {
 		p.advance()
 	}
@@ -551,7 +552,7 @@ func (p *Parser) structExpr() ast.Node {
 		Expressions: make([]ast.Node, 0),
 	}
 
-	start, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.LeftBrace)
+	start, ok := p.consume(alerts.NewExpectedSymbol(p.peek().Span, tokens.LeftBrace.String()), tokens.LeftBrace)
 	if !ok {
 		return ast.NewImproper(structExpr.Token, ast.StructExpression)
 	}
@@ -580,7 +581,7 @@ func (p *Parser) structExpr() ast.Node {
 		}
 	}
 
-	_, ok = p.alertMultiConsume(&alerts.ExpectedSymbol{}, start, p.peek(), tokens.RightBrace)
+	_, ok = p.consume(alerts.NewExpectedSymbol(core.MergeSpans(start.Span, p.peek().Span), tokens.RightBrace.String()), tokens.RightBrace)
 	if !ok && p.sync(tokens.RightBrace) {
 		p.advance()
 	}
@@ -590,7 +591,7 @@ func (p *Parser) structExpr() ast.Node {
 
 func (p *Parser) wrappedTypeExpr(typeContext string) *ast.TypeExpr {
 	if p.check(tokens.Greater) {
-		p.AlertSingle(&alerts.EmptyWrappedType{}, p.peek())
+		p.Report(alerts.NewEmptyWrappedType(p.peek().Span))
 		return &ast.TypeExpr{Name: ast.NewImproper(p.peek(), ast.TypeExpression)}
 	}
 
@@ -604,7 +605,7 @@ func (p *Parser) typeExpr(typeContext string) *ast.TypeExpr {
 
 	if p.match(tokens.Colon) {
 		if token.Type != tokens.Identifier {
-			p.AlertSingle(&alerts.ExpectedIdentifier{}, token)
+			p.Report(alerts.NewExpectedIdentifier(token.Span))
 			return improperType
 		}
 		envAccess := &ast.EnvAccessExpr{
@@ -616,7 +617,7 @@ func (p *Parser) typeExpr(typeContext string) *ast.TypeExpr {
 		for p.match(tokens.Colon) {
 			envAccess.PathExpr.Combine(next)
 			if next.Type != tokens.Identifier {
-				p.AlertSingle(&alerts.ExpectedIdentifier{}, next)
+				p.Report(alerts.NewExpectedIdentifier(next.Span))
 				return improperType
 			}
 			next = p.advance()
@@ -654,14 +655,14 @@ func (p *Parser) typeExpr(typeContext string) *ast.TypeExpr {
 				}
 				typeExpr.WrappedTypes = append(typeExpr.WrappedTypes, wrapped)
 			}
-			_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.Greater)
+			_, ok := p.consume(alerts.NewExpectedSymbol(p.peek().Span, tokens.Greater.String()), tokens.Greater)
 			if !ok {
 				return improperType
 			}
 		}
 		typeExpr.Name = expr
 	case tokens.Fn: // fn
-		_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.LeftParen, "after 'fn' in type expression")
+		_, ok := p.consume(alerts.NewExpectedSymbol(p.peek().Span, tokens.LeftParen.String()).WithContext("after 'fn' in type expression"), tokens.LeftParen)
 		if !ok {
 			return improperType
 		}
@@ -678,7 +679,7 @@ func (p *Parser) typeExpr(typeContext string) *ast.TypeExpr {
 				}
 				typeExpr.Params = append(typeExpr.Params, typ)
 			}
-			_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.RightParen, "in fn type expression")
+			_, ok := p.consume(alerts.NewExpectedSymbol(p.peek().Span, tokens.RightParen.String()).WithContext("in fn type expression"), tokens.RightParen)
 			if !ok {
 				return improperType
 			}
@@ -702,7 +703,7 @@ func (p *Parser) typeExpr(typeContext string) *ast.TypeExpr {
 		typeExpr.Name = &ast.IdentifierExpr{Name: exprToken}
 	default:
 		p.disadvance()
-		p.AlertSingle(&alerts.ExpectedType{}, expr.GetToken(), typeContext)
+		p.Report(alerts.NewExpectedType(expr.GetToken().Span).WithContext(typeContext))
 		typeExpr.Name = ast.NewImproper(expr.GetToken(), ast.NA)
 	}
 	typeExpr.IsVariadic = p.match(tokens.Ellipsis)
@@ -715,7 +716,7 @@ func (p *Parser) envTypeExpr() *ast.EnvTypeExpr {
 		Type: ast.InvalidEnv,
 	}
 
-	token, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "for an environment type"), tokens.Identifier)
+	token, ok := p.consume(alerts.NewExpectedIdentifier(p.peek().Span).WithContext("for an environment type"), tokens.Identifier)
 	if ok {
 		p.coherencyCheck(p.peek(-2), token)
 	}
@@ -727,14 +728,14 @@ func (p *Parser) envTypeExpr() *ast.EnvTypeExpr {
 func (p *Parser) envPathExpr() ast.Node {
 	envPath := &ast.EnvPathExpr{}
 
-	ident, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "for an environment path"), tokens.Identifier)
+	ident, ok := p.consume(alerts.NewExpectedIdentifier(p.peek().Span).WithContext("for an environment path"), tokens.Identifier)
 	if !ok {
 		return ast.NewImproper(ident, ast.EnvironmentPathExpression)
 	}
 	envPath.Path = ident
 
 	for p.match(tokens.Colon) {
-		ident, ok = p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in environment path"), tokens.Identifier)
+		ident, ok = p.consume(alerts.NewExpectedIdentifier(p.peek().Span).WithContext("in environment path"), tokens.Identifier)
 		if !ok {
 			return ast.NewImproper(ident, ast.EnvironmentPathExpression)
 		}

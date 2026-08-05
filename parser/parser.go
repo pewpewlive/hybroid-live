@@ -42,30 +42,12 @@ func NewParser(tokens []tokens.Token) Parser {
 	return parser
 }
 
-func (p *Parser) Alert(alertType alerts.Alert, args ...any) {
+func (p *Parser) Report(alert alerts.Alert) {
 	if p.context.ignoreAlerts.Top().Item {
 		return
 	}
 
-	p.Alert_(alertType, args...)
-}
-
-func (p *Parser) AlertI(alert alerts.Alert) {
-	if p.context.ignoreAlerts.Top().Item {
-		return
-	}
-
-	p.AlertI_(alert)
-}
-
-func (p *Parser) AlertSingle(alert alerts.Alert, token tokens.Token, args ...any) {
-	args = append([]any{alerts.NewSingle(token)}, args...)
-	p.Alert(alert, args...)
-}
-
-func (p *Parser) AlertMulti(alert alerts.Alert, tokenStart, tokenEnd tokens.Token, args ...any) {
-	args = append([]any{alerts.NewMulti(tokenStart, tokenEnd)}, args...)
-	p.Alert(alert, args...)
+	p.Collector.Report(alert)
 }
 
 func (p *Parser) Parse() []ast.Node {
@@ -75,7 +57,7 @@ func (p *Parser) Parse() []ast.Node {
 			continue
 		}
 		if ast.IsImproperNotStatement(node) {
-			p.Alert(&alerts.UnknownStatement{}, alerts.NewSingle(node.GetToken()))
+			p.Report(alerts.NewUnknownStatement(node.GetToken().Span))
 			continue
 		}
 		if node.GetType() != ast.NA {
@@ -125,7 +107,7 @@ func (p *Parser) parseNode(syncFunc func()) (returnNode ast.Node) {
 	default:
 		returnNode = p.statement()
 		if !ast.IsImproper(returnNode, ast.NA) && p.context.isPub {
-			p.Alert(&alerts.UnexpectedKeyword{}, alerts.NewSingle(p.peek(-1)), tokens.Pub, "before statement")
+			p.Report(alerts.NewUnexpectedKeyword(p.peek(-1).Span, tokens.Pub.String()).WithContext("before statement"))
 			p.context.isPub = false
 		}
 	}

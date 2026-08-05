@@ -2,6 +2,7 @@ package parser
 
 import (
 	"hybroid/alerts"
+	"hybroid/core"
 	"hybroid/tokens"
 	"slices"
 )
@@ -117,7 +118,7 @@ func (p *Parser) match(tokens ...tokens.TokenType) bool {
 
 func (p *Parser) consumeTill(context string, start tokens.Token, types ...tokens.TokenType) bool {
 	if p.isAtEnd() {
-		p.AlertMulti(&alerts.ExpectedSymbol{}, start, p.peek(-1), types[0], context)
+		p.Report(alerts.NewExpectedSymbol(core.MergeSpans(start.Span, p.peek(-1).Span), types[0].String()).WithContext(context))
 		return false
 	}
 
@@ -127,24 +128,12 @@ func (p *Parser) consumeTill(context string, start tokens.Token, types ...tokens
 // Consumes one of the tokens in the given list and advances if it matches.
 func (p *Parser) consume(alert alerts.Alert, typ tokens.TokenType) (tokens.Token, bool) {
 	if p.isAtEnd() {
-		p.AlertI(alert)
+		p.Report(alert)
 		return p.peek(), false // error
 	}
 	if p.check(typ) {
 		return p.advance(), true
 	}
-	p.AlertI(alert)
+	p.Report(alert)
 	return p.peek(), false // error
-}
-
-// Helper function to run p.consume, with simpler alert creation
-func (p *Parser) alertSingleConsume(alert alerts.Alert, token tokens.TokenType, args ...any) (tokens.Token, bool) {
-	args = append([]any{alerts.NewSingle(p.peek()), token}, args...)
-	return p.consume(p.NewAlert(alert, args...), token)
-}
-
-// Helper function to run p.consume, with simpler alert creation
-func (p *Parser) alertMultiConsume(alert alerts.Alert, start, end tokens.Token, token tokens.TokenType, args ...any) (tokens.Token, bool) {
-	args = append([]any{alerts.NewMulti(start, end), token}, args...)
-	return p.consume(p.NewAlert(alert, args...), token)
 }

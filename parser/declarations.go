@@ -3,6 +3,7 @@ package parser
 import (
 	"hybroid/alerts"
 	"hybroid/ast"
+	"hybroid/core"
 	"hybroid/tokens"
 )
 
@@ -14,7 +15,7 @@ func (p *Parser) environmentDeclaration() ast.Node {
 		return pathExpr
 	}
 
-	if _, ok := p.alertSingleConsume(&alerts.ExpectedKeyword{}, tokens.As, "in environment declaration"); !ok {
+	if _, ok := p.consume(alerts.NewExpectedKeyword(p.peek().Span, tokens.As.String()).WithContext("in environment declaration"), tokens.As); !ok {
 		return ast.NewImproper(p.peek(), ast.EnvironmentDeclaration)
 	}
 
@@ -53,7 +54,7 @@ func (p *Parser) simpleVariableDeclaration() ast.Node {
 		varDecl.Token = p.peek(-2)
 	}
 	if varDecl.IsPub && varDecl.Token.Type == tokens.Let { // pub let a
-		p.Alert(&alerts.UnexpectedKeyword{}, alerts.NewSingle(p.peek(-2)), "pub", "in variable declaration")
+		p.Report(alerts.NewUnexpectedKeyword(p.peek(-2).Span, "pub").WithContext("in variable declaration"))
 	}
 
 	idents, exprs, ok := p.identExprPairs("in variable declaration", false)
@@ -108,7 +109,7 @@ func (p *Parser) functionDeclaration() ast.Node {
 		functionDecl.Token = p.peek(-1)
 	}
 
-	name, nameOk := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name of the function"), tokens.Identifier)
+	name, nameOk := p.consume(alerts.NewExpectedIdentifier(p.peek().Span).WithContext("as the name of the function"), tokens.Identifier)
 	if !nameOk {
 		return ast.NewImproper(functionDecl.Token, ast.NA)
 	}
@@ -145,13 +146,13 @@ func (p *Parser) enumDeclaration() ast.Node {
 		IsPub: p.context.isPub,
 	}
 
-	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "in enum declaration"), tokens.Identifier)
+	name, ok := p.consume(alerts.NewExpectedIdentifier(p.peek().Span).WithContext("in enum declaration"), tokens.Identifier)
 	if !ok {
 		return ast.NewImproper(enumStmt.Token, ast.EnumDeclaration)
 	}
 	enumStmt.Name = name
 
-	start, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.LeftBrace)
+	start, ok := p.consume(alerts.NewExpectedSymbol(p.peek().Span, tokens.LeftBrace.String()), tokens.LeftBrace)
 	if !ok {
 		return ast.NewImproper(enumStmt.Token, ast.EnumDeclaration)
 	}
@@ -161,13 +162,13 @@ func (p *Parser) enumDeclaration() ast.Node {
 		if v.GetType() == ast.Identifier {
 			enumStmt.Fields = append(enumStmt.Fields, v.(*ast.IdentifierExpr))
 		} else {
-			p.AlertSingle(&alerts.InvalidEnumVariantName{}, v.GetToken())
+			p.Report(alerts.NewInvalidEnumVariantName(v.GetToken().Span))
 			p.sync(tokens.RightBrace)
 			break
 		}
 	}
 
-	_, ok = p.alertMultiConsume(&alerts.ExpectedSymbol{}, start, p.peek(), tokens.RightBrace)
+	_, ok = p.consume(alerts.NewExpectedSymbol(core.MergeSpans(start.Span, p.peek().Span), tokens.RightBrace.String()), tokens.RightBrace)
 	if !ok {
 		if p.sync(tokens.RightBrace) {
 			p.advance()
@@ -184,7 +185,7 @@ func (p *Parser) aliasDeclaration() ast.Node {
 		IsPub: p.context.isPub,
 	}
 
-	name, ok := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name in alias declaration"), tokens.Identifier)
+	name, ok := p.consume(alerts.NewExpectedIdentifier(p.peek().Span).WithContext("as the name in alias declaration"), tokens.Identifier)
 	if ok {
 		aliasDecl.Name = name
 	} else if !p.check(tokens.Equal) && p.peek(1).Type == tokens.Equal {
@@ -193,14 +194,14 @@ func (p *Parser) aliasDeclaration() ast.Node {
 		return ast.NewImproper(aliasDecl.Token, ast.AliasDeclaration)
 	}
 
-	_, ok = p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.Equal, "after name in alias declaration")
+	_, ok = p.consume(alerts.NewExpectedSymbol(p.peek().Span, tokens.Equal.String()).WithContext("after name in alias declaration"), tokens.Equal)
 	if !ok {
 		return ast.NewImproper(aliasDecl.Token, ast.AliasDeclaration)
 	}
 
 	typeExpr, ok := p.checkType("in alias declaration")
 	if !ok {
-		p.AlertSingle(&alerts.ExpectedType{}, typeExpr.GetToken(), "in alias declaration")
+		p.Report(alerts.NewExpectedType(typeExpr.GetToken().Span).WithContext("in alias declaration"))
 	}
 	if typeExpr.GetType() == ast.NA {
 		return ast.NewImproper(aliasDecl.Token, ast.AliasDeclaration)
@@ -220,7 +221,7 @@ func (p *Parser) classDeclaration() ast.Node {
 		stmt.Token = p.peek(-2)
 	}
 
-	name, _ := p.consume(p.NewAlert(&alerts.ExpectedIdentifier{}, alerts.NewSingle(p.peek()), "as the name of the class"), tokens.Identifier)
+	name, _ := p.consume(alerts.NewExpectedIdentifier(p.peek().Span).WithContext("as the name of the class"), tokens.Identifier)
 	stmt.Name = name
 
 	if p.tryGenericArgs() {
@@ -232,7 +233,7 @@ func (p *Parser) classDeclaration() ast.Node {
 		}
 	}
 
-	_, ok := p.alertSingleConsume(&alerts.ExpectedSymbol{}, tokens.LeftBrace)
+	_, ok := p.consume(alerts.NewExpectedSymbol(p.peek().Span, tokens.LeftBrace.String()), tokens.LeftBrace)
 	if !ok {
 		return ast.NewImproper(stmt.Token, ast.ClassDeclaration)
 	}
@@ -243,7 +244,7 @@ func (p *Parser) classDeclaration() ast.Node {
 		switch declaration := auxiliaryDeclaration.(type) {
 		case *ast.ConstructorDecl:
 			if stmt.Constructor != nil {
-				p.AlertMulti(&alerts.MoreThanOneConstructor{}, declaration.GetToken(), p.peek(-1))
+				p.Report(alerts.NewMoreThanOneConstructor(core.MergeSpans(declaration.GetToken().Span, p.peek(-1).Span)))
 			} else {
 				stmt.Constructor = declaration
 			}
@@ -252,7 +253,7 @@ func (p *Parser) classDeclaration() ast.Node {
 		case *ast.MethodDecl:
 			stmt.Methods = append(stmt.Methods, *declaration)
 		default:
-			p.AlertMulti(&alerts.UnknownStatement{}, auxiliaryDeclaration.GetToken(), p.peek(-1), "in class declaration")
+			p.Report(alerts.NewUnknownStatement(core.MergeSpans(auxiliaryDeclaration.GetToken().Span, p.peek(-1).Span)).WithContext("in class declaration"))
 		}
 	}
 
@@ -286,7 +287,7 @@ func (p *Parser) entityDeclaration() ast.Node {
 		return ast.NewImproper(stmt.Token, ast.NA)
 	}
 	if name.Type != tokens.Identifier {
-		p.AlertSingle(&alerts.ExpectedIdentifier{}, p.peek(), "as the name of the entity")
+		p.Report(alerts.NewExpectedIdentifier(p.peek().Span).WithContext("as the name of the entity"))
 	}
 	start := p.peek(-1)
 	for p.consumeTill("in entity declaration", start, tokens.RightBrace) {
@@ -300,7 +301,7 @@ func (p *Parser) entityDeclaration() ast.Node {
 			continue
 		}
 		if auxiliaryDeclaration.GetType() != ast.EntityFunctionDeclaration {
-			p.AlertMulti(&alerts.UnknownStatement{}, auxiliaryDeclaration.GetToken(), p.peek(-1), "in entity declaration")
+			p.Report(alerts.NewUnknownStatement(core.MergeSpans(auxiliaryDeclaration.GetToken().Span, p.peek(-1).Span)).WithContext("in entity declaration"))
 			continue
 		}
 
@@ -310,13 +311,13 @@ func (p *Parser) entityDeclaration() ast.Node {
 		switch funcDecl.Type {
 		case ast.Spawn:
 			if stmt.Spawner != nil {
-				p.AlertMulti(&alerts.MoreThanOneEntityFunction{}, funcDecl.GetToken(), p.peek(-1), string(funcType))
+				p.Report(alerts.NewMoreThanOneEntityFunction(core.MergeSpans(funcDecl.GetToken().Span, p.peek(-1).Span), string(funcType)))
 			} else {
 				stmt.Spawner = funcDecl
 			}
 		case ast.Destroy:
 			if stmt.Destroyer != nil {
-				p.AlertMulti(&alerts.MoreThanOneEntityFunction{}, funcDecl.GetToken(), p.peek(-1), string(funcType))
+				p.Report(alerts.NewMoreThanOneEntityFunction(core.MergeSpans(funcDecl.GetToken().Span, p.peek(-1).Span), string(funcType)))
 			} else {
 				stmt.Destroyer = funcDecl
 			}
@@ -324,7 +325,7 @@ func (p *Parser) entityDeclaration() ast.Node {
 			var wasFound bool
 			for i := range stmt.Callbacks {
 				if stmt.Callbacks[i].Type == funcType {
-					p.AlertMulti(&alerts.MoreThanOneEntityFunction{}, funcDecl.GetToken(), p.peek(-1), string(funcType))
+					p.Report(alerts.NewMoreThanOneEntityFunction(core.MergeSpans(funcDecl.GetToken().Span, p.peek(-1).Span), string(funcType)))
 					wasFound = true
 				}
 			}
@@ -384,7 +385,7 @@ func (p *Parser) constructorDeclaration() ast.Node {
 	stmt.Params = params
 	returns, _ := p.functionReturns()
 	if returns != nil {
-		p.AlertSingle(&alerts.ReturnsInConstructor{}, returns[0].GetToken())
+		p.Report(alerts.NewReturnsInConstructor(returns[0].GetToken().Span))
 	}
 	var success bool
 	stmt.Body, success = p.body(false, true)
