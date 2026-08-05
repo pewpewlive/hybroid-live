@@ -8,48 +8,48 @@
     "name": "ExpectedExpression",
     "type": "Error",
     "fields": {
-      "Context": "string `default:\"\"`"
+      "context": {"type": "string", "provider": "context"}
     },
     "message": "expected expression %s",
-    "message_format": ["Context"]
+    "message_format": ["context"]
   },
   {
     "name": "UnknownStatement",
     "type": "Error",
     "fields": {
-      "Context": "string `default:\"\"`"
+      "context": {"type": "string", "provider": "context"}
     },
     "message": "unknown statement %s",
-    "message_format": ["Context"]
+    "message_format": ["context"]
   },
   {
     "name": "ExpectedKeyword",
     "type": "Error",
     "fields": {
-      "Keyword": "string",
-      "Context": "string `default:\"\"`"
+      "keyword": "string",
+      "context": {"type": "string", "provider": "context"}
     },
     "message": "expected keyword '%s' %s",
-    "message_format": ["Keyword", "Context"]
+    "message_format": ["keyword", "context"]
   },
   {
     "name": "ExpectedIdentifier",
     "type": "Error",
     "fields": {
-      "Context": "string `default:\"\"`"
+      "context": {"type": "string", "provider": "context"}
     },
     "message": "expected identifier %s",
-    "message_format": ["Context"]
+    "message_format": ["context"]
   },
   {
     "name": "ExpectedSymbol",
     "type": "Error",
     "fields": {
-      "Symbol": "string",
-      "Context": "string `default:\"\"`"
+      "symbol": "string",
+      "context": {"type": "string", "provider": "context"}
     },
     "message": "expected '%s' %s",
-    "message_format": ["Symbol", "Context"]
+    "message_format": ["symbol", "context"]
   },
   {
     "name": "MoreThanOneElseBlock",
@@ -65,10 +65,10 @@
     "name": "MoreThanOneEntityFunction",
     "type": "Error",
     "fields": {
-      "FunctionType": "string"
+      "functionType": "string"
     },
     "message": "cannot have more than one %s in entity declaration",
-    "message_format": ["FunctionType"]
+    "message_format": ["functionType"]
   },
   {
     "name": "MultipleIdentifiersInCompoundAssignment",
@@ -90,10 +90,10 @@
     "name": "ExpectedType",
     "type": "Error",
     "fields": {
-      "Context": "string `default:\"\"`"
+      "context": {"type": "string", "provider": "context"}
     },
     "message": "expected type %s",
-    "message_format": ["Context"]
+    "message_format": ["context"]
   },
   {
     "name": "ExpectedAssignmentSymbol",
@@ -146,38 +146,38 @@
     "name": "MissingIterator",
     "type": "Error",
     "fields": {
-      "Context": "string `default:\"\"`"
+      "context": {"type": "string", "provider": "context"}
     },
     "message": "missing iterator %s",
-    "message_format": ["Context"]
+    "message_format": ["context"]
   },
   {
     "name": "DuplicateKeyword",
     "type": "Error",
     "fields": {
-      "Keyword": "string"
+      "keyword": "string"
     },
     "message": "cannot have multiple '%s' keywords",
-    "message_format": ["Keyword"]
+    "message_format": ["keyword"]
   },
   {
     "name": "UnexpectedKeyword",
     "type": "Error",
     "fields": {
-      "Keyword": "string",
-      "Context": "string `default:\"\"`"
+      "keyword": "string",
+      "context": {"type": "string", "provider": "context"}
     },
     "message": "unexpected keyword '%s' %s",
-    "message_format": ["Keyword", "Context"]
+    "message_format": ["keyword", "context"]
   },
   {
     "name": "IteratorRedefinition",
     "type": "Error",
     "fields": {
-      "Context": "string `default:\"\"`"
+      "context": {"type": "string", "provider": "context"}
     },
     "message": "redefinition of iterator %s",
-    "message_format": ["Context"]
+    "message_format": ["context"]
   },
   {
     "name": "ElseIfBlockAfterElseBlock",
@@ -198,27 +198,27 @@
     "name": "InvalidExpression",
     "type": "Error",
     "fields": {
-      "Type": "string",
-      "Context": "string `default:\"\"`"
+      "exprType": "string",
+      "context": {"type": "string", "provider": "context"}
     },
     "message": "'%s' not allowed %s",
-    "message_format": ["Type", "Context"]
+    "message_format": ["exprType", "context"]
   },
   {
     "name": "SyntaxIncoherency",
     "type": "Error",
     "fields": {
-      "ParsedSection": "string",
-      "PreviousSection": "string",
-      "AllowsNextLine": "bool"
+      "parsedSection": "string",
+      "previousSection": "string",
+      "allowsNextLine": "bool"
     },
     "message": "'%s' needs to start in the same%s line as '%s'",
     "message_format": [
-      "ParsedSection",
+      "parsedSection",
       {
-        "AllowsNextLine": "func(cond bool, str string) string {{ if !cond {{ return \"\" }}; return str }}({}, \" or next\")"
+        "allowsNextLine": "func(cond bool, str string) string {{ if !cond {{ return \"\" }}; return str }}({}, \" or next\")"
       },
-      "PreviousSection"
+      "previousSection"
     ]
   },
   {

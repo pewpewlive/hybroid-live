@@ -13,38 +13,38 @@
     "name": "MalformedNumber",
     "type": "Error",
     "fields": {
-      "Number": "string"
+      "number": "string"
     },
     "message": "malformed number: '%s'",
-    "message_format": ["Number"]
+    "message_format": ["number"]
   },
   {
     "name": "InvalidDigitInLiteral",
     "type": "Error",
     "fields": {
-      "Digit": "string",
-      "Literal": "string"
+      "digit": "string",
+      "literal": "string"
     },
     "message": "invalid digit '%s' in %s literal",
-    "message_format": ["Digit", "Literal"]
+    "message_format": ["digit", "literal"]
   },
   {
     "name": "InvalidNumberPostfix",
     "type": "Error",
     "fields": {
-      "Postfix": "string"
+      "postfix": "string"
     },
     "message": "invalid number postfix: '%s'",
-    "message_format": ["Postfix"],
+    "message_format": ["postfix"],
     "note": "a valid postfix is either 'f', 'fx', 'r' or 'd'"
   },
   {
     "name": "UnsupportedCharacter",
     "type": "Error",
     "fields": {
-      "Character": "string"
+      "character": "string"
     },
     "message": "unsupported character: '%s'",
-    "message_format": ["Character"]
+    "message_format": ["character"]
   }
 ]
